@@ -74,9 +74,9 @@ class Deprels(object):
             except ValueError:
                 headnr = -1
             if headnr >= 0 and headnr < len(data):
-                dep = word_info["lemma"]
+                dep = word_info["lemgram"] or word_info["lemma"]
                 rel = self.relmap[word_info["deprel"]]
-                head = data[headnr]["lemma"]
+                head = data[headnr]["lemgram"] or data[headnr]["lemma"]
                 head_rel_dep = head + self.sep + rel + self.sep + dep
                 self.freqs.incr(head_rel_dep)
                 self.freqs_rel.incr(rel)
@@ -91,7 +91,7 @@ class Deprels(object):
 def process_input(f, deprels):
     sent_id_re = re.compile(r'<sentence\s+id="(.*?)">')
     tag_re = re.compile(r'^<.*>$')
-    fieldnames = ["word", "lemma", "pos", "msd", "dephead", "deprel"]
+    fieldnames = ["word", "lemma", "pos", "msd", "dephead", "deprel", "lemgram"]
     data = []
     for line in f:
         line = line[:-1]
@@ -103,6 +103,9 @@ def process_input(f, deprels):
             data = []
         elif not tag_re.match(line):
             fields = line.split('\t')
+            if fields[-1].startswith('|') and fields[-1].endswith('|'):
+                fields[-1] = fields[-1][1:-1]
+            fields.append("")	# An empty lemgram by default
             data.append(dict(zip(fieldnames, fields)))
     if len(data) > 0:
         deprels.add(sent_id, data)
