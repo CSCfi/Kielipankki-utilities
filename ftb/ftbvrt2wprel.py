@@ -22,21 +22,21 @@ class IncrDict(dict):
 class Deprels(object):
 
     sep = '\0x01'
-    relmap = {'advl': 'AA',
+    relmap = {'advl': 'ADV',
               'attr': 'AT',
               'aux': 'IV',
               'comp': 'OP',
               'conjunct': 'UK',
               'idiom': 'XF',
               'idom': 'XF',
-              'main': 'HD',
+              'main': 'Head',
               'mod': 'ET',
               'modal': 'IV',
-              'obj': 'EO',
+              'obj': 'OBJ',
               'phrm': 'XX',
               'phrv': 'PL',
               'scomp': 'SP',
-              'subj': 'ES',
+              'subj': 'SS',
               'voc': 'TT',
               '_': 'XX'}
 
