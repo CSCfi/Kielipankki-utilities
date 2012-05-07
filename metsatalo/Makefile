@@ -7,7 +7,7 @@ CORPNAME = metsatalo
 include ../corp-common.mk
 
 
-P_ATTRS = lemma pos msd dephead deprel lex
+P_ATTRS = lemma pos msd dephead deprel spoken lex
 S_ATTRS = sentence:0+id
 
 

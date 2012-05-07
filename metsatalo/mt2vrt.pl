@@ -124,6 +124,9 @@ sub process_input
 		$field =~ s/^\s+//;
 		$field =~ s/\s+$//;
 	    }
+	    $fields[5] =~ tr/<> /[]|/;
+	    $fields[1] =~ s/^-$/_/;
+	    $fields[2] =~ s/^-$/_/;
 	    print join ("\t", @fields[3, 4], $pos, @fields[5, 1, 2, 6]);
 	    if ($$opts_r{lemgrams})
 	    {
