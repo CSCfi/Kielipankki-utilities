@@ -17,12 +17,19 @@ P_OPTS = $(foreach attr,$(P_ATTRS),-P $(attr))
 S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
 
 
-reg: vrt
+reg: vrt info
 	$(CWB_MAKEALL)
+	cp -p info $(CORPDIR)/$(CORPNAME)/.info
 
 vrt: $(CORPNAME).vrt
 	-mkdir $(CORPDIR)/$(CORPNAME)
 	$(CWB_ENCODE) $(P_OPTS) $(S_OPTS)
+
+info: $(CORPNAME).vrt
+	egrep '<sentence' $< | tail -1 \
+	| perl -ne '/"(.*?)"/; print "Sentences: $$1\n"' > $@
+	ls -l --time-style=long-iso $< \
+	| perl -ne '/(\d{4}-\d{2}-\d{2})/; print "Updated: $$1\n"' >> $@
 
 korp_db: korp_rels korp_lemgrams
 
