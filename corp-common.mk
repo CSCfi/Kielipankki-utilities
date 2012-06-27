@@ -17,15 +17,15 @@ P_OPTS = $(foreach attr,$(P_ATTRS),-P $(attr))
 S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
 
 
-reg: vrt info
+reg: vrt $(CORPNAME).info
 	$(CWB_MAKEALL)
-	cp -p info $(CORPDIR)/$(CORPNAME)/.info
+	cp -p $(CORPNAME).info $(CORPDIR)/$(CORPNAME)/.info
 
 vrt: $(CORPNAME).vrt
 	-mkdir $(CORPDIR)/$(CORPNAME)
 	$(CWB_ENCODE) $(P_OPTS) $(S_OPTS)
 
-info: $(CORPNAME).vrt
+%.info: %.vrt
 	egrep '<sentence' $< | tail -1 \
 	| perl -ne '/"(.*?)"/; print "Sentences: $$1\n"' > $@
 	ls -l --time-style=long-iso $< \
