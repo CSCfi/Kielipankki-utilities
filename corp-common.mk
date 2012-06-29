@@ -26,8 +26,7 @@ vrt: $(CORPNAME).vrt
 	$(CWB_ENCODE) $(P_OPTS) $(S_OPTS)
 
 %.info: %.vrt
-	egrep '<sentence' $< | tail -1 \
-	| perl -ne '/"(.*?)"/; print "Sentences: $$1\n"' > $@
+	echo "Sentences: "`egrep -c '^<sentence[> ]' $<` > $@
 	ls -l --time-style=long-iso $< \
 	| perl -ne '/(\d{4}-\d{2}-\d{2})/; print "Updated: $$1\n"' >> $@
 
