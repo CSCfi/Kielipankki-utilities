@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-MODE = statute
+VNS2VRT_OPTS = --tokenize --para-as-sent --mode=statute
 
 FILES = 1840heik.xml
 
