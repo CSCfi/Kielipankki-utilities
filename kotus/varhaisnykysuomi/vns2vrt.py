@@ -25,12 +25,13 @@ class Converter(object):
         text_e = et.Element("text")
         self._add_text_info(text_e)
         self._add_body(text_e)
-        text_e.text = text_e.tail = '\n'
+        self._add_content_newlines(text_e)
         return et.ElementTree(text_e)
 
     def _add_text_info(self, text_e):
         text_e.set("title", self._get_title())
         text_e.set("distributor", self._get_distributor())
+        text_e.set("source", self._get_source())
 
     def _get_title(self):
         return self._src_etr.find("teiHeader//title").text.strip()
@@ -39,9 +40,14 @@ class Converter(object):
         return ' / '.join([distr.text.strip() for distr in
                            self._src_etr.findall("teiHeader//distributor")])
 
+    def _get_source(self):
+        return self._src_etr.find("teiHeader//sourceDesc/p").text.strip()
+
     def _add_body(self, text_e):
-        body_roots = self._src_etr.findall("//text/body/*")
-        text_e.extend([self._process_body_elem(elem) for elem in body_roots])
+        body_roots = self._src_etr.findall(".//text/body")
+        text_e.extend([subresult
+                       for elem in body_roots
+                       for subresult in self._process_body_elem(elem)])
 
     def _process_body_elem(self, body_e):
         result = None
@@ -49,27 +55,41 @@ class Converter(object):
         # print '<' + body_e.tag + " id=" + id_attr
         if body_e.tag in ['p', 'head', 'opener']:
             result = et.Element('sentence')
-            result.text = self._process_text(body_e)
+            self._process_mixed_content(body_e, result)
             result.set('type', body_e.tag)
         elif body_e.tag == 'div':
-            result = et.Element(body_e.tag)
-            result.set('type', body_e.get('type', ''))
-            result.extend([self._process_body_elem(subelem)
-                           for subelem in body_e])
-            # print len(result)
+            type_ = body_e.get('type', '')
+            subresults = [subresult
+                          for subelem in body_e
+                          for subresult in self._process_body_elem(subelem)]
+            if not type_:
+                return subresults
+            else:
+                tag = {'artikla': 'article', u'pykälä': 'paragraph'}[type_]
+                result = et.Element(tag)
+                # result.set('type', type_)
+                result.extend(subresults)
+                # print len(result)
         elif body_e.tag == 'body':
-            result = self._process_body_elem(body_e[0])
+            return self._process_body_elem(body_e[0])
         result.set('id', id_attr)
-        result.text = result.text or ''
-        if not result.text.startswith('\n'):
-            result.text = '\n' + result.text
-        result.tail = '\n'
+        self._add_content_newlines(result)
         # print "<<" + result.text + ">>"
         # print '>' + body_e.tag + " id=" + id_attr + " " + result.get('id')
-        return result
+        return [result]
 
-    def _process_text(self, elem):
-        return self._tokenize(self._get_all_text(elem))
+    def _process_text(self, elem, result):
+        result.text = self._tokenize(self._get_all_text(elem))
+
+    def _process_mixed_content(self, elem, result):
+        result.text = self._tokenize(elem.text)
+        result.tail = self._tokenize(elem.tail)
+        result.attrib = elem.attrib
+        self._add_content_newlines(result)
+        for subelem in elem:
+            subresult = et.Element(subelem.tag)
+            self._process_mixed_content(subelem, subresult)
+            result.append(subresult)
 
     def _get_all_text(self, elem):
         return elem.text + ''.join([self._get_all_text(subelem) + subelem.tail
@@ -78,7 +98,15 @@ class Converter(object):
     def _tokenize(self, text):
         text = re.sub(r'([.,:;])[ \n]', r' \1 ', text)
         return '\n'.join(text.split()) + '\n'
-        
+
+    def _add_content_newlines(self, elem):
+        elem.text = elem.text or ''
+        if not elem.text.startswith('\n'):
+            elem.text = '\n' + elem.text
+        elem.tail = elem.tail or ''
+        if not elem.tail.endswith('\n'):
+            elem.tail += '\n'
+
 
 def getopts():
     optparser = OptionParser()
