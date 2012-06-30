@@ -76,7 +76,9 @@ class Converter(object):
                 result.extend(subresults)
                 # print len(result)
         elif body_e.tag == 'body':
-            return self._process_body_elem(body_e[0])
+            return self._process_subelems(body_e)
+        elif body_e.tag == 'entry' and self._opts.mode == 'dictionary':
+            return [self._make_dict_entry_sentence(body_e)]
         else:
             result = et.Element(body_e.tag)
             subresults = self._process_subelems(body_e)
@@ -110,6 +112,76 @@ class Converter(object):
             self._process_mixed_content(subelem, subresult)
             result.append(subresult)
 
+    def _make_dict_entry_sentence(self, elem):
+        result = et.Element('sentence')
+        if self._opts.dict_entry_as_posattrs:
+            result.text = self._make_dict_entry_as_posattrs(elem)
+        else:
+            self._make_dict_entry_as_elems(elem, result)
+        # print result.text
+        self._add_content_newlines(result)
+        return result
+
+    def _make_dict_entry_as_posattrs(self, elem):
+        entry_info = self._get_dict_entry_info(elem)
+        return '\t'.join([entry_info[key]
+                          for key in ['form', 'example', 'pos', 'xref',
+                                      'etym', 'etymlang', 'note',
+                                      'notetype']])
+
+    def _make_dict_entry_as_elems(self, elem, result):
+        entry_info = self._get_dict_entry_info(elem)
+        for subelem in elem:
+            if len(subelem):
+                for subsubelem in subelem:
+                    if subsubelem.tag == 'q':
+                        tag = subelem.tag
+                        text = self._tokenize('"' + subsubelem.text.strip()
+                                              + '"')
+                    else:
+                        tag = subsubelem.tag
+                        text = self._tokenize(subsubelem.text)
+                    add_elem = et.Element('item', subsubelem.attrib)
+                    add_elem.set('itemtype', tag)
+                    add_elem.text = text
+                    self._add_content_newlines(add_elem)
+                    result.append(add_elem)
+            else:
+                add_elem = et.Element('item', subelem.attrib)
+                add_elem.set('itemtype', subelem.tag)
+                add_elem.text = self._tokenize(subelem.text)
+                self._add_content_newlines(add_elem)
+                result.append(add_elem)
+        if self._opts.dict_info_as_sent_attrs:
+            for attr in ['form', 'example', 'pos', 'xref', 'etym', 'etymlang']:
+                result.set(attr, entry_info.get(attr, ''))
+
+    def _get_dict_entry_info(self, elem):
+        entry_elems = {'form': './form/orth',
+                       'example': './eg/q',
+                       'pos': './gramGrp/pos',
+                       'xref': './xr',
+                       'etym': './etym',
+                       'etymlang': ('./etym', 'lang'),
+                       'note': './note',
+                       'notetype': ('./note', 'type')}
+        return dict([(key, self._get_dict_entry_item(elem, entry_elems[key]))
+                     for key in entry_elems.keys()])
+
+    def _get_dict_entry_item(self, elem, item):
+        if isinstance(item, tuple):
+            return self._get_subelem_attrs(elem, item[0], item[1])
+        else:
+            return self._get_subelem_texts(elem, item)
+
+    def _get_subelem_texts(self, elem, findpath):
+        return '; '.join([self._get_all_text(subelem).strip()
+                          for subelem in elem.findall(findpath)])
+
+    def _get_subelem_attrs(self, elem, findpath, attrname):
+        return '; '.join([subelem.get(attrname, '')
+                          for subelem in elem.findall(findpath)])
+
     def _get_all_text(self, elem):
         return elem.text + ''.join([self._get_all_text(subelem) + subelem.tail
                                     for subelem in elem])
@@ -117,7 +189,8 @@ class Converter(object):
     def _tokenize(self, text):
         text = text or ''
         if self._opts.tokenize:
-            text = re.sub(r'([.,:;])[ \n]', r' \1 ', text)
+            text = re.sub(r'([.,:;?!"])([ \n]|\Z)', r' \1\2', text)
+            text = re.sub(r'([ \n]|\A)(")', r'\1\2 ', text)
         return '\n'.join(text.split()) + '\n'
 
     def _add_content_newlines(self, elem):
@@ -125,7 +198,7 @@ class Converter(object):
         elem.tail = self._add_lead_trail_newline(elem.tail)
 
     def _add_lead_trail_newline(self, s):
-        s = s or '\n'
+        s = (s.strip() or '\n') if s else '\n'
         if s[0] != '\n':
             s = '\n' + s
         if s[-1] != '\n':
@@ -136,10 +209,16 @@ class Converter(object):
 def getopts():
     optparser = OptionParser()
     optparser.add_option('--mode', '-m', type='choice',
-                         choices=['sentences', 'statute'],
+                         choices=['sentences', 'statute', 'dictionary'],
                          default='sentences')
     optparser.add_option('--tokenize', action='store_true', default=False)
     optparser.add_option('--para-as-sent', '--paragraph-as-sentence',
+                         action='store_true', default=False)
+    optparser.add_option('--dict-entry-as-posattrs',
+                         '--dictionary-entry-as-positional-attributes',
+                         action='store_true', default=False)
+    optparser.add_option('--dict-info-as-sent-attrs',
+                         '--dictionary-information-as-sentence-attributes',
                          action='store_true', default=False)
     (opts, args) = optparser.parse_args()
     if opts.mode == 'statute':
@@ -150,7 +229,8 @@ def getopts():
 
 def main():
     divtypemaps = {'statute': {'artikla': 'article', u'pykälä': 'paragraph'},
-                   'sentences': {}}
+                   'sentences': {},
+                   'dictionary': {}}
     input_encoding = 'utf-8'
     output_encoding = 'utf-8'
     # ElementTree.XMLParser uses the encoding specified in the XML
