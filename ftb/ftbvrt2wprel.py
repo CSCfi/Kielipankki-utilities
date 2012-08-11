@@ -5,6 +5,8 @@ import sys
 import re
 import copy
 
+from optparse import OptionParser
+
 
 class IncrDict(dict):
 
@@ -88,10 +90,20 @@ class Deprels(object):
                                                str(max(wordnr, headnr) + 1)])])
 
 
-def process_input(f, deprels):
-    sent_id_re = re.compile(r'<sentence\s+id="(.*?)">')
+def getopts():
+    optparser = OptionParser()
+    optparser.add_option('--input-type', '--mode', type='choice',
+                         choices=['ftb2', 'ftb3'], default='ftb2')
+    (opts, args) = optparser.parse_args()
+    return (opts, args)
+
+
+def process_input(f, deprels, opts):
+    sent_id_re = re.compile(r'<sentence\s+(?:.+\s)?id="(.*?)".*>')
     tag_re = re.compile(r'^<.*>$')
     fieldnames = ["word", "lemma", "pos", "msd", "dephead", "deprel", "lemgram"]
+    if opts.input_type == 'ftb3':
+        fieldnames.insert(1, "lemma_comp")
     data = []
     for line in f:
         line = line[:-1]
@@ -121,7 +133,8 @@ def output_rels(deprels):
 
 def main():
     deprels = Deprels()
-    process_input(sys.stdin, deprels)
+    (opts, args) = getopts()
+    process_input(sys.stdin, deprels, opts)
     output_rels(deprels)
 
 
