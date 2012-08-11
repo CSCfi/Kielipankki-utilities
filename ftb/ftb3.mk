@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
 
 
-P_ATTRS = lemma pos msd dephead deprel lex
-S_ATTRS = sentence:0+id subcorpus:0+name
+P_ATTRS = lemma lemma2 pos msd dephead deprel lex
+S_ATTRS = sentence:0+id+line file:0+name subcorpus:0+name
 
 
 include ftb-common.mk
 
 
-$(CORPNAME).vrt: $(wildcard FinnTreeBank_2/*_tab.txt)
-	./ftb2vrt.pl --lemgrams $^ > $@
+INPUT_FILE = formatted_sentences_all_parsed_07122011.txt.phrm.tag2.conllx.final
+# INPUT_FILE = ftb3-100000.txt
+
+
+$(CORPNAME).vrt: $(INPUT_FILE)
+	./ftbconllx2vrt.py --lemgrams < $^ > $@
 
 $(CORPNAME)_rels.tsv: $(CORPNAME).vrt
-	./ftbvrt2wprel.py < $< > $@
+	./ftbvrt2wprel.py --input-type=ftb3 < $< > $@
