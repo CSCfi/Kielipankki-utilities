@@ -50,7 +50,7 @@ def process_input(f, opts):
             fields = set_fields(line, infields)
             fields['lemma0'] = remove_markers(fields['lemma'])
             fields['pos'] = extract_pos(fields['pos'])
-            fields['msd'] = re.sub(r'\s+', u' ', fields['msd'])
+            fields['msd'] = fix_msd(fields['msd'])
             if opts.lemgrams:
                 fields['lemgram'] = make_lemgram(fields['lemma0'],
                                                  fields['pos'])
@@ -97,8 +97,12 @@ def extract_pos(pos):
     pos = re.sub(r'Pron Pron', 'Pron', pos)
     pos = re.sub(r'Abbr Abbr', 'Abbr', pos)
     pos = re.sub(r'Punct .*', 'Punct', pos)
-    pos = re.sub(r'\s', u' ', pos)
+    pos = fix_msd(pos)
     return pos
+
+
+def fix_msd(msd):
+    return re.sub(r'\s+', u'|', re.sub(r'<', '[', re.sub(r'>', ']', msd)))
 
 
 _lemgram_posmap = {'_': 'xx', # Unspecified
