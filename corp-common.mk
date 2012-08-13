@@ -1,11 +1,36 @@
 # -*- coding: utf-8 -*-
 
 
+eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
+
 CORPORA ?= $(basename $(filter-out %-common.mk,$(wildcard *.mk)))
 
 TARGETS ?= vrt reg $(if $(DB),db)
 
 CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
+
+COMPRESS ?= $(strip $(if $(filter %.gz,$(SRC_FILES)),gz,\
+		$(if $(or $(filter %.bz2,$(SRC_FILES)),$(filter %.bz,$(SRC_FILES))),bz2,\
+		none)))
+
+COMPR_EXT_none = 
+CAT_none = cat
+COMPR_none = cat
+
+COMPR_EXT_gz = .gz
+CAT_gz = zcat
+COMPR_gz = gzip
+
+COMPR_EXT_bz2 = .bz2
+CAT_bz2 = bzcat
+COMPR_bz2 = bzip2
+
+COMPR_EXT = $(COMPR_EXT_$(COMPRESS))
+CAT = $(CAT_$(COMPRESS))
+COMPR = $(COMPR_$(COMPRESS))
+
+VRT = .vrt$(COMPR_EXT)
+TSV = .tsv$(COMPR_EXT)
 
 DBUSER = korp
 DBNAME = korp
@@ -17,9 +42,21 @@ CORPDIR = /corpora/data
 CORPCORPDIR = $(CORPDIR)/$(CORPNAME)
 REGDIR = /corpora/registry
 
-CWB_ENCODE = $(CWBDIR)/cwb-encode -d $(CORPCORPDIR) -f $(CORPNAME).vrt -R $(REGDIR)/$(CORPNAME) -xsB -c utf8
+CWB_ENCODE = $(CWBDIR)/cwb-encode -d $(CORPCORPDIR) -R $(REGDIR)/$(CORPNAME) \
+		-xsB -c utf8
 CWB_MAKEALL = $(CWBDIR)/cwb-makeall -V -r $(REGDIR) $(CORPNAME_U)
 CWB_MAKE = cwb-make -r $(REGDIR) -g $(CORPGROUP) -M 2000 $(CORPNAME_U)
+
+# MySQL statement "load data local infile" gives an error message on
+# Daniel: "ERROR 1148 (42000) at line 1: The used command is not
+# allowed with this MySQL version". mysqlimport does the same thing.
+# mysqlimport only reads named files, so a named pipe created by mknod
+# is used to support uncompressing compressed input on the fly.
+
+MYSQL_IMPORT = mknod $(2) p; \
+	($(CAT) $(1) > $(2) &); \
+	mysqlimport --user $(DBUSER) --local korp $(2); \
+	/bin/rm -f $(2)
 
 P_OPTS = $(foreach attr,$(P_ATTRS),-P $(attr))
 S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
@@ -37,7 +74,8 @@ all: $(TARGETS)
 
 define MAKE_CORPUS_R
 $(1)$(if $(subst @,,$(2)),@$(2)):
-	$$(MAKE) -f $(1).mk $(subst @,all,$(2)) CORPNAME=$(1) DB=$(DB)
+	$$(MAKE) -f $(1).mk $(or $(TARGET),$(subst @,all,$(2))) \
+		CORPNAME=$(1) DB=$(DB)
 endef
 
 $(foreach corp,$(CORPORA),\
@@ -54,15 +92,20 @@ vrt: $(CORPCORPDIR)/.info
 # to avoid unnecessarily remaking the corpus data if the .vrt file has
 # not changed.
 
-$(CORPCORPDIR)/.info: $(CORPNAME).vrt $(CORPNAME).info
+$(CORPCORPDIR)/.info: $(CORPNAME)$(VRT) $(CORPNAME).info
 	-mkdir $(CORPCORPDIR) || rm $(CORPCORPDIR)/*
-	$(CWB_ENCODE) $(P_OPTS) $(S_OPTS) \
+	$(CAT) $< | $(CWB_ENCODE) $(P_OPTS) $(S_OPTS) \
 	&& cp $(CORPNAME).info $(CORPCORPDIR)/.info
 
-%.info: %.vrt
-	echo "Sentences: "`egrep -c '^<sentence[> ]' $<` > $@
+%.info: %$(VRT)
+	echo "Sentences: "`$(CAT) $< | egrep -c '^<sentence[> ]'` > $@
 	ls -l --time-style=long-iso $< \
 	| perl -ne '/(\d{4}-\d{2}-\d{2})/; print "Updated: $$1\n"' >> $@
+
+$(CORPNAME)$(VRT): $(SRC_FILES) $(firstword $(MAKE_VRT_CMD))
+	$(CAT) $(SRC_FILES) \
+	| $(MAKE_VRT_CMD) \
+	| $(COMPR) > $@
 
 db: korp_db
 
@@ -70,30 +113,30 @@ korp_db: korp_rels korp_lemgrams
 
 korp_rels: $(CORPNAME)_rels_load.timestamp
 
-# MySQL statement "load data local infile" gives an error message on
-# Daniel: "ERROR 1148 (42000) at line 1: The used command is not
-# allowed with this MySQL version". mysqlimport does the same thing.
-
-$(CORPNAME)_rels_load.timestamp: $(CORPNAME)_rels.tsv
+$(CORPNAME)_rels_load.timestamp: $(CORPNAME)_rels$(TSV)
 	mysql --user $(DBUSER) --execute 'CREATE TABLE IF NOT EXISTS `relations_$(CORPNAME_U)` (`head` varchar(1024) NOT NULL, `rel` char(3) NOT NULL, `dep` varchar(1024) NOT NULL, `depextra` varchar(1024) DEFAULT NULL, `freq` int(11) NOT NULL, `freq_rel` int(11) NOT NULL, `freq_head_rel` int(11) NOT NULL, `freq_rel_dep` int(11) NOT NULL, `wf` tinyint(4) NOT NULL, `sentences` text, KEY `head` (`head`(255)), KEY `dep` (`dep`(255))) ENGINE=InnoDB DEFAULT CHARSET=utf8;' $(DBNAME)
 	mysql --user $(DBUSER) --execute "truncate table relations_$(CORPNAME_U);" $(DBNAME)
-	-ln -sf $(CORPNAME)_rels.tsv relations_$(CORPNAME_U).tsv
-	mysqlimport --user $(DBUSER) --local korp relations_$(CORPNAME_U).tsv
+	$(call MYSQL_IMPORT,$<,relations_$(CORPNAME_U).tsv)
 	touch $@
+
+$(CORPNAME)_rels$(TSV): $(CORPNAME)$(VRT) $(firstword $(MAKE_RELS_CMD))
+	$(CAT) $< \
+	| $(MAKE_RELS_CMD) \
+	| $(COMPR) > $@
 
 korp_lemgrams: $(CORPNAME)_lemgrams_load.timestamp
 
-$(CORPNAME)_lemgrams_load.timestamp: $(CORPNAME)_lemgrams.tsv
-	ln -sf $< lemgram_index.tsv
+$(CORPNAME)_lemgrams_load.timestamp: $(CORPNAME)_lemgrams$(TSV)
 	mysql --user $(DBUSER) --execute "delete from lemgram_index where corpus='$(CORPNAME_U)';" $(DBNAME)
-	mysqlimport --user $(DBUSER) --local korp lemgram_index.tsv
-	rm lemgram_index.tsv
+	$(call MYSQL_IMPORT,$<,lemgram_index.tsv)
 	touch $@
 
-$(CORPNAME)_lemgrams.tsv: $(CORPNAME).vrt
-	egrep -v '<' $< \
+$(CORPNAME)_lemgrams$(TSV): $(CORPNAME)$(VRT)
+	$(CAT) $< \
+	| egrep -v '<' \
 	| gawk -F'	' '{print $$NF}' \
 	| tr -d '|' \
 	| sort \
 	| uniq -c \
-	| perl -pe 's/^\s*(\d+)\s*(.*)/$$2\t$$1\t0\t0\t$(CORPNAME_U)/' > $@
+	| perl -pe 's/^\s*(\d+)\s*(.*)/$$2\t$$1\t0\t0\t$(CORPNAME_U)/' \
+	| $(COMPR) > $@
