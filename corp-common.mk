@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 
+# Requires GNU Make
+
+# This makefile is typically included in both the top-level Makefile
+# of a corpus directory and the makefiles (*.mk) for the individual
+# (sub)corpora in a corpus directory.
+
 
 eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
 
@@ -102,10 +108,18 @@ $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT) $(CORPNAME).info
 	ls -l --time-style=long-iso $< \
 	| perl -ne '/(\d{4}-\d{2}-\d{2})/; print "Updated: $$1\n"' >> $@
 
+# This does not support passing compressed files to a program
+# requiring filename arguments. That might be achieved by using named
+# pipes as for mysqlimport.
 $(CORPNAME)$(VRT): $(SRC_FILES) $(firstword $(MAKE_VRT_CMD))
+ifdef MAKE_VRT_FILENAME_ARGS
+	$(MAKE_VRT_CMD) $(SRC_FILES) \
+	| $(COMPR) > $@
+else
 	$(CAT) $(SRC_FILES) \
 	| $(MAKE_VRT_CMD) \
 	| $(COMPR) > $@
+endif
 
 db: korp_db
 
