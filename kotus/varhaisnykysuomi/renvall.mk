@@ -3,7 +3,7 @@
 
 VNS2VRT_OPTS = --mode=dictionary --tokenize --dict-info-as-sent-attrs
 
-FILES = renvall.xml
+SRC_FILES = renvall.xml
 
 P_ATTRS = 
 S_ATTRS = text:0+distributor+source+title \

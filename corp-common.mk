@@ -9,10 +9,11 @@
 
 eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
 
-CORPORA ?= $(basename $(filter-out %-common.mk,$(wildcard *.mk)))
+CORPORA ?= $(or $(basename $(filter-out %-common.mk,$(wildcard *.mk))),$(CORPNAME_BASE))
 
 TARGETS ?= vrt reg $(if $(DB),db)
 
+CORPNAME := $(CORPNAME_PREFIX)$(CORPNAME_BASE)$(CORPNAME_SUFFIX)
 CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
 
 COMPRESS ?= $(strip $(if $(filter %.gz,$(SRC_FILES)),gz,\
@@ -37,6 +38,11 @@ COMPR = $(COMPR_$(COMPRESS))
 
 VRT = .vrt$(COMPR_EXT)
 TSV = .tsv$(COMPR_EXT)
+
+MAKE_VRT_PROG ?= $(firstword $(MAKE_VRT_CMD))
+MAKE_RELS_PROG ?= $(firstword $(MAKE_RELS_CMD))
+
+TRANSCODE := $(if $(INPUT_ENCODING),iconv -f$(INPUT_ENCODING) -tutf8,cat)
 
 DBUSER = korp
 DBNAME = korp
@@ -81,7 +87,7 @@ all: $(TARGETS)
 define MAKE_CORPUS_R
 $(1)$(if $(subst @,,$(2)),@$(2)):
 	$$(MAKE) -f $(1).mk $(or $(TARGET),$(subst @,all,$(2))) \
-		CORPNAME=$(1) DB=$(DB)
+		CORPNAME_BASE=$(1) DB=$(DB)
 endef
 
 $(foreach corp,$(CORPORA),\
@@ -108,15 +114,16 @@ $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT) $(CORPNAME).info
 	ls -l --time-style=long-iso $< \
 	| perl -ne '/(\d{4}-\d{2}-\d{2})/; print "Updated: $$1\n"' >> $@
 
-# This does not support passing compressed files to a program
-# requiring filename arguments. That might be achieved by using named
-# pipes as for mysqlimport.
-$(CORPNAME)$(VRT): $(SRC_FILES) $(firstword $(MAKE_VRT_CMD))
+# This does not support passing compressed files or files requiring
+# transcoding to a program requiring filename arguments. That might be
+# achieved by using named pipes as for mysqlimport.
+$(CORPNAME)$(VRT): $(SRC_FILES) $(MAKE_VRT_PROG)
 ifdef MAKE_VRT_FILENAME_ARGS
 	$(MAKE_VRT_CMD) $(SRC_FILES) \
 	| $(COMPR) > $@
 else
 	$(CAT) $(SRC_FILES) \
+	| $(TRANSCODE) \
 	| $(MAKE_VRT_CMD) \
 	| $(COMPR) > $@
 endif
@@ -133,7 +140,7 @@ $(CORPNAME)_rels_load.timestamp: $(CORPNAME)_rels$(TSV)
 	$(call MYSQL_IMPORT,$<,relations_$(CORPNAME_U).tsv)
 	touch $@
 
-$(CORPNAME)_rels$(TSV): $(CORPNAME)$(VRT) $(firstword $(MAKE_RELS_CMD))
+$(CORPNAME)_rels$(TSV): $(CORPNAME)$(VRT) $(MAKE_RELS_PROG)
 	$(CAT) $< \
 	| $(MAKE_RELS_CMD) \
 	| $(COMPR) > $@

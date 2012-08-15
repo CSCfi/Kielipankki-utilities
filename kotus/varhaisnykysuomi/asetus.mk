@@ -3,7 +3,7 @@
 
 VNS2VRT_OPTS = --tokenize --para-as-sent --mode=statute
 
-FILES = 1840heik.xml
+SRC_FILES = 1840heik.xml
 
 P_ATTRS = 
 S_ATTRS = text:0+distributor+source+title article:0+id paragraph:0+id \
