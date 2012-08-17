@@ -51,18 +51,30 @@ class Converter(object):
                        for subresult in self._process_body_elem(elem)])
 
     def _process_body_elem(self, body_e):
+
+        def _process_subelems(result):
+            result.text = result.text or ''
+            subresults = self._process_subelems(body_e)
+            if isinstance(subresults, basestring):
+                result.text += subresults
+            else:
+                result.extend(subresults)
+            
         result = None
         id_attr = body_e.get('id', '')
         # print '<' + body_e.tag + " id=" + id_attr
         if body_e.tag == 's':
             result = self._make_sentence(body_e)
+        elif body_e.tag == 'w':
+            return self._make_word(body_e)
         elif body_e.tag in ['p', 'head', 'opener']:
             if self._opts.para_as_sent:
                 result = self._make_sentence(body_e)
             else:
                 result = et.Element('para')
-                subresults = self._process_subelems(body_e)
-                result.extend(subresults)
+                _process_subelems(result)
+            if body_e.get('type'):
+                result.set('topic', body_e.get('type'))
             result.set('type', body_e.tag)
         elif body_e.tag == 'div':
             type_ = body_e.get('type', '')
@@ -71,6 +83,8 @@ class Converter(object):
                 return subresults
             else:
                 tag = self._divtypemap.get(type_, "div")
+                if tag == '':
+                    return subresults
                 result = et.Element(tag)
                 # result.set('type', type_)
                 result.extend(subresults)
@@ -81,8 +95,7 @@ class Converter(object):
             return [self._make_dict_entry_sentence(body_e)]
         else:
             result = et.Element(body_e.tag)
-            subresults = self._process_subelems(body_e)
-            result.extend(subresults)
+            _process_subelems(result)
         result.set('id', id_attr)
         self._add_content_newlines(result)
         # print "<<" + result.text + ">>"
@@ -91,13 +104,35 @@ class Converter(object):
 
     def _make_sentence(self, elem):
         result = et.Element('sentence')
-        self._process_mixed_content(elem, result)
+        if self._opts.mode == 'words':
+            self._process_word_elems(elem, result)
+        else:
+            self._process_mixed_content(elem, result)
         return result
 
+    def _process_word_elems(self, elem, result):
+        result.text = ''.join([self._make_word(subelem)
+                               for subelem in elem
+                               if subelem.tag == 'w'])
+
+    def _make_word(self, elem):
+        lemma_comp_bound = elem.get('lemma', '')
+        lemma = ''.join(lemma_comp_bound.split('#'))
+        pos = elem.get('type', '')
+        msd = elem.get('msd').strip()
+        msd = pos + (' ' + msd if msd else '')
+        msd = re.sub(r'\s+', '|', msd)
+        return '\t'.join([elem.get('norm', ''), lemma, lemma_comp_bound,
+                          pos, msd, elem.get('id', '')]) + '\n'
+
     def _process_subelems(self, elem):
-        return [subresult
-                for subelem in elem
-                for subresult in self._process_body_elem(subelem)]
+        subresults = [subresult
+                      for subelem in elem
+                      for subresult in self._process_body_elem(subelem)]
+        if isinstance(subresults[0], basestring):
+            return ''.join(subresults)
+        else:
+            return subresults
 
     def _process_text(self, elem, result):
         result.text = self._tokenize(self._get_all_text(elem))
@@ -210,7 +245,7 @@ def getopts():
     optparser = OptionParser()
     optparser.add_option('--mode', '-m', type='choice',
                          choices=['sentences', 'statute', 'dictionary',
-                                  'stories'],
+                                  'stories', 'words'],
                          default='sentences')
     optparser.add_option('--tokenize', action='store_true', default=False)
     optparser.add_option('--para-as-sent', '--paragraph-as-sentence',
@@ -232,7 +267,8 @@ def main():
     divtypemaps = {'statute': {'artikla': 'article', u'pykälä': 'paragraph'},
                    'sentences': {},
                    'dictionary': {},
-                   'stories': {'collection': 'collection', 'story': 'story'}}
+                   'stories': {'collection': 'collection', 'story': 'story'},
+                   'words': {'main': ''}}
     input_encoding = 'utf-8'
     output_encoding = 'utf-8'
     # ElementTree.XMLParser uses the encoding specified in the XML
