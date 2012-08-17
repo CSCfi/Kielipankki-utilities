@@ -7,6 +7,6 @@ CORPNAME_PREFIX = vns_
 # should not converted to UTF-8, since the encoding is specified in
 # the XML declaration and the script works correctly with it.
 
-MAKE_VRT_CMD = ./vns2vrt.py $(VNS2VRT_OPTS)
+MAKE_VRT_CMD = ../../scripts/tei2vrt.py $(VNS2VRT_OPTS)
 
 include ../../corp-common.mk
