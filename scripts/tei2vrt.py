@@ -189,8 +189,8 @@ class Converter(object):
     def _tokenize(self, text):
         text = text or ''
         if self._opts.tokenize:
-            text = re.sub(r'([.,:;?!"])([ \n]|\Z)', r' \1\2', text)
-            text = re.sub(r'([ \n]|\A)(")', r'\1\2 ', text)
+            text = re.sub(r'([.,:;?!")])([ \n]|\Z)', r' \1\2', text)
+            text = re.sub(r'([ \n]|\A)(["(])', r'\1\2 ', text)
         return '\n'.join(text.split()) + '\n'
 
     def _add_content_newlines(self, elem):
@@ -209,7 +209,8 @@ class Converter(object):
 def getopts():
     optparser = OptionParser()
     optparser.add_option('--mode', '-m', type='choice',
-                         choices=['sentences', 'statute', 'dictionary'],
+                         choices=['sentences', 'statute', 'dictionary',
+                                  'stories'],
                          default='sentences')
     optparser.add_option('--tokenize', action='store_true', default=False)
     optparser.add_option('--para-as-sent', '--paragraph-as-sentence',
@@ -230,7 +231,8 @@ def getopts():
 def main():
     divtypemaps = {'statute': {'artikla': 'article', u'pykälä': 'paragraph'},
                    'sentences': {},
-                   'dictionary': {}}
+                   'dictionary': {},
+                   'stories': {'collection': 'collection', 'story': 'story'}}
     input_encoding = 'utf-8'
     output_encoding = 'utf-8'
     # ElementTree.XMLParser uses the encoding specified in the XML
