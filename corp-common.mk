@@ -77,7 +77,12 @@ S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
 .PHONY: all-corp all $(CORPORA) $(TARGETS)
 
 
+# If $(CORPORA) == $(CORPNAME_BASE), the current directory does not
+# have *.mk for subcorpora, so "all" should be the first target.
+
+ifneq ($(strip $(CORPORA)),$(strip $(CORPNAME_BASE)))
 all-corp: $(CORPORA)
+endif
 
 all: $(TARGETS)
 
