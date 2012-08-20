@@ -8,6 +8,8 @@
 
 
 eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
+eqs = $(call eq,$(strip $(1)),$(strip $(2)))
+lower = $(shell echo $(1) | perl -pe 's/(.*)/\L$$1\E/')
 
 CORPORA ?= $(or $(basename $(filter-out %-common.mk,$(wildcard *.mk))),\
 		$(CORPNAME_BASE))
@@ -23,6 +25,9 @@ TARGETS ?= vrt reg $(if $(strip $(DB_TARGETS)),db)
 
 CORPNAME := $(CORPNAME_PREFIX)$(CORPNAME_BASE)$(CORPNAME_SUFFIX)
 CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
+
+DEP_MAKEFILES := $(if $(call eqs,$(call lower,$(MAKEFILE_DEPS)),false),,\
+			$(MAKEFILE_LIST))
 
 COMPRESS ?= $(strip $(if $(filter %.gz,$(SRC_FILES)),gz,\
 		$(if $(or $(filter %.bz2,$(SRC_FILES)),$(filter %.bz,$(SRC_FILES))),bz2,\
@@ -122,7 +127,7 @@ $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT) $(CORPNAME).info
 	$(CAT) $< | $(CWB_ENCODE) $(P_OPTS) $(S_OPTS) \
 	&& cp $(CORPNAME).info $(CORPCORPDIR)/.info
 
-%.info: %$(VRT)
+%.info: %$(VRT) $(DEP_MAKEFILES)
 	echo "Sentences: "`$(CAT) $< | egrep -c '^<sentence[> ]'` > $@
 	ls -l --time-style=long-iso $< \
 	| perl -ne '/(\d{4}-\d{2}-\d{2})/; print "Updated: $$1\n"' >> $@
@@ -130,7 +135,7 @@ $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT) $(CORPNAME).info
 # This does not support passing compressed files or files requiring
 # transcoding to a program requiring filename arguments. That might be
 # achieved by using named pipes as for mysqlimport.
-$(CORPNAME)$(VRT): $(SRC_FILES) $(MAKE_VRT_PROG)
+$(CORPNAME)$(VRT): $(SRC_FILES) $(MAKE_VRT_PROG) $(DEP_MAKEFILES)
 ifdef MAKE_VRT_FILENAME_ARGS
 	$(MAKE_VRT_CMD) $(SRC_FILES) \
 	| $(COMPR) > $@
