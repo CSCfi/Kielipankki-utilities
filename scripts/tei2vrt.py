@@ -98,6 +98,8 @@ class Converter(object):
             return self._process_subelems(body_e)
         elif body_e.tag == 'entry' and self._opts.mode == 'dictionary':
             return [self._make_dict_entry_sentence(body_e)]
+        elif body_e.tag == 'entry' and self._opts.mode == 'sayings':
+            return [self._make_sayings_entry(body_e)]
         else:
             result = et.Element(body_e.tag)
             _process_subelems(result)
@@ -267,6 +269,9 @@ class Converter(object):
                        'etymlang': ('./etym', 'lang'),
                        'note': './note',
                        'notetype': ('./note', 'type')}
+        return self._get_entry_info(entry_elems, elem)
+
+    def _get_entry_info(self, entry_elems, elem):
         return dict([(key, self._get_dict_entry_item(elem, entry_elems[key]))
                      for key in entry_elems.keys()])
 
@@ -287,6 +292,33 @@ class Converter(object):
     def _get_all_text(self, elem):
         return elem.text + ''.join([self._get_all_text(subelem) + subelem.tail
                                     for subelem in elem])
+
+    def _make_sayings_entry(self, elem):
+        result = et.Element('entry')
+        entry_info = self._get_saying_entry_info(elem)
+        result.extend([self._make_sayings_entry_sentence(entry_info[item], item)
+                       for item in 'standard', 'dialect', 'usage'
+                       if entry_info[item]])
+        for attr in entry_info:
+            result.set(attr, entry_info[attr])
+        self._add_content_newlines(result)
+        return result
+
+    def _get_saying_entry_info(self, elem):
+        entry_map = {'standard': './form[@type=\'standard\']',
+                     'dialect': './form[@type=\'dialect\']',
+                     'usage': './usg',
+                     'location': './note[@type=\'location\']',
+                     'collector': './note[@type=\'collector\']',
+                     'date': './note[@type=\'date\']'}
+        return self._get_entry_info(entry_map, elem)
+
+    def _make_sayings_entry_sentence(self, text, sent_type):
+        result = et.Element('sentence')
+        result.text = self._tokenize(text)
+        result.set('type', sent_type)
+        self._add_content_newlines(result)
+        return result
 
     def _tokenize(self, text):
         text = text or ''
@@ -312,7 +344,7 @@ def getopts():
     optparser = OptionParser()
     optparser.add_option('--mode', '-m', type='choice',
                          choices=['sentences', 'statute', 'dictionary',
-                                  'stories', 'statute-modern'],
+                                  'stories', 'statute-modern', 'sayings'],
                          default='sentences')
     optparser.add_option('--words', action='store_true', default=False)
     optparser.add_option('--lemgrams', action='store_true', default=False)
