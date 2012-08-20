@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-TEI2VRT_OPTS = --mode=words
+TEI2VRT_OPTS = --words
 
 SRC_FILES = kekkonen_1957.xml
 
