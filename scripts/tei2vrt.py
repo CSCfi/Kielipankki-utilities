@@ -127,8 +127,33 @@ class Converter(object):
         msd = elem.get('msd').strip()
         msd = pos + (' ' + msd if msd else '')
         msd = re.sub(r'\s+', '|', msd)
+        lemgram = ([self._make_lemgram(lemma, pos)]
+                   if self._opts.lemgrams else [])
         return '\t'.join([elem.get('norm', ''), lemma, lemma_comp_bound,
-                          pos, msd, elem.get('id', '')]) + '\n'
+                          pos, msd, elem.get('id', '')] + lemgram) + '\n'
+
+    _lemgram_posmap = {'_': 'xx', # Unspecified
+                       'A': 'jj',
+                       # AN in the target is not PoS category but a feature,
+                       # but we treat it as a category here.
+                       'ABBR': 'an',
+                       'AD-A': 'ab',
+                       'ADV': 'ab',
+                       'C': 'kn',
+                       'N': 'nn',
+                       'NUM': 'rg',
+                       'PCP1': 'vb',
+                       'PCP2': 'vb',
+                       'PP': 'pp',
+                       'PSP': 'pp',
+                       'PRON': 'pn',
+                       'REFL/PRON': 'pn',
+                       'PUNCT': 'xx',
+                       'V': 'vb'}
+
+    def _make_lemgram(self, lemma, pos):
+        return u'|{lemma}..{pos}.1|'.format(
+            lemma=lemma, pos=self._lemgram_posmap.get(pos, 'xx'))
 
     def _process_subelems(self, elem):
         subresults = [subresult
@@ -290,6 +315,7 @@ def getopts():
                                   'stories', 'statute-modern'],
                          default='sentences')
     optparser.add_option('--words', action='store_true', default=False)
+    optparser.add_option('--lemgrams', action='store_true', default=False)
     optparser.add_option('--tokenize', action='store_true', default=False)
     optparser.add_option('--para-as-sent', '--paragraph-as-sentence',
                          action='store_true', default=False)

@@ -9,9 +9,17 @@
 
 eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
 
-CORPORA ?= $(or $(basename $(filter-out %-common.mk,$(wildcard *.mk))),$(CORPNAME_BASE))
+CORPORA ?= $(or $(basename $(filter-out %-common.mk,$(wildcard *.mk))),\
+		$(CORPNAME_BASE))
 
-TARGETS ?= vrt reg $(if $(DB),db)
+DB_TARGETS_ALL = korp_rels korp_lemgrams
+DB_TARGETS ?= $(if $(DB),$(DB_TARGETS_ALL),\
+		$(if $(filter lex,$(P_ATTRS)),\
+			korp_lemgrams \
+			$(if $(and $(filter dephead,$(P_ATTRS)),$(filter deprels,$(P_ATTRS))),\
+				korp_rels)))
+
+TARGETS ?= vrt reg $(if $(strip $(DB_TARGETS)),db)
 
 CORPNAME := $(CORPNAME_PREFIX)$(CORPNAME_BASE)$(CORPNAME_SUFFIX)
 CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
@@ -135,7 +143,7 @@ endif
 
 db: korp_db
 
-korp_db: korp_rels korp_lemgrams
+korp_db: $(DB_TARGETS)
 
 korp_rels: $(CORPNAME)_rels_load.timestamp
 
