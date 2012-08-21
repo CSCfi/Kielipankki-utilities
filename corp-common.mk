@@ -11,6 +11,8 @@ eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
 eqs = $(call eq,$(strip $(1)),$(strip $(2)))
 lower = $(shell echo $(1) | perl -pe 's/(.*)/\L$$1\E/')
 
+SUBDIRS := $(shell ls | perl -ne 'chomp; print "$$_\n" if -d $$_ && -e "$$_/Makefile"')
+
 CORPORA ?= $(or $(basename $(filter-out %-common.mk,$(wildcard *.mk))),\
 		$(CORPNAME_BASE))
 
@@ -21,7 +23,7 @@ DB_TARGETS ?= $(if $(DB),$(DB_TARGETS_ALL),\
 			$(if $(and $(filter dephead,$(P_ATTRS)),$(filter deprels,$(P_ATTRS))),\
 				korp_rels)))
 
-TARGETS ?= vrt reg $(if $(strip $(DB_TARGETS)),db)
+TARGETS ?= subdirs vrt reg $(if $(strip $(DB_TARGETS)),db)
 
 CORPNAME := $(CORPNAME_PREFIX)$(CORPNAME_BASE)$(CORPNAME_SUFFIX)
 CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
@@ -63,9 +65,10 @@ DBNAME = korp
 CORPGROUP = korp
 
 CWBDIR = /usr/local/cwb/bin
-CORPDIR = /corpora/data
+CORPROOT = /v/corpora
+CORPDIR = $(CORPROOT)/data
 CORPCORPDIR = $(CORPDIR)/$(CORPNAME)
-REGDIR = /corpora/registry
+REGDIR = $(CORPROOT)/registry
 
 CWB_ENCODE = $(CWBDIR)/cwb-encode -d $(CORPCORPDIR) -R $(REGDIR)/$(CORPNAME) \
 		-xsB -c utf8
@@ -87,17 +90,23 @@ P_OPTS = $(foreach attr,$(P_ATTRS),-P $(attr))
 S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
 
 
-.PHONY: all-corp all $(CORPORA) $(TARGETS)
+.PHONY: all-corp all all-override subdirs $(CORPORA) $(TARGETS) $(SUBDIRS)
 
 
 # If $(CORPORA) == $(CORPNAME_BASE), the current directory does not
 # have *.mk for subcorpora, so "all" should be the first target.
 
 ifneq ($(strip $(CORPORA)),$(strip $(CORPNAME_BASE)))
-all-corp: $(CORPORA)
+all-corp: subdirs $(CORPORA)
 endif
 
 all: $(TARGETS)
+
+
+subdirs: $(SUBDIRS)
+
+$(SUBDIRS):
+	$(MAKE) -C $@
 
 
 # Define rules for targets $(CORPORA) and $(CORPORA)@$(TARGET)
@@ -123,11 +132,11 @@ vrt: $(CORPCORPDIR)/.info
 # not changed.
 
 $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT) $(CORPNAME).info
-	-mkdir $(CORPCORPDIR) || rm $(CORPCORPDIR)/*
+	-mkdir $(CORPCORPDIR) || /bin/rm $(CORPCORPDIR)/*
 	$(CAT) $< | $(CWB_ENCODE) $(P_OPTS) $(S_OPTS) \
 	&& cp $(CORPNAME).info $(CORPCORPDIR)/.info
 
-%.info: %$(VRT) $(DEP_MAKEFILES)
+%.info: %$(VRT)
 	echo "Sentences: "`$(CAT) $< | egrep -c '^<sentence[> ]'` > $@
 	ls -l --time-style=long-iso $< \
 	| perl -ne '/(\d{4}-\d{2}-\d{2})/; print "Updated: $$1\n"' >> $@
