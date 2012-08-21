@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
+# Do not remake if makefiles are changed (because of the time it takes
+# to rebuild the corpus).
+MAKEFILE_DEPS = false
+
 P_ATTRS = lemma lemmacomp pos msd dephead deprel lex
 S_ATTRS = sentence:0+id+line file:0+name subcorpus:0+name
 
