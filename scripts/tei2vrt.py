@@ -128,7 +128,7 @@ class Converter(object):
         pos = elem.get('type', '')
         msd = elem.get('msd').strip()
         msd = pos + (' ' + msd if msd else '')
-        msd = re.sub(r'\s+', '|', msd)
+        msd = ':' + re.sub(r'\s+', ':', msd) + ':'
         lemgram = ([self._make_lemgram(lemma, pos)]
                    if self._opts.lemgrams else [])
         return '\t'.join([elem.get('norm', ''), lemma, lemma_comp_bound,
