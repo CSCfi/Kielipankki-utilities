@@ -12,9 +12,4 @@ S_ATTRS = text:0+distributor+source+title collection:0+id story:0+id \
 		sentence:0+id+type
 
 
-# Override the first target all-corp in corp-common.mk that assumes
-# the existence of $(CORPNAME_BASE).mk.
-all-override: all
-
-
 include ../../corp-common.mk
