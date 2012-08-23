@@ -323,7 +323,9 @@ class Converter(object):
     def _tokenize(self, text):
         text = text or ''
         if self._opts.tokenize:
-            text = re.sub(r'([.,:;?!")])([ \n]|\Z)', r' \1\2', text)
+            text = re.sub(r'([.?!,:])(")', r'\1 \2', text)
+            text = re.sub(r'(\.\.\.)([,:;?!")])', r' \1 \2', text)
+            text = re.sub(r'([.,:;?!")]|\.\.\.)([ \n]|\Z)', r' \1\2', text)
             text = re.sub(r'([ \n]|\A)(["(])', r'\1\2 ', text)
         return '\n'.join(text.split()) + '\n'
 
