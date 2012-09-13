@@ -11,7 +11,9 @@ eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
 eqs = $(call eq,$(strip $(1)),$(strip $(2)))
 lower = $(shell echo $(1) | perl -pe 's/(.*)/\L$$1\E/')
 
-SUBDIRS := $(shell ls | perl -ne 'chomp; print "$$_\n" if -d $$_ && -e "$$_/Makefile"')
+SUBDIRS := \
+	$(shell ls \
+	| perl -ne 'chomp; print "$$_\n" if -d $$_ && -e "$$_/Makefile"')
 
 CORPORA ?= $(or $(basename $(filter-out %-common.mk,$(wildcard *.mk))),\
 		$(CORPNAME_BASE))
@@ -20,7 +22,8 @@ DB_TARGETS_ALL = korp_rels korp_lemgrams
 DB_TARGETS ?= $(if $(DB),$(DB_TARGETS_ALL),\
 		$(if $(filter lex,$(P_ATTRS)),\
 			korp_lemgrams \
-			$(if $(and $(filter dephead,$(P_ATTRS)),$(filter deprels,$(P_ATTRS))),\
+			$(if $(and $(filter dephead,$(P_ATTRS)),\
+				$(filter deprel,$(P_ATTRS))),\
 				korp_rels)))
 
 TARGETS ?= subdirs vrt reg $(if $(strip $(DB_TARGETS)),db)
@@ -32,7 +35,8 @@ DEP_MAKEFILES := $(if $(call eqs,$(call lower,$(MAKEFILE_DEPS)),false),,\
 			$(MAKEFILE_LIST))
 
 COMPRESS ?= $(strip $(if $(filter %.gz,$(SRC_FILES)),gz,\
-		$(if $(or $(filter %.bz2,$(SRC_FILES)),$(filter %.bz,$(SRC_FILES))),bz2,\
+		$(if $(or $(filter %.bz2,$(SRC_FILES)),\
+			$(filter %.bz,$(SRC_FILES))),bz2,\
 		none)))
 
 COMPR_EXT_none = 
@@ -161,9 +165,26 @@ korp_db: $(DB_TARGETS)
 
 korp_rels: $(CORPNAME)_rels_load.timestamp
 
+CREATE_RELS_SQL = '\
+	CREATE TABLE IF NOT EXISTS `relations_$(CORPNAME_U)` ( \
+		`head` varchar(1024) NOT NULL, \
+		`rel` char(3) NOT NULL, \
+		`dep` varchar(1024) NOT NULL, \
+		`depextra` varchar(1024) DEFAULT NULL, \
+		`freq` int(11) NOT NULL, \
+		`freq_rel` int(11) NOT NULL, \
+		`freq_head_rel` int(11) NOT NULL, \
+		`freq_rel_dep` int(11) NOT NULL, \
+		`wf` tinyint(4) NOT NULL, \
+		`sentences` text, \
+		KEY `head` (`head`(255)), \
+		KEY `dep` (`dep`(255)) \
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+
 $(CORPNAME)_rels_load.timestamp: $(CORPNAME)_rels$(TSV)
-	mysql --user $(DBUSER) --execute 'CREATE TABLE IF NOT EXISTS `relations_$(CORPNAME_U)` (`head` varchar(1024) NOT NULL, `rel` char(3) NOT NULL, `dep` varchar(1024) NOT NULL, `depextra` varchar(1024) DEFAULT NULL, `freq` int(11) NOT NULL, `freq_rel` int(11) NOT NULL, `freq_head_rel` int(11) NOT NULL, `freq_rel_dep` int(11) NOT NULL, `wf` tinyint(4) NOT NULL, `sentences` text, KEY `head` (`head`(255)), KEY `dep` (`dep`(255))) ENGINE=InnoDB DEFAULT CHARSET=utf8;' $(DBNAME)
-	mysql --user $(DBUSER) --execute "truncate table relations_$(CORPNAME_U);" $(DBNAME)
+	mysql --user $(DBUSER) --execute $(CREATE_RELS_SQL) $(DBNAME)
+	mysql --user $(DBUSER) \
+		--execute "truncate table relations_$(CORPNAME_U);" $(DBNAME)
 	$(call MYSQL_IMPORT,$<,relations_$(CORPNAME_U).tsv)
 	touch $@
 
@@ -175,7 +196,9 @@ $(CORPNAME)_rels$(TSV): $(CORPNAME)$(VRT) $(MAKE_RELS_PROG)
 korp_lemgrams: $(CORPNAME)_lemgrams_load.timestamp
 
 $(CORPNAME)_lemgrams_load.timestamp: $(CORPNAME)_lemgrams$(TSV)
-	mysql --user $(DBUSER) --execute "delete from lemgram_index where corpus='$(CORPNAME_U)';" $(DBNAME)
+	mysql --user $(DBUSER) \
+		--execute "delete from lemgram_index where corpus='$(CORPNAME_U)';" \
+		$(DBNAME)
 	$(call MYSQL_IMPORT,$<,lemgram_index.tsv)
 	touch $@
 
