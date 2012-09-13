@@ -12,8 +12,14 @@ from optparse import OptionParser
 def getopts():
     optparser = OptionParser()
     optparser.add_option('--lemgrams', action='store_true', default=False)
+    optparser.add_option('--pos-type', type='choice',
+                         choices=['original', 'clean',
+                                  'original-clean', 'original+clean', 
+                                  'clean-original', 'clean+original'],
+                         default='clean')
     optparser.add_option('--test-pos-conv', action='store_true', default=False)
     (opts, args) = optparser.parse_args()
+    opts.pos_type = opts.pos_type.replace('+', '-')
     return (opts, args)
 
 
@@ -23,6 +29,12 @@ def process_input(f, opts):
     infields = ['wnum', 'word', 'lemma', 'pos', 'pos2', 'msd', 'head', 'rel',
                 'f9', 'f10']
     outfields = ['word', 'lemma0', 'lemma', 'pos', 'msd', 'head', 'rel']
+    if opts.pos_type.startswith('original'):
+        outfields[3] = 'pos_orig'
+        if opts.pos_type.endswith('clean'):
+            outfields[4:4] = ['pos']
+    elif opts.pos_type == 'clean-original':
+        outfields[4:4] = ['pos_orig']
     if opts.lemgrams:
         outfields.append('lemgram')
     sentnr = 0
@@ -49,6 +61,7 @@ def process_input(f, opts):
         elif not line.startswith('</s>'):
             fields = set_fields(line, infields)
             fields['lemma0'] = remove_markers(fields['lemma'])
+            fields['pos_orig'] = fix_msd(fields['pos'].strip())
             fields['pos'] = extract_pos(fields['pos'])
             fields['msd'] = fix_msd(fields['msd'])
             if opts.lemgrams:
