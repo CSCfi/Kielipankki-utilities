@@ -7,6 +7,8 @@
 # (sub)corpora in a corpus directory.
 
 
+TOPDIR = $(dir $(lastword $(MAKEFILE_LIST)))
+
 eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
 eqs = $(call eq,$(strip $(1)),$(strip $(2)))
 lower = $(shell echo $(1) | perl -pe 's/(.*)/\L$$1\E/')
@@ -19,14 +21,12 @@ CORPORA ?= $(or $(basename $(filter-out %-common.mk,$(wildcard *.mk))),\
 		$(CORPNAME_BASE))
 
 DB_TARGETS_ALL = korp_rels korp_lemgrams
+DB_HAS_RELS := $(and $(filter dephead,$(P_ATTRS)),$(filter deprel,$(P_ATTRS)))
 DB_TARGETS ?= $(if $(DB),$(DB_TARGETS_ALL),\
 		$(if $(filter lex,$(P_ATTRS)),\
-			korp_lemgrams \
-			$(if $(and $(filter dephead,$(P_ATTRS)),\
-				$(filter deprel,$(P_ATTRS))),\
-				korp_rels)))
+			korp_lemgrams $(if $(DB_HAS_RELS),korp_rels)))
 
-TARGETS ?= subdirs vrt reg $(if $(strip $(DB_TARGETS)),db)
+TARGETS ?= subdirs vrt reg pkg $(if $(strip $(DB_TARGETS)),db)
 
 CORPNAME := $(CORPNAME_PREFIX)$(CORPNAME_BASE)$(CORPNAME_SUFFIX)
 CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
@@ -73,6 +73,10 @@ CORPROOT = /v/corpora
 CORPDIR = $(CORPROOT)/data
 CORPCORPDIR = $(CORPDIR)/$(CORPNAME)
 REGDIR = $(CORPROOT)/registry
+CORPSQLDIR = $(CORPROOT)/sql
+
+PKGDIR = $(TOPDIR)/export
+PKG_FILE = $(PKGDIR)/korpdata_$(CORPNAME).tbz
 
 CWB_ENCODE = $(CWBDIR)/cwb-encode -d $(CORPCORPDIR) -R $(REGDIR)/$(CORPNAME) \
 		-xsB -c utf8
@@ -92,6 +96,12 @@ MYSQL_IMPORT = mknod $(2) p; \
 
 P_OPTS = $(foreach attr,$(P_ATTRS),-P $(attr))
 S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
+
+SQLDUMP_NAME = $(CORPSQLDIR)/$(CORPNAME).mysql
+SQLDUMP = $(if $(strip $(DB_TARGETS)),$(SQLDUMP_NAME))
+
+DB_TIMESTAMPS = $(CORPNAME)_lemgrams_load.timestamp \
+		$(if $(DB_HAS_RELS),$(CORPNAME)_rels_load.timestamp)
 
 
 .PHONY: all-corp all all-override subdirs $(CORPORA) $(TARGETS) $(SUBDIRS)
@@ -195,7 +205,20 @@ $(CORPNAME)_rels$(TSV): $(CORPNAME)$(VRT) $(MAKE_RELS_PROG)
 
 korp_lemgrams: $(CORPNAME)_lemgrams_load.timestamp
 
+CREATE_LEMGRAMS_SQL = '\
+	CREATE TABLE IF NOT EXISTS `lemgram_index` ( \
+		`lemgram` varchar(64) NOT NULL, \
+		`freq` int(11) DEFAULT NULL, \
+		`freqprefix` int(11) DEFAULT NULL, \
+		`freqsuffix` int(11) DEFAULT NULL, \
+		`corpus` varchar(64) NOT NULL, \
+		UNIQUE KEY `lemgram_corpus` (`lemgram`, `corpus`), \
+		KEY `lemgram` (`lemgram`), \
+		KEY `corpus` (`corpus`) \
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+
 $(CORPNAME)_lemgrams_load.timestamp: $(CORPNAME)_lemgrams$(TSV)
+	mysql --user $(DBUSER) --execute $(CREATE_LEMGRAMS_SQL) $(DBNAME)
 	mysql --user $(DBUSER) \
 		--execute "delete from lemgram_index where corpus='$(CORPNAME_U)';" \
 		$(DBNAME)
@@ -211,3 +234,19 @@ $(CORPNAME)_lemgrams$(TSV): $(CORPNAME)$(VRT)
 	| uniq -c \
 	| perl -pe 's/^\s*(\d+)\s*(.*)/$$2\t$$1\t0\t0\t$(CORPNAME_U)/' \
 	| $(COMPR) > $@
+
+pkg: $(PKG_FILE)
+
+$(PKG_FILE): $(CORPCORPDIR)/.info $(SQLDUMP)
+	-mkdir $(dir $@)
+	tar cvjpf $@ $(CORPCORPDIR) $(REGDIR)/$(CORPNAME) $(SQLDUMP)
+
+$(SQLDUMP_NAME): $(DB_TIMESTAMPS)
+	-mkdir $(dir $@)
+	echo $(CREATE_LEMGRAMS_SQL) > $@
+	echo 'DELETE FROM `lemgram_index` where '"corpus='$(CORPNAME_U)';" >> $@
+	mysqldump --user $(DBUSER) --no-create-info \
+		--where "corpus='$(CORPNAME_U)'" $(DBNAME) lemgram_index >> $@
+ifdef DB_HAS_RELS
+	mysqldump --user $(DBUSER) $(DBNAME) relations_$(CORPNAME_U) >> $@
+endif
