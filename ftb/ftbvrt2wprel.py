@@ -93,7 +93,8 @@ class Deprels(object):
 def getopts():
     optparser = OptionParser()
     optparser.add_option('--input-type', '--mode', type='choice',
-                         choices=['ftb2', 'ftb3'], default='ftb2')
+                         choices=['ftb2', 'ftb3', 'ftb3-extrapos'],
+                         default='ftb2')
     (opts, args) = optparser.parse_args()
     return (opts, args)
 
@@ -102,7 +103,9 @@ def process_input(f, deprels, opts):
     sent_id_re = re.compile(r'<sentence\s+(?:.+\s)?id="(.*?)".*>')
     tag_re = re.compile(r'^<.*>$')
     fieldnames = ["word", "lemma", "pos", "msd", "dephead", "deprel", "lemgram"]
-    if opts.input_type == 'ftb3':
+    if opts.input_type == 'ftb3-extrapos':
+        fieldnames.insert(3, 'pos_extra')
+    if opts.input_type.startswith('ftb3'):
         fieldnames.insert(1, "lemma_comp")
     data = []
     for line in f:
