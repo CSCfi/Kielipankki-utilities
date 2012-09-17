@@ -34,7 +34,7 @@ CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
 DEP_MAKEFILES := $(if $(call eqs,$(call lower,$(MAKEFILE_DEPS)),false),,\
 			$(MAKEFILE_LIST))
 
-COMPRESS ?= $(strip $(if $(filter %.gz,$(SRC_FILES)),gz,\
+COMPRESS := $(strip $(if $(filter %.gz,$(SRC_FILES)),gz,\
 		$(if $(or $(filter %.bz2,$(SRC_FILES)),\
 			$(filter %.bz,$(SRC_FILES))),bz2,\
 		none)))
@@ -83,26 +83,36 @@ CWB_ENCODE = $(CWBDIR)/cwb-encode -d $(CORPCORPDIR) -R $(REGDIR)/$(CORPNAME) \
 CWB_MAKEALL = $(CWBDIR)/cwb-makeall -V -r $(REGDIR) $(CORPNAME_U)
 CWB_MAKE = cwb-make -r $(REGDIR) -g $(CORPGROUP) -M 2000 $(CORPNAME_U)
 
-# MySQL statement "load data local infile" gives an error message on
-# Daniel: "ERROR 1148 (42000) at line 1: The used command is not
-# allowed with this MySQL version". mysqlimport does the same thing.
-# mysqlimport only reads named files, so a named pipe created by mknod
-# is used to support uncompressing compressed input on the fly.
+# A named pipe created by mkfifo is used to support uncompressing
+# compressed input on the fly.
 
-MYSQL_IMPORT = mknod $(2) p; \
-	($(CAT) $(1) > $(2) &); \
-	mysqlimport --user $(DBUSER) --local korp $(2); \
-	/bin/rm -f $(2)
+MYSQL_IMPORT = mkfifo $(2).tsv; \
+	($(CAT) $(1) > $(2).tsv &); \
+	mysql --local-infile --user $(DBUSER) --batch --execute "load data local infile '$(2).tsv' into table $(2); show count(*) warnings; show warnings;" korp; \
+	/bin/rm -f $(2).tsv;
+
+SUBST_CORPNAME = $(shell perl -pe 's/\@CORPNAME\@/$(CORPNAME_U)/g' $(1))
 
 P_OPTS = $(foreach attr,$(P_ATTRS),-P $(attr))
 S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
 
-SQLDUMP_NAME = $(CORPSQLDIR)/$(CORPNAME).mysql
+SQLDUMP_NAME = $(CORPSQLDIR)/$(CORPNAME).sql
 SQLDUMP = $(if $(strip $(DB_TARGETS)),$(SQLDUMP_NAME))
 
 DB_TIMESTAMPS = $(CORPNAME)_lemgrams_load.timestamp \
 		$(if $(DB_HAS_RELS),$(CORPNAME)_rels_load.timestamp)
 
+RELS_BASES = @ rel head_rel dep_rel sentences
+RELS_TSV = $(subst _@,,$(foreach base,$(RELS_BASES),\
+				$(CORPNAME)_rels_$(base)$(TSV)))
+MAKE_RELS_TABLE_NAME = $(subst $(CORPNAME)_rels,relations_$(CORPNAME_U),\
+			$(subst $(TSV),,$(1)))
+RELS_TABLES = $(call MAKE_RELS_TABLE_NAME,$(RELS_TSV))
+
+RELS_TRUNCATE_TABLES = $(foreach tbl,$(RELS_TABLES),truncate table $(tbl);)
+RELS_DROP_TABLES = $(foreach tbl,$(RELS_TABLES),drop table if exists $(tbl);)
+RELS_CREATE_TABLES_TEMPL = $(TOPDIR)/create-relations-tables-templ.sql
+RELS_CREATE_TABLES_SQL = $(call SUBST_CORPNAME,$(RELS_CREATE_TABLES_TEMPL))
 
 .PHONY: all-corp all all-override subdirs $(CORPORA) $(TARGETS) $(SUBDIRS)
 
@@ -175,33 +185,19 @@ korp_db: $(DB_TARGETS)
 
 korp_rels: $(CORPNAME)_rels_load.timestamp
 
-CREATE_RELS_SQL = '\
-	CREATE TABLE IF NOT EXISTS `relations_$(CORPNAME_U)` ( \
-		`head` varchar(1024) NOT NULL, \
-		`rel` char(3) NOT NULL, \
-		`dep` varchar(1024) NOT NULL, \
-		`depextra` varchar(1024) DEFAULT NULL, \
-		`freq` int(11) NOT NULL, \
-		`freq_rel` int(11) NOT NULL, \
-		`freq_head_rel` int(11) NOT NULL, \
-		`freq_rel_dep` int(11) NOT NULL, \
-		`wf` tinyint(4) NOT NULL, \
-		`sentences` text, \
-		KEY `head` (`head`(255)), \
-		KEY `dep` (`dep`(255)) \
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8;'
 
-$(CORPNAME)_rels_load.timestamp: $(CORPNAME)_rels$(TSV)
-	mysql --user $(DBUSER) --execute $(CREATE_RELS_SQL) $(DBNAME)
+$(CORPNAME)_rels_load.timestamp: $(RELS_TSV) $(RELS_CREATE_TABLES_TEMPL)
 	mysql --user $(DBUSER) \
-		--execute "truncate table relations_$(CORPNAME_U);" $(DBNAME)
-	$(call MYSQL_IMPORT,$<,relations_$(CORPNAME_U).tsv)
+		--execute '$(RELS_DROP_TABLES) $(RELS_CREATE_TABLES_SQL)' \
+		$(DBNAME)
+	$(foreach rel,$(RELS_TSV),\
+		$(call MYSQL_IMPORT,$(rel),$(strip \
+			$(call MAKE_RELS_TABLE_NAME,$(rel)))))
 	touch $@
 
-$(CORPNAME)_rels$(TSV): $(CORPNAME)$(VRT) $(MAKE_RELS_PROG)
+$(RELS_TSV): $(CORPNAME)$(VRT) $(MAKE_RELS_PROG)
 	$(CAT) $< \
-	| $(MAKE_RELS_CMD) \
-	| $(COMPR) > $@
+	| $(MAKE_RELS_CMD)
 
 korp_lemgrams: $(CORPNAME)_lemgrams_load.timestamp
 
@@ -222,7 +218,7 @@ $(CORPNAME)_lemgrams_load.timestamp: $(CORPNAME)_lemgrams$(TSV)
 	mysql --user $(DBUSER) \
 		--execute "delete from lemgram_index where corpus='$(CORPNAME_U)';" \
 		$(DBNAME)
-	$(call MYSQL_IMPORT,$<,lemgram_index.tsv)
+	$(call MYSQL_IMPORT,$<,lemgram_index)
 	touch $@
 
 $(CORPNAME)_lemgrams$(TSV): $(CORPNAME)$(VRT)
@@ -248,5 +244,5 @@ $(SQLDUMP_NAME): $(DB_TIMESTAMPS)
 	mysqldump --user $(DBUSER) --no-create-info \
 		--where "corpus='$(CORPNAME_U)'" $(DBNAME) lemgram_index >> $@
 ifdef DB_HAS_RELS
-	mysqldump --user $(DBUSER) $(DBNAME) relations_$(CORPNAME_U) >> $@
+	mysqldump --user $(DBUSER) $(DBNAME) $(RELS_TABLES) >> $@
 endif

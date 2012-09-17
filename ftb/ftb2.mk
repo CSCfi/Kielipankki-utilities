@@ -9,7 +9,8 @@ SRC_FILES = $(wildcard FinnTreeBank_2/*_tab.txt)
 MAKE_VRT_CMD = ./ftb2vrt.pl --lemgrams
 # ftb2vrt.pl needs file names as arguments; does not read from stdin.
 MAKE_VRT_FILENAME_ARGS = 1
-MAKE_RELS_CMD = ./ftbvrt2wprel.py
+MAKE_RELS_CMD = ./ftbvrt2wprel.py --output-prefix=$(value CORPNAME)_rels \
+		--compress=$(value COMPRESS)
 
 
 include ftb-common.mk
