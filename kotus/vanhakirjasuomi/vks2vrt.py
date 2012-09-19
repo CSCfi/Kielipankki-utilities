@@ -39,6 +39,9 @@ class OldLiteraryFinnishToVrtConverter(object):
     def _split_src_code(self, code):
         pass
 
+    def _clean_src_code(self, code):
+        return code
+
     def _make_structure(self, src_fields, prev_fields, position='mid'):
         levels = self._struct_levels
         levelcnt = len(levels)
@@ -60,12 +63,14 @@ class OldLiteraryFinnishToVrtConverter(object):
         if position != 'last':
             for levelnr in xrange(open_levelnr, levelcnt):
                 level = levels[levelnr]
-                result += '<' + level + ' code="' + src_fields[level] + '">\n'
+                result += ('<' + level + ' code="'
+                           + self._clean_src_code(src_fields[level]) + '">\n')
         return result
 
     def _make_sentence(self, line, sent_nr, src_code, src_fields):
         return (u'<sentence id="{0}" code="{1}" page="{2}">\n'
-                .format(sent_nr, src_code, src_fields['page'])
+                .format(sent_nr, self._clean_src_code(src_code),
+                        src_fields['page'])
                 + '\n'.join([self._make_word_attrs(word)
                              for word in self._split_words(line)]) + '\n'
                 + '</sentence>\n')
@@ -94,6 +99,9 @@ class BibleToVrtConverter(OldLiteraryFinnishToVrtConverter):
                 'verse': verse,
                 'page': page}
 
+    def _clean_src_code(self, code):
+        return (' '.join(code.split('-')) if self._opts.clean_code else code)
+
 
 class LawsAndSermonsToVrtConverter(OldLiteraryFinnishToVrtConverter):
 
@@ -108,6 +116,14 @@ class LawsAndSermonsToVrtConverter(OldLiteraryFinnishToVrtConverter):
         return {self._struct_top: law,
                 'page': page}
 
+    def _clean_src_code(self, code):
+        if self._opts.clean_code:
+            parts = code.split('-')
+            parts[0:1] = [parts[0][:-4], parts[0][-4:]]
+            return ' '.join(parts)
+        else:
+            return code
+
     def _make_word_attrs(self, word):
         word = word.replace('<', '[').replace('>', ']')
         compl_word = word.replace('~', '')
@@ -120,6 +136,7 @@ def getopts():
     optparser.add_option('--mode', '-m', type='choice',
                          choices=['biblia', 'laws', 'sermons'],
                          default='biblia')
+    optparser.add_option('--clean-code', action='store_true', default=False)
     (opts, args) = optparser.parse_args()
     return (opts, args)
 
