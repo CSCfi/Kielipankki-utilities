@@ -26,7 +26,15 @@ DB_TARGETS ?= $(if $(DB),$(DB_TARGETS_ALL),\
 		$(if $(filter lex,$(P_ATTRS)),\
 			korp_lemgrams $(if $(DB_HAS_RELS),korp_rels)))
 
-TARGETS ?= subdirs vrt reg pkg $(if $(strip $(DB_TARGETS)),db)
+PARCORP ?= $(LINK_ELEM)
+PARLANG1 = $(firstword $(LANGUAGES))
+PARLANG2 = $(lastword $(LANGUAGES))
+OTHERLANG = $(subst _@,_$(PARLANG1),$(subst _$(PARLANG1),_$(PARLANG2),$(subst _$(PARLANG2),_@,$(1))))
+
+TARGETS ?= $(if $(PARCORP),\
+		align pkg-parcorp,\
+		subdirs vrt reg $(if $(PARCORP_PART),,pkg) \
+			$(if $(strip $(DB_TARGETS)),db))
 
 CORPNAME := $(CORPNAME_PREFIX)$(CORPNAME_BASE)$(CORPNAME_SUFFIX)
 CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
@@ -82,6 +90,8 @@ CWB_ENCODE = $(CWBDIR)/cwb-encode -d $(CORPCORPDIR) -R $(REGDIR)/$(CORPNAME) \
 		-xsB -c utf8
 CWB_MAKEALL = $(CWBDIR)/cwb-makeall -V -r $(REGDIR) $(CORPNAME_U)
 CWB_MAKE = cwb-make -r $(REGDIR) -g $(CORPGROUP) -M 2000 $(CORPNAME_U)
+CWB_ALIGN = $(CWBDIR)/cwb-align
+CWB_ALIGN_ENCODE = $(CWBDIR)/cwb-align-encode -v
 
 # A named pipe created by mkfifo is used to support uncompressing
 # compressed input on the fly.
@@ -114,7 +124,8 @@ RELS_DROP_TABLES = $(foreach tbl,$(RELS_TABLES),drop table if exists $(tbl);)
 RELS_CREATE_TABLES_TEMPL = $(TOPDIR)/create-relations-tables-templ.sql
 RELS_CREATE_TABLES_SQL = $(call SUBST_CORPNAME,$(RELS_CREATE_TABLES_TEMPL))
 
-.PHONY: all-corp all all-override subdirs $(CORPORA) $(TARGETS) $(SUBDIRS)
+.PHONY: all-corp all all-override subdirs parcorp \
+	$(CORPORA) $(TARGETS) $(SUBDIRS)
 
 
 # If $(CORPORA) == $(CORPNAME_BASE), the current directory does not
@@ -246,3 +257,30 @@ $(SQLDUMP_NAME): $(DB_TIMESTAMPS)
 ifdef DB_HAS_RELS
 	mysqldump --user $(DBUSER) $(DBNAME) $(RELS_TABLES) >> $@
 endif
+
+
+# Align parallel corpora
+
+ALIGN_CORP = \
+		echo "ALIGNED $(call OTHERLANG,$(1))" >> $(REGDIR)/$(1); \
+		$(CWB_ALIGN_ENCODE) -r $(REGDIR) -D $(1).align
+
+align: parcorp $(CORPNAME)_$(PARLANG1).align $(CORPNAME)_$(PARLANG2).align
+	$(call ALIGN_CORP,$(CORPNAME)_$(PARLANG1))
+	$(call ALIGN_CORP,$(CORPNAME)_$(PARLANG2))
+
+%.align: $(CORPDIR)/%/.info
+	$(CWB_ALIGN) -o $@ -r $(REGDIR) -V $(LINK_ELEM)_$(LINK_ATTR) \
+		$(basename $@) $(basename $(call OTHERLANG,$@)) $(LINK_ELEM)
+
+parcorp:
+	for lang in $(LANGUAGES); do \
+		$(MAKE) -f $(CORPNAME)_$$lang.mk all \
+			CORPNAME_BASE=$(CORPNAME)_$$lang; \
+	done
+
+pkg-parcorp:
+	for lang in $(LANGUAGES); do \
+		$(MAKE) -f $(CORPNAME)_$$lang.mk pkg \
+			CORPNAME_BASE=$(CORPNAME)_$$lang; \
+	done
