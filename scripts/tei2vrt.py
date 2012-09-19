@@ -13,9 +13,10 @@ from optparse import OptionParser
 
 class Converter(object):
 
-    def __init__(self, opts, divtypemap={}):
+    def __init__(self, opts, divtypemap={}, elem_extra_attrs={}):
         self._opts = opts
         self._divtypemap = divtypemap
+        self._elem_extra_attrs = elem_extra_attrs
 
     def process_input(self, f):
         self._src_etr = et.parse(f)
@@ -93,6 +94,7 @@ class Converter(object):
                 if tag == 'div':
                     result.set('type', type_)
                 result.extend(subresults)
+                self._add_extra_attrs(result, body_e)
                 # print len(result)
         elif body_e.tag in ['body', 'hi']:
             return self._process_subelems(body_e)
@@ -272,10 +274,10 @@ class Converter(object):
         return self._get_entry_info(entry_elems, elem)
 
     def _get_entry_info(self, entry_elems, elem):
-        return dict([(key, self._get_dict_entry_item(elem, entry_elems[key]))
+        return dict([(key, self._get_subelem_content(elem, entry_elems[key]))
                      for key in entry_elems.keys()])
 
-    def _get_dict_entry_item(self, elem, item):
+    def _get_subelem_content(self, elem, item):
         if isinstance(item, tuple):
             return self._get_subelem_attrs(elem, item[0], item[1])
         else:
@@ -319,6 +321,12 @@ class Converter(object):
         result.set('type', sent_type)
         self._add_content_newlines(result)
         return result
+
+    def _add_extra_attrs(self, result, elem):
+        attrs = self._elem_extra_attrs.get(result.tag, {})
+        for (attrname, path) in attrs.iteritems():
+            result.set(attrname,
+                       ' '.join(self._get_subelem_texts(elem, path).split()))
 
     def _tokenize(self, text):
         text = text or ''
@@ -372,6 +380,8 @@ def main():
                    'dictionary': {},
                    'stories': {'collection': 'collection', 'story': 'story'},
                    'statute-modern': {'main': ''}}
+    elem_extra_attrs = {'stories': {'collection': {'title': './head'},
+                                    'story': {'title': './head'}}}
     input_encoding = 'utf-8'
     output_encoding = 'utf-8'
     # ElementTree.XMLParser uses the encoding specified in the XML
@@ -379,7 +389,8 @@ def main():
     # sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
     # sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
     (opts, args) = getopts()
-    converter = Converter(opts, divtypemap=divtypemaps.get(opts.mode, {}))
+    converter = Converter(opts, divtypemap=divtypemaps.get(opts.mode, {}),
+                          elem_extra_attrs=elem_extra_attrs.get(opts.mode, {}))
     converter.process_input(args[0] if args else sys.stdin)
 
 
