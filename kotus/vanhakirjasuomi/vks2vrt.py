@@ -63,17 +63,29 @@ class OldLiteraryFinnishToVrtConverter(object):
         if position != 'last':
             for levelnr in xrange(open_levelnr, levelcnt):
                 level = levels[levelnr]
-                result += ('<' + level + ' code="'
-                           + self._clean_src_code(src_fields[level]) + '">\n')
+                result += self._make_start_tag(
+                    level, self._make_level_attrs(level, src_fields))
         return result
 
     def _make_sentence(self, line, sent_nr, src_code, src_fields):
-        return (u'<sentence id="{0}" code="{1}" page="{2}">\n'
-                .format(sent_nr, self._clean_src_code(src_code),
-                        src_fields['page'])
+        return (self._make_start_tag('sentence',
+                                     {'id': sent_nr,
+                                      'code': self._clean_src_code(src_code),
+                                      'page': src_fields['page']})
                 + '\n'.join([self._make_word_attrs(word)
                              for word in self._split_words(line)]) + '\n'
                 + '</sentence>\n')
+
+    def _make_start_tag(self, elemname, attrs):
+        attrstr = self._format_attrs(attrs)
+        return u'<' + elemname + (' ' + attrstr if attrstr else '') + '>\n'
+
+    def _make_level_attrs(self, level, src_fields):
+        return {'code': self._clean_src_code(src_fields[level])}
+
+    def _format_attrs(self, attrs):
+        return ' '.join([u'{name}="{val}"'.format(name=key, val=attrs[key])
+                         for key in attrs])
 
     def _split_words(self, line):
         return line.split(' ')
@@ -102,9 +114,20 @@ class BibleToVrtConverter(OldLiteraryFinnishToVrtConverter):
     def _clean_src_code(self, code):
         return (' '.join(code.split('-')) if self._opts.clean_code else code)
 
+    def _make_level_attrs(self, level, src_fields):
+        attrs = {'code': self._clean_src_code(src_fields[level])}
+        if self._opts.bible_references:
+            if level == 'chapter':
+                attrs['bibleref'] = (src_fields['book'] + ' '
+                                     + src_fields['chapter'])
+            elif level == 'verse':
+                attrs['bibleref'] = (src_fields['book'] + ' '
+                                     + src_fields['chapter'] + ':'
+                                     + src_fields['verse'])
+        return attrs
+
 
 class LawsAndSermonsToVrtConverter(OldLiteraryFinnishToVrtConverter):
-
     def __init__(self, opts, struct_top='source'):
         OldLiteraryFinnishToVrtConverter.__init__(self, opts)
         self._struct_top = struct_top
@@ -137,6 +160,8 @@ def getopts():
                          choices=['biblia', 'laws', 'sermons'],
                          default='biblia')
     optparser.add_option('--clean-code', action='store_true', default=False)
+    optparser.add_option('--bible-references',
+                         action='store_true', default=False)
     (opts, args) = optparser.parse_args()
     return (opts, args)
 

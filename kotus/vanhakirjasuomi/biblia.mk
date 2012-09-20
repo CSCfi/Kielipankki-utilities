@@ -2,11 +2,12 @@
 
 
 MODE = biblia
+VKS2VRT_OPTS = --bible-references
 
 SRC_FILES = vt4_prof.sen
 
 P_ATTRS = 
-S_ATTRS = work:0+code book:0+code chapter:0+code verse:0+code \
-		sentence:0+id+code+page
+S_ATTRS = work:0+code book:0+code chapter:0+code+bibleref \
+		verse:0+code+bibleref sentence:0+id+code+page
 
 include vks-common.mk
