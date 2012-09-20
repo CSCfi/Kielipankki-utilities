@@ -69,20 +69,40 @@ class OldLiteraryFinnishToVrtConverter(object):
 
     def _make_sentence(self, line, sent_nr, src_code, src_fields):
         sourcecode = self._clean_src_code(src_code)
-        sourcecode_elem = (self._make_sourcecode_elem(sourcecode, src_fields)
-                           if self._opts.embed_source_code else '')
         return self._make_elem(
             'sentence',
-            {'id': sent_nr,
-             'code': sourcecode,
-             'page': src_fields['page']},
-            (sourcecode_elem +
-             '\n'.join([self._make_word_attrs(word)
-                        for word in self._split_words(line)])))
+            self._make_sentence_attrs(sent_nr, sourcecode, src_fields),
+            self._make_sentence_content(line, sourcecode, src_fields))
+
+    def _make_sentence_attrs(self, sent_nr, sourcecode, src_fields):
+        attrs = {'id': sent_nr}
+        if not self._opts.span_elements:
+            attrs.update({'code': sourcecode,
+                          'page': src_fields['page']})
+        return attrs
+
+    def _make_sentence_content(self, line, sourcecode, src_fields):
+        content = self._make_sourcecode_elem(sourcecode, src_fields)
+        words = self._split_words(line)
+        span_start = 0
+        for i in xrange(len(words) + 1):
+            if (i == len(words) 
+                or (words[i].startswith('<') and words[i].endswith('>'))):
+                content += self._make_span_elem(sourcecode, src_fields,
+                                                words[span_start:i])
+                if i < len(words):
+                    newpagenr = re.match(r'<(.*)>', words[i]).group(1)
+                    src_fields['page'] = newpagenr
+                    sourcecode = self._adjust_sourcecode_page(sourcecode,
+                                                              newpagenr)
+                    content += self._make_sourcecode_elem(sourcecode,
+                                                          src_fields)
+                    span_start = i + 1
+        return content
 
     def _make_elem(self, elemname, attrs, content):
         return (self._make_start_tag(elemname, attrs)
-                + content + '\n'
+                + content + ('' if content.endswith('\n') else '\n')
                 + '</' + elemname + '>\n')
 
     def _make_start_tag(self, elemname, attrs):
@@ -97,15 +117,31 @@ class OldLiteraryFinnishToVrtConverter(object):
                          for key in attrs])
 
     def _make_sourcecode_elem(self, sourcecode, src_fields):
-        return self._make_elem('sourcecode',
-                               self._make_sourcecode_attrs(sourcecode,
-                                                           src_fields),
-                               '[' + sourcecode + ']')
+        if self._opts.embed_source_code:
+            return self._make_elem('sourcecode',
+                                   self._make_sourcecode_attrs(sourcecode,
+                                                               src_fields),
+                                   '[' + sourcecode + ']')
+        else:
+            return ''
 
     def _make_sourcecode_attrs(self, sourcecode, src_fields):
         attrs = src_fields
         attrs['code'] = sourcecode
         return attrs
+
+    def _adjust_sourcecode_page(self, sourcecode, newpagenr):
+        return re.sub(r'^(.+)([- ]).+$', r'\g<1>\g<2>' + newpagenr, sourcecode)
+
+    def _make_span_elem(self, sourcecode, src_fields, words):
+        content = '\n'.join([self._make_word_attrs(word) for word in words])
+        if self._opts.span_elements:
+            return self._make_elem(
+                    'span',
+                    self._make_sourcecode_attrs(sourcecode, src_fields),
+                    content)
+        else:
+            return content + '\n'
 
     def _split_words(self, line):
         return line.split(' ')
@@ -141,7 +177,8 @@ class BibleToVrtConverter(OldLiteraryFinnishToVrtConverter):
 
     def _add_bible_ref(self, attrs, level, src_fields):
         if self._opts.bible_references:
-            if level == 'chapter':
+            if (level == 'chapter'
+                or (level == 'verse' and not src_fields['verse'])):
                 attrs['bibleref'] = (src_fields['book'] + ' '
                                      + src_fields['chapter'])
             elif level == 'verse':
@@ -205,6 +242,7 @@ def getopts():
                          action='store_true', default=False)
     optparser.add_option('--embed-source-code',
                          action='store_true', default=False)
+    optparser.add_option('--span-elements', action='store_true', default=False)
     (opts, args) = optparser.parse_args()
     return (opts, args)
 
