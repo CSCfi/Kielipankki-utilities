@@ -68,24 +68,44 @@ class OldLiteraryFinnishToVrtConverter(object):
         return result
 
     def _make_sentence(self, line, sent_nr, src_code, src_fields):
-        return (self._make_start_tag('sentence',
-                                     {'id': sent_nr,
-                                      'code': self._clean_src_code(src_code),
-                                      'page': src_fields['page']})
-                + '\n'.join([self._make_word_attrs(word)
-                             for word in self._split_words(line)]) + '\n'
-                + '</sentence>\n')
+        sourcecode = self._clean_src_code(src_code)
+        sourcecode_elem = (self._make_sourcecode_elem(sourcecode, src_fields)
+                           if self._opts.embed_source_code else '')
+        return self._make_elem(
+            'sentence',
+            {'id': sent_nr,
+             'code': sourcecode,
+             'page': src_fields['page']},
+            (sourcecode_elem +
+             '\n'.join([self._make_word_attrs(word)
+                        for word in self._split_words(line)])))
+
+    def _make_elem(self, elemname, attrs, content):
+        return (self._make_start_tag(elemname, attrs)
+                + content + '\n'
+                + '</' + elemname + '>\n')
 
     def _make_start_tag(self, elemname, attrs):
         attrstr = self._format_attrs(attrs)
         return u'<' + elemname + (' ' + attrstr if attrstr else '') + '>\n'
 
     def _make_level_attrs(self, level, src_fields):
-        return {'code': self._clean_src_code(src_fields[level])}
+        return {'code': src_fields[level]}
 
     def _format_attrs(self, attrs):
         return ' '.join([u'{name}="{val}"'.format(name=key, val=attrs[key])
                          for key in attrs])
+
+    def _make_sourcecode_elem(self, sourcecode, src_fields):
+        return self._make_elem('sourcecode',
+                               self._make_sourcecode_attrs(sourcecode,
+                                                           src_fields),
+                               '[' + sourcecode + ']')
+
+    def _make_sourcecode_attrs(self, sourcecode, src_fields):
+        attrs = src_fields
+        attrs['code'] = sourcecode
+        return attrs
 
     def _split_words(self, line):
         return line.split(' ')
@@ -116,6 +136,10 @@ class BibleToVrtConverter(OldLiteraryFinnishToVrtConverter):
 
     def _make_level_attrs(self, level, src_fields):
         attrs = {'code': self._clean_src_code(src_fields[level])}
+        self._add_bible_ref(attrs, level, src_fields)
+        return attrs
+
+    def _add_bible_ref(self, attrs, level, src_fields):
         if self._opts.bible_references:
             if level == 'chapter':
                 attrs['bibleref'] = (src_fields['book'] + ' '
@@ -124,10 +148,16 @@ class BibleToVrtConverter(OldLiteraryFinnishToVrtConverter):
                 attrs['bibleref'] = (src_fields['book'] + ' '
                                      + src_fields['chapter'] + ':'
                                      + src_fields['verse'])
+
+    def _make_sourcecode_attrs(self, sourcecode, src_fields):
+        attrs = super(BibleToVrtConverter, self)._make_sourcecode_attrs(
+            sourcecode, src_fields)
+        self._add_bible_ref(attrs, 'verse', src_fields)
         return attrs
 
 
 class LawsAndSermonsToVrtConverter(OldLiteraryFinnishToVrtConverter):
+
     def __init__(self, opts, struct_top='source'):
         OldLiteraryFinnishToVrtConverter.__init__(self, opts)
         self._struct_top = struct_top
@@ -142,16 +172,27 @@ class LawsAndSermonsToVrtConverter(OldLiteraryFinnishToVrtConverter):
     def _clean_src_code(self, code):
         if self._opts.clean_code:
             parts = code.split('-')
-            parts[0:1] = [parts[0][:-4], parts[0][-4:]]
+            parts[0:1] = list(self._split_year(parts[0]))
             return ' '.join(parts)
         else:
             return code
+
+    def _split_year(self, work):
+        mo = re.match(r'(.+)([0-9]{4}[a-z]?)$', work)
+        return (mo.group(1), mo.group(2))
 
     def _make_word_attrs(self, word):
         word = word.replace('<', '[').replace('>', ']')
         compl_word = word.replace('~', '')
         orig_word = re.sub(r'.~', '', word)
         return '\t'.join([word, orig_word, compl_word])
+
+    def _make_sourcecode_attrs(self, sourcecode, src_fields):
+        attrs = (super(LawsAndSermonsToVrtConverter, self)
+                 ._make_sourcecode_attrs(sourcecode, src_fields)).copy()
+        attrs['work'] = attrs[self._struct_top]
+        del attrs[self._struct_top]
+        return attrs
 
 
 def getopts():
@@ -161,6 +202,8 @@ def getopts():
                          default='biblia')
     optparser.add_option('--clean-code', action='store_true', default=False)
     optparser.add_option('--bible-references',
+                         action='store_true', default=False)
+    optparser.add_option('--embed-source-code',
                          action='store_true', default=False)
     (opts, args) = optparser.parse_args()
     return (opts, args)
