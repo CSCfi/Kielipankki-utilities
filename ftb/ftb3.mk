@@ -16,7 +16,7 @@ MAKE_VRT_CMD = ./ftbconllx2vrt.py --lemgrams --pos-type=clean+original \
 			--morpho-tag-separator=":"
 MAKE_RELS_CMD = ./ftbvrt2wprel.py --input-type=ftb3-extrapos \
 		--output-prefix=$(value CORPNAME)_rels \
-		--compress=$(value COMPRESS)
+		--compress=$(value COMPRESS) --sort
 
 
 include ftb-common.mk

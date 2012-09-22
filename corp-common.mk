@@ -101,7 +101,14 @@ CWB_ALIGN_ENCODE = $(CWBDIR)/cwb-align-encode -v
 
 MYSQL_IMPORT = mkfifo $(2).tsv; \
 	($(CAT) $(1) > $(2).tsv &); \
-	mysql --local-infile --user $(DBUSER) --batch --execute "load data local infile '$(2).tsv' into table $(2); show count(*) warnings; show warnings;" korp; \
+	mysql --local-infile --user $(DBUSER) --batch --execute " \
+		set autocommit = 0; \
+		set unique_checks = 0; \
+		load data local infile '$(2).tsv' into table $(2); \
+		commit; \
+		show count(*) warnings; \
+		show warnings;" \
+		korp; \
 	/bin/rm -f $(2).tsv;
 
 SUBST_CORPNAME = $(shell perl -pe 's/\@CORPNAME\@/$(CORPNAME_U)/g' $(1))

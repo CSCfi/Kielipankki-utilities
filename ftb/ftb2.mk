@@ -10,7 +10,7 @@ MAKE_VRT_CMD = ./ftb2vrt.pl --lemgrams --morpho-tag-separator=":"
 # ftb2vrt.pl needs file names as arguments; does not read from stdin.
 MAKE_VRT_FILENAME_ARGS = 1
 MAKE_RELS_CMD = ./ftbvrt2wprel.py --output-prefix=$(value CORPNAME)_rels \
-		--compress=$(value COMPRESS)
+		--compress=$(value COMPRESS) --sort
 
 
 include ftb-common.mk

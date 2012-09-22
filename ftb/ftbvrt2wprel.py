@@ -2,12 +2,12 @@
 
 
 import sys
+import os
 import re
 import copy
-import gzip
-import bz2
 
 from optparse import OptionParser
+from subprocess import Popen, PIPE
 
 
 class IncrDict(dict):
@@ -145,6 +145,7 @@ def getopts():
     optparser.add_option('--compress', type='choice',
                          choices=['none', 'gzip', 'gz', 'bzip2', 'bz', 'bz2'],
                          default='none')
+    optparser.add_option('--sort', action='store_true', default=False)
     (opts, args) = optparser.parse_args()
     if opts.output_prefix is None and opts.corpus_name is not None:
         opts.output_prefix = 'relations_' + opts.corpus_name
@@ -192,7 +193,8 @@ def output_rels_old(deprels):
 
 def output_rels_new(deprels, opts):
     output_rel(deprels.iter_freqs(), '', opts,
-               ['id', 'head', 'rel', 'dep', 'depextra', 'freq', 'wf'])
+               ['id', 'head', 'rel', 'dep', 'depextra', 'freq', 'wf'],
+               numeric_sort=True)
     output_rel(deprels.iter_freqs_rel(), '_rel', opts,
                ['rel', 'freq'])
     output_rel(deprels.iter_freqs_head_rel(), '_head_rel', opts,
@@ -200,23 +202,43 @@ def output_rels_new(deprels, opts):
     output_rel(deprels.iter_freqs_rel_dep(), '_dep_rel', opts,
                ['dep', 'depextra', 'rel', 'freq'])
     output_rel(deprels.iter_sentences(), '_sentences', opts,
-               ['id', 'sentence', 'start', 'end'])
+               ['id', 'sentence', 'start', 'end'], numeric_sort=True)
 
 
-def output_rel(data, rel_suffix, opts, fieldnames):
-    with open_output_file(opts.output_prefix + rel_suffix + '.tsv', opts) as f:
+def output_rel(data, rel_suffix, opts, fieldnames, numeric_sort=False):
+    with open_output_file(opts.output_prefix + rel_suffix + '.tsv', opts,
+                          numeric_sort) as f:
         for row in data:
             f.write('\t'.join([str(row[fieldname])
                                for fieldname in fieldnames]) + '\n')
     
 
-def open_output_file(fname, opts):
+def open_output_file(fname, opts, numeric_sort=False):
+    compress_cmd = None
     if opts.compress.startswith('gz'):
-        return gzip.open(fname + '.gz', 'w')
+        fname += '.gz'
+        compress_cmd = 'gzip'
     elif opts.compress.startswith('bz'):
-        return bz2.BZ2File(fname + '.bz2', 'w')
+        fname += '.bz2'
+        compress_cmd = 'bzip2'
+    f = open(fname, 'w')
+    if opts.sort:
+        sort_env = os.environ
+        sort_env['LC_ALL'] = 'C'
+        sort_cmd = ['sort']
+        if numeric_sort:
+            sort_cmd += ['-n']
+        p1 = Popen(sort_cmd, stdin=PIPE, stdout=(PIPE if compress_cmd else f),
+                   env=sort_env)
+        if compress_cmd is not None:
+            p2 = Popen([compress_cmd], stdin=p1.stdout, stdout=f)
+            p1.stdout.close()
+        return p1.stdin
+    elif compress_cmd is not None:
+        p2 = Popen([compress_cmd], stdin=PIPE, stdout=f)
+        return p2.stdin
     else:
-        return open(fname, 'w')
+        return f
 
 
 def main():
