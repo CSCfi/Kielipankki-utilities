@@ -66,7 +66,10 @@ COMPR = $(COMPR_$(COMPRESS))
 VRT = .vrt$(COMPR_EXT)
 TSV = .tsv$(COMPR_EXT)
 
-MAKE_VRT_PROG ?= $(firstword $(MAKE_VRT_CMD))
+MAKE_VRT_CMD ?= cat
+
+MAKE_VRT_PROG ?= $(if $(call eq,$(MAKE_VRT_CMD),cat),,\
+			$(firstword $(MAKE_VRT_CMD)))
 MAKE_RELS_PROG ?= $(firstword $(MAKE_RELS_CMD))
 
 TRANSCODE := $(if $(INPUT_ENCODING),iconv -f$(INPUT_ENCODING) -tutf8,cat)
