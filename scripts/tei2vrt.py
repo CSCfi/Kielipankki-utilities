@@ -130,7 +130,9 @@ class Converter(object):
         pos = elem.get('type', '')
         msd = elem.get('msd').strip()
         msd = pos + (' ' + msd if msd else '')
-        msd = ':' + re.sub(r'\s+', ':', msd) + ':'
+        msd = re.sub(r'\s+', self._opts.msd_separator, msd)
+        if self._opts.enclosed_msd:
+            msd = self._opts.msd_separator + msd + self._opts.msd_separator
         lemgram = ([self._make_lemgram(lemma, pos)]
                    if self._opts.lemgrams else [])
         return '\t'.join([elem.get('norm', ''), lemma, lemma_comp_bound,
@@ -366,6 +368,10 @@ def getopts():
                          action='store_true', default=False)
     optparser.add_option('--dict-info-as-sent-attrs',
                          '--dictionary-information-as-sentence-attributes',
+                         action='store_true', default=False)
+    optparser.add_option('--msd-separator', '--morpho-tag-separator',
+                         default=u':')
+    optparser.add_option('--enclosed-msd', '--enclosed-morpho-tags',
                          action='store_true', default=False)
     (opts, args) = optparser.parse_args()
     if opts.mode == 'statute':

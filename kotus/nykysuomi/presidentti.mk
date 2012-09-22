@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-TEI2VRT_OPTS = --words --lemgrams
+TEI2VRT_OPTS = --words --lemgrams --morpho-tag-separator=":"
 
 SRC_FILES = kekkonen_1957.xml
 

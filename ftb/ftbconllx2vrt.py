@@ -17,6 +17,8 @@ def getopts():
                                   'original-clean', 'original+clean', 
                                   'clean-original', 'clean+original'],
                          default='clean')
+    optparser.add_option('--msd-separator', '--morpho-tag-separator',
+                         default=u':')
     optparser.add_option('--test-pos-conv', action='store_true', default=False)
     (opts, args) = optparser.parse_args()
     opts.pos_type = opts.pos_type.replace('+', '-')
@@ -61,9 +63,10 @@ def process_input(f, opts):
         elif not line.startswith('</s>'):
             fields = set_fields(line, infields)
             fields['lemma0'] = remove_markers(fields['lemma'])
-            fields['pos_orig'] = fix_msd(fields['pos'].strip())
+            fields['pos_orig'] = fix_msd(fields['pos'].strip(),
+                                         opts.msd_separator)
             fields['pos'] = extract_pos(fields['pos'])
-            fields['msd'] = fix_msd(fields['msd'])
+            fields['msd'] = fix_msd(fields['msd'], opts.msd_separator)
             if opts.lemgrams:
                 fields['lemgram'] = make_lemgram(fields['lemma0'],
                                                  fields['pos'])
@@ -114,8 +117,8 @@ def extract_pos(pos):
     return pos
 
 
-def fix_msd(msd):
-    return re.sub(r'\s+', u'|', re.sub(r'<', '[', re.sub(r'>', ']', msd)))
+def fix_msd(msd, separator=u':'):
+    return re.sub(r'\s+', separator, re.sub(r'<', '[', re.sub(r'>', ']', msd)))
 
 
 _lemgram_posmap = {'_': 'xx', # Unspecified

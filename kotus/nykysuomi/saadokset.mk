@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
-TEI2VRT_OPTS = --mode=statute-modern --words --lemgrams
+TEI2VRT_OPTS = --mode=statute-modern --words --lemgrams \
+		--morpho-tag-separator=":"
 
 SRC_FILES = laki10.xml
 
