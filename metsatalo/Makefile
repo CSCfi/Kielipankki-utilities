@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-CORPNAME_BASE = metsatalo
-
 MAKE_VRT_CMD = ./mt2vrt.pl --lemgrams --morpho-tag-separator=":"
 MAKE_RELS_PROG = ../ftb/ftbvrt2wprel.py
 MAKE_RELS_CMD = cut -f1-6,8 \

@@ -17,6 +17,8 @@ SUBDIRS := \
 	$(shell ls \
 	| perl -ne 'chomp; print "$$_\n" if -d $$_ && -e "$$_/Makefile"')
 
+CORPNAME_BASE ?= $(lastword $(subst /, ,$(CURDIR)))
+
 CORPORA ?= $(or $(basename $(filter-out %-common.mk,$(wildcard *.mk))),\
 		$(CORPNAME_BASE))
 
@@ -94,7 +96,8 @@ CWB_ENCODE = $(CWBDIR)/cwb-encode -d $(CORPCORPDIR) -R $(REGDIR)/$(CORPNAME) \
 CWB_MAKEALL = $(CWBDIR)/cwb-makeall -V -r $(REGDIR) $(CORPNAME_U)
 CWB_MAKE = cwb-make -r $(REGDIR) -g $(CORPGROUP) -M 2000 $(CORPNAME_U)
 CWB_ALIGN = $(CWBDIR)/cwb-align
-CWB_ALIGN_ENCODE = $(CWBDIR)/cwb-align-encode -v
+CWB_ALIGN_ENCODE = $(CWBDIR)/cwb-align-encode -v -r $(REGDIR)
+CWB_REGEDIT = cwb-regedit -r $(REGDIR)
 
 # A named pipe created by mkfifo is used to support uncompressing
 # compressed input on the fly.
@@ -272,8 +275,8 @@ endif
 # Align parallel corpora
 
 ALIGN_CORP = \
-		echo "ALIGNED $(call OTHERLANG,$(1))" >> $(REGDIR)/$(1); \
-		$(CWB_ALIGN_ENCODE) -r $(REGDIR) -D $(1).align
+		$(CWB_REGEDIT) $(1) :add :a "$(call OTHERLANG,$(1))"; \
+		$(CWB_ALIGN_ENCODE) -D $(1).align
 
 align: parcorp $(CORPNAME)_$(PARLANG1).align $(CORPNAME)_$(PARLANG2).align
 	$(call ALIGN_CORP,$(CORPNAME)_$(PARLANG1))
