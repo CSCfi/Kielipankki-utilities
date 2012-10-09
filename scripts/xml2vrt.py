@@ -64,7 +64,7 @@ class ElemRule(ElemRulePart):
 
 class ElemCond(ElemRulePart):
 
-    def __init__(self, elemname, conds=None):
+    def __init__(self, elemname, *conds):
         self._elemname = elemname
         self._conds = conds
 
@@ -73,18 +73,49 @@ class ElemCond(ElemRulePart):
 
     def matches(self, et_elem):
         if isinstance(et_elem, et.Element):
-            return (et_elem.tag == self._elemname or self._elemname == '*'
-                    and (self._conds is None or self._conds.matches(et_elem)))
+            return ((et_elem.tag == self._elemname or self._elemname == '*')
+                    and self._conds_match(et_elem))
         elif isinstance(et_elem, basestring):
             return (self._elemname == '%TEXT')
         else:
             return False
+
+    def _conds_match(self, et_elem):
+        for cond in self._conds:
+            if not cond.matches(et_elem):
+                return False
+        return True
 
 
 class ElemCondCond(ElemRulePart):
 
     def matches(self, et_elem):
         pass
+
+
+class ElemCondAttrCond(ElemCondCond):
+
+    def __init__(self, attrname, attrval):
+        self._attrname = attrname
+        self._attrval = attrval
+
+
+class ElemCondAttrEq(ElemCondAttrCond):
+
+    def __init__(self, attrname, attrval):
+        ElemCondAttrCond.__init__(self, attrname, attrval)
+
+    def matches(self, et_elem):
+        return et_elem.get(self._attrname) == self._attrval
+
+
+class ElemCondAttrNe(ElemCondAttrCond):
+
+    def __init__(self, attrname, attrval):
+        ElemCondAttrCond.__init__(self, attrname, attrval)
+
+    def matches(self, et_elem):
+        return et_elem.get(self._attrname) != self._attrval
 
 
 class ElemTarget(ElemRulePart):
@@ -352,9 +383,9 @@ test_rules = [
                                    [ElemAttrId('id'),
                                     ElemAttrConst('test', 's')],
                                    ElemContent('**'))),
-    ElemRule([ElemCond('u'), ElemCond('t')],
+    ElemRule([ElemCond('u', ElemCondAttrEq('t', 'bar')), ElemCond('t')],
              target=ElemTargetElem('test',
-                                   [],
+                                   [ElemAttrAttr('ta', 't')],
                                    ElemContent('**'))),
     ElemRule(ElemCond('%TEXT'),
              target=ElemTargetVrt([ElemTargetVrtTextField([0, 1, 2, 3])])),
