@@ -129,7 +129,7 @@ class ElemTargetElem(ElemTarget):
         self._add_attrs(et_elem, result_e)
         self._make_content(et_elem, result_e, converter)
         # print result_e, result_e.tag, '<', result_e.tail, '>'
-        return result_e
+        return [result_e]
 
     def _add_attrs(self, et_elem, result_e):
         for attr in self._attrs:
@@ -145,9 +145,11 @@ class ElemTargetSkip(ElemTarget):
         self._content = content
 
     def make_target(self, et_elem, converter):
-        result_e = et.Element('__skip__')
+        # KLUDGE: Use a dummy Element so that make_content works;
+        # return only the list of children.
+        result_e = et.Element('dummy')
         self._content.make_content(et_elem, result_e, converter)
-        return result_e
+        return list(result_e)
 
 
 class ElemAttr(ElemRulePart):
@@ -214,14 +216,14 @@ class ElemContent(ElemRulePart):
             self._child_names.update({'*': 1, '%TEXT': 1})
         self._process_all_elems = ('*' in self._child_names)
         self._process_text = ('%TEXT' in self._child_names)
+        # print self._process_all_elems, self._process_text
 
     def make_content(self, et_elem, result_e, converter):
         result_e.text = self._make_text_content(et_elem.text, converter)
         prev_subresult = None
         for subelem in et_elem:
             if self._process_all_elems or subelem.tag in self._child_names:
-                subresult = converter.convert_elem(subelem)
-                if subresult is not None:
+                for subresult in converter.convert_elem(subelem):
                     subresult.tail = self._make_text_content(subelem.tail,
                                                              converter)
                     prev_subresult = subresult
@@ -273,11 +275,11 @@ class Converter(object):
 
     def process_input(self, f):
         src_e = et.parse(f).getroot()
-        result_et = self.convert(src_e)
-        result_et.write(sys.stdout, encoding='utf-8')
+        for result_et in self.convert(src_e):
+            result_et.write(sys.stdout, encoding='utf-8')
 
     def convert(self, src_e):
-        return et.ElementTree(self.convert_elem(src_e))
+        return [et.ElementTree(elem) for elem in self.convert_elem(src_e)]
 
     def convert_elem(self, src_e):
         rule = self._find_rule(src_e)
