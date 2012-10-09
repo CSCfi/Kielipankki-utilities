@@ -234,6 +234,15 @@ class ElemTargetVrtTextField(ElemTargetVrtField):
         return value
 
 
+class ElemTargetVrtConstField(ElemTargetVrtField):
+
+    def __init__(self, value):
+        self._value = value
+
+    def make_values(self, line, et_elem):
+        return VrtListFields([[self._value]])
+    
+
 class ElemTargetVrtText(ElemTargetVrtField):
 
     def __init__(self, opts=None):
@@ -370,15 +379,18 @@ class ElemAttrContentAttr(ElemAttrContent):
 
 class ElemAttrCopy(ElemAttr):
 
-    def __init__(self, attrname):
-        ElemAttr.__init__(self, attrname)
+    def __init__(self, attrnames):
+        if not isinstance(attrnames, list):
+            attrnames = [attrnames]
+        self._attrnames = attrnames
 
     def set_value(self, et_elem, result_e):
-        if self._attrname == '*':
+        if self._attrnames[0] == '*':
             for (key, val) in et_elem.items():
                 result_e.set(key, val)
         else:
-            result_e.set(self._attrname, et_elem.get(self._attrname, ''))
+            for attrname in self._attrnames:
+                result_e.set(attrname, et_elem.get(attrname, ''))
         
 
 class ElemContent(ElemRulePart):
