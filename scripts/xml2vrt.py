@@ -483,6 +483,7 @@ class Converter(object):
 
 def getopts():
     optparser = OptionParser()
+    optparser.add_option('--rule-file', '--rules', '-r')
     (opts, args) = optparser.parse_args()
     return (opts, args)
 
@@ -517,6 +518,22 @@ test_rules = [
              target=ElemTargetSkip(ElemContent('*')))]
 
 
+def get_rules(opts):
+    if opts.rule_file:
+        rules = eval(read_file(opts.rule_file))
+    else:
+        rules = test_rules
+    return rules
+
+
+def read_file(fname):
+    contents = ''
+    with codecs.open(fname, 'r', encoding='utf-8') as f:
+        for line in f:
+            contents += line
+    return contents
+
+
 def main():
     input_encoding = 'utf-8'
     output_encoding = 'utf-8'
@@ -525,7 +542,7 @@ def main():
     # sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
     # sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
     (opts, args) = getopts()
-    converter = Converter(opts, rules=test_rules)
+    converter = Converter(opts, rules=get_rules(opts))
     converter.process_input(args[0] if args else sys.stdin)
 
 
