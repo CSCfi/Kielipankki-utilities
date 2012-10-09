@@ -219,11 +219,15 @@ class ElemContent(ElemRulePart):
         # print self._process_all_elems, self._process_text
 
     def make_content(self, et_elem, result_e, converter):
+        # print 'make_content', et_elem.tag
         result_e.text = self._make_text_content(et_elem.text, converter)
         prev_subresult = None
         for subelem in et_elem:
+            subresults = None
             if self._process_all_elems or subelem.tag in self._child_names:
-                for subresult in converter.convert_elem(subelem):
+                subresults = converter.convert_elem(subelem)
+            if subresults:
+                for subresult in subresults:
                     subresult.tail = self._make_text_content(subelem.tail,
                                                              converter)
                     prev_subresult = subresult
@@ -249,6 +253,7 @@ class ElemContent(ElemRulePart):
 
     @classmethod
     def add_content_newlines(cls, elem):
+
         def add_lead_trail_newline(s):
             s = (s.strip() or '\n') if s else '\n'
             if s[0] != '\n':
@@ -256,6 +261,7 @@ class ElemContent(ElemRulePart):
             if s[-1] != '\n':
                 s += '\n'
             return s
+
         elem.text = add_lead_trail_newline(elem.text)
         elem.tail = add_lead_trail_newline(elem.tail)
 
@@ -291,7 +297,7 @@ class Converter(object):
 
     def _find_rule(self, elem):
         # print '_find_rule',
-        # print (elem if isinstance(elem, basestring) else elem.tag),
+        # print ('%TEXT' if isinstance(elem, basestring) else elem.tag)
         if isinstance(elem, basestring):
             elemname = '%TEXT'
             # print elem
@@ -322,7 +328,11 @@ test_rules = [
              target=ElemTargetElem('sentence',
                                    [ElemAttrId('id'),
                                     ElemAttrConst('test', 's')],
-                                   ElemContent('%TEXT'))),
+                                   ElemContent('**'))),
+    ElemRule('u',
+             target=ElemTargetElem('test',
+                                   [],
+                                   ElemContent('**'))),
     ElemRule('%TEXT',
              target=ElemTargetVrt([ElemTargetVrtTextField([0, 1, 2, 3])])),
     ElemRule('*',
