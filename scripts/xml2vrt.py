@@ -29,6 +29,20 @@ class ListDict(dict):
         return False
 
 
+class Tokenizer(object):
+
+    def __init__(self):
+        pass
+
+    def tokenize(self, text):
+        text = text or ''
+        text = re.sub(r'([.?!,:])(")', r'\1 \2', text)
+        text = re.sub(r'(\.\.\.)([,:;?!")])', r' \1 \2', text)
+        text = re.sub(r'([.,:;?!")]|\.\.\.)([ \n]|\Z)', r' \1\2', text)
+        text = re.sub(r'([ \n]|\A)(["(])', r'\1\2 ', text)
+        return text
+
+
 class ElemRulePart(object):
 
     pass
@@ -124,6 +138,32 @@ class ElemTarget(ElemRulePart):
         pass
 
 
+class VrtList(list):
+
+    def __init__(self, *args):
+        list.__init__(self, *args)
+
+
+class VrtListFields(VrtList):
+
+    def __init__(self, *args):
+        VrtList.__init__(self, *args)
+
+    def extend(self, lst):
+        VrtList.extend(self[0], [elem for sublist in lst for elem in sublist])
+
+
+class VrtListLines(VrtList):
+
+    def __init__(self, *args):
+        VrtList.__init__(self, *args)
+
+    def extend(self, lst):
+        for sublist in self:
+            VrtList.extend(sublist,
+                           [elem for sublist2 in lst for elem in sublist2])
+
+
 class ElemTargetVrt(ElemTarget):
 
     def __init__(self, fields):
@@ -134,10 +174,15 @@ class ElemTargetVrt(ElemTarget):
         text = et_elem if isinstance(et_elem, basestring) else et_elem.text
         text = self.strip_newlines(text)
         for line in text.split('\n'):
-            result_lines += ['\t'.join(
-                    [field for fields in self._fields
-                     for field in fields.make_values(line, et_elem)])]
-        # print result_lines
+            # Make the first fields separately to get the right class
+            result_line_fields_list = self._fields[0].make_values(line, et_elem)
+            for fields in self._fields[1:]:
+                result_line_fields_list.extend(
+                    fields.make_values(line, et_elem))
+            for result_line_fields in result_line_fields_list:
+                # print result_line_fields
+                result_lines.append('\t'.join(result_line_fields))
+                # print result_lines
         return '\n'.join(result_lines) + '\n'
 
     @classmethod
@@ -162,7 +207,8 @@ class ElemTargetVrtAttrField(ElemTargetVrtField):
         self._opts = opts if opts is not None else {}
 
     def make_values(self, line, et_elem):
-        return [et_elem.get(attrname, '') for attrname in self._attrnames]
+        return VrtListFields([[et_elem.get(attrname, '')
+                               for attrname in self._attrnames]])
 
 
 class ElemTargetVrtTextField(ElemTargetVrtField):
@@ -176,9 +222,34 @@ class ElemTargetVrtTextField(ElemTargetVrtField):
     def make_values(self, line, et_elem):
         elem_fields = line.split('\t')
         # print self._field_nrs, elem_fields
-        return [elem_fields[fieldnr] for fieldnr in self._field_nrs
-                if fieldnr < len(elem_fields)]
+        return VrtListFields([[self._make_value(elem_fields[fieldnr])
+                               for fieldnr in self._field_nrs
+                               if fieldnr < len(elem_fields)]])
 
+    def _make_value(self, value):
+        if self._opts.get('strip'):
+            value = value.strip()
+        if self._opts.get('tokenize'):
+            value = self._tokenizer(value)
+        return value
+
+
+class ElemTargetVrtText(ElemTargetVrtField):
+
+    def __init__(self, opts=None):
+        self._opts = opts if opts is not None else {}
+        self._tokenizer = self._opts.get('tokenizer') or Tokenizer()
+
+    def make_values(self, line, et_elem):
+        if self._opts.get('strip'):
+            line = line.strip()
+        if self._opts.get('tokenize'):
+            line = self._tokenizer.tokenize(line)
+        if self._opts.get('split'):
+            return VrtListLines([[word] for word in line.split()])
+        else:
+            return VrtListFields([[line]])
+            
 
 class ElemTargetElem(ElemTarget):
 
@@ -410,7 +481,6 @@ class Converter(object):
         return None
 
 
-
 def getopts():
     optparser = OptionParser()
     (opts, args) = optparser.parse_args()
@@ -434,9 +504,13 @@ test_rules = [
                                    ElemTargetVrtAttrField(['y', 'z']),
                                    ElemTargetVrtTextField(0)])),
     ElemRule(ElemCond('w'),
-             target=ElemTargetVrt([ElemTargetVrtTextField(0),
+             target=ElemTargetVrt([ElemTargetVrtTextField(0, {'strip': True}),
                                    ElemTargetVrtAttrField(['baseform', 'pos',
                                                            'msd'])])),
+    ElemRule(ElemCond('z'),
+             target=ElemTargetVrt([ElemTargetVrtText({'tokenize': True,
+                                                      'split': True}),
+                                   ElemTargetVrtAttrField('t')])),
     ElemRule(ElemCond('%TEXT'),
              target=ElemTargetVrt([ElemTargetVrtTextField([0, 1, 2, 3])])),
     ElemRule(ElemCond('*'),
