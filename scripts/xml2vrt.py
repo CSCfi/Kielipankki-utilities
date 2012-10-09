@@ -254,8 +254,30 @@ class ElemAttrContent(ElemAttr):
         self._content_path = content_path
 
     def make_value(self, et_elem):
-        return ' / '.join([elem.text.strip() for elem in
-                           self.et_elem.findall(self._content_path)])
+        return ' | '.join([self._get_value(elem) for elem in
+                           et_elem.findall(self._content_path)])
+
+    def _get_value(self, elem):
+        pass
+
+
+class ElemAttrContentText(ElemAttrContent):
+
+    def __init__(self, attrname, content_path):
+        ElemAttrContent.__init__(self, attrname, content_path)
+
+    def _get_value(self, elem):
+        return elem.text.strip()
+    
+
+class ElemAttrContentAttr(ElemAttrContent):
+
+    def __init__(self, attrname, content_path, content_attrname):
+        ElemAttrContent.__init__(self, attrname, content_path)
+        self._content_attrname = content_attrname
+
+    def _get_value(self, elem):
+        return elem.get(self._content_attrname, '')
 
 
 class ElemContent(ElemRulePart):
@@ -381,7 +403,9 @@ test_rules = [
     ElemRule(ElemCond('s'),
              target=ElemTargetElem('sentence',
                                    [ElemAttrId('id'),
-                                    ElemAttrConst('test', 's')],
+                                    ElemAttrConst('test', 's'),
+                                    ElemAttrContentAttr('loc_id', 'loc', 'id'),
+                                    ElemAttrContentText('t', 't')],
                                    ElemContent('**'))),
     ElemRule([ElemCond('u', ElemCondAttrEq('t', 'bar')), ElemCond('t')],
              target=ElemTargetElem('test',
