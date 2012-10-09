@@ -254,20 +254,23 @@ class ElemTargetVrtText(ElemTargetVrtField):
 class ElemTargetElem(ElemTarget):
 
     def __init__(self, elemname, attrs, content):
-        self._elem = elemname
+        self._elemname = elemname
         self._attrs = attrs
         self._content = content
 
     def make_target(self, et_elem, converter):
-        result_e = et.Element(self._elem)
+        result_e = et.Element(self._make_elemname(et_elem))
         self._add_attrs(et_elem, result_e)
         self._make_content(et_elem, result_e, converter)
         # print result_e, result_e.tag, '<', result_e.tail, '>'
         return [result_e]
 
+    def _make_elemname(self, et_elem):
+        return self._elemname if self._elemname != '*' else et_elem.tag
+
     def _add_attrs(self, et_elem, result_e):
         for attr in self._attrs:
-            result_e.set(attr.get_attrname(), attr.make_value(et_elem))
+            attr.set_value(et_elem, result_e)
 
     def _make_content(self, et_elem, result_e, converter):
         self._content.make_content(et_elem, result_e, converter)
@@ -293,6 +296,9 @@ class ElemAttr(ElemRulePart):
 
     def get_attrname(self):
         return self._attrname
+
+    def set_value(self, et_elem, result_e):
+        result_e.set(self._attrname, self.make_value(et_elem))
 
     def make_value(self, et_elem):
         pass
@@ -361,6 +367,19 @@ class ElemAttrContentAttr(ElemAttrContent):
     def _get_value(self, elem):
         return elem.get(self._content_attrname, '')
 
+
+class ElemAttrCopy(ElemAttr):
+
+    def __init__(self, attrname):
+        ElemAttr.__init__(self, attrname)
+
+    def set_value(self, et_elem, result_e):
+        if self._attrname == '*':
+            for (key, val) in et_elem.items():
+                result_e.set(key, val)
+        else:
+            result_e.set(self._attrname, et_elem.get(self._attrname, ''))
+        
 
 class ElemContent(ElemRulePart):
 
