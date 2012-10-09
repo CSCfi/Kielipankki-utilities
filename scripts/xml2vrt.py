@@ -132,12 +132,19 @@ class ElemTargetVrt(ElemTarget):
     def make_target(self, et_elem, converter):
         result_lines = []
         text = et_elem if isinstance(et_elem, basestring) else et_elem.text
+        text = self.strip_newlines(text)
         for line in text.split('\n'):
             result_lines += ['\t'.join(
                     [field for fields in self._fields
                      for field in fields.make_values(line, et_elem)])]
         # print result_lines
-        return '\n'.join(result_lines)
+        return '\n'.join(result_lines) + '\n'
+
+    @classmethod
+    def strip_newlines(cls, s):
+        start = 1 if s.startswith('\n') else 0
+        end = -1 if s.endswith('\n') else len(s)
+        return s[start:end]
 
 
 class ElemTargetVrtField(ElemTarget):
@@ -148,17 +155,21 @@ class ElemTargetVrtField(ElemTarget):
 
 class ElemTargetVrtAttrField(ElemTargetVrtField):
 
-    def __init__(self, attrname, opts=None):
-        self._attrname = attrname
+    def __init__(self, attrnames, opts=None):
+        if not isinstance(attrnames, list):
+            attrnames = [attrnames]
+        self._attrnames = attrnames
         self._opts = opts if opts is not None else {}
 
     def make_values(self, line, et_elem):
-        return [et_elem.get(self._attrname, '')]
+        return [et_elem.get(attrname, '') for attrname in self._attrnames]
 
 
 class ElemTargetVrtTextField(ElemTargetVrtField):
 
     def __init__(self, field_nrs=[0], opts=None):
+        if not isinstance(field_nrs, list):
+            field_nrs = [field_nrs]
         self._field_nrs = field_nrs
         self._opts = opts if opts is not None else {}
 
@@ -301,11 +312,18 @@ class ElemContent(ElemRulePart):
             if self._process_all_elems or subelem.tag in self._child_names:
                 subresults = converter.convert_elem(subelem)
             if subresults:
+                # print 'sr', et_elem.tag, subelem.tag, type(subresults), subresults
                 for subresult in subresults:
-                    subresult.tail = self._make_text_content(subelem.tail,
-                                                             converter)
-                    prev_subresult = subresult
-                    result_e.append(subresult)
+                    if isinstance(subresult, et.Element):
+                        subresult.tail = self._make_text_content(subelem.tail,
+                                                                 converter)
+                        prev_subresult = subresult
+                        result_e.append(subresult)
+                    else:
+                        if prev_subresult is None:
+                            result_e.text += subresult
+                        else:
+                            prev_subresult.tail += subresult
             else:
                 text = self._make_text_content(subelem.tail, converter)
                 if text:
@@ -411,6 +429,14 @@ test_rules = [
              target=ElemTargetElem('test',
                                    [ElemAttrAttr('ta', 't')],
                                    ElemContent('**'))),
+    ElemRule(ElemCond('x'),
+             target=ElemTargetVrt([ElemTargetVrtTextField(1),
+                                   ElemTargetVrtAttrField(['y', 'z']),
+                                   ElemTargetVrtTextField(0)])),
+    ElemRule(ElemCond('w'),
+             target=ElemTargetVrt([ElemTargetVrtTextField(0),
+                                   ElemTargetVrtAttrField(['baseform', 'pos',
+                                                           'msd'])])),
     ElemRule(ElemCond('%TEXT'),
              target=ElemTargetVrt([ElemTargetVrtTextField([0, 1, 2, 3])])),
     ElemRule(ElemCond('*'),
