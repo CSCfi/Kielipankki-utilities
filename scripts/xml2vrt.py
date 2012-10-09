@@ -36,34 +36,55 @@ class ElemRulePart(object):
 
 class ElemRule(ElemRulePart):
 
-    def __init__(self, elemname, cond=None, target=None):
-        self._elem = elemname
-        self._cond = cond
+    def __init__(self, elemconds, target=None):
+        if not isinstance(elemconds, list):
+            elemconds = [elemconds]
+        self._elemconds = dict([(elemcond.get_elemname(), elemcond)
+                                for elemcond in elemconds])
         self._target = target
 
-    def get_elemname(self):
-        return self._elem
+    def get_elemnames(self):
+        return self._elemconds.keys()
 
     def matches(self, et_elem):
+        cond = None
         if isinstance(et_elem, et.Element):
-            return ((et_elem.tag == self._elem or self._elem == '*')
-                    and (self._cond is None or self._cond.matches(et_elem)))
+            cond = self._elemconds.get(et_elem.tag) or self._elemconds.get('*')
         elif isinstance(et_elem, basestring):
-            return (self._elem == '%TEXT')
-        else:
-            return False
+            cond = self._elemconds.get('%TEXT')
+        return cond.matches(et_elem) if cond else False
 
     def make_target(self, et_elem, converter):
         return self._target.make_target(et_elem, converter)
 
     def __repr__(self):
-        return 'ElemRule({0}, cond={1}, target={2})'.format(
-            self._elem, repr(self._cond), repr(self._target))
+        return 'ElemRule({0}, target={1})'.format(
+            repr(self._elemconds), repr(self._target))
 
 
 class ElemCond(ElemRulePart):
 
-    pass
+    def __init__(self, elemname, conds=None):
+        self._elemname = elemname
+        self._conds = conds
+
+    def get_elemname(self):
+        return self._elemname
+
+    def matches(self, et_elem):
+        if isinstance(et_elem, et.Element):
+            return (et_elem.tag == self._elemname or self._elemname == '*'
+                    and (self._conds is None or self._conds.matches(et_elem)))
+        elif isinstance(et_elem, basestring):
+            return (self._elemname == '%TEXT')
+        else:
+            return False
+
+
+class ElemCondCond(ElemRulePart):
+
+    def matches(self, et_elem):
+        pass
 
 
 class ElemTarget(ElemRulePart):
@@ -277,7 +298,8 @@ class Converter(object):
         # print self._rules
 
     def add_rule(self, rule):
-        self._rules.add_to(rule.get_elemname(), rule)
+        for elemname in rule.get_elemnames():
+            self._rules.add_to(elemname, rule)
 
     def process_input(self, f):
         src_e = et.parse(f).getroot()
@@ -311,6 +333,7 @@ class Converter(object):
             # print None
             return None
         for rule in self._rules[elemname]:
+            # print rule
             if rule.matches(elem):
                 return rule
         return None
@@ -324,18 +347,18 @@ def getopts():
 
 
 test_rules = [
-    ElemRule('s',
+    ElemRule(ElemCond('s'),
              target=ElemTargetElem('sentence',
                                    [ElemAttrId('id'),
                                     ElemAttrConst('test', 's')],
                                    ElemContent('**'))),
-    ElemRule('u',
+    ElemRule([ElemCond('u'), ElemCond('t')],
              target=ElemTargetElem('test',
                                    [],
                                    ElemContent('**'))),
-    ElemRule('%TEXT',
+    ElemRule(ElemCond('%TEXT'),
              target=ElemTargetVrt([ElemTargetVrtTextField([0, 1, 2, 3])])),
-    ElemRule('*',
+    ElemRule(ElemCond('*'),
              target=ElemTargetSkip(ElemContent('*')))]
 
 
