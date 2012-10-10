@@ -409,30 +409,34 @@ class ElemContent(ElemRulePart):
         # print 'make_content', et_elem.tag
         result_e.text = self._make_text_content(et_elem.text, converter)
         prev_subresult = None
+
+        def append_to_prev_subresult(text):
+            if text:
+                if prev_subresult is None:
+                    result_e.text += text
+                else:
+                    prev_subresult.tail += text
+
         for subelem in et_elem:
             subresults = None
             if self._process_all_elems or subelem.tag in self._child_names:
                 subresults = converter.convert_elem(subelem)
             if subresults:
                 # print 'sr', et_elem.tag, subelem.tag, type(subresults), subresults
-                for subresult in subresults:
-                    if isinstance(subresult, et.Element):
-                        subresult.tail = self._make_text_content(subelem.tail,
-                                                                 converter)
-                        prev_subresult = subresult
-                        result_e.append(subresult)
-                    else:
-                        if prev_subresult is None:
-                            result_e.text += subresult
+                if isinstance(subresults, list):
+                    for subresult in subresults:
+                        if isinstance(subresult, et.Element):
+                            subresult.tail = self._make_text_content(
+                                subelem.tail, converter)
+                            prev_subresult = subresult
+                            result_e.append(subresult)
                         else:
-                            prev_subresult.tail += subresult
+                            append_to_prev_subresult(subresult)
+                else:
+                    append_to_prev_subresult(subresults)
             else:
-                text = self._make_text_content(subelem.tail, converter)
-                if text:
-                    if prev_subresult is None:
-                        result_e.text += text
-                    else:
-                        prev_subresult.tail += text
+                append_to_prev_subresult(
+                    self._make_text_content(subelem.tail, converter))
         self.add_content_newlines(result_e)
         for subresult in result_e:
             self.add_content_newlines(subresult)
@@ -449,7 +453,7 @@ class ElemContent(ElemRulePart):
     def add_content_newlines(cls, elem):
 
         def add_lead_trail_newline(s):
-            s = (s.strip() or '\n') if s else '\n'
+            s = s or '\n'
             if s[0] != '\n':
                 s = '\n' + s
             if s[-1] != '\n':
