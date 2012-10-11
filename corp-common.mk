@@ -9,6 +9,17 @@
 
 TOPDIR = $(dir $(lastword $(MAKEFILE_LIST)))
 
+SCRIPTDIR = $(TOPDIR)/scripts
+
+VRT_ADD_LEMGRAMS = $(SCRIPTDIR)/vrt-add-lemgrams.py \
+			--pos-map-file $(LEMGRAM_POSMAP) \
+			$(VRT_ADD_LEMGRAMS_OPTS)
+VRT_FIX_POSATTRS = $(SCRIPTDIR)/vrt-fix-posattrs.py
+XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(XML2VRT_RULES) $(XML2VRT_OPTS)
+XMLSTATS = $(SCRIPTDIR)/xmlstats.py
+
+MAKE_CWB_STRUCT_ATTRS = $(XMLSTATS) --cwb-struct-attrs
+
 eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
 eqs = $(call eq,$(strip $(1)),$(strip $(2)))
 lower = $(shell echo $(1) | perl -pe 's/(.*)/\L$$1\E/')
@@ -115,6 +126,8 @@ MYSQL_IMPORT = mkfifo $(2).tsv; \
 	/bin/rm -f $(2).tsv;
 
 SUBST_CORPNAME = $(shell perl -pe 's/\@CORPNAME\@/$(CORPNAME_U)/g' $(1))
+
+S_ATTRS ?= $(shell $(CAT) $(CORPNAME)$(VRT) | $(MAKE_CWB_STRUCT_ATTRS))
 
 P_OPTS = $(foreach attr,$(P_ATTRS),-P $(attr))
 S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
