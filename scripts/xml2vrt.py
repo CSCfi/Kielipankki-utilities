@@ -236,11 +236,13 @@ class ElemTargetVrtTextField(ElemTargetVrtField):
 
 class ElemTargetVrtConstField(ElemTargetVrtField):
 
-    def __init__(self, value):
-        self._value = value
+    def __init__(self, values):
+        if not isinstance(values, list):
+            values = [values]
+        self._values = values
 
     def make_values(self, line, et_elem):
-        return VrtListFields([[self._value]])
+        return VrtListFields([[value for value in self._values]])
     
 
 class ElemTargetVrtText(ElemTargetVrtField):
