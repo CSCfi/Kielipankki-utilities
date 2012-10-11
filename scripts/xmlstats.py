@@ -4,6 +4,7 @@
 
 import sys
 import codecs
+import re
 
 import xml.sax as sax
 import xml.sax.handler as saxhandler
@@ -52,14 +53,30 @@ class DictDict(dict):
         func(self[key1], key2, *args, **kwargs)
 
 
+class DictDictDict(dict):
+
+    def __init__(self, inner_type=dict, init_func=None):
+        dict.__init__(self)
+        self._init_func = init_func or (lambda: inner_type())
+
+    def apply(self, key1, key2, key3, func=dict.__setitem__, *args, **kwargs):
+        if key1 not in self:
+            self[key1] = {}
+        if key2 not in self[key1]:
+            self[key1][key2] = self._init_func()
+        func(self[key1][key2], key3, *args, **kwargs)
+
+
 class XMLStatCounter(saxhandler.ContentHandler):
 
-    def __init__(self):
+    def __init__(self, opts):
+        self._opts = opts
         self._parser = sax.make_parser()
         self._parser.setContentHandler(self)
         self._elemnames = []
         self._elemcounts = IncrDict()
         self._elem_attr_counts = DictDict(inner_type=IncrDict)
+        self._elem_attr_value_counts = DictDictDict(inner_type=IncrDict)
         self._elem_max_nesting = MaxDict()
         self._elem_elem_counts = DictDict(inner_type=IncrDict)
         self._open_elems = IncrDict()
@@ -76,6 +93,9 @@ class XMLStatCounter(saxhandler.ContentHandler):
         self._open_elems.incr(name)
         for attrname in attrs.getNames():
             self._elem_attr_counts.apply(name, attrname, IncrDict.incr)
+            if self._opts.attr_values:
+                self._elem_attr_value_counts.apply(
+                    name, attrname, attrs.get(attrname), IncrDict.incr)
         if self._elemstack:
             self._elem_elem_counts.apply(self._elemstack[-1], name,
                                          IncrDict.incr)
@@ -99,21 +119,36 @@ class XMLStatCounter(saxhandler.ContentHandler):
             result += '{name:10} {nesting:2d} {count:6d}\n'.format(
                 name=elemname, nesting=self._elem_max_nesting[elemname],
                 count=self._elemcounts[elemname])
-            result += self._make_subcounts(elemname, self._elem_attr_counts,
-                                           format='  @{name:10} {count:6d}\n',)
-            result += self._make_subcounts(elemname, self._elem_elem_counts,
-                                           format='  {name:11} {count:6d}\n',
-                                           name_map={'': '#DATA'})
+            result += self._make_subcounts(
+                elemname, self._elem_attr_counts,
+                format=u'  @{name:10} {count:6d}\n',
+                subelem_dict=self._elem_attr_value_counts,
+                subelem_args=dict(format=u'    {name:9} {count:6d}\n',
+                                  name_format=u'"{name}"',
+                                  limit=self._opts.max_attr_values))
+            result += self._make_subcounts(
+                elemname, self._elem_elem_counts,
+                format=u'  {name:11} {count:6d}\n', name_map={'': '#DATA'})
         return result
 
-    def _make_subcounts(self, elemname, elem_dict, format='{name} {count}\n',
-                        name_map={}):
+    def _make_subcounts(self, elemname, elem_dict, format=u'{name} {count}\n',
+                        name_format=u'{name}', name_map={}, limit=None,
+                        subelem_dict=None, subelem_args={}):
         result = ''
         names = elem_dict.get(elemname, {}).keys()
         names.sort()
-        for name in names:
-            result += format.format(name=name_map.get(name, name),
+        if limit is None or limit < 0:
+            limit = len(names)
+        for name in names[:limit]:
+            formatted_name = name_format.format(name=name_map.get(name, name))
+            result += format.format(name=formatted_name,
                                     count=elem_dict[elemname][name])
+            if subelem_dict:
+                result += self._make_subcounts(name, subelem_dict[elemname],
+                                               **subelem_args)
+        if limit < len(names):
+            format_prefix = re.match(r'([^\{]*)', format).group(1)
+            result += format_prefix + '...\n'
         return result
 
 
@@ -137,13 +172,17 @@ class XMLFileStats(object):
     def calc_file_stats(self, f, fname=None):
         if fname != None:
             sys.stdout.write(fname + ':\n')
-        stat_counter = XMLStatCounter()
+        stat_counter = XMLStatCounter(self._opts)
         stat_counter.add_stats(f)
         sys.stdout.write(stat_counter.format_stats())
 
 
 def getopts():
     optparser = OptionParser()
+    optparser.add_option('--attr-values', '--attribute-values',
+                         action='store_true', default=False)
+    optparser.add_option('--max-attr-values', '--maximum-attribute-values',
+                         type='int', default=20)
     (opts, args) = optparser.parse_args()
     return (opts, args)
 
