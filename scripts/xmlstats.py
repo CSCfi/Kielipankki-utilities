@@ -149,6 +149,15 @@ class XMLStatCounter(saxhandler.ContentHandler):
                 namewidth=namewidth + 1, name_map={'': '#DATA'})
         return result
 
+    def format_cwb_struct_attrs(self):
+        eleminfo = []
+        for elemname in self._elemnames:
+            eleminfo.append(
+                '+'.join([elemname + ':'
+                          + str(self._elem_max_nesting[elemname] - 1)]
+                         + self._elem_attr_counts.get(elemname, {}).keys()))
+        return ' '.join(eleminfo) + '\n'
+
     def _make_subcounts(self, elemname, elem_dict, format=u'{name} {count}\n',
                         name_format=u'{name}', name_map={}, limit=None,
                         subelem_dict=None, subelem_args={},
@@ -184,17 +193,27 @@ class XMLFileStats(object):
         elif isinstance(files, basestring):
             # codings.open() is not used so that the XML parser can
             # use the encoding from the input
-            with open(files, 'r') as f:
+            with self._open(files) as f:
                 self.calc_file_stats(f, files)
         else:
             self.calc_file_stats(files)
+
+    def _open(self, fname):
+        if self._opts.input_encoding is not None:
+            return codings.open(fname, 'r', encoding=self._opts.input_encoding)
+        else:
+            return open(fname, 'r')
 
     def calc_file_stats(self, f, fname=None):
         if fname != None:
             sys.stdout.write(fname + ':\n')
         stat_counter = XMLStatCounter(self._opts)
         stat_counter.add_stats(f)
-        sys.stdout.write(stat_counter.format_stats())
+        if self._opts.cwb_struct_attrs:
+            stats = stat_counter.format_cwb_struct_attrs()
+        else:
+            stats = stat_counter.format_stats()
+        sys.stdout.write(stats)
 
 
 def getopts():
@@ -203,16 +222,20 @@ def getopts():
                          action='store_true', default=False)
     optparser.add_option('--max-attr-values', '--maximum-attribute-values',
                          type='int', default=20)
+    optparser.add_option('--cwb-struct-attrs', '--cwb-s-attrs',
+                         '--cwb-structural-attributes',
+                         action='store_true', default=False)
+    optparser.add_option('--input-encoding', default=None)
     (opts, args) = optparser.parse_args()
     return (opts, args)
 
 
 def main():
-    input_encoding = 'utf-8'
     output_encoding = 'utf-8'
-    sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
-    sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
     (opts, args) = getopts()
+    if opts.input_encoding is not None:
+        sys.stdin = codecs.getreader(opts.input_encoding)(sys.stdin)
+    sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
     file_stats = XMLFileStats(opts)
     file_stats.process_files(args if args else sys.stdin)
 
