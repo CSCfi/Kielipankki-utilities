@@ -114,26 +114,45 @@ class XMLStatCounter(saxhandler.ContentHandler):
             self._prev_event = 'text'
 
     def format_stats(self):
+        elemname_maxlen = max([len(name) for name in self._elemnames])
+        attrname_maxlen = max(
+            [len(attrname) for elemname in self._elemnames
+             for attrname in self._elem_attr_counts.get(elemname, [])])
+        # FIXME: This does not take into account the possible limit on
+        # the number of attribute values to be printed.
+        attrval_maxlen = (
+            max([len(value) for elemname in self._elemnames
+                 for attrname in self._elem_attr_counts.get(elemname, [])
+                 for value in (self._elem_attr_value_counts.get(elemname, {})
+                               .get(attrname, []))])
+            if self._opts.attr_values else 0)
+        namewidth = min(70, max(elemname_maxlen, attrname_maxlen + 1,
+                                attrval_maxlen + 4))
         result = ''
         for elemname in self._elemnames:
-            result += '{name:10} {nesting:2d} {count:6d}\n'.format(
-                name=elemname, nesting=self._elem_max_nesting[elemname],
+            result += '{name:{namewidth}} {nesting:2d} {count:6d}\n'.format(
+                name=elemname, namewidth=namewidth,
+                nesting=self._elem_max_nesting[elemname],
                 count=self._elemcounts[elemname])
             result += self._make_subcounts(
                 elemname, self._elem_attr_counts,
-                format=u'  @{name:10} {count:6d}\n',
+                format=u'  @{name:{namewidth}} {count:6d}\n',
+                namewidth=namewidth,
                 subelem_dict=self._elem_attr_value_counts,
-                subelem_args=dict(format=u'    {name:9} {count:6d}\n',
+                subelem_args=dict(format=u'    {name:{namewidth}} {count:6d}\n',
+                                  namewidth=namewidth - 1,
                                   name_format=u'"{name}"',
                                   limit=self._opts.max_attr_values))
             result += self._make_subcounts(
                 elemname, self._elem_elem_counts,
-                format=u'  {name:11} {count:6d}\n', name_map={'': '#DATA'})
+                format=u'  {name:{namewidth}} {count:6d}\n',
+                namewidth=namewidth + 1, name_map={'': '#DATA'})
         return result
 
     def _make_subcounts(self, elemname, elem_dict, format=u'{name} {count}\n',
                         name_format=u'{name}', name_map={}, limit=None,
-                        subelem_dict=None, subelem_args={}):
+                        subelem_dict=None, subelem_args={},
+                        **extra_format_args):
         result = ''
         names = elem_dict.get(elemname, {}).keys()
         names.sort()
@@ -142,7 +161,8 @@ class XMLStatCounter(saxhandler.ContentHandler):
         for name in names[:limit]:
             formatted_name = name_format.format(name=name_map.get(name, name))
             result += format.format(name=formatted_name,
-                                    count=elem_dict[elemname][name])
+                                    count=elem_dict[elemname][name],
+                                    **extra_format_args)
             if subelem_dict:
                 result += self._make_subcounts(name, subelem_dict[elemname],
                                                **subelem_args)
