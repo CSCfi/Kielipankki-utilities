@@ -76,7 +76,7 @@ class Converter(object):
             if self._opts.para_as_sent:
                 result = self._make_sentence(body_e)
             else:
-                result = et.Element('para')
+                result = et.Element(self._opts.para_elem_name)
                 _process_subelems(result)
             if body_e.get('type'):
                 result.set('topic', body_e.get('type'))
@@ -373,6 +373,8 @@ def getopts():
                          default=u':')
     optparser.add_option('--enclosed-msd', '--enclosed-morpho-tags',
                          action='store_true', default=False)
+    optparser.add_option('--para-elem-name', '--paragraph-element-name',
+                         default=u'para')
     (opts, args) = optparser.parse_args()
     if opts.mode == 'statute':
         opts.tokenize = True
