@@ -21,7 +21,7 @@
                                                   'source', 'sp', 'sinum'])],
                                    ElemContent('*'))),
     ElemRule(ElemCond('p'),
-             target=ElemTargetElem('para',
+             target=ElemTargetElem('paragraph',
                                    [ElemAttrCopy(['id', 'type', 'n'])],
                                    ElemContent('*'))),
     ElemRule(ElemCond('korpusla'),
