@@ -83,7 +83,10 @@ MAKE_VRT_CMD ?= cat
 
 MAKE_VRT_PROG ?= $(if $(call eq,$(MAKE_VRT_CMD),cat),,\
 			$(firstword $(MAKE_VRT_CMD)))
+MAKE_VRT_DEPS = $(MAKE_VRT_PROG) $(XML2VRT_RULES) $(LEMGRAM_POSMAP) \
+		$(MAKE_VRT_DEPS_EXTRA)
 MAKE_RELS_PROG ?= $(firstword $(MAKE_RELS_CMD))
+MAKE_RELS_DEPS = $(MAKE_RELS_PROG) $(MAKE_RELS_DEPS_EXTRA)
 
 TRANSCODE := $(if $(INPUT_ENCODING),iconv -f$(INPUT_ENCODING) -tutf8,cat)
 
@@ -205,7 +208,7 @@ $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT) $(CORPNAME).info
 # This does not support passing compressed files or files requiring
 # transcoding to a program requiring filename arguments. That might be
 # achieved by using named pipes as for mysqlimport.
-$(CORPNAME)$(VRT): $(SRC_FILES) $(MAKE_VRT_PROG) $(DEP_MAKEFILES)
+$(CORPNAME)$(VRT): $(SRC_FILES) $(MAKE_VRT_DEPS) $(DEP_MAKEFILES)
 ifdef MAKE_VRT_FILENAME_ARGS
 	$(MAKE_VRT_CMD) $(SRC_FILES) \
 	| $(COMPR) > $@
@@ -232,7 +235,7 @@ $(CORPNAME)_rels_load.timestamp: $(RELS_TSV) $(RELS_CREATE_TABLES_TEMPL)
 			$(call MAKE_RELS_TABLE_NAME,$(rel)))))
 	touch $@
 
-$(RELS_TSV): $(CORPNAME)$(VRT) $(MAKE_RELS_PROG)
+$(RELS_TSV): $(CORPNAME)$(VRT) $(MAKE_RELS_DEPS)
 	$(CAT) $< \
 	| $(MAKE_RELS_CMD)
 
