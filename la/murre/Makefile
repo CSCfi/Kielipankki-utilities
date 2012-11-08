@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-SRC_FILES = la_murre_Korp_koe.xml
+SRC_FILES = $(wildcard *.xml)
 
 P_ATTRS = lemma pos msd func lex
 
