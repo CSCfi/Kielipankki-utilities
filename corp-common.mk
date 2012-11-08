@@ -15,8 +15,9 @@ VRT_ADD_LEMGRAMS = $(SCRIPTDIR)/vrt-add-lemgrams.py \
 			--pos-map-file $(LEMGRAM_POSMAP) \
 			$(VRT_ADD_LEMGRAMS_OPTS)
 VRT_FIX_POSATTRS = $(SCRIPTDIR)/vrt-fix-posattrs.py
-XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(XML2VRT_RULES) $(XML2VRT_OPTS)
-XMLSTATS = $(SCRIPTDIR)/xmlstats.py
+XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(XML2VRT_RULES) \
+		--wrapper-element-name= $(XML2VRT_OPTS)
+XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name=
 
 MAKE_CWB_STRUCT_ATTRS = $(XMLSTATS) --cwb-struct-attrs
 
