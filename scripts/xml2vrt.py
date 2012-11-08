@@ -10,6 +10,8 @@ import xml.etree.ElementTree as et
 
 from optparse import OptionParser
 
+from xml2vrt.util import WrappedXMLFileReader
+
 
 class ListDict(dict):
 
@@ -468,9 +470,12 @@ class ElemContent(ElemRulePart):
 
 class Converter(object):
 
-    def __init__(self, opts=None, rules=None):
-        self._opts = opts if opts is not None else {}
+    def __init__(self, opts, rules=None):
+        self._opts = opts
         self._rules = ListDict()
+        if self._opts.wrapper_elem is not None:
+            self.add_rule(ElemRule(ElemCond(self._opts.wrapper_elem),
+                                   target=ElemTargetSkip(ElemContent('*'))))
         if rules is not None:
             for rule in rules:
                 self.add_rule(rule)
@@ -480,7 +485,23 @@ class Converter(object):
         for elemname in rule.get_elemnames():
             self._rules.add_to(elemname, rule)
 
-    def process_input(self, f):
+    def process_inputs(self, files):
+        if not isinstance(files, list):
+            files = [files]
+        for f in files:
+            if isinstance(f, basestring):
+                with open(f, 'r') as f:
+                    self.process_input(f)
+            else:
+                self.process_input(f)
+
+    def process_input(self, base_f):
+        # print base_f
+        if self._opts.wrapper_elem is not None:
+            f = WrappedXMLFileReader(base_f,
+                                     wrapper_elem=self._opts.wrapper_elem)
+        else:
+            f = base_f
         src_e = et.parse(f).getroot()
         for result_et in self.convert(src_e):
             result_et.write(sys.stdout, encoding='utf-8')
@@ -521,7 +542,11 @@ class Converter(object):
 def getopts():
     optparser = OptionParser()
     optparser.add_option('--rule-file', '--rules', '-r')
+    optparser.add_option('--wrapper-elem', '--wrapper-element-name',
+                         default=None)
     (opts, args) = optparser.parse_args()
+    if opts.wrapper_elem == '':
+        opts.wrapper_elem = '__DUMMY__'
     return (opts, args)
 
 
@@ -580,7 +605,7 @@ def main():
     # sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
     (opts, args) = getopts()
     converter = Converter(opts, rules=get_rules(opts))
-    converter.process_input(args[0] if args else sys.stdin)
+    converter.process_inputs(args if args else sys.stdin)
 
 
 if __name__ == "__main__":

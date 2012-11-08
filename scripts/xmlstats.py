@@ -11,6 +11,8 @@ import xml.sax.handler as saxhandler
 
 from optparse import OptionParser
 
+from xml2vrt.util import WrappedXMLFileReader
+
 
 class IncrDict(dict):
 
@@ -87,6 +89,9 @@ class XMLStatCounter(saxhandler.ContentHandler):
         self._parser.parse(f)
 
     def startElement(self, name, attrs):
+        # print '<name>'
+        if self._opts.wrapper_elem and name == self._opts.wrapper_elem:
+            return
         if name not in self._elemcounts:
             self._elemnames += [name]
         self._elemcounts.incr(name)
@@ -103,6 +108,9 @@ class XMLStatCounter(saxhandler.ContentHandler):
         self._prev_event = 'start'
 
     def endElement(self, name):
+        # print '</name>'
+        if self._opts.wrapper_elem and name == self._opts.wrapper_elem:
+            return
         self._elem_max_nesting.max(name, self._open_elems[name])
         self._open_elems.decr(name)
         self._elemstack.pop()
@@ -208,6 +216,8 @@ class XMLFileStats(object):
         if fname != None:
             sys.stdout.write(fname + ':\n')
         stat_counter = XMLStatCounter(self._opts)
+        if self._opts.wrapper_elem:
+            f = WrappedXMLFileReader(f, wrapper_elem=self._opts.wrapper_elem)
         stat_counter.add_stats(f)
         if self._opts.cwb_struct_attrs:
             stats = stat_counter.format_cwb_struct_attrs()
@@ -226,7 +236,11 @@ def getopts():
                          '--cwb-structural-attributes',
                          action='store_true', default=False)
     optparser.add_option('--input-encoding', default=None)
+    optparser.add_option('--wrapper-elem', '--wrapper-element-name',
+                         default=None)
     (opts, args) = optparser.parse_args()
+    if opts.wrapper_elem == '':
+        opts.wrapper_elem = '__DUMMY__'
     return (opts, args)
 
 
