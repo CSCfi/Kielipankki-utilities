@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
-VNS2VRT_OPTS = --tokenize --para-as-sent --mode=statute
+VNS2VRT_OPTS = --mode=statute --tokenize --para-as-sent \
+		--morpho-tag-separator=' '
 
 SRC_FILES = 1840heik.xml
 

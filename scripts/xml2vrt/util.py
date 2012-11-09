@@ -6,6 +6,15 @@ import sys
 import re
 
 
+def replace_substrings(s, mapping):
+    """Replace substrings in s according to dict mapping: replace each
+    key with the corresponding value.
+    """
+    for (s1, repl) in mapping.iteritems():
+        s = s.replace(s1, repl)
+    return s
+
+
 class WrappedXMLFileReader(object):
 
     """Wrap file input into an XML element.
@@ -21,10 +30,11 @@ class WrappedXMLFileReader(object):
     ST_AT_SUFFIX = 3
     ST_EOF = 4
 
-    def __init__(self, f, wrapper_elem=None):
+    def __init__(self, f, wrapper_elem=None, mapping=None):
         self._f = f
         self._prefix = '<' + wrapper_elem + '>\n' if wrapper_elem else ''
         self._suffix = '</' + wrapper_elem + '>\n' if wrapper_elem else ''
+        self._mapping = mapping
         self._read_ahead = None
         self._state = self.ST_AT_START if wrapper_elem else self.ST_IN_FILE
 
@@ -66,9 +76,12 @@ class WrappedXMLFileReader(object):
             # Remove all further XML declarations (from concatenated
             # files); assumes that they are the same as the first one.
             text = re.sub(r'(<\?xml.*?\?>\n?)', '', text)
-            return text
+            return self._map_substrings(text)
         elif self._state == self.ST_EOF:
             return ''
+
+    def _map_substrings(self, s):
+        return replace_substrings(s, self._mapping) if self._mapping else s
 
     # TODO: Implement next()
 

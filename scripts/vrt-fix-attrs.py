@@ -4,17 +4,36 @@
 
 import sys
 import codecs
+import re
 
 from optparse import OptionParser
 
 
+def replace_substrings(s, mapping):
+    """Replace substrings in s according to dict mapping: replace each
+    key with the corresponding value.
+    """
+    for (s1, repl) in mapping.iteritems():
+        s = s.replace(s1, repl)
+    return s
+
+
 class AttributeFixer(object):
+
+    SPECIAL_CHARS = ' /<>'
 
     def __init__(self, opts):
         self._opts = opts
-        self._opts.angle_brackets = self._opts.angle_brackets.split(',', 1)
+        if self._opts.angle_brackets:
+            self._opts.angle_brackets = self._opts.angle_brackets.split(',', 1)
         self._split_lines = (self._opts.compound_boundaries != 'keep'
                              or self._opts.strip)
+        self._encode_posattrs = (self._opts.encode_special_chars
+                                 in ['all', 'pos'])
+        self._encode_structattrs = (self._opts.encode_special_chars
+                                    in ['all', 'struct'])
+        self._special_char_encode_map = dict(
+            [(c, chr(i + 0x01)) for (i, c) in enumerate(self.SPECIAL_CHARS)])
 
     def process_files(self, files):
         if isinstance(files, list):
@@ -32,7 +51,8 @@ class AttributeFixer(object):
 
     def _make_fixed_line(self, line):
         if line.startswith('<') and line.endswith('>\n'):
-            return line
+            if self._encode_structattrs:
+                return self._encode_special_chars_in_struct_attrs(line)
         else:
             return self._fix_posattrs(line)
 
@@ -47,7 +67,20 @@ class AttributeFixer(object):
         if self._opts.angle_brackets:
             line = (line.replace('<', self._opts.angle_brackets[0])
                     .replace('>', self._opts.angle_brackets[1]))
+        if self._encode_posattrs:
+            line = self._encode_special_chars(line)
         return line
+
+    def _encode_special_chars(self, s):
+        """Encode the special characters in s."""
+        return replace_substrings(s, self._special_char_encode_map)
+
+    def _encode_special_chars_in_struct_attrs(self, s):
+        """Encode the special characters in the double-quoted substrings
+        of s.
+        """
+        return re.sub(r'("(?:[^\\"]|\\[\\"])*")',
+                      lambda mo: self._encode_special_chars(mo.group(0)), s)
 
     def _process_compound_lemmas(self, attrs):
         if self._opts.compound_boundaries != 'keep':
@@ -66,11 +99,11 @@ class AttributeFixer(object):
 
 def getopts():
     optparser = OptionParser()
-    optparser.add_option('--space', '--space-replacement', default=':')
+    optparser.add_option('--space', '--space-replacement', default=None)
     optparser.add_option('--no-strip', action='store_false', dest='strip',
                          default=True)
     optparser.add_option('--angle-brackets', '--angle-bracket-replacement',
-                         default='[,]')
+                         default=None)
     optparser.add_option('--compound-boundaries', '--lemma-compound-boundaries',
                          type='choice', choices=['keep', 'remove', 'new'],
                          default='keep')
@@ -78,11 +111,18 @@ def getopts():
     optparser.add_option('--noncompound-lemma-field', '--noncompound-field',
                          '--removed-compound-boundary-field', type='int',
                          default=None)
+    optparser.add_option('--encode-special-chars', type='choice',
+                         choices=['none', 'all', 'pos', 'struct'],
+                         default='none')
     (opts, args) = optparser.parse_args()
     if opts.noncompound_lemma_field is None:
         opts.noncompound_lemma_field = opts.lemma_field
     opts.lemma_field -= 1
     opts.noncompound_lemma_field -= 1
+    if opts.space == '':
+        opts.space = ':'
+    if opts.angle_brackets == '':
+        opts.angle_brackets = '[,]'
     return (opts, args)
 
 

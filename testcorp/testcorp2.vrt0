@@ -1,0 +1,8 @@
+<sentence id="foo bar/baz<foo>bar<baz foo bar/baz>">
+On	|olla|	|V|
+niin kuin	|niin kuin|	|Conj <MP>|
+ei	|ei|	|V <Neg>|
+olisikaan	|olla|	|V Cond kaan|
+ja/tai	|ja/tai|	|Conj /|
+.	|.|	|Punct|
+</sentence>

@@ -3,7 +3,7 @@
 
 CORPNAME_BASE = kotus_sananparret
 
-TEI2VRT_OPTS = --mode=sayings --tokenize
+TEI2VRT_OPTS = --mode=sayings --tokenize --morpho-tag-separator=' '
 
 MAKE_VRT_CMD = ../../scripts/tei2vrt.py $(TEI2VRT_OPTS)
 

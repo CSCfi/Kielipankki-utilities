@@ -191,8 +191,12 @@ class XMLStatCounter(saxhandler.ContentHandler):
 
 class XMLFileStats(object):
 
+    SPECIAL_CHARS = ' /<>'
+
     def __init__(self, opts):
         self._opts = opts
+        self._special_char_decode_map = dict(
+            [(chr(i + 0x01), c) for (i, c) in enumerate(self.SPECIAL_CHARS)])
 
     def process_files(self, files):
         if isinstance(files, list):
@@ -216,8 +220,11 @@ class XMLFileStats(object):
         if fname != None:
             sys.stdout.write(fname + ':\n')
         stat_counter = XMLStatCounter(self._opts)
-        if self._opts.wrapper_elem:
-            f = WrappedXMLFileReader(f, wrapper_elem=self._opts.wrapper_elem)
+        if self._opts.wrapper_elem or self._opts.decode_special_chars:
+            f = WrappedXMLFileReader(
+                f, wrapper_elem=self._opts.wrapper_elem,
+                mapping=(self._special_char_decode_map
+                         if self._opts.decode_special_chars else None))
         stat_counter.add_stats(f)
         if self._opts.cwb_struct_attrs:
             stats = stat_counter.format_cwb_struct_attrs()
@@ -238,8 +245,10 @@ def getopts():
     optparser.add_option('--input-encoding', default=None)
     optparser.add_option('--wrapper-elem', '--wrapper-element-name',
                          default=None)
+    optparser.add_option('--decode-special-chars',
+                         action='store_true', default=False)
     (opts, args) = optparser.parse_args()
-    if opts.wrapper_elem == '':
+    if opts.wrapper_elem == '' or opts.decode_special_chars:
         opts.wrapper_elem = '__DUMMY__'
     return (opts, args)
 

@@ -14,10 +14,17 @@ SCRIPTDIR = $(TOPDIR)/scripts
 VRT_ADD_LEMGRAMS = $(SCRIPTDIR)/vrt-add-lemgrams.py \
 			--pos-map-file $(LEMGRAM_POSMAP) \
 			$(VRT_ADD_LEMGRAMS_OPTS)
-VRT_FIX_ATTRS = $(SCRIPTDIR)/vrt-fix-attrs.py
+VRT_FIX_ATTRS_PROG = $(SCRIPTDIR)/vrt-fix-attrs.py
+VRT_FIX_ATTRS_OPTS ?= --encode-special-chars=all $(VRT_FIX_ATTRS_OPTS_EXTRA)
+VRT_FIX_ATTRS = $(VRT_FIX_ATTRS_PROG) $(VRT_FIX_ATTRS_OPTS)
 XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(XML2VRT_RULES) \
 		--wrapper-element-name= $(XML2VRT_OPTS)
-XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name=
+XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name= \
+		--decode-special-chars
+
+SPECIAL_CHARS = ' /<>'
+SPECIAL_CHARS_ENCODED = $(shell echo $(SPECIAL_CHARS) | perl -ne 'chomp; print "\"" . join ("", map {sprintf ("\\%0o", $$_ + 0x01)} (0 .. length($$_) -1 )) . "\""')
+DECODE_SPECIAL_CHARS = tr $(SPECIAL_CHARS_ENCODED) $(SPECIAL_CHARS)
 
 MAKE_CWB_STRUCT_ATTRS = $(XMLSTATS) --cwb-struct-attrs
 
@@ -209,14 +216,17 @@ $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT) $(CORPNAME).info
 # This does not support passing compressed files or files requiring
 # transcoding to a program requiring filename arguments. That might be
 # achieved by using named pipes as for mysqlimport.
-$(CORPNAME)$(VRT): $(SRC_FILES) $(MAKE_VRT_DEPS) $(DEP_MAKEFILES)
+$(CORPNAME)$(VRT): $(SRC_FILES) $(MAKE_VRT_DEPS) $(VRT_FIX_ATTRS_PROG) \
+		$(DEP_MAKEFILES)
 ifdef MAKE_VRT_FILENAME_ARGS
 	$(MAKE_VRT_CMD) $(SRC_FILES) \
+	| $(VRT_FIX_ATTRS) \
 	| $(COMPR) > $@
 else
 	$(CAT) $(SRC_FILES) \
 	| $(TRANSCODE) \
 	| $(MAKE_VRT_CMD) \
+	| $(VRT_FIX_ATTRS) \
 	| $(COMPR) > $@
 endif
 
@@ -266,7 +276,9 @@ $(CORPNAME)_lemgrams$(TSV): $(CORPNAME)$(VRT)
 	$(CAT) $< \
 	| egrep -v '<' \
 	| gawk -F'	' '{print $$NF}' \
-	| tr -d '|' \
+	| tr '|' '\n' \
+	| egrep -v '^$$' \
+	| $(DECODE_SPECIAL_CHARS) \
 	| sort \
 	| uniq -c \
 	| perl -pe 's/^\s*(\d+)\s*(.*)/$$2\t$$1\t0\t0\t$(CORPNAME_U)/' \

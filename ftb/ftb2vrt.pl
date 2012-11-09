@@ -8,9 +8,11 @@ use Getopt::Long;
 sub getopts
 {
     my %opts = (lemgrams => 1,
-		msd_sep => '|');
+		msd_sep => '|',
+		fix_msd_tags => 1);
     GetOptions ('lemgrams!' => \$opts{lemgrams},
-		'msd-separator|morpho-tag-separator=s' => \$opts{msd_sep});
+		'msd-separator|morpho-tag-separator=s' => \$opts{msd_sep},
+		'fix-msd-tags|fix-morpho-tags!' => \$opts{fix_msd_tags});
     return \%opts;
 }
 
@@ -91,8 +93,13 @@ sub process_input
 	    {
 		$field =~ s/^\s+//;
 		$field =~ s/\s+$//;
+		$field =~ s/\s{2,}/ /;
 	    }
-	    $fields[4] =~ s/\|/$$opts_r{msd_sep}/g;
+	    if ($$opts_r{fix_msd_tags})
+	    {
+		$fields[4] =~ tr/<>/[]/;
+		$fields[4] =~ s/\s+/$$opts_r{msd_sep}/g;
+	    }
 	    print join ("\t", @fields[1, 2, 3, 4, 6, 7]);
 	    if ($$opts_r{lemgrams})
 	    {

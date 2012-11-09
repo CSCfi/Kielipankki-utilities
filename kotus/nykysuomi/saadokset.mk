@@ -2,7 +2,7 @@
 
 
 TEI2VRT_OPTS = --mode=statute-modern --words --lemgrams \
-		--morpho-tag-separator=":" --para-elem-name=paragraph
+		--morpho-tag-separator=" " --para-elem-name=paragraph
 
 SRC_FILES = laki10.xml
 

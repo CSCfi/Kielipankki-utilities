@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-VNS2VRT_OPTS = --para-elem-name=paragraph
+VNS2VRT_OPTS = --para-elem-name=paragraph --morpho-tag-separator=' '
 
 SRC_FILES = viinan1835.xml
 

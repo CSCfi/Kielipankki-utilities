@@ -20,12 +20,19 @@ def getopts():
     optparser.add_option('--msd-separator', '--morpho-tag-separator',
                          default=u':')
     optparser.add_option('--test-pos-conv', action='store_true', default=False)
+    optparser.add_option('--no-fix-msd-tags', '--no-fix-morpho-tags',
+                         action='store_false', dest='fix_msd_tags',
+                         default=True)
     (opts, args) = optparser.parse_args()
     opts.pos_type = opts.pos_type.replace('+', '-')
     return (opts, args)
 
 
 def process_input(f, opts):
+
+    def fix_msd_cond(msd):
+        return fix_msd(msd, opts.msd_separator) if opts.fix_msd_tags else msd
+
     prev_corp = ''
     prev_fname = ''
     infields = ['wnum', 'word', 'lemma', 'pos', 'pos2', 'msd', 'head', 'rel',
@@ -63,10 +70,9 @@ def process_input(f, opts):
         elif not line.startswith('</s>'):
             fields = set_fields(line, infields)
             fields['lemma0'] = remove_markers(fields['lemma'])
-            fields['pos_orig'] = fix_msd(fields['pos'].strip(),
-                                         opts.msd_separator)
+            fields['pos_orig'] = fix_msd_cond(fields['pos'].strip())
             fields['pos'] = extract_pos(fields['pos'])
-            fields['msd'] = fix_msd(fields['msd'], opts.msd_separator)
+            fields['msd'] = fix_msd_cond(fields['msd'])
             if opts.lemgrams:
                 fields['lemgram'] = make_lemgram(fields['lemma0'],
                                                  fields['pos'])

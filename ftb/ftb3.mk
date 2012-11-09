@@ -13,7 +13,7 @@ SRC_FILES ?= \
 	formatted_sentences_all_parsed_07122011.txt.phrm.tag2.conllx.final.bz2
 
 MAKE_VRT_CMD = ./ftbconllx2vrt.py --lemgrams --pos-type=clean+original \
-			--morpho-tag-separator=":"
+			--no-fix-morpho-tags # --morpho-tag-separator=":"
 MAKE_RELS_CMD = ./ftbvrt2wprel.py --input-type=ftb3-extrapos \
 		--output-prefix=$(value CORPNAME)_rels \
 		--compress=$(value COMPRESS) --sort

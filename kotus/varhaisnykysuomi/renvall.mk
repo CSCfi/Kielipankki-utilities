@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
-VNS2VRT_OPTS = --mode=dictionary --tokenize --dict-info-as-sent-attrs
+VNS2VRT_OPTS = --mode=dictionary --tokenize --dict-info-as-sent-attrs \
+		--morpho-tag-separator=' '
 
 SRC_FILES = renvall.xml
 

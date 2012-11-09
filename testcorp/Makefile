@@ -4,7 +4,7 @@
 P_ATTRS = lemma/ pos/
 S_ATTRS = sentence:0+id
 
-SRC_FILES = testcorp.vrt0
+SRC_FILES = testcorp.vrt0 testcorp2.vrt0
 
 
 include ../corp-common.mk

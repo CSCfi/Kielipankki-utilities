@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-MAKE_VRT_CMD = ./mt2vrt.pl --lemgrams --morpho-tag-separator=":"
+MAKE_VRT_CMD = ./mt2vrt.pl --lemgrams --no-fix-morpho-tags # --morpho-tag-separator=":"
 MAKE_RELS_PROG = ../ftb/ftbvrt2wprel.py
 MAKE_RELS_CMD = cut -f1-6,8 \
 		| $(MAKE_RELS_PROG) --input-type=ftb2 \

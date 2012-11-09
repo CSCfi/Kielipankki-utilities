@@ -130,9 +130,10 @@ class Converter(object):
         pos = elem.get('type', '')
         msd = elem.get('msd').strip()
         msd = pos + (' ' + msd if msd else '')
-        msd = re.sub(r'\s+', self._opts.msd_separator, msd)
-        if self._opts.enclosed_msd:
-            msd = self._opts.msd_separator + msd + self._opts.msd_separator
+        if self._opts.fix_msd_tags:
+            msd = re.sub(r'\s+', self._opts.msd_separator, msd)
+            if self._opts.enclosed_msd:
+                msd = self._opts.msd_separator + msd + self._opts.msd_separator
         lemgram = ([self._make_lemgram(lemma, pos)]
                    if self._opts.lemgrams else [])
         return '\t'.join([elem.get('norm', ''), lemma, lemma_comp_bound,
@@ -375,6 +376,9 @@ def getopts():
                          action='store_true', default=False)
     optparser.add_option('--para-elem-name', '--paragraph-element-name',
                          default=u'para')
+    optparser.add_option('--no-fix-msd-tags', '--no-fix-morpho-tags',
+                         action='store_false', dest='fix_msd_tags',
+                         default=True)
     (opts, args) = optparser.parse_args()
     if opts.mode == 'statute':
         opts.tokenize = True
