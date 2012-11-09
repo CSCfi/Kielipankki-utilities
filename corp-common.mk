@@ -14,7 +14,7 @@ SCRIPTDIR = $(TOPDIR)/scripts
 VRT_ADD_LEMGRAMS = $(SCRIPTDIR)/vrt-add-lemgrams.py \
 			--pos-map-file $(LEMGRAM_POSMAP) \
 			$(VRT_ADD_LEMGRAMS_OPTS)
-VRT_FIX_POSATTRS = $(SCRIPTDIR)/vrt-fix-posattrs.py
+VRT_FIX_ATTRS = $(SCRIPTDIR)/vrt-fix-attrs.py
 XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(XML2VRT_RULES) \
 		--wrapper-element-name= $(XML2VRT_OPTS)
 XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name=
