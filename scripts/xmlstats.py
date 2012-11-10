@@ -191,12 +191,16 @@ class XMLStatCounter(saxhandler.ContentHandler):
 
 class XMLFileStats(object):
 
-    SPECIAL_CHARS = ' /<>'
-
     def __init__(self, opts):
         self._opts = opts
-        self._special_char_decode_map = dict(
-            [(chr(i + 0x01), c) for (i, c) in enumerate(self.SPECIAL_CHARS)])
+        # FIXME: Decoding special characters does not currently work
+        # well with the Python SAX parser (Expat), which expects byte
+        # and not character streams.
+        self._special_char_decode_map = [
+            (opts.encoded_special_char_prefix
+              + unichr(i + opts.encoded_special_char_offset), c)
+            for (i, c) in enumerate(opts.special_chars)]
+        sys.stderr.write(repr(self._special_char_decode_map) + '\n')
 
     def process_files(self, files):
         if isinstance(files, list):
@@ -247,9 +251,16 @@ def getopts():
                          default=None)
     optparser.add_option('--decode-special-chars',
                          action='store_true', default=False)
+    optparser.add_option('--special-chars', default=u' /<>')
+    optparser.add_option('--encoded-special-char-offset',
+                         '--special-char-offset', default='0x7F')
+    optparser.add_option('--encoded-special-char-prefix',
+                         '--special-char-prefix', default=u'')
     (opts, args) = optparser.parse_args()
     if opts.wrapper_elem == '' or opts.decode_special_chars:
         opts.wrapper_elem = '__DUMMY__'
+    opts.encoded_special_char_offset = int(opts.encoded_special_char_offset,
+                                           base=0)
     return (opts, args)
 
 
@@ -259,6 +270,7 @@ def main():
     if opts.input_encoding is not None:
         sys.stdin = codecs.getreader(opts.input_encoding)(sys.stdin)
     sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
+    sys.stderr = codecs.getwriter(output_encoding)(sys.stderr)
     file_stats = XMLFileStats(opts)
     file_stats.process_files(args if args else sys.stdin)
 

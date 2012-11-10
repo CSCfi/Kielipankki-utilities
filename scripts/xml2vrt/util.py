@@ -7,10 +7,13 @@ import re
 
 
 def replace_substrings(s, mapping):
-    """Replace substrings in s according to dict mapping: replace each
-    key with the corresponding value.
+    """Replace substrings in s according to mapping (a sequence of
+    pairs (string, replacement): replace each string with the
+    corresponding replacement.
     """
-    for (s1, repl) in mapping.iteritems():
+    sys.stderr.write(repr(type(s)) + '|' + repr(s) + '\n')
+    for (s1, repl) in mapping:
+        sys.stderr.write(repr(type(s1)) + '|' + repr(type(repl)) + '\n')
         s = s.replace(s1, repl)
     return s
 

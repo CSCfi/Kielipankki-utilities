@@ -11,20 +11,39 @@ TOPDIR = $(dir $(lastword $(MAKEFILE_LIST)))
 
 SCRIPTDIR = $(TOPDIR)/scripts
 
+SPECIAL_CHARS = " /<>"
+ENCODED_SPECIAL_CHAR_OFFSET = 0x7F
+ENCODED_SPECIAL_CHAR_PREFIX = ""
+DECODE_SPECIAL_CHARS = perl -C -e '\
+	$$sp_chars = $(SPECIAL_CHARS); \
+	%sp_char_map = map {($(ENCODED_SPECIAL_CHAR_PREFIX) \
+	                     . chr ($(ENCODED_SPECIAL_CHAR_OFFSET) + $$_)) \
+			    => substr ($$sp_chars, $$_, 1)} \
+			   (0 .. length ($$sp_chars)); \
+	while (<>) \
+	{ \
+		for $$c (keys (%sp_char_map)) \
+		{ \
+			s/$$c/$$sp_char_map{$$c}/g; \
+		} \
+		print; \
+	}'
+
 VRT_ADD_LEMGRAMS = $(SCRIPTDIR)/vrt-add-lemgrams.py \
 			--pos-map-file $(LEMGRAM_POSMAP) \
 			$(VRT_ADD_LEMGRAMS_OPTS)
 VRT_FIX_ATTRS_PROG = $(SCRIPTDIR)/vrt-fix-attrs.py
-VRT_FIX_ATTRS_OPTS ?= --encode-special-chars=all $(VRT_FIX_ATTRS_OPTS_EXTRA)
+VRT_FIX_ATTRS_OPTS ?= \
+	--encode-special-chars=all --special-chars=$(SPECIAL_CHARS) \
+	--encoded-special-char-offset=$(ENCODED_SPECIAL_CHAR_OFFSET) \
+	--encoded-special-char-prefix=$(ENCODED_SPECIAL_CHAR_PREFIX) \
+	$(VRT_FIX_ATTRS_OPTS_EXTRA)
 VRT_FIX_ATTRS = $(VRT_FIX_ATTRS_PROG) $(VRT_FIX_ATTRS_OPTS)
 XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(XML2VRT_RULES) \
 		--wrapper-element-name= $(XML2VRT_OPTS)
-XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name= \
-		--decode-special-chars
-
-SPECIAL_CHARS = ' /<>'
-SPECIAL_CHARS_ENCODED = $(shell echo $(SPECIAL_CHARS) | perl -ne 'chomp; print "\"" . join ("", map {sprintf ("\\%0o", $$_ + 0x01)} (0 .. length($$_) -1 )) . "\""')
-DECODE_SPECIAL_CHARS = tr $(SPECIAL_CHARS_ENCODED) $(SPECIAL_CHARS)
+# xmlstats.py should _not_ have --decode-special-chars as it does not
+# work correctly with UTF-8 encoding.
+XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name=
 
 MAKE_CWB_STRUCT_ATTRS = $(XMLSTATS) --cwb-struct-attrs
 

@@ -10,17 +10,16 @@ from optparse import OptionParser
 
 
 def replace_substrings(s, mapping):
-    """Replace substrings in s according to dict mapping: replace each
-    key with the corresponding value.
+    """Replace substrings in s according to mapping (a sequence of
+    pairs (string, replacement): replace each string with the
+    corresponding replacement.
     """
-    for (s1, repl) in mapping.iteritems():
+    for (s1, repl) in mapping:
         s = s.replace(s1, repl)
     return s
 
 
 class AttributeFixer(object):
-
-    SPECIAL_CHARS = ' /<>'
 
     def __init__(self, opts):
         self._opts = opts
@@ -32,8 +31,10 @@ class AttributeFixer(object):
                                  in ['all', 'pos'])
         self._encode_structattrs = (self._opts.encode_special_chars
                                     in ['all', 'struct'])
-        self._special_char_encode_map = dict(
-            [(c, chr(i + 0x01)) for (i, c) in enumerate(self.SPECIAL_CHARS)])
+        self._special_char_encode_map = [
+            (c, (opts.encoded_special_char_prefix
+                 + unichr(i + opts.encoded_special_char_offset)))
+            for (i, c) in enumerate(opts.special_chars)]
 
     def process_files(self, files):
         if isinstance(files, list):
@@ -114,6 +115,11 @@ def getopts():
     optparser.add_option('--encode-special-chars', type='choice',
                          choices=['none', 'all', 'pos', 'struct'],
                          default='none')
+    optparser.add_option('--special-chars', default=u' /<>')
+    optparser.add_option('--encoded-special-char-offset',
+                         '--special-char-offset', default='0x7F')
+    optparser.add_option('--encoded-special-char-prefix',
+                         '--special-char-prefix', default=u'')
     (opts, args) = optparser.parse_args()
     if opts.noncompound_lemma_field is None:
         opts.noncompound_lemma_field = opts.lemma_field
@@ -123,6 +129,8 @@ def getopts():
         opts.space = ':'
     if opts.angle_brackets == '':
         opts.angle_brackets = '[,]'
+    opts.encoded_special_char_offset = int(opts.encoded_special_char_offset,
+                                           base=0)
     return (opts, args)
 
 
