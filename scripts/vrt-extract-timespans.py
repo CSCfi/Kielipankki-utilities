@@ -19,6 +19,7 @@ class TimespanExtractor(object):
     def __init__(self, opts):
         self._opts = opts
         self._make_extract_patterns()
+        self._make_excludes()
         self._time_tokencnt = defaultdict(int)
 
     def _make_extract_patterns(self):
@@ -38,6 +39,15 @@ class TimespanExtractor(object):
                 for attrname in attrnames:
                     self._extract_patterns[elemname].append(
                         (attrname, pattern, templ))
+
+    def _make_excludes(self):
+        self._excludes = defaultdict(list)
+        for exclude in self._opts.exclude:
+            parts = exclude.split(None, 2)
+            elemnames = parts[0].split('|')
+            attrnames = parts[1].split('|') if len(parts) > 1 else ['*']
+            for elemname in elemnames:
+                self._excludes[elemname].extend(attrnames)
 
     def process_files(self, files):
         if isinstance(files, list):
@@ -72,28 +82,37 @@ class TimespanExtractor(object):
                 self._time_tokencnt[time] += 1
 
     def _extract_time(self, line):
+        if '*' in self._excludes.get('*', []):
+            return ''
         mo = re.match(r'<(.*?)( .*)?>', line)
         if not mo or not mo.group(2):
             return ''
         elemname = mo.group(1)
+        if '*' in self._excludes.get(elemname, []):
+            return ''
         attrlist = mo.group(2)
         attrs = OrderedDict(re.findall(r' (.*?)="(.*?)"', attrlist))
+        real_elemname = elemname
         if not elemname in self._extract_patterns:
             elemname = '*'
         for (patt_attr, pattern, templ) in self._extract_patterns[elemname]:
             if patt_attr in attrs:
-                mo = re.search(pattern, attrs[patt_attr])
+                check_attrs = [patt_attr]
+            elif patt_attr == '*':
+                check_attrs = attrs.iterkeys()
+            else:
+                continue
+            for attrname in check_attrs:
+                if (attrname in self._excludes.get(real_elemname, [])
+                    or attrname in self._excludes.get('*', [])):
+                    continue
+                mo = re.search(pattern, attrs[attrname])
                 if mo:
                     return mo.expand(templ)
-            elif patt_attr == '*':
-                for attrname in attrs:
-                    mo = re.search(pattern, attrs[attrname])
-                    if mo:
-                        return mo.expand(templ)
         return ''  
 
     def output_timespans(self):
-        for (time, tokencnt) in self._time_tokencnt.iteritems():
+        for (time, tokencnt) in sorted(self._time_tokencnt.iteritems()):
             if self._opts.two_digit_years and len(time) == 2:
                 # FIXME: These should be based either on the current
                 # century or on an explicitly specified one.
