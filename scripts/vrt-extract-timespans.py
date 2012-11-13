@@ -18,18 +18,26 @@ class TimespanExtractor(object):
 
     def __init__(self, opts):
         self._opts = opts
-        self._extract_patterns = defaultdict(list)
-        default_pattern = (self.DEFAULT_PATTERN_2 if opts.two_digit_years
-                           else self.DEFAULT_PATTERN)
-        if opts.extract_pattern == [] and not opts.unknown and not opts.fixed:
-            opts.extract_pattern.append('* * ' + default_pattern)
-        for source in self._opts.extract_pattern:
-            parts = source.split(None, 2)
-            elemname = parts[0]
-            attrname = parts[1] if len(parts) > 1 else '*'
-            pattern = parts[2] if len(parts) > 2 else default_pattern
-            self._extract_patterns[elemname].append((attrname, pattern))
+        self._make_extract_patterns()
         self._time_tokencnt = defaultdict(int)
+
+    def _make_extract_patterns(self):
+        self._extract_patterns = defaultdict(list)
+        default_pattern = (self.DEFAULT_PATTERN_2 if self._opts.two_digit_years
+                           else self.DEFAULT_PATTERN)
+        if (self._opts.extract_pattern == [] and not self._opts.unknown
+            and not self._opts.fixed):
+            self._opts.extract_pattern.append('* * ' + default_pattern)
+        for source in self._opts.extract_pattern:
+            parts = source.split(None, 3)
+            elemnames = parts[0].split('|')
+            attrnames = parts[1].split('|') if len(parts) > 1 else ['*']
+            pattern = parts[2] if len(parts) > 2 else default_pattern
+            templ = parts[3] if len(parts) > 3 else r'\1'
+            for elemname in elemnames:
+                for attrname in attrnames:
+                    self._extract_patterns[elemname].append(
+                        (attrname, pattern, templ))
 
     def process_files(self, files):
         if isinstance(files, list):
@@ -72,16 +80,16 @@ class TimespanExtractor(object):
         attrs = OrderedDict(re.findall(r' (.*?)="(.*?)"', attrlist))
         if not elemname in self._extract_patterns:
             elemname = '*'
-        for (patt_attr, pattern) in self._extract_patterns[elemname]:
+        for (patt_attr, pattern, templ) in self._extract_patterns[elemname]:
             if patt_attr in attrs:
                 mo = re.search(pattern, attrs[patt_attr])
-                if mo and mo.group(1):
-                    return mo.group(1)
+                if mo:
+                    return mo.expand(templ)
             elif patt_attr == '*':
                 for attrname in attrs:
                     mo = re.search(pattern, attrs[attrname])
-                    if mo and mo.group(1):
-                        return mo.group(1)
+                    if mo:
+                        return mo.expand(templ)
         return ''  
 
     def output_timespans(self):
@@ -104,6 +112,7 @@ def getopts():
                          default=[])
     optparser.add_option('--two-digit-years', action='store_true',
                          default=False)
+    optparser.add_option('--exclude', action='append', default=[])
     # FIXME: The default could be based on the current year
     optparser.add_option('--century-pivot', default='20')
     (opts, args) = optparser.parse_args()
