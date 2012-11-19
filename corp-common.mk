@@ -7,6 +7,10 @@
 # (sub)corpora in a corpus directory.
 
 
+eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
+eqs = $(call eq,$(strip $(1)),$(strip $(2)))
+lower = $(shell echo $(1) | perl -pe 's/(.*)/\L$$1\E/')
+
 TOPDIR = $(dir $(lastword $(MAKEFILE_LIST)))
 
 SCRIPTDIR = $(TOPDIR)/scripts
@@ -45,11 +49,15 @@ XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(XML2VRT_RULES) \
 # work correctly with UTF-8 encoding.
 XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name=
 
-MAKE_CWB_STRUCT_ATTRS = $(XMLSTATS) --cwb-struct-attrs
+VRT_EXTRACT_TIMESPANS_PROG = $(SCRIPTDIR)/vrt-extract-timespans.py
+VRT_EXTRACT_TIMESPANS_OPTS ?= \
+	$(if $(call eq,unknown,$(CORPUS_DATE)),--unknown,\
+	$(if $(CORPUS_DATE),--fixed=$(CORPUS_DATE),\
+	$(if $(CORPUS_DATE_PATTERN),--pattern=$(CORPUS_DATE_PATTERN))))
+VRT_EXTRACT_TIMESPANS = \
+	$(VRT_EXTRACT_TIMESPANS_PROG) $(VRT_EXTRACT_TIMESPANS_OPTS)
 
-eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
-eqs = $(call eq,$(strip $(1)),$(strip $(2)))
-lower = $(shell echo $(1) | perl -pe 's/(.*)/\L$$1\E/')
+MAKE_CWB_STRUCT_ATTRS = $(XMLSTATS) --cwb-struct-attrs
 
 SUBDIRS := \
 	$(shell ls \
@@ -60,9 +68,10 @@ CORPNAME_BASE ?= $(lastword $(subst /, ,$(CURDIR)))
 CORPORA ?= $(or $(basename $(filter-out %-common.mk,$(wildcard *.mk))),\
 		$(CORPNAME_BASE))
 
-DB_TARGETS_ALL = korp_rels korp_lemgrams
+DB_TARGETS_ALL = korp_timespans korp_rels korp_lemgrams
 DB_HAS_RELS := $(and $(filter dephead,$(P_ATTRS)),$(filter deprel,$(P_ATTRS)))
 DB_TARGETS ?= $(if $(DB),$(DB_TARGETS_ALL),\
+		korp_timespans \
 		$(if $(filter lex,$(P_ATTRS)),\
 			korp_lemgrams $(if $(DB_HAS_RELS),korp_rels)))
 
@@ -165,8 +174,8 @@ S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
 SQLDUMP_NAME = $(CORPSQLDIR)/$(CORPNAME).sql
 SQLDUMP = $(if $(strip $(DB_TARGETS)),$(SQLDUMP_NAME))
 
-DB_TIMESTAMPS = $(CORPNAME)_lemgrams_load.timestamp \
-		$(if $(DB_HAS_RELS),$(CORPNAME)_rels_load.timestamp)
+DB_TIMESTAMPS = $(patsubst korp_%,$(CORPNAME)_%_load.timestamp,$(DB_TARGETS))
+DB_SQLDUMPS = $(patsubst korp_%,$(CORPSQLDIR)/$(CORPNAME)_%.sql,$(DB_TARGETS))
 
 RELS_BASES = @ rel head_rel dep_rel sentences
 RELS_TSV = $(subst _@,,$(foreach base,$(RELS_BASES),\
@@ -265,31 +274,49 @@ $(CORPNAME)_rels_load.timestamp: $(RELS_TSV) $(RELS_CREATE_TABLES_TEMPL)
 			$(call MAKE_RELS_TABLE_NAME,$(rel)))))
 	touch $@
 
+$(CORPSQLDIR)/$(CORPNAME)_rels.sql: $(CORPNAME)_rels_load.timestamp
+	mysqldump --user $(DBUSER) $(DBNAME) $(RELS_TABLES) > $@
+
 $(RELS_TSV): $(CORPNAME)$(VRT) $(MAKE_RELS_DEPS)
 	$(CAT) $< \
 	| $(MAKE_RELS_CMD)
 
-korp_lemgrams: $(CORPNAME)_lemgrams_load.timestamp
+define KORP_LOAD_DB_R
+korp_$(1): $(CORPNAME)_$(1)_load.timestamp
 
-CREATE_LEMGRAMS_SQL = '\
-	CREATE TABLE IF NOT EXISTS `lemgram_index` ( \
-		`lemgram` varchar(64) NOT NULL, \
-		`freq` int(11) DEFAULT NULL, \
-		`freqprefix` int(11) DEFAULT NULL, \
-		`freqsuffix` int(11) DEFAULT NULL, \
-		`corpus` varchar(64) NOT NULL, \
-		UNIQUE KEY `lemgram_corpus` (`lemgram`, `corpus`), \
-		KEY `lemgram` (`lemgram`), \
-		KEY `corpus` (`corpus`) \
+CREATE_SQL_$(1) = '\
+	CREATE TABLE IF NOT EXISTS `$$(TABLENAME_$(1))` ( \
+		$$(COLUMNS_$(1)) \
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8;'
 
-$(CORPNAME)_lemgrams_load.timestamp: $(CORPNAME)_lemgrams$(TSV)
-	mysql --user $(DBUSER) --execute $(CREATE_LEMGRAMS_SQL) $(DBNAME)
+$(CORPNAME)_$(1)_load.timestamp: $(CORPNAME)_$(1)$(TSV)
+	mysql --user $(DBUSER) --execute $$(CREATE_SQL_$(1)) $(DBNAME)
 	mysql --user $(DBUSER) \
-		--execute "delete from lemgram_index where corpus='$(CORPNAME_U)';" \
+		--execute "delete from $$(TABLENAME_$(1)) where corpus='$(CORPNAME_U)';" \
 		$(DBNAME)
-	$(call MYSQL_IMPORT,$<,lemgram_index)
-	touch $@
+	$$(call MYSQL_IMPORT,$$<,$$(TABLENAME_$(1)))
+	touch $$@
+
+$(CORPSQLDIR)/$(CORPNAME)_$(1).sql: $(CORPNAME)_$(1)_load.timestamp
+	echo $$(CREATE_SQL_$(1)) > $$@
+	echo 'DELETE FROM `$$(TABLENAME_$(1))` where '"corpus='$(CORPNAME_U)';" >> $$@
+	mysqldump --user $(DBUSER) --no-create-info \
+		--where "corpus='$(CORPNAME_U)'" $(DBNAME) $$(TABLENAME_$(1)) \
+		>> $$@
+endef
+
+TABLENAME_lemgrams = lemgram_index
+COLUMNS_lemgrams = \
+	`lemgram` varchar(64) NOT NULL, \
+	`freq` int(11) DEFAULT NULL, \
+	`freqprefix` int(11) DEFAULT NULL, \
+	`freqsuffix` int(11) DEFAULT NULL, \
+	`corpus` varchar(64) NOT NULL, \
+	UNIQUE KEY `lemgram_corpus` (`lemgram`, `corpus`), \
+	KEY `lemgram` (`lemgram`), \
+	KEY `corpus` (`corpus`)
+
+$(eval $(call KORP_LOAD_DB_R,lemgrams))
 
 $(CORPNAME)_lemgrams$(TSV): $(CORPNAME)$(VRT)
 	$(CAT) $< \
@@ -303,21 +330,32 @@ $(CORPNAME)_lemgrams$(TSV): $(CORPNAME)$(VRT)
 	| perl -pe 's/^\s*(\d+)\s*(.*)/$$2\t$$1\t0\t0\t$(CORPNAME_U)/' \
 	| $(COMPR) > $@
 
+TABLENAME_timespans = timespans
+COLUMNS_timespans = \
+	`corpus` varchar(64) NOT NULL, \
+	`datefrom` varchar(14) DEFAULT '"''"', \
+	`dateto` varchar(14) DEFAULT '"''"', \
+	`tokens` int(11) DEFAULT 0, \
+	KEY `corpus` (`corpus`)
+
+$(CORPNAME)_timespans$(TSV): $(CORPNAME)$(VRT) $(VRT_EXTRACT_TIMESPANS_PROG)
+	$(CAT) $< \
+	| $(DECODE_SPECIAL_CHARS) \
+	| $(VRT_EXTRACT_TIMESPANS) \
+	| gawk -F'	' '{print "$(CORPNAME_U)\t" $$0}' \
+	| $(COMPR) > $@
+
+$(eval $(call KORP_LOAD_DB_R,timespans))
+
 pkg: $(PKG_FILE)
 
-$(PKG_FILE): $(CORPCORPDIR)/.info $(SQLDUMP)
+$(PKG_FILE): $(CORPCORPDIR)/.info $(DB_SQLDUMPS)
 	-mkdir $(dir $@)
-	tar cvjpf $@ $(CORPCORPDIR) $(REGDIR)/$(CORPNAME) $(SQLDUMP)
+	tar cvjpf $@ $(CORPCORPDIR) $(REGDIR)/$(CORPNAME) $(DB_SQLDUMPS)
 
-$(SQLDUMP_NAME): $(DB_TIMESTAMPS)
-	-mkdir $(dir $@)
-	echo $(CREATE_LEMGRAMS_SQL) > $@
-	echo 'DELETE FROM `lemgram_index` where '"corpus='$(CORPNAME_U)';" >> $@
-	mysqldump --user $(DBUSER) --no-create-info \
-		--where "corpus='$(CORPNAME_U)'" $(DBNAME) lemgram_index >> $@
-ifdef DB_HAS_RELS
-	mysqldump --user $(DBUSER) $(DBNAME) $(RELS_TABLES) >> $@
-endif
+# $(SQLDUMP_NAME): $(DB_SQLDUMPS)
+# 	-mkdir $(dir $@)
+# 	cat $^ > $@
 
 
 # Align parallel corpora
