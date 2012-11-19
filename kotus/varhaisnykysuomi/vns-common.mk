@@ -9,4 +9,6 @@ CORPNAME_PREFIX = vns_
 
 MAKE_VRT_CMD = ../../scripts/tei2vrt.py $(VNS2VRT_OPTS)
 
+CORPUS_DATE_PATTERN = "text title"
+
 include ../../corp-common.mk

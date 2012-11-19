@@ -18,5 +18,6 @@ MAKE_RELS_CMD = ./ftbvrt2wprel.py --input-type=ftb3-extrapos \
 		--output-prefix=$(value CORPNAME)_rels \
 		--compress=$(value COMPRESS) --sort
 
+VRT_EXTRACT_TIMESPANS_OPTS = --two-digit-years --full-dates --exclude "* id"
 
 include ftb-common.mk

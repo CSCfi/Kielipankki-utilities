@@ -12,5 +12,7 @@ MAKE_VRT_FILENAME_ARGS = 1
 MAKE_RELS_CMD = ./ftbvrt2wprel.py --output-prefix=$(value CORPNAME)_rels \
 		--compress=$(value COMPRESS) --sort
 
+CORPUS_DATE = unknown
+
 
 include ftb-common.mk

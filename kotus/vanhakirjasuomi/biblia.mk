@@ -12,4 +12,6 @@ S_ATTRS = work:0+code book:0+code chapter:0+code+bibleref \
 		sourcecode:0+work+code+book+chapter+verse+page+bibleref \
 		span:0+work+code+book+chapter+verse+page+bibleref
 
+CORPUS_DATE = 1642
+
 include vks-common.mk
