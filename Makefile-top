@@ -1,0 +1,87 @@
+# -*- coding: utf-8 -*-
+
+# Requires GNU Make
+
+
+eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
+eqs = $(call eq,$(strip $(1)),$(strip $(2)))
+
+TOPDIR = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+
+CORPROOT = /v/corpora
+
+MAKE_PKGDATE = $(1)-$(shell date '+%Y%m%d')$(2)
+
+PKGDIR = $(TOPDIR)/pkgs
+
+BASENAME = $(PKGDIR)/korp_fi
+
+PKG_INFO_FILE = korp-pkg-info.tsv
+
+OVERWRITE ?= days
+PREV_PKG_INFO := $(shell ./get-prev-pkg-info.py --overwrite=$(OVERWRITE) \
+			$(PKG_INFO_FILE))
+OVERWRITE_LAST_PKG_INFO := $(call eqs,yes,$(firstword $(PREV_PKG_INFO)))
+PREV_EPOCH := $(word 2,$(PREV_PKG_INFO))
+PREV_REV := $(lastword $(PREV_PKG_INFO))
+
+PREV_TIMESTAMP = $(BASENAME)_prev.timestamp
+
+TIP_REV = $(shell hg tip --template='{rev}\n')
+
+PKG_corp = $(call MAKE_PKGDATE,$(BASENAME)_corpora)
+
+SRC_TARGETS = backend frontend
+
+
+.PHONY: all corp src $(SRC_TARGETS) cleanup
+
+
+all: corp src cleanup
+
+$(PREV_TIMESTAMP):
+	touch --date='@$(PREV_EPOCH)' $@
+
+corp: $(PKG_corp).tar
+
+TAR_CMD = \
+	cd $(2); \
+	files=`find . -type f $(3)`; \
+	if [ "x$$files" != "x" ]; then \
+		if [ -e $(1) ]; then \
+			rm $(1); \
+		fi; \
+		tar cvpf $(1) $$files; \
+	fi
+
+$(PKG_corp).tar: $(PREV_TIMESTAMP)
+	$(MAKE) -C corp
+	$(call TAR_CMD,$@,corp/export,\
+		-name korpdata_\*.tbz -newer $< | egrep -v test)
+
+src: $(SRC_TARGETS)
+
+define MAKE_PKG_R
+PKG_$(1) = $(call MAKE_PKGDATE,$(BASENAME)_$(1))
+
+$(1): $$(PKG_$(1)).tbz $$(PKG_$(1)).patch.bz2
+
+$$(PKG_$(1)).tbz:
+	-rm $$@
+	$$(call TAR_CMD,$$@,src/$(1),)
+
+$$(PKG_$(1)).patch.bz2:
+	hg diff -r$(PREV_REV) src/$(1) \
+	| bzip2 > $$@
+endef
+
+$(foreach target,$(SRC_TARGETS),\
+	$(eval $(call MAKE_PKG_R,$(target))))
+
+cleanup: corp src
+	-rm $(PREV_TIMESTAMP)
+ifdef OVERWRITE_LAST_PKG_INFO
+	head -n-1 $(PKG_INFO_FILE) > $(PKG_INFO_FILE).tmp
+	mv $(PKG_INFO_FILE).tmp $(PKG_INFO_FILE)
+endif
+	date '+%s	%Y%m%dT%H%M%S	$(TIP_REV)' >> $(PKG_INFO_FILE)
