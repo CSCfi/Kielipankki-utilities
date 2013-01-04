@@ -9,8 +9,8 @@ P_ATTRS = lemma lemmacomp pos posorig msd dephead deprel lex
 S_ATTRS = sentence:0+id+line file:0+name subcorpus:0+name
 
 # SRC_FILES = ftb3-100000.txt.bz2
-SRC_FILES ?= \
-	formatted_sentences_all_parsed_07122011.txt.phrm.tag2.conllx.final.bz2
+SRC_FILES ?= ftb3.conllx.bz2 
+# SRC_FILES ?= formatted_sentences_all_parsed_07122011.txt.phrm.tag2.conllx.final.bz2
 
 MAKE_VRT_CMD = ./ftbconllx2vrt.py --lemgrams --pos-type=clean+original \
 			--no-fix-morpho-tags # --morpho-tag-separator=":"
