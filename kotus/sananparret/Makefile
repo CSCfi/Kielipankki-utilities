@@ -7,7 +7,7 @@ TEI2VRT_OPTS = --mode=sayings --tokenize --morpho-tag-separator=' '
 
 MAKE_VRT_CMD = ../../scripts/tei2vrt.py $(TEI2VRT_OPTS)
 
-SRC_FILES = tyrvaa.xml
+SRC_FILES = *.xml
 
 P_ATTRS = 
 S_ATTRS = text:0+distributor+source+title \

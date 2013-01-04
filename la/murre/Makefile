@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-SRC_FILES = $(wildcard *.xml)
+SRC_FILES = *.xml
 
 P_ATTRS = lemma pos msd func lex
 

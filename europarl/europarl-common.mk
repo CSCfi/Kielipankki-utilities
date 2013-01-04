@@ -5,6 +5,8 @@
 # to rebuild the corpus).
 MAKEFILE_DEPS ?= false
 
+SRC_SUBDIR = europarl
+
 MAKE_VRT_CMD = ../scripts/europarl2vrt.py --tokenize --add-link-elements
 
 CORPUS_DATE = unknown

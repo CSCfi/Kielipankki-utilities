@@ -11,4 +11,6 @@ MAKE_VRT_CMD = ../../scripts/tei2vrt.py $(VNS2VRT_OPTS)
 
 CORPUS_DATE_PATTERN = "text title"
 
+SRC_FILES = *.xml
+
 include ../../corp-common.mk

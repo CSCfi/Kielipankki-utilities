@@ -14,6 +14,7 @@ lower = $(shell echo $(1) | perl -pe 's/(.*)/\L$$1\E/')
 TOPDIR = $(dir $(lastword $(MAKEFILE_LIST)))
 
 SCRIPTDIR = $(TOPDIR)/scripts
+CORPSRCROOT ?= $(TOPDIR)/../../corp
 
 SPECIAL_CHARS = " /<>"
 ENCODED_SPECIAL_CHAR_OFFSET = 0x7F
@@ -68,6 +69,22 @@ CORPNAME_BASE ?= $(lastword $(subst /, ,$(CURDIR)))
 CORPORA ?= $(or $(basename $(filter-out %-common.mk,$(wildcard *.mk))),\
 		$(CORPNAME_BASE))
 
+# The subdirectory of CORPSRCROOT for the corpus source files; can be
+# overridden in individual corpus makefiles. WITHIN_CORP_MK is defined
+# if this file is included in a CORPUS.mk makefile (and not Makefile).
+SRC_SUBDIR ?= $(subst $(abspath $(TOPDIR))/,,$(abspath $(CURDIR)))$(if $(WITHIN_CORP_MK),/$(CORPNAME_BASE))
+# The corpus source directory; overrides CORPSRCROOT if defined in a
+# corpus makefile
+SRC_DIR ?= $(CORPSRCROOT)/$(SRC_SUBDIR)
+
+# SRC_FILES (relative to SRC_DIR) must be defined in a corpus-specific
+# makefile. Wildcards in SRC_FILES are expanded, and files specified
+# in SRC_FILES_EXCLUDE (relative to SRC_DIR) are excluded.
+SRC_FILES_REAL = $(filter-out $(addprefix $(SRC_DIR)/,$(SRC_FILES_EXCLUDE)),\
+			$(wildcard $(addprefix $(SRC_DIR)/,$(SRC_FILES))))
+
+# $(info $(WITHIN_CORP_MK) $(CORPNAME_BASE) $(SRC_SUBDIR) $(SRC_DIR) :: $(SRC_FILES_REAL))
+
 DB_TARGETS_ALL = korp_timespans korp_rels korp_lemgrams
 DB_HAS_RELS := $(and $(filter dephead,$(P_ATTRS)),$(filter deprel,$(P_ATTRS)))
 DB_TARGETS ?= $(if $(DB),$(DB_TARGETS_ALL),\
@@ -91,9 +108,9 @@ CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
 DEP_MAKEFILES := $(if $(call eqs,$(call lower,$(MAKEFILE_DEPS)),false),,\
 			$(MAKEFILE_LIST))
 
-COMPRESS := $(strip $(if $(filter %.gz,$(SRC_FILES)),gz,\
-		$(if $(or $(filter %.bz2,$(SRC_FILES)),\
-			$(filter %.bz,$(SRC_FILES))),bz2,\
+COMPRESS := $(strip $(if $(filter %.gz,$(SRC_FILES_REAL)),gz,\
+		$(if $(or $(filter %.bz2,$(SRC_FILES_REAL)),\
+			$(filter %.bz,$(SRC_FILES_REAL))),bz2,\
 		none)))
 
 COMPR_EXT_none = 
@@ -214,7 +231,7 @@ $(SUBDIRS):
 define MAKE_CORPUS_R
 $(1)$(if $(subst @,,$(2)),@$(2)):
 	$$(MAKE) -f $(1).mk $(or $(TARGET),$(subst @,all,$(2))) \
-		CORPNAME_BASE=$(1) DB=$(DB)
+		CORPNAME_BASE=$(1) DB=$(DB) WITHIN_CORP_MK=1
 endef
 
 $(foreach corp,$(CORPORA),\
@@ -244,14 +261,14 @@ $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT) $(CORPNAME).info
 # This does not support passing compressed files or files requiring
 # transcoding to a program requiring filename arguments. That might be
 # achieved by using named pipes as for mysqlimport.
-$(CORPNAME)$(VRT): $(SRC_FILES) $(MAKE_VRT_DEPS) $(VRT_FIX_ATTRS_PROG) \
+$(CORPNAME)$(VRT): $(SRC_FILES_REAL) $(MAKE_VRT_DEPS) $(VRT_FIX_ATTRS_PROG) \
 		$(DEP_MAKEFILES)
 ifdef MAKE_VRT_FILENAME_ARGS
-	$(MAKE_VRT_CMD) $(SRC_FILES) \
+	$(MAKE_VRT_CMD) $(SRC_FILES_REAL) \
 	| $(VRT_FIX_ATTRS) \
 	| $(COMPR) > $@
 else
-	$(CAT) $(SRC_FILES) \
+	$(CAT) $(SRC_FILES_REAL) \
 	| $(TRANSCODE) \
 	| $(MAKE_VRT_CMD) \
 	| $(VRT_FIX_ATTRS) \
@@ -375,7 +392,7 @@ align: parcorp $(CORPNAME)_$(PARLANG1).align $(CORPNAME)_$(PARLANG2).align
 parcorp:
 	for lang in $(LANGUAGES); do \
 		$(MAKE) -f $(CORPNAME)_$$lang.mk all \
-			CORPNAME_BASE=$(CORPNAME)_$$lang; \
+			CORPNAME_BASE=$(CORPNAME)_$$lang WITHIN_CORP_MK=1; \
 	done
 
 pkg-parcorp:

@@ -3,6 +3,6 @@
 
 PARCORP_PART = 1
 
-SRC_FILES = maantie_ru.vrt
+SRC_FILES = *_ru.vrt
 
 include parrus-common.mk

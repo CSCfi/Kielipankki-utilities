@@ -4,8 +4,6 @@
 TEI2VRT_OPTS = --words --lemgrams --morpho-tag-separator=" " \
 		--para-elem-name=paragraph
 
-SRC_FILES = kekkonen_1957.xml
-
 P_ATTRS = lemma lemmacomp pos msd id lex
 S_ATTRS = text:0+distributor+source+title paragraph:0+id+type+topic \
 		sentence:0+id
