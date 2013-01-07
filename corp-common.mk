@@ -292,7 +292,7 @@ $(CORPNAME)_rels_load.timestamp: $(RELS_TSV) $(RELS_CREATE_TABLES_TEMPL)
 	touch $@
 
 $(CORPSQLDIR)/$(CORPNAME)_rels.sql: $(CORPNAME)_rels_load.timestamp
-	mysqldump --user $(DBUSER) $(DBNAME) $(RELS_TABLES) > $@
+	mysqldump --no-autocommit --user $(DBUSER) $(DBNAME) $(RELS_TABLES) > $@
 
 $(RELS_TSV): $(CORPNAME)$(VRT) $(MAKE_RELS_DEPS)
 	$(CAT) $< \
@@ -317,7 +317,7 @@ $(CORPNAME)_$(1)_load.timestamp: $(CORPNAME)_$(1)$(TSV)
 $(CORPSQLDIR)/$(CORPNAME)_$(1).sql: $(CORPNAME)_$(1)_load.timestamp
 	echo $$(CREATE_SQL_$(1)) > $$@
 	echo 'DELETE FROM `$$(TABLENAME_$(1))` where '"corpus='$(CORPNAME_U)';" >> $$@
-	mysqldump --user $(DBUSER) --no-create-info \
+	mysqldump --no-autocommit --user $(DBUSER) --no-create-info \
 		--where "corpus='$(CORPNAME_U)'" $(DBNAME) $$(TABLENAME_$(1)) \
 		>> $$@
 endef
