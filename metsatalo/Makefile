@@ -14,6 +14,8 @@ S_ATTRS = sentence:0+id
 SRC_DIR = .
 SRC_FILES = reitti_a-siipeen_FTBparse_orig.txt
 
+CORPUS_DATE = 2012
+
 
 include ../corp-common.mk
 
