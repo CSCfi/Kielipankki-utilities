@@ -25,6 +25,23 @@ class IncrDict(dict):
 
 class Deprels(object):
 
+    class SentInfo(object):
+
+        __slots__ = ['id', 'sentences']
+
+        id_counter = 0
+
+        def __init__(self, id_=None):
+            self.id = id_ if id_ is not None else self.id_counter
+            self.__class__.id_counter += 1
+            self.sentences = []
+
+        def add_info(self, info):
+            self.sentences += info
+
+        def get_len(self):
+            return len(self.sentences)
+
     relmap = {'advl': 'ADV',
               'attr': 'AT',
               'aux': 'IV',
@@ -44,41 +61,37 @@ class Deprels(object):
               '_': 'XX'}
 
     def __init__(self):
-        self.ids = {}
-        self.id = 0
-        self.freqs = IncrDict()
         self.freqs_rel = IncrDict()
         self.freqs_head_rel = IncrDict()
         self.freqs_rel_dep = IncrDict()
-        # Specifying [] is not enough because it would always use the
-        # same list, whereas this returns a new list each time
-        self.sentences = IncrDict(init_func=lambda: [])
+        self.sentences = {}
 
     def __iter__(self):
         for key in self.ids.keys():
             (head, rel, dep) = key
-            yield {'id': self.ids[key],
+            yield {'id': self.sentences[key].id,
                    'head': head,
                    'rel': rel,
                    'dep': dep,
                    'depextra': '',
-                   'freq': self.freqs[key],
+                   'freq': self.sentences[key].get_len(),
                    'freq_rel': self.freqs_rel[rel],
                    'freq_head_rel': self.freqs_head_rel[(head, rel)],
                    'freq_rel_dep': self.freqs_rel_dep[(rel, dep)],
                    'wf': 0,
                    'sentences': ';'.join(':'.join(str(item) for item in sent)
-                                         for sent in self.sentences[key])}
+                                         for sent
+                                         in self.sentences[key].sentences)}
 
     def iter_freqs(self):
-        for key in self.freqs.keys():
-            (head, rel, dep) = key                       
-            yield {'id': self.ids[key],
+        for key in self.sentences.keys():
+            (head, rel, dep) = key
+            yield {'id': self.sentences[key].id,
                    'head': head,
                    'rel': rel,
                    'dep': dep,
                    'depextra': '',
-                   'freq': self.freqs[key],
+                   'freq': self.sentences[key].get_len(),
                    'wf': 0}
 
     def iter_freqs_rel(self):
@@ -101,8 +114,8 @@ class Deprels(object):
 
     def iter_sentences(self):
         for key in self.sentences.keys():
-            for (sent_id, start, end) in self.sentences[key]:
-                yield {'id': self.ids[key],
+            for (sent_id, start, end) in self.sentences[key].sentences:
+                yield {'id': self.sentences[key].id,
                        'sentence': sent_id,
                        'start': start,
                        'end': end}
@@ -122,15 +135,21 @@ class Deprels(object):
                 rel = self.relmap[word_info["deprel"]]
                 head = data[headnr]["lemgram"] or data[headnr]["lemma"]
                 head_rel_dep = (head, rel, dep)
-                self.ids[head_rel_dep] = self.id
-                self.id += 1
-                self.freqs.incr(head_rel_dep)
+                if head_rel_dep not in self.sentences:
+                    self.sentences[head_rel_dep] = self.SentInfo()
                 self.freqs_rel.incr(rel)
                 self.freqs_head_rel.incr((head, rel))
                 self.freqs_rel_dep.incr((rel, dep))
-                self.sentences.incr(head_rel_dep,
-                                    [(sent_id, min(wordnr, headnr) + 1,
-                                      max(wordnr, headnr) + 1)])
+                self.sentences[head_rel_dep].add_info(
+                    [(sent_id, min(wordnr, headnr) + 1,
+                      max(wordnr, headnr) + 1)])
+
+    def get_sizes(self):
+        sizes = []
+        for attr in ['freqs_rel', 'freqs_head_rel', 'freqs_rel_dep',
+                     'sentences']:
+            sizes.append((attr, sys.getsizeof(getattr(self, attr))))
+        return sizes
 
 
 def getopts():
@@ -165,12 +184,18 @@ def process_input(f, deprels, opts):
     if opts.input_type.startswith('ftb3'):
         fieldnames.insert(1, "lemma_comp")
     data = []
+    sentnr = 0
+    # sys.stdout.write(str(sentnr) + ' ' + repr(deprels.get_sizes()) + '\n')
     for line in f:
         line = line[:-1]
         if line.startswith('<sentence'):
             mo = sent_id_re.match(line)
             if len(data) > 0:
                 deprels.add(sent_id, data)
+                sentnr += 1
+                # if sentnr % 100000 == 0:
+                #     sys.stdout.write(
+                #         str(sentnr) + ' ' + repr(deprels.get_sizes()) + '\n')
             sent_id = mo.group(1)
             data = []
         elif not tag_re.match(line):
@@ -181,6 +206,7 @@ def process_input(f, deprels, opts):
             data.append(dict(zip(fieldnames, fields)))
     if len(data) > 0:
         deprels.add(sent_id, data)
+        # sys.stdout.write(str(sentnr) + ' ' + repr(deprels.get_sizes()) + '\n')
 
 
 def output_rels_old(deprels):
