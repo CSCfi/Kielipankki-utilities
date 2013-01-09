@@ -152,6 +152,107 @@ class Deprels(object):
         return sizes
 
 
+class RelationExtractor(object):
+
+    def __init__(self, opts):
+        self._opts = opts
+        self._deprels = Deprels()
+
+    def process_input(self, f):
+        sent_id_re = re.compile(r'<sentence\s+(?:.+\s)?id="(.*?)".*>')
+        tag_re = re.compile(r'^<.*>$')
+        fieldnames = ['word', 'lemma', 'pos', 'msd', 'dephead', 'deprel',
+                      'lemgram']
+        if self._opts.input_type == 'ftb3-extrapos':
+            fieldnames.insert(3, 'pos_extra')
+        if self._opts.input_type.startswith('ftb3'):
+            fieldnames.insert(1, 'lemma_comp')
+        data = []
+        sentnr = 0
+        # sys.stdout.write(str(sentnr) + ' ' + repr(self._deprels.get_sizes()) + '\n')
+        for line in f:
+            line = line[:-1]
+            if line.startswith('<sentence'):
+                mo = sent_id_re.match(line)
+                if len(data) > 0:
+                    self._deprels.add(sent_id, data)
+                    sentnr += 1
+                    # if sentnr % 100000 == 0:
+                    #     sys.stdout.write(
+                    #         str(sentnr) + ' ' + repr(self._deprels.get_sizes()) + '\n')
+                sent_id = mo.group(1)
+                data = []
+            elif not tag_re.match(line):
+                fields = line.split('\t')
+                if fields[-1].startswith('|') and fields[-1].endswith('|'):
+                    fields[-1] = fields[-1][1:-1]
+                fields.append('')	# An empty lemgram by default
+                data.append(dict(zip(fieldnames, fields)))
+        if len(data) > 0:
+            self._deprels.add(sent_id, data)
+            # sys.stdout.write(str(sentnr) + ' ' + repr(self._deprels.get_sizes()) + '\n')
+
+    def output_rels(self):
+        if self._opts.output_type == 'old':
+            self._output_rels_old()
+        else:
+            self._output_rels_new()
+
+    def _output_rels_old(self):
+        for data in self._deprels:
+            print '\t'.join(map(lambda x: str(data[x]),
+                                ['head', 'rel', 'dep', 'depextra', 'freq',
+                                 'freq_rel', 'freq_head_rel', 'freq_rel_dep',
+                                 'wf', 'sentences']))
+
+    def _output_rels_new(self):
+        self._output_rel(self._deprels.iter_freqs(), '',
+                         ['id', 'head', 'rel', 'dep', 'depextra', 'freq', 'wf'],
+                         numeric_sort=True)
+        self._output_rel(self._deprels.iter_freqs_rel(), '_rel',
+                         ['rel', 'freq'])
+        self._output_rel(self._deprels.iter_freqs_head_rel(), '_head_rel',
+                         ['head', 'rel', 'freq'])
+        self._output_rel(self._deprels.iter_freqs_rel_dep(), '_dep_rel',
+                         ['dep', 'depextra', 'rel', 'freq'])
+        self._output_rel(self._deprels.iter_sentences(), '_sentences',
+                         ['id', 'sentence', 'start', 'end'], numeric_sort=True)
+
+    def _output_rel(self, data, rel_suffix, fieldnames, numeric_sort=False):
+        with self._open_output_file(
+            self._opts.output_prefix + rel_suffix + '.tsv', numeric_sort) as f:
+            for row in data:
+                f.write('\t'.join([str(row[fieldname])
+                                   for fieldname in fieldnames]) + '\n')
+
+    def _open_output_file(self, fname, numeric_sort=False):
+        compress_cmd = None
+        if self._opts.compress.startswith('gz'):
+            fname += '.gz'
+            compress_cmd = 'gzip'
+        elif self._opts.compress.startswith('bz'):
+            fname += '.bz2'
+            compress_cmd = 'bzip2'
+        f = open(fname, 'w')
+        if self._opts.sort:
+            sort_env = os.environ
+            sort_env['LC_ALL'] = 'C'
+            sort_cmd = ['sort']
+            if numeric_sort:
+                sort_cmd += ['-n']
+            p1 = Popen(sort_cmd, stdin=PIPE,
+                       stdout=(PIPE if compress_cmd else f), env=sort_env)
+            if compress_cmd is not None:
+                p2 = Popen([compress_cmd], stdin=p1.stdout, stdout=f)
+                p1.stdout.close()
+            return p1.stdin
+        elif compress_cmd is not None:
+            p2 = Popen([compress_cmd], stdin=PIPE, stdout=f)
+            return p2.stdin
+        else:
+            return f
+
+
 def getopts():
     optparser = OptionParser()
     optparser.add_option('--input-type', '--mode', type='choice',
@@ -175,106 +276,11 @@ def getopts():
     return (opts, args)
 
 
-def process_input(f, deprels, opts):
-    sent_id_re = re.compile(r'<sentence\s+(?:.+\s)?id="(.*?)".*>')
-    tag_re = re.compile(r'^<.*>$')
-    fieldnames = ["word", "lemma", "pos", "msd", "dephead", "deprel", "lemgram"]
-    if opts.input_type == 'ftb3-extrapos':
-        fieldnames.insert(3, 'pos_extra')
-    if opts.input_type.startswith('ftb3'):
-        fieldnames.insert(1, "lemma_comp")
-    data = []
-    sentnr = 0
-    # sys.stdout.write(str(sentnr) + ' ' + repr(deprels.get_sizes()) + '\n')
-    for line in f:
-        line = line[:-1]
-        if line.startswith('<sentence'):
-            mo = sent_id_re.match(line)
-            if len(data) > 0:
-                deprels.add(sent_id, data)
-                sentnr += 1
-                # if sentnr % 100000 == 0:
-                #     sys.stdout.write(
-                #         str(sentnr) + ' ' + repr(deprels.get_sizes()) + '\n')
-            sent_id = mo.group(1)
-            data = []
-        elif not tag_re.match(line):
-            fields = line.split('\t')
-            if fields[-1].startswith('|') and fields[-1].endswith('|'):
-                fields[-1] = fields[-1][1:-1]
-            fields.append("")	# An empty lemgram by default
-            data.append(dict(zip(fieldnames, fields)))
-    if len(data) > 0:
-        deprels.add(sent_id, data)
-        # sys.stdout.write(str(sentnr) + ' ' + repr(deprels.get_sizes()) + '\n')
-
-
-def output_rels_old(deprels):
-    for data in deprels:
-        print '\t'.join(map(lambda x: str(data[x]),
-                            ['head', 'rel', 'dep', 'depextra', 'freq',
-                             'freq_rel', 'freq_head_rel', 'freq_rel_dep', 'wf',
-                             'sentences']))
-
-
-def output_rels_new(deprels, opts):
-    output_rel(deprels.iter_freqs(), '', opts,
-               ['id', 'head', 'rel', 'dep', 'depextra', 'freq', 'wf'],
-               numeric_sort=True)
-    output_rel(deprels.iter_freqs_rel(), '_rel', opts,
-               ['rel', 'freq'])
-    output_rel(deprels.iter_freqs_head_rel(), '_head_rel', opts,
-               ['head', 'rel', 'freq'])
-    output_rel(deprels.iter_freqs_rel_dep(), '_dep_rel', opts,
-               ['dep', 'depextra', 'rel', 'freq'])
-    output_rel(deprels.iter_sentences(), '_sentences', opts,
-               ['id', 'sentence', 'start', 'end'], numeric_sort=True)
-
-
-def output_rel(data, rel_suffix, opts, fieldnames, numeric_sort=False):
-    with open_output_file(opts.output_prefix + rel_suffix + '.tsv', opts,
-                          numeric_sort) as f:
-        for row in data:
-            f.write('\t'.join([str(row[fieldname])
-                               for fieldname in fieldnames]) + '\n')
-    
-
-def open_output_file(fname, opts, numeric_sort=False):
-    compress_cmd = None
-    if opts.compress.startswith('gz'):
-        fname += '.gz'
-        compress_cmd = 'gzip'
-    elif opts.compress.startswith('bz'):
-        fname += '.bz2'
-        compress_cmd = 'bzip2'
-    f = open(fname, 'w')
-    if opts.sort:
-        sort_env = os.environ
-        sort_env['LC_ALL'] = 'C'
-        sort_cmd = ['sort']
-        if numeric_sort:
-            sort_cmd += ['-n']
-        p1 = Popen(sort_cmd, stdin=PIPE, stdout=(PIPE if compress_cmd else f),
-                   env=sort_env)
-        if compress_cmd is not None:
-            p2 = Popen([compress_cmd], stdin=p1.stdout, stdout=f)
-            p1.stdout.close()
-        return p1.stdin
-    elif compress_cmd is not None:
-        p2 = Popen([compress_cmd], stdin=PIPE, stdout=f)
-        return p2.stdin
-    else:
-        return f
-
-
 def main():
-    deprels = Deprels()
     (opts, args) = getopts()
-    process_input(sys.stdin, deprels, opts)
-    if opts.output_type == 'old':
-        output_rels_old(deprels)
-    else:
-        output_rels_new(deprels, opts)
+    extractor = RelationExtractor(opts)
+    extractor.process_input(sys.stdin)
+    extractor.output_rels()
 
 
 if __name__ == '__main__':
