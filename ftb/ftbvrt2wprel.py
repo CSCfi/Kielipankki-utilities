@@ -4,7 +4,6 @@
 import sys
 import os
 import re
-import copy
 
 from optparse import OptionParser
 from subprocess import Popen, PIPE
@@ -158,7 +157,17 @@ class RelationExtractor(object):
         self._opts = opts
         self._deprels = Deprels()
 
-    def process_input(self, f):
+    def process_input(self, args):
+        if isinstance(args, list):
+            for arg in args:
+                self.process_input(arg)
+        elif isinstance(args, basestring):
+            with open(args, 'r') as f:
+                self._process_input_stream(f)
+        else:
+            self._process_input_stream(args)
+
+    def _process_input_stream(self, f):
         sent_id_re = re.compile(r'<sentence\s+(?:.+\s)?id="(.*?)".*>')
         tag_re = re.compile(r'^<.*>$')
         fieldnames = ['word', 'lemma', 'pos', 'msd', 'dephead', 'deprel',
@@ -206,17 +215,19 @@ class RelationExtractor(object):
                                  'wf', 'sentences']))
 
     def _output_rels_new(self):
-        self._output_rel(self._deprels.iter_freqs(), '',
-                         ['id', 'head', 'rel', 'dep', 'depextra', 'freq', 'wf'],
-                         numeric_sort=True)
-        self._output_rel(self._deprels.iter_freqs_rel(), '_rel',
-                         ['rel', 'freq'])
-        self._output_rel(self._deprels.iter_freqs_head_rel(), '_head_rel',
-                         ['head', 'rel', 'freq'])
-        self._output_rel(self._deprels.iter_freqs_rel_dep(), '_dep_rel',
-                         ['dep', 'depextra', 'rel', 'freq'])
-        self._output_rel(self._deprels.iter_sentences(), '_sentences',
-                         ['id', 'sentence', 'start', 'end'], numeric_sort=True)
+        output_rels = [('iter_freqs', '',
+                        ['id', 'head', 'rel', 'dep', 'depextra', 'freq', 'wf'],
+                        True),
+                       ('iter_freqs_rel', '_rel', ['rel', 'freq'], False),
+                       ('iter_freqs_head_rel', '_head_rel',
+                         ['head', 'rel', 'freq'], False),
+                       ('iter_freqs_rel_dep', '_dep_rel',
+                         ['dep', 'depextra', 'rel', 'freq'], False),
+                       ('iter_sentences', '_sentences',
+                         ['id', 'sentence', 'start', 'end'], True)]
+        for output_rel in output_rels:
+            self._output_rel(getattr(self._deprels, output_rel[0])(),
+                             *output_rel[1:])
 
     def _output_rel(self, data, rel_suffix, fieldnames, numeric_sort=False):
         with self._open_output_file(
@@ -279,7 +290,7 @@ def getopts():
 def main():
     (opts, args) = getopts()
     extractor = RelationExtractor(opts)
-    extractor.process_input(sys.stdin)
+    extractor.process_input(args or sys.stdin)
     extractor.output_rels()
 
 
