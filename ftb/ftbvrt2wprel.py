@@ -4,9 +4,11 @@
 import sys
 import os
 import re
+import gc
 
 from optparse import OptionParser
 from subprocess import Popen, PIPE
+from tempfile import NamedTemporaryFile
 
 
 class IncrDict(dict):
@@ -156,6 +158,7 @@ class RelationExtractor(object):
     def __init__(self, opts):
         self._opts = opts
         self._deprels = Deprels()
+        self._temp_fnames = {}
 
     def process_input(self, args):
         if isinstance(args, list):
@@ -228,15 +231,27 @@ class RelationExtractor(object):
         for output_rel in output_rels:
             self._output_rel(getattr(self._deprels, output_rel[0])(),
                              *output_rel[1:])
+        if self._opts.temp_files:
+            del self._deprels
+            gc.collect()
+            self._write_final_files(output_rels)
 
     def _output_rel(self, data, rel_suffix, fieldnames, numeric_sort=False):
-        with self._open_output_file(
-            self._opts.output_prefix + rel_suffix + '.tsv', numeric_sort) as f:
+        with self._open_output_file(self._make_output_filename(rel_suffix),
+                                    numeric_sort, self._opts.temp_files) as f:
             for row in data:
                 f.write('\t'.join([str(row[fieldname])
                                    for fieldname in fieldnames]) + '\n')
+            if self._opts.temp_files:
+                self._temp_fnames[rel_suffix] = f.name
 
-    def _open_output_file(self, fname, numeric_sort=False):
+    def _make_output_filename(self, rel_suffix):
+        return self._opts.output_prefix + rel_suffix + '.tsv'
+
+    def _open_output_file(self, fname, numeric_sort=False, temporary=False):
+        if temporary:
+            return NamedTemporaryFile(prefix=sys.argv[0] + '.' + fname + '.',
+                                      dir=self._opts.temp_dir, delete=False)
         compress_cmd = None
         if self._opts.compress.startswith('gz'):
             fname += '.gz'
@@ -263,6 +278,18 @@ class RelationExtractor(object):
         else:
             return f
 
+    def _write_final_files(self, output_rels_info):
+        numeric_sort = dict([(relinfo[1], relinfo[-1])
+                             for relinfo in output_rels_info])
+        for (rel_suffix, temp_fname) in self._temp_fnames.iteritems():
+            with open(temp_fname, 'r') as inf:
+                with self._open_output_file(
+                    self._make_output_filename(rel_suffix),
+                    numeric_sort[rel_suffix], False) as outf:
+                    for line in inf:
+                        outf.write(line)
+            os.remove(temp_fname)
+
 
 def getopts():
     optparser = OptionParser()
@@ -277,6 +304,9 @@ def getopts():
                          choices=['none', 'gzip', 'gz', 'bzip2', 'bz', 'bz2'],
                          default='none')
     optparser.add_option('--sort', action='store_true', default=False)
+    optparser.add_option('--temp-files', '--temporary-files',
+                         action='store_true', default=False)
+    optparser.add_option('--temp-dir', '--temporary-directory', default=None)
     (opts, args) = optparser.parse_args()
     if opts.output_prefix is None and opts.corpus_name is not None:
         opts.output_prefix = 'relations_' + opts.corpus_name
@@ -284,6 +314,8 @@ def getopts():
         sys.stderr.write('--output-prefix=PREFIX or --corpus-name=NAME required'
                          + ' with --output-type=new\n')
         exit(1)
+    if opts.compress == 'none' and not opts.sort:
+        opts.temp_files = False
     return (opts, args)
 
 
