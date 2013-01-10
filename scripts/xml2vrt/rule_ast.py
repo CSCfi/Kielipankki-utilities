@@ -23,10 +23,17 @@ class Tokenizer(object):
 
 class ElemRulePart(object):
 
-    pass
+    _repr_attrs = []
 
+    def __repr__(self):
+        attr_reprs = [attr.lstrip('_') + '=' + repr(getattr(self, attr, None))
+                      for attr in self._repr_attrs]
+        return '{cls}({attrs})'.format(cls=self.__class__.__name__,
+                                       attrs=', '.join(attr_reprs))
 
 class ElemRule(ElemRulePart):
+
+    _repr_attrs = ['_elemconds', '_target']
 
     def __init__(self, elemconds, target=None):
         if not isinstance(elemconds, list):
@@ -49,14 +56,12 @@ class ElemRule(ElemRulePart):
     def make_target(self, et_elem, converter):
         return self._target.make_target(et_elem, converter)
 
-    def __repr__(self):
-        return 'ElemRule({0}, target={1})'.format(
-            repr(self._elemconds), repr(self._target))
-
 
 class ElemCond(ElemRulePart):
 
-    def __init__(self, elemname, *conds):
+    _repr_attrs = ['_elemname', '_conds']
+
+    def __init__(self, elemname, conds):
         self._elemname = elemname
         self._conds = conds
 
@@ -86,6 +91,8 @@ class ElemCondCond(ElemRulePart):
 
 
 class ElemCondAttrCond(ElemCondCond):
+
+    _repr_attrs = ['_attrname', '_attrval']
 
     def __init__(self, attrname, attrval):
         self._attrname = attrname
@@ -144,6 +151,8 @@ class VrtListLines(VrtList):
 
 class ElemTargetVrt(ElemTarget):
 
+    _repr_attrs = ['_fields']
+
     def __init__(self, fields):
         self._fields = fields
 
@@ -178,6 +187,8 @@ class ElemTargetVrtField(ElemTarget):
 
 class ElemTargetVrtAttrField(ElemTargetVrtField):
 
+    _repr_attrs = ['_attrnames', '_opts']
+
     def __init__(self, attrnames, opts=None):
         if not isinstance(attrnames, list):
             attrnames = [attrnames]
@@ -190,6 +201,8 @@ class ElemTargetVrtAttrField(ElemTargetVrtField):
 
 
 class ElemTargetVrtTextField(ElemTargetVrtField):
+
+    _repr_attrs = ['_field_nrs', '_opts']
 
     def __init__(self, field_nrs=[0], opts=None):
         if not isinstance(field_nrs, list):
@@ -214,6 +227,8 @@ class ElemTargetVrtTextField(ElemTargetVrtField):
 
 class ElemTargetVrtConstField(ElemTargetVrtField):
 
+    _repr_attrs = ['_values']
+
     def __init__(self, values):
         if not isinstance(values, list):
             values = [values]
@@ -224,6 +239,8 @@ class ElemTargetVrtConstField(ElemTargetVrtField):
     
 
 class ElemTargetVrtText(ElemTargetVrtField):
+
+    _repr_attrs = ['_opts']
 
     def __init__(self, opts=None):
         self._opts = opts if opts is not None else {}
@@ -241,6 +258,8 @@ class ElemTargetVrtText(ElemTargetVrtField):
             
 
 class ElemTargetElem(ElemTarget):
+
+    _repr_attrs = ['_elemname', '_attrs', '_content']
 
     def __init__(self, elemname, attrs, content):
         self._elemname = elemname
@@ -267,6 +286,8 @@ class ElemTargetElem(ElemTarget):
 
 class ElemTargetSkip(ElemTarget):
 
+    _repr_attrs = ['_content']
+
     def __init__(self, content):
         self._content = content
 
@@ -279,6 +300,8 @@ class ElemTargetSkip(ElemTarget):
 
 
 class ElemAttr(ElemRulePart):
+
+    _repr_attrs = ['_attrname']
 
     def __init__(self, attrname):
         self._attrname = attrname
@@ -295,6 +318,8 @@ class ElemAttr(ElemRulePart):
 
 class ElemAttrConst(ElemAttr):
 
+    _repr_attrs = ['_attrname', '_value']
+
     def __init__(self, attrname, value):
         ElemAttr.__init__(self, attrname)
         self._value = value
@@ -304,6 +329,8 @@ class ElemAttrConst(ElemAttr):
 
 
 class ElemAttrAttr(ElemAttr):
+
+    _repr_attrs = ['_attrname', '_src_attrname']
 
     def __init__(self, attrname, src_attrname):
         ElemAttr.__init__(self, attrname)
@@ -325,6 +352,8 @@ class ElemAttrId(ElemAttr):
 
 
 class ElemAttrContent(ElemAttr):
+
+    _repr_attrs = ['_attrname', '_content_path']
 
     def __init__(self, attrname, content_path):
         ElemAttr.__init__(self, attrname)
@@ -349,15 +378,20 @@ class ElemAttrContentText(ElemAttrContent):
 
 class ElemAttrContentAttr(ElemAttrContent):
 
+    _repr_attrs = ['_attrname', '_content_path', '_content_attrname']
+
     def __init__(self, attrname, content_path, content_attrname):
         ElemAttrContent.__init__(self, attrname, content_path)
         self._content_attrname = content_attrname
+        self._repr_attrs = ['_attrname', '_content_path']
 
     def _get_value(self, elem):
         return elem.get(self._content_attrname, '')
 
 
 class ElemAttrCopy(ElemAttr):
+
+    _repr_attrs = ['_attrnames']
 
     def __init__(self, attrnames):
         if not isinstance(attrnames, list):
@@ -374,6 +408,8 @@ class ElemAttrCopy(ElemAttr):
         
 
 class ElemContent(ElemRulePart):
+
+    _repr_attrs = ['_child_names']
 
     def __init__(self, child_names):
         if not isinstance(child_names, list):
