@@ -61,9 +61,9 @@ class ElemCond(ElemRulePart):
 
     _repr_attrs = ['_elemname', '_conds']
 
-    def __init__(self, elemname, conds):
+    def __init__(self, elemname, conds=None):
         self._elemname = elemname
-        self._conds = conds
+        self._conds = conds or []
 
     def get_elemname(self):
         return self._elemname
