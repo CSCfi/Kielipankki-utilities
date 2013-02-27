@@ -165,6 +165,22 @@ class ElemRuleParser(object):
         'vrt_field : TEXT'
         p[0] = ast.ElemTargetVrtText()
 
+    def p_vrt_field_fieldnums(self, p):
+        'vrt_field : fieldnums'
+        p[0] = ast.ElemTargetVrtTextField(p[1])
+
+    def p_fieldnums_num_range(self, p):
+        'fieldnums : fieldnum RANGE fieldnum'
+        p[0] = range(p[1], p[3])
+
+    def p_fieldnums_num(self, p):
+        'fieldnums : fieldnum'
+        p[0] = [p[1]]
+
+    def p_fieldnum(self, p):
+        'fieldnum : NUM'
+        p[0] = p[1] - 1
+
     class VrtFieldTextOpts(object):
 
         def __init__(self, field_nrs=None, opts=None):
