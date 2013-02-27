@@ -23,6 +23,15 @@ class ElemRuleParser(object):
     def parse(self, input, **kwargs):
         return self.parser.parse(input, **kwargs)
 
+    def p_rules_1(self, p):
+        'rules : rule'
+        p[0] = [p[1]]
+
+    def p_rules_m(self, p):
+        'rules : rules rule'
+        p[1].append(p[2])
+        p[0] = p[1]
+
     def p_rule(self, p):
         'rule : elem_conds ARROW target SEMICOLON'
         p[0] = ast.ElemRule(p[1], p[3])
@@ -74,6 +83,10 @@ class ElemRuleParser(object):
         p[0] = ast.ElemTargetSkip(p[2])
 
     def p_target_elem(self, p):
+        'target : elemname COLON elem_content'
+        p[0] = ast.ElemTargetElem(p[1], [], p[3])
+
+    def p_target_elem_attrs(self, p):
         'target : elemname target_attrs COLON elem_content'
         p[0] = ast.ElemTargetElem(p[1], p[2], p[4])
 
@@ -122,7 +135,7 @@ class ElemRuleParser(object):
 
     def p_elem_content(self, p):
         'elem_content : elem_content_elems'
-        p[0] = p[1]
+        p[0] = ast.ElemContent(p[1])
 
     def p_elem_content_elems_1(self, p):
         'elem_content_elems : elem_content_elem'
