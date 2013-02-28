@@ -82,6 +82,8 @@ class XMLStatCounter(saxhandler.ContentHandler):
         self._elem_max_nesting = MaxDict()
         self._elem_elem_counts = DictDict(inner_type=IncrDict)
         self._open_elems = IncrDict()
+        self._all_values_attrs = set(re.split(r'[,;\s]+',
+                                              self._opts.all_values_attrs))
         self._elemstack = []
         self._prev_event = None
 
@@ -144,13 +146,18 @@ class XMLStatCounter(saxhandler.ContentHandler):
                 count=self._elemcounts[elemname])
             result += self._make_subcounts(
                 elemname, self._elem_attr_counts,
-                format=u'  @{name:{namewidth}} {count:6d}\n',
-                namewidth=namewidth,
+                format=u'  @{name:{namewidth}} {subcount:6d} {count:6d}\n',
+                namewidth=namewidth - 7,
+                sort_by_count = self._opts.sort_attrs_by_count,
                 subelem_dict=self._elem_attr_value_counts,
-                subelem_args=dict(format=u'    {name:{namewidth}} {count:6d}\n',
-                                  namewidth=namewidth - 1,
-                                  name_format=u'"{name}"',
-                                  limit=self._opts.max_attr_values))
+                subelem_args=dict(
+                    format=u'    {name:{namewidth}} {count:6d}\n',
+                    namewidth=namewidth - 1,
+                    name_format=u'"{name}"',
+                    limit_min=self._opts.min_attr_values,
+                    limit_max=self._opts.max_attr_values,
+                    sort_by_count=self._opts.sort_attr_values_by_count,
+                    all_values_elemnames=self._all_values_attrs))
             result += self._make_subcounts(
                 elemname, self._elem_elem_counts,
                 format=u'  {name:{namewidth}} {count:6d}\n',
@@ -167,25 +174,45 @@ class XMLStatCounter(saxhandler.ContentHandler):
         return ' '.join(eleminfo) + '\n'
 
     def _make_subcounts(self, elemname, elem_dict, format=u'{name} {count}\n',
-                        name_format=u'{name}', name_map={}, limit=None,
+                        name_format=u'{name}', name_map={}, limit_min=None,
+                        limit_max=None, sort_by_count=False,
+                        all_values_elemnames=None,
                         subelem_dict=None, subelem_args={},
                         **extra_format_args):
         result = ''
-        names = elem_dict.get(elemname, {}).keys()
-        names.sort()
-        if limit is None or limit < 0:
-            limit = len(names)
+        sortkey_fn = ((lambda item: (-item[1], item[0])) if sort_by_count
+                      else (lambda item: item[0]))
+        names = [pair[0] for pair 
+                 in sorted(elem_dict.get(elemname, {}).items(),
+                           key=sortkey_fn)]
+        namecount = len(names)
+        all_values_elemnames = all_values_elemnames or set()
+        if (limit_max is None or limit_max < 0
+            or elemname in all_values_elemnames):
+            limit = namecount
+        elif namecount > limit_max:
+            limit = limit_min
+        else:
+            limit = limit_max
         for name in names[:limit]:
             formatted_name = name_format.format(name=name_map.get(name, name))
+            subelem_count = (len(subelem_dict[elemname][name])
+                             if subelem_dict else 0)
             result += format.format(name=formatted_name,
                                     count=elem_dict[elemname][name],
+                                    subcount=subelem_count,
                                     **extra_format_args)
             if subelem_dict:
                 result += self._make_subcounts(name, subelem_dict[elemname],
                                                **subelem_args)
-        if limit < len(names):
+        if limit < namecount:
+            rest_count = namecount - limit
+            rest_sum = sum([elem_dict[elemname][name]
+                            for name in names[limit:]])
             format_prefix = re.match(r'([^\{]*)', format).group(1)
-            result += format_prefix + '...\n'
+            result += format.format(
+                name='... {:d} other values'.format(rest_count),
+                count=rest_sum, **extra_format_args)
         return result
 
 
@@ -200,7 +227,7 @@ class XMLFileStats(object):
             (opts.encoded_special_char_prefix
               + unichr(i + opts.encoded_special_char_offset), c)
             for (i, c) in enumerate(opts.special_chars)]
-        sys.stderr.write(repr(self._special_char_decode_map) + '\n')
+        # sys.stderr.write(repr(self._special_char_decode_map) + '\n')
 
     def process_files(self, files):
         if isinstance(files, list):
@@ -241,8 +268,14 @@ def getopts():
     optparser = OptionParser()
     optparser.add_option('--attr-values', '--attribute-values',
                          action='store_true', default=False)
-    optparser.add_option('--max-attr-values', '--maximum-attribute-values',
+    optparser.add_option('--min-attr-values', '--minimum-attribute-values',
                          type='int', default=20)
+    optparser.add_option('--max-attr-values', '--maximum-attribute-values',
+                         type='int', default=50)
+    optparser.add_option('--all-values-attrs', '--all-values-attributes',
+                         default='')
+    optparser.add_option('--sort-attrs-by-count', action='store_true')
+    optparser.add_option('--sort-attr-values-by-count', action='store_true')
     optparser.add_option('--cwb-struct-attrs', '--cwb-s-attrs',
                          '--cwb-structural-attributes',
                          action='store_true', default=False)
