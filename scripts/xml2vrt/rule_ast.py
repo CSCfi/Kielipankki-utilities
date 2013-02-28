@@ -370,6 +370,8 @@ class ElemAttrContent(ElemAttr):
 class ElemAttrContentText(ElemAttrContent):
 
     def __init__(self, attrname, content_path):
+        if content_path.upper().endswith('/%TEXT'):
+            content_path = content_path[:-6]
         ElemAttrContent.__init__(self, attrname, content_path)
 
     def _get_value(self, elem):
