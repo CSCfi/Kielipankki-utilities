@@ -265,30 +265,67 @@ class XMLFileStats(object):
 
 
 def getopts():
-    optparser = OptionParser()
-    optparser.add_option('--attr-values', '--attribute-values',
-                         action='store_true', default=False)
-    optparser.add_option('--min-attr-values', '--minimum-attribute-values',
-                         type='int', default=20)
-    optparser.add_option('--max-attr-values', '--maximum-attribute-values',
-                         type='int', default=50)
-    optparser.add_option('--all-values-attrs', '--all-values-attributes',
-                         default='')
-    optparser.add_option('--sort-attrs-by-count', action='store_true')
-    optparser.add_option('--sort-attr-values-by-count', action='store_true')
-    optparser.add_option('--cwb-struct-attrs', '--cwb-s-attrs',
-                         '--cwb-structural-attributes',
-                         action='store_true', default=False)
-    optparser.add_option('--input-encoding', default=None)
-    optparser.add_option('--wrapper-elem', '--wrapper-element-name',
-                         default=None)
-    optparser.add_option('--decode-special-chars',
-                         action='store_true', default=False)
-    optparser.add_option('--special-chars', default=u' /<>')
-    optparser.add_option('--encoded-special-char-offset',
-                         '--special-char-offset', default='0x7F')
-    optparser.add_option('--encoded-special-char-prefix',
-                         '--special-char-prefix', default=u'')
+    usage = """%prog: [options] [XML file ...]
+Produce element, attribute and attribute value statistics of XML files"""
+    optparser = OptionParser(usage=usage)
+    defaultstr = ' (default: %default)'
+    optparser.add_option(
+        '--attr-values', '--attribute-values',
+        action='store_true',
+        help='Show attribute values')
+    optparser.add_option(
+        '--max-attr-values', '--maximum-attribute-values',
+        type='int', default=50,
+        help=('Show at most MAX attribute values, unlimited if MAX is negative'
+              + defaultstr), metavar='MAX')
+    optparser.add_option(
+        '--min-attr-values', '--minimum-attribute-values',
+        type='int', default=20,
+        help=('Show MIN attribute values for attribtes having more than MAX '
+              'different values' + defaultstr), metavar='MIN')
+    optparser.add_option(
+        '--all-values-attrs', '--all-values-attributes',
+        default='',
+        help=('Show all attribute values for the element types listed in '
+              'ELEMTYPES (separated by commas or spaces) (default: none)'),
+        metavar='ELEMTYPES')
+    optparser.add_option(
+        '--sort-attrs-by-count', action='store_true',
+        help=('Sort attributes by the number of their occurrences instead of '
+              'by their name'))
+    optparser.add_option(
+        '--sort-attr-values-by-count', action='store_true',
+        help=('Sort attribute values by the number of their occurrences '
+              'instead of by the value'))
+    optparser.add_option(
+        '--cwb-struct-attrs', '--cwb-s-attrs', '--cwb-structural-attributes',
+        action='store_true',
+        help=('Generate a structural attribute description for cwb_encode '
+              'instead of a listing of elements and attributes'))
+    optparser.add_option(
+        '--input-encoding', default=None,
+        help='Assume encoding ENCODING for input', metavar='ENCODING')
+    optparser.add_option(
+        '--wrapper-elem', '--wrapper-element-name',
+        default=None,
+        help='Wrap the content of multiple XML files into element ELEM',
+        metavar='ELEM')
+    optparser.add_option(
+        '--decode-special-chars', action='store_true',
+        help='Decode special characters')
+    optparser.add_option(
+        '--special-chars', default=u' /<>',
+        help='Characters in CHARS have been encoded in input' + defaultstr,
+        metavar='CHARS')
+    optparser.add_option(
+        '--encoded-special-char-offset', '--special-char-offset',
+        default='0x7F',
+        help='Encoded characters start at OFFSET' + defaultstr,
+        metavar='OFFSET')
+    optparser.add_option(
+        '--encoded-special-char-prefix', '--special-char-prefix', default=u'',
+        help='Encoded characters are prefixed with PREFIX (default: none)',
+        metavar='OFFSET')
     (opts, args) = optparser.parse_args()
     if opts.wrapper_elem == '' or opts.decode_special_chars:
         opts.wrapper_elem = '__DUMMY__'
