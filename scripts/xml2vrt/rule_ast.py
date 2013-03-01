@@ -2,6 +2,20 @@
 # -*- coding: utf-8 -*-
 
 
+# TODO: Generalize values retrieved from text so that the same
+# expressions can be used both in attribute values and VRT field
+# values. Basic parts: attribute value (@name) or text content (%text
+# or %cdata (or just %?)), possibly preceded by a path; constant
+# ("val"). Can be concatenated (+) or chosen with a short-circuit
+# disjunction (|) (the first non-empty chosen). Can be modified with
+# suffixed "functions": .tokenize, .splittolines, .strip,
+# .fields(fieldnums), .upper, .lower, .title, .replace("old", "new"),
+# .subst("re", "repl"). %text.fields(num) can be abbreviated to num.
+# Expressions can be grouped with parentheses. A sequence of functions
+# could be applied to a several fields by grouping the fields in
+# parentheses or possibly curly brackets.
+
+
 import re
 
 import xml.etree.ElementTree as et
