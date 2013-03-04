@@ -1,0 +1,17 @@
+
+* => : * ;
+
+w => %vrt : %text[1 %strip] @lemma @pos @mrp @fun @cow @nb ;
+#?? w => %vrt : 1.strip @lemma @pos @mrp @fun @nb|nb.strip @cow;
+# == w => %vrt : %text.fields(1).strip @lemma @pos @mrp @fun @nb|nb.strip @cow;
+
+pu => %vrt : 1 1 "punct" "" "" "" "";
+# == pu => %vrt : %text[1] %text[1] "punct" "" "" ;
+
+cl => clause @num @type @hier @clnum @hallnum @ora : * ;
+
+s => sentence @id=%id @num @wnum @clnum @source : * ;
+
+p => paragraph @id @type : * ;
+
+korpusla => text @header=header/%text @info=info/%text : * ;
