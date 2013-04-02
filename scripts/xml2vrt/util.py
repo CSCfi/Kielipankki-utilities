@@ -33,11 +33,13 @@ class WrappedXMLFileReader(object):
     ST_AT_SUFFIX = 3
     ST_EOF = 4
 
-    def __init__(self, f, wrapper_elem=None, mapping=None):
+    def __init__(self, f, wrapper_elem=None, mapping=None,
+                 replace_reserved=False):
         self._f = f
         self._prefix = '<' + wrapper_elem + '>\n' if wrapper_elem else ''
         self._suffix = '</' + wrapper_elem + '>\n' if wrapper_elem else ''
         self._mapping = mapping
+        self._replace_reserved = replace_reserved
         self._read_ahead = None
         self._state = self.ST_AT_START if wrapper_elem else self.ST_IN_FILE
 
@@ -52,7 +54,7 @@ class WrappedXMLFileReader(object):
         # between size and the prefix and suffix.
         if self._state == self.ST_AT_START:
             # Get the XML declaration if any
-            text = self._f.readline()
+            text = self._replace_reserved_chars(self._f.readline())
             if text.startswith('<?xml'):
                 mo = re.match(r'(<\?xml.*?\?>\n?)(.*)', text, re.DOTALL)
                 if mo is not None:
@@ -72,7 +74,7 @@ class WrappedXMLFileReader(object):
                 text = self._read_ahead
                 self._read_ahead = None
             else:
-                text = read_fn(size)
+                text = self._replace_reserved_chars(read_fn(size))
                 if text == '':
                     text = self._suffix
                     self._state = self.ST_EOF
@@ -82,6 +84,12 @@ class WrappedXMLFileReader(object):
             return self._map_substrings(text)
         elif self._state == self.ST_EOF:
             return ''
+
+    def _replace_reserved_chars(self, text):
+        if self._replace_reserved:
+            text = re.sub(r'&([^\w#])', r'&amp;\1', text)
+            text = re.sub(r'<([^\w/])', r'&lt;\1', text)
+        return text
 
     def _map_substrings(self, s):
         return replace_substrings(s, self._mapping) if self._mapping else s

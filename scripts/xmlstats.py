@@ -255,7 +255,8 @@ class XMLFileStats(object):
             f = WrappedXMLFileReader(
                 f, wrapper_elem=self._opts.wrapper_elem,
                 mapping=(self._special_char_decode_map
-                         if self._opts.decode_special_chars else None))
+                         if self._opts.decode_special_chars else None),
+                replace_reserved=self._opts.allow_stray_reserved)
         stat_counter.add_stats(f)
         if self._opts.cwb_struct_attrs:
             stats = stat_counter.format_cwb_struct_attrs()
@@ -310,6 +311,10 @@ Produce element, attribute and attribute value statistics of XML files"""
         default=None,
         help='Wrap the content of multiple XML files into element ELEM',
         metavar='ELEM')
+    optparser.add_option(
+        '--allow-stray-reserved', '--allow-stray-reserved-characters',
+        action='store_true',
+        help='allow stray < and & (replaced with &lt; and &amp;)')
     optparser.add_option(
         '--decode-special-chars', action='store_true',
         help='Decode special characters')
