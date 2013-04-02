@@ -48,7 +48,8 @@ XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(XML2VRT_RULES) \
 		--wrapper-element-name= $(XML2VRT_OPTS)
 # xmlstats.py should _not_ have --decode-special-chars as it does not
 # work correctly with UTF-8 encoding.
-XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name=
+XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name= \
+		--allow-stray-reserved-characters
 
 VRT_EXTRACT_TIMESPANS_PROG = $(SCRIPTDIR)/vrt-extract-timespans.py
 VRT_EXTRACT_TIMESPANS_OPTS ?= \

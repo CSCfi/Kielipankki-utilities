@@ -23,6 +23,8 @@ def getopts():
     optparser.add_option('--no-fix-msd-tags', '--no-fix-morpho-tags',
                          action='store_false', dest='fix_msd_tags',
                          default=True)
+    optparser.add_option('--no-subcorpora', action='store_false',
+                         dest='subcorpora', default=True)
     (opts, args) = optparser.parse_args()
     opts.pos_type = opts.pos_type.replace('+', '-')
     return (opts, args)
@@ -54,7 +56,7 @@ def process_input(f, opts):
             (corp, fname, linenr) = extract_info(line)
             if fname != prev_fname and prev_fname != '':
                 sys.stdout.write('</file>\n')
-            if corp != prev_corp:
+            if opts.subcorpora and corp != prev_corp:
                 if prev_corp != '':
                     sys.stdout.write('</subcorpus>\n')
                 sys.stdout.write(
@@ -77,11 +79,13 @@ def process_input(f, opts):
                 fields['lemgram'] = make_lemgram(fields['lemma0'],
                                                  fields['pos'])
             sys.stdout.write('\t'.join(get_fields(fields, outfields)) + '\n')
-    sys.stdout.write('</sentence>\n</file>\n</subcorpus>\n')
+    sys.stdout.write('</sentence>\n</file>\n')
+    if opts.subcorpora:
+        sys.stdout.write('</subcorpus>\n')
 
         
 def extract_info(line):
-    mo = re.search(ur'<loc file="((.+?)\s+.+?)" line="(.*?)"/>', line)
+    mo = re.search(ur'<loc\s+file="((.+?)\s+.+?)"\s+line="(.*?)"\s*/>', line)
     if mo is None:
         sys.stderr.write("warning: invalid location: " + line)
         return ('', '', '')
