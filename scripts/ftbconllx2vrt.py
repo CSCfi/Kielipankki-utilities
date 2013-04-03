@@ -38,6 +38,22 @@ class FtbConllxToVrtConverter(object):
                         'Pron': 'pn',
                         'Pun': 'xx',
                         'V': 'vb'}
+    _struct_levels = ['subcorpus', 'file', 'chapter', 'speech', 'paragraph',
+                      'sentence']
+    _struct_attrs = {'subcorpus': ['name'],
+                     'file': [('name', 'file')],
+                     'chapter': ['id', 'title'],
+                     'speech': [('speakerid', 'speaker_id'),
+                                ('speakername', 'speaker_name'),
+                                'language'],
+                     'paragraph': [('id', 'p_id')],
+                     'sentence': ['id', 'line']}
+    _struct_id = {'subcorpus': 'subcorpus_name',
+                  'file': 'file_name',
+                  'chapter': 'chapter_id',
+                  'speech': 'speaker_id',
+                  'paragraph': 'p_id',
+                  'sentence': 'sentence_id'}
 
     def __init__(self, opts):
         self._opts = opts
@@ -45,6 +61,20 @@ class FtbConllxToVrtConverter(object):
         if self._opts.loc_extra_info_file:
             self._read_loc_extra_info()
         self._elem_stack = []
+        self._prev_struct_ids = dict([(struct, '')
+                                      for struct in self._struct_levels])
+        self._infields = ['wnum', 'word', 'lemma', 'pos', 'pos2', 'msd', 'head',
+                          'rel', 'f9', 'f10']
+        self._outfields = ['word', 'lemma0', 'lemma', 'pos', 'msd', 'head',
+                           'rel']
+        if self._opts.pos_type.startswith('original'):
+            self._outfields[3] = 'pos_orig'
+            if self._opts.pos_type.endswith('clean'):
+                self._outfields[4:4] = ['pos']
+        elif self._opts.pos_type == 'clean-original':
+            self._outfields[4:4] = ['pos_orig']
+        if self._opts.lemgrams:
+            self._outfields.append('lemgram')
 
     def _read_loc_extra_info(self):
         with codecs.open(self._opts.loc_extra_info_file, 'r',
@@ -62,61 +92,40 @@ class FtbConllxToVrtConverter(object):
                      for mo in re.finditer(r'(\w+)="([^"]+)"', attrs)])
 
     def process_input(self, f):
-
-        def fix_msd_cond(msd):
-            return (self._fix_msd(msd, self._opts.msd_separator)
-                    if self._opts.fix_msd_tags else msd)
-
-        prev_corp = ''
-        prev_fname = ''
-        prev_para_id = ''
-        infields = ['wnum', 'word', 'lemma', 'pos', 'pos2', 'msd', 'head',
-                    'rel', 'f9', 'f10']
-        outfields = ['word', 'lemma0', 'lemma', 'pos', 'msd', 'head', 'rel']
-        if self._opts.pos_type.startswith('original'):
-            outfields[3] = 'pos_orig'
-            if self._opts.pos_type.endswith('clean'):
-                outfields[4:4] = ['pos']
-        elif self._opts.pos_type == 'clean-original':
-            outfields[4:4] = ['pos_orig']
-        if self._opts.lemgrams:
-            outfields.append('lemgram')
         sentnr = 0
         for line in f:
             if line.startswith('<s>'):
-                self._write_end_tags_until('sentence')
                 loc_attrs = self._extract_info(line)
-                fname = loc_attrs.get('file', '')
-                corp = fname.split(' ')[0]
-                linenr = loc_attrs.get('line', '')
-                if fname != prev_fname and prev_fname != '':
-                    self._write_end_tags_until('file')
-                if self._opts.subcorpora and corp != prev_corp:
-                    if prev_corp != '':
-                        self._write_end_tags_until('subcorpus')
-                    self._write_start_tag('subcorpus', ['name'], {'name': corp})
-                    prev_corp = corp
-                if fname != prev_fname:
-                    self._write_start_tag('file', ['name'], {'name': fname})
-                    prev_fname = fname
                 sentnr += 1
-                loc_attrs.update({'id': sentnr})
-                self._write_start_tag('sentence', ['id', 'line'],
-                                      loc_attrs)
+                loc_attrs.update({'file_name': loc_attrs.get('file', ''),
+                                  'sentence_id': sentnr})
+                if self._opts.subcorpora:
+                    loc_attrs['subcorpus_name'] = (loc_attrs['file_name']
+                                                   .split(' ')[0])
+                self._check_struct_levels(loc_attrs)
             elif not line.startswith('</s>'):
-                fields = self._set_fields(line, infields)
-                fields['lemma0'] = self._remove_markers(fields['lemma'])
-                fields['pos_orig'] = fix_msd_cond(fields['pos'].strip())
-                fields['pos'] = self._extract_pos(fields['pos'])
-                fields['msd'] = fix_msd_cond(fields['msd'])
-                if self._opts.lemgrams:
-                    fields['lemgram'] = self._make_lemgram(fields['lemma0'],
-                                                           fields['pos'])
-                sys.stdout.write('\t'.join(self._get_fields(fields, outfields))
-                                 + '\n')
-        self._write_end_tags_until('file')
-        if self._opts.subcorpora:
-            self._write_end_tags_until('subcorpus')
+                self._write_fields(line)
+        self._write_end_tags(self._struct_levels)
+
+    def _check_struct_levels(self, attrs):
+        struct_level_count = len(self._struct_levels)
+        first_changed_structnum = struct_level_count
+        for (structnum, struct_name) in enumerate(self._struct_levels):
+            struct_id = attrs.get(self._struct_id[struct_name], '')
+            if struct_id and struct_id != self._prev_struct_ids[struct_name]:
+                first_changed_structnum = structnum
+                break
+        if first_changed_structnum == struct_level_count:
+            return
+        self._write_end_tags(
+            self._struct_levels[first_changed_structnum:struct_level_count])
+        for structnum in xrange(first_changed_structnum, struct_level_count):
+            struct_name = self._struct_levels[structnum]
+            struct_attrval = attrs.get(self._struct_id[struct_name], '')
+            if struct_attrval:
+                self._write_start_tag(struct_name,
+                                      self._struct_attrs[struct_name], attrs)
+                self._prev_struct_ids[struct_name] = struct_attrval
 
     def _extract_info(self, line):
         loc_attrs = self._extract_attrs(line, 'loc')
@@ -134,24 +143,51 @@ class FtbConllxToVrtConverter(object):
 
     def _make_start_tag(self, elemname, attrnames, attrdict):
         return ('<' + elemname
-                + (' ' + self._make_attrs(attrnames, attrdict)
+                + (' ' + self._make_attrs(attrnames, attrdict, elemname)
                    if attrnames else '')
                 + '>')
 
-    def _make_attrs(self, attrnames, attrdict):
-        return ' '.join(['{name}="{val}"'.format(name=name,
-                                                 val=attrdict.get(name, ''))
-                         for name in attrnames])
+    def _make_attrs(self, attrnames, attrdict, elemname=''):
+        attrs = []
+        for attrname in attrnames:
+            (name, value) = self._get_attr(attrname, attrdict, elemname)
+            attrs.append(u'{name}="{value}"'.format(name=name, value=value))
+        return ' '.join(attrs)
 
-    def _write_end_tags_until(self, elemname=None):
-        if elemname:
-            while self._elem_stack and self._elem_stack[-1] != elemname:
-                self._write_end_tag()
-        self._write_end_tag()
+    def _get_attr(self, attrname, attrdict, elemname=''):
+        if isinstance(attrname, tuple):
+            (attrname_output, attrname_input) = attrname
+        else:
+            attrname_output = attrname_input = attrname
+        attrval = attrdict.get(elemname + '_' + attrname_input,
+                               attrdict.get(attrname_input, ''))
+        return (attrname_output, attrval)
+
+    def _write_end_tags(self, elemnames=None):
+        elemnames = elemnames or []
+        while self._elem_stack and self._elem_stack[-1] in elemnames:
+            self._write_end_tag()
 
     def _write_end_tag(self):
         if self._elem_stack:
             sys.stdout.write('</' + self._elem_stack.pop() + '>\n')
+
+    def _write_fields(self, line):
+
+        def fix_msd_cond(msd):
+            return (self._fix_msd(msd, self._opts.msd_separator)
+                    if self._opts.fix_msd_tags else msd)
+
+        fields = self._set_fields(line, self._infields)
+        fields['lemma0'] = self._remove_markers(fields['lemma'])
+        fields['pos_orig'] = fix_msd_cond(fields['pos'].strip())
+        fields['pos'] = self._extract_pos(fields['pos'])
+        fields['msd'] = fix_msd_cond(fields['msd'])
+        if self._opts.lemgrams:
+            fields['lemgram'] = self._make_lemgram(fields['lemma0'],
+                                                   fields['pos'])
+        sys.stdout.write('\t'.join(self._get_fields(fields, self._outfields))
+                         + '\n')
 
     def _set_fields(self, line, fieldnames):
         fields = line[:-1].split('\t')
