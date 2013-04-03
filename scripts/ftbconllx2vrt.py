@@ -41,6 +41,25 @@ class FtbConllxToVrtConverter(object):
 
     def __init__(self, opts):
         self._opts = opts
+        self._loc_extra_info = {}
+        if self._opts.loc_extra_info_file:
+            self._read_loc_extra_info()
+        self._elem_stack = []
+
+    def _read_loc_extra_info(self):
+        with codecs.open(self._opts.loc_extra_info_file, 'r',
+                         encoding='utf-8') as f:
+            for line in f:
+                attrs = self._extract_attrs(line, 'loc')
+                self._loc_extra_info[(attrs['file'], attrs['line'])] = attrs
+
+    def _extract_attrs(self, line, elemname=None):
+        if elemname is None:
+            elemname = r'\w+'
+        attrs_mo = re.search(r'<' + elemname + r'\s*([^>]+)>', line)
+        attrs = attrs_mo.group(1) if attrs_mo else ''
+        return dict([(mo.group(1), mo.group(2))
+                     for mo in re.finditer(r'(\w+)="([^"]+)"', attrs)])
 
     def process_input(self, f):
 
@@ -50,6 +69,7 @@ class FtbConllxToVrtConverter(object):
 
         prev_corp = ''
         prev_fname = ''
+        prev_para_id = ''
         infields = ['wnum', 'word', 'lemma', 'pos', 'pos2', 'msd', 'head',
                     'rel', 'f9', 'f10']
         outfields = ['word', 'lemma0', 'lemma', 'pos', 'msd', 'head', 'rel']
@@ -64,24 +84,25 @@ class FtbConllxToVrtConverter(object):
         sentnr = 0
         for line in f:
             if line.startswith('<s>'):
-                if sentnr > 0:
-                    sys.stdout.write('</sentence>\n')
-                (corp, fname, linenr) = self._extract_info(line)
+                self._write_end_tags_until('sentence')
+                loc_attrs = self._extract_info(line)
+                fname = loc_attrs.get('file', '')
+                corp = fname.split(' ')[0]
+                linenr = loc_attrs.get('line', '')
                 if fname != prev_fname and prev_fname != '':
-                    sys.stdout.write('</file>\n')
+                    self._write_end_tags_until('file')
                 if self._opts.subcorpora and corp != prev_corp:
                     if prev_corp != '':
-                        sys.stdout.write('</subcorpus>\n')
-                    sys.stdout.write(
-                        '<subcorpus name="{corp}">\n'.format(corp=corp))
+                        self._write_end_tags_until('subcorpus')
+                    self._write_start_tag('subcorpus', ['name'], {'name': corp})
                     prev_corp = corp
                 if fname != prev_fname:
-                    sys.stdout.write(
-                        '<file name="{fname}">\n'.format(fname=fname))
+                    self._write_start_tag('file', ['name'], {'name': fname})
                     prev_fname = fname
                 sentnr += 1
-                sys.stdout.write('<sentence id="{sentnr}" line="{linenr}">\n'
-                                 .format(sentnr=sentnr, linenr=linenr))
+                loc_attrs.update({'id': sentnr})
+                self._write_start_tag('sentence', ['id', 'line'],
+                                      loc_attrs)
             elif not line.startswith('</s>'):
                 fields = self._set_fields(line, infields)
                 fields['lemma0'] = self._remove_markers(fields['lemma'])
@@ -93,17 +114,44 @@ class FtbConllxToVrtConverter(object):
                                                            fields['pos'])
                 sys.stdout.write('\t'.join(self._get_fields(fields, outfields))
                                  + '\n')
-        sys.stdout.write('</sentence>\n</file>\n')
+        self._write_end_tags_until('file')
         if self._opts.subcorpora:
-            sys.stdout.write('</subcorpus>\n')
+            self._write_end_tags_until('subcorpus')
 
     def _extract_info(self, line):
-        mo = re.search(ur'<loc\s+file="((.+?)\s+.+?)"\s+line="(.*?)"\s*/>',
-                       line)
-        if mo is None:
+        loc_attrs = self._extract_attrs(line, 'loc')
+        if not loc_attrs:
             sys.stderr.write("warning: invalid location: " + line)
-            return ('', '', '')
-        return (mo.group(2), mo.group(1), mo.group(3))
+        elif self._opts.loc_extra_info_file:
+            loc_attrs = self._loc_extra_info.get((loc_attrs['file'],
+                                                  loc_attrs['line']))
+        return loc_attrs
+
+    def _write_start_tag(self, elemname, attrnames=None, attrdict=None):
+        sys.stdout.write(
+            self._make_start_tag(elemname, attrnames or [], attrdict) + '\n')
+        self._elem_stack.append(elemname)
+
+    def _make_start_tag(self, elemname, attrnames, attrdict):
+        return ('<' + elemname
+                + (' ' + self._make_attrs(attrnames, attrdict)
+                   if attrnames else '')
+                + '>')
+
+    def _make_attrs(self, attrnames, attrdict):
+        return ' '.join(['{name}="{val}"'.format(name=name,
+                                                 val=attrdict.get(name, ''))
+                         for name in attrnames])
+
+    def _write_end_tags_until(self, elemname=None):
+        if elemname:
+            while self._elem_stack and self._elem_stack[-1] != elemname:
+                self._write_end_tag()
+        self._write_end_tag()
+
+    def _write_end_tag(self):
+        if self._elem_stack:
+            sys.stdout.write('</' + self._elem_stack.pop() + '>\n')
 
     def _set_fields(self, line, fieldnames):
         fields = line[:-1].split('\t')
@@ -171,6 +219,7 @@ def getopts():
                          default=True)
     optparser.add_option('--no-subcorpora', action='store_false',
                          dest='subcorpora', default=True)
+    optparser.add_option('--loc-extra-info-file')
     (opts, args) = optparser.parse_args()
     opts.pos_type = opts.pos_type.replace('+', '-')
     return (opts, args)
