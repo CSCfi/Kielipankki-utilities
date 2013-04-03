@@ -24,19 +24,7 @@ class OrigFileReader(object):
         while self._linenum < linenum:
             line = self._file.readline()
             self._linenum += 1
-            if line.startswith('<CHAPTER'):
-                self._info = {}
-                self._info['type'] = 'chaptertitle'
-                self._info['chapter_id'] = self._get_tag_attr(line, 'ID')
-                self._info['p_id'] = '1'
-            elif line.startswith('<SPEAKER'):
-                self._info['type'] = 'speaker'
-                self._info['speaker_id'] = self._get_tag_attr(line, 'ID')
-                self._info['speaker_name'] = self._get_tag_attr(line, 'NAME')
-                self._info['language'] = (self._get_tag_attr(line, 'LANGUAGE')
-                                          or 'und').lower()
-            elif line.startswith('<P>'):
-                self._info['p_id'] = str(int(self._info['p_id']) + 1)
+            self._fill_info_from_line(line)
         return self._info
 
     def _open_if_new_file(self, fname):
@@ -51,16 +39,40 @@ class OrigFileReader(object):
     def _make_filename(self, fname):
         return (self._directory + '/' if self._directory else '') + fname
 
+    def _fill_info_from_line(self, line):
+        pass
+
     def _get_tag_attr(self, line, attrname, default=None):
         mo = re.match(r'<.+\s' + attrname + r'=([^"]+?|".*?")[\s>]', line)
         return mo.group(1).strip('"') if mo else default
+
+
+class OrigFileReaderEuroparl(OrigFileReader):
+
+    def __init__(self, directory=None, encoding='utf-8'):
+        OrigFileReader.__init__(self, directory, encoding)
+
+    def _fill_info_from_line(self, line):
+        if line.startswith('<CHAPTER'):
+            self._info = {}
+            self._info['type'] = 'chaptertitle'
+            self._info['chapter_id'] = self._get_tag_attr(line, 'ID')
+            self._info['p_id'] = '1'
+        elif line.startswith('<SPEAKER'):
+            self._info['type'] = 'speaker'
+            self._info['speaker_id'] = self._get_tag_attr(line, 'ID')
+            self._info['speaker_name'] = self._get_tag_attr(line, 'NAME')
+            self._info['language'] = (self._get_tag_attr(line, 'LANGUAGE')
+                                      or 'und').lower()
+        elif line.startswith('<P>'):
+            self._info['p_id'] = str(int(self._info['p_id']) + 1)
 
 
 class LocAugmenter(object):
 
     def __init__(self, opts):
         self._opts = opts
-        self._orig_reader = OrigFileReader(
+        self._orig_reader = OrigFileReaderEuroparl(
             directory=self._opts.original_file_directory)
 
     def print_augmented(self, files):
@@ -116,11 +128,11 @@ class LocAugmenter(object):
 
 def getopts():
     usage = """%prog [options] [FTB3_file ...]
-Augment loc elements in the EuroParl part of FinnTreeBank 3 with extra
-attributes containing information available in the original EuroParl files."""
+Augment loc elements in FinnTreeBank 3 with extra attributes containing
+information available in the original files."""
     optparser = OptionParser(usage=usage)
     optparser.add_option('--original-file-directory',
-                         help='Original aligned EuroParl files are in DIR',
+                         help='Original aligned files are in DIR',
                          metavar='DIR')
     optparser.add_option('--loc-only', action='store_true',
                          help=('Output only the augmented loc elements, '
