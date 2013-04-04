@@ -41,8 +41,8 @@ class FtbConllxToVrtConverter(object):
     _struct_levels = ['subcorpus', 'file', 'chapter', 'speech', 'paragraph',
                       'sentence']
     _struct_attrs = {'subcorpus': ['name'],
-                     'file': [('name', 'file')],
-                     'chapter': ['id', 'title'],
+                     'file': [('name', 'file'), 'title', 'codetitle', 'url'],
+                     'chapter': ['id', ('title', 'chapter_title')],
                      'speech': [('speakerid', 'speaker_id'),
                                 ('speakername', 'speaker_name'),
                                 'language'],

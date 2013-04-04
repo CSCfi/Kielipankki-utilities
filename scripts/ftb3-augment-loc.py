@@ -83,8 +83,11 @@ class OrigFileReaderEuroparl(OrigFileReader):
             self._info['speaker_name'] = self._get_tag_attr(line, 'NAME')
             self._info['language'] = (self._get_tag_attr(line, 'LANGUAGE')
                                       or 'und').lower()
+            self._info['p_id'] = str(int(self._info['p_id']) + 1)
         elif line.startswith('<P>'):
             self._info['p_id'] = str(int(self._info['p_id']) + 1)
+        elif self._info['type'] == 'chaptertitle':
+            self._info['chapter_title'] = line.strip()
 
 
 class OrigFileReaderJRCAcquis(OrigFileReader):
@@ -100,7 +103,7 @@ class OrigFileReaderJRCAcquis(OrigFileReader):
             self._info = {'type': 'title'}
         elif line.startswith('<title>'):
             title = self._get_elem_content(line, 'title')
-            title_key = 'title' if 'title0' in self._info else 'title0'
+            title_key = 'title' if 'codetitle' in self._info else 'codetitle'
             self._info[title_key] = title
         elif line.startswith('<bibl>'):
             url = self._get_elem_content(line, 'xref')
@@ -123,11 +126,12 @@ class LocAugmenter(object):
                               'jrc': OrigFileReaderJRCAcquis}
 
     _add_attrs = {'europarl':
-                      {'chaptertitle': ['type', 'chapter_id'],
+                      {'chaptertitle': ['type', 'chapter_id', 'chapter_title',
+                                        'p_id'],
                        'speech': ['type', 'speaker_id', 'language',
                                   'speaker_name', 'p_id']},
                   'jrc':
-                      {'title': ['title', 'title0', 'url', 'p_id'],
+                      {'title': ['title', 'codetitle', 'url', 'p_id'],
                        'p': ['p_id']}
                   }
 
