@@ -9,12 +9,31 @@ SRC_DIR ?= $(CORPSRCROOT)/ftb/ftb3
 
 P_ATTRS = lemma lemmacomp pos msd dephead deprel lex
 
+LOC_EXTRA_INFO = $(value CORPNAME)-loc-extras.txt$(COMPR_EXT)
+VRT_EXTRA_DEPS = $(LOC_EXTRA_INFO)
+FTB3_AUGMENT_LOC = $(SCRIPTDIR)/ftb3-augment-loc.py
+
+MAKE_VRT_SETUP = (rm -f $(LOC_EXTRA_INFO).fifo; \
+		mkfifo $(LOC_EXTRA_INFO).fifo; \
+		$(CAT) $(LOC_EXTRA_INFO) > $(LOC_EXTRA_INFO).fifo) &
 MAKE_VRT_CMD = $(SCRIPTDIR)/ftbconllx2vrt.py --lemgrams --pos-type=original \
-			--no-fix-morpho-tags --no-subcorpora
+		--no-fix-morpho-tags --no-subcorpora \
+		--loc-extra-info-file=$(LOC_EXTRA_INFO).fifo
+MAKE_VRT_CLEANUP = rm -f $(LOC_EXTRA_INFO).fifo
+
 MAKE_RELS_CMD = $(SCRIPTDIR)/ftbvrt2wprel.py --input-type=ftb3 \
 		--output-prefix=$(value CORPNAME)_rels \
 		--compress=$(value COMPRESS) --sort
 
 VRT_EXTRACT_TIMESPANS_OPTS = --two-digit-years --full-dates --exclude "* id"
 
+
 include ftb-common.mk
+
+
+$(LOC_EXTRA_INFO): $(SRC_FILES_REAL) $(FTB3_AUGMENT_LOC)
+	$(CAT) $(SRC_FILES_REAL) \
+	|  $(FTB3_AUGMENT_LOC) --loc-only \
+		--source-type=$(FTB3_SOURCE_TYPE) \
+		--original-file-directory=$(FTB3_ORIG_SOURCE_DIR) \
+	| $(COMPR) > $@

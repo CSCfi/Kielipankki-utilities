@@ -263,7 +263,8 @@ $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT) $(CORPNAME).info
 # transcoding to a program requiring filename arguments. That might be
 # achieved by using named pipes as for mysqlimport.
 $(CORPNAME)$(VRT): $(SRC_FILES_REAL) $(MAKE_VRT_DEPS) $(VRT_FIX_ATTRS_PROG) \
-		$(DEP_MAKEFILES)
+		$(DEP_MAKEFILES) $(VRT_EXTRA_DEPS)
+	$(MAKE_VRT_SETUP)
 ifdef MAKE_VRT_FILENAME_ARGS
 	$(MAKE_VRT_CMD) $(SRC_FILES_REAL) \
 	| $(VRT_FIX_ATTRS) \
@@ -275,6 +276,7 @@ else
 	| $(VRT_FIX_ATTRS) \
 	| $(COMPR) > $@
 endif
+	$(MAKE_VRT_CLEANUP)
 
 db: korp_db
 
