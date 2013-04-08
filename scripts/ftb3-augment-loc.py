@@ -68,6 +68,11 @@ class OrigFileReader(object):
 
 class OrigFileReaderEuroparl(OrigFileReader):
 
+    _language_code_map = {'cz': 'cs',
+                          'er': 'el',
+                          'gr': 'el',
+                          'si': 'sl'}
+
     def __init__(self, directory=None, encoding='utf-8'):
         OrigFileReader.__init__(self, directory, encoding)
 
@@ -81,13 +86,16 @@ class OrigFileReaderEuroparl(OrigFileReader):
             self._info['type'] = 'speech'
             self._info['speaker_id'] = self._get_tag_attr(line, 'ID')
             self._info['speaker_name'] = self._get_tag_attr(line, 'NAME')
-            self._info['language'] = (self._get_tag_attr(line, 'LANGUAGE')
-                                      or 'und').lower()
+            self._info['language'] = self._fix_language_code(
+                (self._get_tag_attr(line, 'LANGUAGE') or 'und').lower())
             self._info['p_id'] = str(int(self._info['p_id']) + 1)
         elif line.startswith('<P>'):
             self._info['p_id'] = str(int(self._info['p_id']) + 1)
         elif self._info['type'] == 'chaptertitle':
             self._info['chapter_title'] = line.strip()
+
+    def _fix_language_code(self, code):
+        return self._language_code_map.get(code, code)
 
 
 class OrigFileReaderJRCAcquis(OrigFileReader):
