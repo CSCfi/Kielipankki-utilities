@@ -109,7 +109,7 @@ CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
 DEP_MAKEFILES := $(if $(call eqs,$(call lower,$(MAKEFILE_DEPS)),false),,\
 			$(MAKEFILE_LIST))
 
-COMPRESS := $(strip $(if $(filter %.gz,$(SRC_FILES_REAL)),gz,\
+COMPRESS ?= $(strip $(if $(filter %.gz,$(SRC_FILES_REAL)),gz,\
 		$(if $(or $(filter %.bz2,$(SRC_FILES_REAL)),\
 			$(filter %.bz,$(SRC_FILES_REAL))),bz2,\
 		none)))
@@ -126,9 +126,9 @@ COMPR_EXT_bz2 = .bz2
 CAT_bz2 = bzcat
 COMPR_bz2 = bzip2
 
-COMPR_EXT = $(COMPR_EXT_$(COMPRESS))
-CAT = $(CAT_$(COMPRESS))
-COMPR = $(COMPR_$(COMPRESS))
+COMPR_EXT := $(COMPR_EXT_$(COMPRESS))
+CAT := $(CAT_$(COMPRESS))
+COMPR := $(COMPR_$(COMPRESS))
 
 # Use checksums to check if a file has really changed (for selected
 # files), unless IGNORE_CHECKSUMS
@@ -139,7 +139,7 @@ CHECKSUMMER = $(CHECKSUM_METHOD)sum
 
 VRT = .vrt$(COMPR_EXT)
 TSV = .tsv$(COMPR_EXT)
-ALIGN = .align
+ALIGN = .align$(COMPR_EXT)
 VRT_CKSUM = $(VRT)$(CKSUM_EXT_COND)
 TSV_CKSUM = $(TSV)$(CKSUM_EXT_COND)
 ALIGN_CKSUM = $(ALIGN)$(CKSUM_EXT_COND)
@@ -409,7 +409,11 @@ $(PKG_FILE): $(CORPCORPDIR)/.info $(DB_SQLDUMPS)
 
 ALIGN_CORP = \
 		$(CWB_REGEDIT) $(1) :add :a "$(call OTHERLANG,$(1))"; \
-		$(CWB_ALIGN_ENCODE) -D $(1)$(ALIGN)
+		fifo=$(1)$(ALIGN).fifo; \
+		mkfifo $$fifo; \
+		($(CAT) $(1)$(ALIGN) > $$fifo &); \
+		$(CWB_ALIGN_ENCODE) -D $$fifo; \
+		rm $$fifo
 
 # CHECK: Does this always work correctly when running more than one
 # simultaneous job?
@@ -423,10 +427,13 @@ $(CORPNAME)_aligned.timestamp: \
 	$(call ALIGN_CORP,$(CORPNAME)_$(PARLANG2))
 	touch $@
 
-# TODO: Support compressing alignment files by using a named pipe
 %$(ALIGN): $(CORPDIR)/%/.info
-	$(CWB_ALIGN) -o $@ -r $(REGDIR) -V $(LINK_ELEM)_$(LINK_ATTR) \
-		$(basename $@) $(basename $(call OTHERLANG,$@)) $(LINK_ELEM)
+	-mkfifo $@.fifo
+	($(CWB_ALIGN) -o $@.fifo -r $(REGDIR) -V $(LINK_ELEM)_$(LINK_ATTR) \
+		$* $(basename $(call OTHERLANG,$*)) \
+		$(LINK_ELEM) > /dev/null &); \
+	$(COMPR) < $@.fifo > $@
+	-rm $@.fifo
 
 parcorp:
 	for lang in $(LANGUAGES); do \
