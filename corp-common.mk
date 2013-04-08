@@ -84,7 +84,7 @@ SRC_DIR ?= $(CORPSRCROOT)/$(SRC_SUBDIR)
 SRC_FILES_REAL = $(filter-out $(addprefix $(SRC_DIR)/,$(SRC_FILES_EXCLUDE)),\
 			$(wildcard $(addprefix $(SRC_DIR)/,$(SRC_FILES))))
 
-# $(info $(WITHIN_CORP_MK) $(CORPNAME_BASE) $(SRC_SUBDIR) $(SRC_DIR) :: $(SRC_FILES_REAL))
+# $(info $(WITHIN_CORP_MK) $(CORPNAME_BASE) $(SRC_SUBDIR) $(SRC_DIR) $(SRC_FILES) :: $(SRC_FILES_REAL))
 
 DB_TARGETS_ALL = korp_timespans korp_rels korp_lemgrams
 DB_HAS_RELS := $(and $(filter dephead,$(P_ATTRS)),$(filter deprel,$(P_ATTRS)))
@@ -130,8 +130,19 @@ COMPR_EXT = $(COMPR_EXT_$(COMPRESS))
 CAT = $(CAT_$(COMPRESS))
 COMPR = $(COMPR_$(COMPRESS))
 
+# Use checksums to check if a file has really changed (for selected
+# files), unless IGNORE_CHECKSUMS
+CHECKSUM_METHOD = md5
+CKSUM_EXT = .$(CHECKSUM_METHOD)
+CKSUM_EXT_COND = $(if $(IGNORE_CHECKSUMS),,$(CKSUM_EXT))
+CHECKSUMMER = $(CHECKSUM_METHOD)sum
+
 VRT = .vrt$(COMPR_EXT)
 TSV = .tsv$(COMPR_EXT)
+ALIGN = .align
+VRT_CKSUM = $(VRT)$(CKSUM_EXT_COND)
+TSV_CKSUM = $(TSV)$(CKSUM_EXT_COND)
+ALIGN_CKSUM = $(ALIGN)$(CKSUM_EXT_COND)
 
 MAKE_VRT_CMD ?= cat
 
@@ -171,7 +182,7 @@ CWB_REGEDIT = cwb-regedit -r $(REGDIR)
 # compressed input on the fly.
 
 MYSQL_IMPORT = mkfifo $(2).tsv; \
-	($(CAT) $(1) > $(2).tsv &); \
+	($(CAT) $(1:$(CKSUM_EXT)=) > $(2).tsv &); \
 	mysql --local-infile --user $(DBUSER) --batch --execute " \
 		set autocommit = 0; \
 		set unique_checks = 0; \
@@ -197,9 +208,9 @@ DB_SQLDUMPS = $(patsubst korp_%,$(CORPSQLDIR)/$(CORPNAME)_%.sql,$(DB_TARGETS))
 
 RELS_BASES = @ rel head_rel dep_rel sentences
 RELS_TSV = $(subst _@,,$(foreach base,$(RELS_BASES),\
-				$(CORPNAME)_rels_$(base)$(TSV)))
+				$(CORPNAME)_rels_$(base)$(TSV_CKSUM)))
 MAKE_RELS_TABLE_NAME = $(subst $(CORPNAME)_rels,relations_$(CORPNAME_U),\
-			$(subst $(TSV),,$(1)))
+			$(subst $(TSV_CKSUM),,$(1)))
 RELS_TABLES = $(call MAKE_RELS_TABLE_NAME,$(RELS_TSV))
 
 RELS_TRUNCATE_TABLES = $(foreach tbl,$(RELS_TABLES),truncate table $(tbl);)
@@ -240,6 +251,16 @@ $(foreach corp,$(CORPORA),\
 		$(eval $(call MAKE_CORPUS_R,$(corp),$(targ)))))
 
 
+# Calculate the checksum of a file, compare it to the previous
+# checksum (if any) and use the new checksum file if different,
+# otherwise use the old one with the old timestamp.
+
+%$(CKSUM_EXT): %
+	{ $(CHECKSUMMER) $< | tee $@.new | cmp -s $@ - ; } \
+	|| mv $@.new $@
+	-rm $@.new
+
+
 reg: vrt
 	$(CWB_MAKE)
 
@@ -249,14 +270,14 @@ vrt: $(CORPCORPDIR)/.info
 # to avoid unnecessarily remaking the corpus data if the .vrt file has
 # not changed.
 
-$(CORPCORPDIR)/.info: $(CORPNAME)$(VRT) $(CORPNAME).info
+$(CORPCORPDIR)/.info: $(CORPNAME)$(VRT_CKSUM) $(CORPNAME).info
 	-mkdir $(CORPCORPDIR) || /bin/rm $(CORPCORPDIR)/*
-	$(CAT) $< | $(CWB_ENCODE) $(P_OPTS) $(S_OPTS) \
+	$(CAT) $(<:$(CKSUM_EXT)=) | $(CWB_ENCODE) $(P_OPTS) $(S_OPTS) \
 	&& cp $(CORPNAME).info $(CORPCORPDIR)/.info
 
-%.info: %$(VRT)
-	echo "Sentences: "`$(CAT) $< | egrep -c '^<sentence[> ]'` > $@
-	ls -l --time-style=long-iso $< \
+%.info: %$(VRT_CKSUM)
+	echo "Sentences: "`$(CAT) $(<:$(CKSUM_EXT)=) | egrep -c '^<sentence[> ]'` > $@
+	ls -l --time-style=long-iso $(<:$(CKSUM_EXT)=) \
 	| perl -ne '/(\d{4}-\d{2}-\d{2})/; print "Updated: $$1\n"' >> $@
 
 # This does not support passing compressed files or files requiring
@@ -297,8 +318,13 @@ $(CORPNAME)_rels_load.timestamp: $(RELS_TSV) $(RELS_CREATE_TABLES_TEMPL)
 $(CORPSQLDIR)/$(CORPNAME)_rels.sql: $(CORPNAME)_rels_load.timestamp
 	mysqldump --no-autocommit --user $(DBUSER) $(DBNAME) $(RELS_TABLES) > $@
 
-$(RELS_TSV): $(CORPNAME)$(VRT) $(MAKE_RELS_DEPS)
-	$(CAT) $< \
+# The timestamp file is used to avoid running the command creating all
+# the target files once for each target file when the timestamps of
+# the files are not updated (because of an unchanged checksum).
+$(RELS_TSV): $(CORPNAME)_rels.timestamp
+
+$(CORPNAME)_rels.timestamp: $(CORPNAME)$(VRT_CKSUM) $(MAKE_RELS_DEPS)
+	$(CAT) $(<:$(CKSUM_EXT)=) \
 	| $(MAKE_RELS_CMD)
 
 define KORP_LOAD_DB_R
@@ -309,7 +335,7 @@ CREATE_SQL_$(1) = '\
 		$$(COLUMNS_$(1)) \
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8;'
 
-$(CORPNAME)_$(1)_load.timestamp: $(CORPNAME)_$(1)$(TSV)
+$(CORPNAME)_$(1)_load.timestamp: $(CORPNAME)_$(1)$(TSV_CKSUM)
 	mysql --user $(DBUSER) --execute $$(CREATE_SQL_$(1)) $(DBNAME)
 	mysql --user $(DBUSER) \
 		--execute "delete from $$(TABLENAME_$(1)) where corpus='$(CORPNAME_U)';" \
@@ -338,8 +364,8 @@ COLUMNS_lemgrams = \
 
 $(eval $(call KORP_LOAD_DB_R,lemgrams))
 
-$(CORPNAME)_lemgrams$(TSV): $(CORPNAME)$(VRT)
-	$(CAT) $< \
+$(CORPNAME)_lemgrams$(TSV): $(CORPNAME)$(VRT_CKSUM)
+	$(CAT) $(<:$(CKSUM_EXT)=) \
 	| egrep -v '<' \
 	| gawk -F'	' '{print $$NF}' \
 	| tr '|' '\n' \
@@ -358,8 +384,9 @@ COLUMNS_timespans = \
 	`tokens` int(11) DEFAULT 0, \
 	KEY `corpus` (`corpus`)
 
-$(CORPNAME)_timespans$(TSV): $(CORPNAME)$(VRT) $(VRT_EXTRACT_TIMESPANS_PROG)
-	$(CAT) $< \
+$(CORPNAME)_timespans$(TSV): \
+		$(CORPNAME)$(VRT_CKSUM) $(VRT_EXTRACT_TIMESPANS_PROG)
+	$(CAT) $(<:$(CKSUM_EXT)=) \
 	| $(DECODE_SPECIAL_CHARS) \
 	| $(VRT_EXTRACT_TIMESPANS) \
 	| gawk -F'	' '{print "$(CORPNAME_U)\t" $$0}' \
@@ -382,13 +409,22 @@ $(PKG_FILE): $(CORPCORPDIR)/.info $(DB_SQLDUMPS)
 
 ALIGN_CORP = \
 		$(CWB_REGEDIT) $(1) :add :a "$(call OTHERLANG,$(1))"; \
-		$(CWB_ALIGN_ENCODE) -D $(1).align
+		$(CWB_ALIGN_ENCODE) -D $(1)$(ALIGN)
 
-align: parcorp $(CORPNAME)_$(PARLANG1).align $(CORPNAME)_$(PARLANG2).align
+# CHECK: Does this always work correctly when running more than one
+# simultaneous job?
+
+align: parcorp $(CORPNAME)_aligned.timestamp
+
+$(CORPNAME)_aligned.timestamp: \
+		$(CORPNAME)_$(PARLANG1)$(ALIGN_CKSUM) \
+		$(CORPNAME)_$(PARLANG2)$(ALIGN_CKSUM)
 	$(call ALIGN_CORP,$(CORPNAME)_$(PARLANG1))
 	$(call ALIGN_CORP,$(CORPNAME)_$(PARLANG2))
+	touch $@
 
-%.align: $(CORPDIR)/%/.info
+# TODO: Support compressing alignment files by using a named pipe
+%$(ALIGN): $(CORPDIR)/%/.info
 	$(CWB_ALIGN) -o $@ -r $(REGDIR) -V $(LINK_ELEM)_$(LINK_ATTR) \
 		$(basename $@) $(basename $(call OTHERLANG,$@)) $(LINK_ELEM)
 
