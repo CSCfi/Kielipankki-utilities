@@ -326,6 +326,7 @@ $(RELS_TSV): $(CORPNAME)_rels.timestamp
 $(CORPNAME)_rels.timestamp: $(CORPNAME)$(VRT_CKSUM) $(MAKE_RELS_DEPS)
 	$(CAT) $(<:$(CKSUM_EXT)=) \
 	| $(MAKE_RELS_CMD)
+	touch $@
 
 define KORP_LOAD_DB_R
 korp_$(1): $(CORPNAME)_$(1)_load.timestamp
