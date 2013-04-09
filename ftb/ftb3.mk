@@ -6,7 +6,7 @@
 MAKEFILE_DEPS ?= false
 
 P_ATTRS = lemma lemmacomp pos posorig msd dephead deprel lex
-S_ATTRS = sentence:0+id+line file:0+name subcorpus:0+name
+# S_ATTRS = sentence:0+id+line file:0+name subcorpus:0+name
 
 # SRC_FILES = ftb3-100000.txt.bz2
 SRC_FILES ?= ftb3.conllx.bz2 
