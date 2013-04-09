@@ -10,9 +10,11 @@ TOPDIR = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 CORPROOT = /v/corpora
 
-MAKE_PKGDATE = $(1)-$(shell date '+%Y%m%d')$(2)
+ISODATE := $(shell date '+%Y%m%d')
+MAKE_PKGDATE = $(1)-$(ISODATE)$(2)
 
 PKGDIR = $(TOPDIR)/pkgs
+CORP_EXPORT_DIR = $(TOPDIR)/corp/export
 
 BASENAME = $(PKGDIR)/korp_fi
 
@@ -25,7 +27,9 @@ OVERWRITE_LAST_PKG_INFO := $(call eqs,yes,$(firstword $(PREV_PKG_INFO)))
 PREV_EPOCH := $(word 2,$(PREV_PKG_INFO))
 PREV_REV := $(lastword $(PREV_PKG_INFO))
 
-PREV_TIMESTAMP = $(BASENAME)_prev.timestamp
+PREV_TIMESTAMP = $(BASENAME)_latest_corpus_packages_newer.timestamp
+
+INSTALL_CORPORA = $(TOPDIR)/korp-install-corpora.sh
 
 TIP_REV = $(shell hg tip --template='{rev}\n')
 
@@ -54,10 +58,11 @@ TAR_CMD = \
 		tar cvpf $(1) $$files; \
 	fi
 
-$(PKG_corp).tar: $(PREV_TIMESTAMP)
+$(PKG_corp).tar: $(PREV_TIMESTAMP) $(INSTALL_CORPORA)
 	$(MAKE) -C corp
-	$(call TAR_CMD,$@,corp/export,\
-		-name korpdata_\*.tbz -newer $< | egrep -v test)
+	cp -p $^ $(CORP_EXPORT_DIR)
+	$(call TAR_CMD,$@,$(CORP_EXPORT_DIR),\
+		-newer $< -name korpdata_\*.tbz | egrep -v test; echo $(notdir $^))
 
 src: $(SRC_TARGETS)
 
@@ -68,7 +73,7 @@ $(1): $$(PKG_$(1)).tbz $$(PKG_$(1)).patch.bz2
 
 $$(PKG_$(1)).tbz:
 	-rm $$@
-	$$(call TAR_CMD,$$@,src/$(1),)
+	$$(call TAR_CMD,$$@,src/$(1), | egrep -v '(~|\.orig|\.bak)$$$$')
 
 $$(PKG_$(1)).patch.bz2:
 	hg diff -r$(PREV_REV) src/$(1) \
