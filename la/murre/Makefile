@@ -17,4 +17,6 @@ MAKE_VRT_DEPS_EXTRA = $(firstword $(VRT_ADD_LEMGRAMS))
 
 CORPUS_DATE = unknown
 
+COMPRESS_TARGETS = bz2
+
 include ../../corp-common.mk
