@@ -11,8 +11,8 @@ MAKE_VRT_CMD = $(SCRIPTDIR)/ftb2vrt.pl --lemgrams --no-fix-morpho-tags # --morph
 # ftb2vrt.pl needs file names as arguments; does not read from stdin.
 MAKE_VRT_FILENAME_ARGS = 1
 MAKE_RELS_CMD = $(SCRIPTDIR)/ftbvrt2wprel.py \
-		--output-prefix=$(value CORPNAME)_rels \
-		--compress=$(value COMPRESS) --sort
+		--output-prefix=$(CORPNAME)_rels \
+		--compress=$(COMPRESS) --sort
 
 CORPUS_DATE = unknown
 
