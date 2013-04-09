@@ -198,6 +198,10 @@ MYSQL_IMPORT = mkfifo $(2).tsv; \
 
 SUBST_CORPNAME = $(shell perl -pe 's/\@CORPNAME\@/$(CORPNAME_U)/g' $(1))
 
+# Depend on $(CORPNAME).sattrs only if S_ATTRS has not been defined
+# previously (in a corpus makefile)
+S_ATTRS_DEP := $(if $(S_ATTRS),,$(CORPNAME).sattrs)
+
 S_ATTRS ?= $(shell cat $(CORPNAME).sattrs)
 
 P_OPTS = $(foreach attr,$(P_ATTRS),-P $(attr))
@@ -273,8 +277,7 @@ vrt: $(CORPCORPDIR)/.info
 # to avoid unnecessarily remaking the corpus data if the .vrt file has
 # not changed.
 
-$(CORPCORPDIR)/.info: $(CORPNAME)$(VRT_CKSUM) $(CORPNAME).info \
-		$(CORPNAME).sattrs
+$(CORPCORPDIR)/.info: $(CORPNAME)$(VRT_CKSUM) $(CORPNAME).info $(S_ATTRS_DEP)
 	-mkdir $(CORPCORPDIR) || /bin/rm $(CORPCORPDIR)/*
 	$(CAT) $(<:$(CKSUM_EXT)=) | $(CWB_ENCODE) $(P_OPTS) $(S_OPTS) \
 	&& cp $(CORPNAME).info $(CORPCORPDIR)/.info
