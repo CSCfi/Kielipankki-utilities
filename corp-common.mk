@@ -198,7 +198,7 @@ MYSQL_IMPORT = mkfifo $(2).tsv; \
 
 SUBST_CORPNAME = $(shell perl -pe 's/\@CORPNAME\@/$(CORPNAME_U)/g' $(1))
 
-S_ATTRS ?= $(shell $(CAT) $(CORPNAME)$(VRT) | $(MAKE_CWB_STRUCT_ATTRS))
+S_ATTRS ?= $(shell cat $(CORPNAME).sattrs)
 
 P_OPTS = $(foreach attr,$(P_ATTRS),-P $(attr))
 S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
@@ -273,7 +273,8 @@ vrt: $(CORPCORPDIR)/.info
 # to avoid unnecessarily remaking the corpus data if the .vrt file has
 # not changed.
 
-$(CORPCORPDIR)/.info: $(CORPNAME)$(VRT_CKSUM) $(CORPNAME).info
+$(CORPCORPDIR)/.info: $(CORPNAME)$(VRT_CKSUM) $(CORPNAME).info \
+		$(CORPNAME).sattrs
 	-mkdir $(CORPCORPDIR) || /bin/rm $(CORPCORPDIR)/*
 	$(CAT) $(<:$(CKSUM_EXT)=) | $(CWB_ENCODE) $(P_OPTS) $(S_OPTS) \
 	&& cp $(CORPNAME).info $(CORPCORPDIR)/.info
@@ -282,6 +283,10 @@ $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT_CKSUM) $(CORPNAME).info
 	echo "Sentences: "`$(CAT) $(<:$(CKSUM_EXT)=) | egrep -c '^<sentence[> ]'` > $@
 	ls -l --time-style=long-iso $(<:$(CKSUM_EXT)=) \
 	| perl -ne '/(\d{4}-\d{2}-\d{2})/; print "Updated: $$1\n"' >> $@
+
+%.sattrs: %$(VRT_CKSUM)
+	$(CAT) $(<:$(CKSUM_EXT)=) \
+	| $(MAKE_CWB_STRUCT_ATTRS) > $@
 
 # This does not support passing compressed files or files requiring
 # transcoding to a program requiring filename arguments. That might be
