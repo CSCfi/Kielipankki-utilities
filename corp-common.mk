@@ -109,10 +109,11 @@ CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
 DEP_MAKEFILES := $(if $(call eqs,$(call lower,$(MAKEFILE_DEPS)),false),,\
 			$(MAKEFILE_LIST))
 
-COMPRESS ?= $(strip $(if $(filter %.gz,$(SRC_FILES_REAL)),gz,\
-		$(if $(or $(filter %.bz2,$(SRC_FILES_REAL)),\
-			$(filter %.bz,$(SRC_FILES_REAL))),bz2,\
-		none)))
+COMPRESSED_SRC ?= $(strip $(if $(filter %.gz,$(SRC_FILES_REAL)),gz,\
+			$(if $(or $(filter %.bz2,$(SRC_FILES_REAL)),\
+				$(filter %.bz,$(SRC_FILES_REAL))),bz2,\
+			none)))
+COMPRESS ?= $(or $(COMPRESS_TARGETS),$(COMPRESSED_SRC))
 
 COMPR_EXT_none = 
 CAT_none = cat
@@ -128,6 +129,7 @@ COMPR_bz2 = bzip2
 
 COMPR_EXT := $(COMPR_EXT_$(COMPRESS))
 CAT := $(CAT_$(COMPRESS))
+CAT_SRC := $(CAT_$(COMPRESSED_SRC))
 COMPR := $(COMPR_$(COMPRESS))
 
 # Use checksums to check if a file has really changed (for selected
@@ -140,6 +142,7 @@ CHECKSUMMER = $(CHECKSUM_METHOD)sum
 VRT = .vrt$(COMPR_EXT)
 TSV = .tsv$(COMPR_EXT)
 ALIGN = .align$(COMPR_EXT)
+SQL = .sql$(COMPR_EXT)
 VRT_CKSUM = $(VRT)$(CKSUM_EXT_COND)
 TSV_CKSUM = $(TSV)$(CKSUM_EXT_COND)
 ALIGN_CKSUM = $(ALIGN)$(CKSUM_EXT_COND)
@@ -200,11 +203,11 @@ S_ATTRS ?= $(shell $(CAT) $(CORPNAME)$(VRT) | $(MAKE_CWB_STRUCT_ATTRS))
 P_OPTS = $(foreach attr,$(P_ATTRS),-P $(attr))
 S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
 
-SQLDUMP_NAME = $(CORPSQLDIR)/$(CORPNAME).sql
+SQLDUMP_NAME = $(CORPSQLDIR)/$(CORPNAME)$(SQL)
 SQLDUMP = $(if $(strip $(DB_TARGETS)),$(SQLDUMP_NAME))
 
 DB_TIMESTAMPS = $(patsubst korp_%,$(CORPNAME)_%_load.timestamp,$(DB_TARGETS))
-DB_SQLDUMPS = $(patsubst korp_%,$(CORPSQLDIR)/$(CORPNAME)_%.sql,$(DB_TARGETS))
+DB_SQLDUMPS = $(patsubst korp_%,$(CORPSQLDIR)/$(CORPNAME)_%$(SQL),$(DB_TARGETS))
 
 RELS_BASES = @ rel head_rel dep_rel sentences
 RELS_TSV = $(subst _@,,$(foreach base,$(RELS_BASES),\
@@ -291,7 +294,7 @@ ifdef MAKE_VRT_FILENAME_ARGS
 	| $(VRT_FIX_ATTRS) \
 	| $(COMPR) > $@
 else
-	$(CAT) $(SRC_FILES_REAL) \
+	$(CAT_SRC) $(SRC_FILES_REAL) \
 	| $(TRANSCODE) \
 	| $(MAKE_VRT_CMD) \
 	| $(VRT_FIX_ATTRS) \
@@ -315,8 +318,9 @@ $(CORPNAME)_rels_load.timestamp: $(RELS_TSV) $(RELS_CREATE_TABLES_TEMPL)
 			$(call MAKE_RELS_TABLE_NAME,$(rel)))))
 	touch $@
 
-$(CORPSQLDIR)/$(CORPNAME)_rels.sql: $(CORPNAME)_rels_load.timestamp
-	mysqldump --no-autocommit --user $(DBUSER) $(DBNAME) $(RELS_TABLES) > $@
+$(CORPSQLDIR)/$(CORPNAME)_rels$(SQL): $(CORPNAME)_rels_load.timestamp
+	mysqldump --no-autocommit --user $(DBUSER) $(DBNAME) $(RELS_TABLES) \
+	| $(COMPR) > $@
 
 # The timestamp file is used to avoid running the command creating all
 # the target files once for each target file when the timestamps of
@@ -344,12 +348,15 @@ $(CORPNAME)_$(1)_load.timestamp: $(CORPNAME)_$(1)$(TSV_CKSUM)
 	$$(call MYSQL_IMPORT,$$<,$$(TABLENAME_$(1)))
 	touch $$@
 
-$(CORPSQLDIR)/$(CORPNAME)_$(1).sql: $(CORPNAME)_$(1)_load.timestamp
-	echo $$(CREATE_SQL_$(1)) > $$@
-	echo 'DELETE FROM `$$(TABLENAME_$(1))` where '"corpus='$(CORPNAME_U)';" >> $$@
-	mysqldump --no-autocommit --user $(DBUSER) --no-create-info \
+$(CORPSQLDIR)/$(CORPNAME)_$(1)$(SQL): $(CORPNAME)_$(1)_load.timestamp
+	-mkfifo $$@.fifo
+	(echo $$(CREATE_SQL_$(1)) > $$@.fifo; \
+	 echo 'DELETE FROM `$$(TABLENAME_$(1))` where '"corpus='$(CORPNAME_U)';" >> $$@.fifo; \
+	 mysqldump --no-autocommit --user $(DBUSER) --no-create-info \
 		--where "corpus='$(CORPNAME_U)'" $(DBNAME) $$(TABLENAME_$(1)) \
-		>> $$@
+		>> $$@.fifo) & \
+	$(COMPR) < $$@.fifo > $$@
+	-rm $$@.fifo
 endef
 
 TABLENAME_lemgrams = lemgram_index
