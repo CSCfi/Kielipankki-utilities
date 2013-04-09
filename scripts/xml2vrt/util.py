@@ -87,7 +87,7 @@ class WrappedXMLFileReader(object):
 
     def _replace_reserved_chars(self, text):
         if self._replace_reserved:
-            text = re.sub(r'&([^\w#])', r'&amp;\1', text)
+            text = re.sub(r'&([^\w#]|_)', r'&amp;\1', text)
             text = re.sub(r'<([^\w/])', r'&lt;\1', text)
         return text
 
