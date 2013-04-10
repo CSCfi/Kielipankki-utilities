@@ -67,7 +67,14 @@ SUBDIRS := \
 
 CORPNAME_BASE ?= $(lastword $(subst /, ,$(CURDIR)))
 
-CORPORA ?= $(or $(basename $(filter-out %-common.mk,$(wildcard *.mk))),\
+# CORPORA: The corpora to make with the current makefile. If not
+# specified explicitly, all the stems of .mk files in the current
+# directory except *-common and those in IGNORE_CORPORA, or if none
+# exists (directory with a single corpus), the name of the current
+# directory.
+CORPORA ?= $(or $(basename $(filter-out $(addsuffix .mk,\
+						%-common $(IGNORE_CORPORA)),\
+					$(wildcard *.mk))),\
 		$(CORPNAME_BASE))
 
 # The subdirectory of CORPSRCROOT for the corpus source files; can be
@@ -84,7 +91,7 @@ SRC_DIR ?= $(CORPSRCROOT)/$(SRC_SUBDIR)
 SRC_FILES_REAL = $(filter-out $(addprefix $(SRC_DIR)/,$(SRC_FILES_EXCLUDE)),\
 			$(wildcard $(addprefix $(SRC_DIR)/,$(SRC_FILES))))
 
-# $(info $(WITHIN_CORP_MK) $(CORPNAME_BASE) $(SRC_SUBDIR) $(SRC_DIR) $(SRC_FILES) :: $(SRC_FILES_REAL))
+# $(info $(WITHIN_CORP_MK) $(CORPNAME_BASE) $(SRC_SUBDIR) $(SRC_DIR) $(SRC_FILES) :: $(CORPORA) :: $(SRC_FILES_REAL))
 
 DB_TARGETS_ALL = korp_timespans korp_rels korp_lemgrams
 DB_HAS_RELS := $(and $(filter dephead,$(P_ATTRS)),$(filter deprel,$(P_ATTRS)))
@@ -102,6 +109,10 @@ TARGETS ?= $(if $(PARCORP),\
 		align pkg-parcorp,\
 		subdirs vrt reg $(if $(PARCORP_PART),,pkg) \
 			$(if $(strip $(DB_TARGETS)),db))
+
+# Separator between corpus name and a subtarget (vrt, reg, db, pkg ...).
+# A : needs to be represented as \: and # as \\\#.
+SUBTARGET_SEP = \:
 
 CORPNAME := $(CORPNAME_PREFIX)$(CORPNAME_BASE)$(CORPNAME_SUFFIX)
 CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
@@ -245,16 +256,16 @@ $(SUBDIRS):
 	$(MAKE) -C $@
 
 
-# Define rules for targets $(CORPORA) and $(CORPORA)@$(TARGET)
+# Define rules for targets $(CORPORA) and $(CORPORA)$(SUBTARGET_SEP)$(TARGET)
 
 define MAKE_CORPUS_R
-$(1)$(if $(subst @,,$(2)),@$(2)):
-	$$(MAKE) -f $(1).mk $(or $(TARGET),$(subst @,all,$(2))) \
+$(1)$(if $(subst $(SUBTARGET_SEP),,$(2)),$(SUBTARGET_SEP)$(2)):
+	$$(MAKE) -f $(1).mk $(or $(TARGET),$(subst $(SUBTARGET_SEP),all,$(2))) \
 		CORPNAME_BASE=$(1) DB=$(DB) WITHIN_CORP_MK=1
 endef
 
 $(foreach corp,$(CORPORA),\
-	$(foreach targ,$(TARGETS) @,\
+	$(foreach targ,$(TARGETS) $(SUBTARGET_SEP),\
 		$(eval $(call MAKE_CORPUS_R,$(corp),$(targ)))))
 
 
