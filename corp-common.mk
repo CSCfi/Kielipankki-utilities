@@ -368,12 +368,13 @@ $(CORPNAME)_$(1)_load.timestamp: $(CORPNAME)_$(1)$(TSV_CKSUM)
 	touch $$@
 
 $(CORPSQLDIR)/$(CORPNAME)_$(1)$(SQL): $(CORPNAME)_$(1)_load.timestamp
-	-mkfifo $$@.fifo
-	(echo $$(CREATE_SQL_$(1)) > $$@.fifo; \
-	 echo 'DELETE FROM `$$(TABLENAME_$(1))` where '"corpus='$(CORPNAME_U)';" >> $$@.fifo; \
-	 mysqldump --no-autocommit --user $(DBUSER) --no-create-info \
-		--where "corpus='$(CORPNAME_U)'" $(DBNAME) $$(TABLENAME_$(1)) \
-		>> $$@.fifo) & \
+	-mkfifo $$@.fifo; \
+	{ \
+	echo $$(CREATE_SQL_$(1)); \
+	echo 'DELETE FROM `$$(TABLENAME_$(1))` where '"corpus='$(CORPNAME_U)';"; \
+	mysqldump --no-autocommit --user $(DBUSER) --no-create-info \
+		--where "corpus='$(CORPNAME_U)'" $(DBNAME) $$(TABLENAME_$(1)); \
+	} > $$@.fifo & \
 	$(COMPR) < $$@.fifo > $$@
 	-rm $$@.fifo
 endef
