@@ -10,6 +10,17 @@ TOPDIR = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 CORPROOT = /v/corpora
 
+# Define EXCLUDE_CORPORA to exclude some corpora that would otherwise be
+# included in the package.
+EXCLUDE_CORPORA ?=
+
+EMPTY =
+SP = $(EMPTY) $(EMPTY)
+FILTER_CORPORA = \
+	$(if $(EXCLUDE_CORPORA),\
+		egrep -v 'korpdata_($(subst $(SP),|,$(strip $(EXCLUDE_CORPORA))))\.tbz',\
+		cat)
+
 ISODATE := $(shell date '+%Y%m%d')
 MAKE_PKGDATE = $(1)-$(ISODATE)$(2)
 
@@ -28,8 +39,9 @@ PREV_EPOCH := $(word 2,$(PREV_PKG_INFO))
 PREV_REV := $(lastword $(PREV_PKG_INFO))
 
 PREV_TIMESTAMP = $(BASENAME)_latest_corpus_packages_newer.timestamp
+INSTALLED_LIST = $(BASENAME)_installed_corpora.list
 
-INSTALL_CORPORA = $(TOPDIR)/korp-install-corpora.sh
+INSTALL_SCRIPT = $(TOPDIR)/korp-install-corpora.sh
 
 TIP_REV = $(shell hg tip --template='{rev}\n')
 
@@ -58,11 +70,14 @@ TAR_CMD = \
 		tar cvpf $(1) $$files; \
 	fi
 
-$(PKG_corp).tar: $(PREV_TIMESTAMP) $(INSTALL_CORPORA)
+$(PKG_corp).tar: $(PREV_TIMESTAMP) $(INSTALL_SCRIPT) $(INSTALLED_LIST)
 	$(MAKE) -C corp
 	cp -p $^ $(CORP_EXPORT_DIR)
 	$(call TAR_CMD,$@,$(CORP_EXPORT_DIR),\
-		-newer $< -name korpdata_\*.tbz | egrep -v test; echo $(notdir $^))
+		-newer $< -name korpdata_\*.tbz | egrep -v test | $(FILTER_CORPORA); echo $(notdir $^))
+
+$(INSTALLED_LIST):
+	touch $@
 
 src: $(SRC_TARGETS)
 
