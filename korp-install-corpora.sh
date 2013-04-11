@@ -15,6 +15,7 @@ korpdbuser=korp
 scriptname=`basename $0`
 
 timestampfile=$pkgdir/korp_fi_latest_corpus_packages_newer.timestamp
+installed_list=$pkgdir/korp_fi_installed_corpora.list
 
 tmpdir=${tmpdir:-${TMPDIR:-$pkgdir}}
 filelistfile=$tmpdir/$scriptname.files.$$
@@ -33,6 +34,7 @@ if [ "$1x" != "x" ]; then
 else
     corpora=`find $pkgdir -name korpdata_\*.tbz -newer $timestampfile \
 	| sed -e 's/^.*korpdata_//g; s/\.tbz//g' \
+	| grep -Fvx -f$installed_list \
 	| sort`
 fi
 if [ "x$corpora" = "x" ]; then
@@ -63,7 +65,7 @@ filesize () {
     if [ "$kb" -lt 10240 ]; then
 	echo "$kb KiB"
     else
-	echo "$(($kb / 10240)) MiB"
+	echo "$(($kb / 1024)) MiB"
     fi
 }
 
@@ -80,6 +82,10 @@ for corp in $corpora; do
     tar xvjp -C $rootdir -f korpdata_$corp.tbz 2>&1 \
 	| tee $filelistfile \
 	| sed -e 's/^/    /'
+    if grep 'tar:' $filelistfile; then
+	echo "$0: Errors in extracting $corpus_pkg"
+	exit 1
+    fi
     sqlfiles=`grep -E '\.sql(\.(bz2|gz))?$' $filelistfile`
     if [ "x$sqlfiles" != "x" ]; then
 	echo "  Loading data into MySQL database"
@@ -87,8 +93,13 @@ for corp in $corpora; do
 	    echo "    $sqlfile (size `filesize $rootdir/$sqlfile`)"
 	    comprcat $rootdir/$sqlfile \
 		| mysql --user $korpdbuser $korpdb
+	    if [ $? -ne 0 ]; then
+		echo "$0: Errors in loading $sqlfile"
+		exit 1
+	    fi
 	done
     fi
+    echo $corp >> $installed_list
 done
 
 rm $filelistfile
