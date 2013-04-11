@@ -12,12 +12,35 @@ korpdb=korp
 # Korp MySQL database user
 korpdbuser=korp
 
+scriptname=`basename $0`
+
 timestampfile=$pkgdir/korp_fi_latest_corpus_packages_newer.timestamp
 
 tmpdir=${tmpdir:-${TMPDIR:-$pkgdir}}
-filelistfile=$tmpdir/`basename $0`.files.$$
+filelistfile=$tmpdir/$scriptname.files.$$
 
-trap "echo Aborting installation; rm $filelistfile; exit 1" HUP INT QUIT
+if [ "$1x" != "x" ]; then
+    corpora=
+    for corp in "$@"; do
+	corpus_pkg=$pkgdir/korpdata_$corp.tbz
+	if [ ! -r $corpus_pkg ]; then
+	    echo "Cannot read corpus package file $corpus_pkg; ignoring" \
+		> /dev/stderr
+	else
+	    corpora="$corpora $corp"
+	fi
+    done
+else
+    corpora=`find $pkgdir -name korpdata_\*.tbz -newer $timestampfile \
+	| sed -e 's/^.*korpdata_//g; s/\.tbz//g' \
+	| sort`
+fi
+if [ "x$corpora" = "x" ]; then
+    echo "$scriptname: No corpora to install!"
+    exit 1
+fi
+
+trap "echo Aborting installation; rm -f $filelistfile; exit 1" HUP INT QUIT
 
 # Cat possibly compressed file(s) based on the file name extension
 comprcat () {
@@ -34,18 +57,38 @@ comprcat () {
     esac
 }
 
-echo Installing Korp corpora
+# Return the size of a file in a human-readable format
+filesize () {
+    kb=`du -ks $1 | cut -f1`
+    if [ "$kb" -lt 10240 ]; then
+	echo "$kb KiB"
+    else
+	echo "$(($kb / 10240)) MiB"
+    fi
+}
 
-for pkg in `find $pkgdir -name korpdata_\*.tbz -newer $timestampfile`; do
+echo Installing Korp corpora:
+for corp in $corpora; do
+  echo "  $corp"
+done
+
+for corp in $corpora; do
+    corpus_pkg=$pkgdir/korpdata_$corp.tbz
     echo
-    echo Installing `basename $pkg .tbz`
+    echo "Installing $corp (compressed size `filesize $corpus_pkg`)"
     echo "  Copying CWB files"
-    tar xvjp -C $rootdir -f $pkg | tee $filelistfile | awk '{print "    " $0}'
-    echo "  Loading data into MySQL database"
-    for sqlfile in `egrep '\.sql(\.(bz2|gz))$' $filelistfile`; do
-	echo "    $sqlfile"
-	comprcat $rootdir/$sqlfile | mysql --user $korpdbuser $korpdb
-    done
+    tar xvjp -C $rootdir -f korpdata_$corp.tbz 2>&1 \
+	| tee $filelistfile \
+	| sed -e 's/^/    /'
+    sqlfiles=`grep -E '\.sql(\.(bz2|gz))?$' $filelistfile`
+    if [ "x$sqlfiles" != "x" ]; then
+	echo "  Loading data into MySQL database"
+	for sqlfile in $sqlfiles; do
+	    echo "    $sqlfile (size `filesize $rootdir/$sqlfile`)"
+	    comprcat $rootdir/$sqlfile \
+		| mysql --user $korpdbuser $korpdb
+	done
+    fi
 done
 
 rm $filelistfile
