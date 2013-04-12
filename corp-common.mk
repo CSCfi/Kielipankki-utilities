@@ -145,10 +145,10 @@ COMPR := $(COMPR_$(COMPRESS))
 
 # Use checksums to check if a file has really changed (for selected
 # files), unless IGNORE_CHECKSUMS
-CHECKSUM_METHOD = md5
-CKSUM_EXT = .$(CHECKSUM_METHOD)
-CKSUM_EXT_COND = $(if $(IGNORE_CHECKSUMS),,$(CKSUM_EXT))
-CHECKSUMMER = $(CHECKSUM_METHOD)sum
+CHECKSUM_METHOD ?= md5
+CKSUM_EXT := .$(CHECKSUM_METHOD)
+CKSUM_EXT_COND := $(if $(IGNORE_CHECKSUMS),,$(CKSUM_EXT))
+CHECKSUMMER := $(CHECKSUM_METHOD)sum
 
 VRT = .vrt$(COMPR_EXT)
 TSV = .tsv$(COMPR_EXT)
@@ -226,10 +226,11 @@ DB_SQLDUMPS = $(patsubst korp_%,$(CORPSQLDIR)/$(CORPNAME)_%$(SQL),$(DB_TARGETS))
 
 RELS_BASES = @ rel head_rel dep_rel sentences
 RELS_TSV = $(subst _@,,$(foreach base,$(RELS_BASES),\
-				$(CORPNAME)_rels_$(base)$(TSV_CKSUM)))
+				$(CORPNAME)_rels_$(base)$(TSV)))
+RELS_TSV_CKSUM = $(addsuffix $(CKSUM_EXT_COND),$(RELS_TSV))
 MAKE_RELS_TABLE_NAME = $(subst $(CORPNAME)_rels,relations_$(CORPNAME_U),\
 			$(subst $(TSV_CKSUM),,$(1)))
-RELS_TABLES = $(call MAKE_RELS_TABLE_NAME,$(RELS_TSV))
+RELS_TABLES = $(call MAKE_RELS_TABLE_NAME,$(RELS_TSV_CKSUM))
 
 RELS_TRUNCATE_TABLES = $(foreach tbl,$(RELS_TABLES),truncate table $(tbl);)
 RELS_DROP_TABLES = $(foreach tbl,$(RELS_TABLES),drop table if exists $(tbl);)
@@ -238,6 +239,8 @@ RELS_CREATE_TABLES_SQL = $(call SUBST_CORPNAME,$(RELS_CREATE_TABLES_TEMPL))
 
 .PHONY: all-corp all all-override subdirs parcorp \
 	$(CORPORA) $(TARGETS) $(SUBDIRS)
+
+.PRECIOUS: %$(VRT) %$(TSV) %$(ALIGN) %$(CKSUM_EXT)
 
 
 # If $(CORPORA) == $(CORPNAME_BASE), the current directory does not
@@ -272,11 +275,16 @@ $(foreach corp,$(CORPORA),\
 # Calculate the checksum of a file, compare it to the previous
 # checksum (if any) and use the new checksum file if different,
 # otherwise use the old one with the old timestamp.
+# For some reason, the construct
+#   { $(CHECKSUMMER) $< | tee $@.new | cmp -s $@ - ; } \
+#   || mv $@.new $@
+# produces empty .md5 files in some cases ($(RELS_TSV)) but not in
+# others.
 
 %$(CKSUM_EXT): %
-	{ $(CHECKSUMMER) $< | tee $@.new | cmp -s $@ - ; } \
-	|| mv $@.new $@
-	-rm $@.new
+	-$(CHECKSUMMER) $< > $@.new
+	cmp -s $@ $@.new || mv $@.new $@
+	-rm -f $@.new
 
 
 reg: vrt
@@ -328,11 +336,11 @@ korp_db: $(DB_TARGETS)
 korp_rels: $(CORPNAME)_rels_load.timestamp
 
 
-$(CORPNAME)_rels_load.timestamp: $(RELS_TSV) $(RELS_CREATE_TABLES_TEMPL)
+$(CORPNAME)_rels_load.timestamp: $(RELS_TSV_CKSUM) $(RELS_CREATE_TABLES_TEMPL)
 	mysql --user $(DBUSER) \
 		--execute '$(RELS_DROP_TABLES) $(RELS_CREATE_TABLES_SQL)' \
 		$(DBNAME)
-	$(foreach rel,$(RELS_TSV),\
+	$(foreach rel,$(RELS_TSV_CKSUM),\
 		$(call MYSQL_IMPORT,$(rel),$(strip \
 			$(call MAKE_RELS_TABLE_NAME,$(rel)))))
 	touch $@
@@ -341,15 +349,9 @@ $(CORPSQLDIR)/$(CORPNAME)_rels$(SQL): $(CORPNAME)_rels_load.timestamp
 	mysqldump --no-autocommit --user $(DBUSER) $(DBNAME) $(RELS_TABLES) \
 	| $(COMPR) > $@
 
-# The timestamp file is used to avoid running the command creating all
-# the target files once for each target file when the timestamps of
-# the files are not updated (because of an unchanged checksum).
-$(RELS_TSV): $(CORPNAME)_rels.timestamp
-
-$(CORPNAME)_rels.timestamp: $(CORPNAME)$(VRT_CKSUM) $(MAKE_RELS_DEPS)
+$(RELS_TSV): $(CORPNAME)$(VRT_CKSUM) $(MAKE_RELS_DEPS)
 	$(CAT) $(<:$(CKSUM_EXT)=) \
 	| $(MAKE_RELS_CMD)
-	touch $@
 
 define KORP_LOAD_DB_R
 korp_$(1): $(CORPNAME)_$(1)_load.timestamp
