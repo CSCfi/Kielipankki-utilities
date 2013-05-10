@@ -9,8 +9,8 @@ rootdir=${rootdir:-/}
 
 # Korp MySQL database
 korpdb=korp
-# Korp MySQL database user
-korpdbuser=korp
+# Assume that the Korp MySQL database user and password are specified
+# in a MySQL option file
 
 scriptname=`basename $0`
 
@@ -92,7 +92,7 @@ for corp in $corpora; do
 	for sqlfile in $sqlfiles; do
 	    echo "    $sqlfile (size `filesize $rootdir/$sqlfile`)"
 	    comprcat $rootdir/$sqlfile \
-		| mysql --user $korpdbuser $korpdb
+		| mysql $korpdb
 	    if [ $? -ne 0 ]; then
 		echo "$0: Errors in loading $sqlfile"
 		exit 1
