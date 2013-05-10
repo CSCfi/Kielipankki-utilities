@@ -64,10 +64,12 @@ TAR_CMD = \
 	cd $(2); \
 	files=`find . -type f $(3)`; \
 	if [ "x$$files" != "x" ]; then \
+		compr="$(strip $(if $(filter %.tbz %.bz2 %.tbz2,$(1)),j,\
+					$(if $(filter %.tgz %.gz,$(1)),z)))"; \
 		if [ -e $(1) ]; then \
 			rm $(1); \
 		fi; \
-		tar cvpf $(1) $$files; \
+		tar cv$${compr}pf $(1) $$files; \
 	fi
 
 $(PKG_corp).tar: $(PREV_TIMESTAMP) $(INSTALL_SCRIPT) $(INSTALLED_LIST)
