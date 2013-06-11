@@ -50,10 +50,16 @@ PKG_corp = $(call MAKE_PKGDATE,$(BASENAME)_corpora)
 SRC_TARGETS = backend frontend
 
 
-.PHONY: all corp src $(SRC_TARGETS) cleanup
+.PHONY: all corp src pkgs corp-only src-only $(SRC_TARGETS) cleanup
 
 
-all: corp src cleanup
+all: pkgs cleanup
+
+pkgs: corp src
+
+corp-only: corp cleanup
+
+src-only: src cleanup
 
 $(PREV_TIMESTAMP):
 	touch --date='@$(PREV_EPOCH)' $@
@@ -100,7 +106,7 @@ endef
 $(foreach target,$(SRC_TARGETS),\
 	$(eval $(call MAKE_PKG_R,$(target))))
 
-cleanup: corp src
+cleanup:
 	-rm $(PREV_TIMESTAMP)
 ifdef OVERWRITE_LAST_PKG_INFO
 	head -n-1 $(PKG_INFO_FILE) > $(PKG_INFO_FILE).tmp
