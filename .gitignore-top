@@ -1,0 +1,5 @@
+
+# Patterns for files not to be version-controlled
+
+# Generated Korp corpus package info file
+korp-pkg-info.tsv
