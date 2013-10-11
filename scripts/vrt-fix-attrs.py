@@ -26,7 +26,9 @@ class AttributeFixer(object):
         if self._opts.angle_brackets:
             self._opts.angle_brackets = self._opts.angle_brackets.split(',', 1)
         self._split_lines = (self._opts.compound_boundaries != 'keep'
-                             or self._opts.strip)
+                             or self._opts.strip
+                             or self._opts.empty_field_values
+                             or self._opts.missing_field_values)
         self._encode_posattrs = (self._opts.encode_special_chars
                                  in ['all', 'pos'])
         self._encode_structattrs = (self._opts.encode_special_chars
@@ -35,6 +37,46 @@ class AttributeFixer(object):
             (c, (opts.encoded_special_char_prefix
                  + unichr(i + opts.encoded_special_char_offset)))
             for (i, c) in enumerate(opts.special_chars)]
+        self._empty_field_values = self._make_default_field_values(
+            self._opts.empty_field_values)
+        self._missing_field_values = self._make_default_field_values(
+            self._opts.missing_field_values)
+        if self._missing_field_values:
+            self._max_fieldnum = max(self._missing_field_values.keys())
+        else:
+            self._max_fieldnum = -1
+
+    def _make_default_field_values(self, fieldspec):
+        if not fieldspec:
+            return {}
+        fieldvals_list = re.split(r'\s*;\s*', fieldspec)
+        fieldval_fns = {}
+        for field_numval in fieldvals_list:
+            (fieldnumstr, fieldval) = re.split(r'\s*:\s*', field_numval)
+            fieldnums = self._extract_fieldnums(fieldnumstr)
+            if re.match(r'\$\d+', fieldval):
+                fieldval = int(fieldval[1:]) - 1
+                fieldval_fn = \
+                    lambda attrs, val=fieldval: (attrs[val] if val < len(attrs)
+                                                 else '')
+            else:
+                fieldval_fn = lambda attrs, val=fieldval: val
+            for fieldnum in fieldnums:
+                fieldval_fns[fieldnum] = fieldval_fn
+        return fieldval_fns
+
+    def _extract_fieldnums(self, fieldnumstr):
+        result = []
+        for fieldrange in re.split(r'\s*,\s*', fieldnumstr):
+            if fieldrange == '*':
+                result.append(-1)
+            else:
+                if '-' in fieldrange:
+                    (start, end) = fieldrange.split('-', 1)
+                else:
+                    start = end = fieldrange
+                result.extend(range(int(start) - 1, int(end)))
+        return result
 
     def process_files(self, files):
         if isinstance(files, list):
@@ -62,6 +104,8 @@ class AttributeFixer(object):
             attrs = line[:-1].split('\t')
             self._process_compound_lemmas(attrs)
             self._strip_attrs(attrs)
+            if self._empty_field_values or self._missing_field_values:
+                self._add_default_field_values(attrs)
             line = '\t'.join(attrs) + '\n'
         if self._opts.space:
             line = line.replace(' ', self._opts.space)
@@ -97,6 +141,26 @@ class AttributeFixer(object):
             for attrnr in xrange(0, len(attrs)):
                 attrs[attrnr] = attrs[attrnr].strip()
 
+    def _add_default_field_values(self, attrs):
+        if self._empty_field_values:
+            for (attrnum, attr) in enumerate(attrs):
+                if attr == '' and (attrnum in self._empty_field_values
+                                   or -1 in self._empty_field_values):
+                    attrs[attrnum] = self._empty_field_values.get(
+                        attrnum, self._empty_field_values.get(
+                            -1, lambda x: ''))(attrs)
+        orig_attrcount = len(attrs)
+        if self._missing_field_values and orig_attrcount < self._max_fieldnum:
+            for attrnum in xrange(orig_attrcount, self._max_fieldnum + 1):
+                if (attrnum in self._missing_field_values
+                    or -1 in self._empty_field_values):
+                    attrval = self._missing_field_values.get(
+                        attrnum, self._missing_field_values.get(
+                            -1, lambda x: ''))(attrs)
+                else:
+                    attrval = ''
+                attrs.append(attrval)
+
 
 def getopts():
     optparser = OptionParser()
@@ -120,6 +184,8 @@ def getopts():
                          '--special-char-offset', default='0x7F')
     optparser.add_option('--encoded-special-char-prefix',
                          '--special-char-prefix', default=u'')
+    optparser.add_option('--empty-field-values')
+    optparser.add_option('--missing-field-values')
     (opts, args) = optparser.parse_args()
     if opts.noncompound_lemma_field is None:
         opts.noncompound_lemma_field = opts.lemma_field
