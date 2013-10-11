@@ -11,6 +11,10 @@ eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
 eqs = $(call eq,$(strip $(1)),$(strip $(2)))
 lower = $(shell echo $(1) | perl -pe 's/(.*)/\L$$1\E/')
 
+showvars = $(if $(DEBUG),$(foreach var,$(1),$(info $(var) = $($(var)))))
+
+$(call showvars,MAKEFILE_LIST)
+
 TOPDIR = $(dir $(lastword $(MAKEFILE_LIST)))
 
 SCRIPTDIR = $(TOPDIR)/scripts
@@ -74,16 +78,20 @@ SUBDIRS := \
 	| perl -ne 'chomp; print "$$_\n" if -d $$_ && -e "$$_/Makefile"')
 
 CORPNAME_BASE ?= $(lastword $(subst /, ,$(CURDIR)))
+CORPNAME_MAIN ?= $(CORPNAME_BASE)
 
 # CORPORA: The corpora to make with the current makefile. If not
 # specified explicitly, all the stems of .mk files in the current
-# directory except *-common and those in IGNORE_CORPORA, or if none
-# exists (directory with a single corpus), the name of the current
-# directory.
+# directory except *-common, *_any and those in IGNORE_CORPORA, or if
+# none exists (directory with a single corpus), the name of the
+# current directory.
 CORPORA ?= $(or $(basename $(filter-out $(addsuffix .mk,\
-						%-common $(IGNORE_CORPORA)),\
+						%-common %_any \
+						$(IGNORE_CORPORA)),\
 					$(wildcard *.mk))),\
 		$(CORPNAME_BASE))
+
+$(call showvars,SRC_SUBDIR)
 
 # The subdirectory of CORPSRCROOT for the corpus source files; can be
 # overridden in individual corpus makefiles. WITHIN_CORP_MK is defined
@@ -99,7 +107,10 @@ SRC_DIR ?= $(CORPSRCROOT)/$(SRC_SUBDIR)
 SRC_FILES_REAL = $(filter-out $(addprefix $(SRC_DIR)/,$(SRC_FILES_EXCLUDE)),\
 			$(wildcard $(addprefix $(SRC_DIR)/,$(SRC_FILES))))
 
-# $(info $(WITHIN_CORP_MK) $(CORPNAME_BASE) $(SRC_SUBDIR) $(SRC_DIR) $(SRC_FILES) :: $(CORPORA) :: $(SRC_FILES_REAL))
+$(call showvars,\
+	WITHIN_CORP_MK CORPNAME_MAIN CORPNAME_BASE \
+	SRC_SUBDIR SRC_DIR SRC_FILES \
+	CORPORA SRC_FILES_REAL)
 
 DB_TARGETS_ALL = korp_timespans korp_rels korp_lemgrams
 DB_HAS_RELS := $(and $(filter dephead,$(P_ATTRS)),$(filter deprel,$(P_ATTRS)))
@@ -109,9 +120,25 @@ DB_TARGETS ?= $(if $(DB),$(DB_TARGETS_ALL),\
 			korp_lemgrams $(if $(DB_HAS_RELS),korp_rels)))
 
 PARCORP ?= $(LINK_ELEM)
-PARLANG1 = $(firstword $(LANGUAGES))
-PARLANG2 = $(lastword $(LANGUAGES))
-OTHERLANG = $(subst _@,_$(PARLANG1),$(subst _$(PARLANG1),_$(PARLANG2),$(subst _$(PARLANG2),_@,$(1))))
+
+$(call showvars,PARCORP PARCORP_PART)
+
+LANGPAIRS_ALIGN ?= \
+	$(foreach lang1,$(LANGUAGES),\
+		$(foreach lang2,$(filter-out $(lang1),$(LANGUAGES)),\
+			$(lang1)_$(lang2)))
+
+$(call showvars,LANGPAIRS_ALIGN)
+
+EXTRACT_LAST_PART = $(lastword $(subst _, ,$(1)))
+EXTRACT_LANG2 = $(call EXTRACT_LAST_PART,$(1))
+EXTRACT_LANG1 = \
+	$(call EXTRACT_LAST_PART,\
+		$(patsubst %_$(call EXTRACT_LAST_PART,$(1)),%,$(1)))
+LANGPAIR_LANG1 = $(firstword $(subst _, ,$(1)))
+LANGPAIR_LANG2 = $(lastword $(subst _, ,$(1)))
+
+# $(error $(call EXTRACT_LANG1,foo_bar_fi_en) :: $(call EXTRACT_LANG2,foo_bar_fi_en) :: $(call LANGPAIR_LANG1,fi_en) :: $(call LANGPAIR_LANG2,fi_en))
 
 TARGETS ?= $(if $(PARCORP),\
 		align pkg-parcorp,\
@@ -189,6 +216,8 @@ CORPCORPDIR = $(CORPDIR)/$(CORPNAME)
 REGDIR = $(CORPROOT)/registry
 CORPSQLDIR = $(CORPROOT)/sql
 
+$(call showvars,CORPDIR CORPCORPDIR)
+
 PKGDIR = $(TOPDIR)/export
 PKG_FILE = $(PKGDIR)/korpdata_$(CORPNAME).tbz
 
@@ -226,6 +255,8 @@ S_ATTRS ?= $(shell cat $(CORPNAME).sattrs)
 P_OPTS = $(foreach attr,$(P_ATTRS),-P $(attr))
 S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
 
+$(call showvars,P_OPTS S_OPTS)
+
 SQLDUMP_NAME = $(CORPSQLDIR)/$(CORPNAME)$(SQL)
 SQLDUMP = $(if $(strip $(DB_TARGETS)),$(SQLDUMP_NAME))
 
@@ -256,6 +287,8 @@ RELS_CREATE_TABLES_SQL = $(call SUBST_CORPNAME,$(RELS_CREATE_TABLES_TEMPL))
 
 ifneq ($(strip $(CORPORA)),$(strip $(CORPNAME_BASE)))
 all-corp: subdirs $(CORPORA)
+
+.PHONY: $(CORPORA)
 endif
 
 all: $(TARGETS)
@@ -266,6 +299,7 @@ subdirs: $(SUBDIRS)
 $(SUBDIRS):
 	$(MAKE) -C $@
 
+.PHONY: all subdirs $(SUBDIRS)
 
 # Define rules for targets $(CORPORA) and $(CORPORA)$(SUBTARGET_SEP)$(TARGET)
 
@@ -273,6 +307,8 @@ define MAKE_CORPUS_R
 $(1)$(if $(subst $(SUBTARGET_SEP),,$(2)),$(SUBTARGET_SEP)$(2)):
 	$$(MAKE) -f $(1).mk $(or $(TARGET),$(subst $(SUBTARGET_SEP),all,$(2))) \
 		CORPNAME_BASE=$(1) DB=$(DB) WITHIN_CORP_MK=1
+
+.PHONY: $(1)$(if $(subst $(SUBTARGET_SEP),,$(2)),$(SUBTARGET_SEP)$(2))
 endef
 
 $(foreach corp,$(CORPORA),\
@@ -299,6 +335,8 @@ reg: vrt
 	$(CWB_MAKE)
 
 vrt: $(CORPCORPDIR)/.info
+
+.PHONY: reg vrt
 
 # The info file $(CORPCORPDIR)/.info is (ab)used as a timestamp file
 # to avoid unnecessarily remaking the corpus data if the .vrt file has
@@ -343,6 +381,8 @@ korp_db: $(DB_TARGETS)
 
 korp_rels: $(CORPNAME)_rels_load.timestamp
 
+.PHONY: db korp_db korp_rels
+
 
 $(CORPNAME)_rels_load.timestamp: $(RELS_TSV_CKSUM) $(RELS_CREATE_TABLES_TEMPL)
 	mysql --user $(DBUSER) \
@@ -363,6 +403,8 @@ $(RELS_TSV): $(CORPNAME)$(VRT_CKSUM) $(MAKE_RELS_DEPS)
 
 define KORP_LOAD_DB_R
 korp_$(1): $(CORPNAME)_$(1)_load.timestamp
+
+.PHONY: korp_$(1)
 
 CREATE_SQL_$(1) = '\
 	CREATE TABLE IF NOT EXISTS `$$(TABLENAME_$(1))` ( \
@@ -438,6 +480,8 @@ $(PKG_FILE): $(CORPCORPDIR)/.info $(DB_SQLDUMPS)
 	-mkdir $(dir $@)
 	tar cvjpf $@ $(CORPCORPDIR) $(REGDIR)/$(CORPNAME) $(DB_SQLDUMPS)
 
+.PHONY: pkg
+
 # $(SQLDUMP_NAME): $(DB_SQLDUMPS)
 # 	-mkdir $(dir $@)
 # 	cat $^ > $@
@@ -446,41 +490,68 @@ $(PKG_FILE): $(CORPCORPDIR)/.info $(DB_SQLDUMPS)
 # Align parallel corpora
 
 ALIGN_CORP = \
-		$(CWB_REGEDIT) $(1) :add :a "$(call OTHERLANG,$(1))"; \
-		fifo=$(1)$(ALIGN).fifo; \
-		mkfifo $$fifo; \
-		($(CAT) $(1)$(ALIGN) > $$fifo &); \
-		$(CWB_ALIGN_ENCODE) -D $$fifo; \
-		rm $$fifo
+	$(CWB_REGEDIT) $(CORPNAME)_$(1) :add :a "$(CORPNAME)_$(2)"; \
+	align=$(CORPNAME)_$(1)_$(2)$(ALIGN); \
+	fifo=$$align.fifo; \
+	mkfifo $$fifo; \
+	($(CAT) $$align > $$fifo &); \
+	$(CWB_ALIGN_ENCODE) -D $$fifo; \
+	rm $$fifo
 
 # CHECK: Does this always work correctly when running more than one
 # simultaneous job?
 
+# FIXME: When changing some parts of a parallel corpus, the alignments
+# do not seem to get encoded.
+
 align: parcorp $(CORPNAME)_aligned.timestamp
 
+.PHONY: align
+
 $(CORPNAME)_aligned.timestamp: \
-		$(CORPNAME)_$(PARLANG1)$(ALIGN_CKSUM) \
-		$(CORPNAME)_$(PARLANG2)$(ALIGN_CKSUM)
-	$(call ALIGN_CORP,$(CORPNAME)_$(PARLANG1))
-	$(call ALIGN_CORP,$(CORPNAME)_$(PARLANG2))
+		$(foreach langpair,$(LANGPAIRS_ALIGN),\
+			$(CORPNAME)_$(langpair)$(ALIGN_CKSUM))
+	for langpair in $(LANGPAIRS_ALIGN); do \
+		lang1=`echo $$langpair | sed -e 's/_.*//'`; \
+		lang2=`echo $$langpair | sed -e 's/.*_//'`; \
+		$(call ALIGN_CORP,$${lang1},$${lang2}); \
+	done
 	touch $@
 
-%$(ALIGN): $(CORPDIR)/%/.info
-	-mkfifo $@.fifo
-	($(CWB_ALIGN) -o $@.fifo -r $(REGDIR) -V $(LINK_ELEM)_$(LINK_ATTR) \
-		$* $(basename $(call OTHERLANG,$*)) \
+define MAKE_ALIGN_R
+$(CORPNAME)_$$(strip $(1))_$$(strip $(2))$(ALIGN): \
+		$(CORPDIR)/$(CORPNAME)_$$(strip $(1))/.info
+	-mkfifo $$@.fifo
+	($(CWB_ALIGN) -o $$@.fifo -r $(REGDIR) -V $(LINK_ELEM)_$(LINK_ATTR) \
+		$(CORPNAME)_$$(strip $(1)) $(CORPNAME)_$$(strip $(2)) \
 		$(LINK_ELEM) > /dev/null &); \
-	$(COMPR) < $@.fifo > $@
-	-rm $@.fifo
+	$(COMPR) < $$@.fifo > $$@
+	-rm $$@.fifo
+endef
+
+$(foreach langpair,$(LANGPAIRS_ALIGN),\
+	$(eval $(call MAKE_ALIGN_R,$(call LANGPAIR_LANG1,$(langpair)),\
+					$(call LANGPAIR_LANG2,$(langpair)))))
+
+MAKE_PARCORP_PARTS = \
+	for lang in $(LANGUAGES); do \
+		for suffix in _$$lang _any ""; do \
+			makefile=$(CORPNAME_MAIN)$$suffix.mk; \
+			if test -e $$makefile; then \
+				$(MAKE) -f $$makefile $(1) \
+					CORPNAME_MAIN="$(CORPNAME)" \
+					CORPNAME_BASE="$(CORPNAME)_$$lang" \
+					LANGUAGES="$(LANGUAGES)" \
+					PARCORP_LANG=$$lang; \
+				break; \
+			fi; \
+		done; \
+	done
 
 parcorp:
-	for lang in $(LANGUAGES); do \
-		$(MAKE) -f $(CORPNAME)_$$lang.mk all \
-			CORPNAME_BASE=$(CORPNAME)_$$lang WITHIN_CORP_MK=1; \
-	done
+	$(call MAKE_PARCORP_PARTS,all WITHIN_CORP_MK=1 PARCORP_PART=1)
 
-pkg-parcorp:
-	for lang in $(LANGUAGES); do \
-		$(MAKE) -f $(CORPNAME)_$$lang.mk pkg \
-			CORPNAME_BASE=$(CORPNAME)_$$lang; \
-	done
+pkg-parcorp: align
+	$(call MAKE_PARCORP_PARTS,pkg)
+
+.PHONY: parcorp pkg-parcorp
