@@ -46,11 +46,16 @@ class AttributeFixer(object):
         else:
             self._max_fieldnum = -1
         self._rename_structs = {}
+        self._elem_ids = {}
         for rename_str in self._opts.rename_struct_attribute:
             rename_specs = re.split(r'\s*[,\s]\s*', rename_str)
             for rename_spec in rename_specs:
                 oldname, newname = rename_spec.split(':')
                 self._rename_structs[oldname] = newname
+        for elemnames_str in self._opts.add_element_id:
+            elemnames = re.split(r'\s*[,\s]\s*', elemnames_str)
+            for elemname in elemnames:
+                self._elem_ids[elemname] = 0
 
     def _make_default_field_values(self, fieldspec):
         if not fieldspec:
@@ -173,6 +178,8 @@ class AttributeFixer(object):
     def _fix_structattrs(self, line):
         if self._rename_structs:
             line = self._rename_structattrs(line)
+        if self._elem_ids and not line.startswith('</'):
+            line = self._add_elem_id(line)
         return line
 
     def _rename_structattrs(self, line):
@@ -182,6 +189,14 @@ class AttributeFixer(object):
             return matchobj.group(1) + (self._rename_structs.get(name) or name)
 
         return re.sub(r'(</?)(\w+)', rename_attr, line)
+
+    def _add_elem_id(self, line):
+        elemname = re.search(r'(\w+)', line).group(1)
+        if elemname in self._elem_ids:
+            self._elem_ids[elemname] += 1
+            line = (line[:-2] + ' id="{0:d}"'.format(self._elem_ids[elemname])
+                    + line[-2:])
+        return line
 
 
 def getopts():
@@ -210,6 +225,8 @@ def getopts():
     optparser.add_option('--missing-field-values')
     optparser.add_option('--rename-struct-attribute', '--rename-s-attribute',
                          action='append', default=[])
+    optparser.add_option('--add-element-id', '--add-elem-id', action='append',
+                         default=[])
     (opts, args) = optparser.parse_args()
     if opts.noncompound_lemma_field is None:
         opts.noncompound_lemma_field = opts.lemma_field
