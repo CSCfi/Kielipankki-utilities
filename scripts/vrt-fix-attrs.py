@@ -45,13 +45,12 @@ class AttributeFixer(object):
             self._max_fieldnum = max(self._missing_field_values.keys())
         else:
             self._max_fieldnum = -1
-        self._rename_structs = {}
+        self._elem_renames = {}
         self._elem_ids = {}
-        for rename_str in self._opts.rename_struct_attribute:
-            rename_specs = re.split(r'\s*[,\s]\s*', rename_str)
-            for rename_spec in rename_specs:
+        for rename_elem_str in self._opts.rename_element:
+            for rename_spec in re.split(r'\s*[,\s]\s*', rename_elem_str):
                 oldname, newname = rename_spec.split(':')
-                self._rename_structs[oldname] = newname
+                self._elem_renames[oldname] = newname
         for elemnames_str in self._opts.add_element_id:
             elemnames = re.split(r'\s*[,\s]\s*', elemnames_str)
             for elemname in elemnames:
@@ -176,19 +175,19 @@ class AttributeFixer(object):
                 attrs.append(attrval)
 
     def _fix_structattrs(self, line):
-        if self._rename_structs:
-            line = self._rename_structattrs(line)
+        if self._elem_renames:
+            line = self._rename_elem(line)
         if self._elem_ids and not line.startswith('</'):
             line = self._add_elem_id(line)
         return line
 
-    def _rename_structattrs(self, line):
+    def _rename_elem(self, line):
 
-        def rename_attr(matchobj):
+        def rename_elem(matchobj):
             name = matchobj.group(2)
-            return matchobj.group(1) + (self._rename_structs.get(name) or name)
+            return matchobj.group(1) + (self._elem_renames.get(name) or name)
 
-        return re.sub(r'(</?)(\w+)', rename_attr, line)
+        return re.sub(r'(</?)(\w+)', rename_elem, line)
 
     def _add_elem_id(self, line):
         elemname = re.search(r'(\w+)', line).group(1)
@@ -223,8 +222,7 @@ def getopts():
                          '--special-char-prefix', default=u'')
     optparser.add_option('--empty-field-values')
     optparser.add_option('--missing-field-values')
-    optparser.add_option('--rename-struct-attribute', '--rename-s-attribute',
-                         action='append', default=[])
+    optparser.add_option('--rename-element', action='append', default=[])
     optparser.add_option('--add-element-id', '--add-elem-id', action='append',
                          default=[])
     (opts, args) = optparser.parse_args()
