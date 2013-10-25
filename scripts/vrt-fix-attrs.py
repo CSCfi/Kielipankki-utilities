@@ -45,6 +45,12 @@ class AttributeFixer(object):
             self._max_fieldnum = max(self._missing_field_values.keys())
         else:
             self._max_fieldnum = -1
+        self._rename_structs = {}
+        for rename_str in self._opts.rename_struct_attribute:
+            rename_specs = re.split(r'\s*[,\s]\s*', rename_str)
+            for rename_spec in rename_specs:
+                oldname, newname = rename_spec.split(':')
+                self._rename_structs[oldname] = newname
 
     def _make_default_field_values(self, fieldspec):
         if not fieldspec:
@@ -94,8 +100,11 @@ class AttributeFixer(object):
 
     def _make_fixed_line(self, line):
         if line.startswith('<') and line.endswith('>\n'):
+            line = self._fix_structattrs(line)
             if self._encode_structattrs:
                 return self._encode_special_chars_in_struct_attrs(line)
+            else:
+                return line
         else:
             return self._fix_posattrs(line)
 
@@ -161,6 +170,19 @@ class AttributeFixer(object):
                     attrval = ''
                 attrs.append(attrval)
 
+    def _fix_structattrs(self, line):
+        if self._rename_structs:
+            line = self._rename_structattrs(line)
+        return line
+
+    def _rename_structattrs(self, line):
+
+        def rename_attr(matchobj):
+            name = matchobj.group(2)
+            return matchobj.group(1) + (self._rename_structs.get(name) or name)
+
+        return re.sub(r'(</?)(\w+)', rename_attr, line)
+
 
 def getopts():
     optparser = OptionParser()
@@ -186,6 +208,8 @@ def getopts():
                          '--special-char-prefix', default=u'')
     optparser.add_option('--empty-field-values')
     optparser.add_option('--missing-field-values')
+    optparser.add_option('--rename-struct-attribute', '--rename-s-attribute',
+                         action='append', default=[])
     (opts, args) = optparser.parse_args()
     if opts.noncompound_lemma_field is None:
         opts.noncompound_lemma_field = opts.lemma_field
