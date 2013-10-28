@@ -21,6 +21,14 @@ def replace_substrings(s, mapping):
 
 class AttributeFixer(object):
 
+    _xml_char_entities = {'quot': '"',
+                          'amp': '&',
+                          'apos': '\'',
+                          'lt': '<',
+                          'gt': '>'}
+    _xml_char_entity_name_regex = \
+        r'#x[0-9a-fA-F]+|#[0-9]+|' + '|'.join(_xml_char_entities.keys())
+
     def __init__(self, opts):
         self._opts = opts
         if self._opts.angle_brackets:
@@ -127,6 +135,8 @@ class AttributeFixer(object):
                     .replace('>', self._opts.angle_brackets[1]))
         if self._encode_posattrs:
             line = self._encode_special_chars(line)
+        if self._opts.replace_xml_character_entities:
+            line = self._replace_character_entities(line)
         return line
 
     def _encode_special_chars(self, s):
@@ -173,6 +183,27 @@ class AttributeFixer(object):
                 else:
                     attrval = ''
                 attrs.append(attrval)
+
+    def _replace_character_entities(self, line):
+
+        def replace_char_entity_ref(matchobj):
+            name = matchobj.group(1)
+            if name in self._xml_char_entities:
+                return self._xml_char_entities[name]
+            elif name[0] == '#':
+                if name[1] == 'x':
+                    return unichr(int(name[2:], base=16))
+                else:
+                    return unichr(int(name[1:]))
+            else:
+                return name
+
+        line = re.sub(r'&(' + self._xml_char_entity_name_regex + r');',
+                      replace_char_entity_ref, line)
+        if self._opts.replace_xml_character_entities == 'all':
+            line = re.sub(r'&(' + self._xml_char_entity_name_regex + r')(?=\s)',
+                          replace_char_entity_ref, line)
+        return line
 
     def _fix_structattrs(self, line):
         if self._elem_renames:
@@ -225,6 +256,8 @@ def getopts():
     optparser.add_option('--rename-element', action='append', default=[])
     optparser.add_option('--add-element-id', '--add-elem-id', action='append',
                          default=[])
+    optparser.add_option('--replace-xml-character-entities', type='choice',
+                         choices=['correct', 'all'])
     (opts, args) = optparser.parse_args()
     if opts.noncompound_lemma_field is None:
         opts.noncompound_lemma_field = opts.lemma_field
