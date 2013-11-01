@@ -74,8 +74,8 @@ VRT_EXTRACT_TIMESPANS = \
 MAKE_CWB_STRUCT_ATTRS = $(XMLSTATS) --cwb-struct-attrs
 
 SUBDIRS := \
-	$(shell ls \
-	| perl -ne 'chomp; print "$$_\n" if -d $$_ && -e "$$_/Makefile"')
+	$(shell find -name Makefile -o -name \*.mk \
+	| egrep '/.*/' | cut -d'/' -f2 | sort -u)
 
 CORPNAME_BASE ?= $(lastword $(subst /, ,$(CURDIR)))
 CORPNAME_MAIN ?= $(CORPNAME_BASE)
