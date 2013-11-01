@@ -282,24 +282,62 @@ RELS_CREATE_TABLES_SQL = $(call SUBST_CORPNAME,$(RELS_CREATE_TABLES_TEMPL))
 .PRECIOUS: %$(VRT) %$(TSV) %$(ALIGN) %$(CKSUM_EXT)
 
 
+# The following conditional rules specify the main target, depending
+# on where this makefile is included: a makefile in an intermediate
+# directory with subdirectories, a makefile for a single corpus, or a
+# makefile in a directory with multiple subcorpora (and possibly
+# subdirectories).
+
 # If $(CORPORA) == $(CORPNAME_BASE), the current directory does not
-# have *.mk for subcorpora, so "all" should be the first target.
+# have *.mk for subcorpora
+ifeq ($(strip $(CORPORA)),$(strip $(CORPNAME_BASE)))
 
-ifneq ($(strip $(CORPORA)),$(strip $(CORPNAME_BASE)))
-all-corp: subdirs $(CORPORA)
+# If SRC_FILES is not defined, this makefile is in an intermediate
+# directory with only subdirectories
+ifndef SRC_FILES
 
-.PHONY: $(CORPORA)
+# If SUBDIRS is empty and if this is not a parallel corpus, SRC_FILES
+# probably has been forgotten
+ifeq ($(strip $(SUBDIRS)),)
+ifeq ($(strip $(PARCORP)),)
+$(error Please specify the source files in SRC_FILES)
 endif
 
-all: $(TARGETS)
+else # SUBDIRS non-empty
 
+# Make in subdirectories only
+TOP_TARGETS = subdirs
+
+endif # SUBDIRS non-empty
+
+else # SRC_FILES defined
+
+# A single corpus: make actual corpus targets
+TOP_TARGETS = all
+
+endif # SRC_FILES defined
+
+else # $(CORPORA) == $(CORPNAME_BASE)
+
+# The directory has *.mk for subcorpora and may contain subdirectories
+TOP_TARGETS = subdirs $(CORPORA)
+
+endif
+
+$(call showvars,TOP_TARGETS)
+
+
+all-top: $(TOP_TARGETS)
+
+all: $(TARGETS)
 
 subdirs: $(SUBDIRS)
 
 $(SUBDIRS):
 	$(MAKE) -C $@
 
-.PHONY: all subdirs $(SUBDIRS)
+.PHONY: all-top $(TOP_TARGETS) all subdirs $(SUBDIRS)
+
 
 # Define rules for targets $(CORPORA) and $(CORPORA)$(SUBTARGET_SEP)$(TARGET)
 
