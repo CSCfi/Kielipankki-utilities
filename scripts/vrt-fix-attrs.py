@@ -19,9 +19,11 @@ def replace_substrings(s, mapping):
     return s
 
 
-class PosAttrConverter(object):
+def value_or_default(value, default):
+    return value if value is not None else default
 
-    MAX_FIELDNUM = 256
+
+class PosAttrConverter(object):
 
     class OutputFieldSpec(object):
 
@@ -35,9 +37,10 @@ class PosAttrConverter(object):
                 name, opts = re.split(r':\s*', fieldspec, 1)
             else:
                 name, opts = fieldspec, ''
-            self._input_fieldnr = self._input_field_nums.get(name)
-            if self._input_fieldnr is None:
-                self._input_fieldnr = int(name) - 1
+            self._input_fieldnum = self._input_field_nums.get(name)
+            # print fieldspec, name, opts, self._input_fieldnum
+            if self._input_fieldnum is None:
+                self._input_fieldnum = int(name) - 1
             for (key, val) in re.findall(
                 r'(\w+)(?:=((?:[^,\'\"]|\'[^\']+\'|"[^\"]+")+))?', opts):
                 self.set_option(key, self._remove_quotes(val))
@@ -59,14 +62,14 @@ class PosAttrConverter(object):
                     value = lambda attrs, val=value: val
             self._opts[key] = value
 
-        def make_field(self, input_fields, input_fieldnr=None):
+        def make_field(self, input_fields, input_fieldnum=None):
             result = None
-            if input_fieldnr is None:
-                input_fieldnr = self._input_fieldnr
-            if input_fieldnr >= len(input_fields):
+            if input_fieldnum is None:
+                input_fieldnum = self._input_fieldnum
+            if input_fieldnum >= len(input_fields):
                 result = self._opts.get('missing', lambda s: None)(input_fields)
             else:
-                result = (input_fields[input_fieldnr]
+                result = (input_fields[input_fieldnum]
                           or self._opts.get('empty',
                                             lambda s: '')(input_fields))
             if result is not None:
@@ -74,26 +77,37 @@ class PosAttrConverter(object):
                     result = result.replace('#', '')
             return result
 
+        def get_input_fieldnum(self):
+            return self._input_fieldnum
+
         def __repr__(self):
-            return str(self._input_fieldnr) + ':' + repr(self._opts)
+            return str(self._input_fieldnum) + ':' + repr(self._opts)
 
     def __init__(self, input_fields, output_fields, strip=False,
-                 empty_values=None, missing_values=None):
+                 empty_values=None, missing_values=None,
+                 copy_extra_fields=None):
         self._make_input_fields(input_fields)
-        self._copy_extra_fields = not output_fields
+        self._copy_extra_fields = value_or_default(copy_extra_fields,
+                                                   not output_fields)
         self._empty_field_values = self._make_default_field_values(empty_values)
         self._missing_field_values = self._make_default_field_values(
             missing_values)
         self._make_output_fields(output_fields)
-        self._max_fieldnum = max([len(self._output_fields) - 1]
-                                 + self._empty_field_values.keys()
-                                 + self._missing_field_values.keys())
-        for num in xrange(len(self._output_fields), self._max_fieldnum + 1):
+        output_field_fieldnums = [output_field.get_input_fieldnum()
+                                  for output_field in self._output_fields]
+        self._max_fieldnum = max((output_field_fieldnums
+                                  + self._empty_field_values.keys()
+                                  + self._missing_field_values.keys())
+                                 or [-1])
+        # print self._output_fields, output_field_fieldnums, self._max_fieldnum
+        for num in xrange(max(output_field_fieldnums or [-1]) + 1,
+                          self._max_fieldnum + 1):
             self._output_fields.append(
                 self.OutputFieldSpec(str(num + 1), self._input_fields))
         for type_, values in [('empty', self._empty_field_values),
                               ('missing', self._missing_field_values)]:
             self._add_default_fieldvals(type_, values)
+        # print self._output_fields
         self._strip = strip
 
     def _make_input_fields(self, fields):
@@ -143,6 +157,7 @@ class PosAttrConverter(object):
         if output_fieldslist:
             for fields in output_fieldslist:
                 fieldspecs = re.findall(r'(?:\S|\'[^\']+\'|"[^\"]+")+', fields)
+                # print repr(fieldspecs)
                 for fieldspec in fieldspecs:
                     self._output_fields.append(
                         self.OutputFieldSpec(fieldspec, self._input_fields))
@@ -170,10 +185,10 @@ class PosAttrConverter(object):
         # print fields, self._output_fields, self._copy_extra_fields
         if self._strip:
             fields = [field.strip() for field in fields]
-        for fieldnum in xrange(0, len(self._output_fields)):
-            add_output_field(fields, self._output_fields[fieldnum])
+        for output_field in self._output_fields:
+            add_output_field(fields, output_field)
         if self._copy_extra_fields:
-            for fieldnum in xrange(len(self._output_fields), len(fields)):
+            for fieldnum in xrange(self._max_fieldnum + 1, len(fields)):
                 add_output_field(fields, self._extra_output_field, fieldnum)
         return outfields
 
@@ -207,11 +222,7 @@ class AttributeFixer(object):
                  + unichr(i + opts.encoded_special_char_offset)))
             for (i, c) in enumerate(opts.special_chars)]
         if self._split_lines:
-            self._pos_attr_converter = PosAttrConverter(
-                self._opts.input_fields, self._opts.output_fields,
-                strip=self._opts.strip,
-                empty_values=self._opts.empty_field_values,
-                missing_values=self._opts.missing_field_values)
+            self._make_pos_attr_converter()
         self._elem_renames = {}
         self._elem_ids = {}
         for rename_elem_str in self._opts.rename_element:
@@ -222,6 +233,29 @@ class AttributeFixer(object):
             elemnames = re.split(r'\s*[,\s]\s*', elemnames_str)
             for elemname in elemnames:
                 self._elem_ids[elemname] = 0
+
+    def _make_pos_attr_converter(self):
+
+        def make_field_list(last):
+            return ' '.join(str(fieldnum + 1) for fieldnum in range(last))
+
+        copy_extra_fields = None
+        output_fields = self._opts.output_fields
+        if not self._opts.output_fields:
+            copy_extra_fields = True
+            if self._opts.compound_boundaries == 'remove':
+                output_fields = [(make_field_list(self._opts.lemma_field)
+                                  + ':noboundaries')]
+            elif self._opts.compound_boundaries == 'new':
+                output_fields = [(
+                        make_field_list(self._opts.noncompound_lemma_field - 1)
+                        + ' ' + str(self._opts.lemma_field) + ':noboundaries')]
+        # print repr(output_fields)
+        self._pos_attr_converter = PosAttrConverter(
+            self._opts.input_fields, output_fields, strip=self._opts.strip,
+            empty_values=self._opts.empty_field_values,
+            missing_values=self._opts.missing_field_values,
+            copy_extra_fields=copy_extra_fields)
 
     def process_files(self, files):
         if isinstance(files, list):
@@ -251,7 +285,6 @@ class AttributeFixer(object):
         if self._split_lines:
             attrs = line[:-1].split('\t')
             attrs = self._pos_attr_converter.convert(attrs)
-            self._process_compound_lemmas(attrs)
             line = '\t'.join(attrs) + '\n'
         if self._opts.space:
             line = line.replace(' ', self._opts.space)
@@ -274,15 +307,6 @@ class AttributeFixer(object):
         """
         return re.sub(r'("(?:[^\\"]|\\[\\"])*")',
                       lambda mo: self._encode_special_chars(mo.group(0)), s)
-
-    def _process_compound_lemmas(self, attrs):
-        if self._opts.compound_boundaries != 'keep':
-            noncompound_lemma = attrs[self._opts.lemma_field] .replace('#', '')
-            if self._opts.compound_boundaries == 'remove':
-                attrs[self._opts.lemma_field] = noncompound_lemma
-            elif self._opts.compound_boundaries == 'new':
-                attrs.insert(self._opts.noncompound_lemma_field,
-                             noncompound_lemma)
 
     def _replace_character_entities(self, line):
 
@@ -364,9 +388,10 @@ def getopts():
                          choices=['correct', 'all'])
     (opts, args) = optparser.parse_args()
     if opts.noncompound_lemma_field is None:
-        opts.noncompound_lemma_field = opts.lemma_field
-    opts.lemma_field -= 1
-    opts.noncompound_lemma_field -= 1
+        if opts.compound_boundaries == 'remove':
+            opts.noncompound_lemma_field = opts.lemma_field
+        else:
+            opts.noncompound_lemma_field = opts.lemma_field + 1
     if opts.space == '':
         opts.space = ':'
     if opts.angle_brackets == '':
