@@ -27,8 +27,13 @@ class PosAttrConverter(object):
 
     class OutputFieldSpec(object):
 
-        def __init__(self, fieldspec, input_field_nums=None):
+        def __init__(self, fieldspec, input_field_nums=None,
+                     char_encode_map=None):
             self._input_field_nums = input_field_nums or {}
+            self._char_encode_map = char_encode_map or {}
+            self._set_char_encode_map = [
+                (key, val) for key, val in self._char_encode_map
+                if key != '|']
             self._opts = {}
             self._parse_fieldspec(fieldspec)
 
@@ -75,7 +80,35 @@ class PosAttrConverter(object):
             if result is not None:
                 if 'noboundaries' in self._opts:
                     result = result.replace('#', '')
+                if 'set' in self._opts or 'setconvert' in self._opts:
+                    result = self._fix_feature_set_attr(result)
+                elif 'setfirst' in self._opts:
+                    if result.startswith('|'):
+                        result = result[1:]
+                    result = result.split('|', 1)[0]
+                elif 'setlast' in self._opts:
+                    if result.endswith('|'):
+                        result = result[:-1]
+                    result = result.split('|')[-1]
+                if self._opts.get('setconvert'):
+                    result = result.replace('|', self._opts['setconvert'])
+                if 'set' in self._opts:
+                    if self._set_char_encode_map:
+                        result = replace_substrings(
+                            result, self._set_char_encode_map)
+                elif self._char_encode_map:
+                    result = replace_substrings(result, self._char_encode_map)
             return result
+
+        def _fix_feature_set_attr(self, value):
+            if not value:
+                value = '|'
+            else:
+                if value[0] != '|':
+                    value = '|' + value
+                if value[-1] != '|':
+                    value += '|'
+            return value
 
         def get_input_fieldnum(self):
             return self._input_fieldnum
@@ -85,14 +118,14 @@ class PosAttrConverter(object):
 
     def __init__(self, input_fields, output_fields, strip=False,
                  empty_values=None, missing_values=None,
-                 copy_extra_fields=None):
+                 copy_extra_fields=None, char_encode_map=None):
         self._make_input_fields(input_fields)
         self._copy_extra_fields = value_or_default(copy_extra_fields,
                                                    not output_fields)
         self._empty_field_values = self._make_default_field_values(empty_values)
         self._missing_field_values = self._make_default_field_values(
             missing_values)
-        self._make_output_fields(output_fields)
+        self._make_output_fields(output_fields, char_encode_map)
         output_field_fieldnums = [output_field.get_input_fieldnum()
                                   for output_field in self._output_fields]
         self._max_fieldnum = max((output_field_fieldnums
@@ -152,7 +185,7 @@ class PosAttrConverter(object):
         else:
             return self._input_fields.get(num_or_name)
 
-    def _make_output_fields(self, output_fieldslist):
+    def _make_output_fields(self, output_fieldslist, char_encode_map):
         self._output_fields = []
         if output_fieldslist:
             for fields in output_fieldslist:
@@ -160,8 +193,10 @@ class PosAttrConverter(object):
                 # print repr(fieldspecs)
                 for fieldspec in fieldspecs:
                     self._output_fields.append(
-                        self.OutputFieldSpec(fieldspec, self._input_fields))
-        self._extra_output_field = self.OutputFieldSpec('0', self._input_fields)
+                        self.OutputFieldSpec(fieldspec, self._input_fields,
+                                             char_encode_map=char_encode_map))
+        self._extra_output_field = self.OutputFieldSpec(
+            '0', self._input_fields, char_encode_map=char_encode_map)
 
     def _add_default_fieldvals(self, type_, values):
         for fieldnum, fieldval in values.items():
@@ -251,11 +286,14 @@ class AttributeFixer(object):
                         make_field_list(self._opts.noncompound_lemma_field - 1)
                         + ' ' + str(self._opts.lemma_field) + ':noboundaries')]
         # print repr(output_fields)
+        char_encode_map = (self._special_char_encode_map
+                           if self._encode_posattrs else {})
         self._pos_attr_converter = PosAttrConverter(
             self._opts.input_fields, output_fields, strip=self._opts.strip,
             empty_values=self._opts.empty_field_values,
             missing_values=self._opts.missing_field_values,
-            copy_extra_fields=copy_extra_fields)
+            copy_extra_fields=copy_extra_fields,
+            char_encode_map=char_encode_map)
 
     def process_files(self, files):
         if isinstance(files, list):
@@ -291,7 +329,7 @@ class AttributeFixer(object):
         if self._opts.angle_brackets:
             line = (line.replace('<', self._opts.angle_brackets[0])
                     .replace('>', self._opts.angle_brackets[1]))
-        if self._encode_posattrs:
+        if self._encode_posattrs and not self._split_lines:
             line = self._encode_special_chars(line)
         if self._opts.replace_xml_character_entities:
             line = self._replace_character_entities(line)
