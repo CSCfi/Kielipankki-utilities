@@ -7,6 +7,7 @@ import codecs
 import re
 
 from optparse import OptionParser
+from collections import defaultdict
 
 
 def replace_substrings(s, mapping):
@@ -268,6 +269,7 @@ class AttributeFixer(object):
             elemnames = re.split(r'\s*[,\s]\s*', elemnames_str)
             for elemname in elemnames:
                 self._elem_ids[elemname] = 0
+        self._init_struct_attr_copy_info()
 
     def _make_pos_attr_converter(self):
 
@@ -294,6 +296,21 @@ class AttributeFixer(object):
             missing_values=self._opts.missing_field_values,
             copy_extra_fields=copy_extra_fields,
             char_encode_map=char_encode_map)
+
+    def _init_struct_attr_copy_info(self):
+        self._struct_attr_values = defaultdict(dict)
+        self._struct_attr_copy_sources = defaultdict(set)
+        self._struct_attr_copy_targets = defaultdict(list)
+        for copyspec in self._opts.copy_struct_attribute:
+            target, sources = re.split(r'\s*:\s*', copyspec, 1)
+            sourcelist = re.split(r'\s*;\s*', sources)
+            for source in sourcelist:
+                elem, attrs = re.split(r'\s*/\s*', source, 1)
+                attrlist = re.split(r'\s*,\s*', attrs)
+                for attr in attrlist:
+                    self._struct_attr_copy_sources[elem].add(attr)
+                    self._struct_attr_copy_targets[target].append((elem, attr))
+        # print self._struct_attr_copy_sources, self._struct_attr_copy_targets
 
     def process_files(self, files):
         if isinstance(files, list):
@@ -370,8 +387,16 @@ class AttributeFixer(object):
     def _fix_structattrs(self, line):
         if self._elem_renames:
             line = self._rename_elem(line)
-        if self._elem_ids and not line.startswith('</'):
-            line = self._add_elem_id(line)
+        if line.startswith('</'):
+            if self._struct_attr_values:
+                elemname = line[2:-2]
+                if elemname in self._struct_attr_values:
+                    del self._struct_attr_values[elemname]
+        else:
+            if self._elem_ids:
+                line = self._add_elem_id(line)
+            if self._struct_attr_copy_sources:
+                line = self._copy_struct_attrs(line)
         return line
 
     def _rename_elem(self, line):
@@ -386,9 +411,32 @@ class AttributeFixer(object):
         elemname = re.search(r'(\w+)', line).group(1)
         if elemname in self._elem_ids:
             self._elem_ids[elemname] += 1
-            line = (line[:-2] + ' id="{0:d}"'.format(self._elem_ids[elemname])
-                    + line[-2:])
+            line = self._add_attrs(line,
+                                   [('id', str(self._elem_ids[elemname]))])
         return line
+
+    def _add_attrs(self, line, attrs):
+        return (line[:-2] + ' '
+                + ' '.join(name + '="' + val + '"' for name, val in attrs)
+                + line[-2:])
+
+    def _copy_struct_attrs(self, line):
+        # print self._struct_attr_values
+        elemname = re.search(r'(\w+)', line).group(1)
+        if elemname in self._struct_attr_copy_sources:
+            self._struct_attr_values[elemname] = \
+                self._extract_struct_attrs(line)
+        if elemname in self._struct_attr_copy_targets:
+            line = self._add_attrs(
+                line, [(src_elem + '_' + attrname,
+                        self._struct_attr_values.get(
+                            src_elem, {}).get(attrname, ''))
+                       for src_elem, attrname
+                       in self._struct_attr_copy_targets[elemname]])
+        return line
+
+    def _extract_struct_attrs(self, line):
+        return dict(re.findall(r'(\w+)=\"([^\"]+)\"', line))
 
 
 def getopts():
@@ -424,6 +472,7 @@ def getopts():
                          default=[])
     optparser.add_option('--replace-xml-character-entities', type='choice',
                          choices=['correct', 'all'])
+    optparser.add_option('--copy-struct-attribute', action='append', default=[])
     (opts, args) = optparser.parse_args()
     if opts.noncompound_lemma_field is None:
         if opts.compound_boundaries == 'remove':
