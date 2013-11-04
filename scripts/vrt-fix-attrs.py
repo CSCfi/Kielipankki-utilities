@@ -428,15 +428,28 @@ class AttributeFixer(object):
                 self._extract_struct_attrs(line)
         if elemname in self._struct_attr_copy_targets:
             line = self._add_attrs(
-                line, [(src_elem + '_' + attrname,
-                        self._struct_attr_values.get(
-                            src_elem, {}).get(attrname, ''))
-                       for src_elem, attrname
-                       in self._struct_attr_copy_targets[elemname]])
+                line, [(src_elem + '_' + attrname, value)
+                       for (src_elem, attrname, value)
+                       in self._get_struct_attr_values(
+                        self._struct_attr_copy_targets[elemname])])
         return line
 
     def _extract_struct_attrs(self, line):
         return dict(re.findall(r'(\w+)=\"([^\"]+)\"', line))
+
+    def _get_struct_attr_values(self, elem_attrname_list):
+        result = []
+        for elem, attrname in elem_attrname_list:
+            if elem in self._struct_attr_values:
+                if attrname == '*':
+                    result.extend(
+                        [(elem, name, val) for name, val
+                         in sorted(self._struct_attr_values[elem].items())])
+                else:
+                    result.append(
+                        (elem, attrname,
+                         self._struct_attr_values[elem].get(attrname, '')))
+        return result
 
 
 def getopts():
