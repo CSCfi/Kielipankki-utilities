@@ -9,16 +9,56 @@
 
 eq = $(and $(findstring $(1),$(2)),$(findstring $(2),$(1)))
 eqs = $(call eq,$(strip $(1)),$(strip $(2)))
+not = $(if $(1),,1)
 lower = $(shell echo $(1) | perl -pe 's/(.*)/\L$$1\E/')
 
-showvars = $(if $(DEBUG),$(foreach var,$(1),$(info $(var) = $($(var)))))
+showvars = $(if $(DEBUG),$(foreach var,$(1),$(info $(var) = "$($(var))")))
+
+
+# NOTE: We cannot use the variable name LANGUAGE since that controls
+# the language of Make messages, so  we use PARCORP_LANG instead.
+
+# Functions for handling variables with possibly language-specific
+# values in parallel corpora
+
+# Prefix values with $(defined_mark) so that also empty defined values
+# take precedence over the default value.
+defined_mark = !*!DEFINED!*!
+defined_val = $(if $(call eq,$(origin $(1)),undefined),,$(defined_mark)$($(1)))
+
+# In a parallel corpus part, for a variable VAR, return the value of
+# the first defined one of VAR_$(PARCORP_LANG), VAR_other, VAR or the
+# default argument; elsewhere return the value of VAR or the default.
+# The returned value is prefixed $(defined_mark) if the value was
+# defined.
+langvar_defined_or_default = \
+	$(if $(strip $(PARCORP_LANG)),\
+	     $(or $(call defined_val,$(1)_$(PARCORP_LANG)),\
+		  $(call defined_val,$(1)_other),\
+		  $(call defined_val,$(1)),\
+	          $(2)),\
+	     $(or $(call defined_val,$(1)),$(2)))
+
+# Return $(defined_mark) if a variant of the argument variable was is
+# defined
+langvar_defined = \
+	$(findstring $(defined_mark),$(call langvar_defined_or_default,$(1)))
+
+# Strip $(defined_mark) and leading and trailing spaces
+langvar_or_default = $(strip \
+	$(subst $(defined_mark),,$(call langvar_defined_or_default,$(1),$(2))))
+
+# Default to the empty string
+langvar = $(call langvar_or_default,$(1))
+
 
 $(call showvars,MAKEFILE_LIST)
 
 TOPDIR = $(dir $(lastword $(MAKEFILE_LIST)))
 
 SCRIPTDIR = $(TOPDIR)/scripts
-CORPSRCROOT ?= $(TOPDIR)/../../corp
+CORPSRCROOT := $(call langvar_or_default,CORPSRCROOT,\
+		$(TOPDIR)/../../corp)
 
 KORP_SRCDIR = $(TOPDIR)/../src
 KORP_CGI = $(KORP_SRCDIR)/backend/korp/korp.cgi
@@ -50,24 +90,28 @@ VRT_ADD_LEMGRAMS = $(SCRIPTDIR)/vrt-add-lemgrams.py \
 			--pos-map-file $(LEMGRAM_POSMAP) \
 			$(VRT_ADD_LEMGRAMS_OPTS)
 VRT_FIX_ATTRS_PROG = $(SCRIPTDIR)/vrt-fix-attrs.py
-VRT_FIX_ATTRS_OPTS ?= \
-	--encode-special-chars=all --special-chars=$(SPECIAL_CHARS) \
-	--encoded-special-char-offset=$(ENCODED_SPECIAL_CHAR_OFFSET) \
-	--encoded-special-char-prefix=$(ENCODED_SPECIAL_CHAR_PREFIX) \
-	$(VRT_FIX_ATTRS_OPTS_EXTRA)
+VRT_FIX_ATTRS_OPTS := \
+	$(call langvar_or_default,VRT_FIX_ATTRS_OPTS,\
+		--encode-special-chars=all --special-chars=$(SPECIAL_CHARS) \
+		--encoded-special-char-offset=$(ENCODED_SPECIAL_CHAR_OFFSET) \
+		--encoded-special-char-prefix=$(ENCODED_SPECIAL_CHAR_PREFIX) \
+		$(call langvar,VRT_FIX_ATTRS_OPTS_EXTRA))
 VRT_FIX_ATTRS = $(VRT_FIX_ATTRS_PROG) $(VRT_FIX_ATTRS_OPTS)
-XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(XML2VRT_RULES) \
-		--wrapper-element-name= $(XML2VRT_OPTS)
+XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(call langvar,XML2VRT_RULES) \
+		--wrapper-element-name= $(call langvar,XML2VRT_OPTS)
 # xmlstats.py should _not_ have --decode-special-chars as it does not
 # work correctly with UTF-8 encoding.
 XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name= \
 		--allow-stray-reserved-characters
 
 VRT_EXTRACT_TIMESPANS_PROG = $(SCRIPTDIR)/vrt-extract-timespans.py
-VRT_EXTRACT_TIMESPANS_OPTS ?= \
-	$(if $(call eq,unknown,$(CORPUS_DATE)),--unknown,\
-	$(if $(CORPUS_DATE),--fixed=$(CORPUS_DATE),\
-	$(if $(CORPUS_DATE_PATTERN),--pattern=$(CORPUS_DATE_PATTERN))))
+CORPUS_DATE := $(call langvar,CORPUS_DATE)
+CORPUS_DATE_PATTERN := $(call langvar,CORPUS_DATE_PATTERN)
+VRT_EXTRACT_TIMESPANS_OPTS := \
+	$(call langvar_or_default,VRT_EXTRACT_TIMESPANS_OPTS,\
+		$(if $(call eqs,unknown,$(CORPUS_DATE)),--unknown,\
+		$(if $(CORPUS_DATE),--fixed=$(CORPUS_DATE),\
+		$(if $(CORPUS_DATE_PATTERN),--pattern=$(CORPUS_DATE_PATTERN)))))
 VRT_EXTRACT_TIMESPANS = \
 	$(VRT_EXTRACT_TIMESPANS_PROG) $(VRT_EXTRACT_TIMESPANS_OPTS)
 
@@ -77,8 +121,10 @@ SUBDIRS := \
 	$(shell find -name Makefile -o -name \*.mk \
 	| egrep '/.*/' | cut -d'/' -f2 | sort -u)
 
-CORPNAME_BASE ?= $(lastword $(subst /, ,$(CURDIR)))
-CORPNAME_MAIN ?= $(CORPNAME_BASE)
+CORPNAME_BASE := $(call langvar_or_default,CORPNAME_BASE,\
+			$(lastword $(subst /, ,$(CURDIR))))
+CORPNAME_MAIN := $(call langvar_or_default,CORPNAME_MAIN,\
+			$(CORPNAME_BASE))
 
 # CORPORA: The corpora to make with the current makefile. If not
 # specified explicitly, all the stems of .mk files in the current
@@ -87,24 +133,30 @@ CORPNAME_MAIN ?= $(CORPNAME_BASE)
 # current directory.
 CORPORA ?= $(or $(basename $(filter-out $(addsuffix .mk,\
 						%-common %_any \
-						$(IGNORE_CORPORA)),\
+						$(call langvar,IGNORE_CORPORA)),\
 					$(wildcard *.mk))),\
 		$(CORPNAME_BASE))
 
 $(call showvars,SRC_SUBDIR)
 
+WITHIN_CORP_MK := $(filter %.mk,$(firstword $(MAKEFILE_LIST)))
+
 # The subdirectory of CORPSRCROOT for the corpus source files; can be
 # overridden in individual corpus makefiles. WITHIN_CORP_MK is defined
 # if this file is included in a CORPUS.mk makefile (and not Makefile).
-SRC_SUBDIR ?= $(subst $(abspath $(TOPDIR))/,,$(abspath $(CURDIR)))$(if $(WITHIN_CORP_MK),/$(CORPNAME_BASE))
+SRC_SUBDIR := \
+	$(call langvar_or_default,SRC_SUBDIR,\
+		$(subst $(abspath $(TOPDIR))/,,$(abspath $(CURDIR)))$(if $(WITHIN_CORP_MK),/$(CORPNAME_BASE)))
 # The corpus source directory; overrides CORPSRCROOT if defined in a
 # corpus makefile
-SRC_DIR ?= $(CORPSRCROOT)/$(SRC_SUBDIR)
+SRC_DIR := $(call langvar_or_default,SRC_DIR,$(CORPSRCROOT)/$(SRC_SUBDIR))
 
 # SRC_FILES (relative to SRC_DIR) must be defined in a corpus-specific
 # makefile. Wildcards in SRC_FILES are expanded, and files specified
 # in SRC_FILES_EXCLUDE (relative to SRC_DIR) are excluded.
-SRC_FILES_REAL = $(filter-out $(addprefix $(SRC_DIR)/,$(SRC_FILES_EXCLUDE)),\
+SRC_FILES_REAL = \
+	$(filter-out $(addprefix $(SRC_DIR)/,\
+				 $(call langvar,SRC_FILES_EXCLUDE)),\
 			$(wildcard $(addprefix $(SRC_DIR)/,$(SRC_FILES))))
 
 $(call showvars,\
@@ -112,21 +164,29 @@ $(call showvars,\
 	SRC_SUBDIR SRC_DIR SRC_FILES \
 	CORPORA SRC_FILES_REAL)
 
+P_ATTRS := $(call langvar,P_ATTRS)
+
 DB_TARGETS_ALL = korp_timespans korp_rels korp_lemgrams
 DB_HAS_RELS := $(and $(filter dephead,$(P_ATTRS)),$(filter deprel,$(P_ATTRS)))
-DB_TARGETS ?= $(if $(DB),$(DB_TARGETS_ALL),\
-		korp_timespans \
-		$(if $(filter lex,$(P_ATTRS)),\
-			korp_lemgrams $(if $(DB_HAS_RELS),korp_rels)))
+DB_TARGETS := \
+	$(call langvar_or_default,DB_TARGETS,\
+		$(if $(DB),$(DB_TARGETS_ALL),\
+			korp_timespans \
+			$(if $(filter lex,$(P_ATTRS)),\
+				korp_lemgrams $(if $(DB_HAS_RELS),korp_rels))))
 
-PARCORP ?= $(LINK_ELEM)
+$(call showvars,PARCORP PARCORP_PART PARCORP_LANG LINK_ELEM)
+
+PARCORP := $(call langvar_or_default,PARCORP,\
+		$(and $(call langvar,LINK_ELEM),$(call not,$(PARCORP_PART))))
 
 $(call showvars,PARCORP PARCORP_PART)
 
-LANGPAIRS_ALIGN ?= \
-	$(foreach lang1,$(LANGUAGES),\
-		$(foreach lang2,$(filter-out $(lang1),$(LANGUAGES)),\
-			$(lang1)_$(lang2)))
+LANGPAIRS_ALIGN := \
+	$(call langvar_or_default,LANGPAIRS_ALIGN,\
+		$(foreach lang1,$(LANGUAGES),\
+			$(foreach lang2,$(filter-out $(lang1),$(LANGUAGES)),\
+				$(lang1)_$(lang2))))
 
 $(call showvars,LANGPAIRS_ALIGN)
 
@@ -140,16 +200,18 @@ LANGPAIR_LANG2 = $(lastword $(subst _, ,$(1)))
 
 # $(error $(call EXTRACT_LANG1,foo_bar_fi_en) :: $(call EXTRACT_LANG2,foo_bar_fi_en) :: $(call LANGPAIR_LANG1,fi_en) :: $(call LANGPAIR_LANG2,fi_en))
 
-TARGETS ?= $(if $(PARCORP),\
-		align pkg-parcorp,\
-		subdirs vrt reg $(if $(PARCORP_PART),,pkg) \
-			$(if $(strip $(DB_TARGETS)),db))
+TARGETS := \
+	$(call langvar_or_default,TARGETS,\
+		$(if $(PARCORP),\
+			align pkg-parcorp,\
+			subdirs vrt reg $(if $(PARCORP_PART),,pkg) \
+				$(if $(strip $(DB_TARGETS)),db)))
 
 # Separator between corpus name and a subtarget (vrt, reg, db, pkg ...).
 # A : needs to be represented as \: and # as \\\#.
 SUBTARGET_SEP = \:
 
-CORPNAME := $(CORPNAME_PREFIX)$(CORPNAME_BASE)$(CORPNAME_SUFFIX)
+CORPNAME := $(call langvar,CORPNAME_PREFIX)$(CORPNAME_BASE)$(call langvar,CORPNAME_SUFFIX)
 CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
 
 DEP_MAKEFILES := $(if $(call eqs,$(call lower,$(MAKEFILE_DEPS)),false),,\
@@ -193,15 +255,20 @@ VRT_CKSUM = $(VRT)$(CKSUM_EXT_COND)
 TSV_CKSUM = $(TSV)$(CKSUM_EXT_COND)
 ALIGN_CKSUM = $(ALIGN)$(CKSUM_EXT_COND)
 
-MAKE_VRT_CMD ?= cat
+MAKE_VRT_CMD := $(call langvar_or_default,MAKE_VRT_CMD,cat)
 
-MAKE_VRT_PROG ?= $(if $(call eq,$(MAKE_VRT_CMD),cat),,\
-			$(firstword $(MAKE_VRT_CMD)))
+MAKE_VRT_PROG := \
+	$(call langvar_or_default,MAKE_VRT_PROG,\
+		$(if $(call eq,$(MAKE_VRT_CMD),cat),,\
+			$(firstword $(MAKE_VRT_CMD))))
 MAKE_VRT_DEPS = $(MAKE_VRT_PROG) $(XML2VRT_RULES) $(LEMGRAM_POSMAP) \
 		$(MAKE_VRT_DEPS_EXTRA)
-MAKE_RELS_PROG ?= $(firstword $(MAKE_RELS_CMD))
-MAKE_RELS_DEPS = $(MAKE_RELS_PROG) $(MAKE_RELS_DEPS_EXTRA)
+MAKE_RELS_PROG := \
+	$(call langvar_or_default,MAKE_RELS_PROG,\
+		$(firstword $(MAKE_RELS_CMD)))
+MAKE_RELS_DEPS = $(MAKE_RELS_PROG) $(call langvar,MAKE_RELS_DEPS_EXTRA)
 
+INPUT_ENCODING := $(call langvar,INPUT_ENCODING)
 TRANSCODE := $(if $(INPUT_ENCODING),iconv -f$(INPUT_ENCODING) -tutf8,cat)
 
 DBUSER = korp
@@ -248,9 +315,17 @@ SUBST_CORPNAME = $(shell perl -pe 's/\@CORPNAME\@/$(CORPNAME_U)/g' $(1))
 
 # Depend on $(CORPNAME).sattrs only if S_ATTRS has not been defined
 # previously (in a corpus makefile)
-S_ATTRS_DEP := $(if $(S_ATTRS),,$(CORPNAME).sattrs)
-
-S_ATTRS ?= $(shell cat $(CORPNAME).sattrs)
+ifeq ($(strip $(call langvar_defined,S_ATTRS)),)
+S_ATTRS_DEP := $(if $(call langvar,S_ATTRS),,$(CORPNAME).sattrs)
+# Here S_ATTRS should be a recursively expanded variable as its value
+# is defined correctly only after making $(CORPNAME).sattrs.
+S_ATTRS = $(shell cat $(CORPNAME).sattrs)
+else
+S_ATTRS_DEP := 
+# Here S_ATTRS should be a simply expanded variable in order to avoid
+# a recursive reference in langvar.
+S_ATTRS := $(call langvar,S_ATTRS)
+endif
 
 P_OPTS = $(foreach attr,$(P_ATTRS),-P $(attr))
 S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
@@ -324,7 +399,7 @@ TOP_TARGETS = subdirs $(CORPORA)
 
 endif
 
-$(call showvars,TOP_TARGETS)
+$(call showvars,TOP_TARGETS TARGETS)
 
 
 all-top: $(TOP_TARGETS)
@@ -344,7 +419,7 @@ $(SUBDIRS):
 define MAKE_CORPUS_R
 $(1)$(if $(subst $(SUBTARGET_SEP),,$(2)),$(SUBTARGET_SEP)$(2)):
 	$$(MAKE) -f $(1).mk $(or $(TARGET),$(subst $(SUBTARGET_SEP),all,$(2))) \
-		CORPNAME_BASE=$(1) DB=$(DB) WITHIN_CORP_MK=1
+		CORPNAME_BASE=$(1) DB=$(DB) # WITHIN_CORP_MK=1
 
 .PHONY: $(1)$(if $(subst $(SUBTARGET_SEP),,$(2)),$(SUBTARGET_SEP)$(2))
 endef
@@ -573,8 +648,9 @@ $(foreach langpair,$(LANGPAIRS_ALIGN),\
 
 MAKE_PARCORP_PARTS = \
 	for lang in $(LANGUAGES); do \
-		for suffix in _$$lang _any ""; do \
-			makefile=$(CORPNAME_MAIN)$$suffix.mk; \
+		for makefile in $(CORPNAME_MAIN)_$$lang.mk \
+				$(CORPNAME_MAIN)_any.mk $(CORPNAME_MAIN).mk \
+				Makefile; do \
 			if test -e $$makefile; then \
 				$(MAKE) -f $$makefile $(1) \
 					CORPNAME_MAIN="$(CORPNAME)" \
@@ -587,7 +663,7 @@ MAKE_PARCORP_PARTS = \
 	done
 
 parcorp:
-	$(call MAKE_PARCORP_PARTS,all WITHIN_CORP_MK=1 PARCORP_PART=1)
+	$(call MAKE_PARCORP_PARTS,all PARCORP_PART=1)
 
 pkg-parcorp: align
 	$(call MAKE_PARCORP_PARTS,pkg)
