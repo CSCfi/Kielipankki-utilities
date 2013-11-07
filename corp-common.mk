@@ -15,6 +15,10 @@ lower = $(shell echo $(1) | perl -pe 's/(.*)/\L$$1\E/')
 showvars = $(if $(DEBUG),$(foreach var,$(1),$(info $(var) = "$($(var))")))
 
 
+# The corpus has subcorpora if SUBCORPORA has been defined but not
+# SUBCORPUS (which would indicate this is a subcorpus).
+HAS_SUBCORPORA = $(and $(SUBCORPORA),$(call not,$(SUBCORPUS)))
+
 # NOTE: We cannot use the variable name LANGUAGE since that controls
 # the language of Make messages, so  we use PARCORP_LANG instead.
 
@@ -26,30 +30,43 @@ showvars = $(if $(DEBUG),$(foreach var,$(1),$(info $(var) = "$($(var))")))
 defined_mark = !*!DEFINED!*!
 defined_val = $(if $(call eq,$(origin $(1)),undefined),,$(defined_mark)$($(1)))
 
-# In a parallel corpus part, for a variable VAR, return the value of
-# the first defined one of VAR_$(PARCORP_LANG), VAR_other, VAR or the
-# default argument; elsewhere return the value of VAR or the default.
-# The returned value is prefixed $(defined_mark) if the value was
-# defined.
-langvar_defined_or_default = \
-	$(if $(strip $(PARCORP_LANG)),\
-	     $(or $(call defined_val,$(1)_$(PARCORP_LANG)),\
-		  $(call defined_val,$(1)_other),\
-		  $(call defined_val,$(1)),\
-	          $(2)),\
-	     $(or $(call defined_val,$(1)),$(2)))
+# Return a possibly language-specific value for variable VAR: the
+# first one of VAR_$(PARCORP_LANG), VAR_other or VAR.
+langvar_val = \
+	$(or $(call defined_val,$(1)_$(PARCORP_LANG)),\
+	     $(call defined_val,$(1)_other),\
+	     $(call defined_val,$(1)))
+
+# An auxiliary function for partvar_defined_or_default
+partvar_defined_or_default_aux = \
+	$(or $(if $(SUBCORPUS),$(call $(1),$(2)_$(SUBCORPUS))),\
+	     $(call $(1),$(2)),\
+	     $(3))
+
+# In a subcorpus that is a parallel corpus part, for a variable VAR,
+# return the value of the first defined one of
+# VAR_$(SUBCORPUS)_$(PARCORP_LANG), VAR_$(SUBCORPUS)_other,
+# VAR_$(SUBCORPUS), VAR_$(PARCORP_LANG), VAR_other or VAR, or the
+# default argument. If not a subcorpus or a parallel corpus part, skip
+# the non-relevant alternatives. The returned value is prefixed
+# $(defined_mark) if the value was defined. (TODO: Should we also have
+# a default for subcorpora, like _other for languages?)
+partvar_defined_or_default = \
+	$(if $(PARCORP_LANG),\
+	     $(call partvar_defined_or_default_aux,langvar_val,$(1),$(2)),\
+	     $(call partvar_defined_or_default_aux,defined_val,$(1),$(2)))
 
 # Return $(defined_mark) if a variant of the argument variable was is
 # defined
-langvar_defined = \
-	$(findstring $(defined_mark),$(call langvar_defined_or_default,$(1)))
+partvar_defined = \
+	$(findstring $(defined_mark),$(call partvar_defined_or_default,$(1)))
 
 # Strip $(defined_mark) and leading and trailing spaces
-langvar_or_default = $(strip \
-	$(subst $(defined_mark),,$(call langvar_defined_or_default,$(1),$(2))))
+partvar_or_default = $(strip \
+	$(subst $(defined_mark),,$(call partvar_defined_or_default,$(1),$(2))))
 
 # Default to the empty string
-langvar = $(call langvar_or_default,$(1))
+partvar = $(call partvar_or_default,$(1))
 
 
 $(call showvars,MAKEFILE_LIST)
@@ -57,7 +74,7 @@ $(call showvars,MAKEFILE_LIST)
 TOPDIR = $(dir $(lastword $(MAKEFILE_LIST)))
 
 SCRIPTDIR = $(TOPDIR)/scripts
-CORPSRCROOT := $(call langvar_or_default,CORPSRCROOT,\
+CORPSRCROOT := $(call partvar_or_default,CORPSRCROOT,\
 		$(TOPDIR)/../../corp)
 
 KORP_SRCDIR = $(TOPDIR)/../src
@@ -91,24 +108,24 @@ VRT_ADD_LEMGRAMS = $(SCRIPTDIR)/vrt-add-lemgrams.py \
 			$(VRT_ADD_LEMGRAMS_OPTS)
 VRT_FIX_ATTRS_PROG = $(SCRIPTDIR)/vrt-fix-attrs.py
 VRT_FIX_ATTRS_OPTS := \
-	$(call langvar_or_default,VRT_FIX_ATTRS_OPTS,\
+	$(call partvar_or_default,VRT_FIX_ATTRS_OPTS,\
 		--encode-special-chars=all --special-chars=$(SPECIAL_CHARS) \
 		--encoded-special-char-offset=$(ENCODED_SPECIAL_CHAR_OFFSET) \
 		--encoded-special-char-prefix=$(ENCODED_SPECIAL_CHAR_PREFIX) \
-		$(call langvar,VRT_FIX_ATTRS_OPTS_EXTRA))
+		$(call partvar,VRT_FIX_ATTRS_OPTS_EXTRA))
 VRT_FIX_ATTRS = $(VRT_FIX_ATTRS_PROG) $(VRT_FIX_ATTRS_OPTS)
-XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(call langvar,XML2VRT_RULES) \
-		--wrapper-element-name= $(call langvar,XML2VRT_OPTS)
+XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(call partvar,XML2VRT_RULES) \
+		--wrapper-element-name= $(call partvar,XML2VRT_OPTS)
 # xmlstats.py should _not_ have --decode-special-chars as it does not
 # work correctly with UTF-8 encoding.
 XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name= \
 		--allow-stray-reserved-characters
 
 VRT_EXTRACT_TIMESPANS_PROG = $(SCRIPTDIR)/vrt-extract-timespans.py
-CORPUS_DATE := $(call langvar,CORPUS_DATE)
-CORPUS_DATE_PATTERN := $(call langvar,CORPUS_DATE_PATTERN)
+CORPUS_DATE := $(call partvar,CORPUS_DATE)
+CORPUS_DATE_PATTERN := $(call partvar,CORPUS_DATE_PATTERN)
 VRT_EXTRACT_TIMESPANS_OPTS := \
-	$(call langvar_or_default,VRT_EXTRACT_TIMESPANS_OPTS,\
+	$(call partvar_or_default,VRT_EXTRACT_TIMESPANS_OPTS,\
 		$(if $(call eqs,unknown,$(CORPUS_DATE)),--unknown,\
 		$(if $(CORPUS_DATE),--fixed=$(CORPUS_DATE),\
 		$(if $(CORPUS_DATE_PATTERN),--pattern=$(CORPUS_DATE_PATTERN)))))
@@ -121,9 +138,9 @@ SUBDIRS := \
 	$(shell find -name Makefile -o -name \*.mk \
 	| egrep '/.*/' | cut -d'/' -f2 | sort -u)
 
-CORPNAME_BASE := $(call langvar_or_default,CORPNAME_BASE,\
+CORPNAME_BASE := $(call partvar_or_default,CORPNAME_BASE,\
 			$(lastword $(subst /, ,$(CURDIR))))
-CORPNAME_MAIN := $(call langvar_or_default,CORPNAME_MAIN,\
+CORPNAME_MAIN := $(call partvar_or_default,CORPNAME_MAIN,\
 			$(CORPNAME_BASE))
 
 # CORPORA: The corpora to make with the current makefile. If not
@@ -133,7 +150,7 @@ CORPNAME_MAIN := $(call langvar_or_default,CORPNAME_MAIN,\
 # current directory.
 CORPORA ?= $(or $(basename $(filter-out $(addsuffix .mk,\
 						%-common %_any \
-						$(call langvar,IGNORE_CORPORA)),\
+						$(call partvar,IGNORE_CORPORA)),\
 					$(wildcard *.mk))),\
 		$(CORPNAME_BASE))
 
@@ -145,31 +162,33 @@ WITHIN_CORP_MK := $(filter %.mk,$(firstword $(MAKEFILE_LIST)))
 # overridden in individual corpus makefiles. WITHIN_CORP_MK is defined
 # if this file is included in a CORPUS.mk makefile (and not Makefile).
 SRC_SUBDIR := \
-	$(call langvar_or_default,SRC_SUBDIR,\
+	$(call partvar_or_default,SRC_SUBDIR,\
 		$(subst $(abspath $(TOPDIR))/,,$(abspath $(CURDIR)))$(if $(WITHIN_CORP_MK),/$(CORPNAME_BASE)))
 # The corpus source directory; overrides CORPSRCROOT if defined in a
 # corpus makefile
-SRC_DIR := $(call langvar_or_default,SRC_DIR,$(CORPSRCROOT)/$(SRC_SUBDIR))
+SRC_DIR := $(call partvar_or_default,SRC_DIR,$(CORPSRCROOT)/$(SRC_SUBDIR))
+
+SRC_FILES := $(call partvar,SRC_FILES)
 
 # SRC_FILES (relative to SRC_DIR) must be defined in a corpus-specific
 # makefile. Wildcards in SRC_FILES are expanded, and files specified
 # in SRC_FILES_EXCLUDE (relative to SRC_DIR) are excluded.
 SRC_FILES_REAL = \
 	$(filter-out $(addprefix $(SRC_DIR)/,\
-				 $(call langvar,SRC_FILES_EXCLUDE)),\
+				 $(call partvar,SRC_FILES_EXCLUDE)),\
 			$(wildcard $(addprefix $(SRC_DIR)/,$(SRC_FILES))))
 
 $(call showvars,\
-	WITHIN_CORP_MK CORPNAME_MAIN CORPNAME_BASE \
-	SRC_SUBDIR SRC_DIR SRC_FILES \
-	CORPORA SRC_FILES_REAL)
+	CORPORA WITHIN_CORP_MK CORPNAME_MAIN CORPNAME_BASE \
+	SRC_SUBDIR SRC_DIR SRC_FILES SRC_FILES_REAL \
+	SUBCORPORA HAS_SUBCORPORA SUBCORPUS)
 
-P_ATTRS := $(call langvar,P_ATTRS)
+P_ATTRS := $(call partvar,P_ATTRS)
 
 DB_TARGETS_ALL = korp_timespans korp_rels korp_lemgrams
 DB_HAS_RELS := $(and $(filter dephead,$(P_ATTRS)),$(filter deprel,$(P_ATTRS)))
 DB_TARGETS := \
-	$(call langvar_or_default,DB_TARGETS,\
+	$(call partvar_or_default,DB_TARGETS,\
 		$(if $(DB),$(DB_TARGETS_ALL),\
 			korp_timespans \
 			$(if $(filter lex,$(P_ATTRS)),\
@@ -177,13 +196,13 @@ DB_TARGETS := \
 
 $(call showvars,PARCORP PARCORP_PART PARCORP_LANG LINK_ELEM)
 
-PARCORP := $(call langvar_or_default,PARCORP,\
-		$(and $(call langvar,LINK_ELEM),$(call not,$(PARCORP_PART))))
+PARCORP := $(call partvar_or_default,PARCORP,\
+		$(and $(call partvar,LINK_ELEM),$(call not,$(PARCORP_PART))))
 
 $(call showvars,PARCORP PARCORP_PART)
 
 LANGPAIRS_ALIGN := \
-	$(call langvar_or_default,LANGPAIRS_ALIGN,\
+	$(call partvar_or_default,LANGPAIRS_ALIGN,\
 		$(foreach lang1,$(LANGUAGES),\
 			$(foreach lang2,$(filter-out $(lang1),$(LANGUAGES)),\
 				$(lang1)_$(lang2))))
@@ -201,7 +220,7 @@ LANGPAIR_LANG2 = $(lastword $(subst _, ,$(1)))
 # $(error $(call EXTRACT_LANG1,foo_bar_fi_en) :: $(call EXTRACT_LANG2,foo_bar_fi_en) :: $(call LANGPAIR_LANG1,fi_en) :: $(call LANGPAIR_LANG2,fi_en))
 
 TARGETS := \
-	$(call langvar_or_default,TARGETS,\
+	$(call partvar_or_default,TARGETS,\
 		$(if $(PARCORP),\
 			align pkg-parcorp,\
 			subdirs vrt reg $(if $(PARCORP_PART),,pkg) \
@@ -211,7 +230,7 @@ TARGETS := \
 # A : needs to be represented as \: and # as \\\#.
 SUBTARGET_SEP = \:
 
-CORPNAME := $(call langvar,CORPNAME_PREFIX)$(CORPNAME_BASE)$(call langvar,CORPNAME_SUFFIX)
+CORPNAME := $(call partvar,CORPNAME_PREFIX)$(CORPNAME_BASE)$(call partvar,CORPNAME_SUFFIX)
 CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
 
 DEP_MAKEFILES := $(if $(call eqs,$(call lower,$(MAKEFILE_DEPS)),false),,\
@@ -255,20 +274,20 @@ VRT_CKSUM = $(VRT)$(CKSUM_EXT_COND)
 TSV_CKSUM = $(TSV)$(CKSUM_EXT_COND)
 ALIGN_CKSUM = $(ALIGN)$(CKSUM_EXT_COND)
 
-MAKE_VRT_CMD := $(call langvar_or_default,MAKE_VRT_CMD,cat)
+MAKE_VRT_CMD := $(call partvar_or_default,MAKE_VRT_CMD,cat)
 
 MAKE_VRT_PROG := \
-	$(call langvar_or_default,MAKE_VRT_PROG,\
+	$(call partvar_or_default,MAKE_VRT_PROG,\
 		$(if $(call eq,$(MAKE_VRT_CMD),cat),,\
 			$(firstword $(MAKE_VRT_CMD))))
 MAKE_VRT_DEPS = $(MAKE_VRT_PROG) $(XML2VRT_RULES) $(LEMGRAM_POSMAP) \
 		$(MAKE_VRT_DEPS_EXTRA)
 MAKE_RELS_PROG := \
-	$(call langvar_or_default,MAKE_RELS_PROG,\
+	$(call partvar_or_default,MAKE_RELS_PROG,\
 		$(firstword $(MAKE_RELS_CMD)))
-MAKE_RELS_DEPS = $(MAKE_RELS_PROG) $(call langvar,MAKE_RELS_DEPS_EXTRA)
+MAKE_RELS_DEPS = $(MAKE_RELS_PROG) $(call partvar,MAKE_RELS_DEPS_EXTRA)
 
-INPUT_ENCODING := $(call langvar,INPUT_ENCODING)
+INPUT_ENCODING := $(call partvar,INPUT_ENCODING)
 TRANSCODE := $(if $(INPUT_ENCODING),iconv -f$(INPUT_ENCODING) -tutf8,cat)
 
 DBUSER = korp
@@ -315,16 +334,16 @@ SUBST_CORPNAME = $(shell perl -pe 's/\@CORPNAME\@/$(CORPNAME_U)/g' $(1))
 
 # Depend on $(CORPNAME).sattrs only if S_ATTRS has not been defined
 # previously (in a corpus makefile)
-ifeq ($(strip $(call langvar_defined,S_ATTRS)),)
-S_ATTRS_DEP := $(if $(call langvar,S_ATTRS),,$(CORPNAME).sattrs)
+ifeq ($(strip $(call partvar_defined,S_ATTRS)),)
+S_ATTRS_DEP := $(if $(call partvar,S_ATTRS),,$(CORPNAME).sattrs)
 # Here S_ATTRS should be a recursively expanded variable as its value
 # is defined correctly only after making $(CORPNAME).sattrs.
 S_ATTRS = $(shell cat $(CORPNAME).sattrs)
 else
 S_ATTRS_DEP := 
 # Here S_ATTRS should be a simply expanded variable in order to avoid
-# a recursive reference in langvar.
-S_ATTRS := $(call langvar,S_ATTRS)
+# a recursive reference in partvar.
+S_ATTRS := $(call partvar,S_ATTRS)
 endif
 
 P_OPTS = $(foreach attr,$(P_ATTRS),-P $(attr))
@@ -367,15 +386,25 @@ RELS_CREATE_TABLES_SQL = $(call SUBST_CORPNAME,$(RELS_CREATE_TABLES_TEMPL))
 # have *.mk for subcorpora
 ifeq ($(strip $(CORPORA)),$(strip $(CORPNAME_BASE)))
 
-# If SRC_FILES is not defined, this makefile is in an intermediate
+# If SRC_FILES_REAL is empty, this makefile is in an intermediate
 # directory with only subdirectories
-ifndef SRC_FILES
+ifeq ($(strip $(SRC_FILES_REAL)),)
 
-# If SUBDIRS is empty and if this is not a parallel corpus, SRC_FILES
-# probably has been forgotten
+# If SUBDIRS is empty and if this is not a parallel corpus and has no
+# subcorpora, SRC_FILES probably has been forgotten or is empty
 ifeq ($(strip $(SUBDIRS)),)
-ifeq ($(strip $(PARCORP)),)
+ifeq ($(strip $(PARCORP)$(HAS_SUBCORPORA)),)
+ifeq ($(strip $(SRC_FILES)),)
 $(error Please specify the source files in SRC_FILES)
+else
+$(error No file(s) $(SRC_FILES) found in $(SRC_DIR))
+endif
+
+else ifneq ($(strip $(PARCORP)),)
+
+# Parallel corpus main
+TOP_TARGETS = all
+
 endif
 
 else # SUBDIRS non-empty
@@ -392,11 +421,16 @@ TOP_TARGETS = all
 
 endif # SRC_FILES defined
 
-else # $(CORPORA) == $(CORPNAME_BASE)
+else # $(CORPORA) != $(CORPNAME_BASE)
 
 # The directory has *.mk for subcorpora and may contain subdirectories
 TOP_TARGETS = subdirs $(CORPORA)
 
+endif
+
+# If subcorpora specified in SUBCORPORA, add them to the main target
+ifneq ($(strip $(HAS_SUBCORPORA)),)
+TOP_TARGETS += $(SUBCORPORA)
 endif
 
 $(call showvars,TOP_TARGETS TARGETS)
@@ -427,6 +461,32 @@ endef
 $(foreach corp,$(CORPORA),\
 	$(foreach targ,$(TARGETS) $(SUBTARGET_SEP),\
 		$(eval $(call MAKE_CORPUS_R,$(corp),$(targ)))))
+
+
+subcorpora: $(SUBCORPORA)
+
+.PHONY: subcorpora
+
+define MAKE_SUBCORPUS_R
+$(1)$(if $(subst $(SUBTARGET_SEP),,$(2)),$(SUBTARGET_SEP)$(2)):
+	for makefile in $(1).mk $(CORPNAME_MAIN)_$(1).mk $(CORPNAME_MAIN).mk \
+			Makefile; do \
+		if test -e $$$$makefile; then \
+			$(MAKE) -f $$$$makefile \
+				$(or $(TARGET),$(subst $(SUBTARGET_SEP),all,$(2))) \
+				CORPNAME_MAIN="$(CORPNAME)_$(1)" \
+				CORPNAME_BASE="$(CORPNAME)_$(1)" \
+				SUBCORPUS="$(1)" DB=$(DB); \
+			break; \
+		fi; \
+	done; \
+
+.PHONY: $(1)$(if $(subst $(SUBTARGET_SEP),,$(2)),$(SUBTARGET_SEP)$(2))
+endef
+
+$(foreach subcorp,$(SUBCORPORA),\
+	$(foreach targ,$(TARGETS) $(SUBTARGET_SEP),\
+		$(eval $(call MAKE_SUBCORPUS_R,$(subcorp),$(targ)))))
 
 
 # Calculate the checksum of a file, compare it to the previous
