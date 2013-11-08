@@ -304,7 +304,7 @@ CORPSQLDIR = $(CORPROOT)/sql
 
 $(call showvars,CORPDIR CORPCORPDIR)
 
-PKGDIR = $(TOPDIR)/export
+PKGDIR ?= $(CORPROOT)/pkgs
 PKG_FILE = $(PKGDIR)/korpdata_$(CORPNAME).tbz
 
 CWB_ENCODE = $(CWBDIR)/cwb-encode -d $(CORPCORPDIR) -R $(REGDIR)/$(CORPNAME) \

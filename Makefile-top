@@ -8,7 +8,14 @@ eqs = $(call eq,$(strip $(1)),$(strip $(2)))
 
 TOPDIR = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-CORPROOT = /v/corpora
+CORPROOTROOT ?= /
+CORPROOT ?= $(CORPROOTROOT)$(if $(call eq,$(CORPROOTROOT),/),,/)v/corpora
+CORPREGDIR = $(CORPROOT)/registry
+CORPDATADIR = $(CORPROOT)/data
+CORPSQLDIR = $(CORPROOT)/sql
+
+DBNAME ?= korp
+DBUSER ?= korp
 
 # Define EXCLUDE_CORPORA to exclude some corpora that would otherwise be
 # included in the package.
@@ -25,7 +32,7 @@ ISODATE := $(shell date '+%Y%m%d')
 MAKE_PKGDATE = $(1)-$(ISODATE)$(2)
 
 PKGDIR = $(TOPDIR)/pkgs
-CORP_EXPORT_DIR = $(TOPDIR)/corp/export
+CORP_EXPORT_DIR ?= $(CORPROOT)/pkgs
 
 BASENAME = $(PKGDIR)/korp_fi
 
@@ -113,3 +120,70 @@ ifdef OVERWRITE_LAST_PKG_INFO
 	mv $(PKG_INFO_FILE).tmp $(PKG_INFO_FILE)
 endif
 	date '+%s	%Y%m%dT%H%M%S	$(TIP_REV)' >> $(PKG_INFO_FILE)
+
+
+# Make individual corpus packages, without remaking corpora
+
+KORPDATA_CORPORA ?= $(shell ls $(CORPREGDIR) \
+			| egrep -v '(~|\..*|test.*)$$' | $(FILTER_CORPORA))
+KORPDATA_PKGS = \
+	$(foreach corp,$(KORPDATA_CORPORA),\
+		$(CORP_EXPORT_DIR)/korpdata_$(corp).tbz)
+
+SQL_FILE_TYPES = lemgrams rels timespans
+
+CORP_SQL_FILES = $(foreach type,$(SQL_FILE_TYPES),\
+			$(CORPSQLDIR)/$(1)_$(type).sql*)
+
+korpdata: $(KORPDATA_PKGS)
+
+# Compress or remove a file $(1) depending on a condition $(2)
+COMPRESS_OR_RM = \
+	if $(2); then \
+		bzip2 $(1); \
+	else \
+		rm $(1); \
+	fi
+
+# MySQL dump from multi-corpus tables with corpus name as a field;
+# $(1) = corpus name, $(2) = uppercased corpus name, $(3) = dump file
+# basename suffix, $(4) = table name
+MAKE_KORPDATA_SQL_TABLE_PART = \
+	sqlfile="$(CORPSQLDIR)/$(strip $(1))_$(strip $(3)).sql"; \
+	mysqldump --no-autocommit --user $(DBUSER) --no-create-info \
+		--where "corpus='$(strip $(2))'" $(DBNAME) $(4) \
+		2> /dev/null > $$sqlfile; \
+	$(call COMPRESS_OR_RM,$$sqlfile,egrep -q 'INSERT INTO' $$sqlfile)
+
+RELS_BASES = @ rel head_rel dep_rel sentences
+RELS_TABLES = $(subst _@,,$(foreach base,$(RELS_BASES),relations_$(1)_$(base)))
+
+# MySQL dump from corpus tables for corpus name $(1)
+MAKE_KORPDATA_SQL = \
+	sqlfile="$(CORPSQLDIR)/$(strip $(1))_rels.sql"; \
+	corpname_u=`echo $(1) | perl -pe 's/(.*)/\U$$1\E/'`; \
+	mysqldump --no-autocommit --user $(DBUSER) $(DBNAME) \
+		$(call RELS_TABLES,$${corpname_u}) 2> /dev/null > $$sqlfile; \
+	$(call COMPRESS_OR_RM,$$sqlfile,[ "$$?" = "0" ]); \
+	$(call MAKE_KORPDATA_SQL_TABLE_PART,\
+		$(1),$$corpname_u,lemgrams,lemgram_index); \
+	$(call MAKE_KORPDATA_SQL_TABLE_PART,\
+		$(1),$$corpname_u,timespans,timespans)
+
+# A rule template for making a corpus package
+define MAKE_KORPDATA_R
+$(CORP_EXPORT_DIR)/korpdata_$(1).tbz: \
+		$$(wildcard $(CORPREGDIR)/$(1)) \
+		$$(wildcard $(CORPDATADIR)/$(1)/*) \
+		$$(wildcard $$(call CORP_SQL_FILES,$(1)))
+	if [ "x$$(filter %.sql %.sql.bz2,$$^)" = "x" ]; then \
+		$$(call MAKE_KORPDATA_SQL,$(1)); \
+	fi
+	tar cvjpf $$@ $(CORPREGDIR)/$(1) $(CORPDATADIR)/$(1) \
+		`ls $$(call CORP_SQL_FILES,$(1)) 2> /dev/null`
+endef
+
+$(foreach corp,$(KORPDATA_CORPORA),\
+	$(eval $(call MAKE_KORPDATA_R,$(corp))))
+
+.PHONY: korpdata
