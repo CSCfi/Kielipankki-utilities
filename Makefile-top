@@ -21,18 +21,20 @@ DBUSER ?= korp
 # included in the package.
 EXCLUDE_CORPORA ?=
 
+CORP_PKG_BASE ?= korpdata_
+
 EMPTY =
 SP = $(EMPTY) $(EMPTY)
 FILTER_CORPORA = \
 	$(if $(EXCLUDE_CORPORA),\
-		egrep -v 'korpdata_($(subst $(SP),|,$(strip $(EXCLUDE_CORPORA))))\.tbz',\
+		egrep -v '$(CORP_PKG_BASE)($(subst $(SP),|,$(strip $(EXCLUDE_CORPORA))))\.tbz',\
 		cat)
 
 ISODATE := $(shell date '+%Y%m%d')
 MAKE_PKGDATE = $(1)-$(ISODATE)$(2)
 
 PKGDIR = $(TOPDIR)/pkgs
-CORP_EXPORT_DIR ?= $(CORPROOT)/pkgs
+CORP_PKGDIR ?= $(CORPROOT)/pkgs
 
 BASENAME = $(PKGDIR)/korp_fi
 
@@ -87,9 +89,10 @@ TAR_CMD = \
 
 $(PKG_corp).tar: $(PREV_TIMESTAMP) $(INSTALL_SCRIPT) $(INSTALLED_LIST)
 	$(MAKE) -C corp
-	cp -p $^ $(CORP_EXPORT_DIR)
-	$(call TAR_CMD,$@,$(CORP_EXPORT_DIR),\
-		-newer $< -name korpdata_\*.tbz | egrep -v test | $(FILTER_CORPORA); echo $(notdir $^))
+	cp -p $^ $(CORP_PKGDIR)
+	$(call TAR_CMD,$@,$(CORP_PKGDIR),\
+		-newer $< -name $(CORP_PKG_BASE)\*.tbz | egrep -v test \
+		| $(FILTER_CORPORA); echo $(notdir $^))
 
 $(INSTALLED_LIST):
 	touch $@
@@ -128,7 +131,7 @@ KORPDATA_CORPORA ?= $(shell ls $(CORPREGDIR) \
 			| egrep -v '(~|\..*|test.*)$$' | $(FILTER_CORPORA))
 KORPDATA_PKGS = \
 	$(foreach corp,$(KORPDATA_CORPORA),\
-		$(CORP_EXPORT_DIR)/korpdata_$(corp).tbz)
+		$(CORP_PKGDIR)/$(CORP_PKG_BASE)$(corp).tbz)
 
 SQL_FILE_TYPES = lemgrams rels timespans
 
@@ -172,7 +175,7 @@ MAKE_KORPDATA_SQL = \
 
 # A rule template for making a corpus package
 define MAKE_KORPDATA_R
-$(CORP_EXPORT_DIR)/korpdata_$(1).tbz: \
+$(CORP_PKGDIR)/$(CORP_PKG_BASE)$(1).tbz: \
 		$$(wildcard $(CORPREGDIR)/$(1)) \
 		$$(wildcard $(CORPDATADIR)/$(1)/*) \
 		$$(wildcard $$(call CORP_SQL_FILES,$(1)))
