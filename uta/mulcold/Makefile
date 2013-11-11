@@ -30,6 +30,7 @@ VRT_FIX_ATTRS_OPTS_EXTRA_other = \
 VRT_FIX_ATTRS_OPTS_EXTRA_de = \
 	$(VRT_FIX_ATTRS_OPTS_EXTRA_BASE)
 
-LEMGRAM_POSMAP = ../lemgram_posmap_uta_$(PARCORP_LANG).tsv
+LEMGRAM_POSMAP = $(if $(filter lex,$(P_ATTRS_$(PARCORP_LANG))),\
+			../lemgram_posmap_uta_$(PARCORP_LANG).tsv)
 
 include ../../corp-common.mk
