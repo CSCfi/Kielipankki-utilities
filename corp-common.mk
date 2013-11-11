@@ -103,9 +103,23 @@ DECODE_SPECIAL_CHARS = perl -C -e '\
 		print; \
 	}'
 
-VRT_ADD_LEMGRAMS = $(SCRIPTDIR)/vrt-add-lemgrams.py \
-			--pos-map-file $(LEMGRAM_POSMAP) \
-			$(VRT_ADD_LEMGRAMS_OPTS)
+P_ATTRS := $(call partvar,P_ATTRS)
+P_ATTR_FIELDS := word $(P_ATTRS)
+
+index = $(or $(strip $(foreach wnum,1 2 3 4 5 6 7 8 9 10,\
+			$(if $(call eqs,$(1),$(word $(wnum),$(2))),\
+				$(wnum)))),\
+		$(3))
+
+LEMGRAM_POSMAP := $(call partvar,LEMGRAM_POSMAP)
+VRT_ADD_LEMGRAMS := \
+	$(if $(strip $(LEMGRAM_POSMAP)),\
+		$(SCRIPTDIR)/vrt-add-lemgrams.py \
+			--pos-map-file $(call partvar,LEMGRAM_POSMAP) \
+			$(call partvar_or_default,VRT_ADD_LEMGRAMS_OPTS,\
+				--lemma-field $(call index,lemma,$(P_ATTR_FIELDS),2) \
+				--pos-field $(call index,pos,$(P_ATTR_FIELDS),3)),\
+		cat)
 VRT_FIX_ATTRS_PROG = $(SCRIPTDIR)/vrt-fix-attrs.py
 VRT_FIX_ATTRS_OPTS := \
 	$(call partvar_or_default,VRT_FIX_ATTRS_OPTS,\
@@ -182,8 +196,6 @@ $(call showvars,\
 	CORPORA WITHIN_CORP_MK CORPNAME_MAIN CORPNAME_BASE \
 	SRC_SUBDIR SRC_DIR SRC_FILES SRC_FILES_REAL \
 	SUBCORPORA HAS_SUBCORPORA SUBCORPUS)
-
-P_ATTRS := $(call partvar,P_ATTRS)
 
 DB_TARGETS_ALL = korp_timespans korp_rels korp_lemgrams
 DB_HAS_RELS := $(and $(filter dephead,$(P_ATTRS)),$(filter deprel,$(P_ATTRS)))
@@ -280,8 +292,9 @@ MAKE_VRT_PROG := \
 	$(call partvar_or_default,MAKE_VRT_PROG,\
 		$(if $(call eq,$(MAKE_VRT_CMD),cat),,\
 			$(firstword $(MAKE_VRT_CMD))))
-MAKE_VRT_DEPS = $(MAKE_VRT_PROG) $(XML2VRT_RULES) $(LEMGRAM_POSMAP) \
-		$(MAKE_VRT_DEPS_EXTRA)
+MAKE_VRT_DEPS = $(MAKE_VRT_PROG) $(call partvar,XML2VRT_RULES) \
+		$(call partvar,LEMGRAM_POSMAP) \
+		$(call partvar,MAKE_VRT_DEPS_EXTRA)
 MAKE_RELS_PROG := \
 	$(call partvar_or_default,MAKE_RELS_PROG,\
 		$(firstword $(MAKE_RELS_CMD)))
@@ -538,12 +551,14 @@ $(CORPNAME)$(VRT): $(SRC_FILES_REAL) $(MAKE_VRT_DEPS) $(VRT_FIX_ATTRS_PROG) \
 ifdef MAKE_VRT_FILENAME_ARGS
 	$(MAKE_VRT_CMD) $(SRC_FILES_REAL) \
 	| $(VRT_FIX_ATTRS) \
+	| $(VRT_ADD_LEMGRAMS) \
 	| $(COMPR) > $@
 else
 	$(CAT_SRC) $(SRC_FILES_REAL) \
 	| $(TRANSCODE) \
 	| $(MAKE_VRT_CMD) \
 	| $(VRT_FIX_ATTRS) \
+	| $(VRT_ADD_LEMGRAMS) \
 	| $(COMPR) > $@
 endif
 	$(MAKE_VRT_CLEANUP)
