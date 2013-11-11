@@ -542,6 +542,11 @@ $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT_CKSUM) $(CORPNAME).info $(S_ATTRS_DEP)
 	$(CAT) $(<:$(CKSUM_EXT)=) \
 	| $(MAKE_CWB_STRUCT_ATTRS) > $@
 
+VRT_POSTPROCESS = \
+	$(VRT_FIX_ATTRS) \
+	| $(VRT_ADD_LEMGRAMS) \
+	| $(COMPR) 
+
 # This does not support passing compressed files or files requiring
 # transcoding to a program requiring filename arguments. That might be
 # achieved by using named pipes as for mysqlimport.
@@ -550,16 +555,12 @@ $(CORPNAME)$(VRT): $(SRC_FILES_REAL) $(MAKE_VRT_DEPS) $(VRT_FIX_ATTRS_PROG) \
 	$(MAKE_VRT_SETUP)
 ifdef MAKE_VRT_FILENAME_ARGS
 	$(MAKE_VRT_CMD) $(SRC_FILES_REAL) \
-	| $(VRT_FIX_ATTRS) \
-	| $(VRT_ADD_LEMGRAMS) \
-	| $(COMPR) > $@
+	| $(VRT_POSTPROCESS) > $@
 else
 	$(CAT_SRC) $(SRC_FILES_REAL) \
 	| $(TRANSCODE) \
 	| $(MAKE_VRT_CMD) \
-	| $(VRT_FIX_ATTRS) \
-	| $(VRT_ADD_LEMGRAMS) \
-	| $(COMPR) > $@
+	| $(VRT_POSTPROCESS) > $@
 endif
 	$(MAKE_VRT_CLEANUP)
 
