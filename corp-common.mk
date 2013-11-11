@@ -144,8 +144,10 @@ VRT_EXTRACT_TIMESPANS_OPTS := \
 		$(if $(CORPUS_DATE),--fixed=$(CORPUS_DATE),\
 		$(if $(CORPUS_DATE_PATTERN),--pattern=$(CORPUS_DATE_PATTERN)))))
 VRT_EXTRACT_TIMESPANS = \
-	$(VRT_EXTRACT_TIMESPANS_PROG) $(VRT_EXTRACT_TIMESPANS_OPTS)
-VRT_ADD_TIMESPANS = $(VRT_EXTRACT_TIMESPANS) --mode=add
+	$(VRT_EXTRACT_TIMESPANS_PROG) \
+		--mode=add+extract --timespans-prefix=$(CORPNAME_U) \
+		--timespans-output-file=$(CORPNAME)_timespans$(TSV) \
+		$(VRT_EXTRACT_TIMESPANS_OPTS)
 
 MAKE_CWB_STRUCT_ATTRS = $(XMLSTATS) --cwb-struct-attrs
 
@@ -546,13 +548,14 @@ $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT_CKSUM) $(CORPNAME).info $(S_ATTRS_DEP)
 VRT_POSTPROCESS = \
 	$(VRT_FIX_ATTRS) \
 	| $(VRT_ADD_LEMGRAMS) \
-	| $(VRT_ADD_TIMESPANS) \
+	| $(VRT_EXTRACT_TIMESPANS) \
 	| $(COMPR) 
 
 # This does not support passing compressed files or files requiring
 # transcoding to a program requiring filename arguments. That might be
 # achieved by using named pipes as for mysqlimport.
-$(CORPNAME)$(VRT): $(SRC_FILES_REAL) $(MAKE_VRT_DEPS) $(VRT_FIX_ATTRS_PROG) \
+$(CORPNAME)$(VRT) $(CORPNAME)_timespans$(TSV): \
+		$(SRC_FILES_REAL) $(MAKE_VRT_DEPS) $(VRT_FIX_ATTRS_PROG) \
 		$(VRT_EXTRACT_TIMESPANS_PROG) $(DEP_MAKEFILES) $(VRT_EXTRA_DEPS)
 	$(MAKE_VRT_SETUP)
 ifdef MAKE_VRT_FILENAME_ARGS
@@ -655,13 +658,13 @@ COLUMNS_timespans = \
 	`tokens` int(11) DEFAULT 0, \
 	KEY `corpus` (`corpus`)
 
-$(CORPNAME)_timespans$(TSV): \
-		$(CORPNAME)$(VRT_CKSUM) $(VRT_EXTRACT_TIMESPANS_PROG)
-	$(CAT) $(<:$(CKSUM_EXT)=) \
-	| $(DECODE_SPECIAL_CHARS) \
-	| $(VRT_EXTRACT_TIMESPANS) \
-	| gawk -F'	' '{print "$(CORPNAME_U)\t" $$0}' \
-	| $(COMPR) > $@
+# $(CORPNAME)_timespans$(TSV): \
+# 		$(CORPNAME)$(VRT_CKSUM) $(VRT_EXTRACT_TIMESPANS_PROG)
+# 	$(CAT) $(<:$(CKSUM_EXT)=) \
+# 	| $(DECODE_SPECIAL_CHARS) \
+# 	| $(VRT_EXTRACT_TIMESPANS) \
+# 	| gawk -F'	' '{print "$(CORPNAME_U)\t" $$0}' \
+# 	| $(COMPR) > $@
 
 $(eval $(call KORP_LOAD_DB_R,timespans))
 

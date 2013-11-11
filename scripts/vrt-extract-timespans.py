@@ -10,6 +10,7 @@ from optparse import OptionParser
 # collections.OrderedDict requires Python 2.7
 from collections import defaultdict, OrderedDict
 from datetime import date
+from subprocess import Popen, PIPE
 
 
 def get_current_year():
@@ -72,14 +73,19 @@ class TimespanExtractor(object):
     def process_files(self, files):
         if isinstance(files, list):
             for file_ in files:
-                self.process_files(file_)
-        elif isinstance(files, basestring):
-            with codecs.open(files, 'r', encoding='utf-8') as f:
+                self._process_file(file_)
+        else:
+            self._process_file(files)
+        if 'extract' in self._opts.mode:
+            self.output_timespans(
+                self._opts.timespans_output_file or sys.stdout)
+
+    def _process_file(self, fname):
+        if isinstance(fname, basestring):
+            with codecs.open(fname, 'r', encoding='utf-8') as f:
                 self._extract_timespans(f)
         else:
-            self._extract_timespans(files)
-        if self._opts.mode == 'extract':
-            self.output_timespans()
+            self._extract_timespans(fname)
 
     def _extract_timespans(self, f):
         time = ''
@@ -100,13 +106,13 @@ class TimespanExtractor(object):
                     time = self._opts.fixed or self._extract_time(line)
                     if time:
                         timestruct = structdepth
-                        if self._opts.mode == 'add':
+                        if 'add' in self._opts.mode:
                             line = (line[:-2] + (' datefrom="{0}" dateto="{0}"'
                                                  .format(time))
                                     + line[-2:])
             else:
                 self._time_tokencnt[time] += 1
-            if self._opts.mode == 'add':
+            if 'add' in self._opts.mode:
                 sys.stdout.write(line)
 
     def _extract_time(self, line):
@@ -167,9 +173,27 @@ class TimespanExtractor(object):
         else:
             return year
 
-    def output_timespans(self):
+    def output_timespans(self, outfname):
+        if not isinstance(outfname, basestring):
+            self._write_timespans(outfname)
+        else:
+            compress_prog = {'bz2': 'bzip2', 'gz': 'gzip'}.get(
+                outfname.rpartition('.')[-1], None)
+            with open(outfname, 'wb') as real_outfile:
+                if compress_prog:
+                    pipe = Popen(compress_prog, stdin=PIPE, stdout=real_outfile,
+                                 close_fds=True)
+                    outfile = pipe.stdin
+                else:
+                    outfile = real_outfile
+                self._write_timespans(outfile)
+
+    def _write_timespans(self, outfile):
+        prefix = ([self._opts.timespans_prefix] if self._opts.timespans_prefix
+                  else [])
         for (time, tokencnt) in sorted(self._time_tokencnt.iteritems()):
-            sys.stdout.write('\t'.join([time, time, str(tokencnt)]) + '\n')
+            outfile.write('\t'.join(prefix + [time, time, str(tokencnt)])
+                          + '\n')
 
 
 def getopts():
@@ -184,8 +208,11 @@ def getopts():
     optparser.add_option('--century-pivot', type='int',
                          default=get_current_year2())
     optparser.add_option('--full-dates', action='store_true', default=False)
-    optparser.add_option('--mode', type='choice', choices=['extract', 'add'],
+    optparser.add_option('--mode', type='choice',
+                         choices=['extract', 'add', 'add+extract'],
                          default='extract')
+    optparser.add_option('--timespans-output-file')
+    optparser.add_option('--timespans-prefix')
     (opts, args) = optparser.parse_args()
     return (opts, args)
 
