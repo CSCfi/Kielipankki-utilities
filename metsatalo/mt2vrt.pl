@@ -76,6 +76,7 @@ sub process_input
     # my $subcorpname = "";
     # my $subcorp_sent_nr = 1;
     my $sent_id = 1;
+    print "<text>\n";
     while (my $line = <>)
     {
 	# if ($ARGV ne $prevname)
@@ -144,6 +145,7 @@ sub process_input
 	    print "\n";
 	}
     }
+    print "</text>\n";
 }
 
 

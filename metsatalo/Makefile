@@ -9,7 +9,6 @@ MAKE_RELS_CMD = cut -f1-6,8 \
 			--compress=$(COMPRESS)
 
 P_ATTRS = lemma pos msd dephead deprel spoken lex
-S_ATTRS = sentence:0+id
 
 SRC_DIR = .
 SRC_FILES = reitti_a-siipeen_FTBparse_orig.txt
