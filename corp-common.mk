@@ -145,6 +145,7 @@ VRT_EXTRACT_TIMESPANS_OPTS := \
 		$(if $(CORPUS_DATE_PATTERN),--pattern=$(CORPUS_DATE_PATTERN)))))
 VRT_EXTRACT_TIMESPANS = \
 	$(VRT_EXTRACT_TIMESPANS_PROG) $(VRT_EXTRACT_TIMESPANS_OPTS)
+VRT_ADD_TIMESPANS = $(VRT_EXTRACT_TIMESPANS) --mode=add
 
 MAKE_CWB_STRUCT_ATTRS = $(XMLSTATS) --cwb-struct-attrs
 
@@ -545,13 +546,14 @@ $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT_CKSUM) $(CORPNAME).info $(S_ATTRS_DEP)
 VRT_POSTPROCESS = \
 	$(VRT_FIX_ATTRS) \
 	| $(VRT_ADD_LEMGRAMS) \
+	| $(VRT_ADD_TIMESPANS) \
 	| $(COMPR) 
 
 # This does not support passing compressed files or files requiring
 # transcoding to a program requiring filename arguments. That might be
 # achieved by using named pipes as for mysqlimport.
 $(CORPNAME)$(VRT): $(SRC_FILES_REAL) $(MAKE_VRT_DEPS) $(VRT_FIX_ATTRS_PROG) \
-		$(DEP_MAKEFILES) $(VRT_EXTRA_DEPS)
+		$(VRT_EXTRACT_TIMESPANS_PROG) $(DEP_MAKEFILES) $(VRT_EXTRA_DEPS)
 	$(MAKE_VRT_SETUP)
 ifdef MAKE_VRT_FILENAME_ARGS
 	$(MAKE_VRT_CMD) $(SRC_FILES_REAL) \

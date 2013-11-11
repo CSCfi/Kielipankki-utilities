@@ -78,9 +78,11 @@ class TimespanExtractor(object):
                 self._extract_timespans(f)
         else:
             self._extract_timespans(files)
+        if self._opts.mode == 'extract':
+            self.output_timespans()
 
     def _extract_timespans(self, f):
-        time = '' if not self._opts.fixed else self._opts.fixed
+        time = ''
         structdepth = 0
         timestruct = 0
         for line in f:
@@ -94,12 +96,18 @@ class TimespanExtractor(object):
                     timestruct = 0
             elif line.startswith('<'):
                 structdepth += 1
-                if not time:
-                    time = self._extract_time(line)
+                if not timestruct:
+                    time = self._opts.fixed or self._extract_time(line)
                     if time:
                         timestruct = structdepth
+                        if self._opts.mode == 'add':
+                            line = (line[:-2] + (' datefrom="{0}" dateto="{0}"'
+                                                 .format(time))
+                                    + line[-2:])
             else:
                 self._time_tokencnt[time] += 1
+            if self._opts.mode == 'add':
+                sys.stdout.write(line)
 
     def _extract_time(self, line):
         if '*' in self._excludes.get('*', []):
@@ -176,6 +184,8 @@ def getopts():
     optparser.add_option('--century-pivot', type='int',
                          default=get_current_year2())
     optparser.add_option('--full-dates', action='store_true', default=False)
+    optparser.add_option('--mode', type='choice', choices=['extract', 'add'],
+                         default='extract')
     (opts, args) = optparser.parse_args()
     return (opts, args)
 
@@ -188,7 +198,6 @@ def main():
     (opts, args) = getopts()
     extractor = TimespanExtractor(opts)
     extractor.process_files(args if args else sys.stdin)
-    extractor.output_timespans()
 
 
 if __name__ == "__main__":
