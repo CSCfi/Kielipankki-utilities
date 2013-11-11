@@ -5,10 +5,10 @@ MODE = biblia
 VKS2VRT_OPTS = --bible-references
 
 P_ATTRS = 
-S_ATTRS = work:0+code book:0+code chapter:0+code+bibleref \
-		verse:0+code+bibleref sentence:0+id \
-		sourcecode:0+work+code+book+chapter+verse+page+bibleref \
-		span:0+work+code+book+chapter+verse+page+bibleref
+# S_ATTRS = work:0+code book:0+code chapter:0+code+bibleref \
+# 		verse:0+code+bibleref sentence:0+id \
+# 		sourcecode:0+work+code+book+chapter+verse+page+bibleref \
+# 		span:0+work+code+book+chapter+verse+page+bibleref
 
 CORPUS_DATE = 1642
 
