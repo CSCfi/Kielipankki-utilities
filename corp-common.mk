@@ -16,9 +16,17 @@ TOPDIR = $(dir $(lastword $(MAKEFILE_LIST)))
 SCRIPTDIR = $(TOPDIR)/scripts
 CORPSRCROOT ?= $(TOPDIR)/../../corp
 
-SPECIAL_CHARS = " /<>"
-ENCODED_SPECIAL_CHAR_OFFSET = 0x7F
-ENCODED_SPECIAL_CHAR_PREFIX = ""
+KORP_SRCDIR = $(TOPDIR)/../src
+KORP_CGI = $(KORP_SRCDIR)/backend/korp/korp.cgi
+
+EXTRACT_VALUE = \
+	$(or $(shell egrep "^$(2) *= *" $(1) | perl -pe 's/^.*=\s*u?//'),$(3))
+
+SPECIAL_CHARS = $(call EXTRACT_VALUE,$(KORP_CGI),SPECIAL_CHARS," /<>|")
+ENCODED_SPECIAL_CHAR_OFFSET = \
+	$(call EXTRACT_VALUE,$(KORP_CGI),ENCODED_SPECIAL_CHAR_OFFSET,0x7F)
+ENCODED_SPECIAL_CHAR_PREFIX = \
+	$(call EXTRACT_VALUE,$(KORP_CGI),ENCODED_SPECIAL_CHAR_PREFIX,"")
 DECODE_SPECIAL_CHARS = perl -C -e '\
 	$$sp_chars = $(SPECIAL_CHARS); \
 	%sp_char_map = map {($(ENCODED_SPECIAL_CHAR_PREFIX) \

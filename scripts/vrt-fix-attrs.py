@@ -115,7 +115,7 @@ def getopts():
     optparser.add_option('--encode-special-chars', type='choice',
                          choices=['none', 'all', 'pos', 'struct'],
                          default='none')
-    optparser.add_option('--special-chars', default=u' /<>')
+    optparser.add_option('--special-chars', default=u' /<>|')
     optparser.add_option('--encoded-special-char-offset',
                          '--special-char-offset', default='0x7F')
     optparser.add_option('--encoded-special-char-prefix',
