@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-P_ATTRS = lemma pos msd
+COMPRESS_TARGETS = bz2
 
-VRT_FIX_ATTRS_OPTS_EXTRA = --missing-field-values="3:UNKNOWN"
-
-include ../corp-common.mk
+include ../../corp-common.mk
