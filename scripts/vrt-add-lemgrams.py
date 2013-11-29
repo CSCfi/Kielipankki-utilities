@@ -38,6 +38,8 @@ def read_posmap(fname, opts):
     posmap = {}
     with codecs.open(fname, 'r', encoding='utf-8') as f:
         for line in f:
+            if line.strip() == '' or line.startswith('#'):
+                continue
             (src_poses, trg_pos) = line[:-1].split('\t', 1)
             if opts.inverse_pos_map:
                 (src_poses, trg_pos) = (trg_pos, src_poses)
