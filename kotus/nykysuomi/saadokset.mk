@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
-TEI2VRT_OPTS = --mode=statute-modern --words --lemgrams \
+TEI2VRT_OPTS = --mode=statute-modern --words \
 		--morpho-tag-separator=" " --para-elem-name=paragraph
 
 P_ATTRS = lemma lemmacomp pos msd id lex
-# S_ATTRS = text:0+distributor+source+title div:1+id+type \
-# 		paragraph:0+id+type+topic sentence:0+id+type
 
 CORPUS_DATE_PATTERN = 'text title /\s*((?:19|20)[0-9][0-9])'
 
