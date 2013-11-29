@@ -187,13 +187,19 @@ SRC_DIR := $(call partvar_or_default,SRC_DIR,$(CORPSRCROOT)/$(SRC_SUBDIR))
 
 SRC_FILES := $(call partvar,SRC_FILES)
 
+SRC_FILES_LS_OPTS := $(call partvar_or_default,SRC_FILE_LS_OPTS,-v)
+
+list_files = \
+	$(foreach filespec,$(1),$(shell ls $(SRC_FILES_LS_OPTS) $(filespec)))
+
 # SRC_FILES (relative to SRC_DIR) must be defined in a corpus-specific
 # makefile. Wildcards in SRC_FILES are expanded, and files specified
 # in SRC_FILES_EXCLUDE (relative to SRC_DIR) are excluded.
 SRC_FILES_REAL = \
 	$(filter-out $(addprefix $(SRC_DIR)/,\
 				 $(call partvar,SRC_FILES_EXCLUDE)),\
-			$(wildcard $(addprefix $(SRC_DIR)/,$(SRC_FILES))))
+			$(call list_files,\
+			       $(addprefix $(SRC_DIR)/,$(SRC_FILES))))
 
 $(call showvars,\
 	CORPORA WITHIN_CORP_MK CORPNAME_MAIN CORPNAME_BASE \
@@ -546,9 +552,9 @@ $(CORPCORPDIR)/.info: $(CORPNAME)$(VRT_CKSUM) $(CORPNAME).info $(S_ATTRS_DEP)
 	| $(MAKE_CWB_STRUCT_ATTRS) > $@
 
 VRT_POSTPROCESS = \
-	$(VRT_FIX_ATTRS) \
+	$(VRT_EXTRACT_TIMESPANS) \
+	| $(VRT_FIX_ATTRS) \
 	| $(VRT_ADD_LEMGRAMS) \
-	| $(VRT_EXTRACT_TIMESPANS) \
 	| $(COMPR) 
 
 # This does not support passing compressed files or files requiring
@@ -562,9 +568,15 @@ ifdef MAKE_VRT_FILENAME_ARGS
 	$(MAKE_VRT_CMD) $(SRC_FILES_REAL) \
 	| $(VRT_POSTPROCESS) > $@
 else
-	$(CAT_SRC) $(SRC_FILES_REAL) \
-	| $(TRANSCODE) \
-	| $(MAKE_VRT_CMD) \
+	$(if $(MAKE_VRT_SEPARATE_FILES),\
+		for fname in $(SRC_FILES_REAL); do \
+			$(CAT_SRC) "$$fname" \
+			| $(TRANSCODE) \
+			| $(MAKE_VRT_CMD); \
+		done, \
+		$(CAT_SRC) $(SRC_FILES_REAL) \
+		| $(TRANSCODE) \
+		| $(MAKE_VRT_CMD)) \
 	| $(VRT_POSTPROCESS) > $@
 endif
 	$(MAKE_VRT_CLEANUP)
