@@ -36,7 +36,11 @@ class Converter(object):
         text_e.set("source", self._get_source())
 
     def _get_title(self):
-        return self._src_etr.find("teiHeader//title").text.strip()
+        return (self._src_etr.find("teiHeader//title").text.strip()
+                or ' '.join(head.text.strip() for head in
+                            [self._src_etr.find(".//head[@id='h0']")]
+                            + self._src_etr.findall(
+                    ".//div[@id='d1']/head[@type='sub']")))
 
     def _get_distributor(self):
         return ' / '.join([distr.text.strip() for distr in
@@ -128,7 +132,7 @@ class Converter(object):
         lemma_comp_bound = elem.get('lemma', '')
         lemma = ''.join(lemma_comp_bound.split('#'))
         pos = elem.get('type', '')
-        msd = elem.get('msd').strip()
+        msd = elem.get('msd', '').strip()
         msd = pos + (' ' + msd if msd else '')
         if self._opts.fix_msd_tags:
             msd = re.sub(r'\s+', self._opts.msd_separator, msd)
@@ -295,8 +299,9 @@ class Converter(object):
                           for subelem in elem.findall(findpath)])
 
     def _get_all_text(self, elem):
-        return elem.text + ''.join([self._get_all_text(subelem) + subelem.tail
-                                    for subelem in elem])
+        return ((elem.text or '')
+                + ''.join([self._get_all_text(subelem) + subelem.tail
+                           for subelem in elem]))
 
     def _make_sayings_entry(self, elem):
         result = et.Element('entry')
@@ -335,6 +340,7 @@ class Converter(object):
         text = text or ''
         if self._opts.tokenize:
             text = re.sub(r'([.?!,:])(")', r'\1 \2', text)
+            text = re.sub(r'(")([.?!,:])', r'\1 \2', text)
             text = re.sub(r'(\.\.\.)([,:;?!")])', r' \1 \2', text)
             text = re.sub(r'([.,:;?!")]|\.\.\.)([ \n]|\Z)', r' \1\2', text)
             text = re.sub(r'([ \n]|\A)(["(])', r'\1\2 ', text)
@@ -379,10 +385,6 @@ def getopts():
     optparser.add_option('--no-fix-msd-tags', '--no-fix-morpho-tags',
                          action='store_false', dest='fix_msd_tags',
                          default=True)
-    (opts, args) = optparser.parse_args()
-    if opts.mode == 'statute':
-        opts.tokenize = True
-        opts.para_as_sent = True
     return (opts, args)
 
 
