@@ -190,12 +190,14 @@ SRC_FILES := $(call partvar,SRC_FILES)
 SRC_FILES_LS_OPTS := $(call partvar_or_default,SRC_FILE_LS_OPTS,-v)
 
 list_files = \
-	$(foreach filespec,$(1),$(shell ls $(SRC_FILES_LS_OPTS) $(filespec)))
+	$(foreach filespec,$(1),\
+		$(shell ls $(SRC_FILES_LS_OPTS) $(filespec) \
+			$(if $(DEBUG),,2> /dev/null)))
 
 # SRC_FILES (relative to SRC_DIR) must be defined in a corpus-specific
 # makefile. Wildcards in SRC_FILES are expanded, and files specified
 # in SRC_FILES_EXCLUDE (relative to SRC_DIR) are excluded.
-SRC_FILES_REAL = \
+SRC_FILES_REAL := \
 	$(filter-out $(addprefix $(SRC_DIR)/,\
 				 $(call partvar,SRC_FILES_EXCLUDE)),\
 			$(call list_files,\
