@@ -147,6 +147,7 @@ VRT_EXTRACT_TIMESPANS = \
 	$(VRT_EXTRACT_TIMESPANS_PROG) \
 		--mode=add+extract --timespans-prefix=$(CORPNAME_U) \
 		--timespans-output-file=$(CORPNAME)_timespans$(TSV) \
+		--output-full-dates=always \
 		$(VRT_EXTRACT_TIMESPANS_OPTS)
 
 MAKE_CWB_STRUCT_ATTRS = $(XMLSTATS) --cwb-struct-attrs

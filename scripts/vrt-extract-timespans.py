@@ -31,6 +31,7 @@ class TimespanExtractor(object):
     DEFAULT_PATTERN_2 = r'((?:1[0-9]|20)?[0-9][0-9])'
     DATE_GRAN_RANGES = [(1000, get_current_year()), (1, 12), (1, 31),
                         (0, 24), (0, 59), (0, 59)]
+    MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
     def __init__(self, opts):
         self._opts = opts
@@ -107,8 +108,10 @@ class TimespanExtractor(object):
                     if time:
                         timestruct = structdepth
                         if 'add' in self._opts.mode:
-                            line = (line[:-2] + (' datefrom="{0}" dateto="{0}"'
-                                                 .format(time))
+                            datefrom, dateto = self._make_output_dates(time,
+                                                                       'add')
+                            line = (line[:-2] + (' datefrom="{0}" dateto="{1}"'
+                                                 .format(datefrom, dateto))
                                     + line[-2:])
             else:
                 self._time_tokencnt[time] += 1
@@ -145,7 +148,7 @@ class TimespanExtractor(object):
                     date = self._fix_date(mo.expand(templ))
                     if date:
                         return date
-        return ''  
+        return ''
 
     def _fix_date(self, datestr):
         datestr = datestr.strip()
@@ -192,8 +195,28 @@ class TimespanExtractor(object):
         prefix = ([self._opts.timespans_prefix] if self._opts.timespans_prefix
                   else [])
         for (time, tokencnt) in sorted(self._time_tokencnt.iteritems()):
-            outfile.write('\t'.join(prefix + [time, time, str(tokencnt)])
-                          + '\n')
+            outfile.write(
+                '\t'.join(prefix
+                          + list(self._make_output_dates(time, 'extract'))
+                          + [str(tokencnt)])
+                + '\n')
+
+    def _make_output_dates(self, datestr, mode):
+        if mode in self._opts.output_full_dates:
+            if len(datestr) == 4:
+                return (datestr + '0101', datestr + '1231')
+            elif len(datestr) == 6:
+                return (datestr + '01', datestr + self._get_month_days(datestr))
+        return (datestr, datestr)
+
+    def _get_month_days(self, year_month_str):
+        month = int(year_month_str[4:])
+        month_days = self.MONTH_DAYS[month - 1]
+        if self.MONTH_DAYS == 28:
+            year = int(year_month_str[:4])
+            if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0):
+                month_days = 29
+        return str(month_days)
 
 
 def getopts():
@@ -213,7 +236,13 @@ def getopts():
                          default='extract')
     optparser.add_option('--timespans-output-file')
     optparser.add_option('--timespans-prefix')
+    optparser.add_option('--output-full-dates', type='choice',
+                         choices=['extract', 'add', 'add+extract', 'always'])
     (opts, args) = optparser.parse_args()
+    if not opts.output_full_dates:
+        opts.output_full_dates = ''
+    elif opts.output_full_dates == 'always':
+        opts.output_full_dates = 'add+extract'
     return (opts, args)
 
 
