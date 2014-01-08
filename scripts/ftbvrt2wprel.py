@@ -159,6 +159,19 @@ class RelationExtractor(object):
         self._opts = opts
         self._deprels = Deprels()
         self._temp_fnames = {}
+        if self._opts.input_fields:
+            self._input_fieldnames = re.split(r'\s*[,\s]\s*',
+                                              self._opts.input_fields)
+            if 'lex' in self._input_fieldnames:
+                lex_index = self._input_fieldnames.index('lex')
+                self._input_fieldnames[lex_index] = 'lemgram';
+        else:
+            self._input_fieldnames = ['word', 'lemma', 'pos', 'msd', 'dephead',
+                                      'deprel', 'lemgram']
+            if self._opts.input_type == 'ftb3-extrapos':
+                self._input_fieldnames.insert(3, 'pos_extra')
+            if self._opts.input_type.startswith('ftb3'):
+                self._input_fieldnames.insert(1, 'lemma_comp')
 
     def process_input(self, args):
         if isinstance(args, list):
@@ -173,12 +186,6 @@ class RelationExtractor(object):
     def _process_input_stream(self, f):
         sent_id_re = re.compile(r'<sentence\s+(?:.+\s)?id="(.*?)".*>')
         tag_re = re.compile(r'^<.*>$')
-        fieldnames = ['word', 'lemma', 'pos', 'msd', 'dephead', 'deprel',
-                      'lemgram']
-        if self._opts.input_type == 'ftb3-extrapos':
-            fieldnames.insert(3, 'pos_extra')
-        if self._opts.input_type.startswith('ftb3'):
-            fieldnames.insert(1, 'lemma_comp')
         data = []
         sentnr = 0
         # sys.stdout.write(str(sentnr) + ' ' + repr(self._deprels.get_sizes()) + '\n')
@@ -199,7 +206,7 @@ class RelationExtractor(object):
                 if fields[-1].startswith('|') and fields[-1].endswith('|'):
                     fields[-1] = fields[-1][1:-1]
                 fields.append('')	# An empty lemgram by default
-                data.append(dict(zip(fieldnames, fields)))
+                data.append(dict(zip(self._input_fieldnames, fields)))
         if len(data) > 0:
             self._deprels.add(sent_id, data)
             # sys.stdout.write(str(sentnr) + ' ' + repr(self._deprels.get_sizes()) + '\n')
@@ -296,6 +303,7 @@ def getopts():
     optparser.add_option('--input-type', '--mode', type='choice',
                          choices=['ftb2', 'ftb3', 'ftb3-extrapos'],
                          default='ftb2')
+    optparser.add_option('--input-fields', '--input-field-names')
     optparser.add_option('--output-type', type='choice',
                          choices=['old', 'new'], default='new')
     optparser.add_option('--corpus-name', default=None)
