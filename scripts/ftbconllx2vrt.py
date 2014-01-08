@@ -38,10 +38,11 @@ class FtbConllxToVrtConverter(object):
                         'Pron': 'pn',
                         'Pun': 'xx',
                         'V': 'vb'}
-    _struct_levels = ['subcorpus', 'file', 'chapter', 'speech', 'paragraph',
+    _struct_levels = ['subcorpus', 'text', 'chapter', 'speech', 'paragraph',
                       'sentence']
     _struct_attrs = {'subcorpus': ['name'],
-                     'file': [('name', 'file'), 'title', 'codetitle', 'url'],
+                     'text': [('filename', 'file'), 'title', 'codetitle',
+                              'url'],
                      'chapter': ['id', ('title', 'chapter_title')],
                      'speech': [('speakerid', 'speaker_id'),
                                 ('speakername', 'speaker_name'),
@@ -49,7 +50,7 @@ class FtbConllxToVrtConverter(object):
                      'paragraph': [('id', 'p_id')],
                      'sentence': ['id', 'line']}
     _struct_id = {'subcorpus': 'subcorpus_name',
-                  'file': 'file_name',
+                  'text': 'file_name',
                   'chapter': 'chapter_id',
                   'speech': 'speaker_id',
                   'paragraph': 'p_id',
