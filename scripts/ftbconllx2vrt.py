@@ -73,6 +73,8 @@ class FtbConllxToVrtConverter(object):
                 self._outfields[4:4] = ['pos']
         elif self._opts.pos_type == 'clean-original':
             self._outfields[4:4] = ['pos_orig']
+        if self._opts.word_nums:
+            self._outfields.append('wnum')
         if self._opts.lemgrams:
             self._outfields.append('lemgram')
 
@@ -255,6 +257,8 @@ def getopts():
                          default=True)
     optparser.add_option('--no-subcorpora', action='store_false',
                          dest='subcorpora', default=True)
+    optparser.add_option('--no-word-nums', '--no-word-numbers',
+                         action='store_false', dest='word_nums', default=True)
     optparser.add_option('--loc-extra-info-file')
     (opts, args) = optparser.parse_args()
     opts.pos_type = opts.pos_type.replace('+', '-')

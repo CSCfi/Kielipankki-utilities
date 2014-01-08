@@ -7,7 +7,7 @@ MAKEFILE_DEPS ?= false
 
 SRC_DIR ?= $(CORPSRCROOT)/ftb/ftb3
 
-P_ATTRS = lemma lemmacomp pos msd dephead deprel lex
+P_ATTRS = lemma lemmacomp pos msd dephead deprel ref lex
 
 LOC_EXTRA_INFO = $(CORPNAME)-loc-extras.txt$(COMPR_EXT)
 VRT_EXTRA_DEPS = $(LOC_EXTRA_INFO)
@@ -16,16 +16,19 @@ FTB3_AUGMENT_LOC = $(SCRIPTDIR)/ftb3-augment-loc.py
 MAKE_VRT_SETUP = (rm -f $(LOC_EXTRA_INFO).fifo; \
 		mkfifo $(LOC_EXTRA_INFO).fifo; \
 		$(CAT) $(LOC_EXTRA_INFO) > $(LOC_EXTRA_INFO).fifo) &
-MAKE_VRT_CMD = $(SCRIPTDIR)/ftbconllx2vrt.py --lemgrams --pos-type=original \
+MAKE_VRT_CMD = $(SCRIPTDIR)/ftbconllx2vrt.py --pos-type=original \
 		--no-fix-morpho-tags --no-subcorpora \
 		--loc-extra-info-file=$(LOC_EXTRA_INFO).fifo
 MAKE_VRT_CLEANUP = rm -f $(LOC_EXTRA_INFO).fifo
 
-MAKE_RELS_CMD = $(SCRIPTDIR)/ftbvrt2wprel.py --input-type=ftb3 \
+MAKE_RELS_CMD = $(SCRIPTDIR)/ftbvrt2wprel.py \
+		--input-fields="word $(P_ATTRS)" \
 		--output-prefix=$(CORPNAME)_rels \
 		--compress=$(COMPRESS) --sort
 
 VRT_EXTRACT_TIMESPANS_OPTS = --two-digit-years --full-dates --exclude "* id"
+
+LEMGRAM_POSMAP = lemgram_posmap_ftb.tsv
 
 
 include ftb-common.mk
