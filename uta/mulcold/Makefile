@@ -23,10 +23,14 @@ VRT_FIX_ATTRS_OPTS_EXTRA_BASE = \
 	--replace-xml-character-entities="all" \
 	--copy-struct-attribute="align:text/*"
 unknown = missing=UNKNOWN
+comma = ,
+cond_lemma_nobound = $(if $(filter lemmacomp,$(P_ATTRS_$(PARCORP_LANG))),\
+			lemma:setfirst$(comma)noboundaries$(comma)$(unknown))
+lemma_pos_msd = lemma:$(1),$(unknown) pos:$(1),$(unknown) msd:$(1),missing=""
 VRT_FIX_ATTRS_OPTS_EXTRA_other = \
 	$(VRT_FIX_ATTRS_OPTS_EXTRA_BASE) \
 	--input-fields="word lemma pos msd" \
-	--output-fields='word lemma:setfirst,noboundaries,$(unknown) lemma:setfirst,$(unknown) pos:setfirst,$(unknown) msd:setfirst,missing="" lemma:setconvert,$(unknown) pos:setconvert,$(unknown) msd:setconvert,missing=""'
+	--output-fields='word $(cond_lemma_nobound) $(call lemma_pos_msd,setfirst) $(call lemma_pos_msd,setconvert)'
 VRT_FIX_ATTRS_OPTS_EXTRA_de = \
 	$(VRT_FIX_ATTRS_OPTS_EXTRA_BASE)
 
