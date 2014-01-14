@@ -10,10 +10,12 @@ sub getopts
 {
     my %opts = (lemgrams => 1,
 		msd_sep => '|',
-		fix_msd_tags => 1);
+		fix_msd_tags => 1,
+		word_nums => 1);
     GetOptions ('lemgrams!' => \$opts{lemgrams},
 		'msd-separator|morpho-tag-separator=s' => \$opts{msd_sep},
-		'fix-msd-tags|fix-morpho-tags!' => \$opts{fix_msd_tags});
+		'fix-msd-tags|fix-morpho-tags!' => \$opts{fix_msd_tags},
+		'word-numbers|word-nums!' => \$opts{word_nums});
     return \%opts;
 }
 
@@ -137,7 +139,12 @@ sub process_input
 	    }
 	    $fields[1] =~ s/^-$/_/;
 	    $fields[2] =~ s/^-$/_/;
-	    print join ("\t", @fields[3, 4], $pos, @fields[5, 1, 2, 6]);
+	    print join ("\t", @fields[3, 4], $pos, @fields[5, 1, 2]);
+	    if ($$opts_r{word_nums})
+	    {
+		print "\t$fields[0]";
+	    }		
+	    print "\t$fields[6]";
 	    if ($$opts_r{lemgrams})
 	    {
 		print "\t" . make_lemgram ($fields[4], $pos);
