@@ -90,29 +90,33 @@ class TimespanExtractor(object):
 
     def _extract_timespans(self, f):
         time = ''
-        structdepth = 0
-        timestruct = 0
+        # The name of the structure containing time information
+        timestruct = None
+        # Allow for nested time structures
+        timestruct_depth = 0
         for line in f:
             if ((self._opts.unknown or self._opts.fixed)
                 and not line.startswith('<')):
                 self._time_tokencnt[time] += 1
-            elif line.startswith('</'):
-                structdepth -= 1
-                if time and structdepth < timestruct:
+            elif timestruct and line.startswith('</' + timestruct + '>'):
+                timestruct_depth -= 1
+                if timestruct_depth == 0:
                     time = ''
-                    timestruct = 0
+                    timestruct = None
             elif line.startswith('<'):
-                structdepth += 1
                 if not timestruct:
                     time = self._opts.fixed or self._extract_time(line)
                     if time:
-                        timestruct = structdepth
+                        timestruct = re.match(r'<(\S+)', line).group(1)
+                        timestruct_depth += 1
                         if 'add' in self._opts.mode:
                             datefrom, dateto = self._make_output_dates(time,
                                                                        'add')
                             line = (line[:-2] + (' datefrom="{0}" dateto="{1}"'
                                                  .format(datefrom, dateto))
                                     + line[-2:])
+                elif line.startswith('<' + timestruct + ' '):
+                    timestruct_depth += 1
             else:
                 self._time_tokencnt[time] += 1
             if 'add' in self._opts.mode:
