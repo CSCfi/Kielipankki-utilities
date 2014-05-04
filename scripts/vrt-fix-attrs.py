@@ -323,8 +323,19 @@ class AttributeFixer(object):
             self._fix_input(files)
 
     def _fix_input(self, f):
-        for line in f:
-            sys.stdout.write(self._make_fixed_line(line))
+        linenr = 1
+        try:
+            for line in f:
+                sys.stdout.write(self._make_fixed_line(line))
+                linenr += 1
+        except SyntaxError:
+            raise
+        except Exception:
+            sys.stderr.write(
+                ('{prog}: An exception occurred while processing file {fname}'
+                 ', line {linenr} (approximately):\n')
+                .format(prog=sys.argv[0], fname=f.name, linenr=linenr))
+            raise
 
     def _make_fixed_line(self, line):
         if line.startswith('<') and line.endswith('>\n'):
