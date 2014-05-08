@@ -21,6 +21,12 @@ verbose=
 test=
 all_corpora=
 
+if which wdiff > /dev/null; then
+    wdiff=wdiff
+else
+    wdiff=diff
+fi
+
 warn () {
     echo "$progname: Warning: $1" > /dev/stderr
 }
@@ -148,6 +154,9 @@ for corpus in $corpora; do
 	else
 	    if [ "x$test" != "x" ]; then
 		echo "$corpus outdated"
+		if [ "x$verbose" != "x" ]; then
+		    $wdiff $outfile $tmpfile
+		fi
 	    else
 		cp -p $tmpfile $outfile
 		echo_verb "$corpus updated"
