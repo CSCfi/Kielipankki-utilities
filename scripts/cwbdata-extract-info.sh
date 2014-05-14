@@ -9,6 +9,9 @@
 #
 # For more information: cwbdata-extract-info.sh --help
 
+# TODO: By default, backup the previous .info files when using
+# --update; an option for omitting backups.
+
 
 progname=`basename $0`
 
@@ -65,7 +68,8 @@ Usage: $progname [options] [corpus ... | --all] [> .info]
 
 Extract from or update the information to be written to the .info file
 of a Corpus Workbench corpus (or a list of corpora): the total number
-of sentences and the date of the last update.
+of sentences and the date of the last update. Corpus name arguments
+may contain shell wildcards.
 
 Options:
   -h, --help      show this help
@@ -187,7 +191,8 @@ tmpfile=$tmpdir/$progname.$$.tmp
 if [ "x$all_corpora" != "x" ]; then
     corpora=`get_all_corpora`
 else
-    corpora="$@"
+    # Expand the possible shell wildcards in corpus name arguments
+    corpora=`cd $cwb_regdir; echo $*`
 fi
 
 for corpus in $corpora; do
