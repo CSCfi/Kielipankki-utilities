@@ -2,10 +2,18 @@
 
 # Install Korp corpora of the latest corpora package
 
+# TODO:
+# - If several packages for the same corpus exist in the same
+#   directory, install only the latest one.
+# - Backup (optionally?) the previous version of corpus data and
+#   registry files, or at least warn if the corpus exists.
+# - Options and a usage message.
+
+
 # Corpus package directory
 pkgdir=${CORPUS_PKGDIR:-.}
 # Root directory, relative to which the corpus directory resides
-rootdir=${ROOTDIR:-/}
+rootdir=${ROOTDIR:-/v/corpora}
 
 # Korp MySQL database
 korpdb=korp
@@ -34,12 +42,18 @@ if [ ! -e "$installed_list" ]; then
     touch "$installed_list"
 fi
 
+get_pkg_fname () {
+    corp=$1
+    pkg_fnames=`for base in $pkg_prefix$corp ${corp}_korp_20\*; do echo "$pkgdir/$base.t?z $pkgdir/$base.tar*"; done`
+    ls -t $pkg_fnames 2> /dev/null | head -1 | awk '{print $NF}'
+}
+
 if [ "x$1" != "x" ]; then
     corpora=
     for corp in "$@"; do
-	corpus_pkg=$pkgdir/$pkg_prefix$corp.tbz
-	if [ ! -r $corpus_pkg ]; then
-	    echo "Cannot read corpus package file $corpus_pkg; ignoring" \
+	corpus_pkg=`get_pkg_fname $corp`
+	if [ "x$corpus_pkg" = "x" ]; then
+	    echo "Cannot read a package file for corpus $corp; ignoring" \
 		> /dev/stderr
 	else
 	    corpora="$corpora $corp"
@@ -52,8 +66,8 @@ else
 	echo "Timestamp file $timestampfile not found; considering all non-installed corpus packages in $pkgdir" > /dev/stderr
 	newer_cond=
     fi
-    corpora=`find $pkgdir -name $pkg_prefix\*.tbz $newer_cond \
-	| sed -e "s/^.*$pkg_prefix//g; s/\.tbz//g" \
+    corpora=`find $pkgdir -name $pkg_prefix\*.t?z -o -name $pkg_prefix\*.tar.* -o -name \*_korp_20\*.t?z -o -name \*_korp_20\*.tar.* $newer_cond \
+	| sed -e "s/^.*$pkg_prefix//; s/^.*\/\(.*\)_korp_20.*/\1/; s/\.t.z//; s/\.tar\..*//" \
 	| grep -Fvx -f$installed_list \
 	| sort`
 fi
@@ -72,6 +86,9 @@ comprcat () {
 	    ;;
 	*.gz )
 	    zcat "$@"
+	    ;;
+	*.xz )
+	    xzcat "$@"
 	    ;;
 	* )
 	    cat "$@"
@@ -95,18 +112,20 @@ for corp in $corpora; do
 done
 
 for corp in $corpora; do
-    corpus_pkg=$pkgdir/$pkg_prefix$corp.tbz
+    corpus_pkg=`get_pkg_fname $corp`
     echo
     echo "Installing $corp (compressed size `filesize $corpus_pkg`)"
     echo "  Copying CWB files"
-    tar xvjp -C $rootdir -f $corpus_pkg 2>&1 \
+    tar xvap -C $rootdir -f $corpus_pkg --wildcards --wildcards-match-slash \
+	--transform 's,.*/\(data\|registry\|sql\)/,\1/,' \
+	--show-transformed-names '*/data' '*/registry' '*/sql' 2>&1 \
 	| tee $filelistfile \
 	| sed -e 's/^/    /'
     if grep 'tar:' $filelistfile; then
 	echo "$scriptname: Errors in extracting $corpus_pkg"
 	exit 1
     fi
-    sqlfiles=`grep -E '\.sql(\.(bz2|gz))?$' $filelistfile`
+    sqlfiles=`grep -E '\.sql(\.(bz2|gz|xz))?$' $filelistfile`
     if [ "x$sqlfiles" != "x" ]; then
 	echo "  Loading data into MySQL database"
 	for sqlfile in $sqlfiles; do
