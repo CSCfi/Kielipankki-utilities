@@ -11,8 +11,13 @@ from optparse import OptionParser
 def process_input(f, posmap, opts):
     if isinstance(f, basestring):
         with codecs.open(f, 'r', encoding='utf-8') as fp:
-            process_input(fp, posmap, opts)
-    for line in f:
+            process_input_stream(fp, posmap, opts)
+    else:
+        process_input_stream(f, posmap, opts)
+
+
+def process_input_stream(f, posmap, opts):
+    for linenr, line in enumerate(f):
         if line.startswith('<') and line.endswith('>\n'):
             sys.stdout.write(line)
         else:
@@ -21,13 +26,21 @@ def process_input(f, posmap, opts):
 
 def add_lemgram(line, posmap, opts):
     fields = line[:-1].split('\t')
-    lemma = fields[opts.lemma_field]
+    lemma = get_field(fields, opts.lemma_field)
     if not lemma and not opts.skip_empty_lemmas:
         # Fall back to word form if no lemma
-        lemma = fields[0]
-    lemgram = (make_lemgram(posmap, lemma, fields[opts.pos_field])
+        lemma = get_field(fields, 0, '')
+    lemgram = (make_lemgram(posmap, lemma,
+                            get_field(fields, opts.pos_field, ''))
                if lemma else '|')
     return line[:-1] + '\t' + lemgram + '\n'
+
+
+def get_field(fields, num, default=None):
+    try:
+        return fields[num]
+    except IndexError as e:
+        return default
 
 
 def make_lemgram(posmap, lemma, pos):
