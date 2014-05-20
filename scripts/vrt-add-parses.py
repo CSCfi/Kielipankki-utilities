@@ -156,15 +156,36 @@ class ParseAdder(object):
         outfile.write('</sentence>\n')
 
 
+def read_input_files_list(list_filename):
+    with open(list_filename) as f:
+        return [line.strip() for line in f
+                if not re.match(r'^\s*(#.*)?$', line)]
+
+
+def list_files_in_directory(dirname):
+    """Recursively list files in dirname and its subdirs."""
+    full_filenames = []
+    for dirpath, dirnames, filenames in os.walk(dirname):
+        full_filenames.extend(
+            sorted(os.path.join(dirpath, fname) for fname in filenames))
+    return full_filenames
+
+
 def getopts():
     optparser = OptionParser()
     optparser.add_option('--database')
     optparser.add_option('--output-dir', default='.')
+    optparser.add_option('--input-files-list')
+    optparser.add_option('--input-dir')
     optparser.add_option('--no-lemma-without-compound-boundary',
                          action='store_false', default=True,
                          dest='lemma_without_compound_boundary')
-    (opts, args) = optparser.parse_args()
-    return (opts, args)
+    (opts, input_filenames) = optparser.parse_args()
+    if opts.input_files_list:
+        input_filenames.append(read_input_files_list(opts.input_files_list))
+    if opts.input_dir:
+        input_filenames.append(list_files_in_directory(opts.input_dir))
+    return (opts, input_filenames)
 
 
 def main():
@@ -172,9 +193,9 @@ def main():
     output_encoding = 'utf-8'
     sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
     sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
-    (opts, args) = getopts()
+    (opts, input_filenames) = getopts()
     parse_adder = ParseAdder(opts)
-    parse_adder.process_files(args)
+    parse_adder.process_files(input_filenames)
 
 
 if __name__ == "__main__":
