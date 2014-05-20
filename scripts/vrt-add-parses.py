@@ -85,7 +85,6 @@ class ParseAdder(object):
         dirname = os.path.dirname(outfilename)
         # http://stackoverflow.com/questions/273192/check-if-a-directory-exists-and-create-it-if-necessary
         try:
-
             os.makedirs(os.path.join(self._opts.output_dir, dirname))
         except OSError as exception:
             if exception.errno != errno.EEXIST:
@@ -98,7 +97,7 @@ class ParseAdder(object):
                 token_fields, parsed_tokens[tokennr], file_sentnr)
             if (self._opts.lemma_without_compound_boundary
                 and len(parsed_token) > 1):
-                parsed_token[1:1] = [parsed_token[1].replace('|', '')]
+                self._add_lemma_without_boundaries(parsed_token)
             tokens[tokennr] = parsed_token
 
     def _add_parse(self, token_fields, parsed_token_fields, file_sentnr):
@@ -114,6 +113,39 @@ class ParseAdder(object):
             # print >>sys.stderr, repr(parsed_token_fields)
         return [parsed_token_fields[fieldnum]
                 for fieldnum in [1, 3, 5, 7, 9, 11, 0]] + token_fields[1:]
+
+    def _add_lemma_without_boundaries(self, parsed_token):
+        if '|' not in parsed_token[1]:
+            lemma_without_boundaries = parsed_token[1]
+        elif '-' not in parsed_token[0]:
+            lemma_without_boundaries = parsed_token[1].replace('|', '')
+        else:
+            # In some cases, the lemma has - replaced with a |; in
+            # other cases not
+            wordform_parts = parsed_token[0].split('-')
+            lemma_parts = parsed_token[1].split('|')
+            if (len(wordform_parts) == len(lemma_parts)
+                and '-' not in parsed_token[1]):
+                lemma_without_boundaries = parsed_token[1].replace('|', '-')
+            else:
+                lemma_without_boundaries = [lemma_parts[0]]
+                lemma_prefix_len = len(lemma_parts[0])
+                wf_prefix_len = len(wordform_parts[0])
+                wf_partnr = 1
+                for lemma_part in lemma_parts[1:]:
+                    if wf_partnr >= len(wordform_parts):
+                        lemma_without_boundaries.append(lemma_part)
+                    elif (lemma_part[:2] == wordform_parts[wf_partnr][:2]
+                          and abs(wf_prefix_len - lemma_prefix_len) <= 2):
+                        # FIXME: Devise a better heuristic
+                        lemma_without_boundaries.extend(['-', lemma_part])
+                        wf_prefix_len += len(wordform_parts[wf_partnr])
+                        wf_partnr += 1
+                    else:
+                        lemma_without_boundaries.append(lemma_part)
+                    lemma_prefix_len += len(lemma_part)
+                lemma_without_boundaries = ''.join(lemma_without_boundaries)
+        parsed_token[1:1] = [lemma_without_boundaries]
 
     def _write_sentence(self, outfile, sent_line, tokens, parse_state):
         outfile.write(''.join([sent_line[:-2].replace(' id=', ' local_id='),
