@@ -11,7 +11,7 @@ CORPUS_DATE = 2012
 MAKE_VRT_CMD = ./mt2vrt.pl --no-lemgrams --no-fix-morpho-tags # --morpho-tag-separator=":"
 MAKE_RELS_CMD = $(SCRIPTDIR)/ftbvrt2wprel.py \
 			--input-fields="word $(P_ATTRS)" \
-			--output-prefix=$(CORPNAME)_rels \
+			--output-prefix=$(CORPNAME_BUILDDIR)_rels \
 			--compress=$(COMPRESS)
 
 LEMGRAM_POSMAP = ../ftb/lemgram_posmap_ftb.tsv

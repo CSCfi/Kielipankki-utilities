@@ -11,7 +11,7 @@ MAKE_VRT_CMD = $(SCRIPTDIR)/ftb2vrt.pl --no-lemgrams --no-fix-morpho-tags # --le
 MAKE_VRT_FILENAME_ARGS = 1
 MAKE_RELS_CMD = $(SCRIPTDIR)/ftbvrt2wprel.py \
 		--input-fields="word $(P_ATTRS)" \
-		--output-prefix=$(CORPNAME)_rels \
+		--output-prefix=$(CORPNAME_BUILDDIR)_rels \
 		--compress=$(COMPRESS) --sort
 
 LEMGRAM_POSMAP = lemgram_posmap_ftb.tsv

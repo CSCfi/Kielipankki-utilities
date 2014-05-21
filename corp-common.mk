@@ -74,8 +74,13 @@ $(call showvars,MAKEFILE_LIST)
 TOPDIR = $(dir $(lastword $(MAKEFILE_LIST)))
 
 SCRIPTDIR = $(TOPDIR)/scripts
+
+# Root directory for various corpus files
+CORPROOT ?= /v/corpora
+
+# Root directory for default corpus source files
 CORPSRCROOT := $(call partvar_or_default,CORPSRCROOT,\
-		$(TOPDIR)/../../corp)
+		$(CORPROOT)/src)
 
 KORP_SRCDIR = $(TOPDIR)/../src
 KORP_CGI = $(KORP_SRCDIR)/backend/korp/korp.cgi
@@ -146,7 +151,7 @@ VRT_EXTRACT_TIMESPANS_OPTS := \
 VRT_EXTRACT_TIMESPANS = \
 	$(VRT_EXTRACT_TIMESPANS_PROG) \
 		--mode=add+extract --timespans-prefix=$(CORPNAME_U) \
-		--timespans-output-file=$(CORPNAME)_timespans$(TSV) \
+		--timespans-output-file=$(CORPNAME_BUILDDIR)_timespans$(TSV) \
 		--output-full-dates=always \
 		$(VRT_EXTRACT_TIMESPANS_OPTS)
 
@@ -321,16 +326,24 @@ DBNAME = korp
 CORPGROUP = korp
 
 CWBDIR = /usr/local/cwb/bin
-CORPROOT = /v/corpora
 CORPDIR = $(CORPROOT)/data
 CORPCORPDIR = $(CORPDIR)/$(CORPNAME)
 REGDIR = $(CORPROOT)/registry
 CORPSQLDIR = $(CORPROOT)/sql
+# Directory for various built files: VRT, TSV, timestamps
+CORP_BUILDDIR = $(CORPROOT)/vrt/$(CORPNAME)
 
-$(call showvars,CORPDIR CORPCORPDIR)
+$(call showvars,CORPDIR CORPCORPDIR CORP_BUILDDIR)
 
 PKGDIR ?= $(CORPROOT)/pkgs
 PKG_FILE = $(PKGDIR)/korpdata_$(CORPNAME).tbz
+
+# Corpus name prefixed with the build directory
+CORPNAME_BUILDDIR = $(CORP_BUILDDIR)/$(CORPNAME)
+# Corpus VRT file
+CORP_VRT = $(CORPNAME_BUILDDIR)$(VRT)
+# Corpus VRT checksum file
+CORP_VRT_CKSUM = $(CORPNAME_BUILDDIR)$(VRT_CKSUM)
 
 CWB_ENCODE = $(CWBDIR)/cwb-encode -d $(CORPCORPDIR) -R $(REGDIR)/$(CORPNAME) \
 		-xsB -c utf8
@@ -357,13 +370,17 @@ MYSQL_IMPORT = mkfifo $(2).tsv; \
 
 SUBST_CORPNAME = $(shell perl -pe 's/\@CORPNAME\@/$(CORPNAME_U)/g' $(1))
 
-# Depend on $(CORPNAME).sattrs only if S_ATTRS has not been defined
+# File containing structural attribute declaration in a format
+# suitable for cwb-encode
+SATTRS_FILE = $(CORPNAME_BUILDDIR).sattrs
+
+# Depend on $(SATTRS_FILE) only if S_ATTRS has not been defined
 # previously (in a corpus makefile)
 ifeq ($(strip $(call partvar_defined,S_ATTRS)),)
-S_ATTRS_DEP := $(if $(call partvar,S_ATTRS),,$(CORPNAME).sattrs)
+S_ATTRS_DEP := $(if $(call partvar,S_ATTRS),,$(SATTRS_FILE))
 # Here S_ATTRS should be a recursively expanded variable as its value
-# is defined correctly only after making $(CORPNAME).sattrs.
-S_ATTRS = $(shell cat $(CORPNAME).sattrs)
+# is defined correctly only after making $(SATTRS_FILE).
+S_ATTRS = $(shell cat $(SATTRS_FILE))
 else
 S_ATTRS_DEP := 
 # Here S_ATTRS should be a simply expanded variable in order to avoid
@@ -379,15 +396,16 @@ $(call showvars,P_OPTS S_OPTS)
 SQLDUMP_NAME = $(CORPSQLDIR)/$(CORPNAME)$(SQL)
 SQLDUMP = $(if $(strip $(DB_TARGETS)),$(SQLDUMP_NAME))
 
-DB_TIMESTAMPS = $(patsubst korp_%,$(CORPNAME)_%_load.timestamp,$(DB_TARGETS))
+DB_TIMESTAMPS = $(patsubst korp_%,$(CORPNAME_BUILDDIR)_%_load.timestamp,\
+			$(DB_TARGETS))
 DB_SQLDUMPS = $(patsubst korp_%,$(CORPSQLDIR)/$(CORPNAME)_%$(SQL),$(DB_TARGETS))
 
 RELS_BASES = @ rel head_rel dep_rel sentences
 RELS_TSV = $(subst _@,,$(foreach base,$(RELS_BASES),\
-				$(CORPNAME)_rels_$(base)$(TSV)))
+				$(CORPNAME_BUILDDIR)_rels_$(base)$(TSV)))
 RELS_TSV_CKSUM = $(addsuffix $(CKSUM_EXT_COND),$(RELS_TSV))
 MAKE_RELS_TABLE_NAME = $(subst $(CORPNAME)_rels,relations_$(CORPNAME_U),\
-			$(subst $(TSV_CKSUM),,$(1)))
+			$(subst $(TSV_CKSUM),,$(notdir $(1))))
 RELS_TABLES = $(call MAKE_RELS_TABLE_NAME,$(RELS_TSV_CKSUM))
 
 RELS_TRUNCATE_TABLES = $(foreach tbl,$(RELS_TABLES),truncate table $(tbl);)
@@ -540,10 +558,13 @@ vrt: $(CORPCORPDIR)/.info
 # to avoid unnecessarily remaking the corpus data if the .vrt file has
 # not changed.
 
-$(CORPCORPDIR)/.info: $(CORPNAME)$(VRT_CKSUM) $(CORPNAME).info $(S_ATTRS_DEP)
+$(CORPCORPDIR)/.info: \
+		$(CORP_VRT_CKSUM) \
+		$(CORPNAME_BUILDDIR).info \
+		$(S_ATTRS_DEP)
 	-mkdir $(CORPCORPDIR) || /bin/rm $(CORPCORPDIR)/*
 	$(CAT) $(<:$(CKSUM_EXT)=) | $(CWB_ENCODE) $(P_OPTS) $(S_OPTS) \
-	&& cp $(CORPNAME).info $(CORPCORPDIR)/.info
+	&& cp $(CORPNAME_BUILDDIR).info $(CORPCORPDIR)/.info
 
 %.info: %$(VRT_CKSUM)
 	echo "Sentences: "`$(CAT) $(<:$(CKSUM_EXT)=) | egrep -c '^<sentence[> ]'` > $@
@@ -558,15 +579,16 @@ VRT_POSTPROCESS = \
 	$(VRT_EXTRACT_TIMESPANS) \
 	| $(VRT_FIX_ATTRS) \
 	| $(VRT_ADD_LEMGRAMS) \
-	| $(COMPR) 
+	| $(COMPR)
 
 # This does not support passing compressed files or files requiring
 # transcoding to a program requiring filename arguments. That might be
 # achieved by using named pipes as for mysqlimport.
-$(CORPNAME)$(VRT) $(CORPNAME)_timespans$(TSV): \
+$(CORP_VRT) $(CORPNAME_BUILDDIR)_timespans$(TSV): \
 		$(SRC_FILES_REAL) $(MAKE_VRT_DEPS) $(VRT_FIX_ATTRS_PROG) \
 		$(VRT_EXTRACT_TIMESPANS_PROG) $(DEP_MAKEFILES) $(VRT_EXTRA_DEPS)
 	$(MAKE_VRT_SETUP)
+	-mkdir -p $(CORP_BUILDDIR)
 ifdef MAKE_VRT_FILENAME_ARGS
 	$(MAKE_VRT_CMD) $(SRC_FILES_REAL) \
 	| $(VRT_POSTPROCESS) > $@
@@ -588,12 +610,13 @@ db: korp_db
 
 korp_db: $(DB_TARGETS)
 
-korp_rels: $(CORPNAME)_rels_load.timestamp
+korp_rels: $(CORPNAME_BUILDDIR)_rels_load.timestamp
 
 .PHONY: db korp_db korp_rels
 
 
-$(CORPNAME)_rels_load.timestamp: $(RELS_TSV_CKSUM) $(RELS_CREATE_TABLES_TEMPL)
+$(CORPNAME_BUILDDIR)_rels_load.timestamp: \
+		$(RELS_TSV_CKSUM) $(RELS_CREATE_TABLES_TEMPL)
 	mysql --user $(DBUSER) \
 		--execute '$(RELS_DROP_TABLES) $(RELS_CREATE_TABLES_SQL)' \
 		$(DBNAME)
@@ -602,16 +625,17 @@ $(CORPNAME)_rels_load.timestamp: $(RELS_TSV_CKSUM) $(RELS_CREATE_TABLES_TEMPL)
 			$(call MAKE_RELS_TABLE_NAME,$(rel)))))
 	touch $@
 
-$(CORPSQLDIR)/$(CORPNAME)_rels$(SQL): $(CORPNAME)_rels_load.timestamp
+$(CORPSQLDIR)/$(CORPNAME)_rels$(SQL): \
+		$(CORPNAME_BUILDDIR)_rels_load.timestamp
 	mysqldump --no-autocommit --user $(DBUSER) $(DBNAME) $(RELS_TABLES) \
 	| $(COMPR) > $@
 
-$(RELS_TSV): $(CORPNAME)$(VRT_CKSUM) $(MAKE_RELS_DEPS)
+$(RELS_TSV): $(CORP_VRT_CKSUM) $(MAKE_RELS_DEPS)
 	$(CAT) $(<:$(CKSUM_EXT)=) \
 	| $(MAKE_RELS_CMD)
 
 define KORP_LOAD_DB_R
-korp_$(1): $(CORPNAME)_$(1)_load.timestamp
+korp_$(1): $(CORPNAME_BUILDDIR)_$(1)_load.timestamp
 
 .PHONY: korp_$(1)
 
@@ -620,7 +644,7 @@ CREATE_SQL_$(1) = '\
 		$$(COLUMNS_$(1)) \
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8;'
 
-$(CORPNAME)_$(1)_load.timestamp: $(CORPNAME)_$(1)$(TSV_CKSUM)
+$(CORPNAME_BUILDDIR)_$(1)_load.timestamp: $(CORPNAME_BUILDDIR)_$(1)$(TSV_CKSUM)
 	mysql --user $(DBUSER) --execute $$(CREATE_SQL_$(1)) $(DBNAME)
 	mysql --user $(DBUSER) \
 		--execute "delete from $$(TABLENAME_$(1)) where corpus='$(CORPNAME_U)';" \
@@ -628,7 +652,7 @@ $(CORPNAME)_$(1)_load.timestamp: $(CORPNAME)_$(1)$(TSV_CKSUM)
 	$$(call MYSQL_IMPORT,$$<,$$(TABLENAME_$(1)))
 	touch $$@
 
-$(CORPSQLDIR)/$(CORPNAME)_$(1)$(SQL): $(CORPNAME)_$(1)_load.timestamp
+$(CORPSQLDIR)/$(CORPNAME)_$(1)$(SQL): $(CORPNAME_BUILDDIR)_$(1)_load.timestamp
 	-mkfifo $$@.fifo; \
 	{ \
 	echo $$(CREATE_SQL_$(1)); \
@@ -653,7 +677,7 @@ COLUMNS_lemgrams = \
 
 $(eval $(call KORP_LOAD_DB_R,lemgrams))
 
-$(CORPNAME)_lemgrams$(TSV): $(CORPNAME)$(VRT_CKSUM)
+$(CORPNAME_BUILDDIR)_lemgrams$(TSV): $(CORP_VRT_CKSUM)
 	$(CAT) $(<:$(CKSUM_EXT)=) \
 	| egrep -v '<' \
 	| gawk -F'	' '{print $$NF}' \
@@ -673,14 +697,6 @@ COLUMNS_timespans = \
 	`tokens` int(11) DEFAULT 0, \
 	KEY `corpus` (`corpus`)
 
-# $(CORPNAME)_timespans$(TSV): \
-# 		$(CORPNAME)$(VRT_CKSUM) $(VRT_EXTRACT_TIMESPANS_PROG)
-# 	$(CAT) $(<:$(CKSUM_EXT)=) \
-# 	| $(DECODE_SPECIAL_CHARS) \
-# 	| $(VRT_EXTRACT_TIMESPANS) \
-# 	| gawk -F'	' '{print "$(CORPNAME_U)\t" $$0}' \
-# 	| $(COMPR) > $@
-
 $(eval $(call KORP_LOAD_DB_R,timespans))
 
 pkg: $(PKG_FILE)
@@ -690,10 +706,6 @@ $(PKG_FILE): $(CORPCORPDIR)/.info $(DB_SQLDUMPS)
 	tar cvjpf $@ $(CORPCORPDIR) $(REGDIR)/$(CORPNAME) $(DB_SQLDUMPS)
 
 .PHONY: pkg
-
-# $(SQLDUMP_NAME): $(DB_SQLDUMPS)
-# 	-mkdir $(dir $@)
-# 	cat $^ > $@
 
 
 # Align parallel corpora
@@ -707,19 +719,27 @@ ALIGN_CORP = \
 	$(CWB_ALIGN_ENCODE) -D $$fifo; \
 	rm $$fifo
 
+# Store the alignment timestamp file in the corpus directory of the
+# first language
+PARCORP_MAINDIR = $(CORP_BUILDDIR)_$(firstword $(LANGUAGES))
+ALIGN_TIMESTAMP = $(PARCORP_MAINDIR)/$(CORPNAME)_aligned.timestamp
+
+# Basenames (without suffix) for alignment files
+ALIGN_BASENAMES = \
+	$(foreach langpair,$(LANGPAIRS_ALIGN),\
+		$(CORP_BUILDDIR)_$(call LANGPAIR_LANG1,$(langpair))/$(CORPNAME)_$(langpair))
+
 # CHECK: Does this always work correctly when running more than one
 # simultaneous job?
 
 # FIXME: When changing some parts of a parallel corpus, the alignments
 # do not seem to get encoded.
 
-align: parcorp $(CORPNAME)_aligned.timestamp
+align: parcorp $(ALIGN_TIMESTAMP)
 
 .PHONY: align
 
-$(CORPNAME)_aligned.timestamp: \
-		$(foreach langpair,$(LANGPAIRS_ALIGN),\
-			$(CORPNAME)_$(langpair)$(ALIGN_CKSUM))
+$(ALIGN_TIMESTAMP): $(addsuffix $(ALIGN_CKSUM),$(ALIGN_BASENAMES))
 	for langpair in $(LANGPAIRS_ALIGN); do \
 		lang1=`echo $$langpair | sed -e 's/_.*//'`; \
 		lang2=`echo $$langpair | sed -e 's/.*_//'`; \
@@ -728,7 +748,7 @@ $(CORPNAME)_aligned.timestamp: \
 	touch $@
 
 define MAKE_ALIGN_R
-$(CORPNAME)_$$(strip $(1))_$$(strip $(2))$(ALIGN): \
+$(CORP_BUILDDIR)_$$(strip $(1))/$(CORPNAME)_$$(strip $(1))_$$(strip $(2))$(ALIGN): \
 		$(CORPDIR)/$(CORPNAME)_$$(strip $(1))/.info
 	-mkfifo $$@.fifo
 	($(CWB_ALIGN) -o $$@.fifo -r $(REGDIR) -V $(LINK_ELEM)_$(LINK_ATTR) \

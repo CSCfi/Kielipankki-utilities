@@ -23,7 +23,7 @@ MAKE_VRT_CLEANUP = rm -f $(LOC_EXTRA_INFO).fifo
 
 MAKE_RELS_CMD = $(SCRIPTDIR)/ftbvrt2wprel.py \
 		--input-fields="word $(P_ATTRS)" \
-		--output-prefix=$(CORPNAME)_rels \
+		--output-prefix=$(CORPNAME_BUILDDIR)_rels \
 		--compress=$(COMPRESS) --sort
 
 VRT_EXTRACT_TIMESPANS_OPTS = --two-digit-years --full-dates --exclude "* id"
