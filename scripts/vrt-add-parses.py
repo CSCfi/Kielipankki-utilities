@@ -111,8 +111,9 @@ class ParseAdder(object):
                     self._infile_name, file_sentnr))
             # print >>sys.stderr, repr(token_fields)
             # print >>sys.stderr, repr(parsed_token_fields)
-        return [parsed_token_fields[fieldnum]
-                for fieldnum in [1, 3, 5, 7, 9, 11, 0]] + token_fields[1:]
+        return ([parsed_token_fields[fieldnum]
+                 for fieldnum in [1, 3, 5, 7, 9, 11, 0]]
+                + [field for field in token_fields[1:] if field])
 
     def _add_lemma_without_boundaries(self, parsed_token):
         if '|' not in parsed_token[1]:
