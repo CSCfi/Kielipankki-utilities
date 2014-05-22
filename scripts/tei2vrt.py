@@ -385,6 +385,7 @@ def getopts():
     optparser.add_option('--no-fix-msd-tags', '--no-fix-morpho-tags',
                          action='store_false', dest='fix_msd_tags',
                          default=True)
+    (opts, args) = optparser.parse_args()
     return (opts, args)
 
 
