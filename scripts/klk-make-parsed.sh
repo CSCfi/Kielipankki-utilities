@@ -4,7 +4,7 @@
 # Make a parsed version of the Finnish National Library corpus
 
 
-progname=$0
+progname=`basename $0`
 
 corproot=/v/corpora
 regdir=$corproot/registry
@@ -18,6 +18,7 @@ cwb_encode=$cwbdir/cwb-encode
 cwb_make=/usr/local/bin/cwb-make
 scriptdir=/home/janiemi/finclarin/korp-git/corp/scripts
 lemgram_posmap=$parsed_vrt_dir/lemgram_posmap_tdt.txt
+stage_file=$parsed_vrt_dir/klk-make-parsed-stages.txt
 
 struct_attrs='-S text:0+issue_date+sentcount+language+elec_date+dateto+datefrom+img_url+label+publ_part+issue_no+tokencount+part_name+publ_title+publ_id+page_id+page_no+issue_title -S paragraph:0+id -S sentence:0+local_id+parse_state+id'
 pos_attrs='-P lemma -P lemmacomp -P pos -P msd -P dephead -P deprel -P ref -P ocr -P lex'
@@ -25,6 +26,16 @@ pos_attrs='-P lemma -P lemmacomp -P pos -P msd -P dephead -P deprel -P ref -P oc
 verbose=1
 
 export TIMEFORMAT="    %U + %S s"
+
+if [ ! -e $stage_file ]; then
+    touch $stage_file
+fi
+
+
+error () {
+    echo "$@" >&2
+    exit 1
+}
 
 echo_verb () {
     if [ "x$verbose" != "x" ]; then
@@ -38,18 +49,51 @@ printf_verb () {
     fi
 }
 
+add_stage () {
+    year=$1
+    stage_label=$2
+    old_stages=`grep -E "^$year " $stage_file || echo "$year"`
+    {
+	grep -Ev "^$year " $stage_file
+	echo "$old_stages $stage_label"
+    } > $stage_file.new
+    mv $stage_file.new $stage_file
+}
+
 run_and_time () {
-    echo_verb "  $1:"
-    shift
-    time { "$@"; } 2>&1
+    year=$1
+    stage_label=$2
+    echo_text=$3
+    shift; shift; shift
+    printf_verb "  $echo_text: "
+    if grep -Eq "^$year .*\b$stage_label\b" $stage_file; then
+	echo_verb "already done"
+    else
+	echo_verb ""
+	time { "$@"; } 2>&1
+	if [ $? = 0 ]; then
+	    add_stage $year $stage_label
+	else
+	    error "an error occurred when $echo_text; aborting"
+	fi
+    fi
 }
 
 make_parsed_files () {
     year=$1
-    run_and_time "adding parses and lemgrams" \
+    run_and_time $year parses-added "adding parses and lemgrams" \
 	$scriptdir/vrt-add-parses.py --database $dbdir/db$year.sqlite \
 	--input-dir $orig_vrt_dir/$year --output-dir $parsed_vrt_dir \
 	--lemgram-pos-map-file $lemgram_posmap
+}
+
+cwb_encode () {
+    year=$1
+    corpdatadir=$2
+    regfile=$3
+    rm $regfile $corpdatadir/*
+    $cwb_encode -d $corpdatadir -R $regfile -xsB -c utf8 \
+	$struct_attrs $pos_attrs -F $parsed_vrt_dir/$year
 }
 
 make_cwb () {
@@ -58,13 +102,11 @@ make_cwb () {
     corpname_u=`echo $corpname | sed -e 's/.*/\U&\E/'`
     corpdatadir=$corproot/data/$corpname
     regfile=$regdir/$corpname
-    rm $regfile $corpdatadir/*
-    run_and_time "encoding for CWB" \
-	$cwb_encode -d $corpdatadir -R $regfile -xsB -c utf8 \
-	$struct_attrs $pos_attrs -F $parsed_vrt_dir/$year
-    run_and_time "making CWB indices" \
+    run_and_time $year cwb-encoded "encoding for CWB" \
+	cwb_encode $year $corpdatadir $regfile
+    run_and_time $year cwb-indexed "making CWB indices" \
 	$cwb_make -r $regdir -g korp -M 2000 $corpname_u
-    run_and_time "extracting info" \
+    run_and_time $year info-extracted "extracting info" \
 	$scriptdir/cwbdata-extract-info.sh --cwbdir $cwbdir --registry $regdir \
 	--update $corpname
 }
@@ -73,9 +115,7 @@ years=$*
 
 for year in $years; do
     echo_verb "* $year:"
-    if [ -d $parsed_vrt_dir/$year ]; then
-	echo "$year already parsed; skipping"
-    elif [ ! -r $dbdir/db$year.sqlite ]; then
+    if [ ! -r $dbdir/db$year.sqlite ]; then
 	echo "Parse database file $dbdir/db$year.sqlite not found"
     else
 	make_parsed_files $year
