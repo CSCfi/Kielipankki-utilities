@@ -17,6 +17,7 @@ cwbdir=/usr/local/cwb/bin
 cwb_encode=$cwbdir/cwb-encode
 cwb_make=/usr/local/bin/cwb-make
 scriptdir=/home/janiemi/finclarin/korp-git/corp/scripts
+lemgram_posmap=$parsed_vrt_dir/lemgram_posmap_tdt.txt
 
 struct_attrs='-S text:0+issue_date+sentcount+language+elec_date+dateto+datefrom+img_url+label+publ_part+issue_no+tokencount+part_name+publ_title+publ_id+page_id+page_no+issue_title -S paragraph:0+id -S sentence:0+local_id+parse_state+id'
 pos_attrs='-P lemma -P lemmacomp -P pos -P msd -P dephead -P deprel -P ref -P ocr -P lex'
@@ -43,25 +44,12 @@ run_and_time () {
     time { "$@"; } 2>&1
 }
 
-add_lemgrams () {
-    year=$1
-    for f in $parsed_vrt_dir/$year/*; do
-	$scriptdir/vrt-add-lemgrams.py \
-	    --map-file=$parsed_vrt_dir/lemgram_posmap_fgparser.txt \
-	    --pos-field=4 --skip-empty-lemmas $f > $f.tmp
-	mv $f.tmp $f
-    done
-}
-
 make_parsed_files () {
     year=$1
-    run_and_time "adding parses" \
+    run_and_time "adding parses and lemgrams" \
 	$scriptdir/vrt-add-parses.py --database $dbdir/db$year.sqlite \
-	--output-dir $parsed_vrt_dir --input-dir $orig_vrt_dir/$year
-    run_and_time "adding lemgrams" add_lemgrams $year
-    # $scriptdir/vrt-extract-timespans.py --mode=extract \
-    # 	--timespans-prefix=KLK_FI_$year --output-full-dates=always \
-    # 	--timespans-output-file=$parsed_vrt_dir/klk_fi_${year}_timespans.tsv
+	--input-dir $orig_vrt_dir/$year --output-dir $parsed_vrt_dir \
+	--lemgram-pos-map-file $lemgram_posmap
 }
 
 make_cwb () {

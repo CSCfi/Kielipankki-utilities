@@ -19,6 +19,21 @@ class ParseAdder(object):
     def __init__(self, opts):
         self._opts = opts
         self._sentnr = 0
+        if opts.lemgram_pos_map_file:
+            self._lemgram_posmap = self._read_posmap(opts.lemgram_pos_map_file)
+
+    def _read_posmap(self, fname):
+        posmap = {}
+        with codecs.open(fname, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip() == '' or line.startswith('#'):
+                    continue
+                (src_poses, trg_pos) = line[:-1].split('\t', 1)
+                if self._opts.lemgram_inverse_pos_map:
+                    (src_poses, trg_pos) = (trg_pos, src_poses)
+                posmap.update(dict([(src_pos, trg_pos)
+                                    for src_pos in src_poses.split()]))
+        return posmap
 
     def process_files(self, files):
         if isinstance(files, list):
@@ -45,6 +60,8 @@ class ParseAdder(object):
                     elif line.startswith('</sentence>'):
                         self._add_sentence_parse(tokens, parses[file_sentnr][0],
                                                  file_sentnr)
+                        if self._opts.lemgram_pos_map_file:
+                            self._add_sentence_lemgrams(tokens)
                         self._write_sentence(outfile, sent_line, tokens,
                                              parses[file_sentnr][1])
                         tokens = []
@@ -148,6 +165,15 @@ class ParseAdder(object):
                 lemma_without_boundaries = ''.join(lemma_without_boundaries)
         parsed_token[1:1] = [lemma_without_boundaries]
 
+    def _add_sentence_lemgrams(self, tokens):
+        for token_fields in tokens:
+            if len(token_fields) > 1:
+                token_fields.append(self._make_lemgram(token_fields[1],
+                                                       token_fields[3]))
+
+    def _make_lemgram(self, lemma, pos):
+        return '|' + lemma + '..' + self._lemgram_posmap.get(pos, 'xx') + '.1|'
+
     def _write_sentence(self, outfile, sent_line, tokens, parse_state):
         outfile.write(''.join([sent_line[:-2].replace(' id=', ' local_id='),
                                ' id="', str(self._sentnr),
@@ -181,6 +207,8 @@ def getopts():
     optparser.add_option('--no-lemma-without-compound-boundary',
                          action='store_false', default=True,
                          dest='lemma_without_compound_boundary')
+    optparser.add_option('--lemgram-pos-map-file')
+    optparser.add_option('--lemgram-inverse-pos-map')
     (opts, input_filenames) = optparser.parse_args()
     if opts.input_files_list:
         input_filenames.append(read_input_files_list(opts.input_files_list))
