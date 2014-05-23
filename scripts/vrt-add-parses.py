@@ -95,7 +95,8 @@ class ParseAdder(object):
         return os.path.join(lastdir, fname)
 
     def _split_sentence(self, sen):
-        return [re.split(r'\t+', token) for token in sen[:-1].split('\n')]
+        return [[attr for attr in token.split('\t') if attr]
+                for token in sen[:-1].split('\n')]
 
     def _make_outfilename(self, infilename):
         outfilename = self._make_filename_key(infilename)
@@ -184,9 +185,9 @@ class ParseAdder(object):
 
 
 def read_input_files_list(list_filename):
+    skip_line_re = re.compile(r'^\s*(#.*)?$')
     with open(list_filename) as f:
-        return [line.strip() for line in f
-                if not re.match(r'^\s*(#.*)?$', line)]
+        return [line.strip() for line in f if not skip_line_re.match(line)]
 
 
 def list_files_in_directory(dirname):
