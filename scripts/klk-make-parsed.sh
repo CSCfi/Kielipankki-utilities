@@ -16,6 +16,7 @@ cwbdir=/usr/local/cwb/bin
 
 cwb_encode=$cwbdir/cwb-encode
 cwb_make=/usr/local/bin/cwb-make
+cwb_describe_corpus=$cwbdir/cwb-describe-corpus
 scriptdir=/home/janiemi/finclarin/korp-git/corp/scripts
 lemgram_posmap=$parsed_vrt_dir/lemgram_posmap_tdt.txt
 stage_file=$parsed_vrt_dir/klk-make-parsed-stages.txt
@@ -25,7 +26,7 @@ pos_attrs='-P lemma -P lemmacomp -P pos -P msd -P dephead -P deprel -P ref -P oc
 
 verbose=1
 
-export TIMEFORMAT="    %U + %S s"
+export TIMEFORMAT="    %U + %S s (real %R s)"
 
 if [ ! -e $stage_file ]; then
     touch $stage_file
@@ -111,14 +112,44 @@ make_cwb () {
 	--update $corpname
 }
 
+print_stats () {
+    year=$1
+    times=$2
+    total_time=`echo $times | awk '{print $1 + $3}'`
+    if [ "x$total_time" != "x" ]; then
+	echo_verb "  total:"$times
+	if [ "$total_time" != "0" ]; then
+	    $cwb_describe_corpus -r $regdir -s klk_fi_$year |
+	    awk 'BEGIN { time = ARGV[1]; ARGV[1] = "" }
+		 /^.-ATT (word|sentence)\>/ { cnt[$2] = $3 }
+		 END { 
+		     types[1] = "word"; types[2] = "sentence";
+		     for (i in types) {
+			 printf "  %ss: %d (%.2f/s)\n", types[i], \
+                                cnt[types[i]], cnt[types[i]] / time 
+		     }
+		 }' \
+		     $total_time
+	fi
+    fi
+}
+
 years=$*
 
 for year in $years; do
-    echo_verb "* $year:"
+    echo_verb "$year:"
     if [ ! -r $dbdir/db$year.sqlite ]; then
 	echo "Parse database file $dbdir/db$year.sqlite not found"
     else
-	make_parsed_files $year
-	make_cwb $year
+	{ 
+	    time {
+		make_parsed_files $year
+		make_cwb $year
+	    } 2>&1
+	} 2> $parsed_vrt_dir/$progname.$$.times
+	if [ "x$verbose" != "x" ]; then
+	    print_stats $year "$(cat $parsed_vrt_dir/$progname.$$.times)"
+	fi
+	rm $parsed_vrt_dir/$progname.$$.times
     fi
 done
