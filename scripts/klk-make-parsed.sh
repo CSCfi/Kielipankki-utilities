@@ -12,8 +12,9 @@ vrtdir=$corproot/vrt
 orig_vrt_dir=$vrtdir/klk_fi
 parsed_vrt_dir=$vrtdir/klk_fi_parsed
 dbdir=$corproot/conll09
+cwbdir=/usr/local/cwb/bin
 
-cwb_encode=/usr/local/cwb/bin/cwb-encode
+cwb_encode=$cwbdir/cwb-encode
 cwb_make=/usr/local/bin/cwb-make
 scriptdir=/home/janiemi/finclarin/korp-git/corp/scripts
 
