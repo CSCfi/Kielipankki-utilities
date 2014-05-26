@@ -21,11 +21,6 @@ MAKE_VRT_CMD = $(SCRIPTDIR)/ftbconllx2vrt.py --pos-type=original \
 		--loc-extra-info-file=$(LOC_EXTRA_INFO).fifo
 MAKE_VRT_CLEANUP = rm -f $(LOC_EXTRA_INFO).fifo
 
-MAKE_RELS_CMD = $(SCRIPTDIR)/ftbvrt2wprel.py \
-		--input-fields="word $(P_ATTRS)" \
-		--output-prefix=$(CORPNAME_BUILDDIR)_rels \
-		--compress=$(COMPRESS) --sort
-
 VRT_EXTRACT_TIMESPANS_OPTS = --two-digit-years --full-dates --exclude "* id"
 
 LEMGRAM_POSMAP = lemgram_posmap_ftb.tsv

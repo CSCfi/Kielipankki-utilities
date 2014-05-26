@@ -116,6 +116,9 @@ index = $(or $(strip $(foreach wnum,1 2 3 4 5 6 7 8 9 10,\
 				$(wnum)))),\
 		$(3))
 
+CORPUS_HAS_DEPRELS := \
+	$(and $(filter dephead,$(P_ATTRS)),$(filter deprel,$(P_ATTRS)))
+
 LEMGRAM_POSMAP := $(call partvar,LEMGRAM_POSMAP)
 VRT_ADD_LEMGRAMS := \
 	$(if $(strip $(LEMGRAM_POSMAP)),\
@@ -215,13 +218,13 @@ $(call showvars,\
 	SUBCORPORA HAS_SUBCORPORA SUBCORPUS)
 
 DB_TARGETS_ALL = korp_timespans korp_rels korp_lemgrams
-DB_HAS_RELS := $(and $(filter dephead,$(P_ATTRS)),$(filter deprel,$(P_ATTRS)))
 DB_TARGETS := \
 	$(call partvar_or_default,DB_TARGETS,\
 		$(if $(DB),$(DB_TARGETS_ALL),\
 			korp_timespans \
 			$(if $(filter lex,$(P_ATTRS)),\
-				korp_lemgrams $(if $(DB_HAS_RELS),korp_rels))))
+				korp_lemgrams \
+				$(if $(CORPUS_HAS_DEPRELS),korp_rels))))
 
 $(call showvars,PARCORP PARCORP_PART PARCORP_LANG LINK_ELEM)
 
@@ -303,20 +306,6 @@ VRT_CKSUM = $(VRT)$(CKSUM_EXT_COND)
 TSV_CKSUM = $(TSV)$(CKSUM_EXT_COND)
 ALIGN_CKSUM = $(ALIGN)$(CKSUM_EXT_COND)
 
-MAKE_VRT_CMD := $(call partvar_or_default,MAKE_VRT_CMD,cat)
-
-MAKE_VRT_PROG := \
-	$(call partvar_or_default,MAKE_VRT_PROG,\
-		$(if $(call eq,$(MAKE_VRT_CMD),cat),,\
-			$(firstword $(MAKE_VRT_CMD))))
-MAKE_VRT_DEPS = $(MAKE_VRT_PROG) $(call partvar,XML2VRT_RULES) \
-		$(call partvar,LEMGRAM_POSMAP) \
-		$(call partvar,MAKE_VRT_DEPS_EXTRA)
-MAKE_RELS_PROG := \
-	$(call partvar_or_default,MAKE_RELS_PROG,\
-		$(firstword $(MAKE_RELS_CMD)))
-MAKE_RELS_DEPS = $(MAKE_RELS_PROG) $(call partvar,MAKE_RELS_DEPS_EXTRA)
-
 INPUT_ENCODING := $(call partvar,INPUT_ENCODING)
 TRANSCODE := $(if $(INPUT_ENCODING),iconv -f$(INPUT_ENCODING) -tutf8,cat)
 
@@ -352,6 +341,30 @@ CWB_MAKE = cwb-make -r $(REGDIR) -g $(CORPGROUP) -M 2000 $(CORPNAME_U)
 CWB_ALIGN = $(CWBDIR)/cwb-align
 CWB_ALIGN_ENCODE = $(CWBDIR)/cwb-align-encode -v -r $(REGDIR)
 CWB_REGEDIT = cwb-regedit -r $(REGDIR)
+
+MAKE_VRT_CMD := $(call partvar_or_default,MAKE_VRT_CMD,cat)
+
+MAKE_VRT_PROG := \
+	$(call partvar_or_default,MAKE_VRT_PROG,\
+		$(if $(call eq,$(MAKE_VRT_CMD),cat),,\
+			$(firstword $(MAKE_VRT_CMD))))
+MAKE_VRT_DEPS = $(MAKE_VRT_PROG) $(call partvar,XML2VRT_RULES) \
+		$(call partvar,LEMGRAM_POSMAP) \
+		$(call partvar,MAKE_VRT_DEPS_EXTRA)
+
+MAKE_RELS_OPTS := $(call partvar_or_default,MAKE_RELS_OPTS,--sort)
+MAKE_RELS_CMD := \
+	$(call partvar_or_default,MAKE_RELS_CMD,\
+		$(if $(CORPUS_HAS_DEPRELS),\
+			$(SCRIPTDIR)/vrt-extract-relations.py \
+				--input-fields="$(P_ATTR_FIELDS)" \
+				--output-prefix=$(CORPNAME_BUILDDIR)_rels \
+				--compress=$(COMPRESS) \
+				$(MAKE_RELS_OPTS)))
+MAKE_RELS_PROG := \
+	$(call partvar_or_default,MAKE_RELS_PROG,\
+		$(firstword $(MAKE_RELS_CMD)))
+MAKE_RELS_DEPS = $(MAKE_RELS_PROG) $(call partvar,MAKE_RELS_DEPS_EXTRA)
 
 # A named pipe created by mkfifo is used to support uncompressing
 # compressed input on the fly.

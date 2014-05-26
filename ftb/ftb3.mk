@@ -15,9 +15,6 @@ SRC_FILES ?= ftb3.conllx.bz2
 MAKE_VRT_CMD = $(SCRIPTDIR)/ftbconllx2vrt.py --lemgrams \
 			--pos-type=clean+original \
 			--no-fix-morpho-tags # --morpho-tag-separator=":"
-MAKE_RELS_CMD = $(SCRIPTDIR)/ftbvrt2wprel.py --input-type=ftb3-extrapos \
-		--output-prefix=$(CORPNAME_BUILDDIR)_rels \
-		--compress=$(COMPRESS) --sort
 
 VRT_EXTRACT_TIMESPANS_OPTS = --two-digit-years --full-dates --exclude "* id"
 
