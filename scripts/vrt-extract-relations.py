@@ -5,6 +5,7 @@ import sys
 import os
 import re
 import gc
+import codecs
 
 from optparse import OptionParser
 from subprocess import Popen, PIPE
@@ -61,7 +62,8 @@ class Deprels(object):
               'voc': 'TT',
               '_': 'XX'}
 
-    def __init__(self):
+    def __init__(self, relmap=None):
+        self.relmap = relmap or self.__class__.relmap
         self.freqs_rel = IncrDict()
         self.freqs_head_rel = IncrDict()
         self.freqs_rel_dep = IncrDict()
@@ -133,7 +135,7 @@ class Deprels(object):
                 headnr = -1
             if headnr >= 0 and headnr < len(data):
                 dep = word_info["lemgram"] or word_info["lemma"]
-                rel = self.relmap[word_info["deprel"]]
+                rel = self.relmap.get(word_info["deprel"], 'XX')
                 head = data[headnr]["lemgram"] or data[headnr]["lemma"]
                 head_rel_dep = (head, rel, dep)
                 if head_rel_dep not in self.sentences:
@@ -157,7 +159,10 @@ class RelationExtractor(object):
 
     def __init__(self, opts):
         self._opts = opts
-        self._deprels = Deprels()
+        relmap = None
+        if opts.relation_map:
+            relmap = self._read_relmap(opts.relation_map)
+        self._deprels = Deprels(relmap)
         self._temp_fnames = {}
         if self._opts.input_fields:
             self._input_fieldnames = re.split(r'\s*[,\s]\s*',
@@ -172,6 +177,19 @@ class RelationExtractor(object):
                 self._input_fieldnames.insert(3, 'pos_extra')
             if self._opts.input_type.startswith('ftb3'):
                 self._input_fieldnames.insert(1, 'lemma_comp')
+
+    def _read_relmap(self, fname):
+        relmap = {}
+        with codecs.open(fname, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip() == '' or line.startswith('#'):
+                    continue
+                (src_rels, trg_rel) = line[:-1].split('\t', 1)
+                if self._opts.inverse_relation_map:
+                    (src_rels, trg_rel) = (trg_rel, src_rels)
+                relmap.update(dict([(src_rel, trg_rel)
+                                    for src_rel in src_rels.split()]))
+        return relmap
 
     def process_input(self, args):
         if isinstance(args, list):
@@ -315,6 +333,9 @@ def getopts():
     optparser.add_option('--temp-files', '--temporary-files',
                          action='store_true', default=False)
     optparser.add_option('--temp-dir', '--temporary-directory', default=None)
+    optparser.add_option('--relation-map')
+    optparser.add_option('--inverse-relation-map', action='store_true',
+                         default=False)
     (opts, args) = optparser.parse_args()
     if opts.output_prefix is None and opts.corpus_name is not None:
         opts.output_prefix = 'relations_' + opts.corpus_name

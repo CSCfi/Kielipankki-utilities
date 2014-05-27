@@ -24,6 +24,7 @@ MAKE_VRT_CLEANUP = rm -f $(LOC_EXTRA_INFO).fifo
 VRT_EXTRACT_TIMESPANS_OPTS = --two-digit-years --full-dates --exclude "* id"
 
 LEMGRAM_POSMAP = lemgram_posmap_ftb.tsv
+WORDPICT_RELMAP = wordpict_relmap_ftb.tsv
 
 
 include ftb-common.mk

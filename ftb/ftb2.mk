@@ -11,6 +11,7 @@ MAKE_VRT_CMD = $(SCRIPTDIR)/ftb2vrt.pl --no-lemgrams --no-fix-morpho-tags # --le
 MAKE_VRT_FILENAME_ARGS = 1
 
 LEMGRAM_POSMAP = lemgram_posmap_ftb.tsv
+WORDPICT_RELMAP = wordpict_relmap_ftb.tsv
 
 CORPUS_DATE = unknown
 

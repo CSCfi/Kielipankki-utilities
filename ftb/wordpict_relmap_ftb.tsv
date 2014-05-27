@@ -1,0 +1,19 @@
+# Mapping from FTB dependency relation codes to those used in Korp
+# word picture
+advl	ADV
+attr	AT
+aux	IV
+comp	OP
+conjunct	UK
+idiom	XF
+idom	XF
+main	HD
+mod	ET
+modal	IV
+obj	OBJ
+phrm	XX
+phrv	PL
+scomp	SP
+subj	SS
+voc	TT
+_	XX

@@ -11,6 +11,7 @@ CORPUS_DATE = 2012
 MAKE_VRT_CMD = ./mt2vrt.pl --no-lemgrams --no-fix-morpho-tags # --morpho-tag-separator=":"
 
 LEMGRAM_POSMAP = ../ftb/lemgram_posmap_ftb.tsv
+WORDPICT_RELMAP = ../ftb/wordpict_relmap_ftb.tsv
 
 
 include ../corp-common.mk

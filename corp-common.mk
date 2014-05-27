@@ -352,6 +352,7 @@ MAKE_VRT_DEPS = $(MAKE_VRT_PROG) $(call partvar,XML2VRT_RULES) \
 		$(call partvar,LEMGRAM_POSMAP) \
 		$(call partvar,MAKE_VRT_DEPS_EXTRA)
 
+WORDPICT_RELMAP := $(call partvar,WORDPICT_RELMAP)
 MAKE_RELS_OPTS := $(call partvar_or_default,MAKE_RELS_OPTS,--sort)
 MAKE_RELS_CMD := \
 	$(call partvar_or_default,MAKE_RELS_CMD,\
@@ -360,11 +361,15 @@ MAKE_RELS_CMD := \
 				--input-fields="$(P_ATTR_FIELDS)" \
 				--output-prefix=$(CORPNAME_BUILDDIR)_rels \
 				--compress=$(COMPRESS) \
+				$(if $(WORDPICT_RELMAP),--relation-map $(WORDPICT_RELMAP)) \
 				$(MAKE_RELS_OPTS)))
 MAKE_RELS_PROG := \
 	$(call partvar_or_default,MAKE_RELS_PROG,\
 		$(firstword $(MAKE_RELS_CMD)))
-MAKE_RELS_DEPS = $(MAKE_RELS_PROG) $(call partvar,MAKE_RELS_DEPS_EXTRA)
+MAKE_RELS_DEPS = \
+	$(MAKE_RELS_PROG) \
+	$(call partvar,MAKE_RELS_DEPS_EXTRA) \
+	$(WORDPICT_RELMAP)
 
 # A named pipe created by mkfifo is used to support uncompressing
 # compressed input on the fly.
