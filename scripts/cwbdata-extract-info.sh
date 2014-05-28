@@ -24,7 +24,7 @@ verbose=
 test=
 all_corpora=
 
-if which wdiff > /dev/null; then
+if which wdiff &> /dev/null; then
     wdiff=wdiff
 else
     wdiff=diff
@@ -143,7 +143,7 @@ done
 
 cwb_describe_corpus=
 for path in $cwbdir/cwb-describe-corpus $cwbdir/bin/cwb-describe-corpus \
-    `which cwb-describe-corpus`; do
+    `which cwb-describe-corpus 2> /dev/null`; do
     if [ -x $path ]; then
 	cwb_describe_corpus=$path
 	break

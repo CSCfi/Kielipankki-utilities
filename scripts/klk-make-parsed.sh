@@ -5,21 +5,46 @@
 
 
 progname=`basename $0`
+progdir=`dirname $0`
 
-corproot=/v/corpora
+setvar_host () {
+    varname=$1
+    localval=$2
+    otherval=$3
+    case $HOSTNAME in
+	*.csc.fi )
+	    val=$otherval
+	    ;;
+	* )
+	    val=$localval
+	    ;;
+    esac
+    eval $varname=$val
+}
+
+setvar_host host local csc
+corproot_final=/v/corpora
+setvar_host corproot $corproot_final /wrk/jyniemi/corpora
 regdir=$corproot/registry
 vrtdir=$corproot/vrt
 orig_vrt_dir=$vrtdir/klk_fi
 parsed_vrt_dir=$vrtdir/klk_fi_parsed
-dbdir=$corproot/conll09
-cwbdir=/usr/local/cwb/bin
+setvar_host dbdir $corproot/conll09 /wrk/jpiitula
+setvar_host cwbroot /usr/local/cwb /fs/proj1/kieli/korp/cwb
+cwbdir=$cwbroot/bin
 
 cwb_encode=$cwbdir/cwb-encode
-cwb_make=/usr/local/bin/cwb-make
+setvar_host cwb_make /usr/local/bin/cwb-make $cwbdir/cwb-make
 cwb_describe_corpus=$cwbdir/cwb-describe-corpus
-scriptdir=/home/janiemi/finclarin/korp-git/corp/scripts
+scriptdir=$progdir
 lemgram_posmap=$parsed_vrt_dir/lemgram_posmap_tdt.txt
 stage_file=$parsed_vrt_dir/klk-make-parsed-stages.txt
+
+setvar_host group korp clarin
+
+if [ "$host" = "csc" ]; then
+    export PERL5LIB=$cwbroot/share/perl5
+fi
 
 struct_attrs='-S text:0+issue_date+sentcount+language+elec_date+dateto+datefrom+img_url+label+publ_part+issue_no+tokencount+part_name+publ_title+publ_id+page_id+page_no+issue_title -S paragraph:0+id -S sentence:0+local_id+parse_state+id'
 pos_attrs='-P lemma -P lemmacomp -P pos -P msd -P dephead -P deprel -P ref -P ocr -P lex'
@@ -93,7 +118,10 @@ cwb_encode () {
     year=$1
     corpdatadir=$2
     regfile=$3
-    rm $regfile $corpdatadir/*
+    rm -f $regfile $corpdatadir/*
+    if [ ! -d $corpdatadir ]; then
+	mkdir -p $corpdatadir
+    fi
     $cwb_encode -d $corpdatadir -R $regfile -xsB -c utf8 \
 	$struct_attrs $pos_attrs -F $parsed_vrt_dir/$year
 }
@@ -107,10 +135,15 @@ make_cwb () {
     run_and_time $year cwb-encoded "encoding for CWB" \
 	cwb_encode $year $corpdatadir $regfile
     run_and_time $year cwb-indexed "making CWB indices" \
-	$cwb_make -r $regdir -g korp -M 2000 $corpname_u
+	$cwb_make -r $regdir -g $group -p 664 -M 2000 $corpname_u
     run_and_time $year info-extracted "extracting info" \
 	$scriptdir/cwbdata-extract-info.sh --cwbdir $cwbdir --registry $regdir \
 	--update $corpname
+    # # The corpus path cannot be changed here if we want to get the
+    # # statistics with cwb-describe-corpus
+    # if [ "$corproot" != "$corproot_final" ]; then
+    # 	sed -i.bak -e "s|$corproot|$corproot_final|g" $regfile
+    # fi
 }
 
 print_stats () {
