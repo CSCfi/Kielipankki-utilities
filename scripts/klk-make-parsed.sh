@@ -82,8 +82,9 @@ run_and_time () {
 
 make_parsed_files () {
     year=$1
+    database=$2
     run_and_time $year parses-added "adding parses and lemgrams" \
-	$scriptdir/vrt-add-parses.py --database $dbdir/db$year.sqlite \
+	$scriptdir/vrt-add-parses.py --database $database \
 	--input-dir $orig_vrt_dir/$year --output-dir $parsed_vrt_dir \
 	--lemgram-pos-map-file $lemgram_posmap
 }
@@ -134,16 +135,27 @@ print_stats () {
     fi
 }
 
-years=$*
+yeardbs=$*
 
-for year in $years; do
-    echo_verb "$year:"
-    if [ ! -r $dbdir/db$year.sqlite ]; then
-	echo "Parse database file $dbdir/db$year.sqlite not found"
-    else
+for yeardb in $yeardbs; do
+    case $yeardb in
+	*.sqlite )
+	    yeardb_file=$yeardb
+	    ;;
+	* )
+	    yeardb_file=$dbdir/db$yeardb.sqlite
+	    ;;
+    esac
+    if [ ! -r $yeardb_file ]; then
+	echo "Parse database file $yeardb_file not found"
+	continue
+    fi
+    years=`sqlite3 $yeardb_file 'select distinct yno from doc;'`
+    for year in $years; do
+	echo_verb "$year:"
 	{ 
 	    time {
-		make_parsed_files $year
+		make_parsed_files $year $yeardb_file
 		make_cwb $year
 	    } 2>&1
 	} 2> $parsed_vrt_dir/$progname.$$.times
@@ -151,5 +163,5 @@ for year in $years; do
 	    print_stats $year "$(cat $parsed_vrt_dir/$progname.$$.times)"
 	fi
 	rm $parsed_vrt_dir/$progname.$$.times
-    fi
+    done
 done

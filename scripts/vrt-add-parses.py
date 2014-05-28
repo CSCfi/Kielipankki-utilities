@@ -14,6 +14,14 @@ import cStringIO as strio
 from optparse import OptionParser
 
 
+# FIXME: Even if the output files may go to several different
+# directories (corpora), in particular when using --all-database-docs
+# and a parse database containing multiple corpora, they still have a
+# single sentence id sequence. Maybe we should have an option
+# controlling if each directory should have its own id sequence
+# starting from 0 or not.
+
+
 class ParseAdder(object):
 
     def __init__(self, opts):
@@ -199,22 +207,37 @@ def list_files_in_directory(dirname):
     return full_filenames
 
 
+def list_database_docs(database, input_root):
+    with sqlite3.connect(database) as con:
+       cur = con.cursor()
+       fnames = sorted(os.path.join(input_root, fname)
+                       for (fname,)
+                       in cur.execute('''select distinct nme from doc;'''))
+    return fnames
+
+
 def getopts():
     optparser = OptionParser()
     optparser.add_option('--database')
     optparser.add_option('--output-dir', default='.')
     optparser.add_option('--input-files-list')
     optparser.add_option('--input-dir')
+    optparser.add_option('--input-root')
+    optparser.add_option('--all-database-docs', action='store_true')
     optparser.add_option('--no-lemma-without-compound-boundary',
                          action='store_false', default=True,
                          dest='lemma_without_compound_boundary')
     optparser.add_option('--lemgram-pos-map-file')
     optparser.add_option('--lemgram-inverse-pos-map')
     (opts, input_filenames) = optparser.parse_args()
-    if opts.input_files_list:
-        input_filenames.append(read_input_files_list(opts.input_files_list))
-    if opts.input_dir:
-        input_filenames.append(list_files_in_directory(opts.input_dir))
+    if opts.all_database_docs:
+        input_filenames.append(list_database_docs(opts.database,
+                                                  opts.input_root or ''))
+    else:
+        if opts.input_files_list:
+            input_filenames.append(read_input_files_list(opts.input_files_list))
+        if opts.input_dir:
+            input_filenames.append(list_files_in_directory(opts.input_dir))
     return (opts, input_filenames)
 
 
