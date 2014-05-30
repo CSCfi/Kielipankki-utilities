@@ -38,9 +38,15 @@ setvar_host cwb_make /usr/local/bin/cwb-make $cwbdir/cwb-make
 cwb_describe_corpus=$cwbdir/cwb-describe-corpus
 scriptdir=$progdir
 lemgram_posmap=$parsed_vrt_dir/lemgram_posmap_tdt.txt
-stage_file=$parsed_vrt_dir/klk-make-parsed-stages.txt
+
+stagedir=$parsed_vrt_dir/stages
+stage_fname_templ=$stagedir/klk_fi_%s.stages
+
+mkdir -p $stagedir
 
 setvar_host group korp clarin
+
+setvar_host skip_stages "" "*-load"
 
 if [ "$host" = "csc" ]; then
     export PERL5LIB=$cwbroot/share/perl5
@@ -52,10 +58,6 @@ pos_attrs='-P lemma -P lemmacomp -P pos -P msd -P dephead -P deprel -P ref -P oc
 verbose=1
 
 export TIMEFORMAT="    %U + %S s (real %R s)"
-
-if [ ! -e $stage_file ]; then
-    touch $stage_file
-fi
 
 
 error () {
@@ -76,14 +78,19 @@ printf_verb () {
 }
 
 add_stage () {
-    year=$1
+    stage_file=$1
     stage_label=$2
-    old_stages=`grep -E "^$year " $stage_file || echo "$year"`
-    {
-	grep -Ev "^$year " $stage_file
-	echo "$old_stages $stage_label"
-    } > $stage_file.new
-    mv $stage_file.new $stage_file
+    echo $stage_label >> $stage_file
+}
+
+stage_is_completed () {
+    stage_file=$1
+    stage_label=$2
+    if [ ! -e $stage_file ]; then
+	touch $stage_file
+	return 1
+    fi
+    grep -Eq "^$stage_label"'$' $stage_file
 }
 
 run_and_time () {
@@ -91,17 +98,25 @@ run_and_time () {
     stage_label=$2
     echo_text=$3
     shift; shift; shift
+    stage_file=`printf $stage_fname_templ $year`
     printf_verb "  $echo_text: "
-    if grep -Eq "^$year .*\b$stage_label\b" $stage_file; then
+    if stage_is_completed $stage_file $stage_label; then
 	echo_verb "already done"
+	return
+    elif [ "x$skip_stages" != "x" ]; then
+	case $stage_label in
+	    $skip_stages )
+		echo_verb "skipping"
+		return
+		;;
+	esac
+    fi
+    echo_verb ""
+    time { "$@"; } 2>&1
+    if [ $? = 0 ]; then
+	add_stage $stage_file $stage_label
     else
-	echo_verb ""
-	time { "$@"; } 2>&1
-	if [ $? = 0 ]; then
-	    add_stage $year $stage_label
-	else
-	    error "an error occurred when $echo_text; aborting"
-	fi
+	error "an error occurred when $echo_text; aborting"
     fi
 }
 
