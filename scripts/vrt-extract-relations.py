@@ -209,7 +209,9 @@ class RelationExtractor(object):
         # sys.stdout.write(str(sentnr) + ' ' + repr(self._deprels.get_sizes()) + '\n')
         for line in f:
             line = line[:-1]
-            if line.startswith('<sentence'):
+            if not line:
+                continue
+            elif line.startswith('<sentence'):
                 mo = sent_id_re.match(line)
                 if len(data) > 0:
                     self._deprels.add(sent_id, data)
