@@ -195,10 +195,18 @@ for yeardb in $yeardbs; do
 	    ;;
     esac
     if [ ! -r $yeardb_file ]; then
-	echo "Parse database file $yeardb_file not found"
-	continue
+	echo "Warning: parse database file $yeardb_file not found"
+	if [ $yeardb != $yeardb_file ] &&
+	    stage_is_completed `printf $stage_fname_templ $yeardb` parses-added
+	then
+	    echo "Parses already added to year $yeardb; trying to continue"
+	    years=$yeardb
+	else
+	    continue
+	fi
+    else
+	years=`sqlite3 $yeardb_file 'select distinct yno from doc;'`
     fi
-    years=`sqlite3 $yeardb_file 'select distinct yno from doc;'`
     for year in $years; do
 	echo_verb "$year:"
 	{ 
