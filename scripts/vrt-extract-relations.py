@@ -5,24 +5,11 @@ import sys
 import os
 import re
 import gc
-import codecs
 
 from optparse import OptionParser
 from subprocess import Popen, PIPE
 from tempfile import NamedTemporaryFile
-
-
-class IncrDict(dict):
-
-    def __init__(self, init_val=0, init_func=None):
-        dict.__init__(self)
-        self.init_val = init_val
-        self.init_func = init_func or (lambda: init_val)
-
-    def incr(self, key, step=1):
-        if key not in self:
-            self[key] = self.init_func()
-        self[key] += step
+from collections import defaultdict
 
 
 class Deprels(object):
@@ -64,10 +51,10 @@ class Deprels(object):
 
     def __init__(self, relmap=None):
         self.relmap = relmap or self.__class__.relmap
-        self.freqs_rel = IncrDict()
-        self.freqs_head_rel = IncrDict()
-        self.freqs_rel_dep = IncrDict()
-        self.sentences = {}
+        self.freqs_rel = defaultdict(int)
+        self.freqs_head_rel = defaultdict(int)
+        self.freqs_rel_dep = defaultdict(int)
+        self.sentences = defaultdict(self.SentInfo)
 
     def __iter__(self):
         for key in self.ids.keys():
@@ -87,63 +74,59 @@ class Deprels(object):
                                          in self.sentences[key].sentences)}
 
     def iter_freqs(self):
-        for key in self.sentences.keys():
+        for key in self.sentences:
             (head, rel, dep) = key
-            yield {'id': self.sentences[key].id,
-                   'head': head,
-                   'rel': rel,
-                   'dep': dep,
-                   'depextra': '',
-                   'freq': self.sentences[key].get_len(),
-                   'wf': 0}
+            yield (str(self.sentences[key].id),  # id
+                   head,
+                   rel,
+                   dep,
+                   '',  # depextra
+                   str(self.sentences[key].get_len()),  # freq
+                   '0')  # wf
 
     def iter_freqs_rel(self):
-        for rel in self.freqs_rel.keys():
-            yield {'rel': rel,
-                   'freq': self.freqs_rel[rel]}
+        for rel in self.freqs_rel:
+            yield (rel,
+                   str(self.freqs_rel[rel]))
 
     def iter_freqs_head_rel(self):
-        for (head, rel) in self.freqs_head_rel.keys():
-            yield {'head': head,
-                   'rel': rel,
-                   'freq': self.freqs_head_rel[(head, rel)]}
+        for (head, rel) in self.freqs_head_rel:
+            yield (head,
+                   rel,
+                   str(self.freqs_head_rel[(head, rel)]))
 
     def iter_freqs_rel_dep(self):
-        for (rel, dep) in self.freqs_rel_dep.keys():
-            yield {'dep': dep,
-                   'depextra': '',
-                   'rel': rel,
-                   'freq': self.freqs_rel_dep[(rel, dep)]}
+        for (rel, dep) in self.freqs_rel_dep:
+            yield (dep,
+                   '',  # depextra
+                   rel,
+                   str(self.freqs_rel_dep[(rel, dep)]))
 
     def iter_sentences(self):
-        for key in self.sentences.keys():
+        for key in self.sentences:
             for (sent_id, start, end) in self.sentences[key].sentences:
-                yield {'id': self.sentences[key].id,
-                       'sentence': sent_id,
-                       'start': start,
-                       'end': end}
+                yield (str(self.sentences[key].id),
+                       str(sent_id),
+                       str(start),
+                       str(end))
 
     def add(self, sent_id, data):
         # print sent_id, len(data)
-        for wordnr in xrange(0, len(data)):
-            word_info = data[wordnr]
-            if word_info["dephead"] == '_':
-                word_info["dephead"] = -1
+        for wordnr, word_info in enumerate(data):
+            dep, deprel, dephead = word_info
+            if dephead == '_':
+                continue
             try:
-                headnr = int(word_info["dephead"]) - 1
+                headnr = int(dephead) - 1
             except ValueError:
                 headnr = -1
             if headnr >= 0 and headnr < len(data):
-                dep = word_info["lemgram"] or word_info["lemma"]
-                rel = self.relmap.get(word_info["deprel"], 'XX')
-                head = data[headnr]["lemgram"] or data[headnr]["lemma"]
-                head_rel_dep = (head, rel, dep)
-                if head_rel_dep not in self.sentences:
-                    self.sentences[head_rel_dep] = self.SentInfo()
-                self.freqs_rel.incr(rel)
-                self.freqs_head_rel.incr((head, rel))
-                self.freqs_rel_dep.incr((rel, dep))
-                self.sentences[head_rel_dep].add_info(
+                rel = self.relmap.get(deprel, 'XX')
+                head = data[headnr][0]
+                self.freqs_rel[rel] += 1
+                self.freqs_head_rel[(head, rel)] += 1
+                self.freqs_rel_dep[(rel, dep)] += 1
+                self.sentences[(head, rel, dep)].add_info(
                     [(sent_id, min(wordnr, headnr) + 1,
                       max(wordnr, headnr) + 1)])
 
@@ -177,10 +160,15 @@ class RelationExtractor(object):
                 self._input_fieldnames.insert(3, 'pos_extra')
             if self._opts.input_type.startswith('ftb3'):
                 self._input_fieldnames.insert(1, 'lemma_comp')
+        self._fieldnrs = dict((fieldname,
+                               (self._input_fieldnames.index(fieldname)
+                                if fieldname in self._input_fieldnames
+                                else None))
+                              for fieldname in self._input_fieldnames)
 
     def _read_relmap(self, fname):
         relmap = {}
-        with codecs.open(fname, 'r', encoding='utf-8') as f:
+        with open(fname, 'r') as f:
             for line in f:
                 if line.strip() == '' or line.startswith('#'):
                     continue
@@ -203,7 +191,13 @@ class RelationExtractor(object):
 
     def _process_input_stream(self, f):
         sent_id_re = re.compile(r'<sentence\s+(?:.+\s)?id="(.*?)".*>')
-        tag_re = re.compile(r'^<.*>$')
+        # Try to optimize by using local variables not requiring
+        # attribute access
+        has_lemgrams = bool(self._fieldnrs['lemgram'])
+        fieldnr_lemgram_lemma = (self._fieldnrs['lemgram']
+                                 or self._fieldnrs['lemma'])
+        fieldnr_deprel = self._fieldnrs['deprel']
+        fieldnr_dephead = self._fieldnrs['dephead']
         data = []
         sentnr = 0
         # sys.stdout.write(str(sentnr) + ' ' + repr(self._deprels.get_sizes()) + '\n')
@@ -211,6 +205,19 @@ class RelationExtractor(object):
             line = line[:-1]
             if not line:
                 continue
+            elif line[0] != '<':
+                fields = line.split('\t')
+                if has_lemgrams:
+                    # Remove leading and trailing vertical bars from
+                    # the lemgram. FIXME: This assumes an unambiguous
+                    # lemgram.
+                    fields[fieldnr_lemgram_lemma] = (
+                        fields[fieldnr_lemgram_lemma][1:-1])
+                # Would we need this:
+                # fields.append('')	# An empty lemgram by default
+                data.append((fields[fieldnr_lemgram_lemma],
+                             fields[fieldnr_deprel],
+                             fields[fieldnr_dephead]))
             elif line.startswith('<sentence'):
                 mo = sent_id_re.match(line)
                 if len(data) > 0:
@@ -221,12 +228,6 @@ class RelationExtractor(object):
                     #         str(sentnr) + ' ' + repr(self._deprels.get_sizes()) + '\n')
                 sent_id = mo.group(1)
                 data = []
-            elif not tag_re.match(line):
-                fields = line.split('\t')
-                if fields[-1].startswith('|') and fields[-1].endswith('|'):
-                    fields[-1] = fields[-1][1:-1]
-                fields.append('')	# An empty lemgram by default
-                data.append(dict(zip(self._input_fieldnames, fields)))
         if len(data) > 0:
             self._deprels.add(sent_id, data)
             # sys.stdout.write(str(sentnr) + ' ' + repr(self._deprels.get_sizes()) + '\n')
@@ -245,16 +246,11 @@ class RelationExtractor(object):
                                  'wf', 'sentences']))
 
     def _output_rels_new(self):
-        output_rels = [('iter_freqs', '',
-                        ['id', 'head', 'rel', 'dep', 'depextra', 'freq', 'wf'],
-                        True),
-                       ('iter_freqs_rel', '_rel', ['rel', 'freq'], False),
-                       ('iter_freqs_head_rel', '_head_rel',
-                         ['head', 'rel', 'freq'], False),
-                       ('iter_freqs_rel_dep', '_dep_rel',
-                         ['dep', 'depextra', 'rel', 'freq'], False),
-                       ('iter_sentences', '_sentences',
-                         ['id', 'sentence', 'start', 'end'], True)]
+        output_rels = [('iter_freqs', '', True),
+                       ('iter_freqs_rel', '_rel', False),
+                       ('iter_freqs_head_rel', '_head_rel', False),
+                       ('iter_freqs_rel_dep', '_dep_rel', False),
+                       ('iter_sentences', '_sentences', True)]
         for output_rel in output_rels:
             self._output_rel(getattr(self._deprels, output_rel[0])(),
                              *output_rel[1:])
@@ -263,12 +259,11 @@ class RelationExtractor(object):
             gc.collect()
             self._write_final_files(output_rels)
 
-    def _output_rel(self, data, rel_suffix, fieldnames, numeric_sort=False):
+    def _output_rel(self, data, rel_suffix, numeric_sort=False):
         with self._open_output_file(self._make_output_filename(rel_suffix),
                                     numeric_sort, self._opts.temp_files) as f:
             for row in data:
-                f.write('\t'.join([str(row[fieldname])
-                                   for fieldname in fieldnames]) + '\n')
+                f.write('\t'.join(row) + '\n')
             if self._opts.temp_files:
                 self._temp_fnames[rel_suffix] = f.name
 
