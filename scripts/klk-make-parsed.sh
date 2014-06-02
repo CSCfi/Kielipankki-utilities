@@ -19,7 +19,7 @@ setvar_host () {
 	    val=$localval
 	    ;;
     esac
-    eval $varname=$val
+    eval $varname="'$val'"
 }
 
 setvar_host host local csc
@@ -104,12 +104,14 @@ run_and_time () {
 	echo_verb "already done"
 	return
     elif [ "x$skip_stages" != "x" ]; then
-	case $stage_label in
-	    $skip_stages )
-		echo_verb "skipping"
-		return
-		;;
-	esac
+	for skip_stage in $skip_stages; do
+	    case $stage_label in
+		$skip_stage )
+		    echo_verb "skipping"
+		    return
+		    ;;
+	    esac
+	done
     fi
     echo_verb ""
     time { "$@"; } 2>&1
