@@ -37,7 +37,7 @@ cwb_encode=$cwbdir/cwb-encode
 setvar_host cwb_make /usr/local/bin/cwb-make $cwbdir/cwb-make
 cwb_describe_corpus=$cwbdir/cwb-describe-corpus
 scriptdir=$progdir
-lemgram_posmap=$parsed_vrt_dir/lemgram_posmap_tdt.txt
+lemgram_posmap=$parsed_vrt_dir/lemgram_posmap_tdt.tsv
 
 stagedir=$parsed_vrt_dir/stages
 stage_fname_templ=$stagedir/klk_fi_%s.stages
@@ -46,7 +46,14 @@ mkdir -p $stagedir
 
 setvar_host group korp clarin
 
-setvar_host skip_stages "" "*-load"
+setvar_host skip_stages "*-load" "*-load"
+
+mysql_user=korp
+mysql_dbname=korp
+
+special_chars=" /<>|"
+encoded_special_char_offset=0x7F
+encoded_special_char_prefix=
 
 if [ "$host" = "csc" ]; then
     export PERL5LIB=$cwbroot/share/perl5
@@ -163,6 +170,69 @@ make_cwb () {
     # fi
 }
 
+mysql_import () {
+    file=$1
+    tablename=$2
+    mkfifo $tablename.tsv
+    (zcat $file > $tablename.tsv &)
+    mysql --local-infile --user $mysql_user --batch --execute "
+	    set autocommit = 0;
+	    set unique_checks = 0;
+	    load data local infile '$tablename.tsv' into table $tablename;
+	    commit;
+	    show count(*) warnings;
+	    show warnings;" \
+		$mysql_dbname
+    /bin/rm -f $tablename.tsv
+}
+
+decode_special_chars () {
+    perl -C -e '
+	$sp_chars = "'"$special_chars"'";
+	%sp_char_map = map {("'$encoded_special_char_prefix'"
+	                     . chr ('$encoded_special_char_offset' + $_))
+			    => substr ($sp_chars, $_, 1)}
+			   (0 .. length ($sp_chars));
+	while (<>)
+	{
+	    for $c (keys (%sp_char_map))
+	    {
+		s/$c/$sp_char_map{$c}/g;
+	    }
+	    print;
+	}'
+}
+
+make_lemgrams_tsv () {
+    year=$1
+    for f in $parsed_vrt_dir/$year/*.vrt; do
+	cat $f
+    done |
+    grep -Ev '^<' |
+    awk -F'	' '{print $NF}' |
+    tr '|' '\n' |
+    grep -Ev '^$' |
+    decode_special_chars |
+    sort |
+    uniq -c |
+    perl -pe 's/^\s*(\d+)\s*(.*)/$2\t$1\t0\t0\t'KLK_FI_$year'/' |
+    gzip > $parsed_vrt_dir/$year/klk_fi_${year}_lemgrams.tsv.gz
+}
+
+load_lemgrams () {
+    year=$1
+    mysql_import $parsed_vrt_dir/$year/klk_fi_${year}_lemgrams.tsv.gz \
+	lemgram_index
+}
+
+make_databases () {
+    year=$1
+    run_and_time $year lemgrams-tsv "extracting lemgrams for database" \
+	make_lemgrams_tsv $year
+    run_and_time $year lemgrams-load "loading lemgrams into database" \
+	load_lemgrams $year
+}
+
 print_stats () {
     year=$1
     times=$2
@@ -215,6 +285,7 @@ for yeardb in $yeardbs; do
 	    time {
 		make_parsed_files $year $yeardb_file
 		make_cwb $year
+		make_databases $year
 	    } 2>&1
 	} 2> $parsed_vrt_dir/$progname.$$.times
 	if [ "x$verbose" != "x" ]; then
