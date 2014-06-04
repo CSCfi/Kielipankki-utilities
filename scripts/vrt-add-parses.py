@@ -100,7 +100,7 @@ class ParseAdder(object):
     def _make_filename_key(self, vrt_fname):
         dirname, fname = os.path.split(vrt_fname)
         _, lastdir = os.path.split(dirname)
-        return os.path.join(lastdir, fname)
+        return os.path.join(lastdir, fname).decode('utf-8')
 
     def _split_sentence(self, sen):
         return [[attr for attr in token.split('\t') if attr]
