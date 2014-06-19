@@ -35,7 +35,7 @@ archive_ext_xz=txz
 
 sql_file_types="lemgrams rels timespans"
 sql_file_types_multicorpus="lemgrams timespans"
-sql_table_name_lemgrams=lemgrams_index
+sql_table_name_lemgrams=lemgram_index
 rels_tables_basenames="@ rel head_rel dep_rel sentences"
 
 # Korp MySQL database
