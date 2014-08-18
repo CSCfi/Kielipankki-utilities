@@ -13,11 +13,13 @@ not = $(if $(1),,1)
 lower = $(shell echo $(1) | perl -pe 's/(.*)/\L$$1\E/')
 
 showvars = $(if $(DEBUG),$(foreach var,$(1),$(info $(var) = "$($(var))")))
+debuginfo = $(if $(DEBUG),$(info *** DEBUG: $(1) ***))
 
 
 # The corpus has subcorpora if SUBCORPORA has been defined but not
 # SUBCORPUS (which would indicate this is a subcorpus).
-HAS_SUBCORPORA = $(and $(SUBCORPORA),$(call not,$(SUBCORPUS)))
+HAS_SUBCORPORA = $(and $(or $(SUBCORPORA),$(SUBDIRS_AS_SUBCORPORA)),\
+			$(call not,$(SUBCORPUS)))
 
 # NOTE: We cannot use the variable name LANGUAGE since that controls
 # the language of Make messages, so  we use PARCORP_LANG instead.
@@ -81,6 +83,11 @@ CORPROOT ?= /v/corpora
 # Root directory for default corpus source files
 CORPSRCROOT := $(call partvar_or_default,CORPSRCROOT,\
 		$(CORPROOT)/src)
+
+ifdef SUBDIRS_AS_SUBCORPORA
+SUBCORPORA := $(shell ls -l $(CORPSRCROOT)/$(SRC_SUBDIR) | grep '^d' \
+		| awk '{print $$NF}')
+endif
 
 KORP_SRCDIR = $(TOPDIR)/../src
 KORP_CGI = $(KORP_SRCDIR)/backend/korp/korp.cgi
@@ -176,6 +183,9 @@ CORPNAME_BASE := $(call partvar_or_default,CORPNAME_BASE,\
 			$(lastword $(subst /, ,$(CURDIR))))
 CORPNAME_MAIN := $(call partvar_or_default,CORPNAME_MAIN,\
 			$(CORPNAME_BASE))
+# Corpus base name without prefixes, suffixes or subcorpus name
+CORPNAME_BASEBASE := \
+	$(call partvar_or_default,$(or CORPNAME_BASEBASE,CORPNAME_BASE))
 
 # CORPORA: The corpora to make with the current makefile. If not
 # specified explicitly, all the stems of .mk files in the current
@@ -221,9 +231,10 @@ SRC_FILES_REAL := \
 			       $(addprefix $(SRC_DIR)/,$(SRC_FILES))))
 
 $(call showvars,\
-	CORPORA WITHIN_CORP_MK CORPNAME_MAIN CORPNAME_BASE \
+	CORPORA WITHIN_CORP_MK CORPNAME CORPNAME_MAIN CORPNAME_BASE \
+	CORPNAME_BASEBASE SUBDIRS \
 	SRC_SUBDIR SRC_DIR SRC_FILES SRC_FILES_REAL \
-	SUBCORPORA HAS_SUBCORPORA SUBCORPUS)
+	SUBDIRS_AS_SUBCORPORA SUBCORPORA HAS_SUBCORPORA SUBCORPUS)
 
 DB_TARGETS_ALL = korp_timespans korp_rels korp_lemgrams
 DB_TARGETS := \
@@ -330,7 +341,7 @@ CORPSQLDIR = $(CORPROOT)/sql
 # Directory for various built files: VRT, TSV, timestamps
 CORP_BUILDDIR = $(CORPROOT)/vrt/$(CORPNAME)
 
-$(call showvars,CORPDIR CORPCORPDIR CORP_BUILDDIR)
+$(call showvars,CORPNAME CORPDIR CORPCORPDIR CORP_BUILDDIR)
 
 PKGDIR ?= $(CORPROOT)/pkgs
 PKG_FILE = $(PKGDIR)/korpdata_$(CORPNAME).tbz
@@ -454,15 +465,19 @@ RELS_CREATE_TABLES_SQL = $(call SUBST_CORPNAME,$(RELS_CREATE_TABLES_TEMPL))
 # If $(CORPORA) == $(CORPNAME_BASE), the current directory does not
 # have *.mk for subcorpora
 ifeq ($(strip $(CORPORA)),$(strip $(CORPNAME_BASE)))
+$(call debuginfo,No *.mk)
 
 # If SRC_FILES_REAL is empty, this makefile is in an intermediate
 # directory with only subdirectories
 ifeq ($(strip $(SRC_FILES_REAL)),)
+$(call debuginfo,Empty SRC_FILES_REAL)
 
 # If SUBDIRS is empty and if this is not a parallel corpus and has no
 # subcorpora, SRC_FILES probably has been forgotten or is empty
 ifeq ($(strip $(SUBDIRS)),)
+$(call debuginfo,Empty SUBDIRS)
 ifeq ($(strip $(PARCORP)$(HAS_SUBCORPORA)),)
+$(call debuginfo,Not parallel corpus, no subcorpora)
 ifeq ($(strip $(SRC_FILES)),)
 $(error Please specify the source files in SRC_FILES)
 else
@@ -470,6 +485,7 @@ $(error No file(s) $(SRC_FILES) found in $(SRC_DIR))
 endif
 
 else ifneq ($(strip $(PARCORP)),)
+$(call debuginfo,Parallel corpus)
 
 # Parallel corpus main
 TOP_TARGETS = all
@@ -477,6 +493,7 @@ TOP_TARGETS = all
 endif
 
 else # SUBDIRS non-empty
+$(call debuginfo,Non-empty SUBDIRS)
 
 # Make in subdirectories only
 TOP_TARGETS = subdirs
@@ -484,6 +501,7 @@ TOP_TARGETS = subdirs
 endif # SUBDIRS non-empty
 
 else # SRC_FILES defined
+$(call debuginfo,Non-empty SRC_FILES)
 
 # A single corpus: make actual corpus targets
 TOP_TARGETS = all
@@ -491,6 +509,7 @@ TOP_TARGETS = all
 endif # SRC_FILES defined
 
 else # $(CORPORA) != $(CORPNAME_BASE)
+$(call debuginfo,CORPORA != CORPNAME_BASE ($(CORPORA) != $(CORPNAME_BASE)))
 
 # The directory has *.mk for subcorpora and may contain subdirectories
 TOP_TARGETS = subdirs $(CORPORA)
@@ -498,8 +517,10 @@ TOP_TARGETS = subdirs $(CORPORA)
 endif
 
 # If subcorpora specified in SUBCORPORA, add them to the main target
+# and to TARGETS in case we are processing a subcorpus.mk file
 ifneq ($(strip $(HAS_SUBCORPORA)),)
-TOP_TARGETS += $(SUBCORPORA)
+TOP_TARGETS += subcorpora
+TARGETS = subcorpora
 endif
 
 $(call showvars,TOP_TARGETS TARGETS)
@@ -522,7 +543,7 @@ $(SUBDIRS):
 define MAKE_CORPUS_R
 $(1)$(if $(subst $(SUBTARGET_SEP),,$(2)),$(SUBTARGET_SEP)$(2)):
 	$$(MAKE) -f $(1).mk $(or $(TARGET),$(subst $(SUBTARGET_SEP),all,$(2))) \
-		CORPNAME_BASE=$(1) DB=$(DB) # WITHIN_CORP_MK=1
+		CORPNAME_BASE=$(1) CORPNAME_BASEBASE=$(1) DB=$(DB)
 
 .PHONY: $(1)$(if $(subst $(SUBTARGET_SEP),,$(2)),$(SUBTARGET_SEP)$(2))
 endef
@@ -543,8 +564,9 @@ $(1)$(if $(subst $(SUBTARGET_SEP),,$(2)),$(SUBTARGET_SEP)$(2)):
 		if test -e $$$$makefile; then \
 			$(MAKE) -f $$$$makefile \
 				$(or $(TARGET),$(subst $(SUBTARGET_SEP),all,$(2))) \
-				CORPNAME_MAIN="$(CORPNAME)_$(1)" \
-				CORPNAME_BASE="$(CORPNAME)_$(1)" \
+				CORPNAME_MAIN="$(CORPNAME_MAIN)_$(1)" \
+				CORPNAME_BASE="$(CORPNAME_BASE)_$(1)" \
+				CORPNAME_BASEBASE="$(CORPNAME_BASEBASE)" \
 				SUBCORPUS="$(1)" DB=$(DB); \
 			break; \
 		fi; \
@@ -620,8 +642,8 @@ ifdef MAKE_VRT_FILENAME_ARGS
 	| $(VRT_POSTPROCESS) > $@
 else
 	$(if $(MAKE_VRT_SEPARATE_FILES),\
-		for fname in $(SRC_FILES_REAL); do \
-			$(CAT_SRC) "$$fname" \
+		for filename in $(SRC_FILES_REAL); do \
+			$(CAT_SRC) "$$filename" \
 			| $(TRANSCODE) \
 			| $(MAKE_VRT_CMD); \
 		done, \
@@ -795,8 +817,9 @@ MAKE_PARCORP_PARTS = \
 				Makefile; do \
 			if test -e $$makefile; then \
 				$(MAKE) -f $$makefile $(1) \
-					CORPNAME_MAIN="$(CORPNAME)" \
-					CORPNAME_BASE="$(CORPNAME)_$$lang" \
+					CORPNAME_MAIN="$(CORPNAME_MAIN)" \
+					CORPNAME_BASE="$(CORPNAME_BASE)_$$lang" \
+					CORPNAME_BASEBASE="$(CORPNAME_BASEBASE)" \
 					LANGUAGES="$(LANGUAGES)" \
 					PARCORP_LANG=$$lang; \
 				break; \
