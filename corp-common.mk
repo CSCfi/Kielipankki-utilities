@@ -146,11 +146,19 @@ XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name= \
 VRT_EXTRACT_TIMESPANS_PROG = $(SCRIPTDIR)/vrt-extract-timespans.py
 CORPUS_DATE := $(call partvar,CORPUS_DATE)
 CORPUS_DATE_PATTERN := $(call partvar,CORPUS_DATE_PATTERN)
+CORPUS_DATE_RANGES := $(call partvar,CORPUS_DATE_RANGES)
+CORPUS_DATE_FULL_ORDER := $(call partvar,CORPUS_DATE_FULL_ORDER)
+VRT_EXTRACT_TIMESPANS_OPTS_EXTRA := \
+	$(call partvar,VRT_EXTRACT_TIMESPANS_OPTS_EXTRA)
 VRT_EXTRACT_TIMESPANS_OPTS := \
 	$(call partvar_or_default,VRT_EXTRACT_TIMESPANS_OPTS,\
 		$(if $(call eqs,unknown,$(CORPUS_DATE)),--unknown,\
 		$(if $(CORPUS_DATE),--fixed=$(CORPUS_DATE),\
-		$(if $(CORPUS_DATE_PATTERN),--pattern=$(CORPUS_DATE_PATTERN)))))
+		$(if $(CORPUS_DATE_PATTERN),--pattern=$(CORPUS_DATE_PATTERN)))) \
+		$(if $(CORPUS_DATE_RANGES),--ranges) \
+		$(if $(CORPUS_DATE_FULL_ORDER),\
+			--full-dates --full-date-order=$(CORPUS_DATE_FULL_ORDER)) \
+			$(VRT_EXTRACT_TIMESPANS_OPTS_EXTRA))
 VRT_EXTRACT_TIMESPANS = \
 	$(VRT_EXTRACT_TIMESPANS_PROG) \
 		--mode=add+extract --timespans-prefix=$(CORPNAME_U) \
