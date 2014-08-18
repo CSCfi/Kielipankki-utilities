@@ -27,40 +27,91 @@ def get_current_century():
 
 class TimespanExtractor(object):
 
-    DEFAULT_PATTERN = r'((?:1[0-9]|20)[0-9][0-9])'
-    DEFAULT_PATTERN_2 = r'((?:1[0-9]|20)?[0-9][0-9])'
+    DEFAULT_PATTERN_PARTS = {
+        'Y': ur'(?P<Y>(?:1[0-9]|20)[0-9][0-9])',
+        'Y2': ur'(?P<Y>(?:1[0-9]|20)?[0-9][0-9])',
+        'M': ur'(?P<M>0?[1-9]|1[0-2])',
+        'D': ur'(?P<D>0?[1-9]|[12][0-9]|3[01])'
+        }
+    PART_SEP_PATTERN = ur'[-./]'
+    RANGE_SEP_PATTERN = ur'\s*[-/–]\s*'
     DATE_GRAN_RANGES = [(1000, get_current_year()), (1, 12), (1, 31),
                         (0, 24), (0, 59), (0, 59)]
     MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
+    class PattDict(dict):
+
+        # A separate class to make it easier to use with defaultdict
+
+        def __init__(self):
+            dict.__init__(self)
+            self['base'] = []
+            self['end'] = []
+
     def __init__(self, opts):
         self._opts = opts
-        self._make_extract_patterns()
-        self._make_excludes()
+        if self._opts.fixed:
+            self._opts.fixed = re.split(r'[-/–\s]+', self._opts.fixed, 1)
+            if len(self._opts.fixed) == 1:
+                self._opts.fixed.append('')
+            self._opts.fixed = tuple(self._opts.fixed)
+        elif not self._opts.unknown:
+            self._extract_patterns = defaultdict(self.PattDict)
+            self._make_extract_patterns(self._opts.extract_pattern,
+                                        pattern_type='base')
+            self._make_extract_patterns(self._opts.end_extract_pattern,
+                                        pattern_type='end')
+            # print self._extract_patterns
+            self._make_excludes()
         self._time_tokencnt = defaultdict(int)
         self._curr_century = str(get_current_century())
         self._prev_century = str(get_current_century() - 1)
 
-    def _make_extract_patterns(self):
-        self._extract_patterns = defaultdict(list)
-        default_pattern = (self.DEFAULT_PATTERN_2 if self._opts.two_digit_years
-                           else self.DEFAULT_PATTERN)
-        if self._opts.full_dates:
-            default_pattern = (default_pattern[:-1]
-                               + ('(?:[-./][0-9][0-9]){0,2})'))
-        if (self._opts.extract_pattern == [] and not self._opts.unknown
-            and not self._opts.fixed):
-            self._opts.extract_pattern.append('* * ' + default_pattern)
-        for source in self._opts.extract_pattern:
-            parts = source.split(None, 3)
+    def _make_extract_patterns(self, patterns, pattern_type='base'):
+        is_base_pattern = (pattern_type == 'base')
+        default_pattern = self._make_default_pattern(
+            allow_range=is_base_pattern)
+        if is_base_pattern and patterns == []:
+            patterns.append('* * ' + default_pattern)
+        for source in patterns:
+            parts = source.split(None, 2)
             elemnames = parts[0].split('|')
             attrnames = parts[1].split('|') if len(parts) > 1 else ['*']
             pattern = parts[2] if len(parts) > 2 else default_pattern
-            templ = parts[3] if len(parts) > 3 else r'\1'
             for elemname in elemnames:
                 for attrname in attrnames:
-                    self._extract_patterns[elemname].append(
-                        (attrname, pattern, templ))
+                    self._extract_patterns[elemname][pattern_type].append(
+                        (attrname, pattern))
+
+    def _make_default_pattern(self, allow_range=True):
+        # FIXME: Make patterns work with ranges with partial dates,
+        # such as 2014-09-10/15, 2014-09-10/10-12, 10.-15.9.2014,
+        # 10.9.-12.10.2014
+        if self._opts.two_digit_years:
+            self.DEFAULT_PATTERN_PARTS['Y'] = self.DEFAULT_PATTERN_PARTS['Y2']
+        if self._opts.full_dates:
+            if self._opts.full_date_order == 'ymd':
+                patt = (self.DEFAULT_PATTERN_PARTS['Y']
+                        + '(?:(?:' + self.PART_SEP_PATTERN + ')?'
+                        + self.DEFAULT_PATTERN_PARTS['M']
+                        + '(?:(?:' + self.PART_SEP_PATTERN + ')?'
+                        + self.DEFAULT_PATTERN_PARTS['D']
+                        + ')?)?')
+            else:
+                patt = self.PART_SEP_PATTERN.join(
+                    self.DEFAULT_PATTERN_PARTS[datechar]
+                    for datechar in self._opts.full_date_order.upper())
+        else:
+            patt = self.DEFAULT_PATTERN_PARTS['Y']
+        patt = '(' + patt + ')'
+        if allow_range and self._opts.ranges:
+            patts = {'1': '', '2': ''}
+            for pattnr in ['1', '2']:
+                patts[pattnr] = re.sub(r'<([YMDhms])>',
+                                       r'<\g<1>' + pattnr + '>', patt)
+            patt = (patts['1'] + '(?:' + self.RANGE_SEP_PATTERN
+                    + patts['2'] + ')?')
+        return patt
 
     def _make_excludes(self):
         self._excludes = defaultdict(list)
@@ -89,7 +140,9 @@ class TimespanExtractor(object):
             self._extract_timespans(fname)
 
     def _extract_timespans(self, f):
-        time = ''
+        # NOTE: This does not allow an end time in a different
+        # structure than the start time. Would it be needed?
+        time = ('', '')
         # The name of the structure containing time information
         timestruct = None
         # Allow for nested time structures
@@ -101,12 +154,14 @@ class TimespanExtractor(object):
             elif timestruct and line.startswith('</' + timestruct + '>'):
                 timestruct_depth -= 1
                 if timestruct_depth == 0:
-                    time = ''
+                    time = ('', '')
                     timestruct = None
             elif line.startswith('<'):
                 if not timestruct:
                     time = self._opts.fixed or self._extract_time(line)
-                    if time:
+                    if time[1] < time[0]:
+                        time = (time[0], time[0])
+                    if time[0]:
                         timestruct = re.match(r'<(\S+)', line).group(1)
                         timestruct_depth += 1
                         if 'add' in self._opts.mode:
@@ -124,19 +179,29 @@ class TimespanExtractor(object):
 
     def _extract_time(self, line):
         if '*' in self._excludes.get('*', []):
-            return ''
+            return ('', '')
         mo = re.match(r'<(.*?)( .*)?>', line)
         if not mo or not mo.group(2):
-            return ''
+            return ('', '')
         elemname = mo.group(1)
         if '*' in self._excludes.get(elemname, []):
-            return ''
+            return ('', '')
         attrlist = mo.group(2)
         attrs = OrderedDict(re.findall(r' (.*?)="(.*?)"', attrlist))
         real_elemname = elemname
         if not elemname in self._extract_patterns:
             elemname = '*'
-        for (patt_attr, pattern, templ) in self._extract_patterns[elemname]:
+        start_time, end_time = self._extract_time_patt(
+            real_elemname, attrs, self._extract_patterns[elemname]['base'])
+        if not end_time:
+            end_time1, end_time2 = self._extract_time_patt(
+                real_elemname, attrs, self._extract_patterns[elemname]['end'])
+            # Prefer matching P<Y2> over P<Y>
+            end_time = end_time2 or end_time1
+        return (start_time, end_time)
+
+    def _extract_time_patt(self, real_elemname, attrs, extract_patterns):
+        for (patt_attr, pattern) in extract_patterns:
             if patt_attr in attrs:
                 check_attrs = [patt_attr]
             elif patt_attr == '*':
@@ -147,18 +212,54 @@ class TimespanExtractor(object):
                 if (attrname in self._excludes.get(real_elemname, [])
                     or attrname in self._excludes.get('*', [])):
                     continue
-                mo = re.search(pattern, attrs[attrname])
-                if mo:
-                    date = self._fix_date(mo.expand(templ))
-                    if date:
-                        return date
-        return ''
+                date = self._extract_time_regex(pattern, attrs[attrname])
+                if date:
+                    return date
+        return ('', '')
 
-    def _fix_date(self, datestr):
+    def _extract_time_regex(self, regex, value):
+        mo = re.search(regex, value)
+        if mo:
+            named_groups = mo.groupdict()
+            if named_groups:
+                start_date_parts = [(named_groups.get(part, '')
+                                     or named_groups.get(part + '1', ''))
+                                    for part in 'YMD']
+                end_date_parts = [named_groups.get(part + '2', '') or ''
+                                  for part in 'YMD']
+                # Handle ellipsed year and/or month. This does not
+                # currently work with the default patterns.
+                if any(end_date_parts):
+                    end_date_parts = [
+                        end_date_parts[partnr] or start_date_parts[partnr]
+                        for partnr in xrange(3)]
+                start_date = '-'.join(start_date_parts).rstrip('-')
+                end_date = '-'.join(end_date_parts).rstrip('-')
+            else:
+                start_date = mo.group(1)
+                if self._opts.ranges and len(mo.groups()) > 1:
+                    end_date = mo.group(2)
+                else:
+                    end_date = ''
+            if start_date:
+                start_date = self._fix_date(start_date, 
+                                            keep_order=bool(named_groups))
+            if end_date:
+                end_date = self._fix_date(end_date,
+                                          keep_order=bool(named_groups))
+            return (start_date, end_date)
+        return ('', '')
+
+    def _fix_date(self, datestr, keep_order=True):
         datestr = datestr.strip()
         if self._opts.full_dates:
             date_parts = [part for part in re.split(r'[ -./T]+', datestr)
                           if part != '']
+            if not keep_order and self._opts.full_date_order != 'ymd':
+                date_parts_ordered = [
+                    date_parts[self._opts.full_date_order.index(part)]
+                    for part in 'ymd']
+                date_parts = date_parts_ordered
             if self._opts.two_digit_years:
                 date_parts[0] = self._fix_year(date_parts[0])
             for (partnr, part) in enumerate(date_parts):
@@ -205,13 +306,15 @@ class TimespanExtractor(object):
                           + [str(tokencnt)])
                 + '\n')
 
-    def _make_output_dates(self, datestr, mode):
-        if mode in self._opts.output_full_dates:
-            if len(datestr) == 4:
-                return (datestr + '0101', datestr + '1231')
-            elif len(datestr) == 6:
-                return (datestr + '01', datestr + self._get_month_days(datestr))
-        return (datestr, datestr)
+    def _make_output_dates(self, date, mode):
+        start_date, end_date = date
+        if mode in self._opts.output_full_dates and not end_date:
+            if len(start_date) == 4:
+                return (start_date + '0101', start_date + '1231')
+            elif len(start_date) == 6:
+                return (start_date + '01',
+                        start_date + self._get_month_days(start_date))
+        return (start_date, end_date or start_date)
 
     def _get_month_days(self, year_month_str):
         month = int(year_month_str[4:])
@@ -227,14 +330,20 @@ def getopts():
     optparser = OptionParser()
     optparser.add_option('--unknown', action='store_true', default=False)
     optparser.add_option('--fixed', default=None)
-    optparser.add_option('--extract-pattern', '--pattern', action='append',
-                         default=[])
+    optparser.add_option('--extract-pattern', '--pattern',
+                         '--begin-extract-pattern', '--begin-pattern',
+                         action='append', default=[])
+    optparser.add_option('--end-extract-pattern', '--end-pattern',
+                         action='append', default=[])
     optparser.add_option('--two-digit-years', action='store_true',
                          default=False)
     optparser.add_option('--exclude', action='append', default=[])
     optparser.add_option('--century-pivot', type='int',
                          default=get_current_year2())
     optparser.add_option('--full-dates', action='store_true', default=False)
+    optparser.add_option('--full-date-order', type='choice',
+                         choices=['ymd', 'dmy', 'mdy'], default='ymd')
+    optparser.add_option('--ranges', action='store_true')
     optparser.add_option('--mode', type='choice',
                          choices=['extract', 'add', 'add+extract'],
                          default='extract')
