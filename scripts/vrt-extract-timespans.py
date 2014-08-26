@@ -68,6 +68,16 @@ class TimespanExtractor(object):
         self._prev_century = str(get_current_century() - 1)
 
     def _make_extract_patterns(self, patterns, pattern_type='base'):
+
+        def add_regex_group(regex):
+            # Enclose regex in parentheses if it does not contain
+            # (capturing) groups
+            if ('(?P<' not in regex
+                and re.match(r'^(?:[^(\\]|\\.|\(\?)+$', regex)):
+                return '(' + regex + ')'
+            else:
+                return regex
+
         is_base_pattern = (pattern_type == 'base')
         default_pattern = self._make_default_pattern(
             allow_range=is_base_pattern)
@@ -77,7 +87,8 @@ class TimespanExtractor(object):
             parts = source.split(None, 2)
             elemnames = parts[0].split('|')
             attrnames = parts[1].split('|') if len(parts) > 1 else ['*']
-            pattern = parts[2] if len(parts) > 2 else default_pattern
+            pattern = (add_regex_group(parts[2]) if len(parts) > 2
+                       else default_pattern)
             for elemname in elemnames:
                 for attrname in attrnames:
                     self._extract_patterns[elemname][pattern_type].append(
