@@ -338,8 +338,8 @@ class AttributeFixer(object):
             raise
 
     def _make_fixed_line(self, line):
-        if line.startswith('<') and line.endswith('>\n'):
-            line = self._fix_structattrs(line)
+        if line.startswith('<') and line.rstrip().endswith('>'):
+            line = self._fix_structattrs(line.rstrip()) + '\n'
             if self._encode_structattrs:
                 return self._encode_special_chars_in_struct_attrs(line)
             else:
