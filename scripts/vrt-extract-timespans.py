@@ -91,11 +91,13 @@ class TimespanExtractor(object):
             self.DEFAULT_PATTERN_PARTS['Y'] = self.DEFAULT_PATTERN_PARTS['Y2']
         if self._opts.full_dates:
             if self._opts.full_date_order == 'ymd':
+                # YMD pattern has optional component separators but
+                # obligatory leading zeros in month and day.
                 patt = (self.DEFAULT_PATTERN_PARTS['Y']
                         + '(?:(?:' + self.PART_SEP_PATTERN + ')?'
-                        + self.DEFAULT_PATTERN_PARTS['M']
+                        + self.DEFAULT_PATTERN_PARTS['M'].replace('0?', '0')
                         + '(?:(?:' + self.PART_SEP_PATTERN + ')?'
-                        + self.DEFAULT_PATTERN_PARTS['D']
+                        + self.DEFAULT_PATTERN_PARTS['D'].replace('0?', '0')
                         + ')?)?')
             else:
                 patt = self.PART_SEP_PATTERN.join(
@@ -213,14 +215,16 @@ class TimespanExtractor(object):
                     or attrname in self._excludes.get('*', [])):
                     continue
                 date = self._extract_time_regex(pattern, attrs[attrname])
-                if date:
+                if date[0] or date[1]:
                     return date
         return ('', '')
 
     def _extract_time_regex(self, regex, value):
+        # print regex, value
         mo = re.search(regex, value)
         if mo:
             named_groups = mo.groupdict()
+            # print named_groups
             if named_groups:
                 start_date_parts = [(named_groups.get(part, '')
                                      or named_groups.get(part + '1', ''))
@@ -308,13 +312,17 @@ class TimespanExtractor(object):
 
     def _make_output_dates(self, date, mode):
         start_date, end_date = date
-        if mode in self._opts.output_full_dates and not end_date:
+        end_date = end_date or start_date
+        if mode in self._opts.output_full_dates:
             if len(start_date) == 4:
-                return (start_date + '0101', start_date + '1231')
+                start_date += '0101'
             elif len(start_date) == 6:
-                return (start_date + '01',
-                        start_date + self._get_month_days(start_date))
-        return (start_date, end_date or start_date)
+                start_date += '01'
+            if len(end_date) == 4:
+                end_date += '1231'
+            elif len(end_date) == 6:
+                end_date += self._get_month_days(end_date)
+        return (start_date, end_date)
 
     def _get_month_days(self, year_month_str):
         month = int(year_month_str[4:])
