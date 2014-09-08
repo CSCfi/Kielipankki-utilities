@@ -9,9 +9,6 @@
 #
 # For more information: cwbdata-extract-info.sh --help
 
-# TODO: By default, backup the previous .info files when using
-# --update; an option for omitting backups.
-
 
 progname=`basename $0`
 
@@ -23,6 +20,8 @@ update=
 verbose=
 test=
 all_corpora=
+backups=1
+backup_suffix=.bak
 
 if which wdiff > /dev/null; then
     wdiff=wdiff
@@ -81,6 +80,9 @@ Options:
   -u, --update    update the .info files for the corpora if needed
   -v, --verbose   show information about the processed corpora
   -A, --all       process all corpora in the CWB corpus registry
+  --no-backups    do not make backups of the info files when updating
+  --backup-suffix SUFFIX
+                  use SUFFIX as the backup file suffix (default: $backup_suffix)
 EOF
     exit 0
 }
@@ -90,7 +92,7 @@ EOF
 getopt -T > /dev/null
 if [ $? -eq 4 ]; then
     # This requires GNU getopt
-    args=`getopt -o "hc:r:tuvA" -l "help,cwbdir:,registry:,test,update,verbose,all" -n "$progname" -- "$@"`
+    args=`getopt -o "hc:r:tuvA" -l "help,cwbdir:,registry:,test,update,verbose,all,no-backups,backup-suffix:" -n "$progname" -- "$@"`
     if [ $? -ne 0 ]; then
 	exit 1
     fi
@@ -125,6 +127,13 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-A | --all )
 	    all_corpora=1
+	    ;;
+	--no-backups )
+	    backups=
+	    ;;
+	--backup-suffix )
+	    backup_suffix=$2
+	    shift
 	    ;;
 	-- )
 	    shift
@@ -215,6 +224,9 @@ for corpus in $corpora; do
 	    if cmp -s $infofile_old $infofile_new; then
 		echo_verb "$corpus up to date"
 		continue
+	    fi
+	    if [ "x$backups" != "x" ]; then
+		cp -p $outfile $outfile$backup_suffix
 	    fi
 	fi
 	if [ "x$test" != "x" ]; then
