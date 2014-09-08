@@ -24,13 +24,13 @@ verbose=
 test=
 all_corpora=
 
-if which wdiff &> /dev/null; then
+if which wdiff > /dev/null; then
     wdiff=wdiff
 else
     wdiff=diff
 fi
 
-tmpfile=$tmpdir/$progname.$$.tmp
+tmpfname_base=$tmpdir/$progname.$$.tmp
 
 
 warn () {
@@ -49,7 +49,7 @@ echo_verb () {
 }
 
 cleanup () {
-    rm -f $tmpfile
+    rm -f $tmpfname_base*
 }
 
 cleanup_abort () {
@@ -74,7 +74,7 @@ may contain shell wildcards.
 Options:
   -h, --help      show this help
   -c, --cwbdir DIR
-                  use the CWB binaries in DIR (default: $cwb_bindir)
+                  use the CWB binaries in DIR (default: $cwbdir)
   -r, --registry DIR
                   use DIR as the CWB registry (default: $cwb_regdir)
   -t, --test      test whether the .info files need updating
@@ -186,7 +186,6 @@ extract_info () {
     echo "Updated: $updated"
 }
 
-tmpfile=$tmpdir/$progname.$$.tmp
 
 if [ "x$all_corpora" != "x" ]; then
     corpora=`get_all_corpora`
@@ -194,6 +193,10 @@ else
     # Expand the possible shell wildcards in corpus name arguments
     corpora=`cd $cwb_regdir; echo $*`
 fi
+
+infofile_old=$tmpfname_base.old
+infofile_new=$tmpfname_base.new
+infofile_comb=$tmpfname_base.comb
 
 for corpus in $corpora; do
     if [ ! -e "$cwb_regdir/$corpus" ]; then
@@ -205,20 +208,25 @@ for corpus in $corpora; do
 	echo_verb $corpus:
 	extract_info $corpdir $corpus
     else
-	extract_info $corpdir $corpus > $tmpfile
+	extract_info $corpdir $corpus > $infofile_new
 	outfile=$corpdir/.info
-	if [ -e $outfile ] && cmp -s $tmpfile $outfile; then
-	    echo_verb "$corpus up to date"
-	else
-	    if [ "x$test" != "x" ]; then
-		echo "$corpus outdated"
-		if [ "x$verbose" != "x" ]; then
-		    $wdiff $outfile $tmpfile
-		fi
-	    else
-		cp -p $tmpfile $outfile
-		echo_verb "$corpus updated"
+	if [ -e $outfile ]; then
+	    egrep '^(Sentences|Updated):' $outfile > $infofile_old
+	    if cmp -s $infofile_old $infofile_new; then
+		echo_verb "$corpus up to date"
+		continue
 	    fi
+	fi
+	if [ "x$test" != "x" ]; then
+	    echo "$corpus outdated"
+	    if [ "x$verbose" != "x" ]; then
+		$wdiff $infofile_old $infofile_new
+	    fi
+	else
+	    egrep -v '^(Sentences|Updated):' $outfile > $infofile_comb
+	    cat $infofile_new >> $infofile_comb
+	    cp -p $infofile_comb $outfile
+	    echo_verb "$corpus updated"
 	fi
     fi
 done
