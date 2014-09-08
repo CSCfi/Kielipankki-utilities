@@ -74,14 +74,18 @@ class Converter(object):
         text_e.set("distributor", self._get_distributor())
         text_e.set("source", self._get_source())
         if self._metadata_etr:
+            # FIXME: Make this more general
+            url_prefix = 'http://kaino.kotus.fi'
             author, author_birthyear, author_deathyear = self._get_author_info()
             text_e.set("author", author)
             text_e.set("author_birthyear", author_birthyear)
             text_e.set("author_deathyear", author_deathyear)
             text_e.set("date", self._get_coverage())
-            # FIXME: Make this more general
-            text_e.set("url", 'http://kaino.kotus.fi' + self._get_source())
+            text_e.set("url", url_prefix + self._get_source())
             text_e.set("original_url", self._get_external_link())
+            text_e.set("collection_url", url_prefix + self._get_ispartof())
+            text_e.set("modified_date", self._get_modified())
+            text_e.set("tei_coding_responsible", self._get_tei_responsible())
 
     def _get_title(self):
         return (self._src_etr.find("teiHeader//title").text.strip()
@@ -94,8 +98,15 @@ class Converter(object):
         return ' / '.join([distr.text.strip() for distr in
                            self._src_etr.findall("teiHeader//distributor")])
 
+    def _get_tei_responsible(self):
+        return self._src_etr.find("teiHeader//respStmt/name").text.strip()
+
     def _get_source(self):
         return self._src_etr.find("teiHeader//sourceDesc/p").text.strip()
+
+    def _get_metainfo(self, elemname):
+        return self._metadata_etr.find(
+            './/' + elemname, namespaces=self._metadata_namespaces).text.strip()
 
     def _get_author_info(self):
         creator_info = self._metadata_etr.find(
@@ -107,8 +118,16 @@ class Converter(object):
         return name, birth_year, death_year
 
     def _get_coverage(self):
-        return self._metadata_etr.find(
-            './/dc:coverage', namespaces=self._metadata_namespaces).text.strip()
+        return self._get_metainfo('dc:coverage')
+
+    def _get_language(self):
+        return self._get_metainfo('dc:language').lower()
+
+    def _get_modified(self):
+        return self._get_metainfo('dcterms:modified')
+
+    def _get_extent(self):
+        return self._get_metainfo('dcterms:extent')
 
     def _get_external_link(self):
         elem = self._metadata_etr.find('.//*[@kotus:type="external_link"]',
@@ -116,6 +135,16 @@ class Converter(object):
         if elem is not None:
             return (elem.get('{' + self._metadata_namespaces['rdf'] + '}'
                              + 'resource', '')
+                    or '')
+        else:
+            return ''
+
+    def _get_ispartof(self):
+        elem = self._metadata_etr.find('.//dcterms:isPartOf',
+                                       namespaces=self._metadata_namespaces)
+        if elem is not None:
+            return (elem.get('{' + self._metadata_namespaces['kotus'] + '}'
+                             + 'metalink', '')
                     or '')
         else:
             return ''
