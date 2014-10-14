@@ -29,12 +29,18 @@ class PosAttrConverter(object):
     class OutputFieldSpec(object):
 
         def __init__(self, fieldspec, input_field_nums=None,
-                     char_encode_map=None):
+                     char_encode_map=None, compound_boundary_marker=None,
+                     compound_boundary_hyphen=False):
             self._input_field_nums = input_field_nums or {}
             self._char_encode_map = char_encode_map or {}
             self._set_char_encode_map = [
                 (key, val) for key, val in self._char_encode_map
                 if key != '|']
+            self._compound_boundary_marker = compound_boundary_marker or '#'
+            self._make_lemma_without_boundaries = (
+                self._make_lemma_without_boundaries_tdt
+                if compound_boundary_hyphen
+                else self._make_lemma_without_boundaries_simple)
             self._opts = {}
             self._parse_fieldspec(fieldspec)
 
@@ -80,7 +86,11 @@ class PosAttrConverter(object):
                                             lambda s: '')(input_fields))
             if result is not None:
                 if 'noboundaries' in self._opts:
-                    result = result.replace('#', '')
+                    # sys.stderr.write(result)
+                    result = self._make_lemma_without_boundaries(
+                        result,
+                        input_fields[self._input_field_nums.get('word')])
+                    # sys.stderr.write(' -> ' + result + '\n')
                 if 'set' in self._opts or 'setconvert' in self._opts:
                     result = self._fix_feature_set_attr(result)
                 elif 'setfirst' in self._opts:
@@ -111,6 +121,42 @@ class PosAttrConverter(object):
                     value += '|'
             return value
 
+        def _make_lemma_without_boundaries_simple(self, lemma, wordform):
+            return lemma.replace(self._compound_boundary_marker, '')
+
+        # Adapted from vrt-add-parses.py
+        def _make_lemma_without_boundaries_tdt(self, lemma, wordform):
+            if self._compound_boundary_marker not in lemma:
+                return lemma
+            elif '-' not in wordform:
+                return lemma.replace(self._compound_boundary_marker, '')
+            else:
+                # In some cases, the lemma has - replaced with a |; in
+                # other cases not
+                wordform_parts = wordform.split('-')
+                lemma_parts = lemma.split(self._compound_boundary_marker)
+                if (len(wordform_parts) == len(lemma_parts)
+                    and '-' not in lemma):
+                    return lemma.replace(self._compound_boundary_marker, '-')
+                else:
+                    lemma_without_boundaries = [lemma_parts[0]]
+                    lemma_prefix_len = len(lemma_parts[0])
+                    wf_prefix_len = len(wordform_parts[0])
+                    wf_partnr = 1
+                    for lemma_part in lemma_parts[1:]:
+                        if wf_partnr >= len(wordform_parts):
+                            lemma_without_boundaries.append(lemma_part)
+                        elif (lemma_part[:2] == wordform_parts[wf_partnr][:2]
+                              and abs(wf_prefix_len - lemma_prefix_len) <= 2):
+                            # FIXME: Devise a better heuristic
+                            lemma_without_boundaries.extend(['-', lemma_part])
+                            wf_prefix_len += len(wordform_parts[wf_partnr])
+                            wf_partnr += 1
+                        else:
+                            lemma_without_boundaries.append(lemma_part)
+                        lemma_prefix_len += len(lemma_part)
+                    return ''.join(lemma_without_boundaries)
+
         def get_input_fieldnum(self):
             return self._input_fieldnum
 
@@ -119,7 +165,11 @@ class PosAttrConverter(object):
 
     def __init__(self, input_fields, output_fields, strip=False,
                  empty_values=None, missing_values=None,
-                 copy_extra_fields=None, char_encode_map=None):
+                 copy_extra_fields=None, char_encode_map=None,
+                 compound_boundary_marker=None,
+                 compound_boundary_hyphen=False):
+        self._compound_boundary_marker = compound_boundary_marker
+        self._compound_boundary_hyphen = compound_boundary_hyphen
         self._make_input_fields(input_fields)
         self._copy_extra_fields = value_or_default(copy_extra_fields,
                                                    not output_fields)
@@ -137,7 +187,10 @@ class PosAttrConverter(object):
         for num in xrange(max(output_field_fieldnums or [-1]) + 1,
                           self._max_fieldnum + 1):
             self._output_fields.append(
-                self.OutputFieldSpec(str(num + 1), self._input_fields))
+                self.OutputFieldSpec(
+                    str(num + 1), self._input_fields,
+                    compound_boundary_marker=self._compound_boundary_marker,
+                    compound_boundary_hyphen=self._compound_boundary_hyphen))
         for type_, values in [('empty', self._empty_field_values),
                               ('missing', self._missing_field_values)]:
             self._add_default_fieldvals(type_, values)
@@ -194,10 +247,17 @@ class PosAttrConverter(object):
                 # print repr(fieldspecs)
                 for fieldspec in fieldspecs:
                     self._output_fields.append(
-                        self.OutputFieldSpec(fieldspec, self._input_fields,
-                                             char_encode_map=char_encode_map))
+                        self.OutputFieldSpec(
+                            fieldspec, self._input_fields,
+                            char_encode_map=char_encode_map,
+                            compound_boundary_marker=(
+                                self._compound_boundary_marker),
+                            compound_boundary_hyphen=(
+                                self._compound_boundary_hyphen)))
         self._extra_output_field = self.OutputFieldSpec(
-            '0', self._input_fields, char_encode_map=char_encode_map)
+            '0', self._input_fields, char_encode_map=char_encode_map,
+            compound_boundary_marker=self._compound_boundary_marker,
+            compound_boundary_hyphen=self._compound_boundary_hyphen)
 
     def _add_default_fieldvals(self, type_, values):
         for fieldnum, fieldval in values.items():
@@ -295,7 +355,9 @@ class AttributeFixer(object):
             empty_values=self._opts.empty_field_values,
             missing_values=self._opts.missing_field_values,
             copy_extra_fields=copy_extra_fields,
-            char_encode_map=char_encode_map)
+            char_encode_map=char_encode_map,
+            compound_boundary_marker=self._opts.compound_boundary_marker,
+            compound_boundary_hyphen=self._opts.compound_boundary_hyphen)
 
     def _init_struct_attr_copy_info(self):
         self._struct_attr_values = defaultdict(dict)
@@ -427,9 +489,9 @@ class AttributeFixer(object):
         return line
 
     def _add_attrs(self, line, attrs):
-        return (line[:-2] + ' '
+        return (line[:-1] + ' '
                 + ' '.join(name + '="' + val + '"' for name, val in attrs)
-                + line[-2:])
+                + line[-1:])
 
     def _copy_struct_attrs(self, line):
         # print self._struct_attr_values
@@ -477,6 +539,11 @@ def getopts():
     optparser.add_option('--compound-boundaries', '--lemma-compound-boundaries',
                          type='choice', choices=['keep', 'remove', 'new'],
                          default='keep')
+    optparser.add_option('--compound-boundary-marker', '--compound-marker',
+                         default='#')
+    optparser.add_option('--compound-boundary-hyphen',
+                         '--compound-boundary-can-replace-hyphen',
+                         action='store_true')
     optparser.add_option('--lemma-field', type='int', default=2)
     optparser.add_option('--noncompound-lemma-field', '--noncompound-field',
                          '--removed-compound-boundary-field', type='int',
