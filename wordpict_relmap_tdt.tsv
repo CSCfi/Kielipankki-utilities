@@ -1,0 +1,63 @@
+# The codes are mostly MALT codes, used in Korp for constructing the
+# word picture: SS (subject), OBJ (object), ADV (adverbial), PA
+# (preposition), AT ((pre)modifier), ET (postmodifier). In addition,
+# some MAMBA codes are used from
+# http://stp.lingfil.uu.se/~nivre/swedish_treebank/dep.html
+# Too many relations (most modifiers and complements) might be mapped
+# to AT; some of them should perhaps be ET or XX.
+
+_	XX
+acomp	AT
+adpos	PA
+advcl	ADV
+advmod	AT
+amod	AT
+appos	AN
+arg	AT
+aux	FV
+auxpass	FV
+cc	++
+ccomp	ET
+comp	AT
+compar	KA
+comparator	XX
+complm	AT
+conj	++
+cop	FV
+csubj	SS
+csubj-cop	SS
+dep	XX
+det	DT
+dobj	OBJ
+ellipsis	XX
+gobj	OBJ
+gsubj	SS
+iccomp	AT
+infmod	AT
+intj	YY
+mark	XX
+mod	AT
+name	XX
+neg	NA
+nn	AT
+nommod	AT
+nommod-own	SS
+nsubj	SS
+nsubj-cop	SS
+num	XX
+number	XX
+parataxis	XX
+partmod	AT
+poss	AT
+preconj	XX
+prt	PL
+punct	IG
+quantmod	AT
+rcmod	AT
+rel	XX
+ROOT	head
+subj	SS
+voc	XX
+xcomp	AT
+xsubj	SS
+xsubj-cop	SS

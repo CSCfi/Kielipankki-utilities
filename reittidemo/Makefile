@@ -1,22 +1,45 @@
 # -*- coding: utf-8 -*-
 
 
-P_ATTRS = lemma pos msd dephead deprel ref spoken lex
+P_ATTRS = lemma lemmacomp pos msd dephead deprel ref spoken lex
 
-SRC_DIR = .
-SRC_FILES = reitti_a-siipeen_FTBparse_orig.txt
+# SRC_DIR = .
+SRC_FILES_GENERATED = reitti_a-siipeen_normalized.conll09
 
-CORPUS_DATE = 2012
+UTTERANCE_FILE = $(SRC_DIR)/reitti_a-siipeen_utterances.csv
 
-MAKE_VRT_CMD = ./mt2vrt.pl --no-lemgrams --no-fix-morpho-tags # --morpho-tag-separator=":"
+CORPUS_DATE = 20120217
 
-LEMGRAM_POSMAP = ../ftb/lemgram_posmap_ftb.tsv
-WORDPICT_RELMAP = ../ftb/wordpict_relmap_ftb.tsv
+VRT_ADD_UTTERANCES_OPTS = \
+	--word-field-number=2 --pos-field-number=5 --skip-pos-regexp=Punct \
+	--nodeid='MPI2817%23' --multi-word-alignment='2:niinku' \
+	--attributes='id,participant,begintime,endtime,annexlink'
+MAKE_VRT_CMD = \
+	$(SCRIPTDIR)/conll2vrt.py \
+	| $(SCRIPTDIR)/vrt-add-utterances.py \
+		--utterance-file $(UTTERANCE_FILE) $(VRT_ADD_UTTERANCES_OPTS)
+MAKE_VRT_DEPS_EXTRA = \
+	$(SCRIPTDIR)/vrt-add-utterances.py $(UTTERANCE_FILE)
+
+VRT_FIX_ATTRS_OPTS_EXTRA = \
+	--input-fields='ref word lemma lemma2 pos pos2 msd msd2 dephead dephead2 deprel deprel2 dummy1 dummy2 spoken' \
+	--output-fields='word lemma:noboundaries lemma pos msd dephead deprel ref spoken' \
+	--compound-boundary-marker='|' --compound-boundary-can-replace-hyphen \
+	--add-element-id='sentence paragraph'
+
+LEMGRAM_POSMAP = ../lemgram_posmap_tdt.tsv
+WORDPICT_RELMAP = ../wordpict_relmap_tdt.tsv
+
+PARSER_DIR = $(HOME)/finclarin/fidepparser
+PARSER = (cd $(PARSER_DIR); ./parser_wrapper.sh)
 
 
 include ../corp-common.mk
 
 
-reitti_a-siipeen_FTBparse_orig.txt: reitti_a-siipeen_original_tok.txt \
-		reitti_a-siipeen_FTBparse.txt
-	./align-tokens.pl $^ > $@
+$(CORP_BUILDDIR)/reitti_a-siipeen_normalized.conll09: \
+		$(SRC_DIR)/reitti_a-siipeen_normalized_sents.txt
+	cat $^ \
+	| awk -F'	' '$$1 != "" {print "\t<p>"; print} $$1 == "" {print}' \
+	| cut -d'	' -f2 \
+	| $(PARSER) > $@
