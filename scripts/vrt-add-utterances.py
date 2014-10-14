@@ -11,18 +11,26 @@ from optparse import OptionParser
 
 class UtteranceAdder(object):
 
-    _field_names = ['Annotation',
-                    'AnnotationBeginTime',
-                    'TierParticipant']
+    _field_headings = {'words': 'Annotation',
+                       'begintime': 'AnnotationBeginTime',
+                       'endtime': 'AnnotationEndTime',
+                       'participant': 'TierParticipant'}
+    _attr_names = {'begintime': 'begin_time',
+                   'endtime': 'end_time',
+                   'annexlink': 'annex_link'}
 
     def __init__(self, opts):
         self._opts = opts
         self._skip_pos_re = re.compile(opts.skip_pos_regexp)
         self._skip_word_re = re.compile(opts.skip_word_regexp)
         self._skip_utt_word_re = re.compile(opts.skip_utterance_word_regexp)
+        self._attrs = re.split(r'\s*[,\s]\s*', self._opts.utterance_attributes)
         self._utterance_start_format = (
-            '<utterance id="{id}" participant="{participant}" annex_link="'
-            + opts.url_template + '">\n')
+            '<utterance'
+            + ''.join([(' ' + self._attr_names.get(attrlabel, attrlabel)
+                        + '="{' + attrlabel + '}"')
+                       for attrlabel in self._attrs])
+            + '>\n')
         self._utterances = []
         self._read_utterance_file(opts.utterance_file)
         self._make_multiword_alignments()
@@ -33,13 +41,15 @@ class UtteranceAdder(object):
             reader = csv.reader(f, delimiter=';')
             for fields in reader:
                 if not field_nums:
-                    field_nums = [fields.index(field_name)
-                                  for field_name in self._field_names]
+                    field_nums = [(name, fields.index(heading))
+                                  for name, heading
+                                  in self._field_headings.iteritems()]
                 else:
-                    self._utterances.append([fields[field_num]
-                                             for field_num in field_nums])
+                    self._utterances.append(
+                        dict([(name, fields[field_num])
+                              for name, field_num in field_nums]))
         # Sort by AnnotationBeginTime
-        self._utterances.sort(key=lambda elem: int(elem[1]))
+        self._utterances.sort(key=lambda elem: int(elem.get('begintime', '0')))
 
     def _make_multiword_alignments(self):
         self._multiword_skip_words = {}
@@ -80,11 +90,14 @@ class UtteranceAdder(object):
             utt.word_num = 0
             if utt.num < len(self._utterances):
                 utt.data = self._utterances[utt.num]
+                annex_link = self._opts.url_template.format(
+                    nodeid=self._opts.lat_node_id, **utt.data)
                 utt.start_tag = self._utterance_start_format.format(
                     id=str(utt.num + 1),
-                    participant=utt.data[2],
-                    begintime=utt.data[1])
-                utt.words = utt.data[0].split()
+                    nodeid=self._opts.lat_node_id,
+                    annexlink=annex_link,
+                    **utt.data)
+                utt.words = utt.data['words'].split()
             else:
                 utt.data = None
                 utt.words = []
@@ -145,10 +158,10 @@ class UtteranceAdder(object):
 def getopts():
     optparser = OptionParser()
     optparser.add_option('--utterance-file')
-    optparser.add_option('--add-links', action='store_true')
-    optparser.add_option('--add-participants', action='store_true')
-    optparser.add_option('--url-template',
-                         default='http://lat.example.com/?time={begintime}')
+    optparser.add_option('--url-template', '--link-template',
+                         default='nodeid={nodeid}&amp;time={begintime}')
+    optparser.add_option('--utterance-attributes', '--attributes',
+                         default='id,participant,begintime,endtime,annexlink')
     optparser.add_option('--word-field-number', type='int', default=1)
     optparser.add_option('--pos-field-number', type='int', default=3)
     optparser.add_option('--skip-pos-regexp', default=r'^$')
@@ -157,6 +170,7 @@ def getopts():
                          default=r'^(\..*|.*-)$')
     optparser.add_option('--multi-word-alignment', action='append',
                          default=[])
+    optparser.add_option('--lat-node-id', '--nodeid', default='')
     opts, args = optparser.parse_args()
     if not opts.utterance_file:
         sys.stderr.write(
