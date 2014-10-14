@@ -212,7 +212,7 @@ SRC_SUBDIR := \
 # corpus makefile
 SRC_DIR := $(call partvar_or_default,SRC_DIR,$(CORPSRCROOT)/$(SRC_SUBDIR))
 
-SRC_FILES := $(call partvar,SRC_FILES)
+SRC_FILES := $(or $(call partvar,SRC_FILES),$(call partvar,SRC_FILES_GENERATED))
 
 SRC_FILES_LS_OPTS := $(call partvar_or_default,SRC_FILE_LS_OPTS,-v)
 
@@ -233,7 +233,7 @@ SRC_FILES_REAL := \
 $(call showvars,\
 	CORPORA WITHIN_CORP_MK CORPNAME CORPNAME_MAIN CORPNAME_BASE \
 	CORPNAME_BASEBASE SUBDIRS \
-	SRC_SUBDIR SRC_DIR SRC_FILES SRC_FILES_REAL \
+	SRC_SUBDIR SRC_DIR SRC_FILES SRC_FILES_GENERATED SRC_FILES_REAL \
 	SUBDIRS_AS_SUBCORPORA SUBCORPORA HAS_SUBCORPORA SUBCORPUS)
 
 DB_TARGETS_ALL = korp_timespans korp_rels korp_lemgrams
@@ -477,11 +477,17 @@ $(call debuginfo,Empty SRC_FILES_REAL)
 ifeq ($(strip $(SUBDIRS)),)
 $(call debuginfo,Empty SUBDIRS)
 ifeq ($(strip $(PARCORP)$(HAS_SUBCORPORA)),)
-$(call debuginfo,Not parallel corpus, no subcorpora)
+$(call debuginfo,Not parallel corpus; no subcorpora)
 ifeq ($(strip $(SRC_FILES)),)
 $(error Please specify the source files in SRC_FILES)
 else
+ifeq ($(strip $(SRC_FILES_GENERATED)),)
 $(error No file(s) $(SRC_FILES) found in $(SRC_DIR))
+else
+TOP_TARGETS = generate-src all
+# NOTE: This means that SRC_FILES_GENERATED does not support wildcards
+SRC_FILES_REAL = $(addprefix $(CORP_BUILDDIR)/,$(SRC_FILES_GENERATED))
+endif
 endif
 
 else ifneq ($(strip $(PARCORP)),)
@@ -534,6 +540,8 @@ subdirs: $(SUBDIRS)
 
 $(SUBDIRS):
 	$(MAKE) -C $@
+
+generate-src: $(SRC_FILES_REAL)
 
 .PHONY: all-top $(TOP_TARGETS) all subdirs $(SUBDIRS)
 
