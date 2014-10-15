@@ -45,9 +45,11 @@ class UtteranceAdder(object):
                                   for name, heading
                                   in self._field_headings.iteritems()]
                 else:
-                    self._utterances.append(
-                        dict([(name, fields[field_num])
-                              for name, field_num in field_nums]))
+                    field_vals = dict([(name, fields[field_num])
+                                       for name, field_num in field_nums])
+                    field_vals['duration'] = str(int(field_vals['endtime'])
+                                                 - int(field_vals['begintime']))
+                    self._utterances.append(field_vals)
         # Sort by AnnotationBeginTime
         self._utterances.sort(key=lambda elem: int(elem.get('begintime', '0')))
 
@@ -158,10 +160,12 @@ class UtteranceAdder(object):
 def getopts():
     optparser = OptionParser()
     optparser.add_option('--utterance-file')
-    optparser.add_option('--url-template', '--link-template',
-                         default='nodeid={nodeid}&amp;time={begintime}')
-    optparser.add_option('--utterance-attributes', '--attributes',
-                         default='id,participant,begintime,endtime,annexlink')
+    optparser.add_option(
+        '--url-template', '--link-template',
+        default='nodeid={nodeid}&amp;time={begintime}&amp;duration={duration}')
+    optparser.add_option(
+        '--utterance-attributes', '--attributes',
+        default=('id,participant,begintime,endtime,duration,annexlink'))
     optparser.add_option('--word-field-number', type='int', default=1)
     optparser.add_option('--pos-field-number', type='int', default=3)
     optparser.add_option('--skip-pos-regexp', default=r'^$')
