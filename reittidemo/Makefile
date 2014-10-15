@@ -9,13 +9,19 @@ SRC_FILES_GENERATED = reitti_a-siipeen_normalized.conll09
 UTTERANCE_FILE = $(SRC_DIR)/reitti_a-siipeen_utterances.csv
 
 CORPUS_DATE = 20120217
+TEXT_AUTHOR = Tero Aalto, Mietta Lennes
+TEXT_TITLE = Reitti A-siipeen
+TEXT_YEAR = $(shell echo $(CORPUS_DATE) | sed -e 's/\(....\).*/\1/')
 
 VRT_ADD_UTTERANCES_OPTS = \
 	--word-field-number=2 --pos-field-number=5 --skip-pos-regexp=Punct \
 	--nodeid='MPI2817%23' --multi-word-alignment='2:niinku' \
-	--attributes='id,participant,begintime,endtime,annexlink'
+	--attributes='id,participant,begintime,endtime,duration,annexlink'
 MAKE_VRT_CMD = \
 	$(SCRIPTDIR)/conll2vrt.py \
+		--top-attribute "author=$(TEXT_AUTHOR)" \
+		--top-attribute "title=$(TEXT_TITLE)" \
+		--top-attribute "year=$(TEXT_YEAR)" \
 	| $(SCRIPTDIR)/vrt-add-utterances.py \
 		--utterance-file $(UTTERANCE_FILE) $(VRT_ADD_UTTERANCES_OPTS)
 MAKE_VRT_DEPS_EXTRA = \
