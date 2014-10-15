@@ -5,6 +5,7 @@
 import sys
 
 from optparse import OptionParser
+from xml.sax.saxutils import escape
 
 
 def add_sentence_tags(file_, opts):
@@ -15,7 +16,10 @@ def add_sentence_tags(file_, opts):
     para_marker_line_start = '1\t' + opts.paragraph_marker + '\t'
     in_para = False
     in_sent = False
-    sys.stdout.write('<' + opts.top_element_name + '>\n')
+    top_attrs = ''.join([' ' + name + '="' + escape(val, {'"': '&quot;'}) + '"'
+                         for top_attr in opts.top_attribute
+                         for (name, _, val) in [top_attr.partition('=')]])
+    sys.stdout.write('<' + opts.top_element_name + top_attrs + '>\n')
     for line in file_:
         if line.strip() == '':
             if in_sent:
@@ -46,6 +50,7 @@ def getopts():
                          default='paragraph')
     optparser.add_option('--top-element-name', '--top-elem-name',
                          default='text')
+    optparser.add_option('--top-attribute', action='append', default=[])
     optparser.add_option('--paragraph-marker', '--para-marker',
                          default='<p>')
     opts, args = optparser.parse_args()
