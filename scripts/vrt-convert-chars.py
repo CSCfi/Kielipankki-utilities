@@ -64,19 +64,41 @@ class CharConverter(object):
 
 
 def getopts():
-    optparser = OptionParser()
-    optparser.add_option('--attribute-types', type='choice',
-                         choices=['all', 'pos', 'struct'],
-                         default='all')
-    optparser.add_option('--chars', default=u' /<>|')
-    optparser.add_option('--offset', default='0x7F')
-    optparser.add_option('--prefix', default=u'')
-    optparser.add_option('--mode', type='choice', choices=['encode', 'decode'],
-                         default='encode')
-    optparser.add_option('--encode', action='store_const', dest='mode',
-                         const='encode')
-    optparser.add_option('--decode', action='store_const', dest='mode',
-                         const='decode')
+    usage = """%prog [options] input.vrt ... > output.vrt
+
+Encode or decode in VRT files special characters that are problematic in CWB."""
+    optparser = OptionParser(usage=usage)
+    # TODO: Add an option to specify feature set attributes in which
+    # vertical bars should not be encoded.
+    optparser.add_option(
+        '--attribute-types', type='choice', choices=['all', 'pos', 'struct'],
+        default='all', metavar='TYPE',
+        help=('convert special characters in TYPE attributes, where TYPE is'
+              ' one of: pos (positional attributes only), struct (structural'
+              ' attributes only), or all (both positional and structural'
+              ' attributes) (default: %default)'))
+    optparser.add_option(
+        '--chars', default=u' /<>|',
+        help=('the characters to be converted in their unencoded form'
+              ' (default: "%default")'))
+    optparser.add_option(
+        '--offset', default='0x7F',
+        help=('the code point offset for the encoded characters: the first'
+              ' character in CHARS is encoded as OFFSET, the second as'
+              ' OFFSET+1 and so on (default: %default)'))
+    optparser.add_option(
+        '--prefix', default=u'',
+        help='prefix the encoded characters with PREFIX (default: none)')
+    optparser.add_option(
+        '--mode', type='choice', choices=['encode', 'decode'], default='encode',
+        help=('MODE specifies the direction of conversion: encode or decode'
+              ' (default: %default)'))
+    optparser.add_option(
+        '--encode', action='store_const', dest='mode', const='encode',
+        help='shorthand for --mode=encode')
+    optparser.add_option(
+        '--decode', action='store_const', dest='mode', const='decode',
+        help='shorthand for --mode=decode')
     (opts, args) = optparser.parse_args()
     opts.offset = int(opts.offset, base=0)
     return opts, args
