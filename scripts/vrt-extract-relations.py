@@ -49,16 +49,17 @@ class Deprels(object):
               'voc': 'TT',
               '_': 'XX'}
 
-    def __init__(self, relmap=None):
+    def __init__(self, relmap=None, include_wordforms=False):
         self.relmap = relmap or self.__class__.relmap
+        self._include_wordforms = include_wordforms
         self.freqs_rel = defaultdict(int)
         self.freqs_head_rel = defaultdict(int)
         self.freqs_rel_dep = defaultdict(int)
         self.sentences = defaultdict(self.SentInfo)
 
     def __iter__(self):
-        for key in self.ids.keys():
-            (head, rel, dep) = key
+        for key in self.sentences:
+            (head, rel, dep, wf) = key
             yield {'id': self.sentences[key].id,
                    'head': head,
                    'rel': rel,
@@ -68,21 +69,21 @@ class Deprels(object):
                    'freq_rel': self.freqs_rel[rel],
                    'freq_head_rel': self.freqs_head_rel[(head, rel)],
                    'freq_rel_dep': self.freqs_rel_dep[(rel, dep)],
-                   'wf': 0,
+                   'wf': int(wf),
                    'sentences': ';'.join(':'.join(str(item) for item in sent)
                                          for sent
                                          in self.sentences[key].sentences)}
 
     def iter_freqs(self):
         for key in self.sentences:
-            (head, rel, dep) = key
+            (head, rel, dep, wf) = key
             yield (str(self.sentences[key].id),  # id
                    head,
                    rel,
                    dep,
                    '',  # depextra
                    str(self.sentences[key].get_len()),  # freq
-                   '0')  # wf
+                   '3' if wf else '0')  # wf
 
     def iter_freqs_rel(self):
         for rel in self.freqs_rel:
@@ -111,9 +112,23 @@ class Deprels(object):
                        str(end))
 
     def add(self, sent_id, data):
+
+        def add_info(rel, dep, head, depnr, headnr, is_wordform=False):
+            self.freqs_head_rel[(head, rel)] += 1
+            self.freqs_rel_dep[(rel, dep)] += 1
+            self.sentences[(head, rel, dep, is_wordform)].add_info(
+                [(sent_id, min(wordnr, headnr) + 1,
+                  max(wordnr, headnr) + 1)])
+
+        def get_lemgram_pos(lemgram):
+            if lemgram[-6:-4] == '..':
+                return '_' + lemgram[-4:-2].upper()
+            else:
+                return ''
+
         # print sent_id, len(data)
         for wordnr, word_info in enumerate(data):
-            dep, deprel, dephead = word_info
+            dep, deprel, dephead, wform = word_info
             if dephead == '_':
                 continue
             try:
@@ -124,11 +139,11 @@ class Deprels(object):
                 rel = self.relmap.get(deprel, 'XX')
                 head = data[headnr][0]
                 self.freqs_rel[rel] += 1
-                self.freqs_head_rel[(head, rel)] += 1
-                self.freqs_rel_dep[(rel, dep)] += 1
-                self.sentences[(head, rel, dep)].add_info(
-                    [(sent_id, min(wordnr, headnr) + 1,
-                      max(wordnr, headnr) + 1)])
+                add_info(rel, dep, head, wordnr, headnr)
+                if self._include_wordforms:
+                    add_info(rel, wform + get_lemgram_pos(dep),
+                             data[headnr][-1] + get_lemgram_pos(head), wordnr,
+                             headnr, True)
 
     def get_sizes(self):
         sizes = []
@@ -145,7 +160,7 @@ class RelationExtractor(object):
         relmap = None
         if opts.relation_map:
             relmap = self._read_relmap(opts.relation_map)
-        self._deprels = Deprels(relmap)
+        self._deprels = Deprels(relmap, opts.include_word_forms)
         self._temp_fnames = {}
         if self._opts.input_fields:
             self._input_fieldnames = re.split(r'\s*[,\s]\s*',
@@ -198,6 +213,7 @@ class RelationExtractor(object):
                                  or self._fieldnrs['lemma'])
         fieldnr_deprel = self._fieldnrs['deprel']
         fieldnr_dephead = self._fieldnrs['dephead']
+        fieldnr_word = self._fieldnrs['word']
         data = []
         sentnr = 0
         # sys.stdout.write(str(sentnr) + ' ' + repr(self._deprels.get_sizes()) + '\n')
@@ -217,7 +233,8 @@ class RelationExtractor(object):
                 # fields.append('')	# An empty lemgram by default
                 data.append((fields[fieldnr_lemgram_lemma],
                              fields[fieldnr_deprel],
-                             fields[fieldnr_dephead]))
+                             fields[fieldnr_dephead],
+                             fields[fieldnr_word]))
             elif line.startswith('<sentence'):
                 mo = sent_id_re.match(line)
                 if len(data) > 0:
@@ -333,6 +350,7 @@ def getopts():
     optparser.add_option('--relation-map')
     optparser.add_option('--inverse-relation-map', action='store_true',
                          default=False)
+    optparser.add_option('--include-word-forms', action='store_true')
     (opts, args) = optparser.parse_args()
     if opts.output_prefix is None and opts.corpus_name is not None:
         opts.output_prefix = 'relations_' + opts.corpus_name
