@@ -214,15 +214,24 @@ class RelationExtractor(object):
         fieldnr_deprel = self._fieldnrs['deprel']
         fieldnr_dephead = self._fieldnrs['dephead']
         fieldnr_word = self._fieldnrs['word']
+        min_num_fields = max(fieldnr_lemgram_lemma, fieldnr_deprel,
+                             fieldnr_dephead, fieldnr_word) + 1
         data = []
         sentnr = 0
         # sys.stdout.write(str(sentnr) + ' ' + repr(self._deprels.get_sizes()) + '\n')
-        for line in f:
+        for linenr, line in enumerate(f):
             line = line[:-1]
             if not line:
                 continue
             elif line[0] != '<':
                 fields = line.split('\t')
+                if len(fields) < min_num_fields:
+                    sys.stderr.write(
+                        ('Warning: Ignoring line {linenr} with only {numfields}'
+                         ' fields ({reqfields} required):\n{line}\n').format(
+                            numfields=len(fields), reqfields=min_num_fields,
+                            linenr=linenr, line=line))
+                    continue
                 if has_lemgrams:
                     # Remove leading and trailing vertical bars from
                     # the lemgram. FIXME: This assumes an unambiguous
