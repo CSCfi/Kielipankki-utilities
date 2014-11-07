@@ -10,6 +10,7 @@ from optparse import OptionParser
 from subprocess import Popen, PIPE
 from tempfile import NamedTemporaryFile
 from collections import defaultdict
+from os.path import basename
 
 
 class Deprels(object):
@@ -298,8 +299,9 @@ class RelationExtractor(object):
 
     def _open_output_file(self, fname, numeric_sort=False, temporary=False):
         if temporary:
-            return NamedTemporaryFile(prefix=sys.argv[0] + '.' + fname + '.',
-                                      dir=self._opts.temp_dir, delete=False)
+            return NamedTemporaryFile(
+                prefix=basename(sys.argv[0]) + '.' + basename(fname) + '.',
+                dir=self._opts.temp_dir, delete=False)
         compress_cmd = None
         if self._opts.compress.startswith('gz'):
             fname += '.gz'
