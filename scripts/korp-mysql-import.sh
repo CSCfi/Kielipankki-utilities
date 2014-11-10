@@ -290,16 +290,17 @@ mysql_import () {
 	colspec=`get_colspec $tablename`
 	prepare_tables $tablename $corpname "$colspec"
     fi
-    mkfifo $tablename.tsv
-    ($cat $file > $tablename.tsv &)
+    fifo=$tmpfname_base.$tablename.fifo
+    mkfifo $fifo
+    ($cat $file > $fifo &)
     run_mysql "
 	    set autocommit = 0;
 	    set unique_checks = 0;
-	    load data local infile '$tablename.tsv' into table $tablename fields escaped by '';
+	    load data local infile '$fifo' into table $tablename fields escaped by '';
 	    commit;
 	    show count(*) warnings;
 	    show warnings;"
-    /bin/rm -f $tablename.tsv
+    /bin/rm -f $fifo
     if [ "x$imported_file_list" != x ]; then
 	echo "$file_base" >> "$imported_file_list"
     fi
