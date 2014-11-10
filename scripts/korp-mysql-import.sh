@@ -18,6 +18,7 @@ tmpfname_base=$tmpdir/$progname.$$.tmp
 dbname=korp
 
 prepare_tables=
+imported_file_list=
 
 table_columns_lemgram_index='
 	`lemgram` varchar(64) NOT NULL,
@@ -130,6 +131,9 @@ Options:
                   data; for single-corpus tables, drop the table
                   first; for multi-corpus tables (lemgrams and
                   timespans), remove the rows for CORPUS
+  -I, --imported-file-list FILE
+                  do not import files listed in FILE, and write the
+                  names of imported files to FILE
 EOF
     exit 0
 }
@@ -139,7 +143,7 @@ EOF
 getopt -T > /dev/null
 if [ $? -eq 4 ]; then
     # This requires GNU getopt
-    args=`getopt -o "ht" -l "help,prepare-tables" -n "$progname" -- "$@"`
+    args=`getopt -o "htI:" -l "help,prepare-tables,imported-file-list:" -n "$progname" -- "$@"`
     if [ $? -ne 0 ]; then
 	exit 1
     fi
@@ -156,6 +160,13 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-t | --prepare-tables )
 	    prepare_tables=1
+	    ;;
+	-I | --imported-file-list )
+	    shift
+	    imported_file_list=$1
+	    if [ ! -e "$imported_file_list" ]; then
+		touch "$imported_file_list"
+	    fi
 	    ;;
 	-- )
 	    shift
@@ -262,6 +273,12 @@ prepare_tables () {
 
 mysql_import () {
     file=$1
+    file_base=`basename $file`
+    if [ "x$imported_file_list" != x ] &&
+	grep -Fq "$file_base" "$imported_file_list"; then
+	echo "$file already imported"
+	return
+    fi
     tablename=`make_tablename "$file"`
     if [ "x$tablename" = x ]; then
 	warn "Unrecognized file name: $file"
@@ -283,6 +300,9 @@ mysql_import () {
 	    show count(*) warnings;
 	    show warnings;"
     /bin/rm -f $tablename.tsv
+    if [ "x$imported_file_list" != x ]; then
+	echo "$file_base" >> "$imported_file_list"
+    fi
 }
 
 
