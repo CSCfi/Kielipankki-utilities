@@ -278,7 +278,7 @@ mysql_import () {
     run_mysql "
 	    set autocommit = 0;
 	    set unique_checks = 0;
-	    load data local infile '$tablename.tsv' into table $tablename;
+	    load data local infile '$tablename.tsv' into table $tablename fields escaped by '';
 	    commit;
 	    show count(*) warnings;
 	    show warnings;"
