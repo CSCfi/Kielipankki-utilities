@@ -2,6 +2,12 @@
 
 date +'Start: %F %T %s.%N'
 
+opts=
+if [ "x$1" = "x--new" ]; then
+    opts="--output-type=new-strings"
+    shift
+fi
+
 year=$1
 echo Year: $year
 topdir=$WRKDIR/corpora/vrt/klk_fi_parsed
@@ -16,7 +22,8 @@ if [ ! -e $rels_tar ]; then
     vrt-extract-relations.py \
 	--input-fields 'word lemma lemmacomp pos msd dephead deprel ref ocr lex' \
 	--relation-map in/wordpict_relmap_tdt.tsv \
-	--output-prefix out/$year/klk_fi_${year}_rels
+	--output-prefix out/$year/klk_fi_${year}_rels \
+	$opts
     # --sort --compress=gzip --temporary-files
     # Sorting and compressing files within vrt-extract-relations.py
     # often seems to leave the rels_sentences file incomplete. Why?
@@ -24,7 +31,7 @@ if [ ! -e $rels_tar ]; then
 	mv $f $f.unsorted
 	sort_opts=
 	case $f in
-	    *_rels.tsv | *_rels_sentences.tsv )
+	    *_rels.tsv | *_rels_sentences.tsv | *_rels_strings.tsv )
 		sort_opts=-n
 		;;
 	esac
