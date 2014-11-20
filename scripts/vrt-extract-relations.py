@@ -32,6 +32,14 @@ class Deprels(object):
         def get_len(self):
             return len(self.sentences)
 
+    class IdDict(dict):
+
+        def __init__(self):
+            dict.__init__(self)
+
+        def get_id(self, key):
+            return self.setdefault(key, len(self))
+
     relmap = {'advl': 'ADV',
               'attr': 'AT',
               'aux': 'IV',
@@ -50,13 +58,42 @@ class Deprels(object):
               'voc': 'TT',
               '_': 'XX'}
 
-    def __init__(self, relmap=None, include_wordforms=False):
+    def __init__(self, relmap=None, include_wordforms=False,
+                 output_type=None):
         self.relmap = relmap or self.__class__.relmap
         self._include_wordforms = include_wordforms
+        self._output_type = output_type
+        iter_suffix = ('_stringids' if output_type == 'new-strings'
+                       else '_strings')
+        for iter_type in ['freqs', 'freqs_head_rel', 'freqs_rel_dep']:
+            setattr(self, 'iter_' + iter_type,
+                    getattr(self, 'iter_' + iter_type + iter_suffix))
+        self.strings = self.IdDict()
         self.freqs_rel = defaultdict(int)
         self.freqs_head_rel = defaultdict(int)
         self.freqs_rel_dep = defaultdict(int)
         self.sentences = defaultdict(self.SentInfo)
+
+    def _get_pos(self, lemgram_or_wordpos):
+        if len(lemgram_or_wordpos) > 6 and lemgram_or_wordpos[-6:-4] == '..':
+            return lemgram_or_wordpos[-4:-2].upper()
+        elif len(lemgram_or_wordpos) > 3 and lemgram_or_wordpos[-3] == '_':
+            return lemgram_or_wordpos[-2:]
+        else:
+            return ''
+
+    def _get_lemma(self, lemgram_or_wordpos):
+        if len(lemgram_or_wordpos) > 6 and lemgram_or_wordpos[-6:-4] == '..':
+            return lemgram_or_wordpos[:-6]
+        elif len(lemgram_or_wordpos) > 3 and lemgram_or_wordpos[-3] == '_':
+            return lemgram_or_wordpos[:-3]
+        else:
+            return lemgram_or_wordpos
+
+    def _get_string_id(self, lemgram_or_wordpos):
+        pos = self._get_pos(lemgram_or_wordpos)
+        word = self._get_lemma(lemgram_or_wordpos)
+        return str(self.strings.get_id((word, '', pos)))
 
     def __iter__(self):
         for key in self.sentences:
@@ -75,7 +112,15 @@ class Deprels(object):
                                          for sent
                                          in self.sentences[key].sentences)}
 
-    def iter_freqs(self):
+    def iter_strings(self):
+        for key, id_ in self.strings.iteritems():
+            string, stringextra, pos = key
+            yield (str(id_),
+                   string,
+                   stringextra,
+                   pos)
+
+    def iter_freqs_strings(self):
         for key in self.sentences:
             (head, rel, dep, wf) = key
             yield (str(self.sentences[key].id),  # id
@@ -86,21 +131,48 @@ class Deprels(object):
                    str(self.sentences[key].get_len()),  # freq
                    '3' if wf else '0')  # wf
 
+    def iter_freqs_stringids(self):
+        for key in self.sentences:
+            (head, rel, dep, wf) = key
+            wf_num = '1' if wf else '0'
+            bf_num = '0' if wf else '1'
+            yield (str(self.sentences[key].id),  # id
+                   self._get_string_id(head),
+                   rel,
+                   self._get_string_id(dep),
+                   str(self.sentences[key].get_len()),  # freq
+                   bf_num,  # bfhead
+                   bf_num,  # bfdep
+                   wf_num,  # wfhead
+                   wf_num)  # wfdep
+
     def iter_freqs_rel(self):
         for rel in self.freqs_rel:
             yield (rel,
                    str(self.freqs_rel[rel]))
 
-    def iter_freqs_head_rel(self):
+    def iter_freqs_head_rel_strings(self):
         for (head, rel) in self.freqs_head_rel:
             yield (head,
                    rel,
                    str(self.freqs_head_rel[(head, rel)]))
 
-    def iter_freqs_rel_dep(self):
+    def iter_freqs_head_rel_stringids(self):
+        for (head, rel) in self.freqs_head_rel:
+            yield (self._get_string_id(head),
+                   rel,
+                   str(self.freqs_head_rel[(head, rel)]))
+
+    def iter_freqs_rel_dep_strings(self):
         for (rel, dep) in self.freqs_rel_dep:
             yield (dep,
                    '',  # depextra
+                   rel,
+                   str(self.freqs_rel_dep[(rel, dep)]))
+
+    def iter_freqs_rel_dep_stringids(self):
+        for (rel, dep) in self.freqs_rel_dep:
+            yield (self._get_string_id(dep),
                    rel,
                    str(self.freqs_rel_dep[(rel, dep)]))
 
@@ -121,12 +193,6 @@ class Deprels(object):
                 [(sent_id, min(wordnr, headnr) + 1,
                   max(wordnr, headnr) + 1)])
 
-        def get_lemgram_pos(lemgram):
-            if lemgram[-6:-4] == '..':
-                return '_' + lemgram[-4:-2].upper()
-            else:
-                return ''
-
         # print sent_id, len(data)
         for wordnr, word_info in enumerate(data):
             dep, deprel, dephead, wform = word_info
@@ -142,9 +208,9 @@ class Deprels(object):
                 self.freqs_rel[rel] += 1
                 add_info(rel, dep, head, wordnr, headnr)
                 if self._include_wordforms:
-                    add_info(rel, wform + get_lemgram_pos(dep),
-                             data[headnr][-1] + get_lemgram_pos(head), wordnr,
-                             headnr, True)
+                    dep_wform = wform + '_' + self._get_pos(dep)
+                    head_wform = data[headnr][-1] +  '_' + self._get_pos(head)
+                    add_info(rel, dep_wform, head_wform, wordnr, headnr, True)
 
     def get_sizes(self):
         sizes = []
@@ -161,7 +227,8 @@ class RelationExtractor(object):
         relmap = None
         if opts.relation_map:
             relmap = self._read_relmap(opts.relation_map)
-        self._deprels = Deprels(relmap, opts.include_word_forms)
+        self._deprels = Deprels(relmap, opts.include_word_forms,
+                                opts.output_type)
         self._temp_fnames = {}
         if self._opts.input_fields:
             self._input_fieldnames = re.split(r'\s*[,\s]\s*',
@@ -273,14 +340,17 @@ class RelationExtractor(object):
                                  'wf', 'sentences']))
 
     def _output_rels_new(self):
+        output_new_strings = (self._opts.output_type == 'new-strings')
         output_rels = [('iter_freqs', '', True),
                        ('iter_freqs_rel', '_rel', False),
-                       ('iter_freqs_head_rel', '_head_rel', False),
-                       ('iter_freqs_rel_dep', '_dep_rel', False),
+                       ('iter_freqs_head_rel', '_head_rel', output_new_strings),
+                       ('iter_freqs_rel_dep', '_dep_rel', output_new_strings),
                        ('iter_sentences', '_sentences', True)]
-        for output_rel in output_rels:
-            self._output_rel(getattr(self._deprels, output_rel[0])(),
-                             *output_rel[1:])
+        if output_new_strings:
+            output_rels.append(('iter_strings', '_strings', True))
+        for rel_iter_name, rel_suffix, numeric_sort in output_rels:
+            self._output_rel(getattr(self._deprels, rel_iter_name)(),
+                             rel_suffix, numeric_sort)
         if self._opts.temp_files:
             del self._deprels
             gc.collect()
@@ -348,7 +418,7 @@ def getopts():
                          default='ftb2')
     optparser.add_option('--input-fields', '--input-field-names')
     optparser.add_option('--output-type', type='choice',
-                         choices=['old', 'new'], default='new')
+                         choices=['old', 'new', 'new-strings'], default='new')
     optparser.add_option('--corpus-name', default=None)
     optparser.add_option('--output-prefix', default=None)
     optparser.add_option('--compress', type='choice',
