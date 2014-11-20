@@ -293,6 +293,8 @@ mysql_import () {
     fifo=$tmpfname_base.$tablename.fifo
     mkfifo $fifo
     ($cat $file > $fifo &)
+    echo Importing $fname
+    date +'  Start: %F %T'
     run_mysql "
 	    set autocommit = 0;
 	    set unique_checks = 0;
@@ -300,6 +302,7 @@ mysql_import () {
 	    commit;
 	    show count(*) warnings;
 	    show warnings;"
+    date +'  End: %F %T'
     /bin/rm -f $fifo
     if [ "x$imported_file_list" != x ]; then
 	echo "$file_base" >> "$imported_file_list"
@@ -308,6 +311,5 @@ mysql_import () {
 
 
 for fname in "$@"; do
-    echo "$fname"
     mysql_import "$fname"
 done
