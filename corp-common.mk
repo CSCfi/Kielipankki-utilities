@@ -398,7 +398,7 @@ MYSQL_IMPORT = mkfifo $(2).tsv; \
 	mysql --local-infile --user $(DBUSER) --batch --execute " \
 		set autocommit = 0; \
 		set unique_checks = 0; \
-		load data local infile '$(2).tsv' into table $(2); \
+		load data local infile '$(2).tsv' into table $(2) fields escaped by ''; \
 		commit; \
 		show count(*) warnings; \
 		show warnings;" \
@@ -698,7 +698,7 @@ korp_$(1): $(CORPNAME_BUILDDIR)_$(1)_load.timestamp
 CREATE_SQL_$(1) = '\
 	CREATE TABLE IF NOT EXISTS `$$(TABLENAME_$(1))` ( \
 		$$(COLUMNS_$(1)) \
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+	) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8 DEFAULT COLLATE=utf8_bin;'
 
 $(CORPNAME_BUILDDIR)_$(1)_load.timestamp: $(CORPNAME_BUILDDIR)_$(1)$(TSV_CKSUM)
 	mysql --user $(DBUSER) --execute $$(CREATE_SQL_$(1)) $(DBNAME)
