@@ -19,6 +19,7 @@ dbname=korp
 
 prepare_tables=
 imported_file_list=
+relations_format=old
 
 table_columns_lemgram_index='
 	`lemgram` varchar(64) NOT NULL,
@@ -76,9 +77,49 @@ table_columns_relations_CORPNAME_sentences='
 	`end` int(11) NOT NULL,
 	KEY `id` (`id`)
 '
-
-rels_table_prefix=relations_CORPNAME
-rels_table_suffixes='@ _rel _head_rel _dep_rel _sentences'
+relations_new_rels_enum="ENUM('++','ADV','AN','AT','DT','ET','FV','head','IG','KA','NA','OBJ','PA','PL','SS','XX','YY')"
+table_columns_relations_new_CORPNAME='
+        `id` int UNIQUE NOT NULL,
+	`head` int NOT NULL,
+	`rel` '$relations_new_rels_enum' NOT NULL,
+	`dep` int NOT NULL,
+	`freq` int NOT NULL,
+	`bfhead` bool NOT NULL,
+	`bfdep` bool NOT NULL,
+	`wfhead` bool NOT NULL,
+	`wfdep` bool NOT NULL,
+	PRIMARY KEY (`id`),
+	KEY `head` (`head`),
+	KEY `dep` (`dep`),
+        KEY `bfhead` (`bfhead`),
+        KEY `bfdep` (`bfdep`),
+        KEY `wfhead` (`wfhead`),
+        KEY `wfdep` (`wfdep`)
+'
+table_columns_relations_new_CORPNAME_strings='
+	`id` int UNIQUE NOT NULL,
+	`string` varchar(100) NOT NULL,
+	`stringextra` varchar(32) DEFAULT NULL,
+	`pos` varchar(5) DEFAULT NULL,
+	PRIMARY KEY (`id`),
+	KEY `string` (`string`)
+'
+table_columns_relations_new_CORPNAME_rel=$table_columns_relations_CORPNAME_rel
+table_columns_relations_new_CORPNAME_head_rel='
+	`head` int NOT NULL,
+	`rel` '$relations_new_rels_enum' NOT NULL,
+	`freq` int NOT NULL,
+	KEY `head` (`head`),
+	KEY `rel` (`rel`)
+'
+table_columns_relations_new_CORPNAME_dep_rel='
+	`dep` int NOT NULL,
+	`rel` '$relations_new_rels_enum' NOT NULL,
+	`freq` int NOT NULL,
+	KEY `dep` (`dep`),
+	KEY `rel` (`rel`)
+'
+table_columns_relations_new_CORPNAME_sentences=$table_columns_relations_CORPNAME_sentences
 
 
 warn () {
@@ -122,7 +163,7 @@ CORPUS is the name (id) of the corpus (in lower case), TYPE is the
 type of the table and EXT is .tsv, possibly followed by the
 compression extension. TYPE is one of the following: lemgrams,
 timespans, rels, rels_rel, rels_head_rel, rels_dep_rel,
-rels_sentences.
+rels_sentences, rels_strings.
 
 Options:
   -h, --help      show this help
@@ -134,6 +175,11 @@ Options:
   -I, --imported-file-list FILE
                   do not import files listed in FILE, and write the
                   names of imported files to FILE
+  --relations-format FORMAT_NAME
+                  assume format FORMAT_NAME for word picture relation
+                  tables: either "old" (for Korp backend versions 2 to
+                  2.3) or "new" (for Korp backend 2.5 and later)
+                  (default: "$relations_format")
 EOF
     exit 0
 }
@@ -143,7 +189,7 @@ EOF
 getopt -T > /dev/null
 if [ $? -eq 4 ]; then
     # This requires GNU getopt
-    args=`getopt -o "htI:" -l "help,prepare-tables,imported-file-list:" -n "$progname" -- "$@"`
+    args=`getopt -o "htI:" -l "help,prepare-tables,imported-file-list:,relations-format:" -n "$progname" -- "$@"`
     if [ $? -ne 0 ]; then
 	exit 1
     fi
@@ -167,6 +213,17 @@ while [ "x$1" != "x" ] ; do
 	    if [ ! -e "$imported_file_list" ]; then
 		touch "$imported_file_list"
 	    fi
+	    ;;
+	--relations-format )
+	    shift
+	    case "$1" in
+		old | new )
+		    relations_format=$1
+		    ;;
+		* )
+		    warn 'Valid arguments for --relations-format are "old" and "new"'
+		    ;;
+	    esac
 	    ;;
 	-- )
 	    shift
@@ -226,6 +283,9 @@ make_corpname () {
 
 get_colspec () {
     colspec_name=`echo "$1" | sed -e 's/_\([A-Z][A-Z0-9_]*[A-Z0-9]\)/_CORPNAME/'`
+    if [ "$relations_format" = "new" ]; then
+	colspec_name=`echo "$colspec_name" | sed -e 's/relations/&_new/'`
+    fi
     echo `eval "echo \\$table_columns_$colspec_name"`
 }
 
