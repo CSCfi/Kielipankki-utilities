@@ -6,8 +6,7 @@
 # For more information, run korp-mysql-import.sh --help
 
 # TODO:
-# - Optionally do not import already imported files (listed in a list file)
-# - Optionally log MySQL errors and import times
+# - Log MySQL errors and import times only with --verbose
 
 
 progname=`basename $0`
@@ -20,6 +19,13 @@ dbname=korp
 prepare_tables=
 imported_file_list=
 relations_format=old
+
+mysql_datadir=/var/lib/mysql
+mysql_datafile=$mysql_datadir/ibdata1
+if [ ! -r $mysql_datadir ]; then
+    mysql_datadir=
+    mysql_datafile=
+fi
 
 table_columns_lemgram_index='
 	`lemgram` varchar(64) NOT NULL,
@@ -331,6 +337,32 @@ prepare_tables () {
     esac
 }
 
+calc_gib () {
+    awk 'BEGIN { printf "%0.3f", '$1' / 1024 / 1024 / 1024 }'
+}
+
+get_filesize () {
+    ls -l "$1" | awk '{print $5}'
+}
+
+get_mysql_datafile_size () {
+    if [ "x$mysql_datafile" != "x" ]; then
+	get_filesize "$mysql_datafile"
+    fi
+}
+
+show_mysql_datafile_size () {
+    datasize=$1
+    datasize_prev=$2
+    if [ "x$datasize" != "x" ]; then
+	echo "  MySQL data file size: $datasize = "`calc_gib $datasize`" GiB"
+	if [ "x$datasize_prev" != "x" ]; then
+	    datasize_diff=`expr $datasize - $datasize_prev`
+	    echo "  MySQL data file size increase: $datasize_diff = "`calc_gib $datasize_diff`" GiB"
+	fi
+    fi
+}
+
 mysql_import () {
     file=$1
     file_base=`basename $file`
@@ -354,15 +386,26 @@ mysql_import () {
     mkfifo $fifo
     ($cat $file > $fifo &)
     echo Importing $fname
+    filesize=`get_filesize "$1"`
+    echo '  File size: '$filesize' = '`calc_gib $filesize`' GiB'
+    secs_0=`date +%s`
+    datasize_0=`get_mysql_datafile_size`
+    show_mysql_datafile_size $datasize_0
     date +'  Start: %F %T'
+    echo '  MySQL output:'
     run_mysql "
 	    set autocommit = 0;
 	    set unique_checks = 0;
 	    load data local infile '$fifo' into table $tablename fields escaped by '';
 	    commit;
 	    show count(*) warnings;
-	    show warnings;"
+	    show warnings;" |
+    awk '{print "    " $0}'
     date +'  End: %F %T'
+    secs_1=`date +%s`
+    echo "  Elapsed: "`expr $secs_1 - $secs_0`" s"
+    datasize_1=`get_mysql_datafile_size`
+    show_mysql_datafile_size $datasize_1 $datasize_0
     /bin/rm -f $fifo
     if [ "x$imported_file_list" != x ]; then
 	echo "$file_base" >> "$imported_file_list"
