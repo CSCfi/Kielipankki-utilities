@@ -21,6 +21,7 @@ progname=`basename $0`
 corpus_root=${CORPUS_ROOT:-/v/corpora}
 # These will be set later based on $corpus_root, which may be modified
 # by options
+target_corpus_root=$TARGET_CORPUS_ROOT
 regdir=$CORPUS_REGISTRY
 datadir=$CORPUS_DATADIR
 sqldir=$CORPUS_SQLDIR
@@ -80,7 +81,7 @@ echo_verb () {
 
 cleanup () {
     if [ "x$tmp_prefix" != "x" ]; then
-	rm -f $tmp_prefix.*
+	rm -rf $tmp_prefix.*
     fi
 }
 
@@ -104,7 +105,12 @@ corpora corpus_id ... (or corpus_name if corpus_id not specified).
 Options:
   -h, --help      show this help
   -c, --corpus-root DIR
-                  use DIR as the root directory of corpus files
+                  use DIR as the root directory of corpus files for the
+                  source files (default: $corpus_root)
+  --target-corpus-root DIR
+                  use DIR as the root directory of corpus files for the
+                  target files (to adjust paths in the corpus registry files)
+                  (default: $target_corpus_root)
   -p, --package-dir DIR
                   put the resulting package to a subdirectory CORPUS_NAME
                   under the directory DIR (default: CORPUS_ROOT/$pkgsubdir)
@@ -134,7 +140,7 @@ EOF
 getopt -T > /dev/null
 if [ $? -eq 4 ]; then
     # This requires GNU getopt
-    args=`getopt -o "hc:p:r:s:t:f:vz:" -l "help,corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,database-format:,compress:,verbose" -- "$@"`
+    args=`getopt -o "hc:p:r:s:t:f:vz:" -l "help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,database-format:,compress:,verbose" -- "$@"`
     if [ $? -ne 0 ]; then
 	exit 1
     fi
@@ -151,6 +157,10 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-c | --corpus-root )
 	    corpus_root=$2
+	    shift
+	    ;;
+	--target-corpus-root )
+	    target_corpus_root=$2
 	    shift
 	    ;;
 	-p | --package-dir )
@@ -216,6 +226,7 @@ if [ "x$1" = "x" ]; then
     error "No corpus name specified"
 fi
 
+target_corpus_root=${target_corpus_root:-$corpus_root}
 pkgdir=${pkgdir:-$corpus_root/$pkgsubdir}
 regdir=${regdir:-$corpus_root/$regsubdir}
 datadir=${datadir:-$corpus_root/$datasubdir}
@@ -410,6 +421,17 @@ list_db_files () {
     fi
 }
 
+if [ "$corpus_root" = "$target_corpus_root" ]; then
+    target_regdir=$regdir
+else
+    target_regdir=$tmp_prefix/$regsubdir
+    mkdir -p $target_regdir
+    for corpus_id in $corpus_ids; do
+	sed -e "s,^\(HOME\|INFO\) .*\($corpus_id\),\1 $target_corpus_root/$datasubdir/\2," $regdir/$corpus_id > $target_regdir/$corpus_id
+	touch --reference=$regdir/$corpus_id $target_regdir/$corpus_id
+    done
+fi
+
 corpus_files=
 for corpus_id in $corpus_ids; do
     corpus_files="$corpus_files $target_regdir/$corpus_id $datadir/$corpus_id "`list_db_files $corpus_id`
@@ -435,7 +457,7 @@ transform_dirtempl () {
 }
 
 datadir_nosl=`remove_leading_slash $datadir`
-regdir_nosl=`remove_leading_slash $regdir`
+regdir_nosl=`remove_leading_slash $target_regdir`
 sqldir_nosl=`transform_dirtempl $sqldir`
 tsvdir_nosl=`transform_dirtempl $tsvdir`
 
