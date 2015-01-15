@@ -48,6 +48,16 @@ sql_file_types_multicorpus="lemgrams timespans"
 sql_table_name_lemgrams=lemgram_index
 rels_tables_basenames="@ rel head_rel dep_rel sentences"
 
+for grp in korp clarin; do
+    if groups | grep -qw $grp; then
+	filegroup=$grp
+	break
+    fi
+done
+if [ "x$filegroup" = x ]; then
+    filegroup=`groups | cut -d' ' -f1`
+fi
+
 # Korp MySQL database
 korpdb=korp
 # Unless specified via environment variables, assume that the Korp
@@ -461,9 +471,13 @@ regdir_nosl=`remove_leading_slash $target_regdir`
 sqldir_nosl=`transform_dirtempl $sqldir`
 tsvdir_nosl=`transform_dirtempl $tsvdir`
 
-tar cvp $tar_compress_opt -f $archive_name \
+tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
+    -f $archive_name --exclude-backups \
     --transform "s,^$datadir_nosl,$archive_basename/data," \
     --transform "s,^$regdir_nosl,$archive_basename/registry," \
     --transform "s,^$sqldir_nosl,$archive_basename/sql," \
     --transform "s,^$tsvdir_nosl,$archive_basename/sql," \
     --show-transformed-names $corpus_files 
+
+chgrp $filegroup $archive_name
+chmod 444 $archive_name
