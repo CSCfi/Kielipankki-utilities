@@ -23,7 +23,7 @@ all_corpora=
 backups=1
 backup_suffix=.bak
 
-if which wdiff > /dev/null; then
+if which wdiff &> /dev/null; then
     wdiff=wdiff
 else
     wdiff=diff
@@ -176,7 +176,7 @@ get_corpus_dir () {
 
 get_all_corpora () {
     ls "$cwb_regdir" |
-    grep -E '^[a-z_-]+$'
+    grep -E '^[a-z_][a-z0-9_-]+$'
 }
 
 extract_info () {
@@ -235,7 +235,9 @@ for corpus in $corpora; do
 		$wdiff $infofile_old $infofile_new
 	    fi
 	else
-	    egrep -v '^(Sentences|Updated):' $outfile > $infofile_comb
+	    if [ -e $outfile ]; then
+		egrep -v '^(Sentences|Updated):' $outfile > $infofile_comb
+	    fi
 	    cat $infofile_new >> $infofile_comb
 	    cp -p $infofile_comb $outfile
 	    echo_verb "$corpus updated"
