@@ -107,6 +107,18 @@ filesize () {
     fi
 }
 
+adjust_registry () {
+    filelistfile=$1
+    regfile=$rootdir/`grep registry/ $filelistfile`
+    if ! grep -E -ql $rootdir $regfile 2> /dev/null; then
+	datadir=$rootdir/`grep -E '/\.info$' $filelistfile | sed -e 's,/.info,,'`
+	mv $regfile $regfile.orig
+	sed -e "s,^\(HOME\|INFO\) .*$corpus_id\(.*\),\1 $datadir\2," \
+	    $regfile.orig > $regfile
+	touch --reference=$regfile.orig $regfile
+	rm $regfile.orig
+    fi
+}
 
 install_file_sql () {
     sqlfile=$1
@@ -159,6 +171,7 @@ install_corpus () {
 	echo "$scriptname: Errors in extracting $corpus_pkg"
 	exit 1
     fi
+    adjust_registry $filelistfile
     install_db $filelistfile
     echo $corp >> $installed_list
 }
