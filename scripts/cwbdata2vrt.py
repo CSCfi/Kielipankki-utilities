@@ -111,7 +111,7 @@ elements."""
         '--cwbdir', '-c',
         default=(os.environ.get('CWBDIR') or '/usr/local/cwb/bin'),
         metavar='DIR',
-        help='use the cwb-encode binary in DIR (default: %default)')
+        help='use the cwb-decode binary in DIR (default: %default)')
     optparser.add_option(
         '--registry', '-r',
         default=(os.environ.get('CORPUS_REGISTRY') or '/v/corpora/registry'),
