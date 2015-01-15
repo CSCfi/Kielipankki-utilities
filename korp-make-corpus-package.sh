@@ -25,6 +25,7 @@ regdir=$CORPUS_REGISTRY
 datadir=$CORPUS_DATADIR
 sqldir=$CORPUS_SQLDIR
 pkgdir=$CORPUS_PKGDIR
+tsvdir=$CORPUS_TSVDIR
 tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
 
 regsubdir=registry
@@ -34,6 +35,7 @@ pkgsubdir=ida
 
 compress=gzip
 verbose=
+dbformat=auto
 
 archive_ext_none=tar
 archive_ext_gzip=tgz
@@ -107,9 +109,19 @@ Options:
                   put the resulting package to a subdirectory CORPUS_NAME
                   under the directory DIR (default: CORPUS_ROOT/$pkgsubdir)
   -r, --registry DIR
-                  use DIR as the CWB registry (default: $regdir)
-  -s, --sql-dir DIR
-                  use DIR as the directory for Korp MySQL dumps
+                  use DIR as the CWB registry (default: CORPUS_ROOT/$regsubdir)
+  -s, --sql-dir DIRTEMPL
+                  use DIRTEMPL as the directory template for Korp MySQL
+                  dumps; DIRTEMPL is a directory name possibly containing
+                  placeholder {corpname} for corpus name or {corpid} for
+                  corpus id (default: CORPUS_ROOT/$sqlsubdir)
+  -t, --tsv-dir DIRTEMPL
+                  use DIRTEMPL as the directory template for for Korp MySQL
+                  TSV data files (default: CORPUS_ROOT/$sqlsubdir)
+  -f, --database-format FMT
+                  include database files in format FMT: either sql (SQL),
+                  tsv (TSV) or auto (SQL or TSV, whichever files are newer)
+                  (default: $dbformat)
   -z, --compress PROG
                   compress files with PROG; "none" for no compression
                   (default: $compress)
@@ -122,7 +134,7 @@ EOF
 getopt -T > /dev/null
 if [ $? -eq 4 ]; then
     # This requires GNU getopt
-    args=`getopt -o "hc:p:r:s:vz:" -l "help,corpus-root:,package-dir:,registry:,sql-dir:,compress:,verbose" -- "$@"`
+    args=`getopt -o "hc:p:r:s:t:f:vz:" -l "help,corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,database-format:,compress:,verbose" -- "$@"`
     if [ $? -ne 0 ]; then
 	exit 1
     fi
@@ -151,6 +163,27 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-s | --sql-dir )
 	    sqldir=$2
+	    shift
+	    ;;
+	-t | --tsv-dir )
+	    tsvdir=$2
+	    shift
+	    ;;
+	-f | --database-format )
+	    case "$2" in
+		sql | SQL )
+		    dbformat=sql
+		    ;;
+		tsv | TSV )
+		    dbformat=tsv
+		    ;;
+		auto | automatic )
+		    dbformat=auto
+		    ;;
+		* )
+		    warn "Invalid database format '$2'; using $dbformat"
+		    ;;
+	    esac
 	    shift
 	    ;;
 	-v | --verbose )
@@ -187,6 +220,7 @@ pkgdir=${pkgdir:-$corpus_root/$pkgsubdir}
 regdir=${regdir:-$corpus_root/$regsubdir}
 datadir=${datadir:-$corpus_root/$datasubdir}
 sqldir=${sqldir:-$corpus_root/$sqlsubdir}
+tsvdir=${tsvdir:-$sqldir}
 
 corpus_name=$1
 shift
@@ -225,13 +259,11 @@ add_prefix () {
     done
 }
 
-list_existing_sql_files () {
-    corp_id=$1
-    for filetype in $sql_file_types; do
-	sql_basename=$sqldir/${corp_id}_$filetype.sql
-	ls $sql_basename $sql_basename.gz $sql_basename.bz2 $sql_basename.xz \
-	    2> /dev/null
-    done
+fill_dirtempl () {
+    dirtempl=$1
+    corpus_id=$2
+    echo "$dirtempl" |
+    sed -e "s,{corpname},$corpus_name,g; s,{corpid},$corpus_id,g"
 }
 
 make_rels_table_names () {
@@ -277,7 +309,7 @@ make_sql_table_part () {
     if [ "x$tablename" = "x" ]; then
 	tablename=$filetype
     fi
-    sqlfile=$sqldir/${corp_id}_$filetype.sql
+    sqlfile=`fill_dirtempl $sqldir $corp_id`/${corp_id}_$filetype.sql
     # 
     {
 	# Add a CREATE TABLE IF NOT EXISTS statement for the table, so
@@ -301,8 +333,9 @@ make_sql_table_part () {
 dump_database () {
     corp_id=$1
     rels_tables=`make_rels_table_names $corp_id`
-    run_mysqldump $rels_tables > $sqldir/${corp_id}_rels.sql
-    compress_or_rm_sqlfile $sqldir/${corp_id}_rels.sql
+    sqldir_real=`fill_dirtempl $sqldir $corp_id`
+    run_mysqldump $rels_tables > $sqldir_real/${corp_id}_rels.sql
+    compress_or_rm_sqlfile $sqldir_real/${corp_id}_rels.sql
     for filetype in $sql_file_types_multicorpus; do
 	make_sql_table_part $corp_id $filetype
     done
@@ -321,13 +354,65 @@ get_corpus_date () {
     )
 }
 
+list_existing_db_files_by_type () {
+    corp_id=$1
+    type=$2
+    db_filetype=$3
+    if [ "x$type" = "xtsv" ]; then
+	dir=$tsvdir
+	ext=.tsv
+    else
+	dir=$sqldir
+	ext=.sql
+    fi
+    dir=`fill_dirtempl $dir $corp_id`
+    basename="$dir/${corp_id}_$filetype*$ext"
+    ls -t $basename $basename.gz $basename.bz2 $basename.xz 2> /dev/null
+}
+
+get_first_word () {
+    echo "$1"
+}
+
+list_existing_db_files () {
+    corp_id=$1
+    type=$2
+    filenames_sql=`list_existing_db_files_by_type $corp_id $type sql`
+    filenames_tsv=`list_existing_db_files_by_type $corp_id $type tsv`
+    if [ "x$filenames_sql" != x ]; then
+	if [ "x$filenames_tsv" != x ]; then
+	    firstfile_sql=`get_first_word $filenames_sql`
+	    firstfile_tsv=`get_first_word $filenames_tsv`
+	    if [ "$firstfile_sql" -nt "$firstfile_tsv" ]; then
+		echo "$filenames_sql"
+	    else
+		echo "$filenames_tsv"
+	    fi
+	else
+	    echo "$filenames_sql"
+	fi
+    else
+	echo "$filenames_tsv"
+    fi
+}
+
+list_db_files () {
+    if [ "$dbformat" != auto ]; then
+	list_existing_db_files_by_type $corpus_id $dbformat
+    else
+	dbfiles=`list_existing_db_files $corpus_id`
+	if [ "x$dbfiles" = "x" ]; then
+	    dump_database $corpus_id
+	    list_existing_db_files $corpus_id
+	else
+	    echo "$dbfiles"
+	fi
+    fi
+}
+
 corpus_files=
 for corpus_id in $corpus_ids; do
-    dbfiles=`list_existing_sql_files $corpus_id`
-    if [ "x$dbfiles" = "x" ]; then
-	dump_database $corpus_id
-    fi
-    corpus_files="$corpus_files $regdir/$corpus_id $datadir/$corpus_id "`list_existing_sql_files $corpus_id`
+    corpus_files="$corpus_files $target_regdir/$corpus_id $datadir/$corpus_id "`list_db_files $corpus_id`
 done
 
 corpus_date=`get_corpus_date $corpus_ids`
@@ -344,12 +429,19 @@ remove_leading_slash () {
     echo "$1" | sed -e 's,^/,,'
 }
 
+transform_dirtempl () {
+    remove_leading_slash "$1" |
+    sed -e 's,{corp.*},[^/]*,'
+}
+
 datadir_nosl=`remove_leading_slash $datadir`
 regdir_nosl=`remove_leading_slash $regdir`
-sqldir_nosl=`remove_leading_slash $sqldir`
+sqldir_nosl=`transform_dirtempl $sqldir`
+tsvdir_nosl=`transform_dirtempl $tsvdir`
 
 tar cvp $tar_compress_opt -f $archive_name \
     --transform "s,^$datadir_nosl,$archive_basename/data," \
     --transform "s,^$regdir_nosl,$archive_basename/registry," \
     --transform "s,^$sqldir_nosl,$archive_basename/sql," \
+    --transform "s,^$tsvdir_nosl,$archive_basename/sql," \
     --show-transformed-names $corpus_files 
