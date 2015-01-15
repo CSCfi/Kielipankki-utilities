@@ -451,6 +451,11 @@ corpus_date=`get_corpus_date $corpus_ids`
 mkdir -p $pkgdir/$corpus_name
 archive_basename=${corpus_name}_korp_$corpus_date
 archive_name=$pkgdir/$corpus_name/$archive_basename.$archive_ext
+archive_num=0
+while [ -e $archive_name ]; do
+    archive_num=`expr $archive_num + 1`
+    archive_name=$pkgdir/$corpus_name/$archive_basename-`printf %02d $archive_num`.$archive_ext
+done
 
 tar_compress_opt=
 if [ "x$compress" != "xnone" ]; then
