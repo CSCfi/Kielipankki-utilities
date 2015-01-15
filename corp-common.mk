@@ -372,7 +372,10 @@ MAKE_VRT_DEPS = $(MAKE_VRT_PROG) $(call partvar,XML2VRT_RULES) \
 		$(call partvar,MAKE_VRT_DEPS_EXTRA)
 
 WORDPICT_RELMAP := $(call partvar,WORDPICT_RELMAP)
-MAKE_RELS_OPTS := $(call partvar_or_default,MAKE_RELS_OPTS,--sort)
+MAKE_RELS_OPTS_EXTRA := $(call partvar,MAKE_RELS_OPTS_EXTRA)
+MAKE_RELS_OPTS := \
+	$(call partvar_or_default,MAKE_RELS_OPTS,\
+		--sort $(MAKE_RELS_OPTS_EXTRA))
 MAKE_RELS_CMD := \
 	$(call partvar_or_default,MAKE_RELS_CMD,\
 		$(if $(CORPUS_HAS_DEPRELS),\
