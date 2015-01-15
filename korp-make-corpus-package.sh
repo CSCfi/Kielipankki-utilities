@@ -19,11 +19,18 @@
 progname=`basename $0`
 
 corpus_root=${CORPUS_ROOT:-/v/corpora}
-regdir=${CORPUS_REGISTRY:-$corpus_root/registry}
-datadir=${CORPUS_DATADIR:-$corpus_root/data}
-sqldir=${CORPUS_SQLDIR:-$corpus_root/sql}
-pkgdir=${CORPUS_PKGDIR:-$corpus_root/ida}
+# These will be set later based on $corpus_root, which may be modified
+# by options
+regdir=$CORPUS_REGISTRY
+datadir=$CORPUS_DATADIR
+sqldir=$CORPUS_SQLDIR
+pkgdir=$CORPUS_PKGDIR
 tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
+
+regsubdir=registry
+datasubdir=data
+sqlsubdir=sql
+pkgsubdir=ida
 
 compress=gzip
 verbose=
@@ -97,7 +104,8 @@ Options:
   -c, --corpus-root DIR
                   use DIR as the root directory of corpus files
   -p, --package-dir DIR
-                  put the resulting package to DIR (default: $pkgdir)
+                  put the resulting package to a subdirectory CORPUS_NAME
+                  under the directory DIR (default: CORPUS_ROOT/$pkgsubdir)
   -r, --registry DIR
                   use DIR as the CWB registry (default: $regdir)
   -s, --sql-dir DIR
@@ -114,7 +122,7 @@ EOF
 getopt -T > /dev/null
 if [ $? -eq 4 ]; then
     # This requires GNU getopt
-    args=`getopt -o "hc:r:vz:" -l "help,corpus-root:,registry:,compress:,verbose" -- "$@"`
+    args=`getopt -o "hc:p:r:s:vz:" -l "help,corpus-root:,package-dir:,registry:,sql-dir:,compress:,verbose" -- "$@"`
     if [ $? -ne 0 ]; then
 	exit 1
     fi
@@ -129,8 +137,20 @@ while [ "x$1" != "x" ] ; do
 	-h | --help )
 	    usage
 	    ;;
+	-c | --corpus-root )
+	    corpus_root=$2
+	    shift
+	    ;;
+	-p | --package-dir )
+	    pkgdir=$2
+	    shift
+	    ;;
 	-r | --registry )
 	    regdir=$2
+	    shift
+	    ;;
+	-s | --sql-dir )
+	    sqldir=$2
 	    shift
 	    ;;
 	-v | --verbose )
@@ -162,6 +182,11 @@ done
 if [ "x$1" = "x" ]; then
     error "No corpus name specified"
 fi
+
+pkgdir=${pkgdir:-$corpus_root/$pkgsubdir}
+regdir=${regdir:-$corpus_root/$regsubdir}
+datadir=${datadir:-$corpus_root/$datasubdir}
+sqldir=${sqldir:-$corpus_root/$sqlsubdir}
 
 corpus_name=$1
 shift
