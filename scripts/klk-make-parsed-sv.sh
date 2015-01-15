@@ -1,7 +1,9 @@
 #! /bin/bash
 # -*- coding: utf-8 -*-
 
-# Make a parsed version of the Finnish National Library corpus
+# Make a parsed version of the Swedish part of the Finnish National Library
+# corpus.
+# The input is parsed VRT files, output CWB files and lemgram TSV files.
 
 
 progname=`basename $0`
@@ -11,36 +13,43 @@ setvar_host () {
     varname=$1
     localval=$2
     otherval=$3
-    case $HOSTNAME in
-	*.csc.fi )
-	    val=$otherval
-	    ;;
-	* )
-	    val=$localval
-	    ;;
-    esac
+    # The Taito compute nodes do not seem to have a fully qualified
+    # hostname; recognize that case from SLURM_JOB_ID
+    if [ "x$SLURM_JOB_ID" != x ]; then
+	val=$otherval
+    else
+	case $HOSTNAME in
+	    *.csc.fi )
+		val=$otherval
+		;;
+	    * )
+		val=$localval
+		;;
+	esac
+    fi
     eval $varname="'$val'"
 }
+
+corpname_prefix=klk_sv
+corpname_prefix_u=KLK_SV
 
 setvar_host host local csc
 corproot_final=/v/corpora
 setvar_host corproot $corproot_final /wrk/jyniemi/corpora
 regdir=$corproot/registry
 vrtdir=$corproot/vrt
-orig_vrt_dir=$vrtdir/klk_fi
-parsed_vrt_dir=$vrtdir/klk_fi_parsed
-setvar_host dbdir $corproot/conll09 /wrk/jpiitula
-setvar_host cwbroot /usr/local/cwb /fs/proj1/kieli/korp/cwb
+tsvdir=$corproot/sql
+parsed_vrt_dir=$vrtdir/$corpname_prefix/parsed
+setvar_host cwbroot /usr/local/cwb $USERAPPL
 cwbdir=$cwbroot/bin
 
 cwb_encode=$cwbdir/cwb-encode
 setvar_host cwb_make /usr/local/bin/cwb-make $cwbdir/cwb-make
 cwb_describe_corpus=$cwbdir/cwb-describe-corpus
 scriptdir=$progdir
-lemgram_posmap=$parsed_vrt_dir/lemgram_posmap_tdt.tsv
 
 stagedir=$parsed_vrt_dir/stages
-stage_fname_templ=$stagedir/klk_fi_%s.stages
+stage_fname_templ=$stagedir/${corpname_prefix}_%s.stages
 
 mkdir -p $stagedir
 
@@ -48,19 +57,12 @@ setvar_host group korp clarin
 
 setvar_host skip_stages "*-load" "*-load"
 
-mysql_user=korp
-mysql_dbname=korp
-
-special_chars=" /<>|"
-encoded_special_char_offset=0x7F
-encoded_special_char_prefix=
-
 if [ "$host" = "csc" ]; then
     export PERL5LIB=$cwbroot/share/perl5
 fi
 
-struct_attrs='-S text:0+issue_date+sentcount+language+elec_date+dateto+datefrom+img_url+label+publ_part+issue_no+tokencount+part_name+publ_title+publ_id+page_id+page_no+issue_title -S paragraph:0+id -S sentence:0+local_id+parse_state+id'
-pos_attrs='-P lemma -P lemmacomp -P pos -P msd -P dephead -P deprel -P ref -P ocr -P lex'
+struct_attrs='-S text:0+issue_date+sentcount+language+elec_date+dateto+datefrom+img_url+label+publ_part+issue_no+tokencount+part_name+publ_title+publ_id+page_id+page_no+issue_title+file -S paragraph:0+n -S sentence:0+id+n'
+pos_attrs='-P ocr -P style -P pos -P msd -P lemma/ -P lex/ -P saldo/ -P prefix/ -P suffix/ -P ref -P dephead -P deprel'
 
 verbose=1
 
@@ -129,15 +131,6 @@ run_and_time () {
     fi
 }
 
-make_parsed_files () {
-    year=$1
-    database=$2
-    run_and_time $year parses-added "adding parses and lemgrams" \
-	$scriptdir/vrt-add-parses.py --database $database \
-	--input-dir $orig_vrt_dir/$year --output-dir $parsed_vrt_dir \
-	--lemgram-pos-map-file $lemgram_posmap
-}
-
 cwb_encode () {
     year=$1
     corpdatadir=$2
@@ -152,7 +145,7 @@ cwb_encode () {
 
 make_cwb () {
     year=$1
-    corpname=klk_fi_$year
+    corpname=${corpname_prefix}_$year
     corpname_u=`echo $corpname | sed -e 's/.*/\U&\E/'`
     corpdatadir=$corproot/data/$corpname
     regfile=$regdir/$corpname
@@ -170,67 +163,21 @@ make_cwb () {
     # fi
 }
 
-mysql_import () {
-    file=$1
-    tablename=$2
-    mkfifo $tablename.tsv
-    (zcat $file > $tablename.tsv &)
-    mysql --local-infile --user $mysql_user --batch --execute "
-	    set autocommit = 0;
-	    set unique_checks = 0;
-	    load data local infile '$tablename.tsv' into table $tablename;
-	    commit;
-	    show count(*) warnings;
-	    show warnings;" \
-		$mysql_dbname
-    /bin/rm -f $tablename.tsv
-}
-
-decode_special_chars () {
-    perl -C -e '
-	$sp_chars = "'"$special_chars"'";
-	%sp_char_map = map {("'$encoded_special_char_prefix'"
-	                     . chr ('$encoded_special_char_offset' + $_))
-			    => substr ($sp_chars, $_, 1)}
-			   (0 .. length ($sp_chars));
-	while (<>)
-	{
-	    for $c (keys (%sp_char_map))
-	    {
-		s/$c/$sp_char_map{$c}/g;
-	    }
-	    print;
-	}'
-}
-
 make_lemgrams_tsv () {
     year=$1
     for f in $parsed_vrt_dir/$year/*.vrt; do
 	cat $f
     done |
-    grep -Ev '^<' |
-    awk -F'	' '{print $NF}' |
-    tr '|' '\n' |
-    grep -Ev '^$' |
-    decode_special_chars |
-    sort |
-    uniq -c |
-    perl -pe 's/^\s*(\d+)\s*(.*)/$2\t$1\t0\t0\t'KLK_FI_$year'/' |
-    gzip > $parsed_vrt_dir/$year/klk_fi_${year}_lemgrams.tsv.gz
-}
-
-load_lemgrams () {
-    year=$1
-    mysql_import $parsed_vrt_dir/$year/klk_fi_${year}_lemgrams.tsv.gz \
-	lemgram_index
+    $scriptdir/vrt-extract-lemgrams.sh \
+	--corpus-name ${corpname_prefix_u}_$year \
+	--lemgram-field 7 --prefix-field 9 --suffix-field 10 |
+    gzip > $tsvdir/${corpname_prefix}_${year}_lemgrams.tsv.gz
 }
 
 make_databases () {
     year=$1
     run_and_time $year lemgrams-tsv "extracting lemgrams for database" \
 	make_lemgrams_tsv $year
-    run_and_time $year lemgrams-load "loading lemgrams into database" \
-	load_lemgrams $year
 }
 
 print_stats () {
@@ -240,7 +187,7 @@ print_stats () {
     if [ "x$total_time" != "x" ]; then
 	echo_verb "  total:"$times
 	if [ "$total_time" != "0" ]; then
-	    $cwb_describe_corpus -r $regdir -s klk_fi_$year |
+	    $cwb_describe_corpus -r $regdir -s ${corpname_prefix}_$year |
 	    awk 'BEGIN { time = ARGV[1]; ARGV[1] = "" }
 		 /^.-ATT (word|sentence)\>/ { cnt[$2] = $3 }
 		 END { 
@@ -255,42 +202,18 @@ print_stats () {
     fi
 }
 
-yeardbs=$*
+years=$*
 
-for yeardb in $yeardbs; do
-    case $yeardb in
-	*.sqlite )
-	    yeardb_file=$yeardb
-	    ;;
-	* )
-	    yeardb_file=$dbdir/db$yeardb.sqlite
-	    ;;
-    esac
-    if [ ! -r $yeardb_file ]; then
-	echo "Warning: parse database file $yeardb_file not found"
-	if [ $yeardb != $yeardb_file ] &&
-	    stage_is_completed `printf $stage_fname_templ $yeardb` parses-added
-	then
-	    echo "Parses already added to year $yeardb; trying to continue"
-	    years=$yeardb
-	else
-	    continue
-	fi
-    else
-	years=`sqlite3 $yeardb_file 'select distinct yno from doc;'`
+for year in $years; do
+    echo_verb "$year:"
+    {
+	time {
+	    make_cwb $year
+	    make_databases $year
+	} 2>&1
+    } 2> $parsed_vrt_dir/$progname.$$.times
+    if [ "x$verbose" != "x" ]; then
+	print_stats $year "$(cat $parsed_vrt_dir/$progname.$$.times)"
     fi
-    for year in $years; do
-	echo_verb "$year:"
-	{ 
-	    time {
-		make_parsed_files $year $yeardb_file
-		make_cwb $year
-		make_databases $year
-	    } 2>&1
-	} 2> $parsed_vrt_dir/$progname.$$.times
-	if [ "x$verbose" != "x" ]; then
-	    print_stats $year "$(cat $parsed_vrt_dir/$progname.$$.times)"
-	fi
-	rm $parsed_vrt_dir/$progname.$$.times
-    done
+    rm $parsed_vrt_dir/$progname.$$.times
 done
