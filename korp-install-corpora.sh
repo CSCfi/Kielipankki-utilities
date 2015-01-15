@@ -29,6 +29,7 @@ if [ "x$KORP_MYSQL_PASSWORD" != "x" ]; then
 fi
 
 scriptname=`basename $0`
+scriptdir=`dirname $0`
 
 pkg_prefix=korpdata_
 
@@ -106,12 +107,45 @@ filesize () {
     fi
 }
 
-echo Installing Korp corpora:
-for corp in $corpora; do
-  echo "  $corp"
-done
 
-for corp in $corpora; do
+install_file_sql () {
+    sqlfile=$1
+    comprcat $rootdir/$sqlfile \
+	| mysql $mysql_opts $korpdb
+    return $?
+}
+
+install_file_tsv () {
+    tsvfile=$1
+    $scriptdir/korp-mysql-import.sh --prepare-tables $tsvfile
+    return $?
+}
+
+install_dbfiles () {
+    type=$1
+    filelistfile=$2
+    msg=$3
+    files=`grep -E '\.'$type'(\.(bz2|gz|xz))?$' $filelistfile`
+    if [ "x$files" != "x" ]; then
+	echo "  $msg data into MySQL database"
+	for file in $files; do
+	    echo "    $file (size `filesize $rootdir/$file`)"
+	    install_file_$type "$rootdir/$file"
+	    if [ $? -ne 0 ]; then
+		echo "$scriptname: Errors in loading $file"
+		exit 1
+	    fi
+	done
+    fi
+}
+
+install_db () {
+    filelistfile=$1
+    install_dbfiles sql $filelistfile Loading
+    install_dbfiles tsv $filelistfile Importing
+}
+
+install_corpus () {
     corpus_pkg=`get_pkg_fname $corp`
     echo
     echo "Installing $corp (compressed size `filesize $corpus_pkg`)"
@@ -125,20 +159,17 @@ for corp in $corpora; do
 	echo "$scriptname: Errors in extracting $corpus_pkg"
 	exit 1
     fi
-    sqlfiles=`grep -E '\.sql(\.(bz2|gz|xz))?$' $filelistfile`
-    if [ "x$sqlfiles" != "x" ]; then
-	echo "  Loading data into MySQL database"
-	for sqlfile in $sqlfiles; do
-	    echo "    $sqlfile (size `filesize $rootdir/$sqlfile`)"
-	    comprcat $rootdir/$sqlfile \
-		| mysql $mysql_opts $korpdb
-	    if [ $? -ne 0 ]; then
-		echo "$scriptname: Errors in loading $sqlfile"
-		exit 1
-	    fi
-	done
-    fi
+    install_db $filelistfile
     echo $corp >> $installed_list
+}
+
+echo Installing Korp corpora:
+for corp in $corpora; do
+  echo "  $corp"
+done
+
+for corp in $corpora; do
+    install_corpus $corp
 done
 
 rm $filelistfile
