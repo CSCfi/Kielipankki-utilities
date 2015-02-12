@@ -379,7 +379,8 @@ class AttributeFixer(object):
             for file_ in files:
                 self.process_files(file_)
         elif isinstance(files, basestring):
-            with codecs.open(files, 'r', encoding='utf-8') as f:
+            with codecs.open(files, 'r', encoding='utf-8',
+                             errors=self._opts.encoding_errors) as f:
                 self._fix_input(f)
         else:
             self._fix_input(files)
@@ -564,6 +565,9 @@ def getopts():
     optparser.add_option('--replace-xml-character-entities', type='choice',
                          choices=['correct', 'all'])
     optparser.add_option('--copy-struct-attribute', action='append', default=[])
+    optparser.add_option('--encoding-errors', '--character-encoding-errors',
+                         type='choice', choices=['strict', 'replace', 'ignore'],
+                         default='strict')
     (opts, args) = optparser.parse_args()
     if opts.noncompound_lemma_field is None:
         if opts.compound_boundaries == 'remove':
