@@ -181,6 +181,11 @@ Options:
   -z, --compress PROG
                   compress files with PROG; "none" for no compression
                   (default: $compress)
+
+Environment variables:
+  Default values for the various directories can also be specified via
+  the following environment variables: CORPUS_ROOT, TARGET_CORPUS_ROOT,
+  CORPUS_PKGDIR, CORPUS_REGISTRY, CORPUS_SQLDIR, CORPUS_TSVDIR.
 EOF
     exit 0
 }
@@ -615,3 +620,6 @@ tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
 
 chgrp $filegroup $archive_name
 chmod 444 $archive_name
+
+echo "
+Created corpus package $archive_name"
