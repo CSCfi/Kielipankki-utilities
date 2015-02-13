@@ -5,15 +5,19 @@
 # files and Korp MySQL database information
 
 # TODO:
-# - Options for including a readme file and corpus conversion scripts
-#   (and possibly also documentation and Korp configuration, or a more
-#   generic way of specifying a (target) directory and its contents).
 # - Check that the CWB data files include all the necessary indices
 #   produced by cwb-make. Possibly also other sanity checks for the
 #   corpus.
 # - Working --verbose (or --quiet).
 # - Update MySQL dumps if older than the database files (or if an
 #   option is specified).
+#
+# FIXME:
+# - If a --doc-dir or --script-dir is specified multiple times or
+#   after a --doc-file or --script-file, the latter (probably?)
+#   overwrites the former when extracting the archive. We should at
+#   least warn about this.
+
 
 
 progname=`basename $0`
@@ -48,6 +52,10 @@ pkgsubdir=ida
 compress=gzip
 verbose=
 dbformat=auto
+
+has_readme=
+has_docs=
+has_scripts=
 
 archive_ext_none=tar
 archive_ext_gzip=tgz
@@ -145,6 +153,27 @@ Options:
   -t, --tsv-dir DIRTEMPL
                   use DIRTEMPL as the directory template for for Korp MySQL
                   TSV data files (default: CORPUS_ROOT/$sqlsubdir)
+  --readme-file FILE
+                  include FILE as a top-level read-me file; the option may
+                  be specified multiple times to include multiple files
+  --doc-dir DIR   include DIR as a documentation directory 'doc' in the
+                  package
+  --doc-file FILE include FILE as a documentation file in directory 'doc';
+                  may be specified multiple times
+  --script-dir DIR
+                  include DIR as a (conversion) script directory 'scripts' in
+                  the package
+  --script-file FILE
+                  include FILE as a (conversion) script file in directory
+                  'scripts'; may be specified multiple times
+  --extra-dir SRCDIR[:DSTDIR]
+                  include directory SRCDIR in the package; if :DSTDIR is
+                  specified, the directory is renamed as DSTDIR in the
+                  package; the option may be specified multiple times
+  --extra-file SRCFILE[:DSTFILE]
+                  include file SRCFILE in the package; if :DSTFILE is
+                  specified, the file is renamed as DSTFILE in the
+                  package; the option may be specified multiple times
   -f, --database-format FMT
                   include database files in format FMT: either sql (SQL),
                   tsv (TSV) or auto (SQL or TSV, whichever files are newer)
@@ -157,11 +186,52 @@ EOF
 }
 
 
+extra_corpus_files=
+extra_dir_and_file_transforms=
+
+remove_leading_slash () {
+    echo "$1" | sed -e 's,^/,,'
+}
+
+add_extra_dir_or_file () {
+    local source=$1
+    local target=$2
+    if [ "x$target" = x ]; then
+	case "$source" in
+	    *:* )
+		target=$(echo "$source" | sed -e 's/^.*://')
+		source=$(echo "$source" | sed -e 's/:[^:]*$//')
+		;;
+	    * )
+		target=$source
+		;;
+	esac
+    fi
+    extra_corpus_files="$extra_corpus_files $source"
+    source=$(remove_leading_slash "$source")
+    extra_dir_and_file_transforms="$extra_dir_and_file_transforms
+$source $target"
+}
+
+add_extra_file () {
+    local source=$1
+    local target=$2
+    if [ "x$target" != x ]; then
+	local targetdir=$target
+	if [ "$targetdir" = / ]; then
+	    targetdir=
+	fi
+	local target="$targetdir/$(echo "$source" | sed -e 's,^.*/,,')"
+    fi
+    add_extra_dir_or_file "$source" "$target"
+}
+
+
 # Test if GNU getopt
 getopt -T > /dev/null
 if [ $? -eq 4 ]; then
     # This requires GNU getopt
-    args=`getopt -o "hc:p:r:s:t:f:vz:" -l "help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,database-format:,compress:,verbose" -- "$@"`
+    args=`getopt -o "hc:p:r:s:t:f:vz:" -l "help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose" -- "$@"`
     if [ $? -ne 0 ]; then
 	exit 1
     fi
@@ -198,6 +268,39 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-t | --tsv-dir )
 	    tsvdir=$2
+	    shift
+	    ;;
+	--readme-file )
+	    add_extra_file "$2" /
+	    has_readme=1
+	    shift
+	    ;;
+	--doc-dir )
+	    add_extra_dir_or_file "$2" doc/
+	    has_docs=1
+	    shift
+	    ;;
+	--doc-file )
+	    add_extra_file "$2" doc
+	    has_docs=1
+	    shift
+	    ;;
+	--script-dir )
+	    add_extra_dir_or_file "$2" scripts/
+	    has_scripts=1
+	    shift
+	    ;;
+	--script-file )
+	    add_extra_file "$2" scripts
+	    has_scripts=1
+	    shift
+	    ;;
+	--extra-dir )
+	    add_extra_dir_or_file "$2"
+	    shift
+	    ;;
+	--extra-file )
+	    add_extra_file "$2"
 	    shift
 	    ;;
 	-f | --database-format )
@@ -282,6 +385,17 @@ if [ -s $tmp_prefix.errors ]; then
 fi
 
 corpus_ids=`cat $tmp_prefix.corpora`
+
+if [ "x$has_readme" = x ]; then
+    warn "No readme file included"
+fi
+if [ "x$has_docs" = x ]; then
+    warn "No documentation included"
+fi
+if [ "x$has_scripts" = x ]; then
+    warn "No conversion scripts included"
+fi
+
 
 add_prefix () {
     prefix=$1
@@ -453,7 +567,7 @@ else
     done
 fi
 
-corpus_files=
+corpus_files=$extra_corpus_files
 for corpus_id in $corpus_ids; do
     corpus_files="$corpus_files $target_regdir/$corpus_id $datadir/$corpus_id "`list_db_files $corpus_id`
 done
@@ -473,26 +587,30 @@ if [ "x$compress" != "xnone" ]; then
     tar_compress_opt=--use-compress-program=$compress
 fi
 
-remove_leading_slash () {
-    echo "$1" | sed -e 's,^/,,'
-}
-
 transform_dirtempl () {
     remove_leading_slash "$1" |
     sed -e 's,{corp.*},[^/]*,'
 }
 
-datadir_nosl=`remove_leading_slash $datadir`
-regdir_nosl=`remove_leading_slash $target_regdir`
-sqldir_nosl=`transform_dirtempl $sqldir`
-tsvdir_nosl=`transform_dirtempl $tsvdir`
+make_tar_transforms () {
+    echo "$1" |
+    while read source target; do
+	echo --transform "s,^$source,$archive_basename/$target,"
+    done
+}
+
+dir_transforms=\
+"$(remove_leading_slash $datadir) data
+$(remove_leading_slash $target_regdir) registry
+$(transform_dirtempl $sqldir) sql
+$(transform_dirtempl $tsvdir) sql"
+if [ "x$extra_dir_and_file_transforms" != x ]; then
+    dir_transforms="$dir_transforms$extra_dir_and_file_transforms"
+fi
 
 tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
     -f $archive_name --exclude-backups \
-    --transform "s,^$datadir_nosl,$archive_basename/data," \
-    --transform "s,^$regdir_nosl,$archive_basename/registry," \
-    --transform "s,^$sqldir_nosl,$archive_basename/sql," \
-    --transform "s,^$tsvdir_nosl,$archive_basename/sql," \
+    $(make_tar_transforms "$dir_transforms") \
     --show-transformed-names $corpus_files 
 
 chgrp $filegroup $archive_name
