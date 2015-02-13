@@ -18,7 +18,18 @@
 
 progname=`basename $0`
 
-corpus_root=${CORPUS_ROOT:-/v/corpora}
+default_corpus_roots="/v/corpora /proj/clarin/korp/corpora $WRKDIR/corpora"
+
+corpus_root=$CORPUS_ROOT
+if [ "x$corpus_root" = x ]; then
+    for root in $default_corpus_roots; do
+	if [ -d $root ]; then
+	    corpus_root=$root
+	    break
+	fi
+    done
+fi
+
 # These will be set later based on $corpus_root, which may be modified
 # by options
 target_corpus_root=$TARGET_CORPUS_ROOT
