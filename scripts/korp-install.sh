@@ -33,6 +33,7 @@ remote_git_repo_pattern=taito:/proj/clarin/korp/git/korp-%s.git
 local_git_root=/v/korp/git
 local_git_prefix=$local_git_root/korp-
 backup_root=/v/korp/backup
+log_file=/v/korp/log/korp-install.log
 
 # FIXME: "test" might not make sense for other repositories than frontend
 default_target=test
@@ -47,12 +48,21 @@ excludes_frontend='/*test*/ /*beta*/'
 excludes_backend='/korp-*/ /annlab/ /log/'
 
 
+log () {
+    type=$1
+    shift
+    echo [$progname $$ $(whoami) $type @ $(date '+%Y-%m-%d %H:%M:%S')] "$@" \
+	>> $log_file
+}
+
 warn () {
     echo "$progname: Warning: $1" >&2
+    log WARN "$1"
 }
 
 error () {
     echo "$progname: $1" >&2
+    log ERROR "$1"
     exit 1
 }
 
@@ -91,6 +101,8 @@ unless manually removed, which may cause problems in some cases.
 EOF
 }
 
+
+log INFO Run: $0 "$@"
 
 case $HOSTNAME in
     korp.csc.fi | korp-test.csc.fi )
@@ -273,6 +285,7 @@ install () {
     git pull --force origin $branch || error "Could not pull origin/$branch"
     git checkout $refspec || error "Could not checkout $refspec"
     commit_sha1=$(git rev-parse --short HEAD)
+    commit_sha1_full=$(git rev-parse HEAD)
 
     echo "Making a backup copy of the current Korp $comp in $targetdir"
     backup_$comp
@@ -283,6 +296,7 @@ Installed Korp $comp to $targetdir from Git repository ref $refspec
 (commit $commit_sha1).
 The backup copy can be restored by running
 $0 --revert $comp $orig_target"
+    log INFO "Installed: $comp to $targetdir from $refspec ($commit_sha1_full)"
 }
 
 revert () {
