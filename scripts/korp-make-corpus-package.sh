@@ -11,18 +11,22 @@
 # - Working --verbose (or --quiet).
 # - Update MySQL dumps if older than the database files (or if an
 #   option is specified).
+# - Also include data for table auth_license in korp_auth: maybe add
+#   the data (as TSV) based on an option specifying the licence -
+#   category.
 #
 # FIXME:
 # - If a --doc-dir or --script-dir is specified multiple times or
 #   after a --doc-file or --script-file, the latter (probably?)
 #   overwrites the former when extracting the archive. We should at
 #   least warn about this.
-
+# - Finding the most recent database files from either SQL or TSV
+#   files does not work correctly; see FIXME comments in the code.
 
 
 progname=`basename $0`
 
-default_corpus_roots="/v/corpora /proj/clarin/korp/corpora $WRKDIR/corpora"
+default_corpus_roots="/v/corpora $WRKDIR/corpora $WRKDIR/korp/corpora /proj/clarin/korp/corpora /wrk/jyniemi/corpora"
 
 corpus_root=$CORPUS_ROOT
 if [ "x$corpus_root" = x ]; then
@@ -44,14 +48,18 @@ pkgdir=$CORPUS_PKGDIR
 tsvdir=$CORPUS_TSVDIR
 tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
 
+tmp_prefix=$tmpdir/$progname.$$
+
 regsubdir=registry
 datasubdir=data
 sqlsubdir=sql
-pkgsubdir=ida
+pkgsubdir=pkgs
 
 compress=gzip
 verbose=
 dbformat=auto
+
+exclude_files="backup *~ *.bak *.bak[0-9] *.old *.old[0-9] *.prev *.prev[0-9]"
 
 has_readme=
 has_docs=
@@ -135,11 +143,11 @@ Options:
   -h, --help      show this help
   -c, --corpus-root DIR
                   use DIR as the root directory of corpus files for the
-                  source files (default: $corpus_root)
+                  source files (CORPUS_ROOT) (default: $corpus_root)
   --target-corpus-root DIR
                   use DIR as the root directory of corpus files for the
                   target files (to adjust paths in the corpus registry files)
-                  (default: $target_corpus_root)
+                  (default: CORPUS_ROOT)
   -p, --package-dir DIR
                   put the resulting package to a subdirectory CORPUS_NAME
                   under the directory DIR (default: CORPUS_ROOT/$pkgsubdir)
@@ -369,8 +377,6 @@ if [ ! -d "$regdir" ]; then
     error "Cannot access registry directory $regdir"
 fi
 
-tmp_prefix=$tmpdir/$progname.$$
-
 eval archive_ext=\$archive_ext_$compress
 
 if [ "x$1" = "x" ]; then
@@ -381,7 +387,8 @@ fi
 
 (
     cd $regdir
-    ls $corpus_ids > $tmp_prefix.corpora 2> $tmp_prefix.errors
+    ls $corpus_ids 2> $tmp_prefix.errors |
+    grep '^[a-z_][a-z0-9_-]*$' > $tmp_prefix.corpora
 )
 
 if [ -s $tmp_prefix.errors ]; then
@@ -505,7 +512,13 @@ get_corpus_date () {
     )
 }
 
+# FIXME: list_existing_db_files_by_type, list_existing_db_files and
+# list_db_files probably do not work as they were intended to. There
+# should probably be a loop somewhere iterating over the different
+# types of tables.
+
 list_existing_db_files_by_type () {
+    # FIXME: Check the arguments and their use!
     corp_id=$1
     type=$2
     db_filetype=$3
@@ -517,6 +530,9 @@ list_existing_db_files_by_type () {
 	ext=.sql
     fi
     dir=`fill_dirtempl $dir $corp_id`
+    # FIXME: Should the line below have $db_filetype instead of
+    # $filetype? Now this lists all files beginning with $corp_id and
+    # ending in $ext, which is probably why all this seems to work.
     basename="$dir/${corp_id}_$filetype*$ext"
     ls -t $basename $basename.gz $basename.bz2 $basename.xz 2> /dev/null
 }
@@ -526,6 +542,7 @@ get_first_word () {
 }
 
 list_existing_db_files () {
+    # FIXME: Check the arguments and their use!
     corp_id=$1
     type=$2
     filenames_sql=`list_existing_db_files_by_type $corp_id $type sql`
@@ -560,6 +577,7 @@ list_db_files () {
 	fi
     fi
 }
+
 
 if [ "$corpus_root" = "$target_corpus_root" ]; then
     target_regdir=$regdir
@@ -604,6 +622,12 @@ make_tar_transforms () {
     done
 }
 
+make_tar_excludes () {
+    for patt in "$@"; do
+	echo --exclude "$patt"
+    done
+}
+
 dir_transforms=\
 "$(remove_leading_slash $datadir) data
 $(remove_leading_slash $target_regdir) registry
@@ -614,7 +638,7 @@ if [ "x$extra_dir_and_file_transforms" != x ]; then
 fi
 
 tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
-    -f $archive_name --exclude-backups \
+    -f $archive_name --exclude-backups $(make_tar_excludes $exclude_files) \
     $(make_tar_transforms "$dir_transforms") \
     --show-transformed-names $corpus_files 
 
