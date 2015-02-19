@@ -4,8 +4,8 @@
 # Install Korp corpora of the latest corpora package
 
 # TODO:
-# - Backup (optionally?) the previous version of corpus data and
-#   registry files, or at least warn if the corpus exists.
+# - Multiple or timestamped backups
+# - Backup to a different backup directory
 # - Option to force installing a package file older than the currently
 #   installed version
 # - Verbosity control
@@ -50,6 +50,9 @@ pkgsubdir=pkgs
 # This will be set later based on $corpus_root, which may be modified
 # by options
 pkgdir=$CORPUS_PKGDIR
+
+backups=1
+backup_suffix=.bak
 
 # This is only for compatibility with older corpus packages
 pkg_prefix=korpdata_
@@ -110,6 +113,12 @@ Options:
                   DIR is the default directory in which to search for corpus
                   packages to be installed; may be a remote directory
                   specified as HOST:DIR (default: CORPUS_ROOT/$pkgsubdir)
+  --no-backups    do not make backup copies of existing corpus files
+  --backup-suffix SUFFIX
+                  use SUFFIX as the backup file suffix (default: $backup_suffix)
+
+Note: The backup copy of a corpus is overwritten by subsequent updates of the
+corpus.
 EOF
     exit 0
 }
@@ -119,7 +128,7 @@ EOF
 getopt -T > /dev/null
 if [ $? -eq 4 ]; then
     # This requires GNU getopt
-    args=`getopt -o "hcp:r:" -l "help,corpus-root:,package-dir:" -n "$progname" -- "$@"`
+    args=`getopt -o "hcp:r:" -l "help,corpus-root:,package-dir:,no-backups,backup-suffix:" -n "$progname" -- "$@"`
     if [ $? -ne 0 ]; then
 	exit 1
     fi
@@ -140,6 +149,13 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-p | --package-dir )
 	    pkgdir=$2
+	    shift
+	    ;;
+	--no-backups )
+	    backups=
+	    ;;
+	--backup-suffix )
+	    backup_suffix=$2
 	    shift
 	    ;;
 	-- )
@@ -297,6 +313,32 @@ get_tar_compress_opt () {
     esac
 }
 
+backup_corpus () {
+    pkgname=$1
+    pkghost=$2
+    echo "  Checking for existing corpus files"
+    tar_cmd="tar tf $pkgname $(get_tar_compress_opt $pkgname) \
+            --wildcards --wildcards-match-slash \
+	    --transform 's,.*/\(data\|registry\|sql\)/,\1/,' \
+	    --show-transformed-names '*/data' '*/registry' '*/sql'"
+    backup_msg_shown=
+    if [ "x$pkghost" = "x-" ] || [ "x$pkghost" = x ]; then
+	eval "$tar_cmd"
+    else
+	ssh $pkghost "$tar_cmd"
+    fi |
+    cut -d/ -f1,2 |
+    sort -u |
+    while read fname; do
+	if [ -e $corpus_root/$fname ]; then
+	    if [ "x$backup_msg_shown" = x ]; then
+		echo "  Backing up existing corpus files"
+		backup_msg_shown=1
+	    fi
+	    cp -dpr $corpus_root/$fname $corpus_root/$fname$backup_suffix
+	fi
+    done
+}
 
 # Cat possibly compressed file(s) based on the file name extension
 comprcat () {
@@ -400,6 +442,9 @@ install_corpus () {
     pkghost=$5
     echo
     echo "Installing $corp from $(format_package_name_host $corpus_pkg $pkghost) (compressed size $(human_readable_size $pkgsize))"
+    if [ "x$backups" != x ]; then
+	backup_corpus $corpus_pkg $pkghost
+    fi
     echo "  Copying CWB files"
     if [ "x$pkghost" = "x-" ] || [ "x$pkghost" = x ]; then
 	cat "$corpus_pkg"
