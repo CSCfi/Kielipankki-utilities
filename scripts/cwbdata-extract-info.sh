@@ -8,6 +8,12 @@
 # Usage: cwbdata-extract-info.sh [options] [corpus ... | --all] [> .info]
 #
 # For more information: cwbdata-extract-info.sh --help
+#
+# TODO:
+# - Preserve the order of the items in the info file when updating
+# - Validity checks for extra info items; maybe separate options for
+#   the supported info items
+# - Option to remove info items
 
 
 progname=`basename $0`
@@ -101,6 +107,14 @@ Options:
                   use DIR as the corpus data root directory containing the
                   corpus-specific data directories, overriding the data
                   directory specified the registry file
+  -s, --set-info KEY:VALUE
+                  set the information item KEY to the value VALUE, where KEY
+                  is of the form [SECTION_]SUBITEM, where SECTION can be
+                  "Metadata", "Licence" or "Compiler" and SUBITEM "URL",
+                  "URN", "Name" or "Description"; this option can be repeated
+                  multiple times
+  --info-from-file FILENAME
+                  read information items to be added from file FILENAME
   -t, --test      test whether the .info files need updating
   -u, --update    update the .info files for the corpora if needed
   -v, --verbose   show information about the processed corpora
@@ -113,11 +127,37 @@ EOF
 }
 
 
+info_items=
+info_keys=
+
+set_info () {
+    case "$1" in
+	"" | "#"* )
+	    return
+	    ;;
+    esac
+    # Split the parameter using the suffix and prefix removal
+    # operations of the shell. How portable is this? Apparently
+    # specified by POSIX; works in at least Bash and Dash.
+    _key=${1%%:*}
+    _value=${1#*:}
+    info_items="$info_items
+$_key: $_value"
+    info_keys="$info_keys|$_key"
+}
+
+read_info_file () {
+    while read line; do
+	set_info "$line"
+    done
+}
+
+
 # Test if GNU getopt
 getopt -T > /dev/null
 if [ $? -eq 4 ]; then
     # This requires GNU getopt
-    args=`getopt -o "hc:r:d:s:tuvA" -l "help,cwbdir:,registry:,data-root-dir:,test,update,verbose,all,no-backups,backup-suffix:" -n "$progname" -- "$@"`
+    args=`getopt -o "hc:r:d:s:tuvA" -l "help,cwbdir:,registry:,data-root-dir:,set-info:,info-from-file:,test,update,verbose,all,no-backups,backup-suffix:" -n "$progname" -- "$@"`
     if [ $? -ne 0 ]; then
 	exit 1
     fi
@@ -142,6 +182,14 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-d | --data-root-dir )
 	    data_rootdir=$2
+	    shift
+	    ;;
+	-s | --set-info )
+	    set_info "$2"
+	    shift
+	    ;;
+	--info-from-file )
+	    read_info_file < "$2"
 	    shift
 	    ;;
 	-t | --test )
@@ -227,8 +275,27 @@ extract_info () {
     awk '{print $6}'`
     echo "Sentences: $sentcount"
     echo "Updated: $updated"
+    if [ "x$info_items" != x ]; then
+	echo "$info_items" |
+	egrep -v '^$' |
+	sed -e 's/: */: /'
+    fi
 }
 
+infofile_tmp=$tmpfname_base.tmp
+
+sort_info () {
+    cat > $infofile_tmp
+    egrep "^(Sentences|Updated):" $infofile_tmp |
+    sort
+    egrep -v "^(Sentences|Updated):" $infofile_tmp |
+    sort
+}
+
+
+infofile_old=$tmpfname_base.old
+infofile_new=$tmpfname_base.new
+infofile_comb=$tmpfname_base.comb
 
 if [ "x$all_corpora" != "x" ]; then
     corpora=`get_all_corpora`
@@ -236,10 +303,6 @@ else
     # Expand the possible shell wildcards in corpus name arguments
     corpora=`cd $cwb_regdir; echo $*`
 fi
-
-infofile_old=$tmpfname_base.old
-infofile_new=$tmpfname_base.new
-infofile_comb=$tmpfname_base.comb
 
 for corpus in $corpora; do
     if [ ! -e "$cwb_regdir/$corpus" ]; then
@@ -251,10 +314,12 @@ for corpus in $corpora; do
 	echo_verb $corpus:
 	extract_info $corpdir $corpus
     else
-	extract_info $corpdir $corpus > $infofile_new
+	extract_info $corpdir $corpus |
+	sort_info > $infofile_new
 	outfile=$corpdir/.info
 	if [ -e $outfile ]; then
-	    egrep '^(Sentences|Updated):' $outfile > $infofile_old
+	    egrep "^(Sentences|Updated$info_keys):" $outfile |
+	    sort_info > $infofile_old
 	    if cmp -s $infofile_old $infofile_new; then
 		echo_verb "$corpus up to date"
 		continue
@@ -269,10 +334,13 @@ for corpus in $corpora; do
 		$wdiff $infofile_old $infofile_new
 	    fi
 	else
-	    if [ -e $outfile ]; then
-		egrep -v '^(Sentences|Updated):' $outfile > $infofile_comb
-	    fi
-	    cat $infofile_new >> $infofile_comb
+	    {
+		cat $infofile_new
+		if [ -e $outfile ]; then
+		    egrep -v "^(Sentences|Updated$info_keys):" $outfile
+		fi
+	    } |
+	    sort_info > $infofile_comb
 	    cp -p $infofile_comb $outfile
 	    echo_verb "$corpus updated"
 	fi
