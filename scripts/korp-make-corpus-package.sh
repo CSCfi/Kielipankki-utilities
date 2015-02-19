@@ -25,6 +25,7 @@
 
 
 progname=`basename $0`
+progdir=`dirname $0`
 
 default_corpus_roots="/v/corpora $WRKDIR/corpora $WRKDIR/korp/corpora /proj/clarin/korp/corpora /wrk/jyniemi/corpora"
 
@@ -50,6 +51,8 @@ tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
 
 tmp_prefix=$tmpdir/$progname.$$
 
+cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
+
 regsubdir=registry
 datasubdir=data
 sqlsubdir=sql
@@ -74,6 +77,9 @@ sql_file_types="lemgrams rels timespans"
 sql_file_types_multicorpus="lemgrams timespans"
 sql_table_name_lemgrams=lemgram_index
 rels_tables_basenames="@ rel head_rel dep_rel sentences"
+
+extra_info_file=$tmp_prefix.info
+touch $extra_info_file
 
 for grp in korp clarin; do
     if groups | grep -qw $grp; then
@@ -161,6 +167,14 @@ Options:
   -t, --tsv-dir DIRTEMPL
                   use DIRTEMPL as the directory template for for Korp MySQL
                   TSV data files (default: CORPUS_ROOT/$sqlsubdir)
+  --set-info KEY:VALUE
+                  set the corpus information item KEY (in the file .info) to
+                  the value VALUE, where KEY is of the form [SECTION_]SUBITEM,
+                  where SECTION can be "Metadata", "Licence" or "Compiler" and
+                  SUBITEM "URL", "URN", "Name" or "Description"; this option
+                  can be repeated multiple times
+  --info-from-file FILENAME
+                  read information items to be added from file FILENAME
   --readme-file FILE
                   include FILE as a top-level read-me file; the option may
                   be specified multiple times to include multiple files
@@ -244,7 +258,7 @@ add_extra_file () {
 getopt -T > /dev/null
 if [ $? -eq 4 ]; then
     # This requires GNU getopt
-    args=`getopt -o "hc:p:r:s:t:f:vz:" -l "help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose" -- "$@"`
+    args=`getopt -o "hc:p:r:s:t:f:vz:" -l "help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,set-info:,info-from-file:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose" -- "$@"`
     if [ $? -ne 0 ]; then
 	exit 1
     fi
@@ -281,6 +295,14 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-t | --tsv-dir )
 	    tsvdir=$2
+	    shift
+	    ;;
+	--set-info )
+	    printf "%s\n" "$2" >> $extra_info_file
+	    shift
+	    ;;
+	--info-from-file )
+	    cat "$2" >> $extra_info_file
 	    shift
 	    ;;
 	--readme-file )
@@ -594,6 +616,9 @@ corpus_files=$extra_corpus_files
 for corpus_id in $corpus_ids; do
     corpus_files="$corpus_files $target_regdir/$corpus_id $datadir/$corpus_id "`list_db_files $corpus_id`
 done
+
+$cwbdata_extract_info --update --registry "$regdir" --data-root-dir "$datadir" \
+    --info-from-file "$extra_info_file" $corpus_ids
 
 corpus_date=`get_corpus_date $corpus_ids`
 mkdir -p $pkgdir/$corpus_name
