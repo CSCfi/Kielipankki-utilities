@@ -12,8 +12,29 @@
 
 progname=`basename $0`
 
-cwbdir=${CWBDIR:-/usr/local/cwb}
-cwb_regdir=${CORPUS_REGISTRY:-/v/corpora/registry}
+
+default_corpus_roots="/v/corpora $WRKDIR/corpora $WRKDIR/korp/corpora /proj/clarin/korp/corpora /wrk/jyniemi/corpora"
+default_cwbdirs="/usr/local/cwb/bin /usr/local/bin /proj/clarin/korp/cwb/bin $USERAPPL/bin"
+
+find_existing_dir () {
+    _test=$1
+    _file=$2
+    shift 2
+    for dir in "$@"; do
+	if [ $_test $dir/$_file ]; then
+	    echo $dir
+	    break
+	fi
+    done
+}
+
+corpus_root=${CORPUS_ROOT:-$(find_existing_dir -d "" $default_corpus_roots)}
+
+cwbdir=${CWBDIR:-$(find_existing_dir -e cwb-describe-corpus $default_cwbdirs)}
+cwb_regdir=${CORPUS_REGISTRY:-$corpus_root/registry}
+# Use the data directory specified in the registry file of a corpus,
+# unless specified via an option
+data_rootdir=
 tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
 
 update=
@@ -23,7 +44,7 @@ all_corpora=
 backups=1
 backup_suffix=.bak
 
-if which wdiff &> /dev/null; then
+if which wdiff > /dev/null 2>&1; then
     wdiff=wdiff
 else
     wdiff=diff
@@ -76,6 +97,10 @@ Options:
                   use the CWB binaries in DIR (default: $cwbdir)
   -r, --registry DIR
                   use DIR as the CWB registry (default: $cwb_regdir)
+  -d, --data-root-dir DIR
+                  use DIR as the corpus data root directory containing the
+                  corpus-specific data directories, overriding the data
+                  directory specified the registry file
   -t, --test      test whether the .info files need updating
   -u, --update    update the .info files for the corpora if needed
   -v, --verbose   show information about the processed corpora
@@ -92,7 +117,7 @@ EOF
 getopt -T > /dev/null
 if [ $? -eq 4 ]; then
     # This requires GNU getopt
-    args=`getopt -o "hc:r:tuvA" -l "help,cwbdir:,registry:,test,update,verbose,all,no-backups,backup-suffix:" -n "$progname" -- "$@"`
+    args=`getopt -o "hc:r:d:s:tuvA" -l "help,cwbdir:,registry:,data-root-dir:,test,update,verbose,all,no-backups,backup-suffix:" -n "$progname" -- "$@"`
     if [ $? -ne 0 ]; then
 	exit 1
     fi
@@ -113,6 +138,10 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-r | --registry )
 	    cwb_regdir=$2
+	    shift
+	    ;;
+	-d | --data-root-dir )
+	    data_rootdir=$2
 	    shift
 	    ;;
 	-t | --test )
@@ -166,12 +195,17 @@ if [ ! -d "$cwb_regdir" ]; then
     error "Cannot access registry directory $cwb_regdir"
 fi
 
+
 get_corpus_dir () {
     corpname=$1
-    echo `
-    $cwb_describe_corpus -r "$cwb_regdir" $corpname |
-    grep '^home directory' |
-    sed -e 's/.*: //'`
+    if [ "x$data_rootdir" != x ]; then
+	echo "$data_rootdir/$corpname"
+    else
+	echo `
+	$cwb_describe_corpus -r "$cwb_regdir" $corpname |
+	grep '^home directory' |
+	sed -e 's/.*: //'`
+    fi
 }
 
 get_all_corpora () {
