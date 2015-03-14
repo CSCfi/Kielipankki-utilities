@@ -161,9 +161,9 @@ class TimespanExtractor(object):
         # Allow for nested time structures
         timestruct_depth = 0
         for line in f:
-            if ((self._opts.unknown or self._opts.fixed)
-                and not line.startswith('<')):
-                self._time_tokencnt[time] += 1
+            if self._opts.unknown or self._opts.fixed:
+                if not line.startswith('<'):
+                    self._time_tokencnt[time] += 1
             elif timestruct and line.startswith('</' + timestruct + '>'):
                 timestruct_depth -= 1
                 if timestruct_depth == 0:
