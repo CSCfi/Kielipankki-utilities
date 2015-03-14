@@ -12,7 +12,8 @@ CORPNAME_PREFIX = la_
 XML2VRT_RULES = la_murre.xml2vrt
 LEMGRAM_POSMAP = la_murre-lemgram_posmap.tsv
 
-MAKE_VRT_CMD = $(XML2VRT) | $(VRT_ADD_LEMGRAMS) \
+MAKE_VRT_CMD = \
+	$(XML2VRT) \
 	| perl -ne '\
 	if (/^</) { print } \
 	else { \
@@ -24,10 +25,9 @@ MAKE_VRT_CMD = $(XML2VRT) | $(VRT_ADD_LEMGRAMS) \
 		} \
 		print join ("\t", $$origword, @fields) \
 	}'
-MAKE_VRT_DEPS_EXTRA = $(firstword $(VRT_ADD_LEMGRAMS))
 
 CORPUS_DATE = unknown
 
-COMPRESS_TARGETS = bz2
+COMPRESS_TARGETS = gz
 
 include ../../corp-common.mk
