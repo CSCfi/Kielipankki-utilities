@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
 
-SRC_FILES = *.xml
-SRC_FILES_EXCLUDE = la_murre_Korp_koe.xml vare_muurl_hali1_2.xml
-# SRC_FILES = la_murre_Korp_koe.xml vare_muurl_hali1_2.xml
+EXTRA_ATTRS_FILE = la_murre-extra_text_attrs.tsv
+
+SUBCORPORA := $(shell cut -f2 $(EXTRA_ATTRS_FILE) | tail -n+2 | sort -u)
+
+define subcorp_defs
+SRC_FILES_$(1) := $$(addsuffix .xml,$$(shell egrep '	$(1)	' $(EXTRA_ATTRS_FILE) | cut -f1))
+endef
+
+$(foreach subcorp,$(SUBCORPORA),\
+	$(eval $(call subcorp_defs,$(subcorp))))
 
 P_ATTRS = cleanword lemma pos msd func cow note lex
 
