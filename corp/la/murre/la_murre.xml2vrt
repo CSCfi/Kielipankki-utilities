@@ -8,7 +8,7 @@ w => %vrt : %text[1 %strip] @lemma @pos @mrp @fun @cow @nb ;
 pu => %vrt : 1 1 "punct" "" "" "" "";
 # == pu => %vrt : %text[1] %text[1] "punct" "" "" ;
 
-cl => clause @num @type @hier @clnum @hallnum @ora : * ;
+cl => cl @num @type @hier @clnum @hallnum @ora : * ;
 
 s => sentence @id=%id @num @wnum @clnum @source : * ;
 
