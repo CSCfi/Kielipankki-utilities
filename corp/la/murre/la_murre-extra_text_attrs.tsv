@@ -12,7 +12,7 @@ varp_kalan1	kalanti	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Kalanti	Ka
 varp_kartl1	karjala_tl	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Karjala Tl	Karjala Tl
 varp_kus1	kustavi	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Kustavi 1	Kustavi
 varp_kus2	kustavi	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Kustavi 2	Kustavi
-varp_laptl1	lappi_tl	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Lappi Tl	Lappi Tl
+varp_laptl	lappi_tl	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Lappi Tl	Lappi Tl
 varp_luv1	luvia	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Luvia	Luvia
 varp_mas1	masku	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Masku	Masku
 varp_pyhm1	pyhamaa	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Pyhämaa	Pyhämaa
@@ -133,7 +133,7 @@ kare_luu1	luumaki	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Luumäki	Luumäki
 kare_muol1	muolaa	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Muolaa	Muolaa
 kare_nui1	nuijamaa	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Nuijamaa	Nuijamaa
 kare_ruok1	ruokolahti	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Ruokolahti	Ruokolahti
-kare_savt1	savitaipale	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Savitaipale	Savitaipale
+kare_savtl1	savitaipale	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Savitaipale	Savitaipale
 kare_seis1	seiskari	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Seiskari	Seiskari
 kare_taip1	taipalsaari	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Taipalsaari	Taipalsaari
 kark_lumv1	lumivaara	KAA	Kaakkoismurteet	KarK	Keski-Karjala	Lumivaara	Lumivaara
