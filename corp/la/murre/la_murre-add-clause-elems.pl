@@ -47,11 +47,13 @@ if (/^<cl (.*)>/) {
     $cl_just_opened = 0;
 } else {
     if (/^[^<]/) {
-	if ((! $cl_just_opened) && $#cl_partnum >= 0 && ! $cl_words) {
-	    $cl_partnum[-1]++;
-	    print "<clause $cl_attrs[-1] partnum=\"$cl_partnum[-1]\">\n";
+	if ($#cl_partnum >= 0) {
+	    if ((! $cl_just_opened) && ! $cl_words) {
+		$cl_partnum[-1]++;
+		print "<clause $cl_attrs[-1] partnum=\"$cl_partnum[-1]\">\n";
+	    }
+	    $cl_words = 1;
 	}
-	$cl_words = 1;
     }
     print;
     $cl_just_opened = 0;
