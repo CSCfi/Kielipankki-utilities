@@ -173,7 +173,7 @@ class ElemTargetVrt(ElemTarget):
     def make_target(self, et_elem, converter):
         result_lines = []
         text = et_elem if isinstance(et_elem, basestring) else et_elem.text
-        text = self.strip_newlines(text)
+        text = self.strip_newlines(text or "")
         for line in text.split('\n'):
             # Make the first fields separately to get the right class
             result_line_fields_list = self._fields[0].make_values(line, et_elem)
