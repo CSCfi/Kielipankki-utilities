@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
+SRC_SUBDIR := la/murre/xml
+
 EXTRA_ATTRS_FILE = la_murre-extra_text_attrs.tsv
 
 SUBCORPORA := $(shell cut -f2 $(EXTRA_ATTRS_FILE) | tail -n+2 | sort -u)
