@@ -28,7 +28,7 @@ BEGIN {
 }
 
 if (/^<cl (.*)>/) {
-    $depth = $#cl_attrs + 2;
+    $depth = $#cl_attrs + 1;
     push (@cl_attrs, "$1 depth=\"$depth\"");
     push (@cl_partnum, 1);
     if ($cl_words) {
