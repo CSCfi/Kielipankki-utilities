@@ -84,10 +84,11 @@ table_columns_relations_CORPNAME_sentences='
 	KEY `id` (`id`)
 '
 relations_new_rels_enum="ENUM('++','ADV','AN','AT','DT','ET','FV','head','IG','KA','NA','OBJ','PA','PL','SS','XX','YY')"
+# Below alternatively:	`rel` '$relations_new_rels_enum' NOT NULL,
 table_columns_relations_new_CORPNAME='
         `id` int UNIQUE NOT NULL,
 	`head` int NOT NULL,
-	`rel` '$relations_new_rels_enum' NOT NULL,
+	`rel` char(4) NOT NULL,
 	`dep` int NOT NULL,
 	`freq` int NOT NULL,
 	`bfhead` bool NOT NULL,
@@ -113,14 +114,14 @@ table_columns_relations_new_CORPNAME_strings='
 table_columns_relations_new_CORPNAME_rel=$table_columns_relations_CORPNAME_rel
 table_columns_relations_new_CORPNAME_head_rel='
 	`head` int NOT NULL,
-	`rel` '$relations_new_rels_enum' NOT NULL,
+	`rel` char(4) NOT NULL,
 	`freq` int NOT NULL,
 	KEY `head` (`head`),
 	KEY `rel` (`rel`)
 '
 table_columns_relations_new_CORPNAME_dep_rel='
 	`dep` int NOT NULL,
-	`rel` '$relations_new_rels_enum' NOT NULL,
+	`rel` char(4) NOT NULL,
 	`freq` int NOT NULL,
 	KEY `dep` (`dep`),
 	KEY `rel` (`rel`)
