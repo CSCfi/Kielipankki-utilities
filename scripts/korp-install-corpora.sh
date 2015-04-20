@@ -30,6 +30,7 @@ if [ "x$KORP_MYSQL_PASSWORD" != "x" ]; then
 fi
 
 default_corpus_roots="/v/corpora /proj/clarin/korp/corpora $WRKDIR/corpora /wrk/jyniemi/corpora"
+
 find_existing_dir () {
     _test=$1
     _file=$2
@@ -65,6 +66,22 @@ pkglistfile=$tmp_prefix.pkgs.$$
 
 timestamp_format="+%Y-%m-%dT%H:%M:%S"
 
+filegroup=
+for grp in korp clarin; do
+    if groups | grep -qw $grp; then
+	filegroup=$grp
+	break
+    fi
+done
+if [ "x$filegroup" = x ]; then
+    filegroup=`groups | cut -d' ' -f1`
+fi
+
+
+ensure_perms () {
+    chgrp -R $filegroup "$@"
+    chmod -R g+rwX "$@"
+}
 
 warn () {
     echo "$progname: Warning: $1" >&2
@@ -191,6 +208,7 @@ installed_list=$corpus_root/korp_installed_corpora.list
 
 if [ ! -e "$installed_list" ]; then
     touch "$installed_list"
+    ensure_perms "$installed_list"
 fi
 
 
@@ -336,6 +354,7 @@ backup_corpus () {
 		backup_msg_shown=1
 	    fi
 	    cp -dpr $corpus_root/$fname $corpus_root/$fname$backup_suffix
+	    ensure_perms $corpus_root/$fname$backup_suffix
 	fi
     done
 }
@@ -386,6 +405,7 @@ adjust_registry () {
 	    sed -e "s,^\(HOME\|INFO\) .*/$corpus_id\(/[^/]*\)\?,\1 $datadir\2," \
 		$regfile.orig > $regfile
 	    touch --reference=$regfile.orig $regfile
+	    ensure_perms $regfile
 	    rm $regfile.orig
 	fi
     done
@@ -460,6 +480,10 @@ install_corpus () {
     if grep 'tar:' $filelistfile; then
 	error "Errors in extracting $corpus_pkg"
     fi
+    (
+	cd $corpus_root
+	ensure_perms $(cat $filelistfile)
+    )
     adjust_registry $filelistfile
     install_db $filelistfile
     # Log to the list of installed corpora: current time, corpus name,

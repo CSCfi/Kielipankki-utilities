@@ -14,8 +14,11 @@
 # - Produce (maybe optionally, or maybe when installing to the
 #   production frontend) a compressed dist version of Korp frontend
 #   and install it; requires Node.js (npm)
-# - Multi-level backups, maybe timestamped
+# - Check that Korp is not currently being run; possibly put a
+#   temporary index.html displaying "Korp is being updated"
+# - Multiple backups, maybe timestamped
 # - Specify source Git remote other than origin
+# - Use an existing (test) installation as a source
 # - Support other "Korp components": annlab, corpimport, news
 # - Support other than CSC's servers
 #
@@ -47,6 +50,27 @@ rsync_opts="-uacRv"
 excludes_frontend='/*test*/ /*beta*/'
 excludes_backend='/korp-*/ /annlab/ /log/'
 
+filegroup=
+for grp in korp clarin; do
+    if groups | grep -qw $grp; then
+	filegroup=$grp
+	break
+    fi
+done
+if [ "x$filegroup" = x ]; then
+    filegroup=`groups | cut -d' ' -f1`
+fi
+
+
+ensure_perms () {
+    chgrp -R $filegroup "$@"
+    chmod -R g+rwX "$@"
+}
+
+if [ ! -e $log_file ]; then
+    touch $log_file
+    ensure_perms $log_file
+fi
 
 log () {
     type=$1
@@ -220,6 +244,7 @@ run_rsync () {
     (
 	cd "$src" &> /dev/null &&
 	rsync $rsync_opts "$@" . "$dst/"
+	ensure_perms "$dst"
     )
 }
 
@@ -286,6 +311,7 @@ install () {
     git checkout $refspec || error "Could not checkout $refspec"
     commit_sha1=$(git rev-parse --short HEAD)
     commit_sha1_full=$(git rev-parse HEAD)
+    ensure_perms .
 
     echo "Making a backup copy of the current Korp $comp in $targetdir"
     backup_$comp
