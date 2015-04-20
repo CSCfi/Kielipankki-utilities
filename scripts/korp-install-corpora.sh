@@ -196,7 +196,8 @@ fi
 
 pkgdir=${pkgdir:-$corpus_root/$pkgsubdir}
 
-default_pkghost=-
+localhost=LOCALHOST
+default_pkghost=$localhost
 case $pkgdir in
     *:* )
 	default_pkghost=${pkgdir%%:*}
@@ -212,6 +213,10 @@ if [ ! -e "$installed_list" ]; then
 fi
 
 
+host_is_remote () {
+    test "x$1" != x$localhost && test "x$1" != x
+}
+
 get_package_corpus_name () {
     corpname=${1##*/}
     corpname=${corpname%.t?z}
@@ -225,6 +230,14 @@ get_package_corpus_name () {
 	    ;;
     esac
     echo "$corpname"
+}
+
+run_command () {
+    if host_is_remote "$1"; then
+	ssh "$1" "$2"
+    else
+	eval "$2"
+    fi
 }
 
 find_corpus_packages () {
@@ -261,11 +274,7 @@ find_corpus_packages () {
     else
 	cmd="find $current_pkgdir $maxdepth_opt $pkgname_cond | xargs --no-run-if-empty $ls_cmd"
     fi
-    if [ "$pkghost" != - ]; then
-	ssh $pkghost "$cmd"
-    else
-	eval "$cmd"
-    fi |
+    run_command "$pkghost" "$cmd" |
     while read mode links owner group size timestamp pkgname; do
 	printf "%s\t%s\t%s\t%s\t%s\n" $(get_package_corpus_name $pkgname) \
 	     $pkghost "$pkgname" $timestamp $size
@@ -284,6 +293,13 @@ find_package_candidates () {
 	    warn "No matching corpus packages found: $pkgspec"
 	fi
     done
+}
+
+format_package_name_host () {
+    if host_is_remote "$2"; then
+	printf $2:
+    fi
+    printf "%s\n" $1
 }
 
 filter_corpora () {
@@ -305,7 +321,7 @@ filter_corpora () {
 		| sort -r \
 		| head -1)
 	    if expr "$timestamp" "<=" "$installed_date" > /dev/null; then
-		echo "  $corpname: skipping $pkgfile as not newer than the installed package ($timestamp <= $installed_date)" > /dev/stderr
+		echo "  $corpname: skipping $(format_package_name_host $pkgfile $pkghost) as not newer than the installed package ($timestamp <= $installed_date)" > /dev/stderr
 	    else
 		printf "%s\t%s\t%s\t%s\t%s\n" $corpname $pkghost "$pkgfile" \
 		    $timestamp $pkgsize
@@ -340,11 +356,7 @@ backup_corpus () {
 	    --transform 's,.*/\(data\|registry\|sql\)/,\1/,' \
 	    --show-transformed-names '*/data' '*/registry' '*/sql'"
     backup_msg_shown=
-    if [ "x$pkghost" = "x-" ] || [ "x$pkghost" = x ]; then
-	eval "$tar_cmd"
-    else
-	ssh $pkghost "$tar_cmd"
-    fi |
+    run_command "$pkghost" "$tar_cmd" |
     cut -d/ -f1,2 |
     sort -u |
     while read fname; do
@@ -447,13 +459,6 @@ install_db () {
     install_dbfiles tsv $filelistfile Importing
 }
 
-format_package_name_host () {
-    if [ "x$2" != x ]; then
-	printf $2:
-    fi
-    printf "%s\n" $1
-}
-
 install_corpus () {
     corp=$1
     corpus_pkg=$2
@@ -466,11 +471,7 @@ install_corpus () {
 	backup_corpus $corpus_pkg $pkghost
     fi
     echo "  Copying CWB files"
-    if [ "x$pkghost" = "x-" ] || [ "x$pkghost" = x ]; then
-	cat "$corpus_pkg"
-    else
-	ssh $pkghost "cat $corpus_pkg"
-    fi |
+    run_command "$pkghost" "cat '$corpus_pkg'" |
     tar xvp -C $corpus_root -f- $(get_tar_compress_opt $pkgname) \
 	--wildcards --wildcards-match-slash \
 	--transform 's,.*/\(data\|registry\|sql\)/,\1/,' \
