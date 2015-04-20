@@ -7,6 +7,9 @@
 
 # TODO:
 # - Log MySQL errors and import times only with --verbose
+# - Infer relations format from the content (number of columns) of TSV
+#   files
+# - Support importing to at least auth_license in korp_auth
 
 
 progname=`basename $0`
@@ -19,6 +22,7 @@ dbname=korp
 prepare_tables=
 imported_file_list=
 relations_format=old
+table_name_template=@
 
 mysql_datadir=/var/lib/mysql
 mysql_datafile=$mysql_datadir/ibdata1
@@ -187,6 +191,10 @@ Options:
                   tables: either "old" (for Korp backend versions 2 to
                   2.3) or "new" (for Korp backend 2.5 and later)
                   (default: "$relations_format")
+  --table-name-template TEMPLATE
+                  use TEMPLATE for naming tables; TEMPLATE should
+                  contain @ for the default table (base) name
+                  (lemgram_index, timespans, relations) (default: $table_name_template)
 EOF
     exit 0
 }
@@ -196,7 +204,7 @@ EOF
 getopt -T > /dev/null
 if [ $? -eq 4 ]; then
     # This requires GNU getopt
-    args=`getopt -o "htI:" -l "help,prepare-tables,imported-file-list:,relations-format:" -n "$progname" -- "$@"`
+    args=`getopt -o "htI:" -l "help,prepare-tables,imported-file-list:,relations-format:,table-name-template:" -n "$progname" -- "$@"`
     if [ $? -ne 0 ]; then
 	exit 1
     fi
@@ -231,6 +239,10 @@ while [ "x$1" != "x" ] ; do
 		    warn 'Valid arguments for --relations-format are "old" and "new"'
 		    ;;
 	    esac
+	    ;;
+	--table-name-template )
+	    shift
+	    table_name_template=$1
 	    ;;
 	-- )
 	    shift
@@ -268,17 +280,23 @@ get_cat () {
     esac
 }
 
+fill_tablename_template () {
+    echo "$table_name_template" |
+    sed -e "s/@/$1/"
+}
+
 make_tablename () {
     case "$1" in
 	*_lemgrams.* )
-	    echo lemgram_index
+	    fill_tablename_template lemgram_index
 	    ;;
 	*_timespans.* )
-	    echo timespans
+	    fill_tablename_template timespans
 	    ;;
 	*_rels.* | *_rels_*.* )
+	    table_basename=$(fill_tablename_template relations)
 	    echo `basename "$1"` |
-	    sed -e 's/\(.\+\)_rels\([^.]*\).*/relations_\U\1\E\2/'
+	    sed -e 's/\(.\+\)_rels\([^.]*\).*/'"$table_basename"'_\U\1\E\2/'
 	    ;;
     esac
 }
@@ -289,10 +307,25 @@ make_corpname () {
 }
 
 get_colspec () {
-    colspec_name=`echo "$1" | sed -e 's/_\([A-Z][A-Z0-9_]*[A-Z0-9]\)/_CORPNAME/'`
-    if [ "$relations_format" = "new" ]; then
-	colspec_name=`echo "$colspec_name" | sed -e 's/relations/&_new/'`
-    fi
+    case "$1" in
+	*_lemgrams.* )
+	    colspec_name=lemgram_index
+	    ;;
+	*_timespans.* )
+	    colspec_name=timespans
+	    ;;
+	*_rels.* | *_rels_*.* )
+	    if [ "$relations_format" = "new" ]; then
+		base=relations_new
+	    else
+		base=relations
+	    fi
+	    colspec_name=$(
+		echo "$1" |
+		sed -e 's/.\+_rels\([^.]*\).*/'$base'_CORPNAME\1/'
+	    )
+	    ;;
+    esac
     echo `eval "echo \\$table_columns_$colspec_name"`
 }
 
@@ -380,7 +413,7 @@ mysql_import () {
     corpname=`make_corpname "$file"`
     cat=`get_cat "$file"`
     if [ "x$prepare_tables" != x ]; then
-	colspec=`get_colspec $tablename`
+	colspec=`get_colspec $file`
 	prepare_tables $tablename $corpname "$colspec"
     fi
     fifo=$tmpfname_base.$tablename.fifo
