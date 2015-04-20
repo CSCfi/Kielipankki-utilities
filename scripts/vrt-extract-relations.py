@@ -74,25 +74,33 @@ class Deprels(object):
         self.freqs_rel_dep = defaultdict(int)
         self.sentences = defaultdict(self.SentInfo)
 
-    def _get_pos(self, lemgram_or_wordpos):
+    def _get_string_type(self, lemgram_or_wordpos):
         if len(lemgram_or_wordpos) > 6 and lemgram_or_wordpos[-6:-4] == '..':
-            return lemgram_or_wordpos[-4:-2].upper()
+            return 'lemgram'
         elif len(lemgram_or_wordpos) > 3 and lemgram_or_wordpos[-3] == '_':
+            return 'wordpos'
+        else:
+            return 'word'
+
+    def _get_pos(self, lemgram_or_wordpos):
+        string_type = self._get_string_type(lemgram_or_wordpos)
+        if string_type == 'lemgram':
+            return lemgram_or_wordpos[-4:-2].upper()
+        elif string_type == 'wordpos':
             return lemgram_or_wordpos[-2:]
         else:
             return ''
 
-    def _get_lemma(self, lemgram_or_wordpos):
-        if len(lemgram_or_wordpos) > 6 and lemgram_or_wordpos[-6:-4] == '..':
-            return lemgram_or_wordpos[:-6]
-        elif len(lemgram_or_wordpos) > 3 and lemgram_or_wordpos[-3] == '_':
+    def _get_lemgram_or_lemma(self, lemgram_or_wordpos):
+        string_type = self._get_string_type(lemgram_or_wordpos)
+        if string_type == 'wordpos':
             return lemgram_or_wordpos[:-3]
         else:
             return lemgram_or_wordpos
 
     def _get_string_id(self, lemgram_or_wordpos):
         pos = self._get_pos(lemgram_or_wordpos)
-        word = self._get_lemma(lemgram_or_wordpos)
+        word = self._get_lemgram_or_lemma(lemgram_or_wordpos)
         return str(self.strings.get_id((word, '', pos)))
 
     def __iter__(self):
