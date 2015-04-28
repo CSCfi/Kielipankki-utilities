@@ -111,8 +111,8 @@ INSERT INTO timespans (corpus, datefrom, dateto, tokens)
   SELECT '$target_u', ts.datefrom, ts.dateto, ts.tokens
   FROM timespans AS ts
   WHERE ts.corpus='$source_u';
-INSERT INTO lemgram_index (lemgram, freq, freqprefix, freqsuffix, corpus)
-  SELECT li.lemgram, li.freq, li.freqprefix, li.freqsuffix, '$target_u'
+INSERT INTO lemgram_index (lemgram, freq, freq_prefix, freq_suffix, corpus)
+  SELECT li.lemgram, li.freq, li.freq_prefix, li.freq_suffix, '$target_u'
   FROM lemgram_index as li
   WHERE li.corpus='$source_u';
 INSERT INTO corpus_info (corpus, "'`key`'", value)
