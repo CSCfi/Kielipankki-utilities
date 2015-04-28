@@ -312,6 +312,7 @@ install () {
 
     echo "Updating the Korp $comp repository working copy"
     cd $local_git_repo
+    git remote update
     git checkout $branch || error "Could not checkout $branch"
     git pull --force origin $branch || error "Could not pull origin/$branch"
     git checkout $refspec || error "Could not checkout $refspec"
