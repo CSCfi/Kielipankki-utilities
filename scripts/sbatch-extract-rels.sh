@@ -11,6 +11,12 @@ if [ "x$1" = "x--dry-run" ] || [ "x$1" = "x-n" ]; then
     shift
 fi
 
+runner_opts=
+if [ "x$1" = "x--new" ]; then
+    runner_opts=--new
+    shift
+fi
+
 if [ "x$1" != x ]; then
     sizes="$*"
 else
@@ -31,7 +37,7 @@ for size in $sizes; do
 	name=rels_$size
 	num=`wc -l < years_$size.txt`
 	mins=`gawk 'BEGIN {a = 2 ** ('$size' - 20) / 10 + 1; printf "%d", a}'`
-	mem=`gawk 'BEGIN {a = 2 ** ('$size' - 15); if (a < 128) {a = 128} if (a > 128000) {a = 128000}; print a}'`
+	mem=`gawk 'BEGIN {a = 2 ** ('$size' - 14); if (a < 128) {a = 128} if (a > 128000) {a = 128000}; print a}'`
 	$action <<EOF
 #! /bin/bash -l
 #SBATCH -J $name
@@ -46,7 +52,7 @@ for size in $sizes; do
 cd $scriptdir
 year=\$(sed -n "\$SLURM_ARRAY_TASK_ID"p years_$size.txt)
 echo Job: $SLURM_JOB_ID $SLURM_JOB_NAME
-./run-extract-rels.sh \$year
+./run-extract-rels.sh $runner_opts \$year
 EOF
     fi
 done
