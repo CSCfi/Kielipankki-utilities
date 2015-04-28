@@ -45,7 +45,7 @@ default_refspec=master
 root_frontend=/var/www/html
 root_backend=/v/korp/cgi-bin
 
-rsync_opts="-uacRv"
+rsync_opts="-uacRv --omit-dir-times"
 
 excludes_frontend='/*test*/ /*beta*/'
 excludes_backend='/korp-*/ /annlab/ /log/'
@@ -243,7 +243,13 @@ run_rsync () {
     mkdir -p "$dst"
     (
 	cd "$src" &> /dev/null &&
-	rsync $rsync_opts "$@" . "$dst/"
+	{
+	    fifo=/tmp/$progname.$$.rsync.fifo
+	    mkfifo $fifo
+	    grep -v 'failed to set times on' < $fifo >&2 &
+	    rsync $rsync_opts "$@" . "$dst/" 2> $fifo
+	    rm $fifo
+	}
 	ensure_perms "$dst"
     )
 }
