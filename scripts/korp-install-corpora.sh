@@ -79,8 +79,8 @@ fi
 
 
 ensure_perms () {
-    chgrp -R $filegroup "$@"
-    chmod -R g+rwX "$@"
+    chgrp -R $filegroup "$@" 2> /dev/null
+    chmod -R g=u "$@" 2> /dev/null
 }
 
 warn () {
