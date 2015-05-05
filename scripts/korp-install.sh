@@ -290,11 +290,22 @@ git_get () {
     ensure_perms .
 }
 
+install_news () {
+    git_get news master master
+    commit_sha1_full_news=$(git rev-parse HEAD)
+    mkdir -p $root_frontend/$target/news/json
+    run_rsync $local_git_prefix$comp/json/ $root_frontend/$target/news/json/ \
+	--filter 'protect /*' \
+	--exclude '.git*'
+    log INFO "Installed: news to $targetdir/news from master ($commit_sha1_full_news)"
+}
+
 install_frontend () {
     # TODO: Optionally minify and copy the dist version
     run_rsync $local_git_repo/app $root_frontend/$target \
 	--filter 'protect /*' \
 	--exclude '.git*'
+    install_news
 }
 
 install_backend () {
