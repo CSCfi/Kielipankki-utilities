@@ -262,6 +262,34 @@ make_rsync_filter () {
     done
 }
 
+git_get () {
+    _comp=$1
+    _branch=$2
+    _refspec=$3
+    if [ "x$_refspec" = x ]; then
+	_refspec=$_branch
+    fi
+
+    remote_git_repo=$(printf "$remote_git_repo_pattern" $_comp)
+    local_git_repo="$local_git_prefix$_comp"
+
+    if [ ! -d $local_git_repo ]; then
+	cd $local_git_root
+	echo "Cloning Git repository for Korp $comp"
+	git clone $remote_git_repo || error "Could not clone $remote_git_repo"
+    fi
+
+    echo "Updating the Korp $_comp repository working copy"
+    cd $local_git_repo
+    git remote update
+    git checkout $_branch || error "Could not checkout $_branch"
+    git pull --force origin $_branch || error "Could not pull origin/$_branch"
+    if [ "x$_refspec" != "x$_branch" ]; then
+	git checkout $_refspec || error "Could not checkout $_refspec"
+    fi
+    ensure_perms .
+}
+
 install_frontend () {
     # TODO: Optionally minify and copy the dist version
     run_rsync $local_git_repo/app $root_frontend/$target \
@@ -301,24 +329,9 @@ revert_backend () {
 }
 
 install () {
-    remote_git_repo=$(printf "$remote_git_repo_pattern" $comp)
-    local_git_repo="$local_git_prefix$comp"
-
-    if [ ! -d $local_git_repo ]; then
-	cd $local_git_root
-	echo "Cloning Git repository for Korp $comp"
-	git clone $remote_git_repo || error "Could not clone $remote_git_repo"
-    fi
-
-    echo "Updating the Korp $comp repository working copy"
-    cd $local_git_repo
-    git remote update
-    git checkout $branch || error "Could not checkout $branch"
-    git pull --force origin $branch || error "Could not pull origin/$branch"
-    git checkout $refspec || error "Could not checkout $refspec"
+    git_get $comp $branch $refspec
     commit_sha1=$(git rev-parse --short HEAD)
     commit_sha1_full=$(git rev-parse HEAD)
-    ensure_perms .
 
     echo "Making a backup copy of the current Korp $comp in $targetdir"
     backup_$comp
