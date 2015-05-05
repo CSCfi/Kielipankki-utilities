@@ -45,7 +45,7 @@ default_refspec=master
 root_frontend=/var/www/html
 root_backend=/v/korp/cgi-bin
 
-rsync_opts="-uacRv --omit-dir-times"
+rsync_opts="-uacR --omit-dir-times"
 
 excludes_frontend='/*test*/ /*beta*/'
 excludes_backend='/korp-*/ /annlab/ /log/'
