@@ -44,7 +44,7 @@ class CharConverter(object):
 
     def _process_input(self, file_):
         for line in file_:
-            if line[0] == '<':
+            if line[0] == '<' and line.endswith('>\n'):
                 if self._convert_structattrs:
                     line = self._convert_chars_in_struct_attrs(line)
             elif self._convert_posattrs:
