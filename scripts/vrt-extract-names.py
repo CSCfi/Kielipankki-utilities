@@ -20,6 +20,23 @@ from os.path import basename
 
 class Names(object):
 
+    class SentInfo(object):
+
+        __slots__ = ['id', 'sentences']
+
+        id_counter = 0
+
+        def __init__(self, id_=None):
+            self.id = id_ if id_ is not None else self.id_counter
+            self.__class__.id_counter += 1
+            self.sentences = []
+
+        def add_info(self, info):
+            self.sentences += info
+
+        def get_len(self):
+            return len(self.sentences)
+
     class IdDict(dict):
 
         def __init__(self):
@@ -31,6 +48,7 @@ class Names(object):
     def __init__(self):
         self._names = self.IdDict()
         self._freqs = defaultdict(int)
+        self._sents = defaultdict(self.SentInfo)
 
     def _get_name_id(self, name, cat):
         return str(self._names.get_id((name, cat)))
@@ -44,9 +62,16 @@ class Names(object):
             name_id, text_id = key
             yield (str(name_id), text_id, str(freq))
 
-    def add(self, name, cat, text_id):
+    def iter_sents(self):
+        for name_id, sents in self._sents.iteritems():
+            for sent_info in sents.sentences:
+                sent_id, start, end = sent_info
+                yield (str(name_id), str(sent_id), str(start), str(end))
+
+    def add(self, name, cat, text_id, sent_id, start, end):
         name_id = self._names.get_id((name, cat))
         self._freqs[(name_id, text_id)] += 1
+        self._sents[name_id].add_info([(sent_id, start, end)])
 
 
 class NameExtractor(object):
@@ -56,9 +81,15 @@ class NameExtractor(object):
         self._names = Names()
         text_id_structname, text_id_attrname = self._opts.id_attribute.split(
             '_', 1)
-        self._text_id_re = re.compile(r'<' + text_id_structname
-                                      + r'\s+(?:.+\s)?' + text_id_attrname
-                                      + r'="(.*?)".*>')
+        self._text_id_re = self._make_struct_attr_extract_regex(
+            text_id_structname, text_id_attrname)
+        self._sent_id_re = self._make_struct_attr_extract_regex(
+            "sentence", "id")
+
+    def _make_struct_attr_extract_regex(self, structname, attrname):
+        return re.compile(r'<' + structname
+                          + r'\s+(?:.+\s)?' + attrname
+                          + r'="(.*?)".*>')
 
     def process_input(self, args):
         if isinstance(args, list):
@@ -81,6 +112,8 @@ class NameExtractor(object):
         nametag = None
         sentnr = 0
         text_id = None
+        sent_id = None
+        token_nr = 0
         for linenr, line in enumerate(f):
             line = line[:-1]
             if not line:
@@ -89,23 +122,32 @@ class NameExtractor(object):
                 fields = line.split('\t')
                 nametag_new = fields[nametag_fieldnr]
                 if namedata and nametag_new != nametag:
-                    self._add_name(namedata, nametag, text_id)
+                    self._add_name(namedata, nametag, text_id, sent_id,
+                                   token_nr)
                     namedata = []
                 nametag = nametag_new
                 if nametag and nametag != '_':
                     namedata.append((fields[0], fields[lemma_fieldnr]))
+                token_nr += 1
             else:
                 if namedata:
-                    self._add_name(namedata, nametag, text_id)
+                    self._add_name(namedata, nametag, text_id, sent_id,
+                                   token_nr)
                 namedata = []
                 nametag = None
                 mo = self._text_id_re.match(line)
                 if mo:
                     text_id = mo.group(1)
+                    token_nr = 0
+                else:
+                    mo = self._sent_id_re.match(line)
+                    if mo:
+                        sent_id = mo.group(1)
+                        token_nr = 0
         if namedata:
-            self._add_name(namedata, nametag, text_id)
+            self._add_name(namedata, nametag, text_id, sent_id, token_nr)
 
-    def _add_name(self, namedata, nametag, text_id):
+    def _add_name(self, namedata, nametag, text_id, sent_id, last_token_nr):
         if nametag.startswith('Timex') or nametag.startswith('Numex'):
             name = ' '.join(token[0] for token in namedata)
         else:
@@ -120,7 +162,8 @@ class NameExtractor(object):
                 name += last_lemma.upper()
             else:
                 name += last_lemma
-        self._names.add(name, nametag, text_id)
+        self._names.add(name, nametag, text_id, sent_id,
+                        last_token_nr - len(namedata) + 1, last_token_nr)
 
     # The following methods have been copied directly (output_rels
     # slightly modified) from vrt-extract-relations.py. We probably
@@ -128,7 +171,8 @@ class NameExtractor(object):
 
     def output_rels(self):
         output_rels = [('iter_freqs', '', True),
-                       ('iter_names', '_strings', True),]
+                       ('iter_names', '_strings', True),
+                       ('iter_sents', '_sentences', True)]
         for rel_iter_name, rel_suffix, numeric_sort in output_rels:
             self._output_rel(getattr(self._names, rel_iter_name)(),
                              rel_suffix, numeric_sort)
