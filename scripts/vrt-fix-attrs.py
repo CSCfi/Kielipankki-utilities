@@ -420,10 +420,10 @@ class AttributeFixer(object):
         if self._opts.angle_brackets:
             line = (line.replace('<', self._opts.angle_brackets[0])
                     .replace('>', self._opts.angle_brackets[1]))
-        if self._encode_posattrs and not self._split_lines:
-            line = self._encode_special_chars(line)
         if self._opts.replace_xml_character_entities:
             line = self._replace_character_entities(line)
+        if self._encode_posattrs and not self._split_lines:
+            line = self._encode_special_chars(line)
         return line
 
     def _encode_special_chars(self, s):
@@ -444,10 +444,13 @@ class AttributeFixer(object):
             if name in self._xml_char_entities:
                 return self._xml_char_entities[name]
             elif name[0] == '#':
-                if name[1] == 'x':
-                    return unichr(int(name[2:], base=16))
-                else:
-                    return unichr(int(name[1:]))
+                chrval = (int(name[2:], base=16)
+                          if name[1] == 'x'
+                          else int(name[1:]))
+                try:
+                    return unichr(chrval)
+                except ValueError:
+                    return name
             else:
                 return name
 
