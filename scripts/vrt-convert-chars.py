@@ -21,6 +21,14 @@ def replace_substrings(s, mapping):
 
 class CharConverter(object):
 
+    _xml_char_entities = {
+        '&': 'amp',
+        '<': 'lt',
+        '>': 'gt',
+        '\'': 'apos',
+        '"': 'quot'
+        }
+
     def __init__(self, opts, input_encoding='utf-8'):
         self._opts = opts
         self._input_encoding = input_encoding
@@ -30,8 +38,19 @@ class CharConverter(object):
                                     in ['all', 'struct'])
         self._convert_map = [(c, (opts.prefix + unichr(i + opts.offset)))
                              for (i, c) in enumerate(opts.chars)]
+        self._add_xml_char_refs_to_convert_map()
         if opts.mode == 'decode':
             self._convert_map = [(enc, dec) for dec, enc in self._convert_map]
+
+    def _add_xml_char_refs_to_convert_map(self):
+        if self._opts.convert_xml_char_refs:
+            xml_chars = []
+            for c1, c2 in self._convert_map:
+                if c1 in self._xml_char_entities:
+                    xml_chars.append((c1, c2))
+            self._convert_map.extend(
+                ('&' + self._xml_char_entities[c1] + ';', c2)
+                for c1, c2 in xml_chars)
 
     def process_input(self, fnames):
         if not fnames:
@@ -89,6 +108,11 @@ Encode or decode in VRT files special characters that are problematic in CWB."""
     optparser.add_option(
         '--prefix', default=u'',
         help='prefix the encoded characters with PREFIX (default: none)')
+    optparser.add_option(
+        '--no-convert-xml-character-entity-references', '--no-xml-char-refs',
+        dest='convert_xml_char_refs', default=True, action='store_false',
+        help=('do not encode XML character entity references that correspond '
+              ' to special characters to be encoded'))
     optparser.add_option(
         '--mode', type='choice', choices=['encode', 'decode'], default='encode',
         help=('MODE specifies the direction of conversion: encode or decode'
