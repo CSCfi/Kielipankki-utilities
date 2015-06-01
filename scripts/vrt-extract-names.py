@@ -79,12 +79,24 @@ class NameExtractor(object):
     def __init__(self, opts):
         self._opts = opts
         self._names = Names()
+        self._skip_names = self._read_skip_names_list(
+            self._opts.skip_names_list)
         text_id_structname, text_id_attrname = self._opts.id_attribute.split(
             '_', 1)
         self._text_id_re = self._make_struct_attr_extract_regex(
             text_id_structname, text_id_attrname)
         self._sent_id_re = self._make_struct_attr_extract_regex(
             "sentence", "id")
+
+    def _read_skip_names_list(self, fname):
+        skip_names = set()
+        if fname:
+            with codecs.open(fname, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and line[0] != '#':
+                        skip_names.add(line.split('\t')[0])
+        return skip_names
 
     def _make_struct_attr_extract_regex(self, structname, attrname):
         return re.compile(r'<' + structname
@@ -162,8 +174,9 @@ class NameExtractor(object):
                 name += last_lemma.upper()
             else:
                 name += last_lemma
-        self._names.add(name, nametag, text_id, sent_id,
-                        last_token_nr - len(namedata) + 1, last_token_nr)
+        if name not in self._skip_names:
+            self._names.add(name, nametag, text_id, sent_id,
+                            last_token_nr - len(namedata) + 1, last_token_nr)
 
     # The following methods have been copied directly (output_rels
     # slightly modified) from vrt-extract-relations.py. We probably
@@ -251,6 +264,7 @@ def getopts():
     optparser.add_option('--temp-files', '--temporary-files',
                          action='store_true', default=False)
     optparser.add_option('--temp-dir', '--temporary-directory', default=None)
+    optparser.add_option('--skip-names-list', '--stop-list')
     (opts, args) = optparser.parse_args()
     if opts.output_prefix is None and opts.corpus_name is not None:
         opts.output_prefix = 'names_' + opts.corpus_name
