@@ -65,13 +65,14 @@ class Names(object):
     def iter_sents(self):
         for name_id, sents in self._sents.iteritems():
             for sent_info in sents.sentences:
-                sent_id, start, end = sent_info
-                yield (str(name_id), str(sent_id), str(start), str(end))
+                sent_id, text_id, start, end = sent_info
+                yield tuple(str(item) for item in
+                            (name_id, sent_id, start, end, text_id))
 
     def add(self, name, cat, text_id, sent_id, start, end):
         name_id = self._names.get_id((name, cat))
         self._freqs[(name_id, text_id)] += 1
-        self._sents[name_id].add_info([(sent_id, start, end)])
+        self._sents[name_id].add_info([(sent_id, text_id, start, end)])
 
 
 class NameExtractor(object):
