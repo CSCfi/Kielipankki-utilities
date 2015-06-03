@@ -36,7 +36,8 @@ class PosAttrConverter(object):
             self._set_char_encode_map = [
                 (key, val) for key, val in self._char_encode_map
                 if key != '|']
-            self._compound_boundary_marker = compound_boundary_marker or '#'
+            self._compound_boundary_re = re.compile(compound_boundary_marker or
+                                                    re.escape('#'))
             self._make_lemma_without_boundaries = (
                 self._make_lemma_without_boundaries_tdt
                 if compound_boundary_hyphen
@@ -122,22 +123,24 @@ class PosAttrConverter(object):
             return value
 
         def _make_lemma_without_boundaries_simple(self, lemma, wordform):
-            return lemma.replace(self._compound_boundary_marker, '')
+            return (self._compound_boundary_re.sub('', lemma)
+                    if len(lemma) > 2
+                    else lemma)
 
         # Adapted from vrt-add-parses.py
         def _make_lemma_without_boundaries_tdt(self, lemma, wordform):
-            if self._compound_boundary_marker not in lemma:
+            if len(lemma) < 3 or not self._compound_boundary_re.search(lemma):
                 return lemma
             elif '-' not in wordform:
-                return lemma.replace(self._compound_boundary_marker, '')
+                return self._compound_boundary_re.sub('', lemma)
             else:
                 # In some cases, the lemma has - replaced with a |; in
                 # other cases not
                 wordform_parts = wordform.split('-')
-                lemma_parts = lemma.split(self._compound_boundary_marker)
+                lemma_parts = self._compound_boundary_re.split(lemma)
                 if (len(wordform_parts) == len(lemma_parts)
                     and '-' not in lemma):
-                    return lemma.replace(self._compound_boundary_marker, '-')
+                    return self._compound_boundary_re.sub('-', lemma)
                 else:
                     lemma_without_boundaries = [lemma_parts[0]]
                     lemma_prefix_len = len(lemma_parts[0])
@@ -545,6 +548,7 @@ def getopts():
                          default='keep')
     optparser.add_option('--compound-boundary-marker', '--compound-marker',
                          default='#')
+    optparser.add_option('--compound-boundary-regexp', action='store_true')
     optparser.add_option('--compound-boundary-hyphen',
                          '--compound-boundary-can-replace-hyphen',
                          action='store_true')
@@ -583,6 +587,8 @@ def getopts():
         opts.angle_brackets = '[,]'
     opts.encoded_special_char_offset = int(opts.encoded_special_char_offset,
                                            base=0)
+    if not opts.compound_boundary_regexp:
+        opts.compound_boundary_marker = re.escape(opts.compound_boundary_marker)
     return (opts, args)
 
 
