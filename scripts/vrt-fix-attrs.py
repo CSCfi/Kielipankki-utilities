@@ -24,18 +24,26 @@ def value_or_default(value, default):
     return value if value is not None else default
 
 
+def fix_feature_set_attr(value):
+    if not value:
+        value = '|'
+    else:
+        if value[0] != '|':
+            value = '|' + value
+        if value[-1] != '|':
+            value += '|'
+    return value
+
+
 class PosAttrConverter(object):
 
     class OutputFieldSpec(object):
 
         def __init__(self, fieldspec, input_field_nums=None,
-                     char_encode_map=None, compound_boundary_marker=None,
+                     char_encode_maps=None, compound_boundary_marker=None,
                      compound_boundary_hyphen=False):
             self._input_field_nums = input_field_nums or {}
-            self._char_encode_map = char_encode_map or {}
-            self._set_char_encode_map = [
-                (key, val) for key, val in self._char_encode_map
-                if key != '|']
+            self._char_encode_maps = char_encode_maps or {'set': [], 'base': []}
             self._compound_boundary_re = re.compile(compound_boundary_marker or
                                                     re.escape('#'))
             self._make_lemma_without_boundaries = (
@@ -93,7 +101,7 @@ class PosAttrConverter(object):
                         input_fields[self._input_field_nums.get('word')])
                     # sys.stderr.write(' -> ' + result + '\n')
                 if 'set' in self._opts or 'setconvert' in self._opts:
-                    result = self._fix_feature_set_attr(result)
+                    result = fix_feature_set_attr(result)
                 elif 'setfirst' in self._opts:
                     if result.startswith('|'):
                         result = result[1:]
@@ -105,22 +113,13 @@ class PosAttrConverter(object):
                 if self._opts.get('setconvert'):
                     result = result.replace('|', self._opts['setconvert'])
                 if 'set' in self._opts:
-                    if self._set_char_encode_map:
+                    if self._char_encode_maps['set']:
                         result = replace_substrings(
-                            result, self._set_char_encode_map)
-                elif self._char_encode_map:
-                    result = replace_substrings(result, self._char_encode_map)
+                            result, self._char_encode_maps['set'])
+                elif self._char_encode_maps['base']:
+                    result = replace_substrings(
+                        result, self._char_encode_maps['base'])
             return result
-
-        def _fix_feature_set_attr(self, value):
-            if not value:
-                value = '|'
-            else:
-                if value[0] != '|':
-                    value = '|' + value
-                if value[-1] != '|':
-                    value += '|'
-            return value
 
         def _make_lemma_without_boundaries_simple(self, lemma, wordform):
             return (self._compound_boundary_re.sub('', lemma)
@@ -168,7 +167,7 @@ class PosAttrConverter(object):
 
     def __init__(self, input_fields, output_fields, strip=False,
                  empty_values=None, missing_values=None,
-                 copy_extra_fields=None, char_encode_map=None,
+                 copy_extra_fields=None, char_encode_maps=None,
                  compound_boundary_marker=None,
                  compound_boundary_hyphen=False):
         self._compound_boundary_marker = compound_boundary_marker
@@ -179,7 +178,7 @@ class PosAttrConverter(object):
         self._empty_field_values = self._make_default_field_values(empty_values)
         self._missing_field_values = self._make_default_field_values(
             missing_values)
-        self._make_output_fields(output_fields, char_encode_map)
+        self._make_output_fields(output_fields, char_encode_maps)
         output_field_fieldnums = [output_field.get_input_fieldnum()
                                   for output_field in self._output_fields]
         self._max_fieldnum = max((output_field_fieldnums
@@ -242,8 +241,12 @@ class PosAttrConverter(object):
         else:
             return self._input_fields.get(num_or_name)
 
-    def _make_output_fields(self, output_fieldslist, char_encode_map):
+    def _make_output_fields(self, output_fieldslist, char_encode_maps):
         self._output_fields = []
+        output_field_kwargs = dict(
+            char_encode_maps=char_encode_maps,
+            compound_boundary_marker=self._compound_boundary_marker,
+            compound_boundary_hyphen=self._compound_boundary_hyphen)
         if output_fieldslist:
             for fields in output_fieldslist:
                 fieldspecs = re.findall(r'(?:\S|\'[^\']+\'|"[^\"]+")+', fields)
@@ -252,15 +255,9 @@ class PosAttrConverter(object):
                     self._output_fields.append(
                         self.OutputFieldSpec(
                             fieldspec, self._input_fields,
-                            char_encode_map=char_encode_map,
-                            compound_boundary_marker=(
-                                self._compound_boundary_marker),
-                            compound_boundary_hyphen=(
-                                self._compound_boundary_hyphen)))
+                            **output_field_kwargs))
         self._extra_output_field = self.OutputFieldSpec(
-            '0', self._input_fields, char_encode_map=char_encode_map,
-            compound_boundary_marker=self._compound_boundary_marker,
-            compound_boundary_hyphen=self._compound_boundary_hyphen)
+            '0', self._input_fields, **output_field_kwargs)
 
     def _add_default_fieldvals(self, type_, values):
         for fieldnum, fieldval in values.items():
@@ -316,10 +313,14 @@ class AttributeFixer(object):
                                  in ['all', 'pos'])
         self._encode_structattrs = (self._opts.encode_special_chars
                                     in ['all', 'struct'])
-        self._special_char_encode_map = [
+        self._special_char_encode_maps = {}
+        self._special_char_encode_maps['base'] = [
             (c, (opts.encoded_special_char_prefix
                  + unichr(i + opts.encoded_special_char_offset)))
             for (i, c) in enumerate(opts.special_chars)]
+        self._special_char_encode_maps['set'] = [
+            (key, val) for key, val in self._special_char_encode_maps['base']
+            if key != '|']
         if self._split_lines:
             self._make_pos_attr_converter()
         self._elem_renames = {}
@@ -332,6 +333,7 @@ class AttributeFixer(object):
             elemnames = re.split(r'\s*[,\s]\s*', elemnames_str)
             for elemname in elemnames:
                 self._elem_ids[elemname] = 0
+        self._set_struct_attrs = self._init_set_struct_attrs()
         self._init_struct_attr_copy_info()
 
     def _make_pos_attr_converter(self):
@@ -351,16 +353,35 @@ class AttributeFixer(object):
                         make_field_list(self._opts.noncompound_lemma_field - 1)
                         + ' ' + str(self._opts.lemma_field) + ':noboundaries')]
         # print repr(output_fields)
-        char_encode_map = (self._special_char_encode_map
-                           if self._encode_posattrs else {})
+        char_encode_maps = (
+            self._special_char_encode_maps if self._encode_posattrs
+            else None)
         self._pos_attr_converter = PosAttrConverter(
             self._opts.input_fields, output_fields, strip=self._opts.strip,
             empty_values=self._opts.empty_field_values,
             missing_values=self._opts.missing_field_values,
             copy_extra_fields=copy_extra_fields,
-            char_encode_map=char_encode_map,
+            char_encode_maps=char_encode_maps,
             compound_boundary_marker=self._opts.compound_boundary_marker,
             compound_boundary_hyphen=self._opts.compound_boundary_hyphen)
+
+    def _init_set_struct_attrs(self):
+        set_struct_attrs = {}
+        if self._opts.set_struct_attributes:
+            for attr_spec_list in self._opts.set_struct_attributes:
+                for attr_spec in attr_spec_list.split():
+                    if ':' in attr_spec:
+                        elemname, attrnames_str = attr_spec.split(':', 1)
+                        attrnames = set(re.split(r'[,+]', attrnames_str))
+                        elem_attrs = set_struct_attrs.setdefault(elemname,
+                                                                 set())
+                        elem_attrs |= attrnames
+                    elif '_' in attr_spec:
+                        elemname, attrname = attr_spec.split('_', 1)
+                        elem_attrs = set_struct_attrs.setdefault(elemname,
+                                                                 set())
+                        elem_attrs |= set([attrname])
+        return set_struct_attrs
 
     def _init_struct_attr_copy_info(self):
         self._struct_attr_values = defaultdict(dict)
@@ -406,7 +427,7 @@ class AttributeFixer(object):
     def _make_fixed_line(self, line):
         if line.startswith('<') and line.rstrip().endswith('>'):
             line = self._fix_structattrs(line.rstrip()) + '\n'
-            if self._encode_structattrs:
+            if self._encode_structattrs and line[1] != '/':
                 return self._encode_special_chars_in_struct_attrs(line)
             else:
                 return line
@@ -429,16 +450,35 @@ class AttributeFixer(object):
             line = self._encode_special_chars(line)
         return line
 
-    def _encode_special_chars(self, s):
+    def _encode_special_chars(self, s, encode_map_key='base'):
         """Encode the special characters in s."""
-        return replace_substrings(s, self._special_char_encode_map)
+        return replace_substrings(
+            s, self._special_char_encode_maps.get(encode_map_key, []))
 
     def _encode_special_chars_in_struct_attrs(self, s):
         """Encode the special characters in the double-quoted substrings
         of s.
         """
-        return re.sub(r'("(?:[^\\"]|\\[\\"])*")',
-                      lambda mo: self._encode_special_chars(mo.group(0)), s)
+
+        def encode_attr(mo, encode_map_key=None, elemname=None):
+            return self._encode_special_chars(
+                mo.group(0),
+                encode_map_key or (
+                    'set' if (mo.group(2) in
+                              self._set_struct_attrs.get(elemname, set()))
+                    else 'base'))
+
+        elemname = re.search(r'(\w+)', s).group(1)
+        if elemname in self._set_struct_attrs:
+            return re.sub(
+                r'((\w+)="(?:[^\\"]|\\[\\"])*")',
+                lambda mo: encode_attr(mo, elemname=elemname),
+                s)
+        else:
+            return re.sub(
+                r'("(?:[^\\"]|\\[\\"])*")',
+                lambda mo: encode_attr(mo, encode_map_key='base'),
+                s)
 
     def _replace_character_entities(self, line):
 
@@ -477,6 +517,8 @@ class AttributeFixer(object):
                 line = self._add_elem_id(line)
             if self._struct_attr_copy_sources:
                 line = self._copy_struct_attrs(line)
+            if self._set_struct_attrs:
+                line = self._fix_set_struct_attrs(line)
         return line
 
     def _rename_elem(self, line):
@@ -531,6 +573,24 @@ class AttributeFixer(object):
                          self._struct_attr_values[elem].get(attrname, '')))
         return result
 
+    def _fix_set_struct_attrs(self, line):
+
+        def fix_vbars(mo, feat_set_attrs):
+            if mo.group(1) in feat_set_attrs:
+                return (mo.group(1) + '="' + fix_feature_set_attr(mo.group(2))
+                        + '"')
+            else:
+                return mo.group(0)
+
+        elemname = re.search(r'(\w+)', line).group(1)
+        if elemname in self._set_struct_attrs:
+            return re.sub(
+                r'(\w+)="((?:[^\\"]|\\[\\"])*)"',
+                lambda mo: fix_vbars(mo, self._set_struct_attrs[elemname]),
+                line)
+        else:
+            return line
+
 
 def getopts():
     optparser = OptionParser()
@@ -564,6 +624,22 @@ def getopts():
                          '--special-char-offset', default='0x7F')
     optparser.add_option('--encoded-special-char-prefix',
                          '--special-char-prefix', default=u'')
+    optparser.add_option(
+        '--set-struct-attributes', '--feature-set-valued-struct-attributes',
+        action='append', default=[],
+        help=('Treat the structural attributes specified in the attribute'
+              ' specification ATTRSPEC as feature set attributes and do not'
+              ' convert the vertical bar characters in them.'
+              ' ATTRSPEC is a space-separated list of element definitions, of'
+              ' the form ELEMNAME_ATTRNAME or ELEMNAME:ATTRNAMELIST, where'
+              ' ELEMNAME is the name of the XML element, ATTRNAME is a single'
+              ' attribute name and ATTRNAMELIST is a list of attribute names'
+              ' separated by commas or pluses.'
+              ' The first form can be used to specify multiple feature set'
+              ' attributes for a single element type: for example, the values'
+              ' "elem_attr1 elem_attr2" and "elem:attr1,attr2" are equivalent.'
+              ' This option can be repeated.'),
+        metavar='ATTRSPEC')
     optparser.add_option('--empty-field-values')
     optparser.add_option('--missing-field-values')
     optparser.add_option('--rename-element', action='append', default=[])
