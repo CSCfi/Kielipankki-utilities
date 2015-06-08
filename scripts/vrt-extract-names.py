@@ -115,45 +115,65 @@ class NameExtractor(object):
             self._process_input_stream(args)
 
     def _process_input_stream(self, f):
-        if self._opts.name_tag_format == 'simple':
-            self._process_input_stream_simple_tags(f)
-        else:
-            self._process_input_stream_startend_tags(f)
 
-    def _process_input_stream_simple_tags(self, f):
+        class Namespace(object):
+            pass
 
         def _get_fieldnr(fieldnr):
             return fieldnr if fieldnr <= 0 else fieldnr - 1
 
         nametag_fieldnr = _get_fieldnr(self._opts.name_tag_field_number)
         lemma_fieldnr = _get_fieldnr(self._opts.lemma_field_number)
-        namedata = []
-        nametag = None
+        nameinfo = Namespace()
+        nameinfo.namedata = []
+        nameinfo.nametag = None
+        nameinfo.within_name = False
         sentnr = 0
         text_id = None
         sent_id = None
         token_nr = 0
+
+        def _process_namedata_simple(nameinfo, fields):
+            nametag_new = fields[nametag_fieldnr]
+            if nameinfo.namedata and nametag_new != nameinfo.nametag:
+                self._add_name(nameinfo.namedata, nameinfo.nametag, text_id,
+                               sent_id, token_nr)
+                nameinfo.namedata = []
+            nameinfo.nametag = nametag_new
+            if nameinfo.nametag and nameinfo.nametag != '_':
+                nameinfo.namedata.append((fields[0], fields[lemma_fieldnr]))
+
+        def _process_namedata_startend(nameinfo, fields):
+            nametag_orig = fields[nametag_fieldnr]
+            nameinfo.nametag = nametag_orig.strip('/')
+            if nametag_orig.startswith('/') or nametag_orig.endswith('/'):
+                nameinfo.namedata.append((fields[0], fields[lemma_fieldnr]))
+                self._add_name(nameinfo.namedata, nameinfo.nametag, text_id,
+                               sent_id, token_nr)
+                nameinfo.namedata = []
+                nameinfo.within_name = False
+            elif nametag_orig != '_':
+                nameinfo.within_name = True
+            if nameinfo.within_name:
+                nameinfo.namedata.append((fields[0], fields[lemma_fieldnr]))
+
+        process_namedata_fns = {'simple': _process_namedata_simple,
+                                'startend': _process_namedata_startend}
+        process_namedata_fn = process_namedata_fns[self._opts.name_tag_format]
         for linenr, line in enumerate(f):
             line = line[:-1]
             if not line:
                 continue
             elif line[0] != '<':
                 fields = line.split('\t')
-                nametag_new = fields[nametag_fieldnr]
-                if namedata and nametag_new != nametag:
-                    self._add_name(namedata, nametag, text_id, sent_id,
-                                   token_nr)
-                    namedata = []
-                nametag = nametag_new
-                if nametag and nametag != '_':
-                    namedata.append((fields[0], fields[lemma_fieldnr]))
+                process_namedata_fn(nameinfo, fields)
                 token_nr += 1
             else:
-                if namedata:
-                    self._add_name(namedata, nametag, text_id, sent_id,
-                                   token_nr)
-                namedata = []
-                nametag = None
+                if nameinfo.namedata:
+                    self._add_name(nameinfo.namedata, nameinfo.nametag,
+                                   text_id, sent_id, token_nr)
+                nameinfo.namedata = []
+                nameinfo.within_name = False
                 mo = self._text_id_re.match(line)
                 if mo:
                     text_id = mo.group(1)
@@ -163,59 +183,9 @@ class NameExtractor(object):
                     if mo:
                         sent_id = mo.group(1)
                         token_nr = 0
-        if namedata:
-            self._add_name(namedata, nametag, text_id, sent_id, token_nr)
-
-    def _process_input_stream_startend_tags(self, f):
-
-        def _get_fieldnr(fieldnr):
-            return fieldnr if fieldnr <= 0 else fieldnr - 1
-
-        nametag_fieldnr = _get_fieldnr(self._opts.name_tag_field_number)
-        lemma_fieldnr = _get_fieldnr(self._opts.lemma_field_number)
-        namedata = []
-        nametag = None
-        sentnr = 0
-        text_id = None
-        sent_id = None
-        token_nr = 0
-        within_name = False
-        for linenr, line in enumerate(f):
-            line = line[:-1]
-            if not line:
-                continue
-            elif line[0] != '<':
-                fields = line.split('\t')
-                nametag_orig = fields[nametag_fieldnr]
-                nametag = nametag_orig.strip('/')
-                if nametag_orig.startswith('/') or nametag_orig.endswith('/'):
-                    namedata.append((fields[0], fields[lemma_fieldnr]))
-                    self._add_name(namedata, nametag, text_id, sent_id,
-                                   token_nr)
-                    namedata = []
-                    within_name = False
-                elif nametag_orig != '_':
-                    within_name = True
-                if within_name:
-                    namedata.append((fields[0], fields[lemma_fieldnr]))
-                token_nr += 1
-            else:
-                if namedata:
-                    self._add_name(namedata, nametag, text_id, sent_id,
-                                   token_nr)
-                namedata = []
-                within_name = False
-                mo = self._text_id_re.match(line)
-                if mo:
-                    text_id = mo.group(1)
-                    token_nr = 0
-                else:
-                    mo = self._sent_id_re.match(line)
-                    if mo:
-                        sent_id = mo.group(1)
-                        token_nr = 0
-        if namedata:
-            self._add_name(namedata, nametag, text_id, sent_id, token_nr)
+        if nameinfo.namedata:
+            self._add_name(nameinfo.namedata, nameinfo.nametag, text_id,
+                           sent_id, token_nr)
 
     def _add_name(self, namedata, nametag, text_id, sent_id, last_token_nr):
         if nametag.startswith('Timex') or nametag.startswith('Numex'):
