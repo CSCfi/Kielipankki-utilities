@@ -18,6 +18,10 @@ from collections import defaultdict
 from os.path import basename
 
 
+def _get_fieldnr(fieldnr):
+    return fieldnr if fieldnr <= 0 else fieldnr - 1
+
+
 class Names(object):
 
     class SentInfo(object):
@@ -119,11 +123,7 @@ class NameExtractor(object):
         class Namespace(object):
             pass
 
-        def _get_fieldnr(fieldnr):
-            return fieldnr if fieldnr <= 0 else fieldnr - 1
-
         nametag_fieldnr = _get_fieldnr(self._opts.name_tag_field_number)
-        lemma_fieldnr = _get_fieldnr(self._opts.lemma_field_number)
         nameinfo = Namespace()
         nameinfo.namedata = []
         nameinfo.nametag = None
@@ -141,13 +141,13 @@ class NameExtractor(object):
                 nameinfo.namedata = []
             nameinfo.nametag = nametag_new
             if nameinfo.nametag and nameinfo.nametag != '_':
-                nameinfo.namedata.append((fields[0], fields[lemma_fieldnr]))
+                nameinfo.namedata.append(fields)
 
         def _process_namedata_startend(nameinfo, fields):
             nametag_orig = fields[nametag_fieldnr]
             nameinfo.nametag = nametag_orig.strip('/')
             if nametag_orig.startswith('/') or nametag_orig.endswith('/'):
-                nameinfo.namedata.append((fields[0], fields[lemma_fieldnr]))
+                nameinfo.namedata.append(fields)
                 self._add_name(nameinfo.namedata, nameinfo.nametag, text_id,
                                sent_id, token_nr)
                 nameinfo.namedata = []
@@ -155,7 +155,7 @@ class NameExtractor(object):
             elif nametag_orig != '_':
                 nameinfo.within_name = True
             if nameinfo.within_name:
-                nameinfo.namedata.append((fields[0], fields[lemma_fieldnr]))
+                nameinfo.namedata.append(fields)
 
         process_namedata_fns = {'simple': _process_namedata_simple,
                                 'startend': _process_namedata_startend}
@@ -188,6 +188,7 @@ class NameExtractor(object):
                            sent_id, token_nr)
 
     def _add_name(self, namedata, nametag, text_id, sent_id, last_token_nr):
+        lemma_fieldnr = _get_fieldnr(self._opts.lemma_field_number)
         if nametag.startswith('Timex') or nametag.startswith('Numex'):
             name = ' '.join(token[0] for token in namedata)
         else:
@@ -195,7 +196,8 @@ class NameExtractor(object):
                 name = ' '.join(token[0] for token in namedata[:-1]) + ' '
             else:
                 name = ''
-            last_wordform, last_lemma = namedata[-1]
+            last_wordform = namedata[-1][0]
+            last_lemma = namedata[-1][lemma_fieldnr]
             if last_wordform.istitle():
                 name += last_lemma.title()
             elif last_wordform.isupper():
