@@ -188,6 +188,9 @@ class NameExtractor(object):
                            sent_id, token_nr)
 
     def _add_name(self, namedata, nametag, text_id, sent_id, last_token_nr):
+        if ((self._opts.include_filter and not eval(self._opts.include_filter))
+            or (self._opts.exclude_filter and eval(self._opts.exclude_filter))):
+            return
         lemma_fieldnr = _get_fieldnr(self._opts.lemma_field_number)
         if nametag.startswith('Timex') or nametag.startswith('Numex'):
             name = ' '.join(token[0] for token in namedata)
@@ -297,6 +300,8 @@ def getopts():
                          action='store_true', default=False)
     optparser.add_option('--temp-dir', '--temporary-directory', default=None)
     optparser.add_option('--skip-names-list', '--stop-list')
+    optparser.add_option('--include-filter')
+    optparser.add_option('--exclude-filter')
     (opts, args) = optparser.parse_args()
     if opts.output_prefix is None and opts.corpus_name is not None:
         opts.output_prefix = 'names_' + opts.corpus_name
