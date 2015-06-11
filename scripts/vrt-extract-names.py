@@ -137,7 +137,7 @@ class NameExtractor(object):
             nametag_new = fields[nametag_fieldnr]
             if nameinfo.namedata and nametag_new != nameinfo.nametag:
                 self._add_name(nameinfo.namedata, nameinfo.nametag, text_id,
-                               sent_id, token_nr)
+                               sent_id, token_nr - 1)
                 nameinfo.namedata = []
             nameinfo.nametag = nametag_new
             if nameinfo.nametag and nameinfo.nametag != '_':
@@ -165,9 +165,9 @@ class NameExtractor(object):
             if not line:
                 continue
             elif line[0] != '<':
+                token_nr += 1
                 fields = line.split('\t')
                 process_namedata_fn(nameinfo, fields)
-                token_nr += 1
             else:
                 if nameinfo.namedata:
                     self._add_name(nameinfo.namedata, nameinfo.nametag,
