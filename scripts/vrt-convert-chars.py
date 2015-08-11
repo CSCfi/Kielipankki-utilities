@@ -41,6 +41,11 @@ class CharConverter(object):
         self._add_xml_char_refs_to_convert_map()
         if opts.mode == 'decode':
             self._convert_map = [(enc, dec) for dec, enc in self._convert_map]
+        self._struct_re = (
+            (r'</?(?:' + '|'.join(re.split(r'\s*[\s,]\s*',
+                                        self._opts.recognize_structs))
+             + r')(?:\s.*)?/?>\s*$')
+            if self._opts.recognize_structs else r'<.+>\s*$')
 
     def _add_xml_char_refs_to_convert_map(self):
         if self._opts.convert_xml_char_refs:
@@ -113,6 +118,14 @@ Encode or decode in VRT files special characters that are problematic in CWB."""
         dest='convert_xml_char_refs', default=True, action='store_false',
         help=('do not encode XML character entity references that correspond '
               ' to special characters to be encoded'))
+    optparser.add_option(
+        '--recognize-structs',
+        metavar='STRUCTLIST',
+        help=('recognize only the structural attribute names listed in'
+              ' STRUCTLIST, separated by spaces or commas; the characters in'
+              ' all other XML-tag-like tokens are encoded as positional'
+              ' attributes; by default, treat all lines beginning with < and'
+              ' ending in > as structural tags'))
     optparser.add_option(
         '--mode', type='choice', choices=['encode', 'decode'], default='encode',
         help=('MODE specifies the direction of conversion: encode or decode'
