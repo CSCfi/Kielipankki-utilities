@@ -1,58 +1,185 @@
 #! /bin/bash
 
-scriptdir=`dirname $0`
+progname=$(basename $0)
+progdir=$(dirname $0)
 
-ls -lS in/klk_fi*.tgz |
-gawk '{printf "%2d\t%s\n", log($5)/log(2)+1, gensub("[^0-9]+", "", "g", $8)}' > all_years.txt
+shortopts="hnc:f:r:i:o:l:t:v"
+longopts="help,dry-run,corpus-name:,input-fields:,relation-map:,input:,output-dir:,log-dir:,token-count:,verbose"
 
+corpus_name=
+input_fields=
+relation_map=
+input=
+output_dir=.
+log_dir=.
 action=sbatch
-if [ "x$1" = "x--dry-run" ] || [ "x$1" = "x-n" ]; then
-    action=cat
+verbose=
+token_count=
+default_token_count=10M
+
+. $progdir/korp-lib.sh
+
+
+usage () {
+    cat <<EOF
+Usage: $progname [options]
+
+Subtmit a SLURM batch job to extract dependency relations for the Korp
+word picture.
+
+Options:
+  -h, --help
+  -n, --dry-run
+  -c, --corpus-name CORPUS
+  -f, --input-fields FIELDLIST
+  -r, --relation-map FILE
+  -i, --input FILESPEC
+  -o, --output-dir DIR
+  -l, --log-dir DIR
+  -t, --token-count NUM
+  -v, --verbose
+
+EOF
+    exit 0
+}
+
+# Process options
+while [ "x$1" != "x" ] ; do
+    case "$1" in
+	-h | --help )
+	    usage
+	    ;;
+	-n | --dry-run )
+	    action=cat
+	    ;;
+	-c | --corpus-name )
+	    corpus_name=$2
+	    shift
+	    ;;
+	-f | --input-fields )
+	    input_fields=$2
+	    shift
+	    ;;
+	-r | --relation-map )
+	    relation_map=$2
+	    shift
+	    ;;
+	-i | --input )
+	    input=$2
+	    shift
+	    ;;
+	-o | --output-dir )
+	    output_dir=$2
+	    shift
+	    ;;
+	-l | --log-dir )
+	    log_dir=$2
+	    shift
+	    ;;
+	-t | --token-count )
+	    token_count=$2
+	    shift
+	    ;;
+	-v | --verbose )
+	    verbose=1
+	    ;;
+	-- )
+	    shift
+	    break
+	    ;;
+	--* )
+	    warn "Unrecognized option: $1"
+	    ;;
+	* )
+	    break
+	    ;;
+    esac
     shift
-fi
-
-runner_opts=
-if [ "x$1" = "x--new" ]; then
-    runner_opts=--new
-    shift
-fi
-
-if [ "x$1" != x ]; then
-    sizes="$*"
-else
-    sizes=`cut -f1 all_years.txt | sort -u`
-fi
-
-for size in $sizes; do
-    rm -f years_$size.txt
-    for year in `egrep "^$size" all_years.txt | cut -f2`; do
-	if [ ! -e $scriptdir/out/klk_fi_${year}_rels.tar ]; then
-	    echo $year >> years_$size.txt
-	fi
-    done
 done
 
-for size in $sizes; do
-    if [ -s years_$size.txt ]; then
-	name=rels_$size
-	num=`wc -l < years_$size.txt`
-	mins=`gawk 'BEGIN {a = 2 ** ('$size' - 20) / 10 + 1; printf "%d", a}'`
-	mem=`gawk 'BEGIN {a = 2 ** ('$size' - 14); if (a < 128) {a = 128} if (a > 128000) {a = 128000}; print a}'`
-	$action <<EOF
+
+if [ $action = sbatch ] && ! find_prog sbatch > /dev/null; then
+    error "Please run in a system with SLURM installed."
+fi
+
+if [ "x$corpus_name" = x ]; then
+    error "Please specify corpus name with --corpus-name"
+fi
+if [ "x$input_fields" = x ]; then
+    error "Please specify input field names with --input-fields"
+fi
+if [ "x$relation_map" = x ]; then
+    error "Please specify relation map file with --relation-map"
+fi
+
+if [ -e "$output_dir/${corpus_name}_rels.tar" ]; then
+    error "Output file $output_dir/${corpus_name}_rels.tar already exists"
+fi
+
+if [ "x$token_count" = x ]; then
+    if [ "x$input" != x ]; then
+	if [ -d "$input" ]; then
+	    for ext in vrt vrt.gz vrt.bz2 vrt.xz; do
+		files=$(ls $input/*.$ext 2> /dev/null)
+		if [ "x$files" != x ]; then
+		    input="$files"
+		    break
+		fi
+	    done
+	fi
+	token_count=$(comprcat $input | grep -cv '^<')
+    else
+	token_count=$default_token_count
+    fi
+fi
+
+case $token_count in
+    *[kK] )
+	multiplier=1000
+	;;
+    *[mM] )
+	multiplier=1000000
+	;;
+    *[gG] )
+	multiplier=1000000000
+	;;
+    * )
+	multiplier=1
+	;;
+esac
+if [ $multiplier != 1 ]; then
+    token_count_base=${token_count%[kKmMgG]}
+    token_count=$(($token_count_base * $multiplier))
+fi
+
+mins=$(($token_count / 500000 + 1))
+mem=$(($token_count / 1000))
+test $mem -lt 128 && mem=128
+test $mem -gt 128000 && mem=128000
+
+if [ "x$verbose" != x ]; then
+    cat <<EOF
+Submitting job "extrels_$corpus_name" to partition "serial"
+Max run time: $mins mins
+RAM per CPU: $mem MiB
+EOF
+fi
+
+$action <<EOF
 #! /bin/bash -l
-#SBATCH -J $name
-#SBATCH -o log/${name}_%A_%a.out
-#SBATCH -e log/${name}_%A_%a.err
+#SBATCH -J extrels_$corpus_name
+#SBATCH -o $log_dir/extrels_log-${corpus_name}-%A.out
+#SBATCH -e $log_dir/extrels_log-${corpus_name}-%A.err
 #SBATCH -t $mins
 #SBATCH --mem-per-cpu $mem
-#SBATCH --array=1-$num
 #SBATCH -n 1
 #SBATCH -p serial
 
-cd $scriptdir
-year=\$(sed -n "\$SLURM_ARRAY_TASK_ID"p years_$size.txt)
-echo Job: $SLURM_JOB_ID $SLURM_JOB_NAME
-./run-extract-rels.sh $runner_opts \$year
+. $progdir/korp-lib.sh
+
+echo Job: \$SLURM_JOB_ID \$SLURM_JOB_NAME
+comprcat $input |
+$progdir/run-extract-rels.sh --corpus-name $corpus_name \
+    --input-fields "$input_fields" --relation-map "$relation_map" \
+    --output-dir "$output_dir"
 EOF
-    fi
-done
