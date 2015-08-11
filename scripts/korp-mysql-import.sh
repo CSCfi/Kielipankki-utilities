@@ -430,7 +430,7 @@ mysql_import () {
     run_mysql "
 	    set autocommit = 0;
 	    set unique_checks = 0;
-	    load data local infile '$fifo' into table $tablename fields escaped by '';
+	    load data local infile '$fifo' into table $tablename character set utf8 fields escaped by '';
 	    commit;
 	    show count(*) warnings;
 	    show warnings;" |
