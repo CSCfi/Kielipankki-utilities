@@ -58,10 +58,9 @@ class Deprels(object):
               'voc': 'TT',
               '_': 'XX'}
 
-    def __init__(self, relmap=None, include_wordforms=False,
-                 output_type=None):
+    def __init__(self, relmap=None, wordform_pairtypes=None, output_type=None):
         self.relmap = relmap or self.__class__.relmap
-        self._include_wordforms = include_wordforms
+        self._wordform_pairtypes = wordform_pairtypes or set()
         self._output_type = output_type
         iter_suffix = ('_stringids' if output_type == 'new-strings'
                        else '_strings')
@@ -141,18 +140,16 @@ class Deprels(object):
 
     def iter_freqs_stringids(self):
         for key in self.sentences:
-            (head, rel, dep, wf) = key
-            wf_num = '1' if wf else '0'
-            bf_num = '0' if wf else '1'
+            (head, rel, dep, wf_head, wf_dep) = key
             yield (str(self.sentences[key].id),  # id
                    self._get_string_id(head),
                    rel,
                    self._get_string_id(dep),
                    str(self.sentences[key].get_len()),  # freq
-                   bf_num,  # bfhead
-                   bf_num,  # bfdep
-                   wf_num,  # wfhead
-                   wf_num)  # wfdep
+                   str(int(not wf_head)),  # bfhead
+                   str(int(not wf_dep)),   # bfdep
+                   str(int(wf_head)),      # wfhead
+                   str(int(wf_dep)))       # wfdep
 
     def iter_freqs_rel(self):
         for rel in self.freqs_rel:
@@ -194,10 +191,11 @@ class Deprels(object):
 
     def add(self, sent_id, data):
 
-        def add_info(rel, dep, head, depnr, headnr, is_wordform=False):
+        def add_info(rel, head, dep, headnr, depnr, wf_head=False,
+                     wf_dep=False):
             self.freqs_head_rel[(head, rel)] += 1
             self.freqs_rel_dep[(rel, dep)] += 1
-            self.sentences[(head, rel, dep, is_wordform)].add_info(
+            self.sentences[(head, rel, dep, wf_head, wf_dep)].add_info(
                 [(sent_id, min(wordnr, headnr) + 1,
                   max(wordnr, headnr) + 1)])
 
@@ -214,11 +212,18 @@ class Deprels(object):
                 rel = self.relmap.get(deprel, 'XX')
                 head = data[headnr][0]
                 self.freqs_rel[rel] += 1
-                add_info(rel, dep, head, wordnr, headnr)
-                if self._include_wordforms:
-                    dep_wform = wform + '_' + self._get_pos(dep)
+                add_info(rel, head, dep, headnr, wordnr)
+                if self._wordform_pairtypes:
                     head_wform = data[headnr][-1] +  '_' + self._get_pos(head)
-                    add_info(rel, dep_wform, head_wform, wordnr, headnr, True)
+                    dep_wform = wform + '_' + self._get_pos(dep)
+                    if 'wf' in self._wordform_pairtypes:
+                        add_info(rel, head_wform, dep_wform, headnr, wordnr,
+                                 True, True)
+                    if 'bf' in self._wordform_pairtypes:
+                        add_info(rel, head_wform, dep, headnr, wordnr, True,
+                                 False)
+                        add_info(rel, head, dep_wform, headnr, wordnr, False,
+                                 True)
 
     def get_sizes(self):
         sizes = []
@@ -235,7 +240,7 @@ class RelationExtractor(object):
         relmap = None
         if opts.relation_map:
             relmap = self._read_relmap(opts.relation_map)
-        self._deprels = Deprels(relmap, opts.include_word_forms,
+        self._deprels = Deprels(relmap, opts.word_form_pair_type,
                                 opts.output_type)
         self._temp_fnames = {}
         if self._opts.input_fields:
@@ -421,6 +426,16 @@ class RelationExtractor(object):
 
 def getopts():
     optparser = OptionParser()
+    word_form_pair_types = {'none': set(),
+                            'wf': set(['wf']),
+                            'bf': set(['bf']),
+                            'wf+bf': set(['wf', 'bf'])}
+    for val, aliases in [('none', [None]),
+                         ('wf', ['wordform', 'word-form']),
+                         ('bf', ['baseform', 'base-form', 'lemma', 'lemgram']),
+                         ('wf+bf', ['both'])]:
+        for alias in aliases:
+            word_form_pair_types[alias] = word_form_pair_types[val]
     optparser.add_option('--input-type', '--mode', type='choice',
                          choices=['ftb2', 'ftb3', 'ftb3-extrapos'],
                          default='ftb2')
@@ -439,6 +454,10 @@ def getopts():
     optparser.add_option('--relation-map')
     optparser.add_option('--inverse-relation-map', action='store_true',
                          default=False)
+    optparser.add_option('--word-form-pair-type', type='choice',
+                         choices=word_form_pair_types.keys())
+    # --include-word-forms superseded by --word-form-pair-type=wordform;
+    # retained for backward compatibility
     optparser.add_option('--include-word-forms', action='store_true')
     (opts, args) = optparser.parse_args()
     if opts.output_prefix is None and opts.corpus_name is not None:
@@ -449,6 +468,9 @@ def getopts():
         exit(1)
     if opts.compress == 'none' and not opts.sort:
         opts.temp_files = False
+    if opts.include_word_forms and not opts.word_form_pair_type:
+        opts.word_form_pair_type = 'wordform'
+    opts.word_form_pair_type = word_form_pair_types[opts.word_form_pair_type]
     return (opts, args)
 
 
