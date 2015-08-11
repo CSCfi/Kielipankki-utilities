@@ -31,6 +31,24 @@ find_filegroup () {
     fi
 }
 
+find_prog () {
+    _prog=$1
+    shift
+    _path=`which "$_prog" 2> /dev/null`
+    if [ "x$_path" != "x" ]; then
+	echo "$_path"
+	return 0
+    else
+	for _dir in "$@"; do
+	    if [ -x "$_dir/$_prog" ]; then
+		echo "$_dir/$_prog"
+		return 0
+	    fi
+	done
+    fi
+    return 1
+}
+
 ensure_perms () {
     chgrp -R $filegroup "$@"
     chmod -R g+rwX "$@"
@@ -56,12 +74,53 @@ cleanup_abort () {
     exit 1
 }
 
+get_host_env () {
+    case $HOSTNAME in
+	taito* | c[0-9] | c[0-9][0-9] | c[0-9][0-9][0-9] )
+	    echo taito
+	    ;;
+	korp*.csc.fi )
+	    echo korp
+	    ;;
+	nyklait-09-01* )
+	    echo nyklait-09-01
+	    ;;
+	* )
+	    echo unknown
+	    ;;
+    esac
+}
 
 toupper () {
     echo "$1" |
     sed -e 's/\(.*\)/\U\1\E/'
 }
 
+comprcat () {
+    if [ "x$1" = x ]; then
+	cat
+    else
+	for fname in "$@"; do
+	    case "$fname" in
+		*.bz2 )
+		    bzcat "$fname"
+		    ;;
+		*.gz )
+		    zcat "$fname"
+		    ;;
+		*.xz )
+		    xzcat "$fname"
+		    ;;
+		*.tar | *.tar.[bgx]z | *.tar.bz2 | *.t[bgx]z | *.tbz2 )
+		    tar -xaOf "$fname"
+		    ;;
+		* )
+		    cat "$fname"
+		    ;;
+	    esac
+	done
+    fi
+}
 
 
 # Common initialization code
