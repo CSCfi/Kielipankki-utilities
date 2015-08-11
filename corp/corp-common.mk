@@ -381,7 +381,9 @@ WORDPICT_RELMAP := $(call partvar,WORDPICT_RELMAP)
 MAKE_RELS_OPTS_EXTRA := $(call partvar,MAKE_RELS_OPTS_EXTRA)
 MAKE_RELS_OPTS := \
 	$(call partvar_or_default,MAKE_RELS_OPTS,\
-		--sort $(MAKE_RELS_OPTS_EXTRA))
+		--sort --output-type=new-strings \
+		--word-form-pair-type=baseform \
+		$(MAKE_RELS_OPTS_EXTRA))
 MAKE_RELS_CMD := \
 	$(call partvar_or_default,MAKE_RELS_CMD,\
 		$(if $(CORPUS_HAS_DEPRELS),\
