@@ -134,7 +134,7 @@ default_filegroups="korp clarin"
 find_filegroup $default_filegroups
 
 tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
-tmp_prefix=$tmpdir/$progname
+tmp_prefix=$tmpdir/$progname.$$
 
 # Korp MySQL database
 korpdb=korp
@@ -161,15 +161,17 @@ if [ "x$longopts" != x ]; then
     longopts="-l $longopts"
 fi
 
-# Test if GNU getopt
-getopt -T > /dev/null
-if [ $? -eq 4 ]; then
-    # This requires GNU getopt
-    args=`getopt $shortopts $longopts -n "$progname" -- "$@"`
-    if [ $? -ne 0 ]; then
-	exit 1
+if [ "x$shortopts" != x ] || [ "x$longopts" != x ]; then
+    # Test if GNU getopt
+    getopt -T > /dev/null
+    if [ $? -eq 4 ]; then
+	# This requires GNU getopt
+	args=`getopt $shortopts $longopts -n "$progname" -- "$@"`
+	if [ $? -ne 0 ]; then
+	    exit 1
+	fi
+	eval set -- "$args"
     fi
-    eval set -- "$args"
+    # If not GNU getopt, arguments of long options must be separated from
+    # the option string by a space; getopt allows an equals sign.
 fi
-# If not GNU getopt, arguments of long options must be separated from
-# the option string by a space; getopt allows an equals sign.
