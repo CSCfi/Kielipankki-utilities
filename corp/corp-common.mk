@@ -374,6 +374,9 @@ MAKE_VRT_DEPS = $(MAKE_VRT_PROG) $(call partvar,XML2VRT_RULES) \
 		$(call partvar,LEMGRAM_POSMAP) \
 		$(call partvar,MAKE_VRT_DEPS_EXTRA)
 
+MAKE_VRT_SETUP := $(call partvar,MAKE_VRT_SETUP)
+MAKE_VRT_CLEANUP := $(call partvar,MAKE_VRT_CLEANUP)
+
 WORDPICT_RELMAP := $(call partvar,WORDPICT_RELMAP)
 MAKE_RELS_OPTS_EXTRA := $(call partvar,MAKE_RELS_OPTS_EXTRA)
 MAKE_RELS_OPTS := \
