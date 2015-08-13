@@ -68,6 +68,7 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	--keep-temp-files )
 	    keep_temp_files=1
+	    cleanup_on_exit=
 	    ;;
 	-- )
 	    shift
@@ -98,22 +99,23 @@ date +'Start: %F %T %s.%N'
 
 echo Corpus: $corpus_name
 rels_tar=${corpus_name}_rels.tar
+tmpfile_dir=$tmp_prefix.work
 
 if [ ! -e $rels_tar ]; then
     if [ "x$hostenv" = "xtaito" ]; then
 	module load python-env/2.7.6
     fi
-    mkdir -p $output_dir
+    mkdir -p $output_dir $tmpfile_dir
 
     $progdir/vrt-extract-relations.py \
-	--output-prefix "$output_dir/${corpus_name}_rels" \
+	--output-prefix "$tmpfile_dir/${corpus_name}_rels" \
 	--input-fields "$input_fields" \
 	--relation-map "$relation_map" \
 	$extract_rels_opts
     # --sort --compress=gzip --temporary-files
     # Sorting and compressing files within vrt-extract-relations.py
     # often seems to leave the rels_sentences file incomplete. Why?
-    for f in $output_dir/*.tsv; do
+    for f in $tmpfile_dir/*.tsv; do
 	mv $f $f.unsorted
 	sort_opts=
 	case $f in
@@ -126,12 +128,12 @@ if [ ! -e $rels_tar ]; then
     # tar cpf $rels_tar -C $output_dir --wildcards \*_rels\*.gz
     # Wildcards do not seem to work above in tar even with --wildcards. Why?
     (
-	cd $output_dir
-	tar cpf $rels_tar --wildcards ${corpus_name}_rels*.tsv.gz
-	if [ "x$keep_temp_files" = x ]; then
-	    rm ${corpus_name}_rels*.tsv.gz ${corpus_name}_rels*.tsv.unsorted
-	fi
+	cd $tmpfile_dir
+	tar cpf $output_dir/$rels_tar --wildcards ${corpus_name}_rels*.tsv.gz
     )
+    if [ "x$keep_temp_files" = x ]; then
+	rm -rf $tmpfile_dir
+    fi
 fi
 
 date +'End: %F %T %s.%N'

@@ -64,7 +64,7 @@ error () {
 }
 
 cleanup () {
-    if [ "x$tmp_prefix" != "x" ]; then
+    if [ "x$tmp_prefix" != "x" ] && [ "x$cleanup_on_exit" != x ]; then
 	rm -rf $tmp_prefix.*
     fi
 }
@@ -148,6 +148,8 @@ fi
 if [ "x$KORP_MYSQL_PASSWORD" != "x" ]; then
     mysql_opts="$mysql_opts --password=$KORP_MYSQL_PASSWORD"
 fi
+
+cleanup_on_exit=1
 
 
 trap cleanup 0
