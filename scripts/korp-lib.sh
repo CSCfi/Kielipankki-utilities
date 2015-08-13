@@ -63,6 +63,32 @@ error () {
     exit 1
 }
 
+# If $verbose is set, call the first argument with the rest of
+# arguments as parameters
+verbose () {
+    if [ "x$verbose" != x ]; then
+	_cmd=$1
+	shift
+	$_cmd "$@"
+    fi
+}
+
+# Output timestamped (ISO date+time and epoch+nanoseconds) text
+echo_timestamp () {
+    date +"[%F %T %s.%N] $*"
+}
+
+# Show subprocess CPU usage information
+subproc_times () {
+    printf "Subprocess times: "
+    # A pipe cannot be used, since each process is run in a separate
+    # shell, so the times would be for that shell only.
+    times > $tmp_prefix.times
+    tail -1 $tmp_prefix.times |
+    sed -e 's/m/:/g; s/s//g;'
+    rm $tmp_prefix.times
+}
+
 cleanup () {
     if [ "x$tmp_prefix" != "x" ] && [ "x$cleanup_on_exit" != x ]; then
 	rm -rf $tmp_prefix.*

@@ -2,11 +2,12 @@
 
 progname=`basename $0`
 progdir=`dirname $0`
+cmdline="$@"
 
 export LC_ALL=C
 
-shortopts="hc:f:r:o:"
-longopts="help,corpus-name:,input-fields:,relation-map:,output-dir:,optimize-memory,keep-temp-files"
+shortopts="hc:f:r:o:v"
+longopts="help,corpus-name:,input-fields:,relation-map:,output-dir:,optimize-memory,keep-temp-files,verbose"
 
 corpus_name=
 input_fields=
@@ -15,6 +16,7 @@ input=
 output_dir=.
 optimize_memory=
 keep_temp_files=
+verbose=
 
 extract_rels_opts="--output-type=new-strings --word-form-pair-type=baseform"
 
@@ -40,6 +42,7 @@ Options:
   -o, --output-dir DIR
   --optimize-memory
   --keep-temp-files
+  -v, --verbose
 EOF
     exit 0
 }
@@ -78,6 +81,9 @@ while [ "x$1" != "x" ] ; do
 	    keep_temp_files=1
 	    cleanup_on_exit=
 	    ;;
+	-v | --verbose )
+	    verbose=1
+	    ;;
 	-- )
 	    shift
 	    ;;
@@ -100,6 +106,12 @@ fi
 if [ "x$relation_map" = x ]; then
     error "Please specify relation map file with --relation-map"
 fi
+
+tempdir_usage () {
+    printf "Tempdir usage: "
+    du -sh $tmpfile_dir |
+    cut -d'	' -f1
+}
 
 sort_and_gzip () {
     for f in "$@"; do
@@ -150,9 +162,10 @@ process_raw_output () {
 
 hostenv=`get_host_env`
 
-date +'Start: %F %T %s.%N'
+verbose echo Run: $0 "$cmdline"
+verbose echo Corpus: $corpus_name
+verbose echo_timestamp Start
 
-echo Corpus: $corpus_name
 rels_tar=${corpus_name}_rels.tar
 tmpfile_dir=$tmp_prefix.work
 
@@ -161,29 +174,37 @@ if [ ! -e $rels_tar ]; then
 	module load python-env/2.7.6
     fi
     mkdir -p $output_dir $tmpfile_dir
-
+    verbose echo_timestamp vrt-extract-relations
     $progdir/vrt-extract-relations.py \
 	--output-prefix "$tmpfile_dir/${corpus_name}_rels" \
 	--input-fields "$input_fields" \
 	--relation-map "$relation_map" \
 	$extract_rels_opts
+    verbose subproc_times
     # --sort --compress=gzip --temporary-files
     # Sorting and compressing files within vrt-extract-relations.py
     # often seems to leave the rels_sentences file incomplete. Why?
+    verbose tempdir_usage
     if [ "x$optimize_memory" != x ]; then
+	verbose echo_timestamp Postprocess: raw output
 	process_raw_output
     else
+	verbose echo_timestamp Postprocess: sort and gzip
 	sort_and_gzip $tmpfile_dir/*.tsv
     fi
+    verbose subproc_times
+    verbose tempdir_usage
+    verbose echo_timestamp tar
     # tar cpf $rels_tar -C $output_dir --wildcards \*_rels\*.gz
     # Wildcards do not seem to work above in tar even with --wildcards. Why?
     (
 	cd $tmpfile_dir
 	tar cpf $output_dir/$rels_tar --wildcards ${corpus_name}_rels*.tsv.gz
     )
+    verbose subproc_times
     if [ "x$keep_temp_files" = x ]; then
 	rm -rf $tmpfile_dir
     fi
 fi
 
-date +'End: %F %T %s.%N'
+verbose echo_timestamp End
