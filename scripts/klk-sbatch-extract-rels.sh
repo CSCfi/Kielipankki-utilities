@@ -4,10 +4,14 @@ progdir=`dirname $0`
 progname=`basename $0`
 basedir=/wrk/jyniemi/corpora/vrt/klk_fi_parsed
 
-shortopts="hn"
-longopts="help,dry-run"
+shortopts="hnc:f:r:i:o:l:t:"
+longopts="help,dry-run,timelimit:,memory:,timelimit-factor:,memory-factor:"
 
 action=sbatch
+timelimit=
+memory=
+timelimit_factor=100
+memory_factor=100
 
 . $progdir/korp-lib.sh
 
@@ -22,6 +26,10 @@ corpora for the Korp word picture.
 Options:
   -h, --help
   -n, --dry-run
+  --timelimit MINS
+  --memory MB
+  --timelimit-factor PERCENTAGE
+  --memory-factor PERCENTAGE
 EOF
     exit 0
 }
@@ -34,6 +42,22 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-n | --dry-run )
 	    action=cat
+	    ;;
+	--timelimit )
+	    timelimit=$2
+	    shift
+	    ;;
+	--memory )
+	    memory=$2
+	    shift
+	    ;;
+	--timelimit-factor )
+	    timelimit_factor=$2
+	    shift
+	    ;;
+	--memory-factor )
+	    memory_factor=$2
+	    shift
 	    ;;
 	-- )
 	    shift
@@ -73,15 +97,19 @@ for size in $sizes; do
     if [ -s $basedir/years_$size.txt ]; then
 	name=extrels_klk_$size
 	num=`wc -l < $basedir/years_$size.txt`
-	mins=`gawk 'BEGIN {a = 2 ** ('$size' - 20) / 10 + 1; printf "%d", a}'`
-	mem=`gawk 'BEGIN {a = 2 ** ('$size' - 14) * 1.25; if (a < 128) {a = 128} if (a > 128000) {a = 128000}; print a}'`
+	if [ "x$timelimit" = x ]; then
+	    timelimit=`gawk 'BEGIN {a = (2 ** ('$size' - 19) / 10 + 1) * '$timelimit_factor' / 100; printf "%d", a}'`
+	fi
+	if [ "x$memory" = x ]; then
+	    memory=`gawk 'BEGIN {a = (2 ** ('$size' - 15)) * '$memory_factor' / 100; if (a < 32) {a = 32} if (a > 128000) {a = 128000}; print a}'`
+	fi
 	$action <<EOF
 #! /bin/bash -l
 #SBATCH -J $name
 #SBATCH -o $basedir/log/${name}_%A_%a.out
 #SBATCH -e $basedir/log/${name}_%A_%a.err
-#SBATCH -t $mins
-#SBATCH --mem-per-cpu $mem
+#SBATCH -t $timelimit
+#SBATCH --mem-per-cpu $memory
 #SBATCH --array=1-$num
 #SBATCH -n 1
 #SBATCH -p serial
