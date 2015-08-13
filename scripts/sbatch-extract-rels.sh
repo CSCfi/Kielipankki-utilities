@@ -206,8 +206,9 @@ $action <<EOF
 . $progdir/korp-lib.sh
 
 echo Job: \$SLURM_JOB_ID \$SLURM_JOB_NAME
+echo Input: $input
 comprcat $input |
 $progdir/run-extract-rels.sh --corpus-name $corpus_name \
     --input-fields "$input_fields" --relation-map "$relation_map" \
-    --output-dir "$output_dir" --optimize-memory
+    --output-dir "$output_dir" --optimize-memory --verbose
 EOF

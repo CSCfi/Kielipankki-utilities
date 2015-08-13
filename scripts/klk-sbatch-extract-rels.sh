@@ -86,7 +86,7 @@ else
     sizes=`cut -f1 $basedir/all_years.txt | sort -u`
 fi
 
-runner_opts="--input-fields 'word lemma lemmacomp pos msd dephead deprel ref ocr lex' --relation-map $basedir/in/wordpict_relmap_tdt.tsv --optimize-memory"
+runner_opts="--input-fields 'word lemma lemmacomp pos msd dephead deprel ref ocr lex' --relation-map $basedir/in/wordpict_relmap_tdt.tsv --optimize-memory --verbose"
 
 for size in $sizes; do
     rm -f $basedir/years_$size.txt
