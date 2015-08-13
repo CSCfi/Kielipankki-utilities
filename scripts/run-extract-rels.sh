@@ -3,14 +3,17 @@
 progname=`basename $0`
 progdir=`dirname $0`
 
+export LC_ALL=C
+
 shortopts="hc:f:r:o:"
-longopts="help,corpus-name:,input-fields:,relation-map:,output-dir:,keep-temp-files"
+longopts="help,corpus-name:,input-fields:,relation-map:,output-dir:,optimize-memory,keep-temp-files"
 
 corpus_name=
 input_fields=
 relation_map=
 input=
 output_dir=.
+optimize_memory=
 keep_temp_files=
 
 extract_rels_opts="--output-type=new-strings --word-form-pair-type=baseform"
@@ -35,6 +38,7 @@ Options:
   -r, --relation-map FILE
   -i, --input FILESPEC
   -o, --output-dir DIR
+  --optimize-memory
   --keep-temp-files
 EOF
     exit 0
@@ -66,6 +70,10 @@ while [ "x$1" != "x" ] ; do
 	    output_dir=$2
 	    shift
 	    ;;
+	--optimize-memory )
+	    optimize_memory=1
+	    extract_rels_opts="$extract_rels_opts --raw-output"
+	    ;;
 	--keep-temp-files )
 	    keep_temp_files=1
 	    cleanup_on_exit=
@@ -93,6 +101,53 @@ if [ "x$relation_map" = x ]; then
     error "Please specify relation map file with --relation-map"
 fi
 
+sort_and_gzip () {
+    for f in "$@"; do
+	mv $f $f.unsorted
+	sort_opts=
+	case $f in
+	    *_rels.tsv | *_rels_sentences.tsv | *_rels_strings.tsv )
+		sort_opts=-n
+		;;
+	esac
+	sort $sort_opts $f.unsorted | gzip > $f.gz
+    done
+}
+
+process_raw_output () {
+    # Tab, to be used in sed expressions for better compatibility
+    # than \t
+    tab='	'
+    base_name=$tmpfile_dir/${corpus_name}_rels
+    for reltype in head_rel dep_rel; do
+	sort -n ${base_name}_${reltype}.raw.tsv |
+	uniq -c |
+	sed -e "s/^ *\([0-9]\+\) \(.*\)/\2${tab}\1/" |
+	gzip > ${base_name}_${reltype}.tsv.gz
+    done
+    fifo=$tmpfile_dir/rel_ids.fifo
+    rel_ids_fname=$tmpfile_dir/rel_ids.tsv
+    mkfifo $fifo
+    (
+	sort -nr |
+	sed -e "s/^ *\([0-9]\+\)${tab} *[0-9]\+ \([^ ${tab}]\+\).*/\2${tab}\1/" < $fifo |
+	sort -t"${tab}" -k1,1 > $rel_ids_fname
+    ) &
+    fifo_pid=$!
+    sort ${base_name}.raw.tsv |
+    uniq -c |
+    cat -n |
+    tee $fifo |
+    sed -e "s/^ *\([0-9]\+\)${tab} *\([0-9]\+\) \([^${tab}]\+\)${tab}\([^${tab}]\+${tab}[^${tab}]\+${tab}[^${tab}]\+\)/\1${tab}\4${tab}\2/" |
+    gzip > ${base_name}.tsv.gz
+    wait $fifo_pid
+    sort -t"${tab}" -k1,1 ${base_name}_sentences.raw.tsv |
+    join -t"${tab}" -j1 -o '2.2 1.2 1.3 1.4' - $rel_ids_fname |
+    sort -n |
+    gzip > ${base_name}_sentences.tsv.gz
+    sort_and_gzip ${base_name}_rel.tsv ${base_name}_strings.tsv
+}
+
 hostenv=`get_host_env`
 
 date +'Start: %F %T %s.%N'
@@ -115,16 +170,11 @@ if [ ! -e $rels_tar ]; then
     # --sort --compress=gzip --temporary-files
     # Sorting and compressing files within vrt-extract-relations.py
     # often seems to leave the rels_sentences file incomplete. Why?
-    for f in $tmpfile_dir/*.tsv; do
-	mv $f $f.unsorted
-	sort_opts=
-	case $f in
-	    *_rels.tsv | *_rels_sentences.tsv | *_rels_strings.tsv )
-		sort_opts=-n
-		;;
-	esac
-	sort $sort_opts $f.unsorted | gzip > $f.gz
-    done
+    if [ "x$optimize_memory" != x ]; then
+	process_raw_output
+    else
+	sort_and_gzip $tmpfile_dir/*.tsv
+    fi
     # tar cpf $rels_tar -C $output_dir --wildcards \*_rels\*.gz
     # Wildcards do not seem to work above in tar even with --wildcards. Why?
     (
