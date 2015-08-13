@@ -190,15 +190,6 @@ class Deprels(object):
                        str(end))
 
     def add(self, sent_id, data):
-
-        def add_info(rel, head, dep, headnr, depnr, wf_head=False,
-                     wf_dep=False):
-            self.freqs_head_rel[(head, rel)] += 1
-            self.freqs_rel_dep[(rel, dep)] += 1
-            self.sentences[(head, rel, dep, wf_head, wf_dep)].add_info(
-                [(sent_id, min(wordnr, headnr) + 1,
-                  max(wordnr, headnr) + 1)])
-
         # print sent_id, len(data)
         for wordnr, word_info in enumerate(data):
             dep, deprel, dephead, wform = word_info
@@ -212,18 +203,26 @@ class Deprels(object):
                 rel = self.relmap.get(deprel, 'XX')
                 head = data[headnr][0]
                 self.freqs_rel[rel] += 1
-                add_info(rel, head, dep, headnr, wordnr)
+                self._add_info(sent_id, rel, head, dep, headnr, wordnr)
                 if self._wordform_pairtypes:
                     head_wform = data[headnr][-1] +  '_' + self._get_pos(head)
                     dep_wform = wform + '_' + self._get_pos(dep)
                     if 'wf' in self._wordform_pairtypes:
-                        add_info(rel, head_wform, dep_wform, headnr, wordnr,
-                                 True, True)
+                        self._add_info(sent_id, rel, head_wform, dep_wform,
+                                       headnr, wordnr, True, True)
                     if 'bf' in self._wordform_pairtypes:
-                        add_info(rel, head_wform, dep, headnr, wordnr, True,
-                                 False)
-                        add_info(rel, head, dep_wform, headnr, wordnr, False,
-                                 True)
+                        self._add_info(sent_id, rel, head_wform, dep, headnr,
+                                       wordnr, True, False)
+                        self._add_info(sent_id, rel, head, dep_wform, headnr,
+                                       wordnr, False, True)
+
+    def _add_info(self, sent_id, rel, head, dep, headnr, depnr, wf_head=False,
+                  wf_dep=False):
+        self.freqs_head_rel[(head, rel)] += 1
+        self.freqs_rel_dep[(rel, dep)] += 1
+        self.sentences[(head, rel, dep, wf_head, wf_dep)].add_info(
+            [(sent_id, min(depnr, headnr) + 1,
+              max(depnr, headnr) + 1)])
 
     def get_sizes(self):
         sizes = []
@@ -233,6 +232,52 @@ class Deprels(object):
         return sizes
 
 
+class DeprelsDirectWrite(Deprels):
+
+    """Write relation data directly to output files to reduce RAM usage.
+
+    Write "raw", unsorted and uncounted relations data directly to
+    output files to be counted in postprocessing (sort | uniq -c). In
+    this way, only string ids need to be kept in memory. (Maybe even
+    that would not be strictly necessary, but it simplifies
+    postprocessing.)
+
+    Relation type frequencies are counted as in Deprels, since the
+    number of relations is small.
+    """
+
+    def __init__(self, relmap=None, wordform_pairtypes=None, filenames=None):
+        # FIXME: Deprels constructor creates attributes that
+        # DeprelsDirectWrite does not need.
+        super(DeprelsDirectWrite, self).__init__(
+            relmap, wordform_pairtypes)
+        self._outfiles = dict((reltype, open(fname, 'w'))
+                              for reltype, fname in filenames.iteritems())
+
+    def _add_info(self, sent_id, rel, head, dep, headnr, depnr, wf_head=False,
+                  wf_dep=False):
+        head_id = str(self._get_string_id(head))
+        dep_id = str(self._get_string_id(dep))
+        triplet_id = head_id + '|' + rel + '|' + dep_id
+        self._write('head_rel', (head_id, rel))
+        self._write('dep_rel', (dep_id, rel))
+        self._write('head_dep_rel',
+                    (triplet_id, head_id, rel, dep_id,
+                     str(int(not wf_head)), str(int(not wf_dep)),
+                     str(int(wf_head)), str(int(wf_dep))))
+        self._write('sentences',
+                    (triplet_id, sent_id,
+                     str(min(depnr, headnr) + 1),
+                     str(max(depnr, headnr) + 1)))
+
+    def _write(self, reltype, fields):
+        self._outfiles[reltype].write('\t'.join(fields) + '\n')
+
+    def close_files(self):
+        for f in self._outfiles.itervalues():
+            f.close()
+
+
 class RelationExtractor(object):
 
     def __init__(self, opts):
@@ -240,8 +285,6 @@ class RelationExtractor(object):
         relmap = None
         if opts.relation_map:
             relmap = self._read_relmap(opts.relation_map)
-        self._deprels = Deprels(relmap, opts.word_form_pair_type,
-                                opts.output_type)
         self._temp_fnames = {}
         if self._opts.input_fields:
             self._input_fieldnames = re.split(r'\s*[,\s]\s*',
@@ -261,6 +304,31 @@ class RelationExtractor(object):
                                 if fieldname in self._input_fieldnames
                                 else None))
                               for fieldname in self._input_fieldnames)
+        output_new_strings = (self._opts.output_type == 'new-strings')
+        self._output_rels = [
+            ('iter_freqs', '', True),
+            ('iter_freqs_rel', '_rel', False),
+            ('iter_freqs_head_rel', '_head_rel', output_new_strings),
+            ('iter_freqs_rel_dep', '_dep_rel', output_new_strings),
+            ('iter_sentences', '_sentences', True)]
+        if output_new_strings:
+            self._output_rels.append(('iter_strings', '_strings', True))
+        if self._opts.raw_output:
+            filenames = {}
+            for _, rel_suffix, _ in self._output_rels:
+                if rel_suffix in ['_rel', '_strings']:
+                    continue
+                elif rel_suffix == '':
+                    rel_name = 'head_dep_rel'
+                else:
+                    rel_name = rel_suffix.lstrip('_')
+                filenames[rel_name] = self._make_output_filename(rel_suffix,
+                                                                 '.raw')
+            self._deprels = DeprelsDirectWrite(relmap, opts.word_form_pair_type,
+                                               filenames)
+        else:
+            self._deprels = Deprels(relmap, opts.word_form_pair_type,
+                                    opts.output_type)
 
     def _read_relmap(self, fname):
         relmap = {}
@@ -342,6 +410,8 @@ class RelationExtractor(object):
     def output_rels(self):
         if self._opts.output_type == 'old':
             self._output_rels_old()
+        elif self._opts.raw_output:
+            self._output_rels_raw()
         else:
             self._output_rels_new()
 
@@ -353,21 +423,15 @@ class RelationExtractor(object):
                                  'wf', 'sentences']))
 
     def _output_rels_new(self):
-        output_new_strings = (self._opts.output_type == 'new-strings')
-        output_rels = [('iter_freqs', '', True),
-                       ('iter_freqs_rel', '_rel', False),
-                       ('iter_freqs_head_rel', '_head_rel', output_new_strings),
-                       ('iter_freqs_rel_dep', '_dep_rel', output_new_strings),
-                       ('iter_sentences', '_sentences', True)]
-        if output_new_strings:
-            output_rels.append(('iter_strings', '_strings', True))
-        for rel_iter_name, rel_suffix, numeric_sort in output_rels:
-            self._output_rel(getattr(self._deprels, rel_iter_name)(),
-                             rel_suffix, numeric_sort)
+        for rel_iter_name, rel_suffix, numeric_sort in self._output_rels:
+            self._output_rel_iter(rel_iter_name, rel_suffix, numeric_sort)
         if self._opts.temp_files:
             del self._deprels
             gc.collect()
-            self._write_final_files(output_rels)
+            self._write_final_files(self._output_rels)
+
+    def _output_rel_iter(self, rel_iter_name, *args):
+        self._output_rel(getattr(self._deprels, rel_iter_name)(), *args)
 
     def _output_rel(self, data, rel_suffix, numeric_sort=False):
         with self._open_output_file(self._make_output_filename(rel_suffix),
@@ -377,8 +441,18 @@ class RelationExtractor(object):
             if self._opts.temp_files:
                 self._temp_fnames[rel_suffix] = f.name
 
-    def _make_output_filename(self, rel_suffix):
-        return self._opts.output_prefix + rel_suffix + '.tsv'
+    def _output_rels_raw(self):
+        self._deprels.close_files()
+        self._output_named_rel('_rel')
+        self._output_named_rel('_strings')
+
+    def _output_named_rel(self, suffix):
+        for rel_iter_name, rel_suffix, numeric_sort in self._output_rels:
+            if rel_suffix == suffix:
+                self._output_rel_iter(rel_iter_name, rel_suffix, numeric_sort)
+
+    def _make_output_filename(self, rel_suffix, extra_suffix=''):
+        return self._opts.output_prefix + rel_suffix + extra_suffix + '.tsv'
 
     def _open_output_file(self, fname, numeric_sort=False, temporary=False):
         if temporary:
@@ -456,6 +530,8 @@ def getopts():
                          default=False)
     optparser.add_option('--word-form-pair-type', type='choice',
                          choices=word_form_pair_types.keys())
+    optparser.add_option('--raw-output', '--optimize-memory',
+                         action='store_true')
     # --include-word-forms superseded by --word-form-pair-type=wordform;
     # retained for backward compatibility
     optparser.add_option('--include-word-forms', action='store_true')
