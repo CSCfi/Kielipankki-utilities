@@ -1,16 +1,56 @@
 #! /bin/bash
 
 progdir=`dirname $0`
+progname=`basename $0`
 basedir=/wrk/jyniemi/corpora/vrt/klk_fi_parsed
+
+shortopts="hn"
+longopts="help,dry-run"
+
+action=sbatch
+
+. $progdir/korp-lib.sh
+
+
+usage () {
+    cat <<EOF
+Usage: $progname [options]
+
+Subtmit a SLURM batch job to extract dependency relations from the KLK
+corpora for the Korp word picture.
+
+Options:
+  -h, --help
+  -n, --dry-run
+EOF
+    exit 0
+}
+
+# Process options
+while [ "x$1" != "x" ] ; do
+    case "$1" in
+	-h | --help )
+	    usage
+	    ;;
+	-n | --dry-run )
+	    action=cat
+	    ;;
+	-- )
+	    shift
+	    break
+	    ;;
+	--* )
+	    warn "Unrecognized option: $1"
+	    ;;
+	* )
+	    break
+	    ;;
+    esac
+    shift
+done
 
 ls -lS $basedir/in/klk_fi*.tgz |
 gawk '{printf "%2d\t%s\n", log($5)/log(2)+1, gensub("[^0-9]+", "", "g", $8)}' > $basedir/all_years.txt
-
-action=sbatch
-if [ "x$1" = "x--dry-run" ] || [ "x$1" = "x-n" ]; then
-    action=cat
-    shift
-fi
 
 if [ "x$1" != x ]; then
     sizes="$*"
