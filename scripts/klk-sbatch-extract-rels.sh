@@ -4,8 +4,8 @@ progdir=`dirname $0`
 progname=`basename $0`
 basedir=/wrk/jyniemi/corpora/vrt/klk_fi_parsed
 
-shortopts="hnc:f:r:i:o:l:t:"
-longopts="help,dry-run,timelimit:,memory:,timelimit-factor:,memory-factor:"
+shortopts="hnc:f:r:i:o:l:t:v"
+longopts="help,dry-run,timelimit:,memory:,timelimit-factor:,memory-factor:,verbose"
 
 action=sbatch
 timelimit=
@@ -30,6 +30,7 @@ Options:
   --memory MB
   --timelimit-factor PERCENTAGE
   --memory-factor PERCENTAGE
+  -v, --verbose
 EOF
     exit 0
 }
@@ -58,6 +59,9 @@ while [ "x$1" != "x" ] ; do
 	--memory-factor )
 	    memory_factor=$2
 	    shift
+	    ;;
+	-v | --verbose )
+	    verbose=1
 	    ;;
 	-- )
 	    shift
@@ -102,6 +106,14 @@ for size in $sizes; do
 	fi
 	if [ "x$memory" = x ]; then
 	    memory=`gawk 'BEGIN {a = (2 ** ('$size' - 15)) * '$memory_factor' / 100; if (a < 32) {a = 32} if (a > 128000) {a = 128000}; print a}'`
+	fi
+	if [ "x$verbose" != x ]; then
+	    cat <<EOF
+Batch job "$name" to partition "serial"
+Max run time: $timelimit mins
+RAM per CPU: $memory MiB
+Years: $(cat $basedir/years_$size.txt | tr '\n' ' ')
+EOF
 	fi
 	$action <<EOF
 #! /bin/bash -l
