@@ -22,6 +22,8 @@ relations_format=old
 table_name_template=@
 show_warnings=1
 verbose=
+show_progress=
+progress_interval=300
 
 mysql_datadir=/var/lib/mysql
 mysql_datafile=$mysql_datadir/ibdata1
@@ -132,7 +134,7 @@ table_columns_relations_new_CORPNAME_dep_rel='
 table_columns_relations_new_CORPNAME_sentences=$table_columns_relations_CORPNAME_sentences
 
 shortopts="htI:v"
-longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:,hide-warnings,verbose"
+longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:,hide-warnings,verbose,show-progress,progress-interval:"
 
 . $progdir/korp-lib.sh
 
@@ -176,6 +178,12 @@ Options:
                   do not show possible MySQL warnings
   -v, --verbose   show input file sizes, import times and MySQL data
                   file size increase
+  --show-progress
+                  show import progress as the percentage of rows
+                  imported
+  --progress-interval SECS
+                  show import progress information every SECS seconds
+                  (default: $progress_interval)
 EOF
     exit 0
 }
@@ -216,6 +224,13 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-v | --verbose )
 	    verbose=1
+	    ;;
+	--show-progress )
+	    show_progress=1
+	    ;;
+	--progress-interval )
+	    shift
+	    progress_interval=$1
 	    ;;
 	-- )
 	    shift
@@ -346,6 +361,33 @@ show_mysql_datafile_size () {
     fi
 }
 
+report_progress () {
+    # This function should be run on the background, since it contains
+    # a non-terminating loop. Adapted from
+    # http://derwiki.tumblr.com/post/24490758395/loading-half-a-billion-rows-into-mysql
+    total_rows=$1
+    sleep $progress_interval
+    prev_rows=0
+    while :; do
+	imported_rows=$(
+	    run_mysql "SELECT table_rows FROM information_schema.tables WHERE table_name='$tablename' \G ; " |
+	    grep rows |
+	    cut -d':' -f2 |
+	    tr -d ' '
+	)
+	row_percentage=$(
+	    awk 'BEGIN {printf "%.2f", '$imported_rows' / '$total_rows' * 100}'
+	)
+	secs=$(date +%s)
+	secs_remaining=$(
+	    awk 'BEGIN {printf "%d", ('$total_rows' - '$imported_rows') / (('$imported_rows' - '$prev_rows') / '$progress_interval')}'
+	)
+	echo "  "$(date +"%F %T")" rows: $imported_rows ($row_percentage%); est. time remaining: $secs_remaining s"
+	prev_rows=$imported_rows
+	sleep $progress_interval
+    done
+}
+
 mysql_import () {
     file=$1
     file_base=`basename $file`
@@ -392,8 +434,17 @@ mysql_import () {
 	    show count(*) warnings;
 	    show warnings;"
     fi
+    if [ "x$show_progress" != x ]; then
+	total_rows=$(comprcat $file | wc -l)
+	report_progress $total_rows &
+	progress_pid=$!
+    fi
     run_mysql "$mysql_cmds" |
     awk '{print "    " $0}'
+    if [ "x$show_progress" != x ]; then
+	kill $progress_pid
+	echo "  "$(date +"%F %T")" rows: $total_rows (100.00%)"
+    fi
     if [ "x$verbose" != x ]; then
 	date +'  End: %F %T'
 	secs_1=`date +%s`

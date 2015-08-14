@@ -93,6 +93,14 @@ cleanup () {
     if [ "x$tmp_prefix" != "x" ] && [ "x$cleanup_on_exit" != x ]; then
 	rm -rf $tmp_prefix.*
     fi
+    # Register a no-op handler for SIGTERM, so that kill does not
+    # trigger it recursively
+    trap ':' TERM
+    # Kill all processes in the process group of the running script.
+    # This does not kill processes that have changed their process
+    # group (cf.
+    # http://stackoverflow.com/questions/360201/kill-background-process-when-shell-script-exit).
+    kill -- -$$
 }
 
 cleanup_abort () {
