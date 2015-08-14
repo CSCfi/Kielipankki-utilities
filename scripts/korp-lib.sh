@@ -148,6 +148,14 @@ comprcat () {
     fi
 }
 
+calc_gib () {
+    awk 'BEGIN { printf "%0.3f", '$1' / 1024 / 1024 / 1024 }'
+}
+
+get_filesize () {
+    ls -l "$1" | awk '{print $5}'
+}
+
 
 # Common initialization code
 

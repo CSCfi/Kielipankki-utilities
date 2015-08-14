@@ -13,9 +13,7 @@
 
 
 progname=`basename $0`
-
-tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
-tmpfname_base=$tmpdir/$progname.$$.tmp
+progdir=`dirname $0`
 
 dbname=korp
 
@@ -132,34 +130,12 @@ table_columns_relations_new_CORPNAME_dep_rel='
 '
 table_columns_relations_new_CORPNAME_sentences=$table_columns_relations_CORPNAME_sentences
 
+shortopts="htI:"
+longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:"
 
-warn () {
-    echo "$progname: Warning: $1" >&2
-}
+. $progdir/korp-lib.sh
 
-error () {
-    echo "$progname: $1" >&2
-    exit 1
-}
-
-echo_verb () {
-    if [ "x$verbose" != "x" ]; then
-	echo "$@"
-    fi
-}
-
-cleanup () {
-    rm -f $tmpfname_base*
-}
-
-cleanup_abort () {
-    cleanup
-    exit 1
-}
-
-
-trap cleanup 0
-trap cleanup_abort 1 2 13 15
+tmpfname_base=$tmp_prefix.tmp
 
 
 usage () {
@@ -198,20 +174,6 @@ Options:
 EOF
     exit 0
 }
-
-
-# Test if GNU getopt
-getopt -T > /dev/null
-if [ $? -eq 4 ]; then
-    # This requires GNU getopt
-    args=`getopt -o "htI:" -l "help,prepare-tables,imported-file-list:,relations-format:,table-name-template:" -n "$progname" -- "$@"`
-    if [ $? -ne 0 ]; then
-	exit 1
-    fi
-    eval set -- "$args"
-fi
-# If not GNU getopt, arguments of long options must be separated from
-# the option string by a space; getopt allows an equals sign.
 
 # Process options
 while [ "x$1" != "x" ] ; do
@@ -262,23 +224,6 @@ done
 if [ "x$MYSQL_USER" != "x" ]; then
     mysql_opt_user="--user $MYSQL_USER"
 fi
-
-get_cat () {
-    case "$1" in
-	*.gz )
-	    echo zcat
-	    ;;
-	*.bz | *.bz2 )
-	    echo bzcat
-	    ;;
-	*.xz )
-	    echo xzcat
-	    ;;
-	* )
-	    echo cat
-	    ;;
-    esac
-}
 
 fill_tablename_template () {
     echo "$table_name_template" |
@@ -371,14 +316,6 @@ prepare_tables () {
     esac
 }
 
-calc_gib () {
-    awk 'BEGIN { printf "%0.3f", '$1' / 1024 / 1024 / 1024 }'
-}
-
-get_filesize () {
-    ls -l "$1" | awk '{print $5}'
-}
-
 get_mysql_datafile_size () {
     if [ "x$mysql_datafile" != "x" ]; then
 	get_filesize "$mysql_datafile"
@@ -411,14 +348,13 @@ mysql_import () {
 	return
     fi
     corpname=`make_corpname "$file"`
-    cat=`get_cat "$file"`
     if [ "x$prepare_tables" != x ]; then
 	colspec=`get_colspec $file`
 	prepare_tables $tablename $corpname "$colspec"
     fi
     fifo=$tmpfname_base.$tablename.fifo
     mkfifo $fifo
-    ($cat $file > $fifo &)
+    (comprcat $file > $fifo &)
     echo Importing $fname
     filesize=`get_filesize "$1"`
     echo '  File size: '$filesize' = '`calc_gib $filesize`' GiB'
