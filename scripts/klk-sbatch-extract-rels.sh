@@ -105,7 +105,7 @@ for size in $sizes; do
 	    timelimit=`gawk 'BEGIN {a = (2 ** ('$size' - 19) / 10 + 1) * '$timelimit_factor' / 100; printf "%d", a}'`
 	fi
 	if [ "x$memory" = x ]; then
-	    memory=`gawk 'BEGIN {a = (2 ** ('$size' - 15)) * '$memory_factor' / 100; if (a < 32) {a = 32} if (a > 128000) {a = 128000}; print a}'`
+	    memory=`gawk 'BEGIN {a = (2 ** ('$size' - 15)) * '$memory_factor' / 100; if (a < 32) {a = 32} if (a > 128000) {a = 128000}; printf "%d", a}'`
 	fi
 	if [ "x$verbose" != x ]; then
 	    cat <<EOF
