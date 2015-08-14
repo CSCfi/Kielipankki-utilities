@@ -6,7 +6,6 @@
 # For more information, run korp-mysql-import.sh --help
 
 # TODO:
-# - Log MySQL errors and import times only with --verbose
 # - Infer relations format from the content (number of columns) of TSV
 #   files
 # - Support importing to at least auth_license in korp_auth
@@ -21,6 +20,8 @@ prepare_tables=
 imported_file_list=
 relations_format=old
 table_name_template=@
+show_warnings=1
+verbose=
 
 mysql_datadir=/var/lib/mysql
 mysql_datafile=$mysql_datadir/ibdata1
@@ -130,8 +131,8 @@ table_columns_relations_new_CORPNAME_dep_rel='
 '
 table_columns_relations_new_CORPNAME_sentences=$table_columns_relations_CORPNAME_sentences
 
-shortopts="htI:"
-longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:"
+shortopts="htI:v"
+longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:,hide-warnings,verbose"
 
 . $progdir/korp-lib.sh
 
@@ -171,6 +172,10 @@ Options:
                   use TEMPLATE for naming tables; TEMPLATE should
                   contain @ for the default table (base) name
                   (lemgram_index, timespans, relations) (default: $table_name_template)
+  --hide-warnings
+                  do not show possible MySQL warnings
+  -v, --verbose   show input file sizes, import times and MySQL data
+                  file size increase
 EOF
     exit 0
 }
@@ -205,6 +210,12 @@ while [ "x$1" != "x" ] ; do
 	--table-name-template )
 	    shift
 	    table_name_template=$1
+	    ;;
+	--hide-warnings )
+	    show_warnings=
+	    ;;
+	-v | --verbose )
+	    verbose=1
 	    ;;
 	-- )
 	    shift
@@ -326,7 +337,8 @@ show_mysql_datafile_size () {
     datasize=$1
     datasize_prev=$2
     if [ "x$datasize" != "x" ]; then
-	echo "  MySQL data file size: $datasize = "`calc_gib $datasize`" GiB"
+	echo \
+	    "  MySQL data file size: $datasize = "`calc_gib $datasize`" GiB"
 	if [ "x$datasize_prev" != "x" ]; then
 	    datasize_diff=`expr $datasize - $datasize_prev`
 	    echo "  MySQL data file size increase: $datasize_diff = "`calc_gib $datasize_diff`" GiB"
@@ -356,31 +368,39 @@ mysql_import () {
     mkfifo $fifo
     (comprcat $file > $fifo &)
     echo Importing $fname
-    filesize=`get_filesize "$1"`
-    echo '  File size: '$filesize' = '`calc_gib $filesize`' GiB'
-    secs_0=`date +%s`
-    datasize_0=`get_mysql_datafile_size`
-    show_mysql_datafile_size $datasize_0
-    date +'  Start: %F %T'
-    echo '  MySQL output:'
+    if [ "x$verbose" != x ]; then
+	filesize=`get_filesize "$1"`
+	echo '  File size: '$filesize' = '`calc_gib $filesize`' GiB'
+	secs_0=`date +%s`
+	datasize_0=`get_mysql_datafile_size`
+	show_mysql_datafile_size $datasize_0
+	date +'  Start: %F %T'
+    fi
     # Import optimization ideas (for InnoDB tables) taken from
     # http://derwiki.tumblr.com/post/24490758395/loading-half-a-billion-rows-into-mysql
     # Disabling foregin key checks probably does not matter, as
     # foreign keys are not currently used. sql_log_bin cannot be
     # disabled by a non-super user.
-    run_mysql "
+    mysql_cmds="
 	    set unique_checks = 0;
             set foreign_key_checks = 0;
             set session tx_isolation = 'READ-UNCOMMITTED';
-	    load data local infile '$fifo' into table $tablename character set utf8 fields escaped by '';
+	    load data local infile '$fifo' into table $tablename character set utf8 fields escaped by '';"
+    if [ "x$show_warnings" != x ]; then
+	echo '  MySQL output:'
+	mysql_cmds="$mysql_cmds
 	    show count(*) warnings;
-	    show warnings;" |
+	    show warnings;"
+    fi
+    run_mysql "$mysql_cmds" |
     awk '{print "    " $0}'
-    date +'  End: %F %T'
-    secs_1=`date +%s`
-    echo "  Elapsed: "`expr $secs_1 - $secs_0`" s"
-    datasize_1=`get_mysql_datafile_size`
-    show_mysql_datafile_size $datasize_1 $datasize_0
+    if [ "x$verbose" != x ]; then
+	date +'  End: %F %T'
+	secs_1=`date +%s`
+	echo "  Elapsed: "`expr $secs_1 - $secs_0`" s"
+	datasize_1=`get_mysql_datafile_size`
+	show_mysql_datafile_size $datasize_1 $datasize_0
+    fi
     /bin/rm -f $fifo
     if [ "x$imported_file_list" != x ]; then
 	echo "$file_base" >> "$imported_file_list"
