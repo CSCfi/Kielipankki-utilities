@@ -363,11 +363,16 @@ mysql_import () {
     show_mysql_datafile_size $datasize_0
     date +'  Start: %F %T'
     echo '  MySQL output:'
+    # Import optimization ideas (for InnoDB tables) taken from
+    # http://derwiki.tumblr.com/post/24490758395/loading-half-a-billion-rows-into-mysql
+    # Disabling foregin key checks probably does not matter, as
+    # foreign keys are not currently used. sql_log_bin cannot be
+    # disabled by a non-super user.
     run_mysql "
-	    set autocommit = 0;
 	    set unique_checks = 0;
+            set foreign_key_checks = 0;
+            set session tx_isolation = 'READ-UNCOMMITTED';
 	    load data local infile '$fifo' into table $tablename character set utf8 fields escaped by '';
-	    commit;
 	    show count(*) warnings;
 	    show warnings;" |
     awk '{print "    " $0}'
