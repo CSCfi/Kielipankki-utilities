@@ -355,7 +355,7 @@ infer_relations_format () {
     warn "Could not infer relations format for file $_file; please specify --relations-format=new|old"
 }
 
-get_colspec () {
+get_colspec_name () {
     case "$1" in
 	*_lemgrams.* )
 	    colspec_name=lemgram_index
@@ -377,7 +377,11 @@ get_colspec () {
 	    )
 	    ;;
     esac
-    echo `eval "echo \\$table_columns_$colspec_name"`
+    echo $colspec_name
+}
+
+get_colspec () {
+    echo `eval "echo \\$table_columns_$1"`
 }
 
 run_mysql () {
@@ -483,7 +487,8 @@ mysql_import () {
     fi
     corpname=`make_corpname "$file"`
     if [ "x$prepare_tables" != x ]; then
-	colspec=`get_colspec $file`
+	colspec_name=$(get_colspec_name $file)
+	colspec=$(get_colspec $colspec_name)
 	if [ x"$colspec" = x ]; then
 	    warn "Could not find columns specification for file $file; skipping"
 	    return
@@ -495,6 +500,14 @@ mysql_import () {
     (comprcat $file > $fifo &)
     echo Importing $fname into table $tablename
     if [ "x$verbose" != x ]; then
+	case $colspec_name in
+	    relations_new* )
+		echo "  Using relations format 'new'"
+		;;
+	    relations* )
+		echo "  Using relations format 'old'"
+		;;
+	esac
 	filesize=`get_filesize "$1"`
 	echo '  File size: '$filesize' = '`calc_gib $filesize`' GiB'
 	secs_0=`date +%s`
