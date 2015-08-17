@@ -145,42 +145,38 @@ usage () {
     cat <<EOF
 Usage: $progname [options] filename ...
 
-Import into Korp MySQL database data from files in TSV format. The
-data files may be compressed with gzip, bzip2 or xz.
+Import into Korp MySQL database data from files in TSV format. The data files
+may be compressed with gzip, bzip2 or xz.
 
-Each filename is assumed to be of the format CORPUS_TYPE.EXT, where
-CORPUS is the name (id) of the corpus (in lower case), TYPE is the
-type of the table and EXT is .tsv, possibly followed by the
-compression extension. TYPE is one of the following: lemgrams,
-timespans, rels, rels_rel, rels_head_rel, rels_dep_rel,
-rels_sentences, rels_strings.
+Each filename is assumed to be of the format CORPUS_TYPE.EXT, where CORPUS is
+the name (id) of the corpus (in lower case), TYPE is the type of the table and
+EXT is .tsv, possibly followed by the compression extension. TYPE is one of
+the following: lemgrams, timespans, rels, rels_rel, rels_head_rel,
+rels_dep_rel, rels_sentences, rels_strings.
 
 Options:
   -h, --help      show this help
   -t, --prepare-tables
-                  create the necessary tables before importing the
-                  data; for single-corpus tables, drop the table
-                  first; for multi-corpus tables (lemgrams and
-                  timespans), remove the rows for CORPUS
+                  create the necessary tables before importing the data; for
+                  single-corpus tables, drop the table first; for multi-corpus
+                  tables (lemgrams and timespans), remove the rows for CORPUS
   -I, --imported-file-list FILE
-                  do not import files listed in FILE, and write the
-                  names of imported files to FILE
+                  do not import files listed in FILE, and write the names of
+                  imported files to FILE
   --relations-format FORMAT_NAME
-                  assume format FORMAT_NAME for word picture relation
-                  tables: either "old" (for Korp backend versions 2 to
-                  2.3) or "new" (for Korp backend 2.5 and later)
-                  (default: "$relations_format")
+                  assume format FORMAT_NAME for word picture relation tables:
+                  either "old" (for Korp backend versions 2 to 2.3) or "new"
+                  (for Korp backend 2.5 and later) (default: "$relations_format")
   --table-name-template TEMPLATE
-                  use TEMPLATE for naming tables; TEMPLATE should
-                  contain @ for the default table (base) name
-                  (lemgram_index, timespans, relations) (default: $table_name_template)
+                  use TEMPLATE for naming tables; TEMPLATE should contain @
+                  for the default table (base) name (lemgram_index, timespans,
+                  relations) (default: $table_name_template)
   --hide-warnings
                   do not show possible MySQL warnings
-  -v, --verbose   show input file sizes, import times and MySQL data
-                  file size increase
+  -v, --verbose   show input file sizes, import times and MySQL data file size
+                  increase
   --show-progress
-                  show import progress as the percentage of rows
-                  imported
+                  show import progress as the percentage of rows imported
   --progress-interval SECS
                   show import progress information every SECS seconds
                   (default: $progress_interval)
