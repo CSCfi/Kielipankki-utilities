@@ -405,7 +405,7 @@ mysql_import () {
     fifo=$tmpfname_base.$tablename.fifo
     mkfifo $fifo
     (comprcat $file > $fifo &)
-    echo Importing $fname
+    echo Importing $fname into table $tablename
     if [ "x$verbose" != x ]; then
 	filesize=`get_filesize "$1"`
 	echo '  File size: '$filesize' = '`calc_gib $filesize`' GiB'
