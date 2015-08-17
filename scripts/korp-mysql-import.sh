@@ -6,9 +6,7 @@
 # For more information, run korp-mysql-import.sh --help
 
 # TODO:
-# - Infer relations format from the content (number of columns) of TSV
-#   files
-# - Support importing to at least auth_license in korp_auth
+# - Support importing to table corpus_info
 
 
 progname=`basename $0`
@@ -18,7 +16,7 @@ dbname=korp
 
 prepare_tables=
 imported_file_list=
-relations_format=old
+relations_format=auto
 table_name_template=@
 show_warnings=1
 verbose=
@@ -133,6 +131,15 @@ table_columns_relations_new_CORPNAME_dep_rel='
 '
 table_columns_relations_new_CORPNAME_sentences=$table_columns_relations_CORPNAME_sentences
 
+# The number of columns in the old and new formats for the head_rel
+# table is the same, so we try to infer the format by the content of
+# the first column, which is int in the new format and varchar in the
+# old one.
+relations_format_diff_int_column_num_CORPNAME_head_rel=1
+relations_format_diff_int_column_format_CORPNAME_head_rel=new
+
+relations_table_types="CORPNAME CORPNAME_strings CORPNAME_rel CORPNAME_head_rel CORPNAME_dep_rel CORPNAME_sentences"
+
 shortopts="htI:v"
 longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:,hide-warnings,verbose,show-progress,progress-interval:"
 
@@ -163,10 +170,11 @@ Options:
   -I, --imported-file-list FILE
                   do not import files listed in FILE, and write the names of
                   imported files to FILE
-  --relations-format FORMAT_NAME
-                  assume format FORMAT_NAME for word picture relation tables:
-                  either "old" (for Korp backend versions 2 to 2.3) or "new"
-                  (for Korp backend 2.5 and later) (default: "$relations_format")
+  --relations-format auto|new|old
+                  the format for word picture relation tables: "auto" for
+                  inferring automatically, "new" for Korp backend 2.5 and
+                  later, or "old" for Korp backend versions 2 to 2.3 (default:
+                  "$relations_format")
   --table-name-template TEMPLATE
                   use TEMPLATE for naming tables; TEMPLATE should contain @
                   for the default table (base) name (lemgram_index, timespans,
@@ -203,11 +211,11 @@ while [ "x$1" != "x" ] ; do
 	--relations-format )
 	    shift
 	    case "$1" in
-		old | new )
+		auto | new | old )
 		    relations_format=$1
 		    ;;
 		* )
-		    warn 'Valid arguments for --relations-format are "old" and "new"'
+		    warn 'Valid arguments for --relations-format are "auto", "new" and "old"'
 		    ;;
 	    esac
 	    ;;
@@ -247,6 +255,18 @@ if [ "x$MYSQL_USER" != "x" ]; then
     mysql_opt_user="--user $MYSQL_USER"
 fi
 
+init_table_column_counts () {
+    for tabletype in $relations_table_types; do
+	for suffix in "" new_; do
+	    colcnt=$(
+		eval echo '"'"\$table_columns_relations_$suffix$tabletype"'"' |
+		grep -c '^[ 	]*`'
+	    )
+	    eval "col_count_relations_$suffix$tabletype=$colcnt"
+	done
+    done
+}
+
 fill_tablename_template () {
     echo "$table_name_template" |
     sed -e "s/@/$1/"
@@ -273,6 +293,68 @@ make_corpname () {
     sed -e 's/\(.\+\)_\(rels\(_.\+\)\?\|lemgrams\|timespans\).*/\1/'
 }
 
+infer_relations_format () {
+    _file=$1
+    reltable=$(echo "$1" | sed -e 's/\(.\+\)_rels\([^.]*\).*/CORPNAME\2/')
+    columns_old=$(eval "echo \$table_columns_relations_$reltable")
+    columns_new=$(eval "echo \$table_columns_relations_new_$reltable")
+    # If the table type is "strings" or the old and new table
+    # definitions are equal, use the new format.
+    if [ "x$columns_new" != x ] && [ "x$reltable" = xstrings ] ||
+	[ x"$columns_new" = x"$columns_old" ]
+    then
+	echo relations_new
+	return
+    fi
+    # If the number of columns in the formats differs, use the format
+    # with the same number of columns as in the input file.
+    col_count_old=$(eval "echo \$col_count_relations_$reltable")
+    col_count_new=$(eval "echo \$col_count_relations_new_$reltable")
+    if [ $col_count_old != $col_count_new ]; then
+	col_count_file=$(
+	    comprcat $_file |
+	    head -1 |
+	    tr '\t' '\n' |
+	    wc -l
+	)
+	if [ $col_count_file = $col_count_old ]; then
+	    echo relations
+	elif [ $col_count_file = $col_count_new ]; then
+	    echo relations_new
+	fi
+	return
+    fi
+    # If a column type differs (int vs. varchar), check that for the
+    # first 20 rows in the input file.
+    int_column_num=$(
+	eval "echo \$relations_format_diff_int_column_num_$reltable")
+    if [ "x$int_column_num" != x ]; then
+	non_int_cnt=$(
+	    comprcat $_file |
+	    head -20 |
+	    cut -d'	' -f$int_column_num |
+	    grep -E -cv '^[0-9]+$'
+	)
+	int_format=$(
+	    eval "echo \$relations_format_diff_int_column_format_$reltable")
+	if [ $non_int_cnt != 0 ]; then
+	    if [ "x$int_format" = xnew ]; then
+		echo relations
+	    else
+		echo relations_new
+	    fi
+	else
+	    if [ "x$int_format" = new ]; then
+		echo relations_new
+	    else
+		echo relations
+	    fi
+	fi
+	return
+    fi
+    warn "Could not infer relations format for file $_file; please specify --relations-format=new|old"
+}
+
 get_colspec () {
     case "$1" in
 	*_lemgrams.* )
@@ -282,10 +364,12 @@ get_colspec () {
 	    colspec_name=timespans
 	    ;;
 	*_rels.* | *_rels_*.* )
-	    if [ "$relations_format" = "new" ]; then
+	    if [ "$relations_format" = "old" ]; then
+		base=relations
+	    elif [ "$relations_format" = "new" ]; then
 		base=relations_new
 	    else
-		base=relations
+		base=$(infer_relations_format "$1")
 	    fi
 	    colspec_name=$(
 		echo "$1" |
@@ -400,6 +484,10 @@ mysql_import () {
     corpname=`make_corpname "$file"`
     if [ "x$prepare_tables" != x ]; then
 	colspec=`get_colspec $file`
+	if [ x"$colspec" = x ]; then
+	    warn "Could not find columns specification for file $file; skipping"
+	    return
+	fi
 	prepare_tables $tablename $corpname "$colspec"
     fi
     fifo=$tmpfname_base.$tablename.fifo
@@ -455,6 +543,7 @@ mysql_import () {
 }
 
 
+init_table_column_counts
 for fname in "$@"; do
     mysql_import "$fname"
 done
