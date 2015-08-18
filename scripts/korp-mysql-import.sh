@@ -23,6 +23,10 @@ verbose=
 show_progress=
 progress_interval=300
 
+# TODO: Maybe add options for these
+max_connection_retries=5
+reconnect_delay_base=30
+
 mysql_datadir=/var/lib/mysql
 mysql_datafile=$mysql_datadir/ibdata1
 if [ ! -r $mysql_datadir ]; then
@@ -146,6 +150,9 @@ longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-t
 . $progdir/korp-lib.sh
 
 tmpfname_base=$tmp_prefix.tmp
+
+import_errorfile=$tmpfname_base.import_error
+progress_errorfile=$tmpfname_base.progress_error
 
 
 usage () {
@@ -385,7 +392,25 @@ get_colspec () {
 }
 
 run_mysql () {
-    mysql --local-infile $mysql_opt_user --batch --execute "$@" $dbname
+    mysql --local-infile --skip-reconnect $mysql_opt_user --batch \
+	--execute "$@" $dbname
+}
+
+run_mysql_report_errors () {
+    # Return the error information via a file, since setting the value
+    # of a variable does not seem to propagate to the caller.
+    _errorfile=$1
+    shift
+    # $$ is the pid of the parent shell (script) even in subshells, so
+    # use a md5sum of the arguments to make the name of the teefile
+    # unique
+    teefile=$_errorfile.tee
+    run_mysql "$@" 2>&1 |
+    tee $teefile
+    grep '^ERROR ' $teefile |
+    head -1 |
+    sed -e 's/^ERROR \([0-9]\+\).*/\1/' > $_errorfile
+    rm $teefile
 }
 
 create_table() {
@@ -454,22 +479,97 @@ report_progress () {
     prev_rows=0
     while :; do
 	imported_rows=$(
-	    run_mysql "SELECT table_rows FROM information_schema.tables WHERE table_name='$tablename' \G ; " |
+	    run_mysql_report_errors $progress_errorfile "SELECT table_rows FROM information_schema.tables WHERE table_name='$tablename' \G ; " |
 	    grep rows |
 	    cut -d':' -f2 |
 	    tr -d ' '
 	)
-	row_percentage=$(
-	    awk 'BEGIN {printf "%.2f", '$imported_rows' / '$total_rows' * 100}'
-	)
-	secs=$(date +%s)
-	secs_remaining=$(
-	    awk 'BEGIN {printf "%d", ('$total_rows' - '$imported_rows') / (('$imported_rows' - '$prev_rows') / '$progress_interval')}'
-	)
-	echo "  "$(date +"%F %T")" rows: $imported_rows ($row_percentage%); est. time remaining: $secs_remaining s"
-	prev_rows=$imported_rows
+	if [ ! -s $progress_errorfile ] && [ "x$imported_rows" != x ]; then
+	    row_percentage=$(
+		awk 'BEGIN {printf "%.2f", '"$imported_rows"' / '"$total_rows"' * 100}'
+	    )
+	    secs=$(date +%s)
+	    secs_remaining=$(
+		awk 'BEGIN {printf "%d", ('"$total_rows"' - '"$imported_rows"') / (('"$imported_rows"' - '"$prev_rows"') / '"$progress_interval"')}'
+	    )
+	    echo "  "$(date +"%F %T")" rows: $imported_rows ($row_percentage%); est. time remaining: $secs_remaining s"
+	    prev_rows=$imported_rows
+	fi
 	sleep $progress_interval
     done
+}
+
+mysql_import_main () {
+    file=$1
+    corpname=$2
+    tablename=$3
+    colspec=$4
+    if [ "x$prepare_tables" != x ]; then
+	prepare_tables $tablename $corpname "$colspec"
+    fi
+    fifo=$tmpfname_base.$tablename.fifo
+    mkfifo $fifo
+    (comprcat $file > $fifo &)
+    # Import optimization ideas (for InnoDB tables) taken from
+    # http://derwiki.tumblr.com/post/24490758395/loading-half-a-billion-rows-into-mysql
+    # Disabling foregin key checks probably does not matter, as
+    # foreign keys are not currently used. sql_log_bin cannot be
+    # disabled by a non-super user.
+    mysql_cmds="
+	    set unique_checks = 0;
+            set foreign_key_checks = 0;
+            set session tx_isolation = 'READ-UNCOMMITTED';
+	    load data local infile '$fifo' into table $tablename character set utf8 fields escaped by '';"
+    if [ "x$show_warnings" != x ]; then
+	echo '  MySQL output:'
+	mysql_cmds="$mysql_cmds
+	    show count(*) warnings;
+	    show warnings;"
+    fi
+    if [ "x$show_progress" != x ]; then
+	total_rows=$(comprcat $file | wc -l)
+	report_progress $total_rows &
+	progress_pid=$!
+    fi
+    run_mysql_report_errors $import_errorfile "$mysql_cmds" |
+    awk '{print "    " $0}'
+    if [ "x$show_progress" != x ]; then
+	kill $progress_pid
+	echo "  "$(date +"%F %T")" rows: $total_rows (100.00%)"
+    fi
+    /bin/rm -f $fifo
+}
+
+mysql_import_retry_loop () {
+    file=$1
+    connection_retries=0
+    reconnect_delay=$reconnect_delay_base
+    # set -vx
+    while true; do
+	mysql_import_main "$@"
+	mysql_error=$(cat $import_errorfile)
+	case "$mysql_error" in
+	    "" )
+		break
+		;;
+	    2013 | 2002 )
+		# Lost connection or can't connect to server
+		if [ $connection_retries -lt $max_connection_retries ]; then
+		    connection_retries=$(($connection_retries + 1))
+		    echo "Waiting $reconnect_delay s before trying to reconnect to the MySQL server"
+		    sleep $reconnect_delay
+		    reconnect_delay=$(($reconnect_delay * 2))
+		    verbose echo "Trying to reconnect (attempt $connection_retries/$max_connection_retries)"
+		else
+		    error "Giving up importing $1 after $max_connection_retries attempts; aborting"
+		fi
+		;;
+	    * )
+		error "Aborting because of MySQL errors"
+		;;
+	esac
+    done
+    # set +vx
 }
 
 mysql_import () {
@@ -493,11 +593,7 @@ mysql_import () {
 	    warn "Could not find columns specification for file $file; skipping"
 	    return
 	fi
-	prepare_tables $tablename $corpname "$colspec"
     fi
-    fifo=$tmpfname_base.$tablename.fifo
-    mkfifo $fifo
-    (comprcat $file > $fifo &)
     echo Importing $fname into table $tablename
     if [ "x$verbose" != x ]; then
 	case $colspec_name in
@@ -515,33 +611,7 @@ mysql_import () {
 	show_mysql_datafile_size $datasize_0
 	date +'  Start: %F %T'
     fi
-    # Import optimization ideas (for InnoDB tables) taken from
-    # http://derwiki.tumblr.com/post/24490758395/loading-half-a-billion-rows-into-mysql
-    # Disabling foregin key checks probably does not matter, as
-    # foreign keys are not currently used. sql_log_bin cannot be
-    # disabled by a non-super user.
-    mysql_cmds="
-	    set unique_checks = 0;
-            set foreign_key_checks = 0;
-            set session tx_isolation = 'READ-UNCOMMITTED';
-	    load data local infile '$fifo' into table $tablename character set utf8 fields escaped by '';"
-    if [ "x$show_warnings" != x ]; then
-	echo '  MySQL output:'
-	mysql_cmds="$mysql_cmds
-	    show count(*) warnings;
-	    show warnings;"
-    fi
-    if [ "x$show_progress" != x ]; then
-	total_rows=$(comprcat $file | wc -l)
-	report_progress $total_rows &
-	progress_pid=$!
-    fi
-    run_mysql "$mysql_cmds" |
-    awk '{print "    " $0}'
-    if [ "x$show_progress" != x ]; then
-	kill $progress_pid
-	echo "  "$(date +"%F %T")" rows: $total_rows (100.00%)"
-    fi
+    mysql_import_retry_loop $file $corpname $tablename "$colspec"
     if [ "x$verbose" != x ]; then
 	date +'  End: %F %T'
 	secs_1=`date +%s`
@@ -549,7 +619,6 @@ mysql_import () {
 	datasize_1=`get_mysql_datafile_size`
 	show_mysql_datafile_size $datasize_1 $datasize_0
     fi
-    /bin/rm -f $fifo
     if [ "x$imported_file_list" != x ]; then
 	echo "$file_base" >> "$imported_file_list"
     fi
