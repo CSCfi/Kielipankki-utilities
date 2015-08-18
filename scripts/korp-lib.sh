@@ -100,7 +100,7 @@ cleanup () {
     # This does not kill processes that have changed their process
     # group (cf.
     # http://stackoverflow.com/questions/360201/kill-background-process-when-shell-script-exit).
-    kill -- -$$
+    kill -- -$$ &> /dev/null
 }
 
 cleanup_abort () {
