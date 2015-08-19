@@ -31,9 +31,6 @@ Usage: $progname [options] source target
 Copy a Korp corpus with id "source" to id "target": CWB data directory,
 registry file, Korp MySQL data (timespans, lemgram_index, relations tables).
 
-Install or update the specified corpora from corpus packages to Corpus
-Workbench and Korp database.
-
 Options:
   -h, --help      show this help
   -c, --corpus-root DIR
