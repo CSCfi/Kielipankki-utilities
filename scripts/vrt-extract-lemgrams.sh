@@ -105,7 +105,8 @@ if [ "x$corpus_id" = x ]; then
 fi
 
 decode_special_chars () {
-    perl -C -e '
+    perl -CSD -e '
+        use feature "unicode_strings";
 	$sp_chars = "'"$special_chars"'";
 	%sp_char_map = map {("'$encoded_special_char_prefix'"
 	                     . chr ('$encoded_special_char_offset' + $_))
@@ -117,6 +118,11 @@ decode_special_chars () {
 	    {
 		s/$c/$sp_char_map{$c}/g;
 	    }
+            s/&quot;/"/g;
+            s/&amp;/&/g;
+            s/&apos;/'"'"'/g;
+            s/&lt;/</g;
+            s/&gt;/>/g;
 	    print;
 	}'
 }
