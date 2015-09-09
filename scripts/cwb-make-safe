@@ -1,0 +1,185 @@
+#! /bin/sh
+
+# cwb-make-safe
+#
+# A wrapper script for cwb-make provided in the CWB Perl package
+# working around a bug in cwb-huffcode that causes an error if a
+# positional attribute has only a single value in the corpus.
+#
+# Run "cwb-make-safe -h" to get a usage message.
+
+
+progname=`basename $0`
+progdir=`dirname $0`
+cmdline="$@"
+
+shortopts="r:M:Vg:p:Dh"
+longopts="registry:,memory:,validate,group:,permissions:,debug,help"
+
+. $progdir/korp-lib.sh
+
+registry_opt=
+cwb_make_opts=
+cwb_makeall_opts=
+group=
+perms=
+corpus=
+attrs=
+
+
+find_prog_cwb () {
+    if ! find_prog cwb-$1 $CWB_BINDIR $default_cwb_bindirs; then
+	error "Program cwb-$1 not found on PATH or in directories $(echo $CWB_BINDIR $default_cwb_bindirs | sed -e 's/ \+/, /g')"
+    fi
+}
+
+# Use set -e to propagate the possible error exit from $(find_prog_cwb ...)
+set -e
+cwb_make=$(find_prog_cwb make)
+cwb_describe_corpus=$(find_prog_cwb describe-corpus)
+cwb_makeall=$(find_prog_cwb makeall)
+set +e
+
+
+usage () {
+    cat <<EOF
+Usage: $progname [options] CORPUS [attributes]
+
+Index and compress the attributes of an encoded CWB corpus.
+
+This is a wrapper script for cwb-make provided in the CWB Perl package
+working around a bug in cwb-huffcode that causes an error if a
+positional attribute has only a single value in the corpus.
+
+The options are the same as for cwb-make:
+EOF
+    $cwb_make -h 2&>1 |
+    awk '/^Options:/ {p = 1; next} p {print}'
+cat <<EOF
+
+However, please note that the registry directory name may not contain
+whitespace characters.
+EOF
+    exit 0
+}
+
+# Process options
+while [ "x$1" != "x" ] ; do
+    case "$1" in
+	-h | --help )
+	    usage
+	    ;;
+	-r | --registry )
+	    shift
+	    cwb_makeall_opts="$cwb_makeall_opts -r $1"
+	    registry_opt="-r $1"
+	    ;;
+	-M | --memory )
+	    shift
+	    cwb_makeall_opts="$cwb_makeall_opts -M $1"
+	    ;;
+	-V | --validate )
+	    cwb_makeall_opts="$cwb_makeall_opts -V"
+	    ;;
+	-g | --group )
+	    shift
+	    group=$1
+	    cwb_make_opts="$cwb_make_opts -g $1"
+	    ;;
+	-p | --permissions )
+	    shift
+	    perms=$1
+	    cwb_make_opts="$cwb_make_opts -p $1"
+	    ;;
+	-D | --debug )
+	    cwb_makeall_opts="$cwb_makeall_opts -D"
+	    ;;
+	-- )
+	    shift
+	    break
+	    ;;
+	--* )
+	    warn "Unrecognized option: $1"
+	    ;;
+	* )
+	    break
+	    ;;
+    esac
+    shift
+done
+
+if [ "x$1" = x ]; then
+    error "No corpus specified"
+fi
+corpus=$(toupper $1)
+shift
+attrs=$@
+
+cwb_make_opts="$cwb_makeall_opts $cwb_make_opts"
+
+
+get_single_valued_pos_attrs () {
+    opt=
+    case $1 in
+	-* )
+	    opt=$1
+	    shift
+	    ;;
+    esac
+    $cwb_describe_corpus $registry_opt -s $corpus |
+    grep '^p-ATT' |
+    grep $opt '.*\b1 types' |
+    awk '{print $2}' |
+    if [ "x$1" != x ]; then
+	grep -F "$(echo $@ | tr ' ' '\n')"
+    else
+	cat
+    fi
+}
+
+get_corpus_data_dir () {
+    $cwb_describe_corpus $registry_opt $1 |
+    grep -E '^home directory: *' |
+    sed -e 's/home directory: *//'
+}
+
+cwb_make_single_valued_attrs () {
+    datadir=$(get_corpus_data_dir $corpus)
+    datafiles_patt=
+    make_attrs=
+    for attr in "$@"; do
+	if [ ! -e $datadir/$attr.corpus.cnt ] ||
+	    [ ! -e $datadir/$attr.lexicon.srt ] ||
+	    [ $datadir/$attr.corpus -nt $datadir/$attr.corpus.cnt ] ||
+	    [ $datadir/$attr.lexicon -nt $datadir/$attr.lexicon.srt ];
+	then
+	    make_attrs="$make_attrs $attr"
+	    rm_files=
+	    for suf in corpus.cnt corpus.rdx corpus.rev lexicon.srt; do
+		rm_files="$rm_files $datadir/$attr.$suf"
+	    done
+	    rm $rm_files
+	    datafiles_patt="$datafiles $datadir/$attr.*"
+	fi
+    done
+    if [ "x$make_attrs" != x ]; then
+	$cwb_makeall $cwb_makeall_opts $corpus $make_attrs
+	datafiles=$(ls $datafiles_patt)
+	if [ "x$perms" != x ]; then
+	    chmod $perms $datafiles
+	fi
+	if [ "x$group" != x ]; then
+	    chgrp $group $datafiles
+	fi
+    fi
+}
+
+single_valued_attrs=$(get_single_valued_pos_attrs $attrs)
+
+if [ "x$single_valued_attrs" = x ]; then
+    $cwb_make $cwb_make_opts $corpus $attrs
+else
+    non_single_valued_attrs=$(get_single_valued_pos_attrs -v $attrs)
+    $cwb_make $cwb_make_opts $corpus $non_single_valued_attrs
+    cwb_make_single_valued_attrs $single_valued_attrs
+fi

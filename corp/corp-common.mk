@@ -358,8 +358,8 @@ CORP_VRT_CKSUM = $(CORPNAME_BUILDDIR)$(VRT_CKSUM)
 
 CWB_ENCODE = $(CWBDIR)/cwb-encode -d $(CORPCORPDIR) -R $(REGDIR)/$(CORPNAME) \
 		-xsB -c utf8
-CWB_MAKEALL = $(CWBDIR)/cwb-makeall -V -r $(REGDIR) $(CORPNAME_U)
-CWB_MAKE = cwb-make -r $(REGDIR) -g $(CORPGROUP) -M 2000 $(CORPNAME_U)
+CWB_MAKE = $(SCRIPTDIR)/cwb-make-safe \
+		-r $(REGDIR) -g $(CORPGROUP) -M 2000 $(CORPNAME_U)
 CWB_ALIGN = $(CWBDIR)/cwb-align
 CWB_ALIGN_ENCODE = $(CWBDIR)/cwb-align-encode -v -r $(REGDIR)
 CWB_REGEDIT = cwb-regedit -r $(REGDIR)
