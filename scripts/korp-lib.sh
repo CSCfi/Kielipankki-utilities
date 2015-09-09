@@ -32,20 +32,30 @@ find_filegroup () {
 }
 
 find_prog () {
+    # If --no-path is specified, do not try to find the program on
+    # $PATH but only in argument directories. Otherwise, try to find
+    # the program on $PATH at the position marked with "@" in the
+    # argument directory list, or if the arguments do not contain a
+    # "@", after any argument directories.
+    if [ "x$1" = "x--no-path" ]; then
+	shift
+    else
+	set -- "$@" @
+    fi
     _prog=$1
     shift
-    _path=`which "$_prog" 2> /dev/null`
-    if [ "x$_path" != "x" ]; then
-	echo "$_path"
-	return 0
-    else
-	for _dir in "$@"; do
-	    if [ -x "$_dir/$_prog" ]; then
-		echo "$_dir/$_prog"
+    for _dir in "$@"; do
+	if [ "$_dir" = @ ]; then
+	    _path=`which "$_prog" 2> /dev/null`
+	    if [ "x$_path" != "x" ]; then
+		echo "$_path"
 		return 0
 	    fi
-	done
-    fi
+	elif [ -x "$_dir/$_prog" ]; then
+	    echo "$_dir/$_prog"
+	    return 0
+	fi
+    done
     return 1
 }
 
