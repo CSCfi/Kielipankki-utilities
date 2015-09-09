@@ -303,20 +303,22 @@ COMPRESS ?= $(or $(COMPRESS_TARGETS),$(COMPRESSED_SRC))
 
 COMPR_EXT_none = 
 CAT_none = cat
-COMPR_none = cat
+COMPR_PROG_none = cat
 
 COMPR_EXT_gz = .gz
 CAT_gz = zcat
-COMPR_gz = gzip
+COMPR_PROG_gz = gzip
+COMPR_OPTS_gz = --no-name
 
 COMPR_EXT_bz2 = .bz2
 CAT_bz2 = bzcat
-COMPR_bz2 = bzip2
+COMPR_PROG_bz2 = bzip2
 
 COMPR_EXT := $(COMPR_EXT_$(COMPRESS))
 CAT := $(CAT_$(COMPRESS))
 CAT_SRC := $(CAT_$(COMPRESSED_SRC))
-COMPR := $(COMPR_$(COMPRESS))
+COMPR_PROG := $(COMPR_PROG_$(COMPRESS))
+COMPR := $(COMPR_PROG_$(COMPRESS)) $(COMPR_OPTS_$(COMPRESS))
 
 # Use checksums to check if a file has really changed (for selected
 # files), unless IGNORE_CHECKSUMS
