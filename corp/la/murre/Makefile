@@ -10,17 +10,21 @@ SUBCORPORA := $(shell cut -f2 $(EXTRA_ATTRS_FILE) | tail -n+2 | sort -u)
 ADD_EXTRA_ATTRS = ./la_murre-add-extra-text-attrs.pl
 ADD_CLAUSE_ELEMS = ./la_murre-add-clause-elems.pl
 ADD_LAT_LINKS = ./la_murre-add-lat-links.pl
+ADD_METADATA = ./la_murre-add-metadata.py
 
 EXTRAINFO_FILE = $(CORPNAME_BUILDDIR)_extrainfo.tsv
 LAT_LINK_DIR = $(SRC_DIR)/../lat-links
+IMDI_DIR = $(SRC_DIR)/../imdi
 
 define subcorp_defs
 SRC_FILES_$(1) := $$(addsuffix .xml,$$(shell egrep '	$(1)	' $(EXTRA_ATTRS_FILE) | cut -f1))
 MAKE_VRT_DEPS_EXTRA_$(1) = \
 	$$(EXTRAINFO_FILE) \
 	$(ADD_EXTRA_ATTRS) $(ADD_CLAUSE_ELEMS) $(ADD_LAT_LINKS) \
+	$(ADD_METADATA) \
 	$$(foreach srcfile,$(SRC_FILES_$(1)),\
-		$(LAT_LINK_DIR)/$$(basename $$(srcfile)).vrt)
+		$(LAT_LINK_DIR)/$$(basename $$(srcfile)).vrt \
+		$(IMDI_DIR)/$$(basename $$(srcfile)).imdi)
 endef
 
 $(foreach subcorp,$(SUBCORPORA),\
@@ -38,6 +42,7 @@ MAKE_VRT_CMD = \
 	| $(ADD_EXTRA_ATTRS) $(EXTRAINFO_FILE) \
 	| $(ADD_CLAUSE_ELEMS) --remove-cl \
 	| $(ADD_LAT_LINKS) --link-params-only $(LAT_LINK_DIR) \
+	| $(ADD_METADATA) $(IMDI_DIR) \
 	| perl -ne '\
 	if (/^</) { print } \
 	else { \
@@ -50,7 +55,8 @@ MAKE_VRT_CMD = \
 		print join ("\t", $$origword, @fields) \
 	}'
 
-CORPUS_DATE = unknown
+CORPUS_DATE_PATTERN = "text date"
+CORPUS_DATE_FULL_ORDER = ymd
 
 COMPRESS_TARGETS = gz
 
