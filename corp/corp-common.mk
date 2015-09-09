@@ -192,7 +192,8 @@ CORPNAME_MAIN := $(call partvar_or_default,CORPNAME_MAIN,\
 			$(CORPNAME_BASE))
 # Corpus base name without prefixes, suffixes or subcorpus name
 CORPNAME_BASEBASE := \
-	$(call partvar_or_default,$(or CORPNAME_BASEBASE,CORPNAME_BASE))
+	$(call partvar_or_default,CORPNAME_BASEBASE,\
+		$(or $(CORPNAME_BASEBASE),$(CORPNAME_BASE)))
 
 # CORPORA: The corpora to make with the current makefile. If not
 # specified explicitly, all the stems of .mk files in the current
