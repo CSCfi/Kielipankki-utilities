@@ -17,7 +17,8 @@ LAT_LINK_DIR = $(SRC_DIR)/../lat-links
 IMDI_DIR = $(SRC_DIR)/../imdi
 
 define subcorp_defs
-SRC_FILES_$(1) := $$(addsuffix .xml,$$(shell egrep '	$(1)	' $(EXTRA_ATTRS_FILE) | cut -f1))
+SRC_FILES_$(1) := \
+	$$(addsuffix .xml,$$(shell egrep '	$(1)	' $(EXTRA_ATTRS_FILE) | cut -f1))
 MAKE_VRT_DEPS_EXTRA_$(1) = \
 	$$(EXTRAINFO_FILE) \
 	$(ADD_EXTRA_ATTRS) $(ADD_CLAUSE_ELEMS) $(ADD_LAT_LINKS) \
@@ -32,7 +33,8 @@ $(foreach subcorp,$(SUBCORPORA),\
 
 P_ATTRS = cleanword lemma pos msd func cow note lex
 
-CORPNAME_PREFIX = la_
+CORPNAME_BASE = lam
+PKGNAME_BASE = la_murre
 
 XML2VRT_RULES = la_murre.xml2vrt
 LEMGRAM_POSMAP = la_murre-lemgram_posmap.tsv
