@@ -178,6 +178,10 @@ VRT_EXTRACT_TIMESPANS = \
 
 MAKE_CWB_STRUCT_ATTRS = $(XMLSTATS) --cwb-struct-attrs
 
+CWBDATA_EXTRACT_INFO_OPTS := $(call partvar,CWBDATA_EXTRACT_INFO_OPTS)
+CWBDATA_EXTRACT_INFO = $(SCRIPTDIR)/cwbdata-extract-info.sh \
+			--registry "$(REGDIR)" $(CWBDATA_EXTRACT_INFO_OPTS)
+
 SUBDIRS := \
 	$(shell find -name Makefile -o -name \*.mk \
 	| egrep '/.*/' | cut -d'/' -f2 | sort -u)
@@ -634,9 +638,7 @@ $(CORPCORPDIR)/.info: \
 	&& cp $(CORPNAME_BUILDDIR).info $(CORPCORPDIR)/.info
 
 %.info: %$(VRT_CKSUM)
-	echo "Sentences: "`$(CAT) $(<:$(CKSUM_EXT)=) | egrep -c '^<sentence[> ]'` > $@
-	ls -l --time-style=long-iso $(<:$(CKSUM_EXT)=) \
-	| perl -ne '/(\d{4}-\d{2}-\d{2})/; print "Updated: $$1\n"' >> $@
+	$(CWBDATA_EXTRACT_INFO) > $@
 
 %.sattrs: %$(VRT_CKSUM)
 	$(CAT) $(<:$(CKSUM_EXT)=) \
