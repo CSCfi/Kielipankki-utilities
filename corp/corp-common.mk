@@ -182,6 +182,16 @@ CWBDATA_EXTRACT_INFO_OPTS := $(call partvar,CWBDATA_EXTRACT_INFO_OPTS)
 CWBDATA_EXTRACT_INFO = $(SCRIPTDIR)/cwbdata-extract-info.sh \
 			--registry "$(REGDIR)" $(CWBDATA_EXTRACT_INFO_OPTS)
 
+PKG_DB_FORMAT ?= tsv
+
+MAKE_CORPUS_PKG_OPTS := $(call partvar,MAKE_CORPUS_PKG_OPTS)
+MAKE_CORPUS_PKG = $(SCRIPTDIR)/korp-make-corpus-package.sh \
+			--corpus-root $(CORPROOT) --registry "$(REGDIR)" \
+			--compress $(COMPR_PROG) \
+			--database-format $(PKG_DB_FORMAT) \
+			--tsv-dir "$(CORPROOT)/vrt/{corpid}" \
+			$(MAKE_CORPUS_PKG_OPTS)
+
 SUBDIRS := \
 	$(shell find -name Makefile -o -name \*.mk \
 	| egrep '/.*/' | cut -d'/' -f2 | sort -u)
@@ -253,6 +263,8 @@ DB_TARGETS := \
 				korp_lemgrams \
 				$(if $(CORPUS_HAS_DEPRELS),korp_rels))))
 
+$(call showvars,DB DB_TARGETS)
+
 $(call showvars,PARCORP PARCORP_PART PARCORP_LANG LINK_ELEM)
 
 PARCORP := $(call partvar_or_default,PARCORP,\
@@ -282,7 +294,8 @@ TARGETS := \
 	$(call partvar_or_default,TARGETS,\
 		$(if $(PARCORP),\
 			align pkg-parcorp,\
-			subdirs vrt reg $(if $(PARCORP_PART),,pkg) \
+			subdirs vrt reg \
+				$(if $(or $(PARCORP_PART),$(SUBCORPUS)),,pkg) \
 				$(if $(strip $(DB_TARGETS)),db)))
 
 # Separator between corpus name and a subtarget (vrt, reg, db, pkg ...).
@@ -302,19 +315,23 @@ COMPRESSED_SRC ?= $(strip $(if $(filter %.gz,$(SRC_FILES_REAL)),gz,\
 COMPRESS ?= $(or $(COMPRESS_TARGETS),$(COMPRESSED_SRC))
 
 COMPR_EXT_none = 
+COMPR_TAR_EXT_none = .tar
 CAT_none = cat
 COMPR_PROG_none = cat
 
 COMPR_EXT_gz = .gz
+COMPR_TAR_EXT_gz = .tgz
 CAT_gz = zcat
 COMPR_PROG_gz = gzip
 COMPR_OPTS_gz = --no-name
 
 COMPR_EXT_bz2 = .bz2
+COMPR_TAR_EXT_bz2 = .tbz
 CAT_bz2 = bzcat
 COMPR_PROG_bz2 = bzip2
 
 COMPR_EXT := $(COMPR_EXT_$(COMPRESS))
+COMPR_TAR_EXT = $(COMPR_TAR_EXT_$(COMPRESS))
 CAT := $(CAT_$(COMPRESS))
 CAT_SRC := $(CAT_$(COMPRESSED_SRC))
 COMPR_PROG := $(COMPR_PROG_$(COMPRESS))
@@ -353,8 +370,15 @@ CORP_BUILDDIR = $(CORPROOT)/vrt/$(CORPNAME)
 
 $(call showvars,CORPNAME CORPDIR CORPCORPDIR CORP_BUILDDIR)
 
+PKGNAME_BASE ?= $(CORPNAME_BASE)
 PKGDIR ?= $(CORPROOT)/pkgs
-PKG_FILE = $(PKGDIR)/korpdata_$(CORPNAME).tbz
+PKG_FILE := \
+	$(or \
+		$(shell ls -t $(PKGDIR)/$(PKGNAME_BASE)/$(PKGNAME_BASE)_korp_* \
+			$(if $(DEBUG),,2> /dev/null) | head -1),\
+		$(PKGDIR)/$(PKGNAME_BASE)/$(PKGNAME_BASE)_korp_$(shell date '+Y%m%d').$(COMPR_TAR_EXT))
+
+$(call showvars,PKGNAME_BASE PKGDIR PKG_FILE)
 
 # Corpus name prefixed with the build directory
 CORPNAME_BUILDDIR = $(CORP_BUILDDIR)/$(CORPNAME)
@@ -448,12 +472,17 @@ S_OPTS = $(foreach attr,$(S_ATTRS),-S $(attr))
 
 $(call showvars,P_OPTS S_OPTS)
 
-SQLDUMP_NAME = $(CORPSQLDIR)/$(CORPNAME)$(SQL)
-SQLDUMP = $(if $(strip $(DB_TARGETS)),$(SQLDUMP_NAME))
-
 DB_TIMESTAMPS = $(patsubst korp_%,$(CORPNAME_BUILDDIR)_%_load.timestamp,\
 			$(DB_TARGETS))
 DB_SQLDUMPS = $(patsubst korp_%,$(CORPSQLDIR)/$(CORPNAME)_%$(SQL),$(DB_TARGETS))
+
+ifeq ($(strip $(PARCORP)$(HAS_SUBCORPORA)),)
+ifeq ($(strip $(PKG_DB_FORMAT)),sql)
+TARGETS := $(TARGETS) sql
+endif
+endif
+
+$(call showvars,DB_TIMESTAMPS DB_SQLDUMPS)
 
 RELS_BASES = @ rel head_rel dep_rel sentences
 RELS_TSV = $(subst _@,,$(foreach base,$(RELS_BASES),\
@@ -463,10 +492,13 @@ MAKE_RELS_TABLE_NAME = $(subst $(CORPNAME)_rels,relations_$(CORPNAME_U),\
 			$(subst $(TSV_CKSUM),,$(notdir $(1))))
 RELS_TABLES = $(call MAKE_RELS_TABLE_NAME,$(RELS_TSV_CKSUM))
 
+$(call showvars,RELS_TSV RELS_TABLES)
+
 RELS_TRUNCATE_TABLES = $(foreach tbl,$(RELS_TABLES),truncate table $(tbl);)
 RELS_DROP_TABLES = $(foreach tbl,$(RELS_TABLES),drop table if exists $(tbl);)
 RELS_CREATE_TABLES_TEMPL = $(TOPDIR)/create-relations-tables-templ.sql
 RELS_CREATE_TABLES_SQL = $(call SUBST_CORPNAME,$(RELS_CREATE_TABLES_TEMPL))
+
 
 .PHONY: all-corp all all-override subdirs parcorp \
 	$(CORPORA) $(TARGETS) $(SUBDIRS)
@@ -543,8 +575,8 @@ endif
 # If subcorpora specified in SUBCORPORA, add them to the main target
 # and to TARGETS in case we are processing a subcorpus.mk file
 ifneq ($(strip $(HAS_SUBCORPORA)),)
-TOP_TARGETS += subcorpora
-TARGETS = subcorpora
+TOP_TARGETS += subcorpora pkg
+TARGETS := subcorpora
 endif
 
 $(call showvars,TOP_TARGETS TARGETS)
@@ -682,9 +714,11 @@ db: korp_db
 
 korp_db: $(DB_TARGETS)
 
+sql: $(DB_SQLDUMPS)
+
 korp_rels: $(CORPNAME_BUILDDIR)_rels_load.timestamp
 
-.PHONY: db korp_db korp_rels
+.PHONY: db korp_db sql korp_rels
 
 
 $(CORPNAME_BUILDDIR)_rels_load.timestamp: \
@@ -773,9 +807,14 @@ $(eval $(call KORP_LOAD_DB_R,timespans))
 
 pkg: $(PKG_FILE)
 
-$(PKG_FILE): $(CORPCORPDIR)/.info $(DB_SQLDUMPS)
-	-mkdir $(dir $@)
-	tar cvjpf $@ $(CORPCORPDIR) $(REGDIR)/$(CORPNAME) $(DB_SQLDUMPS)
+# TODO: Make this rule depend on database TSV/SQL files
+$(PKG_FILE): $(if $(SUBCORPORA),\
+		$(foreach subcorp,$(SUBCORPORA),\
+			$(CORPDIR)/$(CORPNAME_BASEBASE)_$(subcorp)/.info),\
+		$(CORPCORPDIR)/.info)
+	-mkdir -p $(dir $@)
+	$(MAKE_CORPUS_PKG) $(PKGNAME_BASE) \
+		$(addprefix $(CORPNAME_BASEBASE)_,$(SUBCORPORA))
 
 .PHONY: pkg
 
