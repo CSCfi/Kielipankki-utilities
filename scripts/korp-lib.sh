@@ -177,10 +177,15 @@ get_filesize () {
 
 # Common initialization code
 
-default_corpus_roots="/v/corpora /proj/clarin/korp/corpora $WRKDIR/corpora /wrk/jyniemi/corpora"
+default_corpus_roots=${default_corpus_roots:-"/v/corpora /proj/clarin/korp/corpora $WRKDIR/corpora /wrk/jyniemi/corpora"}
 
 # Root directory, relative to which the corpus directory resides
 corpus_root=${CORPUS_ROOT:-$(find_existing_dir -d "" $default_corpus_roots)}
+
+default_cwb_bindirs=${default_cwb_bindirs:-"/usr/local/cwb/bin /usr/local/bin /proj/clarin/korp/cwb/bin $USERAPPL/bin"}
+
+# The directory in which CWB binaries reside
+cwb_bindir=${CWB_BINDIR:-$(find_existing_dir -e cwb-describe-corpus $default_cwbdirs)}
 
 default_filegroups="korp clarin"
 find_filegroup $default_filegroups
