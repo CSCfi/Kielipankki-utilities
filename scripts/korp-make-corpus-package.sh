@@ -27,17 +27,10 @@
 progname=`basename $0`
 progdir=`dirname $0`
 
-default_corpus_roots="/v/corpora $WRKDIR/corpora $WRKDIR/korp/corpora /proj/clarin/korp/corpora /wrk/jyniemi/corpora"
+shortopts="hc:p:r:s:t:f:vz:"
+longopts="help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,set-info:,info-from-file:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose"
 
-corpus_root=$CORPUS_ROOT
-if [ "x$corpus_root" = x ]; then
-    for root in $default_corpus_roots; do
-	if [ -d $root ]; then
-	    corpus_root=$root
-	    break
-	fi
-    done
-fi
+. $progdir/korp-lib.sh
 
 # These will be set later based on $corpus_root, which may be modified
 # by options
@@ -48,8 +41,6 @@ sqldir=$CORPUS_SQLDIR
 pkgdir=$CORPUS_PKGDIR
 tsvdir=$CORPUS_TSVDIR
 tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
-
-tmp_prefix=$tmpdir/$progname.$$
 
 cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
 
@@ -80,62 +71,6 @@ rels_tables_basenames="@ rel head_rel dep_rel sentences"
 
 extra_info_file=$tmp_prefix.info
 touch $extra_info_file
-
-for grp in korp clarin; do
-    if groups | grep -qw $grp; then
-	filegroup=$grp
-	break
-    fi
-done
-if [ "x$filegroup" = x ]; then
-    filegroup=`groups | cut -d' ' -f1`
-fi
-
-# Korp MySQL database
-korpdb=korp
-# Unless specified via environment variables, assume that the Korp
-# MySQL database user and password are specified in a MySQL option
-# file
-mysql_opts=
-if [ "x$KORP_MYSQL_USER" != "x" ]; then
-    mysql_opts=--user=$KORP_MYSQL_USER
-else
-    mysql_opts=--user=korp
-fi
-if [ "x$KORP_MYSQL_PASSWORD" != "x" ]; then
-    mysql_opts="$mysql_opts --password=$KORP_MYSQL_PASSWORD"
-fi
-
-
-warn () {
-    echo "$progname: Warning: $1" >&2
-}
-
-error () {
-    echo "$progname: $1" >&2
-    exit 1
-}
-
-echo_verb () {
-    if [ "x$verbose" != "x" ]; then
-	echo "$@"
-    fi
-}
-
-cleanup () {
-    if [ "x$tmp_prefix" != "x" ]; then
-	rm -rf $tmp_prefix.*
-    fi
-}
-
-cleanup_abort () {
-    cleanup
-    exit 1
-}
-
-
-trap cleanup 0
-trap cleanup_abort 1 2 13 15
 
 
 usage () {
@@ -253,19 +188,6 @@ add_extra_file () {
     add_extra_dir_or_file "$source" "$target"
 }
 
-
-# Test if GNU getopt
-getopt -T > /dev/null
-if [ $? -eq 4 ]; then
-    # This requires GNU getopt
-    args=`getopt -o "hc:p:r:s:t:f:vz:" -l "help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,set-info:,info-from-file:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose" -- "$@"`
-    if [ $? -ne 0 ]; then
-	exit 1
-    fi
-    eval set -- "$args"
-fi
-# If not GNU getopt, arguments of long options must be separated from
-# the option string by a space; getopt allows an equals sign.
 
 # Process options
 while [ "x$1" != "x" ] ; do
