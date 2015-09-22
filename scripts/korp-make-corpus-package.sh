@@ -24,7 +24,7 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 shortopts="hc:p:r:s:t:f:vz:"
-longopts="help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,set-info:,info-from-file:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose"
+-longopts="help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,korp-frontend-dir:,set-info:,info-from-file:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose"
 
 . $progdir/korp-lib.sh
 
@@ -65,6 +65,8 @@ sql_file_types_multicorpus="lemgrams timespans"
 sql_table_name_lemgrams=lemgram_index
 rels_tables_basenames="@ rel head_rel dep_rel sentences"
 
+frontend_config_files="config.js $(echo modes/{other_languages,parallel,swedish}_mode.js) translations/corpora-*.json"
+
 extra_info_file=$tmp_prefix.info
 touch $extra_info_file
 
@@ -98,6 +100,9 @@ Options:
   -t, --tsv-dir DIRTEMPL
                   use DIRTEMPL as the directory template for for Korp MySQL
                   TSV data files (default: CORPUS_ROOT/$sqlsubdir)
+  --korp-frontend-dir DIR
+                  read Korp configuration files from DIR (default:
+                  $korp_frontend_dir)
   --set-info KEY:VALUE
                   set the corpus information item KEY (in the file .info) to
                   the value VALUE, where KEY is of the form [SECTION_]SUBITEM,
@@ -145,7 +150,8 @@ Options:
 Environment variables:
   Default values for the various directories can also be specified via
   the following environment variables: CORPUS_ROOT, TARGET_CORPUS_ROOT,
-  CORPUS_PKGDIR, CORPUS_REGISTRY, CORPUS_SQLDIR, CORPUS_TSVDIR.
+  CORPUS_PKGDIR, CORPUS_REGISTRY, CORPUS_SQLDIR, CORPUS_TSVDIR,
+  KORP_FRONTEND_DIR.
 EOF
     exit 0
 }
@@ -286,6 +292,14 @@ while [ "x$1" != "x" ] ; do
 	    tsvdir=$2
 	    shift
 	    ;;
+	--korp-frontend-dir | --frontend-dir )
+	    if test_file -r $2/config.js warn \
+		"config.js not found or not accessible in directory $2; using the default Korp frontend directory $korp_frontend_dir"
+	    then
+		korp_frontend_dir=$2
+	    fi
+	    shift
+	    ;;
 	--set-info )
 	    printf "%s\n" "$2" >> $extra_info_file
 	    shift
@@ -395,6 +409,12 @@ if [ "x$1" = "x" ]; then
 else
     corpus_ids=$@
 fi
+
+for fname_patt in $frontend_config_files; do
+    for fname in $(echo $korp_frontend_dir/$fname_patt); do
+	extra_corpus_files="$extra_corpus_files $fname"
+    done
+done
 
 (
     cd $regdir
@@ -646,7 +666,8 @@ dir_transforms=\
 "$(remove_leading_slash $datadir) data
 $(remove_leading_slash $target_regdir) registry
 $(transform_dirtempl $sqldir) sql
-$(transform_dirtempl $tsvdir) sql"
+$(transform_dirtempl $tsvdir) sql
+$(remove_leading_slash $korp_frontend_dir) korp_config"
 if [ "x$extra_dir_and_file_transforms" != x ]; then
     dir_transforms="$dir_transforms$extra_dir_and_file_transforms"
 fi

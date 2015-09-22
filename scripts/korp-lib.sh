@@ -59,6 +59,19 @@ find_prog () {
     return 1
 }
 
+test_file () {
+    _test=$1
+    _file=$2
+    _not_found_cmd=$3
+    shift 3
+    if [ $_test "$_file" ]; then
+	return 0
+    else
+	$_not_found_cmd "$@"
+	return 1
+    fi
+}
+
 ensure_perms () {
     chgrp -R $filegroup "$@"
     chmod -R g+rwX "$@"
@@ -186,6 +199,11 @@ default_cwb_bindirs=${default_cwb_bindirs:-"/usr/local/cwb/bin /usr/local/bin /p
 
 # The directory in which CWB binaries reside
 cwb_bindir=${CWB_BINDIR:-$(find_existing_dir -e cwb-describe-corpus $default_cwbdirs)}
+
+default_korp_frontend_dirs=${default_korp_frontend_dirs:-"/var/www/html/korp /var/www/html"}
+
+# The (main) Korp frontend directory
+korp_frontend_dir=${KORP_FRONTEND_DIR:-$(find_existing_dir -e config.js $default_korp_frontend_dirs)}
 
 default_filegroups="korp clarin"
 find_filegroup $default_filegroups
