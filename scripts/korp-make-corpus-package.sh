@@ -93,12 +93,12 @@ Options:
   -r, --registry DIR
                   use DIR as the CWB registry (default: CORPUS_ROOT/$regsubdir)
   -s, --sql-dir DIRTEMPL
-                  use DIRTEMPL as the directory template for Korp MySQL
+                  use DIRTEMPL as the source directory template for Korp MySQL
                   dumps; DIRTEMPL is a directory name possibly containing
                   placeholder {corpname} for corpus name or {corpid} for
                   corpus id (default: CORPUS_ROOT/$sqlsubdir)
   -t, --tsv-dir DIRTEMPL
-                  use DIRTEMPL as the directory template for for Korp MySQL
+                  use DIRTEMPL as the source directory template for Korp MySQL
                   TSV data files (default: CORPUS_ROOT/$sqlsubdir)
   --korp-frontend-dir DIR
                   read Korp configuration files from DIR (default:
@@ -645,8 +645,32 @@ if [ "x$compress" != "xnone" ]; then
 fi
 
 transform_dirtempl () {
-    remove_leading_slash "$1" |
-    sed -e 's,{corp.*},[^/]*,'
+    # Multiple backslashes are needed in the sed expression because of
+    # multiple echos, through which the output goes. (?)
+    remove_leading_slash $(remove_trailing_slash "$1") |
+    sed -e 's,{corp.*},\\\\([^/]*\\\\),'
+}
+
+transform_dirtempl_pair () {
+    local srcdir=$1
+    local dstdir=$2
+    local repl=
+    case $dstdir in
+	*{corp*}* )
+	    dstdir=${dstdir/"{corpname}"/$corpus_name}
+	    case $srcdir in
+		*{corpid}* )
+		    repl='\\1'
+		    ;;
+		* )
+		    repl=$corpus_name
+		    ;;
+	    esac
+	    dstdir=${dstdir/"{corpid}"/$repl}
+	    ;;
+    esac
+    srcdir=$(transform_dirtempl "$srcdir")
+    echo "$srcdir" "$dstdir"
 }
 
 make_tar_transforms () {
@@ -665,9 +689,9 @@ make_tar_excludes () {
 dir_transforms=\
 "$(remove_leading_slash $datadir) data
 $(remove_leading_slash $target_regdir) registry
-$(transform_dirtempl $sqldir) sql
-$(transform_dirtempl $tsvdir) sql
-$(remove_leading_slash $korp_frontend_dir) korp_config"
+$(remove_leading_slash $korp_frontend_dir) korp_config
+$(transform_dirtempl_pair $sqldir sql/{corpid})
+$(transform_dirtempl_pair $tsvdir sql/{corpid})"
 if [ "x$extra_dir_and_file_transforms" != x ]; then
     dir_transforms="$dir_transforms$extra_dir_and_file_transforms"
 fi
@@ -675,7 +699,7 @@ fi
 tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
     -f $archive_name --exclude-backups $(make_tar_excludes $exclude_files) \
     $(make_tar_transforms "$dir_transforms") \
-    --show-transformed-names $corpus_files 
+    --show-transformed-names $corpus_files
 
 chgrp $filegroup $archive_name
 chmod 444 $archive_name
