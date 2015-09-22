@@ -16,10 +16,6 @@
 #   category.
 #
 # FIXME:
-# - If a --doc-dir or --script-dir is specified multiple times or
-#   after a --doc-file or --script-file, the latter (probably?)
-#   overwrites the former when extracting the archive. We should at
-#   least warn about this.
 # - Finding the most recent database files from either SQL or TSV
 #   files does not work correctly; see FIXME comments in the code.
 
@@ -112,25 +108,32 @@ Options:
                   read information items to be added from file FILENAME
   --readme-file FILE
                   include FILE as a top-level read-me file; the option may
-                  be specified multiple times to include multiple files
+                  be specified multiple times to include multiple files, and
+                  FILE may contain shell wildcards (but braces are not
+                  expanded)
   --doc-dir DIR   include DIR as a documentation directory 'doc' in the
                   package
   --doc-file FILE include FILE as a documentation file in directory 'doc';
-                  may be specified multiple times
+                  may be specified multiple times, and FILE may contain shell
+                  wildcards
   --script-dir DIR
                   include DIR as a (conversion) script directory 'scripts' in
                   the package
   --script-file FILE
                   include FILE as a (conversion) script file in directory
-                  'scripts'; may be specified multiple times
+                  'scripts'; may be specified multiple times, and FILE may
+                  contain shell wildcards
   --extra-dir SRCDIR[:DSTDIR]
                   include directory SRCDIR in the package; if :DSTDIR is
                   specified, the directory is renamed as DSTDIR in the
                   package; the option may be specified multiple times
   --extra-file SRCFILE[:DSTFILE]
                   include file SRCFILE in the package; if :DSTFILE is
-                  specified, the file is renamed as DSTFILE in the
-                  package; the option may be specified multiple times
+                  specified, the file is renamed as DSTFILE in the package;
+                  if DSTFILE ends in a slash or if SRCFILE contains wildcards,
+                  DSTFILE is considered a directory name and SRCFILE is placed
+                  in that directory in the package; the option may be
+                  specified multiple times
   -f, --database-format FMT
                   include database files in format FMT: either sql (SQL),
                   tsv (TSV) or auto (SQL or TSV, whichever files are newer)
@@ -152,10 +155,48 @@ extra_corpus_files=
 extra_dir_and_file_transforms=
 
 remove_leading_slash () {
-    echo "$1" | sed -e 's,^/,,'
+    echo "$1" | sed -e 's,^/*,,'
+}
+
+remove_trailing_slash () {
+    echo "$1" | sed -e 's,/*$,,'
+}
+
+dirname_slash () {
+    # dirname drops the last component even with a trailing slash, so
+    # add a @ to mark the file name after a slash. If the argument has
+    # no trailing slash, this works like dirname.
+    dirname "$1@"
+}
+
+is_dirname () {
+    case "$1" in
+	*/ )
+	    return 0
+	    ;;
+    esac
+    return 1
+}
+
+add_transform () {
+    extra_dir_and_file_transforms="$extra_dir_and_file_transforms
+$1 $2"
+}
+
+has_wildcards () {
+    # FIXME: This does not take into account backslash-protected
+    # wildcards, which should not be counted as wildcards.
+    case "$1" in
+	*\** | *\?* | *\[* )
+	    return 0
+	    ;;
+    esac
+    return 1
 }
 
 add_extra_dir_or_file () {
+    # Target ends in / => dir, transform the dir part of source;
+    # otherwise transform the whole source; source ends in / => dir
     local source=$1
     local target=$2
     if [ "x$target" = x ]; then
@@ -169,23 +210,49 @@ add_extra_dir_or_file () {
 		;;
 	esac
     fi
-    extra_corpus_files="$extra_corpus_files $source"
+    # If the source contains wildcards, then the target should always
+    # be a directory.
+    if has_wildcards "$source"; then
+	target=$target/
+    fi
+    local sourcedir=$(remove_leading_slash $(dirname_slash "$source"))
+    local targetdir=$(remove_leading_slash $(dirname_slash "$target"))
+    extra_corpus_files="$extra_corpus_files $(remove_trailing_slash "$source")"
     source=$(remove_leading_slash "$source")
-    extra_dir_and_file_transforms="$extra_dir_and_file_transforms
-$source $target"
+    target=$(remove_leading_slash "$target")
+    if is_dirname "$target"; then
+	if [ "x$targetdir" = x ]; then
+	    # Originally $targetdir = /
+	    if [ "x$sourcedir" = x. ]; then
+		# Extra backslashes to protect them through echos
+		add_transform "\\\\($source\\\\)" "\\\\1"
+	    else
+		add_transform "$sourcedir/" ""
+		add_transform "$sourcedir\$" ""
+	    fi
+	else
+	    if [ "x$sourcedir" = x. ]; then
+		add_transform "\\\\($source\\\\)" "$targetdir/\\\\1"
+	    else
+		add_transform "$sourcedir/" "$targetdir/"
+		add_transform "$sourcedir\$" "$targetdir"
+	    fi
+	fi
+    else
+	add_transform "$source" "$target"
+    fi
 }
 
 add_extra_file () {
-    local source=$1
+    add_extra_dir_or_file "$@"
+}
+
+add_extra_dir () {
     local target=$2
     if [ "x$target" != x ]; then
-	local targetdir=$target
-	if [ "$targetdir" = / ]; then
-	    targetdir=
-	fi
-	local target="$targetdir/$(echo "$source" | sed -e 's,^.*/,,')"
+	target="$target/"
     fi
-    add_extra_dir_or_file "$source" "$target"
+    add_extra_dir_or_file "$(echo "$1" | sed -e 's,:,/:,; s,$,/,')" "$target"
 }
 
 
@@ -233,27 +300,27 @@ while [ "x$1" != "x" ] ; do
 	    shift
 	    ;;
 	--doc-dir )
-	    add_extra_dir_or_file "$2" doc/
+	    add_extra_dir "$2" doc/
 	    has_docs=1
 	    shift
 	    ;;
 	--doc-file )
-	    add_extra_file "$2" doc
+	    add_extra_file "$2" doc/
 	    has_docs=1
 	    shift
 	    ;;
 	--script-dir )
-	    add_extra_dir_or_file "$2" scripts/
+	    add_extra_dir "$2" scripts/
 	    has_scripts=1
 	    shift
 	    ;;
 	--script-file )
-	    add_extra_file "$2" scripts
+	    add_extra_file "$2" scripts/
 	    has_scripts=1
 	    shift
 	    ;;
 	--extra-dir )
-	    add_extra_dir_or_file "$2"
+	    add_extra_dir "$2"
 	    shift
 	    ;;
 	--extra-file )
@@ -534,7 +601,7 @@ else
     done
 fi
 
-corpus_files=$extra_corpus_files
+corpus_files=$(echo $extra_corpus_files)
 for corpus_id in $corpus_ids; do
     corpus_files="$corpus_files $target_regdir/$corpus_id $datadir/$corpus_id "`list_db_files $corpus_id`
 done
