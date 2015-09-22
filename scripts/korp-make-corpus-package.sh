@@ -24,7 +24,7 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 shortopts="hc:p:r:s:t:f:vz:"
--longopts="help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,korp-frontend-dir:,set-info:,info-from-file:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose"
+longopts="help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,korp-frontend-dir:,vrt-dir:,include-vrt-dir,vrt-file:,set-info:,info-from-file:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose"
 
 . $progdir/korp-lib.sh
 
@@ -36,6 +36,8 @@ datadir=$CORPUS_DATADIR
 sqldir=$CORPUS_SQLDIR
 pkgdir=$CORPUS_PKGDIR
 tsvdir=$CORPUS_TSVDIR
+vrtdir=$CORPUS_VRTDIR
+
 tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
 
 cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
@@ -44,10 +46,13 @@ regsubdir=registry
 datasubdir=data
 sqlsubdir=sql
 pkgsubdir=pkgs
+vrtsubdir=vrt
 
 compress=gzip
 verbose=
 dbformat=auto
+
+include_vrtdir=
 
 exclude_files="backup *~ *.bak *.bak[0-9] *.old *.old[0-9] *.prev *.prev[0-9]"
 
@@ -103,6 +108,17 @@ Options:
   --korp-frontend-dir DIR
                   read Korp configuration files from DIR (default:
                   $korp_frontend_dir)
+  --vrt-dir DIRTEMPL
+                  use DIRTEMPL as the source directory template for VRT files
+                  (default: CORPUS_ROOT/$vrtsubdir/{corpid})
+  --include-vrt-dir
+                  include the files in the (default) VRT directory in the
+                  package; this option needs to be specified only if using the
+                  default VRT directory
+  --vrt-file FILE
+                  include FILE as a VRT file in directory 'vrt/{corpid}' in
+                  the package; this option may be specified multiple times,
+                  and FILE may contain shell wildcards
   --set-info KEY:VALUE
                   set the corpus information item KEY (in the file .info) to
                   the value VALUE, where KEY is of the form [SECTION_]SUBITEM,
@@ -150,7 +166,7 @@ Options:
 Environment variables:
   Default values for the various directories can also be specified via
   the following environment variables: CORPUS_ROOT, TARGET_CORPUS_ROOT,
-  CORPUS_PKGDIR, CORPUS_REGISTRY, CORPUS_SQLDIR, CORPUS_TSVDIR,
+  CORPUS_PKGDIR, CORPUS_REGISTRY, CORPUS_SQLDIR, CORPUS_TSVDIR, CORPUS_VRTDIR,
   KORP_FRONTEND_DIR.
 EOF
     exit 0
@@ -300,6 +316,18 @@ while [ "x$1" != "x" ] ; do
 	    fi
 	    shift
 	    ;;
+        --include-vrt-dir )
+	    include_vrtdir=1
+	    ;;
+	--vrt-dir )
+	    include_vrtdir=1
+	    vrtdir=$2
+	    shift
+	    ;;
+	--vrt-file )
+	    add_extra_file "$2" vrt/
+	    shift
+	    ;;
 	--set-info )
 	    printf "%s\n" "$2" >> $extra_info_file
 	    shift
@@ -394,6 +422,7 @@ regdir=${regdir:-$corpus_root/$regsubdir}
 datadir=${datadir:-$corpus_root/$datasubdir}
 sqldir=${sqldir:-$corpus_root/$sqlsubdir}
 tsvdir=${tsvdir:-$sqldir}
+vrtdir=${vrtdir:-"$corpus_root/$vrtsubdir/{corpid}"}
 
 corpus_name=$1
 shift
@@ -624,6 +653,9 @@ fi
 corpus_files=$(echo $extra_corpus_files)
 for corpus_id in $corpus_ids; do
     corpus_files="$corpus_files $target_regdir/$corpus_id $datadir/$corpus_id "`list_db_files $corpus_id`
+    if [ "x$include_vrtdir" != x ]; then
+	corpus_files="$corpus_files $(remove_trailing_slash $(fill_dirtempl $vrtdir $corpus_id))"
+    fi
 done
 
 $cwbdata_extract_info --update --registry "$regdir" --data-root-dir "$datadir" \
@@ -691,7 +723,8 @@ dir_transforms=\
 $(remove_leading_slash $target_regdir) registry
 $(remove_leading_slash $korp_frontend_dir) korp_config
 $(transform_dirtempl_pair $sqldir sql/{corpid})
-$(transform_dirtempl_pair $tsvdir sql/{corpid})"
+$(transform_dirtempl_pair $tsvdir sql/{corpid})
+$(transform_dirtempl_pair $vrtdir vrt/{corpid})"
 if [ "x$extra_dir_and_file_transforms" != x ]; then
     dir_transforms="$dir_transforms$extra_dir_and_file_transforms"
 fi
