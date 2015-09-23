@@ -25,7 +25,7 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 shortopts="hc:p:r:s:t:f:vz:"
-longopts="help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,korp-frontend-dir:,vrt-dir:,include-vrt-dir,vrt-file:,no-cwb-data,omit-cwb-data,set-info:,info-from-file:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose"
+longopts="help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,korp-frontend-dir:,vrt-dir:,include-vrt-dir,vrt-file:,generate-vrt,no-cwb-data,omit-cwb-data,set-info:,info-from-file:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose"
 
 . $progdir/korp-lib.sh
 
@@ -45,6 +45,8 @@ vrtdir=$CORPUS_VRTDIR
 tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
 
 cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
+cwbdata2vrt=$progdir/cwbdata2vrt.py
+vrt_decode_chars="$progdir/vrt-convert-chars.py --decode"
 
 regsubdir=registry
 datasubdir=data
@@ -59,6 +61,7 @@ dbformat=auto
 omit_cwb_data=
 include_vrtdir=
 include_vrt=
+generate_vrt=
 
 exclude_files="backup *~ *.bak *.bak[0-9] *.old *.old[0-9] *.prev *.prev[0-9]"
 
@@ -128,6 +131,8 @@ Options:
                   ('vrt/{corpid}' if the directory component of FILE contains
                   {corpid}) in the package; this option may be specified
                   multiple times, and FILE may contain shell wildcards
+  --generate-vrt  generate a single VRT file for each corpus from the CWB
+                  corpus data
   --no-cwb-data   omit CWB data files from the package; this option requires
                   that VRT files are being included in the package
   --set-info KEY:VALUE
@@ -346,6 +351,10 @@ while [ "x$1" != "x" ] ; do
 	    add_extra_file "$2" vrt/{corpid}/
 	    shift
 	    ;;
+	--generate-vrt )
+	    include_vrt=1
+	    generate_vrt=1
+	    ;;
 	--no-cwb-data | --omit-cwb-data )
 	    omit_cwb_data=1
 	    ;;
@@ -496,6 +505,15 @@ if [ "x$has_scripts" = x ]; then
     warn "No conversion scripts included"
 fi
 
+if [ "x$generate_vrt" != x ]; then
+    mkdir -p $tmp_prefix.vrt
+    for corpus_id in $corpus_ids; do
+	$cwbdata2vrt $corpus_id |
+	$vrt_decode_chars > $tmp_prefix.vrt/$corpus_id.vrt
+    done
+    extra_corpus_files="$extra_corpus_files $tmp_prefix.vrt"
+    add_transform $tmp_prefix.vrt/ "vrt/{corpid}/"
+fi
 
 add_prefix () {
     prefix=$1
