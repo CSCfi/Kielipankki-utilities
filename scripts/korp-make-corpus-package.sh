@@ -25,7 +25,7 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 shortopts="hc:p:r:s:t:f:vz:"
-longopts="help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,korp-frontend-dir:,vrt-dir:,include-vrt-dir,vrt-file:,set-info:,info-from-file:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose"
+longopts="help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,korp-frontend-dir:,vrt-dir:,include-vrt-dir,vrt-file:,no-cwb-data,omit-cwb-data,set-info:,info-from-file:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose"
 
 . $progdir/korp-lib.sh
 
@@ -56,7 +56,9 @@ compress=gzip
 verbose=
 dbformat=auto
 
+omit_cwb_data=
 include_vrtdir=
+include_vrt=
 
 exclude_files="backup *~ *.bak *.bak[0-9] *.old *.old[0-9] *.prev *.prev[0-9]"
 
@@ -68,6 +70,8 @@ archive_ext_none=tar
 archive_ext_gzip=tgz
 archive_ext_bzip=tbz
 archive_ext_xz=txz
+
+archive_type_name=korp
 
 sql_file_types="lemgrams rels timespans"
 sql_file_types_multicorpus="lemgrams timespans"
@@ -124,6 +128,8 @@ Options:
                   ('vrt/{corpid}' if the directory component of FILE contains
                   {corpid}) in the package; this option may be specified
                   multiple times, and FILE may contain shell wildcards
+  --no-cwb-data   omit CWB data files from the package; this option requires
+                  that VRT files are being included in the package
   --set-info KEY:VALUE
                   set the corpus information item KEY (in the file .info) to
                   the value VALUE, where KEY is of the form [SECTION_]SUBITEM,
@@ -326,16 +332,22 @@ while [ "x$1" != "x" ] ; do
 	    shift
 	    ;;
         --include-vrt-dir )
+	    include_vrt=1
 	    include_vrtdir=1
 	    ;;
 	--vrt-dir )
+	    include_vrt=1
 	    include_vrtdir=1
 	    vrtdir=$2
 	    shift
 	    ;;
 	--vrt-file )
+	    include_vrt=1
 	    add_extra_file "$2" vrt/{corpid}/
 	    shift
+	    ;;
+	--no-cwb-data | --omit-cwb-data )
+	    omit_cwb_data=1
 	    ;;
 	--set-info )
 	    printf "%s\n" "$2" >> $extra_info_file
@@ -438,6 +450,13 @@ shift
 
 if [ ! -d "$regdir" ]; then
     error "Cannot access registry directory $regdir"
+fi
+
+if [ "x$omit_cwb_data" != x ]; then
+    if [ "x$include_vrt" = x ]; then
+	error "You need to include VRT data when omitting CWB data."
+    fi
+    archive_type_name=vrt
 fi
 
 eval archive_ext=\$archive_ext_$compress
@@ -671,7 +690,10 @@ for extra_file in $extra_corpus_files; do
     fi
 done
 for corpus_id in $corpus_ids; do
-    corpus_files="$corpus_files $target_regdir/$corpus_id $datadir/$corpus_id "`list_db_files $corpus_id`
+    if [ "x$omit_cwb_data" = x ]; then
+	corpus_files="$corpus_files $target_regdir/$corpus_id $datadir/$corpus_id"
+    fi
+    corpus_files="$corpus_files $(list_db_files $corpus_id)"
     if [ "x$include_vrtdir" != x ]; then
 	corpus_files="$corpus_files $(remove_trailing_slash $(fill_dirtempl $vrtdir $corpus_id))"
     fi
@@ -683,7 +705,7 @@ $cwbdata_extract_info --update --registry "$regdir" --data-root-dir "$datadir" \
 
 corpus_date=`get_corpus_date $corpus_ids`
 mkdir -p $pkgdir/$corpus_name
-archive_basename=${corpus_name}_korp_$corpus_date
+archive_basename=${corpus_name}_${archive_type_name}_$corpus_date
 archive_name=$pkgdir/$corpus_name/$archive_basename.$archive_ext
 archive_num=0
 while [ -e $archive_name ]; do
