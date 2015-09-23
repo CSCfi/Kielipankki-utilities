@@ -96,6 +96,16 @@ verbose () {
     fi
 }
 
+# Echo the parameters quoted to standard error if $debug is non-empty.
+echo_dbg () {
+    if [ "x$debug" != x ]; then
+	for _arg in "$@"; do
+	    printf "%s " "'$_arg'" > /dev/stderr
+	done
+	printf "\n" > /dev/stderr
+    fi
+}
+
 # Output timestamped (ISO date+time and epoch+nanoseconds) text
 echo_timestamp () {
     date +"[%F %T %s.%N] $*"

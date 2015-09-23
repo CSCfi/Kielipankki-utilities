@@ -18,6 +18,7 @@
 # FIXME:
 # - Finding the most recent database files from either SQL or TSV
 #   files does not work correctly; see FIXME comments in the code.
+# - {corpid} does not work in the filename part of an extra VRT file.
 
 
 progname=`basename $0`
@@ -27,6 +28,9 @@ shortopts="hc:p:r:s:t:f:vz:"
 longopts="help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,korp-frontend-dir:,vrt-dir:,include-vrt-dir,vrt-file:,set-info:,info-from-file:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose"
 
 . $progdir/korp-lib.sh
+
+# Uncomment to enable some debug output to stderr:
+# debug=1
 
 # These will be set later based on $corpus_root, which may be modified
 # by options
@@ -116,9 +120,10 @@ Options:
                   package; this option needs to be specified only if using the
                   default VRT directory
   --vrt-file FILE
-                  include FILE as a VRT file in directory 'vrt/{corpid}' in
-                  the package; this option may be specified multiple times,
-                  and FILE may contain shell wildcards
+                  include FILE as a VRT file in directory 'vrt/{corpname}' (or
+                  ('vrt/{corpid}' if the directory component of FILE contains
+                  {corpid}) in the package; this option may be specified
+                  multiple times, and FILE may contain shell wildcards
   --set-info KEY:VALUE
                   set the corpus information item KEY (in the file .info) to
                   the value VALUE, where KEY is of the form [SECTION_]SUBITEM,
@@ -177,11 +182,11 @@ extra_corpus_files=
 extra_dir_and_file_transforms=
 
 remove_leading_slash () {
-    echo "$1" | sed -e 's,^/*,,'
+    printf '%s\n' "$1" | sed -e 's,^/*,,'
 }
 
 remove_trailing_slash () {
-    echo "$1" | sed -e 's,/*$,,'
+    printf '%s\n' "$1" | sed -e 's,/*$,,'
 }
 
 dirname_slash () {
@@ -201,6 +206,7 @@ is_dirname () {
 }
 
 add_transform () {
+    echo_dbg add_transform "$1" "$2"
     extra_dir_and_file_transforms="$extra_dir_and_file_transforms
 $1 $2"
 }
@@ -221,6 +227,7 @@ add_extra_dir_or_file () {
     # otherwise transform the whole source; source ends in / => dir
     local source=$1
     local target=$2
+    echo_dbg "** add_extra:param" "$source" "$target"
     if [ "x$target" = x ]; then
 	case "$source" in
 	    *:* )
@@ -239,26 +246,28 @@ add_extra_dir_or_file () {
     fi
     local sourcedir=$(remove_leading_slash $(dirname_slash "$source"))
     local targetdir=$(remove_leading_slash $(dirname_slash "$target"))
+    echo_dbg add_extra:dirs "$sourcedir" "$targetdir"
     extra_corpus_files="$extra_corpus_files $(remove_trailing_slash "$source")"
     source=$(remove_leading_slash "$source")
     target=$(remove_leading_slash "$target")
-    if is_dirname "$target"; then
-	if [ "x$targetdir" = x ]; then
-	    # Originally $targetdir = /
-	    if [ "x$sourcedir" = x. ]; then
-		# Extra backslashes to protect them through echos
-		add_transform "\\\\($source\\\\)" "\\\\1"
-	    else
-		add_transform "$sourcedir/" ""
-		add_transform "$sourcedir\$" ""
-	    fi
+    echo_dbg add_extra:mods "$source" "$target"
+    if is_dirname "$target" || [ "x$targetdir" = x ]; then
+	local targetdir_slash=
+	if [ "x$targetdir" != x ]; then
+	    targetdir_slash="$targetdir/"
+	fi
+	# Originally $targetdir = /
+	if [ "x$sourcedir" = x. ]; then
+	    # Extra backslashes to protect them through echos
+	    add_transform "\\\\($source\\\\)" "$targetdir_slash\\\\1"
+	elif is_dirname "$source" || has_wildcards "$source"; then
+	    add_transform "$sourcedir/" "$targetdir_slash"
+	    # The following is now added in make_tar_transforms:
+	    # add_transform "$sourcedir\$" "$targetdir"
 	else
-	    if [ "x$sourcedir" = x. ]; then
-		add_transform "\\\\($source\\\\)" "$targetdir/\\\\1"
-	    else
-		add_transform "$sourcedir/" "$targetdir/"
-		add_transform "$sourcedir\$" "$targetdir"
-	    fi
+	    local sourcefile=$(basename "$source")
+	    add_transform \
+		"$sourcedir/\\\\($sourcefile\\\\)" "$targetdir_slash\\\\1"
 	fi
     else
 	add_transform "$source" "$target"
@@ -325,7 +334,7 @@ while [ "x$1" != "x" ] ; do
 	    shift
 	    ;;
 	--vrt-file )
-	    add_extra_file "$2" vrt/
+	    add_extra_file "$2" vrt/{corpid}/
 	    shift
 	    ;;
 	--set-info )
@@ -418,11 +427,11 @@ fi
 
 target_corpus_root=${target_corpus_root:-$corpus_root}
 pkgdir=${pkgdir:-$corpus_root/$pkgsubdir}
-regdir=${regdir:-$corpus_root/$regsubdir}
-datadir=${datadir:-$corpus_root/$datasubdir}
-sqldir=${sqldir:-$corpus_root/$sqlsubdir}
-tsvdir=${tsvdir:-$sqldir}
-vrtdir=${vrtdir:-"$corpus_root/$vrtsubdir/{corpid}"}
+regdir=$(remove_trailing_slash ${regdir:-$corpus_root/$regsubdir})
+datadir=$(remove_trailing_slash ${datadir:-$corpus_root/$datasubdir})
+sqldir=$(remove_trailing_slash ${sqldir:-$corpus_root/$sqlsubdir})
+tsvdir=$(remove_trailing_slash ${tsvdir:-$sqldir})
+vrtdir=$(remove_trailing_slash ${vrtdir:-"$corpus_root/$vrtsubdir/{corpid}"})
 
 corpus_name=$1
 shift
@@ -650,13 +659,24 @@ else
     done
 fi
 
-corpus_files=$(echo $extra_corpus_files)
+echo_dbg extra_files "$extra_corpus_files"
+corpus_files=
+for extra_file in $extra_corpus_files; do
+    if [[ $extra_file = *{corp*}* ]]; then
+	for corpus_id in $corpus_ids; do
+	    corpus_files="$corpus_files $(echo $(fill_dirtempl $extra_file $corpus_id))"
+	done
+    else
+	corpus_files="$corpus_files $(echo $extra_file)"
+    fi
+done
 for corpus_id in $corpus_ids; do
     corpus_files="$corpus_files $target_regdir/$corpus_id $datadir/$corpus_id "`list_db_files $corpus_id`
     if [ "x$include_vrtdir" != x ]; then
 	corpus_files="$corpus_files $(remove_trailing_slash $(fill_dirtempl $vrtdir $corpus_id))"
     fi
 done
+echo_dbg corpus_files "$corpus_files"
 
 $cwbdata_extract_info --update --registry "$regdir" --data-root-dir "$datadir" \
     --info-from-file "$extra_info_file" $corpus_ids
@@ -679,8 +699,8 @@ fi
 transform_dirtempl () {
     # Multiple backslashes are needed in the sed expression because of
     # multiple echos, through which the output goes. (?)
-    remove_leading_slash $(remove_trailing_slash "$1") |
-    sed -e 's,{corp.*},\\\\([^/]*\\\\),'
+    remove_leading_slash "$1" |
+    sed -e 's,{corp.*},\\([^/]*\\),'
 }
 
 transform_dirtempl_pair () {
@@ -692,7 +712,7 @@ transform_dirtempl_pair () {
 	    dstdir=${dstdir/"{corpname}"/$corpus_name}
 	    case $srcdir in
 		*{corpid}* )
-		    repl='\\1'
+		    repl='\1'
 		    ;;
 		* )
 		    repl=$corpus_name
@@ -702,33 +722,50 @@ transform_dirtempl_pair () {
 	    ;;
     esac
     srcdir=$(transform_dirtempl "$srcdir")
-    echo "$srcdir" "$dstdir"
+    echo "$srcdir $dstdir"
+}
+
+make_tar_transform () {
+    echo --transform "s,^$1,$archive_basename/$2,"
+    echo_dbg tar_transform:to "s,^$1,$archive_basename/$2,"
 }
 
 make_tar_transforms () {
+    local source=
+    local target=
+    echo_dbg tar_transforms:param "$1"
     echo "$1" |
     while read source target; do
-	echo --transform "s,^$source,$archive_basename/$target,"
+	echo_dbg tar_transform:from "$source" "$target"
+	local pair=$(transform_dirtempl_pair $source $target)
+	source=${pair% *}
+	target=${pair#* }
+	make_tar_transform "$source" "$target"
+	if [[ "$source" = */ && "$target" = */ ]]; then
+	    make_tar_transform "$(remove_trailing_slash $source)\$" \
+		"$(remove_trailing_slash $target)"
+	fi
     done
 }
 
 make_tar_excludes () {
     for patt in "$@"; do
-	echo --exclude "$patt"
+	printf '%s\n' --exclude "$patt"
     done
 }
 
 dir_transforms=\
-"$(remove_leading_slash $datadir) data
-$(remove_leading_slash $target_regdir) registry
-$(remove_leading_slash $korp_frontend_dir) korp_config
-$(transform_dirtempl_pair $sqldir sql/{corpid})
-$(transform_dirtempl_pair $tsvdir sql/{corpid})
-$(transform_dirtempl_pair $vrtdir vrt/{corpid})"
+"$datadir/ data/
+$target_regdir/ registry/
+$korp_frontend_dir/ korp_config/
+$sqldir/ sql/{corpid}/
+$tsvdir/ sql/{corpid}/
+$vrtdir/ vrt/{corpid}/"
 if [ "x$extra_dir_and_file_transforms" != x ]; then
     dir_transforms="$dir_transforms$extra_dir_and_file_transforms"
 fi
 
+echo_dbg "$dir_transforms"
 tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
     -f $archive_name --exclude-backups $(make_tar_excludes $exclude_files) \
     $(make_tar_transforms "$dir_transforms") \
