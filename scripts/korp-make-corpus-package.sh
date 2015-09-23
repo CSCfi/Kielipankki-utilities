@@ -173,8 +173,8 @@ Options:
                   specified multiple times
   -f, --database-format FMT
                   include database files in format FMT: either sql (SQL),
-                  tsv (TSV) or auto (SQL or TSV, whichever files are newer)
-                  (default: $dbformat)
+                  tsv (TSV), auto (SQL or TSV, whichever files are newer) or
+                  none (do not include database files) (default: $dbformat)
   -z, --compress PROG
                   compress files with PROG; "none" for no compression
                   (default: $compress)
@@ -409,6 +409,9 @@ while [ "x$1" != "x" ] ; do
 		    ;;
 		auto | automatic )
 		    dbformat=auto
+		    ;;
+		none )
+		    dbformat=none
 		    ;;
 		* )
 		    warn "Invalid database format '$2'; using $dbformat"
@@ -711,7 +714,9 @@ for corpus_id in $corpus_ids; do
     if [ "x$omit_cwb_data" = x ]; then
 	corpus_files="$corpus_files $target_regdir/$corpus_id $datadir/$corpus_id"
     fi
-    corpus_files="$corpus_files $(list_db_files $corpus_id)"
+    if [ "x$dbformat" != xnone ]; then
+	corpus_files="$corpus_files $(list_db_files $corpus_id)"
+    fi
     if [ "x$include_vrtdir" != x ]; then
 	corpus_files="$corpus_files $(remove_trailing_slash $(fill_dirtempl $vrtdir $corpus_id))"
     fi
