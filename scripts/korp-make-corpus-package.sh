@@ -411,7 +411,7 @@ while [ "x$1" != "x" ] ; do
 	    verbose=1
 	    ;;
 	-z | --compress )
-	    if [ "x$2" = "xnone" ] || which $2; then
+	    if [ "x$2" = "xnone" ] || which $2 &> /dev/null; then
 		compress=$2
 	    else
 		warn "Compression program $2 not found; using $compress"
