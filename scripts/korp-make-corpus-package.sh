@@ -19,6 +19,7 @@
 # - Finding the most recent database files from either SQL or TSV
 #   files does not work correctly; see FIXME comments in the code.
 # - {corpid} does not work in the filename part of an extra VRT file.
+# - tar warning on non-existent *.vrt or *.vrt.* files
 
 
 progname=`basename $0`
@@ -121,7 +122,7 @@ Options:
                   $korp_frontend_dir)
   --vrt-dir DIRTEMPL
                   use DIRTEMPL as the source directory template for VRT files
-                  (default: CORPUS_ROOT/$vrtsubdir/{corpid})
+                  (*.vrt, *.vrt.*) (default: CORPUS_ROOT/$vrtsubdir/{corpid})
   --include-vrt-dir
                   include the files in the (default) VRT directory in the
                   package; this option needs to be specified only if using the
@@ -718,7 +719,7 @@ for corpus_id in $corpus_ids; do
 	corpus_files="$corpus_files $(list_db_files $corpus_id)"
     fi
     if [ "x$include_vrtdir" != x ]; then
-	corpus_files="$corpus_files $(remove_trailing_slash $(fill_dirtempl $vrtdir $corpus_id))"
+	corpus_files="$corpus_files $(remove_trailing_slash "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")"
     fi
 done
 echo_dbg corpus_files "$corpus_files"
@@ -814,6 +815,7 @@ echo_dbg "$dir_transforms"
 tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
     -f $archive_name --exclude-backups $(make_tar_excludes $exclude_files) \
     $(make_tar_transforms "$dir_transforms") \
+    --ignore-failed-read \
     --show-transformed-names $corpus_files
 
 chgrp $filegroup $archive_name
