@@ -716,8 +716,11 @@ for extra_file in $extra_corpus_files; do
     fi
 done
 for corpus_id in $corpus_ids; do
+    # Include the CWB registry file as documentation of the VRT fields
+    # even if omitting CWB data
+    add_corpus_files "$target_regdir/$corpus_id"
     if [ "x$omit_cwb_data" = x ]; then
-	add_corpus_files "$target_regdir/$corpus_id" "$datadir/$corpus_id"
+	add_corpus_files "$datadir/$corpus_id"
     fi
     if [ "x$dbformat" != xnone ]; then
 	add_corpus_files "$(list_db_files $corpus_id)"
