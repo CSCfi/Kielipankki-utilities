@@ -190,7 +190,7 @@ EOF
 }
 
 
-extra_corpus_files=
+corpus_files=
 extra_dir_and_file_transforms=
 
 remove_leading_slash () {
@@ -221,6 +221,10 @@ add_transform () {
     echo_dbg add_transform "$1" "$2"
     extra_dir_and_file_transforms="$extra_dir_and_file_transforms
 $1 $2"
+}
+
+add_corpus_files () {
+    corpus_files="$corpus_files $@"
 }
 
 has_wildcards () {
@@ -259,7 +263,7 @@ add_extra_dir_or_file () {
     local sourcedir=$(remove_leading_slash $(dirname_slash "$source"))
     local targetdir=$(remove_leading_slash $(dirname_slash "$target"))
     echo_dbg add_extra:dirs "$sourcedir" "$targetdir"
-    extra_corpus_files="$extra_corpus_files $(remove_trailing_slash "$source")"
+    add_corpus_files $(remove_trailing_slash "$source")
     source=$(remove_leading_slash "$source")
     target=$(remove_leading_slash "$target")
     echo_dbg add_extra:mods "$source" "$target"
@@ -481,9 +485,7 @@ else
 fi
 
 for fname_patt in $frontend_config_files; do
-    for fname in $(echo $korp_frontend_dir/$fname_patt); do
-	extra_corpus_files="$extra_corpus_files $fname"
-    done
+    add_corpus_files $(echo $korp_frontend_dir/$fname_patt)
 done
 
 (
@@ -515,7 +517,7 @@ if [ "x$generate_vrt" != x ]; then
 	$cwbdata2vrt $corpus_id |
 	$vrt_decode_chars > $tmp_prefix.vrt/$corpus_id.vrt
     done
-    extra_corpus_files="$extra_corpus_files $tmp_prefix.vrt"
+    add_corpus_files $tmp_prefix.vrt
     add_transform $tmp_prefix.vrt/ "vrt/{corpid}/"
 fi
 
@@ -700,28 +702,31 @@ else
     done
 fi
 
-echo_dbg extra_files "$extra_corpus_files"
+echo_dbg extra_files "$corpus_files"
+# Add the extra files to the end
+extra_corpus_files=$corpus_files
 corpus_files=
 for extra_file in $extra_corpus_files; do
     if [[ $extra_file = *{corp*}* ]]; then
 	for corpus_id in $corpus_ids; do
-	    corpus_files="$corpus_files $(echo $(fill_dirtempl $extra_file $corpus_id))"
+	    add_corpus_files "$(echo $(fill_dirtempl $extra_file $corpus_id))"
 	done
     else
-	corpus_files="$corpus_files $(echo $extra_file)"
+	add_corpus_files "$(echo $extra_file)"
     fi
 done
 for corpus_id in $corpus_ids; do
     if [ "x$omit_cwb_data" = x ]; then
-	corpus_files="$corpus_files $target_regdir/$corpus_id $datadir/$corpus_id"
+	add_corpus_files "$target_regdir/$corpus_id" "$datadir/$corpus_id"
     fi
     if [ "x$dbformat" != xnone ]; then
-	corpus_files="$corpus_files $(list_db_files $corpus_id)"
+	add_corpus_files "$(list_db_files $corpus_id)"
     fi
     if [ "x$include_vrtdir" != x ]; then
-	corpus_files="$corpus_files $(remove_trailing_slash "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")"
+	add_corpus_files "$(remove_trailing_slash "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")"
     fi
 done
+add_corpus_files $extra_corpus_files
 echo_dbg corpus_files "$corpus_files"
 
 $cwbdata_extract_info --update --registry "$regdir" --data-root-dir "$datadir" \
