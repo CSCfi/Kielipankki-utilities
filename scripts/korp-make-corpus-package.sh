@@ -242,6 +242,11 @@ has_wildcards () {
     return 1
 }
 
+wildcards_to_regex () {
+    echo "$1" |
+    sed -e 's,\.,\\.,g; s,?,[^/],g; s,\*,[^/]*,g;'
+}
+
 add_extra_dir_or_file () {
     # Target ends in / => dir, transform the dir part of source;
     # otherwise transform the whole source; source ends in / => dir
@@ -253,16 +258,20 @@ add_extra_dir_or_file () {
 	    *:* )
 		target=$(echo "$source" | sed -e 's/^.*://')
 		source=$(echo "$source" | sed -e 's/:[^:]*$//')
+		# If the source contains wildcards, then the target
+		# should always be a directory.
+		if has_wildcards "$source"; then
+		    target=$target/
+		fi
 		;;
 	    * )
-		target=$source
+		if has_wildcards "$source"; then
+		    target=$(dirname_slash "$source")/
+		else
+		    target=$source
+		fi
 		;;
 	esac
-    fi
-    # If the source contains wildcards, then the target should always
-    # be a directory.
-    if has_wildcards "$source"; then
-	target=$target/
     fi
     local sourcedir=$(remove_leading_slash $(dirname_slash "$source"))
     local targetdir=$(remove_leading_slash $(dirname_slash "$target"))
@@ -280,12 +289,12 @@ add_extra_dir_or_file () {
 	if [ "x$sourcedir" = x. ]; then
 	    # Extra backslashes to protect them through echos
 	    add_transform "\\\\($source\\\\)" "$targetdir_slash\\\\1"
-	elif is_dirname "$source" || has_wildcards "$source"; then
+	elif is_dirname "$source"; then
 	    add_transform "$sourcedir/" "$targetdir_slash"
 	    # The following is now added in make_tar_transforms:
 	    # add_transform "$sourcedir\$" "$targetdir"
 	else
-	    local sourcefile=$(basename "$source")
+	    local sourcefile=$(wildcards_to_regex $(basename "$source"))
 	    add_transform \
 		"$sourcedir/\\\\($sourcefile\\\\)" "$targetdir_slash\\\\1"
 	fi
@@ -769,6 +778,9 @@ transform_dirtempl_pair () {
 	    dstdir=${dstdir/"{corpname}"/$corpus_name}
 	    case $srcdir in
 		*{corpid}* )
+		    # This assumes that \1 is in the filename part,
+		    # thus later than {corpid}
+		    dstdir=${dstdir/'\1'/'\2'}
 		    repl='\1'
 		    ;;
 		* )
@@ -792,6 +804,7 @@ make_tar_transforms () {
     local target=
     echo_dbg tar_transforms:param "$1"
     echo "$1" |
+    sort -u |
     while read source target; do
 	echo_dbg tar_transform:from "$source" "$target"
 	local pair=$(transform_dirtempl_pair $source $target)
@@ -815,9 +828,9 @@ dir_transforms=\
 "$datadir/ data/
 $target_regdir/ registry/
 $korp_frontend_dir/ korp_config/
-$sqldir/ sql/{corpid}/
-$tsvdir/ sql/{corpid}/
-$vrtdir/ vrt/{corpid}/"
+$sqldir/\\\\([^/]*\\\\.sql[^/]*\\\\) sql/{corpid}/\\\\1
+$tsvdir/\\\\([^/]*\\\\.tsv[^/]*\\\\) sql/{corpid}/\\\\1
+$vrtdir/\\\\([^/]*\\\\.vrt[^/]*\\\\) vrt/{corpid}/\\\\1"
 if [ "x$extra_dir_and_file_transforms" != x ]; then
     dir_transforms="$dir_transforms$extra_dir_and_file_transforms"
 fi
