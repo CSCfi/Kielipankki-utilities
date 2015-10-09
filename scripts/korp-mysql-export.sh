@@ -1,0 +1,185 @@
+#! /bin/sh
+
+
+# Usage: korp-mysql-export.sh [options] corpus_id ...
+#
+# For more information, run korp-mysql-export.sh --help
+
+# TODO:
+# - Allow shell wildcards in corpus_id
+# - Verbose mode (by default?)
+
+
+progname=`basename $0`
+progdir=`dirname $0`
+
+shortopts="hc:o:z:"
+longopts="help,corpus-root:,output-dir:,compress:"
+
+. $progdir/korp-lib.sh
+
+tsvsubdir=vrt/{corpid}
+compress=gzip
+outputdir=
+
+dbname=korp
+
+tables_common="lemgram_index timespans corpus_info"
+tables_by_corpus="relations names"
+table_suffixes_relations="@ dep_rel head_rel rel sentences strings"
+table_suffixes_names="@ sentences strings"
+filename_lemgram_index=lemgrams
+filename_corpus_info=corpinfo
+filename_relations=rels
+
+compr_suffix_gzip=.gz
+compr_suffix_bzip2=.bz2
+compr_suffix_xz=.xz
+compr_suffix_cat=
+
+
+usage () {
+    cat <<EOF
+Usage: $progname [options] corpus_id ...
+
+Export data from Korp MySQL database tables into TSV files for corpora with
+ids corpus_id ...
+
+Options:
+  -h, --help      show this help
+  -c, --corpus-root DIR
+                  use DIR as the root directory of corpus files for the
+                  source files (CORPUS_ROOT) (default: $corpus_root)
+  -o, --output-dir DIRTEMPL
+                  use DIRTEMPL as the output directory template for TSV files;
+                  DIRTEMPL is a directory name possibly containing placeholder
+                  {corpid} for corpus id (default: CORPUS_ROOT/$tsvsubdir)
+  -z, --compress PROG
+                  compress files with PROG; "none" for no compression
+                  (default: $compress)
+
+Environment variables:
+  Default values for the various directories can also be specified via
+  the following environment variables: CORPUS_ROOT, CORPUS_TSVDIR.
+EOF
+    exit 0
+}
+
+
+# Process options
+while [ "x$1" != "x" ] ; do
+    case "$1" in
+	-h | --help )
+	    usage
+	    ;;
+	-c | --corpus-root )
+	    shift
+	    corpus_root=$1
+	    ;;
+	-o | --output-dir )
+	    shift
+	    outputdir=$1
+	    ;;
+	-z | --compress )
+	    shift
+	    if [ "x$1" = "xnone" ]; then
+		compress=cat
+	    elif which $1 > /dev/null; then
+		compress=$1
+	    else
+		warn "Compression program $1 not found; using $compress"
+	    fi
+	    ;;
+	-- )
+	    shift
+	    break
+	    ;;
+	--* )
+	    warn "Unrecognized option: $1"
+	    ;;
+	* )
+	    break
+	    ;;
+    esac
+    shift
+done
+
+if [ "x$1" = x ]; then
+    error "Please specify the names (ids) of corpora whose data to export.
+For more information, run '$0 --help'."
+fi
+
+corpora=$@
+
+outputdir=${outputdir:-$corpus_root/$tsvsubdir}
+
+fname_suffix=.tsv$(eval echo \$compr_suffix_$compress)
+
+if [ "x$MYSQL_USER" != "x" ]; then
+    mysql_opt_user="--user $MYSQL_USER"
+fi
+
+
+run_mysql () {
+    mysql $mysql_opt_user --batch --raw --execute "$@" $dbname
+}
+
+run_mysql_export () {
+    outfname=$1
+    shift
+    # Would it be more efficient to use a named pipe to wc, tee the
+    # run_mysql output to it and test if the result is empty?
+    run_mysql "$@" 2> /dev/null |
+    tail -n+2 > $tmp_prefix.tsv
+    if [ -s $tmp_prefix.tsv ]; then
+	$compress < $tmp_prefix.tsv > $outfname
+    fi
+    rm $tmp_prefix.tsv
+}
+
+export_common_table () {
+    corpid=$1
+    corpid_u=$2
+    outdir=$3
+    table=$4
+    fname_table=$(eval echo \$filename_$table)
+    outfname=${corpid}_${fname_table:-$table}$fname_suffix
+    run_mysql_export $outdir/$outfname \
+	"SELECT * FROM $table WHERE corpus='$corpid_u';"
+}
+
+export_by_corpus_tables () {
+    corpid=$1
+    corpid_u=$2
+    outdir=$3
+    tablegroup=$4
+    for table_suff in $(eval echo \$table_suffixes_$tablegroup); do
+	if [ $table_suff = @ ]; then
+	    table_suff=
+	else
+	    table_suff=_$table_suff
+	fi
+	table=${tablegroup}_$corpid_u$table_suff
+	fname_table=$(eval echo \$filename_$tablegroup)
+	outfname=${corpid}_${fname_table:-$tablegroup}$table_suff$fname_suffix
+	run_mysql_export $outdir/$outfname "SELECT * FROM $table;"
+    done
+}
+
+mysql_export () {
+    corpid=$1
+    outputdir_real=$(echo "$outputdir" | sed -e "s/{corpid}/$corpid/g")
+    mkdir -p $outputdir_real
+    corpid_u=$(echo "$corpid" | sed -e 's/.*/\U&\E/')
+    for table in $tables_common; do
+	export_common_table $corpid $corpid_u $outputdir_real $table
+    done
+    for tablegroup in $tables_by_corpus; do
+	export_by_corpus_tables $corpid $corpid_u $outputdir_real $tablegroup
+    done
+}
+
+
+for corpus in $corpora; do
+    mysql_export $corpus
+done
