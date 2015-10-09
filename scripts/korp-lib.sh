@@ -197,6 +197,47 @@ get_filesize () {
     ls -l "$1" | awk '{print $5}'
 }
 
+# add_prefix prefix args ...
+#
+# Prepend prefix to all args.
+add_prefix () {
+    _add_prefix_prefix=$1
+    shift
+    printf "$_add_prefix_prefix%s " "$@"
+}
+
+# list_corpora [--on-error error_cmd] registry_dir corpus_id ...
+#
+# List the corpora in the parameters as found in registry_dir,
+# expanding shell wildcards (but not braces). If some listed corpora
+# are not found, call error_cmd (default: error) with an error
+# message.
+list_corpora () {
+    _list_corpora_no_error=
+    _list_corpora_error_func=error
+    if [ "x$1" = "x--on-error" ]; then
+	shift
+	_list_corpora_error_func=$1
+	shift
+    fi
+    _list_corpora_registry=$1
+    shift
+    ls $(add_prefix $_list_corpora_registry/ "$@") \
+	2> $tmp_prefix.corpid_errors |
+    sed -e 's,.*/,,' |
+    grep '^[a-z_][a-z0-9_-]*$' > $tmp_prefix.corpids
+    if [ -s $tmp_prefix.corpid_errors ]; then
+	error_files=$(
+	    sed -e 's,^.*cannot access .*/\([^:/]*\):.*$,\1,' \
+		< $tmp_prefix.corpid_errors
+	)
+	$_list_corpora_error_func \
+	    "Corpora not found in the CWB corpus registry: $error_files"
+    fi
+    cat $tmp_prefix.corpids
+    rm -rf $tmp_prefix.corpids $tmp_prefix.corpid_errors
+}
+
 
 # Common initialization code
 

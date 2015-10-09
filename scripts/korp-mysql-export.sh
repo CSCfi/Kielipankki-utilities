@@ -6,7 +6,6 @@
 # For more information, run korp-mysql-export.sh --help
 
 # TODO:
-# - Allow shell wildcards in corpus_id
 # - Verbose mode (by default?)
 
 
@@ -43,7 +42,8 @@ usage () {
 Usage: $progname [options] corpus_id ...
 
 Export data from Korp MySQL database tables into TSV files for corpora with
-ids corpus_id ...
+ids corpus_id ... corpus_id may contain shell wildcards, in which case all
+matching corpora in the corpus registry are processed.
 
 Options:
   -h, --help      show this help
@@ -60,7 +60,8 @@ Options:
 
 Environment variables:
   Default values for the various directories can also be specified via
-  the following environment variables: CORPUS_ROOT, CORPUS_TSVDIR.
+  the following environment variables: CORPUS_ROOT, CORPUS_REGISTRY,
+  CORPUS_TSVDIR.
 EOF
     exit 0
 }
@@ -109,9 +110,10 @@ if [ "x$1" = x ]; then
 For more information, run '$0 --help'."
 fi
 
-corpora=$@
-
 outputdir=${outputdir:-$corpus_root/$tsvsubdir}
+regdir=${CORPUS_REGISTRY:-$corpus_root/registry}
+
+corpora=$(list_corpora $regdir "$@")
 
 fname_suffix=.tsv$(eval echo \$compr_suffix_$compress)
 
