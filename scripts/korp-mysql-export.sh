@@ -5,21 +5,19 @@
 #
 # For more information, run korp-mysql-export.sh --help
 
-# TODO:
-# - Verbose mode (by default?)
-
 
 progname=`basename $0`
 progdir=`dirname $0`
 
-shortopts="hc:o:z:"
-longopts="help,corpus-root:,output-dir:,compress:"
+shortopts="hc:o:qvz:"
+longopts="help,corpus-root:,output-dir:,quiet,verbose,compress:"
 
 . $progdir/korp-lib.sh
 
 tsvsubdir=vrt/{corpid}
 compress=gzip
 outputdir=
+verbose=1
 
 dbname=korp
 
@@ -54,6 +52,9 @@ Options:
                   use DIRTEMPL as the output directory template for TSV files;
                   DIRTEMPL is a directory name possibly containing placeholder
                   {corpid} for corpus id (default: CORPUS_ROOT/$tsvsubdir)
+  -q, --quiet     suppress all output
+  -v, --verbose   verbose output: show the TSV files produced and the number
+                  of rows in them
   -z, --compress PROG
                   compress files with PROG; "none" for no compression
                   (default: $compress)
@@ -80,6 +81,12 @@ while [ "x$1" != "x" ] ; do
 	-o | --output-dir )
 	    shift
 	    outputdir=$1
+	    ;;
+	-q | --quiet )
+	    verbose=
+	    ;;
+	-v | --verbose )
+	    verbose=2
 	    ;;
 	-z | --compress )
 	    shift
@@ -127,16 +134,29 @@ run_mysql () {
 }
 
 run_mysql_export () {
-    outfname=$1
+    tablename=$1
+    outfname=$2
     shift
-    # Would it be more efficient to use a named pipe to wc, tee the
-    # run_mysql output to it and test if the result is empty?
+    shift
+    if [ ! -e $tmp_prefix.fifo ]; then
+	mkfifo $tmp_prefix.fifo
+    fi
+    wc -l < $tmp_prefix.fifo > $tmp_prefix.wc &
+    pid=$!
     run_mysql "$@" 2> /dev/null |
-    tail -n+2 > $tmp_prefix.tsv
+    tail -n+2 |
+    tee $tmp_prefix.fifo |
+    $compress > $outfname
+    wait $pid
+    rowcnt=$(cat $tmp_prefix.wc)
+    if [ $rowcnt = 0 ]; then
+	rm $outfname
+    else
+	verbose 2 echo "  $tablename ($rowcnt rows): $outfname"
+    fi
     if [ -s $tmp_prefix.tsv ]; then
 	$compress < $tmp_prefix.tsv > $outfname
     fi
-    rm $tmp_prefix.tsv
 }
 
 export_common_table () {
@@ -146,7 +166,7 @@ export_common_table () {
     table=$4
     fname_table=$(eval echo \$filename_$table)
     outfname=${corpid}_${fname_table:-$table}$fname_suffix
-    run_mysql_export $outdir/$outfname \
+    run_mysql_export $table $outdir/$outfname \
 	"SELECT * FROM $table WHERE corpus='$corpid_u';"
 }
 
@@ -164,12 +184,13 @@ export_by_corpus_tables () {
 	table=${tablegroup}_$corpid_u$table_suff
 	fname_table=$(eval echo \$filename_$tablegroup)
 	outfname=${corpid}_${fname_table:-$tablegroup}$table_suff$fname_suffix
-	run_mysql_export $outdir/$outfname "SELECT * FROM $table;"
+	run_mysql_export $table $outdir/$outfname "SELECT * FROM $table;"
     done
 }
 
 mysql_export () {
     corpid=$1
+    verbose 1 echo "Corpus $corpid"
     outputdir_real=$(echo "$outputdir" | sed -e "s/{corpid}/$corpid/g")
     mkdir -p $outputdir_real
     corpid_u=$(echo "$corpid" | sed -e 's/.*/\U&\E/')
@@ -182,6 +203,7 @@ mysql_export () {
 }
 
 
+verbose 1 echo "Exporting Korp MySQL database tables"
 for corpus in $corpora; do
     mysql_export $corpus
 done

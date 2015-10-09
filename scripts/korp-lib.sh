@@ -86,17 +86,58 @@ error () {
     exit 1
 }
 
-# If $verbose is set, call the first argument with the rest of
-# arguments as parameters
+# safe_echo [args ...]
+#
+# Echo the arguments more safely using printf. Prints the arguments
+# even if the first argument contains an option recognized by echo.
+safe_echo () {
+    if [ $# -gt 0 ]; then
+	printf "%s" "$1"
+	shift
+	printf " %s" "$@"
+    fi
+    printf "\n"
+}
+
+# verbose [level] cmd [args ...]
+#
+# If $verbose is set and non-zero, or if level is in 0...9 and
+# $verbose is greater than or equal to it, call cmd with args as
+# parameters.
 verbose () {
-    if [ "x$verbose" != x ]; then
+    _verbose_level=
+    case $1 in
+	[0-9] )
+	    _verbose_level=$1
+	    shift
+	    ;;
+    esac
+    if [ "x$verbose" != x ] && [ "x$verbose" != x0 ] &&
+	{ [ "x$_verbose_level" = x ] || [ $verbose -ge $_verbose_level ]; }
+    then
 	_cmd=$1
 	shift
 	$_cmd "$@"
     fi
 }
 
+# echo_verb [level] [args ...]
+#
+# Echo args (using safe_echo) if $verbose is level (0...9) or greater,
+# or if level is not defined, if $verbose is set and non-zero.
+echo_verb () {
+    _echo_verb_level=
+    case $1 in
+	[0-9] )
+	    _echo_verb_level=$1
+	    shift
+	    ;;
+    esac
+    verbose $_echo_verb_level safe_echo "$@"
+}
+
 # Echo the parameters quoted to standard error if $debug is non-empty.
+# TODO: Support debug levels, similarly to verbose above.
 echo_dbg () {
     if [ "x$debug" != x ]; then
 	for _arg in "$@"; do
