@@ -11,6 +11,10 @@
 # - Working --verbose (or --quiet).
 # - Update MySQL dumps if older than the database files (or if an
 #   option is specified).
+# - An option to generate MySQL dumps or the corresponding TSV files
+#   from the database using a separate script (korp-mysql-export).
+# - An option to generate both a CWB data package and a VRT package
+#   with a single command.
 # - Also include data for table auth_license in korp_auth: maybe add
 #   the data (as TSV) based on an option specifying the licence -
 #   category.
@@ -706,15 +710,6 @@ echo_dbg extra_files "$corpus_files"
 # Add the extra files to the end
 extra_corpus_files=$corpus_files
 corpus_files=
-for extra_file in $extra_corpus_files; do
-    if [[ $extra_file = *{corp*}* ]]; then
-	for corpus_id in $corpus_ids; do
-	    add_corpus_files "$(echo $(fill_dirtempl $extra_file $corpus_id))"
-	done
-    else
-	add_corpus_files "$(echo $extra_file)"
-    fi
-done
 for corpus_id in $corpus_ids; do
     # Include the CWB registry file as documentation of the VRT fields
     # even if omitting CWB data
@@ -729,7 +724,15 @@ for corpus_id in $corpus_ids; do
 	add_corpus_files "$(remove_trailing_slash "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")"
     fi
 done
-add_corpus_files $extra_corpus_files
+for extra_file in $extra_corpus_files; do
+    if [[ $extra_file = *{corp*}* ]]; then
+	for corpus_id in $corpus_ids; do
+	    add_corpus_files "$(echo $(fill_dirtempl $extra_file $corpus_id))"
+	done
+    else
+	add_corpus_files "$(echo $extra_file)"
+    fi
+done
 echo_dbg corpus_files "$corpus_files"
 
 $cwbdata_extract_info --update --registry "$regdir" --data-root-dir "$datadir" \
