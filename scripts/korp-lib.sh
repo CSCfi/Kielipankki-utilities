@@ -244,7 +244,7 @@ get_filesize () {
 add_prefix () {
     _add_prefix_prefix=$1
     shift
-    printf "$_add_prefix_prefix%s " "$@"
+    printf -- "$_add_prefix_prefix%s " "$@"
 }
 
 # list_corpora [--on-error error_cmd] registry_dir corpus_id ...
@@ -290,7 +290,7 @@ corpus_root=${CORPUS_ROOT:-$(find_existing_dir -d "" $default_corpus_roots)}
 default_cwb_bindirs=${default_cwb_bindirs:-"/usr/local/cwb/bin /usr/local/bin /proj/clarin/korp/cwb/bin $USERAPPL/bin"}
 
 # The directory in which CWB binaries reside
-cwb_bindir=${CWB_BINDIR:-$(find_existing_dir -e cwb-describe-corpus $default_cwbdirs)}
+cwb_bindir=${CWB_BINDIR:-$(find_existing_dir -e cwb-describe-corpus $default_cwb_bindirs)}
 
 default_korp_frontend_dirs=${default_korp_frontend_dirs:-"/var/www/html/korp /var/www/html"}
 
