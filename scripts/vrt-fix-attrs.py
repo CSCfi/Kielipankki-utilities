@@ -5,6 +5,7 @@
 import sys
 import codecs
 import re
+import errno
 
 from optparse import OptionParser
 from collections import defaultdict
@@ -668,7 +669,7 @@ def getopts():
     return (opts, args)
 
 
-def main():
+def main_main():
     input_encoding = 'utf-8'
     output_encoding = 'utf-8'
     sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
@@ -676,6 +677,22 @@ def main():
     (opts, args) = getopts()
     attr_fixer = AttributeFixer(opts)
     attr_fixer.process_files(args if args else sys.stdin)
+
+
+def main():
+    try:
+        main_main()
+    except IOError, e:
+        if e.errno == errno.EPIPE:
+            sys.stderr.write('Broken pipe\n')
+        else:
+            sys.stderr.write(str(e) + '\n')
+        exit(1)
+    except KeyboardInterrupt, e:
+        sys.stderr.write('Interrupted\n')
+        exit(1)
+    except:
+        raise
 
 
 if __name__ == "__main__":

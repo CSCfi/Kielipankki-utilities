@@ -5,6 +5,7 @@
 import sys
 import codecs
 import re
+import errno
 
 from optparse import OptionParser
 
@@ -141,7 +142,7 @@ Encode or decode in VRT files special characters that are problematic in CWB."""
     return opts, args
 
 
-def main():
+def main_main():
     input_encoding = 'utf-8'
     output_encoding = 'utf-8'
     sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
@@ -149,6 +150,22 @@ def main():
     (opts, args) = getopts()
     converter = CharConverter(opts, input_encoding)
     converter.process_input(args)
+
+
+def main():
+    try:
+        main_main()
+    except IOError, e:
+        if e.errno == errno.EPIPE:
+            sys.stderr.write('Broken pipe\n')
+        else:
+            sys.stderr.write(str(e) + '\n')
+        exit(1)
+    except KeyboardInterrupt, e:
+        sys.stderr.write('Interrupted\n')
+        exit(1)
+    except:
+        raise
 
 
 if __name__ == "__main__":

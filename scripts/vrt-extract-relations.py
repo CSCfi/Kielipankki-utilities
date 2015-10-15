@@ -5,6 +5,7 @@ import sys
 import os
 import re
 import gc
+import errno
 
 from optparse import OptionParser
 from subprocess import Popen, PIPE
@@ -550,11 +551,27 @@ def getopts():
     return (opts, args)
 
 
-def main():
+def main_main():
     (opts, args) = getopts()
     extractor = RelationExtractor(opts)
     extractor.process_input(args or sys.stdin)
     extractor.output_rels()
+
+
+def main():
+    try:
+        main_main()
+    except IOError, e:
+        if e.errno == errno.EPIPE:
+            sys.stderr.write('Broken pipe\n')
+        else:
+            sys.stderr.write(str(e) + '\n')
+        exit(1)
+    except KeyboardInterrupt, e:
+        sys.stderr.write('Interrupted\n')
+        exit(1)
+    except:
+        raise
 
 
 if __name__ == '__main__':

@@ -4,6 +4,7 @@
 
 import sys
 import codecs
+import errno
 
 from optparse import OptionParser
 
@@ -71,12 +72,15 @@ def getopts():
                          default=False)
     optparser.add_option('--pos-field', type='int', default=3)
     (opts, args) = optparser.parse_args()
+    if opts.pos_map_file is None:
+        sys.stderr.write('Please specify POS map file with --pos-map-file\n')
+        exit(1)
     opts.lemma_field -= 1
     opts.pos_field -= 1
     return (opts, args)
 
 
-def main():
+def main_main():
     input_encoding = 'utf-8'
     output_encoding = 'utf-8'
     sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
@@ -84,6 +88,22 @@ def main():
     (opts, args) = getopts()
     posmap = read_posmap(opts.pos_map_file, opts)
     process_input(args[0] if args else sys.stdin, posmap, opts)
+
+
+def main():
+    try:
+        main_main()
+    except IOError, e:
+        if e.errno == errno.EPIPE:
+            sys.stderr.write('Broken pipe\n')
+        else:
+            sys.stderr.write(str(e) + '\n')
+        exit(1)
+    except KeyboardInterrupt, e:
+        sys.stderr.write('Interrupted\n')
+        exit(1)
+    except:
+        raise
 
 
 if __name__ == "__main__":
