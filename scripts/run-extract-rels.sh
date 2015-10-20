@@ -7,7 +7,7 @@ cmdline="$@"
 export LC_ALL=C
 
 shortopts="hc:f:r:o:v"
-longopts="help,corpus-name:,input-fields:,relation-map:,output-dir:,optimize-memory,keep-temp-files,verbose"
+longopts="help,corpus-name:,input-fields:,relation-map:,output-dir:,optimize-memory,no-tar,no-archive,keep-temp-files,verbose"
 
 corpus_name=
 input_fields=
@@ -17,6 +17,7 @@ output_dir=.
 optimize_memory=
 keep_temp_files=
 verbose=
+make_archive=1
 
 extract_rels_opts="--output-type=new-strings --word-form-pair-type=baseform"
 
@@ -31,7 +32,7 @@ word picture.
 
 This is a wrapper script for vrt-extract-relations.py. This script
 sorts the output tables outside the Python script, produces a tar
-archive of the relations files and writes log output.
+archive of the relations files and optionally writes log output.
 
 Options:
   -h, --help
@@ -41,6 +42,7 @@ Options:
   -i, --input FILESPEC
   -o, --output-dir DIR
   --optimize-memory
+  --no-tar, --no-archive
   --keep-temp-files
   -v, --verbose
 EOF
@@ -66,6 +68,7 @@ while [ "x$1" != "x" ] ; do
 	    shift
 	    ;;
 	-i | --input )
+	    # FIXME: This is unimplemented; what was the original idea?
 	    input=$2
 	    shift
 	    ;;
@@ -80,6 +83,9 @@ while [ "x$1" != "x" ] ; do
 	--keep-temp-files )
 	    keep_temp_files=1
 	    cleanup_on_exit=
+	    ;;
+	--no-tar | --no-archive )
+	    make_archive=
 	    ;;
 	-v | --verbose )
 	    verbose=1
@@ -169,7 +175,7 @@ verbose echo_timestamp Start
 rels_tar=${corpus_name}_rels.tar
 tmpfile_dir=$tmp_prefix.work
 
-if [ ! -e $rels_tar ]; then
+if [ "x$make_archive" = x ] || [ ! -e $output_dir/$rels_tar ]; then
     if [ "x$hostenv" = "xtaito" ]; then
 	module load python-env/2.7.6
     fi
@@ -199,7 +205,11 @@ if [ ! -e $rels_tar ]; then
     # Wildcards do not seem to work above in tar even with --wildcards. Why?
     (
 	cd $tmpfile_dir
-	tar cpf $output_dir/$rels_tar --wildcards ${corpus_name}_rels*.tsv.gz
+	if [ "x$make_archive" != x ]; then
+	    tar cpf $output_dir/$rels_tar --wildcards ${corpus_name}_rels*.tsv.gz
+	else
+	    mv ${corpus_name}_rels*.tsv.gz $output_dir
+	fi
     )
     verbose subproc_times
     if [ "x$keep_temp_files" = x ]; then
