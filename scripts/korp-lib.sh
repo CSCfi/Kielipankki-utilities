@@ -86,6 +86,17 @@ error () {
     exit 1
 }
 
+# exit_on_error cmd [args ...]
+#
+# If cmd returns a non-zero, propagate the error and exit.
+exit_on_error () {
+    "$@"
+    _exit_code=$?
+    if [ $_exit_code != 0 ]; then
+	error "Terminating due to errors in subprocess %1 (exit code $_exit_code)"
+    fi
+}
+
 # safe_echo [args ...]
 #
 # Echo the arguments more safely using printf. Prints the arguments
