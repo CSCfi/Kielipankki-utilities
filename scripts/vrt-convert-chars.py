@@ -40,13 +40,30 @@ class CharConverter(object):
         self._convert_map = [(c, (opts.prefix + unichr(i + opts.offset)))
                              for (i, c) in enumerate(opts.chars)]
         self._add_xml_char_refs_to_convert_map()
+        self._feat_set_attrs = set(
+            self._make_attr_list(self._opts.feature_set_attributes))
         if opts.mode == 'decode':
             self._convert_map = [(enc, dec) for dec, enc in self._convert_map]
+        if (opts.mode == 'encode' and self._convert_posattrs
+            and self._feat_set_attrs):
+            self._convert_chars_in_pos_attrs = (
+                self._convert_chars_in_pos_attrs_featsets)
+        else:
+            self._convert_chars_in_pos_attrs = self._convert_chars
+        self._convert_map_featset = [
+            (dec, enc) for dec, enc in self._convert_map if dec != '|']
         self._struct_re = (
             (r'</?(?:' + '|'.join(re.split(r'\s*[\s,]\s*',
                                         self._opts.recognize_structs))
              + r')(?:\s.*)?/?>\s*$')
             if self._opts.recognize_structs else r'<.+>\s*$')
+
+    def _make_attr_list(self, attrnumlist):
+        if attrnumlist:
+            return [int(numstr) - 1
+                    for numstr in re.split(r'\s*[\s,]\s*', attrnumlist)]
+        else:
+            return []
 
     def _add_xml_char_refs_to_convert_map(self):
         if self._opts.convert_xml_char_refs:
@@ -73,12 +90,21 @@ class CharConverter(object):
                 if self._convert_structattrs:
                     line = self._convert_chars_in_struct_attrs(line)
             elif self._convert_posattrs:
-                line = self._convert_chars(line)
+                line = self._convert_chars_in_pos_attrs(line)
             sys.stdout.write(line)
 
     def _convert_chars(self, s):
         """Encode the special characters in s."""
         return replace_substrings(s, self._convert_map)
+
+    def _convert_chars_in_pos_attrs_featsets(self, s):
+        attrs = s.split('\t')
+        for attrnum, attr in enumerate(attrs):
+            attrs[attrnum] = replace_substrings(
+                attr, (self._convert_map_featset
+                       if attrnum in self._feat_set_attrs
+                       else self._convert_map))
+        return '\t'.join(attrs)
 
     def _convert_chars_in_struct_attrs(self, s):
         """Encode the special characters in the double-quoted substrings
@@ -93,8 +119,6 @@ def getopts():
 
 Encode or decode in VRT files special characters that are problematic in CWB."""
     optparser = OptionParser(usage=usage)
-    # TODO: Add an option to specify feature set attributes in which
-    # vertical bars should not be encoded.
     optparser.add_option(
         '--attribute-types', type='choice', choices=['all', 'pos', 'struct'],
         default='all', metavar='TYPE',
@@ -119,6 +143,12 @@ Encode or decode in VRT files special characters that are problematic in CWB."""
         dest='convert_xml_char_refs', default=True, action='store_false',
         help=('do not encode XML character entity references that correspond '
               ' to special characters to be encoded'))
+    optparser.add_option(
+        '--feature-set-attributes', '--feature-set-attrs',
+        metavar='ATTRNUMLIST',
+        help=('do not encode vertical bars in positional attributes whose'
+              ' numbers are listed in ATTRNUMLIST, separated by spaces or'
+              ' commas; attribute numbering begins from 1'))
     optparser.add_option(
         '--recognize-structs',
         metavar='STRUCTLIST',
