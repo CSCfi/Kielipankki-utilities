@@ -470,31 +470,52 @@ show_mysql_datafile_size () {
     fi
 }
 
+get_mysql_table_rowcount () {
+    # The row count is only an approximation for InnoDB tables.
+    run_mysql_report_errors $progress_errorfile "SELECT table_rows FROM information_schema.tables WHERE table_name='$1' \G ; " |
+    grep rows |
+    cut -d':' -f2 |
+    tr -d ' '
+}
+
 report_progress () {
     # This function should be run on the background, since it contains
     # a non-terminating loop. Adapted from
     # http://derwiki.tumblr.com/post/24490758395/loading-half-a-billion-rows-into-mysql
-    total_rows=$1
-    sleep $progress_interval
+    tablename=$1
+    total_rows=$2
+    init_rows=$(get_mysql_table_rowcount $tablename)
     prev_rows=0
+    sleep $progress_interval
     while :; do
-	imported_rows=$(
-	    run_mysql_report_errors $progress_errorfile "SELECT table_rows FROM information_schema.tables WHERE table_name='$tablename' \G ; " |
-	    grep rows |
-	    cut -d':' -f2 |
-	    tr -d ' '
-	)
-	if [ ! -s $progress_errorfile ] && [ "x$imported_rows" != x ]; then
-	    row_percentage=$(
-		awk 'BEGIN {printf "%.2f", '"$imported_rows"' / '"$total_rows"' * 100}'
-	    )
-	    secs=$(date +%s)
-	    secs_remaining=$(
-		awk 'BEGIN {printf "%d", ('"$total_rows"' - '"$imported_rows"') / (('"$imported_rows"' - '"$prev_rows"') / '"$progress_interval"')}'
-	    )
-	    echo "  "$(date +"%F %T")" rows: $imported_rows ($row_percentage%); est. time remaining: $secs_remaining s"
-	    prev_rows=$imported_rows
-	fi
+	while :; do
+	    imported_rows=$(($(get_mysql_table_rowcount $tablename) - $init_rows))
+	    # If the number of imported rows is negative due to the
+	    # fluctuating approximate row count, try again.
+	    if [ $imported_rows -lt 0 ]; then
+		continue
+	    fi
+	    if [ ! -s $progress_errorfile ] && [ "x$imported_rows" != x ]; then
+		row_percentage=$(
+		    awk 'BEGIN {printf "%.2f", '"$imported_rows"' / '"$total_rows"' * 100}'
+		)
+		secs=$(date +%s)
+		secs_remaining=$(
+		    awk 'BEGIN {printf "%d", ('"$total_rows"' - '"$imported_rows"') / (('"$imported_rows"' - '"$prev_rows"') / '"$progress_interval"')}'
+		)
+		# echo $init_rows $prev_rows $imported_rows $row_percentage $secs $secs_remaining
+		# The imprecision of fast InnoDB row counts may result
+		# in negative progress. Instead of showing such
+		# information, try again after waiting a second.
+		if awk "BEGIN {exit ($secs_remaining < 0 || $imported_rows < $prev_rows || $row_percentage < 0 || $row_percentage > 100)}"; then
+		    echo "  "$(date +"%F %T")" rows: $imported_rows ($row_percentage%); est. time remaining: $secs_remaining s"
+		    prev_rows=$imported_rows
+		    break
+		else
+		    sleep 1
+		fi
+	    fi
+	done
 	sleep $progress_interval
     done
 }
@@ -528,7 +549,7 @@ mysql_import_main () {
     fi
     if [ "x$show_progress" != x ]; then
 	total_rows=$(comprcat $file | wc -l)
-	report_progress $total_rows &
+	report_progress $tablename $total_rows &
 	progress_pid=$!
     fi
     run_mysql_report_errors $import_errorfile "$mysql_cmds" |
