@@ -16,6 +16,14 @@ import errno
 from optparse import OptionParser
 
 
+def elem_at(seq, index, default=None):
+    """Return seq[elem] if it exists; otherwise default."""
+    try:
+        return seq[index]
+    except IndexError:
+        return default
+
+
 def run(main, input_encoding='utf-8', output_encoding='utf-8', *args, **kwargs):
     """Run the main function; catch IOErrors and KeyboardInterrupt."""
     try:
