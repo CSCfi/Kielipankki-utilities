@@ -89,6 +89,9 @@ SUBCORPORA := $(shell ls -l $(CORPSRCROOT)/$(SRC_SUBDIR) | grep '^d' \
 		| awk '{print $$NF}')
 endif
 
+FULLTEXTROOT ?= $(CORPROOT)/fulltext
+FULLTEXTROOT_SRCDIR ?= $(TOPDIR)/../fulltext
+
 # The following makes assumptions on the location of the Korp backend
 # repository; could it be made more flexible?
 KORP_BACKEND_DIR := $(TOPDIR)/../../korp-backend/
@@ -248,11 +251,33 @@ SRC_FILES_REAL := \
 			$(call list_files,\
 			       $(addprefix $(SRC_DIR)/,$(SRC_FILES))))
 
+FULLTEXT_SUBDIR := $(call partvar_or_default,FULLTEXT_SUBDIR,$(CORPNAME_MAIN))
+FULLTEXT_DIR := $(call partvar_or_default,FULLTEXT_DIR,\
+			$(FULLTEXTROOT)/$(FULLTEXT_SUBDIR))
+
+# TODO: Add support for multiple fulltext versions (formats) of the
+# same text, probably by using suffixed versions of the appropriate
+# variables (FULLTEXT_FILENAME_TEMPLATE, FULLTEXT_XSLT,
+# MAKE_FULLTEXT_CMD and maybe others) and a variable like
+# FULLTEXT_VERSIONS listing the suffxes.
+
+VRT_MAKE_FULLTEXT_PROG = $(SCRIPTDIR)/vrt-transform.py
+VRT_MAKE_FULLTEXT = \
+	$(VRT_MAKE_FULLTEXT_PROG) \
+		--pos-attrs 'word $(P_ATTRS)' \
+		--output-filename-template \
+			'$(FULLTEXT_DIR)/$(FULLTEXT_FILENAME_TEMPLATE)' \
+		$(if $(FULLTEXT_XSLT),--xslt-stylesheet $(FULLTEXT_XSLT))
+MAKE_FULLTEXT_CMD := \
+	$(call partvar_or_default,MAKE_FULLTEXT_CMD,\
+		$(VRT_MAKE_FULLTEXT))
+
 $(call showvars,\
 	CORPORA WITHIN_CORP_MK CORPNAME CORPNAME_MAIN CORPNAME_BASE \
 	CORPNAME_BASEBASE SUBDIRS \
 	SRC_SUBDIR SRC_DIR SRC_FILES SRC_FILES_GENERATED SRC_FILES_REAL \
-	SUBDIRS_AS_SUBCORPORA SUBCORPORA HAS_SUBCORPORA SUBCORPUS)
+	SUBDIRS_AS_SUBCORPORA SUBCORPORA HAS_SUBCORPORA SUBCORPUS \
+	FULLTEXTROOT FULLTEXTROOT_SRCDIR FULLTEXT_SUBDIR FULLTEXT_DIR)
 
 DB_TARGETS_ALL = korp_timespans korp_rels korp_lemgrams
 DB_TARGETS := \
@@ -296,7 +321,8 @@ TARGETS := \
 			align pkg-parcorp,\
 			subdirs vrt reg \
 				$(if $(or $(PARCORP_PART),$(SUBCORPUS)),,pkg) \
-				$(if $(strip $(DB_TARGETS)),db)))
+				$(if $(strip $(DB_TARGETS)),db) \
+				$(if $(strip $(FULLTEXT_SUBDIR)$(FULLTEXT_FILENAME_TEMPLATE)),fulltext)))
 
 # Separator between corpus name and a subtarget (vrt, reg, db, pkg ...).
 # A : needs to be represented as \: and # as \\\#.
@@ -805,6 +831,25 @@ COLUMNS_timespans = \
 	KEY `corpus` (`corpus`)
 
 $(eval $(call KORP_LOAD_DB_R,timespans))
+
+
+# Make full-text files from VRT and copy possible extra files into the
+# full-text directory.
+fulltext: vrt $(FULLTEXT_EXTRA_FILES) \
+		$(FULLTEXTROOT_SRCDIR)/$(FULLTEXT_ROOT_EXTRA_FILES) \
+		$(FULLTEXT_EXTRA_DEPS)
+	-mkdir -p $(FULLTEXT_DIR)
+	$(CAT) $(CORP_VRT) \
+	| $(DECODE_SPECIAL_CHARS) \
+	| $(MAKE_FULLTEXT_CMD)
+ifneq ($(strip $(FULLTEXT_EXTRA_FILES)),)
+	cp -p $(FULLTEXT_EXTRA_FILES) $(FULLTEXT_DIR)
+endif
+ifneq ($(strip $(FULLTEXT_ROOT_EXTRA_FILES)),)
+	cp -p $(FULLTEXTROOT_SRCDIR)/$(FULLTEXT_ROOT_EXTRA_FILES) \
+		$(FULLTEXTROOT)
+endif
+
 
 pkg: $(PKG_FILE)
 

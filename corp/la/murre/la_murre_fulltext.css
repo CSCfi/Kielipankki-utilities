@@ -1,0 +1,98 @@
+
+/*
+ * CSS stylesheet for the fulltext HTML pages of the LA murre corpus.
+ */
+
+
+@font-face {
+    font-family: "Source Sans Pro";
+    /* On the prodcution server, the URL requires a symbolic link
+       /var/www/html/korp -> /var/www/html. This is used make the same
+       URL work on both the development and the production
+       environment. */
+    src: url(/korp/styles/SourceSansPro-Regular.otf);
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    src: url(/korp/styles/SourceSansPro-Semibold.otf);
+    font-weight : bold;
+}
+
+body {
+    font-family: 'Source Sans Pro', Helvetica, Arial, Verdana, sans-serif;
+    font-size: 10pt;
+    line-height: 1.2;
+}
+
+h1 {
+    font-size: 140%;
+    margin-bottom: 1em;
+}
+
+table.text-info {
+    width: 60em;
+    vertical-align: text-top;
+    border: 0.1em solid black;
+    border-collapse: separate;
+    border-spacing: 0.5em;
+    margin-bottom: 2em;
+}
+
+td {
+    padding: 0;
+}
+
+tr {
+    vertical-align: top;
+}
+
+div.turn-container {
+    padding-top: 0.25em;
+    padding-bottom: 0.25em;
+}
+
+div.interviewee {
+    background-color: #DDDDDD;
+}
+
+p:target {
+    font-weight: bold;
+}
+
+.turn-info, .sentence-info {
+    color: #555555;
+}
+
+a:link {
+    color: #5555EE;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #855580;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #5555EE;
+    text-decoration: underline;
+}
+
+a:active {
+    color: #FF5555;
+    text-decoration: none;
+}
+
+p.turn-info, p.sentence {
+    margin-top: 0;
+    margin-bottom: 0.75em;
+}
+
+span.sentence-info:after, span.clause:after {
+    content: '\A';  /* Line break */
+    white-space: pre;
+}
+
+span.match {
+    background-color: #AAAAFF;
+}

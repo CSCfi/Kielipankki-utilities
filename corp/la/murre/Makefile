@@ -57,6 +57,26 @@ MAKE_VRT_CMD = \
 		print join ("\t", $$origword, @fields) \
 	}'
 
+FULLTEXT_SUBDIR = la_murre
+
+FULLTEXT_XSLT = ./la_murre-make-fulltext-html.xslt
+FULLTEXT_FILENAME_TEMPLATE = {xpath:/text/@filename}.html
+
+FULLTEXT_EXTRA_FILES = la_murre_fulltext.css
+FULLTEXT_ROOT_EXTRA_FILES = highlight_match.js
+FULLTEXT_EXTRA_DEPS = $(EXTRA_ATTRS_FILE)
+
+# Add text attributes dialect_region_name and dialect_group_name that
+# are not included in the VRT before processing it with XSLT.
+MAKE_FULLTEXT_CMD = perl -pe '\
+	if (/^<text/) { \
+		($$fname) = /\bfilename="(.*?)"/; \
+		@lines = qx(egrep "^$$fname\t" "$(EXTRA_ATTRS_FILE)"); \
+		@fields = split ("\t", $$lines[0]); \
+		s/>/ dialect_region_name="$$fields[4]" dialect_group_name="$$fields[6]">/; \
+	}' | \
+	$(VRT_MAKE_FULLTEXT)
+
 CORPUS_DATE_PATTERN = "text date"
 CORPUS_DATE_FULL_ORDER = ymd
 
