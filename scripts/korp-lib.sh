@@ -93,7 +93,7 @@ exit_on_error () {
     "$@"
     _exit_code=$?
     if [ $_exit_code != 0 ]; then
-	error "Terminating due to errors in subprocess %1 (exit code $_exit_code)"
+	error "Terminating due to errors in subprocess $1 (exit code $_exit_code)"
     fi
 }
 
