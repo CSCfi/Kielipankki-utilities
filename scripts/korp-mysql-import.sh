@@ -417,7 +417,7 @@ create_table() {
     _tablename=$1
     _colspec=$2
     run_mysql "
-CREATE TABLE IF NOT EXISTS $_tablename (
+CREATE TABLE IF NOT EXISTS \`$_tablename\` (
     $_colspec
     ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8 DEFAULT COLLATE=utf8_bin;
 "
@@ -426,14 +426,14 @@ CREATE TABLE IF NOT EXISTS $_tablename (
 delete_table_corpus_info() {
     _tablename=$1
     _corpname=$2
-    run_mysql "DELETE FROM $tablename WHERE corpus='$_corpname';"
+    run_mysql "DELETE FROM \`$_tablename\` WHERE corpus='$_corpname';"
 }
 
 create_new_table() {
     _tablename=$1
     _colspec=$2
-    run_mysql "DROP TABLE IF EXISTS $_tablename;"
-    create_table $_tablename "$_colspec"
+    run_mysql "DROP TABLE IF EXISTS \`$_tablename\`;"
+    create_table \`$_tablename\` "$_colspec"
 }
 
 prepare_tables () {
@@ -540,7 +540,7 @@ mysql_import_main () {
 	    set unique_checks = 0;
             set foreign_key_checks = 0;
             set session tx_isolation = 'READ-UNCOMMITTED';
-	    load data local infile '$fifo' into table $tablename character set utf8 fields escaped by '';"
+	    load data local infile '$fifo' into table \`$tablename\` character set utf8 fields escaped by '';"
     if [ "x$show_warnings" != x ]; then
 	echo '  MySQL output:'
 	mysql_cmds="$mysql_cmds
