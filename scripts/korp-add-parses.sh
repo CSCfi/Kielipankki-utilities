@@ -3,10 +3,9 @@
 
 
 # TODO:
-# - Check that the existing corpus does not already have the
-#   attributes to be added.
 # - Optionally re-encode the corpus completely, including existing
 #   positional and structural attributes.
+# - Allow different compound boundary options.
 
 
 progname=`basename $0`
@@ -16,6 +15,8 @@ shortopts="hc:"
 longopts="help,corpus-root:,input-attrs:,input-fields:,lemgram-posmap:,posmap:,wordpict-relmap:,wordpicture-relation-map:,relmap:,tsv-dir:,import-database,verbose"
 
 . $progdir/korp-lib.sh
+
+# cleanup_on_exit=
 
 vrt_fix_attrs=$progdir/vrt-fix-attrs.py
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
@@ -153,12 +154,36 @@ if [ "x$name_tags" != x ]; then
 fi
 
 input_attrs=$(
-    echo "$initial_input_attrs lex" |
+    echo "$initial_input_attrs lex/" |
     sed -e 's/lemma/& lemmacomp/'
 )
 
 vrt_file=$tmp_prefix.vrt
 
+
+filter_new_attrs () {
+    $cwb_describe_corpus -s $corpus |
+    awk '
+        BEGIN {
+            for (i = 1; i < ARGC; i++) { attrs[i] = ARGV[i] }
+            delete ARGV
+        }
+        /^p-ATT/ { old_attrs[$2] = 1 }
+        END {
+            for (i in attrs) {
+                attrname_bare = gensub (/\//, "", "g", attrs[i])
+                # Lemma needs to be recoded as lemmacomp if lemmacomp is
+                # not already present
+                if (! (attrname_bare in old_attrs) \
+                    || (attrname_bare == "lemma" \
+                        && ! ("lemmacomp" in old_attrs))) {
+                    print attrs[i]
+                }
+            }
+        }' $@
+}
+
+new_attrs=$(filter_new_attrs "$input_attrs")
 
 cat_input () {
     if [ "x$1" = x ]; then
@@ -225,24 +250,63 @@ check_corpus_size () {
     fi
 }
 
-run_cwb_encode () {
-    # TODO: Split encoding lemgrams separately, so that it should be
-    # faster to encode the special character, without having to take
-    # into account the lemgram feature set attribute.
-    posattrcount=$(echo "$input_attrs" | wc -w)
+filter_attrs () {
+    _grep_opts="$1"
+    shift
+    echo "$@" |
+    tr ' ' '\n' |
+    grep -En $_grep_opts |
+    grep -E ":($(echo $new_attrs | sed -e 's/ /|/g'))/?\$"
+}
+
+run_cwb_encode_base () {
+    _attrs=$1
+    _is_featset=$2
+    attrnames=$(echo $_attrs | sed -e 's/[0-9][0-9]*://g')
+    attrnums=$(echo $_attrs | sed -e 's/:[^ ]*//g' | tr ' ' ',')
+    convert_chars_opts=
+    featset_text=
+    if [ "x$_is_featset" != x ]; then
+	featset_attrnums=$(
+	    echo $(seq $(echo "$attrnames" | wc -w)) |
+	    tr ' ' ','
+	)
+	convert_chars_opts="--feature-set-attrs $featset_attrnums"
+	featset_text="feature-set "
+    fi
+    echo_verb Encoding $featset_text p-attributes: $attrnames
     egrep -v '^<' $vrt_file |
-    cut -d'	' -f2- |
-    $vrt_convert_chars --feature-set-attributes $posattrcount |
+    cut -d'	' -f$attrnums |
+    $vrt_convert_chars $convert_chars_opts |
     $cwb_encode -d $corpus_root/data/$corpus -p - -xsB -c utf8 \
-	$(add_prefix "-P " $input_attrs)
+	$(add_prefix "-P " $attrnames)
+}
+
+run_cwb_encode () {
+    attrs_base=$(filter_attrs "-v /|:word\$" "word $input_attrs")
+    attrs_featset=$(filter_attrs "/" "word $input_attrs")
+    run_cwb_encode_base "$attrs_base"
+    if [ "x$attrs_featset" != x ]; then
+	run_cwb_encode_base "$attrs_featset" featset
+    fi
+    # exit 1
 }
 
 add_registry_attrs () {
     regfile=$corpus_root/registry/$corpus
     cp -p $regfile $regfile.bak
-    # Add the new attributes after word
+    grep '^ATTRIBUTE ' $regfile | cut -d' ' -f2 > $tmp_prefix.old_attrs
+    # Interleave the old and new attributes
+    all_attrs=$(
+	echo "word $input_attrs" |
+	tr -d '/' |
+	tr ' ' '\n' |
+	diff -U100 $tmp_prefix.old_attrs - |
+	grep -Ev '^(---|\+\+\+|@@)' |
+	cut -c2-
+    )
     sed -e '/^ATTRIBUTE word/ a'"$(add_prefix '\
-ATTRIBUTE ' $input_attrs)" $regfile.bak > $regfile
+ATTRIBUTE ' $all_attrs)" -e '/^ATTRIBUTE/ d' $regfile.bak > $regfile
 }
 
 run_cwb_make () {
@@ -256,7 +320,7 @@ extract_lemgrams () {
 
 extract_wordpict_rels () {
     $run_extract_rels --corpus-name $corpus \
-	--input-fields "word $input_attrs" \
+	--input-fields "word ${input_attrs%/}" \
 	--output-dir "$tsvdir" --relation-map "$wordpict_relmap" \
 	--optimize-memory --no-tar \
 	< $vrt_file
@@ -278,15 +342,27 @@ main () {
 	exit_on_error false
     fi
     check_corpus_size
-    echo_verb "Encoding the the new attributes"
-    exit_on_error run_cwb_encode
-    exit_on_error add_registry_attrs
-    echo_verb "Indexing and compressing the new attributes"
-    exit_on_error run_cwb_make
-    echo_verb "Extracting lemgrams for the database"
-    exit_on_error extract_lemgrams
-    echo_verb "Extracting word picture relations for the database"
-    exit_on_error extract_wordpict_rels
+    if [ "x$new_attrs" != x ]; then
+	echo_verb "Encoding the new attributes"
+	exit_on_error run_cwb_encode
+	exit_on_error add_registry_attrs
+	echo_verb "Indexing and compressing the new attributes"
+	exit_on_error run_cwb_make
+    else
+	echo_verb "(Parse attributes already present; skipping)"
+    fi
+    if [ ! -e $tsvdir/${corpus}_lemgrams.tsv.gz ]; then
+	echo_verb "Extracting lemgrams for the database"
+	exit_on_error extract_lemgrams
+    else
+	echo_verb "(Lemgrams already extracted; skipping)"
+    fi
+    if [ ! -e $tsvdir/${corpus}_rels.tsv.gz ]; then
+	echo_verb "Extracting word picture relations for the database"
+	exit_on_error extract_wordpict_rels
+    else
+	echo_verb "(Word picture relations already extracted; skipping)"
+    fi
     if [ "x$import_database" != x ]; then
 	echo_verb "Importing data to the MySQL database"
 	exit_on_error import_database
