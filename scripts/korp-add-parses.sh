@@ -372,7 +372,11 @@ time_stage () {
 
 stage_add_new_attrs () {
     echo_verb "Adding lemgrams and lemmas without compound boundaries"
+    # Skip empty lines in the input VRT, in order to avoid a differing
+    # number of tokens from the already encoded attributes (assuming
+    # that cwb-encode was told to skip empty lines).
     cat_input "$@" |
+    grep -v '^$' |
     add_lemmas_without_boundaries |
     add_lemgrams > $vrt_file
     if [ $? != 0 ]; then
