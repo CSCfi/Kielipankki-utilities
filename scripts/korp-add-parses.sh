@@ -12,7 +12,7 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 shortopts="hc:"
-longopts="help,corpus-root:,input-attrs:,input-fields:,lemgram-posmap:,posmap:,wordpict-relmap:,wordpicture-relation-map:,relmap:,tsv-dir:,import-database,verbose"
+longopts="help,corpus-root:,input-attrs:,input-fields:,lemgram-posmap:,posmap:,wordpict-relmap:,wordpicture-relation-map:,relmap:,tsv-dir:,no-wordpicture,skip-wordpicture,import-database,verbose"
 
 . $progdir/korp-lib.sh
 
@@ -39,6 +39,7 @@ lemgram_posmap=$mapdir/lemgram_posmap_tdt.tsv
 wordpict_relmap=$mapdir/wordpict_relmap_tdt.tsv
 name_tags=
 import_database=
+wordpicture=1
 tsvdir=
 verbose=
 
@@ -76,6 +77,8 @@ Options:
                   separated by a tab (default: $wordpict_relmap)
   --tsv-dir DIR   output database tables as TSV files to DIR (default:
                   $corpus_root/$tsv_subdir)
+  --no-wordpicture
+                  do not extract word picture relations database tables
   --import-database
                   import the database TSV files into the Korp MySQL database
   --verbose       output some progress information
@@ -113,6 +116,9 @@ while [ "x$1" != "x" ] ; do
 	# --name-tags )
 	#     name_tags=1
 	#     ;;
+	--no-wordpicture | --skip-wordpicture )
+	    wordpicture=
+	    ;;
 	--import-database )
 	    import_database=1
 	    ;;
@@ -327,8 +333,11 @@ extract_wordpict_rels () {
 }
 
 import_database () {
-    $korp_mysql_import --prepare-tables --relations-format new \
-	$tsv_dir/${corpus}_lemgrams.tsv.gz $tsv_dir/${corpus}_rels*.tsv.gz
+    tsv_files=$tsvdir/${corpus}_lemgrams.tsv.gz
+    if [ "x$wordpicture" != x ]; then
+	tsv_files="$tsv_files $(echo $tsvdir/${corpus}_rels*.tsv.gz)"
+    fi
+    $korp_mysql_import --prepare-tables --relations-format new $tsv_files
 }
 
 main () {
@@ -357,11 +366,15 @@ main () {
     else
 	echo_verb "(Lemgrams already extracted; skipping)"
     fi
-    if [ ! -e $tsvdir/${corpus}_rels.tsv.gz ]; then
-	echo_verb "Extracting word picture relations for the database"
-	exit_on_error extract_wordpict_rels
+    if [ "x$wordpicture" != x ]; then
+	if [ ! -e $tsvdir/${corpus}_rels.tsv.gz ]; then
+	    echo_verb "Extracting word picture relations for the database"
+	    exit_on_error extract_wordpict_rels
+	else
+	    echo_verb "(Word picture relations already extracted; skipping)"
+	fi
     else
-	echo_verb "(Word picture relations already extracted; skipping)"
+	echo_verb "(Skipping extracting word picture relations as requested)"
     fi
     if [ "x$import_database" != x ]; then
 	echo_verb "Importing data to the MySQL database"
