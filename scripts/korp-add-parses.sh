@@ -12,11 +12,11 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 shortopts="hc:"
-longopts="help,corpus-root:,input-attrs:,input-fields:,lemgram-posmap:,posmap:,wordpict-relmap:,wordpicture-relation-map:,relmap:,tsv-dir:,no-wordpicture,skip-wordpicture,import-database,verbose"
+longopts="help,corpus-root:,input-attrs:,input-fields:,save-augmented-vrt-file:,augmented-vrt-input,lemgram-posmap:,posmap:,wordpict-relmap:,wordpicture-relation-map:,relmap:,tsv-dir:,no-wordpicture,skip-wordpicture,import-database,verbose"
 
 . $progdir/korp-lib.sh
 
-# cleanup_on_exit=
+# hcleanup_on_exit=
 
 vrt_fix_attrs=$progdir/vrt-fix-attrs.py
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
@@ -35,6 +35,8 @@ mapdir=$progdir/../corp
 tsv_subdir=vrt/CORPUS
 
 initial_input_attrs="ref lemma pos msd dephead deprel"
+vrt_file=$tmp_prefix.vrt
+augmented_vrt_input=
 lemgram_posmap=$mapdir/lemgram_posmap_tdt.tsv
 wordpict_relmap=$mapdir/wordpict_relmap_tdt.tsv
 name_tags=
@@ -65,6 +67,13 @@ Options:
                   specify the names of the positional attributes in the input,
                   excluding the first one ("word" or token), separated by
                   spaces (default: "$initial_input_attrs")
+  --save-augmented-vrt-file VRT_FILE
+                  save as VRT_FILE the VRT file with the added attributes
+                  (lemmas without compound boundaries and lemgrams); the file
+                  can be used as input with --full-vrt-file, e.g., to resume
+                  faster an interrupted run
+  --augmented-vrt-input
+                  the input VRT contains the added attributes
   --lemgram-posmap POSMAP_FILE
                   use POSMAP_FILE as the mapping file from the corpus parts of
                   speech to those used in Korp lemgrams; the file should
@@ -100,6 +109,13 @@ while [ "x$1" != "x" ] ; do
 	--input-attrs | --input-fields )
 	    shift
 	    initial_input_attrs=$1
+	    ;;
+	--save-augmented-vrt-file )
+	    shift
+	    vrt_file=$1
+	    ;;
+	--augmented-vrt-input )
+	    augmented_vrt_input=1
 	    ;;
 	--lemgram-posmap | --posmap )
 	    shift
@@ -159,12 +175,17 @@ if [ "x$name_tags" != x ]; then
     initial_input_attrs="$initial_input_attrs nertag"
 fi
 
-input_attrs=$(
-    echo "$initial_input_attrs lex/" |
-    sed -e 's/lemma/& lemmacomp/'
-)
-
-vrt_file=$tmp_prefix.vrt
+if [ "x$augmented_vrt_input" != x ]; then
+    if [[ "$initial_input_attrs" != "* lemmacomp *" ]]; then
+	initial_input_attrs=${initial_input_attrs/lemma /lemma lemmacomp }
+    fi
+    if [[ "$initial_input_attrs" != "* lex/" ]]; then
+	initial_input_attrs="$initial_input_attrs lex/"
+    fi
+    input_attrs=$initial_input_attrs
+else
+    input_attrs="${initial_input_attrs/lemma /lemma lemmacomp } lex/"
+fi
 
 
 filter_new_attrs () {
@@ -342,13 +363,18 @@ import_database () {
 
 main () {
     echo_verb "Adding parse information to Korp corpus $corpus:"
-    echo_verb "Adding lemgrams and lemmas without compound boundaries"
     set -o pipefail
-    cat_input "$@" |
-    add_lemmas_without_boundaries |
-    add_lemgrams > $vrt_file
-    if [ $? != 0 ]; then
-	exit_on_error false
+    if [ "x$augmented_vrt_input" != x ]; then
+	echo_verb "(Lemgrams and lemmas without compound boundaries already in input)"
+	cat_input "$@" > $vrt_file
+    else
+	echo_verb "Adding lemgrams and lemmas without compound boundaries"
+	cat_input "$@" |
+	add_lemmas_without_boundaries |
+	add_lemgrams > $vrt_file
+	if [ $? != 0 ]; then
+	    exit_on_error false
+	fi
     fi
     check_corpus_size
     if [ "x$new_attrs" != x ]; then
