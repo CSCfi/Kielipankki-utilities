@@ -2,6 +2,8 @@
 
 # Functions and other code common to several Bourne shell scripts
 # related to Korp corpus import
+#
+# NOTE: Some functions require Bash.
 
 
 # Common functions
@@ -174,6 +176,69 @@ subproc_times () {
     rm $tmp_prefix.times
 }
 
+# time_cmd_uncond [--format timeformat] command [args]
+#
+# Print the user and system time used by command with args to stdout,
+# using the format timeformat (default: "Times: <command>:
+# <times>\n").
+#
+# NOTE: This only works in Bash, not in Dash, at least not if command
+# is a shell function.
+time_cmd_uncond () {
+    local format
+    if [ "x$1" = "x--format" ]; then
+	format=$2
+	shift
+	shift
+    else
+	format="Times: $1: %s\n"
+    fi
+    # TIMEFORMAT is used by the Bash built-in, TIME by the GNU time
+    # command. NOTE: If calls to time_cmd_uncond are nested, the
+    # innermost format is used for the outer commands as well.
+    TIMEFORMAT="@@@TIMES: $format"
+    TIME="@@@TIMES: $format"
+    # The Bash built-in time writes to stderr, but we want to output
+    # the times to stdout and the rest of the stderr to stderr.
+    local fifo_base=$tmp_prefix.$$.fifo
+    local fifo=$fifo_base
+    local i=0
+    while [ -e $fifo ]; do
+	fifo=$fifo_base.$i
+	i=$(($i + 1))
+    done
+    mkfifo $fifo
+    awk '{
+            if (/^@@@TIMES: /) {
+                sub (/@@@TIMES: /, "")
+                print
+            } else {
+                print > "/dev/stderr"
+            }
+        }' < $fifo &
+    local filter_pid=$!
+    {
+	time "$@"
+    } 2> $fifo
+    wait $filter_pid
+    rm -f $tmp_prefix.$$.fifo
+}
+
+# time_cmd [--format timeformat] command [args]
+#
+# Print the times if the value of $show_times is non-empty.
+time_cmd () {
+    if [ "x$show_times" != x ]; then
+	time_cmd_uncond "$@"
+    else
+	if [ "x$1" = "x--format" ]; then
+	    shift
+	    shift
+	fi
+	"$@"
+    fi
+}
+
 cleanup () {
     if [ "x$tmp_prefix" != "x" ] && [ "x$cleanup_on_exit" != x ]; then
 	rm -rf $tmp_prefix.*
@@ -328,6 +393,8 @@ if [ "x$KORP_MYSQL_PASSWORD" != "x" ]; then
 fi
 
 cleanup_on_exit=1
+
+show_times=
 
 
 trap cleanup 0

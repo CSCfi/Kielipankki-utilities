@@ -12,7 +12,7 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 shortopts="hc:"
-longopts="help,corpus-root:,input-attrs:,input-fields:,save-augmented-vrt-file:,augmented-vrt-input,lemgram-posmap:,posmap:,wordpict-relmap:,wordpicture-relation-map:,relmap:,tsv-dir:,no-wordpicture,skip-wordpicture,import-database,verbose"
+longopts="help,corpus-root:,input-attrs:,input-fields:,save-augmented-vrt-file:,augmented-vrt-input,lemgram-posmap:,posmap:,wordpict-relmap:,wordpicture-relation-map:,relmap:,tsv-dir:,no-wordpicture,skip-wordpicture,import-database,verbose,times"
 
 . $progdir/korp-lib.sh
 
@@ -44,6 +44,7 @@ import_database=
 wordpicture=1
 tsvdir=
 verbose=
+show_times=
 
 
 usage () {
@@ -91,6 +92,7 @@ Options:
   --import-database
                   import the database TSV files into the Korp MySQL database
   --verbose       output some progress information
+  --times         output the amount of CPU time used for each stage
 EOF
     exit 0
 }
@@ -140,6 +142,9 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	--verbose )
 	    verbose=1
+	    ;;
+	--times )
+	    show_times=1
 	    ;;
 	-- )
 	    shift
@@ -340,12 +345,12 @@ run_cwb_make () {
     $cwb_make -V $corpus
 }
 
-extract_lemgrams () {
+run_extract_lemgrams () {
     $vrt_extract_lemgrams --corpus-id $corpus < $vrt_file |
     gzip > $tsvdir/${corpus}_lemgrams.tsv.gz
 }
 
-extract_wordpict_rels () {
+run_extract_wordpict_rels () {
     $run_extract_rels --corpus-name $corpus \
 	--input-fields "word ${input_attrs%/}" \
 	--output-dir "$tsvdir" --relation-map "$wordpict_relmap" \
@@ -353,7 +358,7 @@ extract_wordpict_rels () {
 	< $vrt_file
 }
 
-import_database () {
+run_import_database () {
     tsv_files=$tsvdir/${corpus}_lemgrams.tsv.gz
     if [ "x$wordpicture" != x ]; then
 	tsv_files="$tsv_files $(echo $tsvdir/${corpus}_rels*.tsv.gz)"
@@ -361,52 +366,104 @@ import_database () {
     $korp_mysql_import --prepare-tables --relations-format new $tsv_files
 }
 
-main () {
-    echo_verb "Adding parse information to Korp corpus $corpus:"
-    set -o pipefail
+time_stage () {
+    time_cmd --format "- CPU time used: %U %R" "$@"
+}
+
+stage_add_new_attrs () {
+    echo_verb "Adding lemgrams and lemmas without compound boundaries"
+    cat_input "$@" |
+    add_lemmas_without_boundaries |
+    add_lemgrams > $vrt_file
+    if [ $? != 0 ]; then
+	exit_on_error false
+    fi
+}
+
+add_new_attrs () {
     if [ "x$augmented_vrt_input" != x ]; then
 	echo_verb "(Lemgrams and lemmas without compound boundaries already in input)"
 	cat_input "$@" > $vrt_file
     else
-	echo_verb "Adding lemgrams and lemmas without compound boundaries"
-	cat_input "$@" |
-	add_lemmas_without_boundaries |
-	add_lemgrams > $vrt_file
-	if [ $? != 0 ]; then
-	    exit_on_error false
-	fi
+	time_stage stage_add_new_attrs "$@"
     fi
-    check_corpus_size
+}
+
+stage_cwb_encode () {
+    echo_verb "Encoding the new attributes"
+    exit_on_error run_cwb_encode
+}
+
+stage_cwb_make () {
+    echo_verb "Indexing and compressing the new attributes"
+    exit_on_error add_registry_attrs
+    exit_on_error run_cwb_make
+}
+
+add_attrs_to_cwb () {
     if [ "x$new_attrs" != x ]; then
-	echo_verb "Encoding the new attributes"
-	exit_on_error run_cwb_encode
-	exit_on_error add_registry_attrs
-	echo_verb "Indexing and compressing the new attributes"
-	exit_on_error run_cwb_make
+	time_stage stage_cwb_encode
+	time_stage stage_cwb_make
     else
 	echo_verb "(Parse attributes already present; skipping)"
     fi
+}
+
+stage_extract_lemgrams () {
+    echo_verb "Extracting lemgrams for the database"
+    exit_on_error run_extract_lemgrams
+}
+
+extract_lemgrams () {
     if [ ! -e $tsvdir/${corpus}_lemgrams.tsv.gz ]; then
-	echo_verb "Extracting lemgrams for the database"
-	exit_on_error extract_lemgrams
+	time_stage stage_extract_lemgrams
     else
 	echo_verb "(Lemgrams already extracted; skipping)"
     fi
+}
+
+stage_extract_wordpict_rels () {
+    echo_verb "Extracting word picture relations for the database"
+    exit_on_error run_extract_wordpict_rels
+}
+
+extract_wordpict_rels () {
     if [ "x$wordpicture" != x ]; then
 	if [ ! -e $tsvdir/${corpus}_rels.tsv.gz ]; then
-	    echo_verb "Extracting word picture relations for the database"
-	    exit_on_error extract_wordpict_rels
+	    time_stage stage_extract_wordpict_rels
 	else
 	    echo_verb "(Word picture relations already extracted; skipping)"
 	fi
     else
 	echo_verb "(Skipping extracting word picture relations as requested)"
     fi
+}
+
+stage_import_database () {
+    echo_verb "Importing data to the MySQL database"
+    exit_on_error import_database
+}
+
+import_database () {
     if [ "x$import_database" != x ]; then
-	echo_verb "Importing data to the MySQL database"
-	exit_on_error import_database
+	time_stage stage_import_database
     fi
+}
+
+main () {
+    echo_verb "Adding parse information to Korp corpus $corpus:"
+    set -o pipefail
+    add_new_attrs "$@"
+    check_corpus_size
+    add_attrs_to_cwb
+    extract_lemgrams
+    extract_wordpict_rels
+    import_database
     echo_verb "Completed."
 }
 
-main "$@"
+
+# FIXME: The format is not effective, since the formats used in inner
+# time_cmd calls take overwrite the format (TIMEFORMAT environment
+# variable).
+time_cmd --format "- Total CPU time used: %U %R" main "$@"
