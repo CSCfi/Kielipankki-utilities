@@ -17,31 +17,18 @@
 
 
 progname=`basename $0`
+progdir=`dirname $0`
+
+shortopts="hc:r:d:s:tuvA"
+longopts="help,cwbdir:,registry:,data-root-dir:,set-info:,info-from-file:,test,update,verbose,all,no-backups,backup-suffix:"
+
+. $progdir/korp-lib.sh
 
 
-default_corpus_roots="/v/corpora $WRKDIR/corpora $WRKDIR/korp/corpora /proj/clarin/korp/corpora /wrk/jyniemi/corpora"
-default_cwbdirs="/usr/local/cwb/bin /usr/local/bin /proj/clarin/korp/cwb/bin $USERAPPL/bin"
-
-find_existing_dir () {
-    _test=$1
-    _file=$2
-    shift 2
-    for dir in "$@"; do
-	if [ $_test $dir/$_file ]; then
-	    echo $dir
-	    break
-	fi
-    done
-}
-
-corpus_root=${CORPUS_ROOT:-$(find_existing_dir -d "" $default_corpus_roots)}
-
-cwbdir=${CWBDIR:-$(find_existing_dir -e cwb-describe-corpus $default_cwbdirs)}
 cwb_regdir=${CORPUS_REGISTRY:-$corpus_root/registry}
 # Use the data directory specified in the registry file of a corpus,
 # unless specified via an option
 data_rootdir=
-tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
 
 update=
 verbose=
@@ -56,36 +43,7 @@ else
     wdiff=diff
 fi
 
-tmpfname_base=$tmpdir/$progname.$$.tmp
-
-
-warn () {
-    echo "$progname: Warning: $1" >&2
-}
-
-error () {
-    echo "$progname: $1" >&2
-    exit 1
-}
-
-echo_verb () {
-    if [ "x$verbose" != "x" ]; then
-	echo "$@"
-    fi
-}
-
-cleanup () {
-    rm -f $tmpfname_base*
-}
-
-cleanup_abort () {
-    cleanup
-    exit 1
-}
-
-
-trap cleanup 0
-trap cleanup_abort 1 2 13 15
+tmp_prefix=$tmpdir/$progname.$$.tmp
 
 
 usage () {
@@ -100,7 +58,7 @@ may contain shell wildcards.
 Options:
   -h, --help      show this help
   -c, --cwbdir DIR
-                  use the CWB binaries in DIR (default: $cwbdir)
+                  use the CWB binaries in DIR (default: $cwb_bindir)
   -r, --registry DIR
                   use DIR as the CWB registry (default: $cwb_regdir)
   -d, --data-root-dir DIR
@@ -153,19 +111,6 @@ read_info_file () {
 }
 
 
-# Test if GNU getopt
-getopt -T > /dev/null
-if [ $? -eq 4 ]; then
-    # This requires GNU getopt
-    args=`getopt -o "hc:r:d:s:tuvA" -l "help,cwbdir:,registry:,data-root-dir:,set-info:,info-from-file:,test,update,verbose,all,no-backups,backup-suffix:" -n "$progname" -- "$@"`
-    if [ $? -ne 0 ]; then
-	exit 1
-    fi
-    eval set -- "$args"
-fi
-# If not GNU getopt, arguments of long options must be separated from
-# the option string by a space; getopt allows an equals sign.
-
 # Process options
 while [ "x$1" != "x" ] ; do
     case "$1" in
@@ -173,7 +118,7 @@ while [ "x$1" != "x" ] ; do
 	    usage
 	    ;;
 	-c | --cwbdir )
-	    cwbdir=$2
+	    cwb_bindir=$2
 	    shift
 	    ;;
 	-r | --registry )
@@ -227,17 +172,7 @@ while [ "x$1" != "x" ] ; do
 done
 
 
-cwb_describe_corpus=
-for path in $cwbdir/cwb-describe-corpus $cwbdir/bin/cwb-describe-corpus \
-    `which cwb-describe-corpus 2> /dev/null`; do
-    if [ -x $path ]; then
-	cwb_describe_corpus=$path
-	break
-    fi
-done
-if [ "x$cwb_describe_corpus" = "x" ]; then
-    error "cwb-describe-corpus not found in $cwbdir, $cwbdir/bin or on PATH; please specify with --cwbdir"
-fi
+cwb_describe_corpus=$(find_prog cwb-describe-corpus $cwb_bindir)
 
 if [ ! -d "$cwb_regdir" ]; then
     error "Cannot access registry directory $cwb_regdir"
@@ -254,11 +189,6 @@ get_corpus_dir () {
 	grep '^home directory' |
 	sed -e 's/.*: //'`
     fi
-}
-
-get_all_corpora () {
-    ls "$cwb_regdir" |
-    grep -E '^[a-z_][a-z0-9_-]+$'
 }
 
 extract_info () {
@@ -282,7 +212,7 @@ extract_info () {
     fi
 }
 
-infofile_tmp=$tmpfname_base.tmp
+infofile_tmp=$tmp_prefix.tmp
 
 sort_info () {
     cat > $infofile_tmp
@@ -293,15 +223,14 @@ sort_info () {
 }
 
 
-infofile_old=$tmpfname_base.old
-infofile_new=$tmpfname_base.new
-infofile_comb=$tmpfname_base.comb
+infofile_old=$tmp_prefix.old
+infofile_new=$tmp_prefix.new
+infofile_comb=$tmp_prefix.comb
 
 if [ "x$all_corpora" != "x" ]; then
-    corpora=`get_all_corpora`
+    corpora=$(list_corpora "$cwb_regdir" "*")
 else
-    # Expand the possible shell wildcards in corpus name arguments
-    corpora=`cd $cwb_regdir; echo $*`
+    corpora=$(list_corpora "$cwb_regdir" $*)
 fi
 
 for corpus in $corpora; do
@@ -330,9 +259,7 @@ for corpus in $corpora; do
 	fi
 	if [ "x$test" != "x" ]; then
 	    echo "$corpus outdated"
-	    if [ "x$verbose" != "x" ]; then
-		$wdiff $infofile_old $infofile_new
-	    fi
+	    verbose $wdiff $infofile_old $infofile_new
 	else
 	    {
 		cat $infofile_new
