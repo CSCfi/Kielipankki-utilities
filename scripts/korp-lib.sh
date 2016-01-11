@@ -363,7 +363,7 @@ default_corpus_roots=${default_corpus_roots:-"/v/corpora /proj/clarin/korp/corpo
 # Root directory, relative to which the corpus directory resides
 corpus_root=${CORPUS_ROOT:-$(find_existing_dir -d "" $default_corpus_roots)}
 
-default_cwb_bindirs=${default_cwb_bindirs:-"/usr/local/cwb/bin /usr/local/bin /proj/clarin/korp/cwb/bin $USERAPPL/bin"}
+default_cwb_bindirs=${default_cwb_bindirs:-"/usr/local/cwb/bin /usr/local/bin /proj/clarin/korp/cwb/bin $USERAPPL/bin /v/util/cwb/utils"}
 
 # The directory in which CWB binaries reside
 cwb_bindir=${CWB_BINDIR:-$(find_existing_dir -e cwb-describe-corpus $default_cwb_bindirs)}
