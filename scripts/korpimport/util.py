@@ -12,6 +12,7 @@ processing scripts.
 import sys
 import codecs
 import errno
+import string
 
 from optparse import OptionParser
 
@@ -22,6 +23,39 @@ def elem_at(seq, index, default=None):
         return seq[index]
     except IndexError:
         return default
+
+
+class PartialStringFormatter(string.Formatter):
+
+    """
+    A string formatter handling missing keys.
+
+    A string formatter that outputs an empty (or other specified)
+    string when a format key would cause a `KeyError` or
+    `AttributeError`.
+
+    Adapted from
+    http://stackoverflow.com/questions/20248355/how-to-get-python-to-gracefully-format-none-and-non-existing-fields
+    https://gist.github.com/navarroj/7689682
+    """
+
+    def __init__(self, missing=""):
+        self.missing = missing
+
+    def get_field(self, field_name, args, kwargs):
+        # Handle missing fields
+        try:
+            return super(_PartialStringFormatter, self).get_field(
+                field_name, args, kwargs)
+        except (KeyError, AttributeError):
+            return None, field_name
+
+    def format_field(self, value, spec):
+        if value is None:
+            return self.missing
+        else:
+            return super(_PartialStringFormatter, self).format_field(
+                value, spec)
 
 
 def run(main, input_encoding='utf-8', output_encoding='utf-8', *args, **kwargs):
