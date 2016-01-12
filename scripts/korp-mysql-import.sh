@@ -622,6 +622,13 @@ mysql_import_retry_loop () {
 
 mysql_import () {
     file=$1
+    if [ ! -e "$file" ]; then
+	warn "No such file: $file"
+	return
+    elif [ ! -r "$file" ]; then
+	warn "Cannot read file $file"
+	return
+    fi
     file_base=`basename $file`
     if [ "x$imported_file_list" != x ] &&
 	grep -Fq "$file_base" "$imported_file_list"; then
