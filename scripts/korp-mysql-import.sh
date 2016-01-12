@@ -51,6 +51,20 @@ table_columns_timespans='
 	`tokens` int(11) DEFAULT 0,
 	KEY `corpus` (`corpus`)
 '
+table_columns_timedata='
+	`corpus` varchar(64) NOT NULL DEFAULT '"''"',
+	`datefrom` datetime NOT NULL DEFAULT '"'"'0000-00-00 00:00:00'"'"',
+	`dateto` datetime NOT NULL DEFAULT '"'"'0000-00-00 00:00:00'"'"',
+	`tokens` int(11) NOT NULL DEFAULT 0,
+	PRIMARY KEY (`corpus`, `datefrom`, `dateto`)
+'
+table_columns_timedata_date='
+	`corpus` varchar(64) NOT NULL DEFAULT '"''"',
+	`datefrom` date NOT NULL DEFAULT '"'"'0000-00-00'"'"',
+	`dateto` date NOT NULL DEFAULT '"'"'0000-00-00'"'"',
+	`tokens` int(11) NOT NULL DEFAULT 0,
+	PRIMARY KEY (`corpus`, `datefrom`, `dateto`)
+'
 table_columns_relations_CORPNAME='
         `id` int(11) UNIQUE NOT NULL,
 	`head` varchar(100) NOT NULL,
@@ -146,12 +160,14 @@ relations_table_types="CORPNAME CORPNAME_strings CORPNAME_rel CORPNAME_head_rel 
 
 # Filename base parts, only files for tables containing data for
 # multiple corpora
-filename_bases="lemgrams timespans"
+filename_bases="lemgrams timedata timedata_date timespans"
 filename_bases_commas="$(echo $filename_bases | sed 's/ /, /g')"
 filename_bases_sed_re="$(echo $filename_bases | sed 's/ /\\|/g')"
 
 # The table name corresponding to each multi-corpus filename base
 tablename_lemgrams=lemgram_index
+tablename_timedata=timedata
+tablename_timedata_date=timedata_date
 tablename_timespans=timespans
 
 # All multi-corpus table names
@@ -182,15 +198,16 @@ may be compressed with gzip, bzip2 or xz.
 Each filename is assumed to be of the format CORPUS_TYPE.EXT, where CORPUS is
 the name (id) of the corpus (in lower case), TYPE is the type of the table and
 EXT is .tsv, possibly followed by the compression extension. TYPE is one of
-the following: lemgrams, timespans, rels, rels_rel, rels_head_rel,
-rels_dep_rel, rels_sentences, rels_strings.
+the following: lemgrams, timedata, timedata_date, timespans, rels, rels_rel,
+rels_head_rel, rels_dep_rel, rels_sentences, rels_strings.
 
 Options:
   -h, --help      show this help
   -t, --prepare-tables
                   create the necessary tables before importing the data; for
                   single-corpus tables, drop the table first; for multi-corpus
-                  tables (lemgrams and timespans), remove the rows for CORPUS
+                  tables (lemgrams, timedata, timedata_date and timespans),
+                  remove the rows for CORPUS
   -I, --imported-file-list FILE
                   do not import files listed in FILE, and write the names of
                   imported files to FILE
@@ -201,8 +218,8 @@ Options:
                   "$relations_format")
   --table-name-template TEMPLATE
                   use TEMPLATE for naming tables; TEMPLATE should contain @
-                  for the default table (base) name (lemgram_index, timespans,
-                  relations) (default: $table_name_template)
+                  for the default table (base) name (lemgram_index, timedata,
+                  timedata_date, timespans, relations) (default: $table_name_template)
   --hide-warnings
                   do not show possible MySQL warnings
   -v, --verbose   show input file sizes, import times and MySQL data file size

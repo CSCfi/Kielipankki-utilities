@@ -37,7 +37,7 @@ all_corpora=
 backups=1
 backup_suffix=.bak
 
-std_info_keys_list="Sentences Updated"
+std_info_keys_list="Sentences Updated FirstDate LastDate"
 std_info_keys=$(echo "$std_info_keys_list" | sed -e 's/ /|/g')
 
 if which wdiff > /dev/null 2>&1; then
@@ -209,13 +209,37 @@ get_updated () {
     awk '{print $6}'
 }
 
+get_date () {
+    _type=$1
+    _corpname_u=$2
+    if [ "x$_type" = "xfirst" ]; then
+	_func=min
+	_field=datefrom
+    else
+	_func=max
+	_field=dateto
+    fi
+    run_mysql "select $_func($_field) from timedata where corpus='$_corpname_u' and $_field != '0000-00-00 00:00:00';" |
+    tail -1 |
+    grep -v '^NULL$'
+}
+
 extract_info () {
     corpdir=$1
     corpname=$2
     sentcount=$(get_sentence_count $corpname)
     updated=$(get_updated "$corpdir")
+    corpname_u=$(echo "$corpname" | sed -e 's/.*/\U&\E/')
+    firstdate=$(get_date first $corpname_u)
+    lastdate=$(get_date last $corpname_u)
     echo "Sentences: $sentcount"
     echo "Updated: $updated"
+    if [ "x$firstdate" != x ]; then
+	echo "FirstDate: $firstdate"
+    fi
+    if [ "x$lastdate" != x ]; then
+	echo "LastDate: $lastdate"
+    fi
     if [ "x$info_items" != x ]; then
 	echo "$info_items" |
 	egrep -v '^$' |

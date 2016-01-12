@@ -112,6 +112,15 @@ safe_echo () {
     printf "\n"
 }
 
+# test_verbose [level]
+#
+# Test if $verbose is set and non-zero, or if level is in 0...9 and
+# $verbose is greater than or equal to it.
+test_verbose () {
+    [ "x$verbose" != x ] && [ "x$verbose" != x0 ] &&
+    { [ "x$1" = x ] || [ $verbose -ge "0$1" ]; }
+}
+
 # verbose [level] cmd [args ...]
 #
 # If $verbose is set and non-zero, or if level is in 0...9 and
@@ -125,9 +134,7 @@ verbose () {
 	    shift
 	    ;;
     esac
-    if [ "x$verbose" != x ] && [ "x$verbose" != x0 ] &&
-	{ [ "x$_verbose_level" = x ] || [ $verbose -ge $_verbose_level ]; }
-    then
+    if test_verbose $_verbose_level; then
 	_cmd=$1
 	shift
 	$_cmd "$@"
@@ -147,6 +154,26 @@ echo_verb () {
 	    ;;
     esac
     verbose $_echo_verb_level safe_echo "$@"
+}
+
+# cat_verb [level]
+#
+# Print the input (using cat) if $verbose is level (0...9) or greater,
+# or if level is not defined, if $verbose is set and non-zero.
+cat_verb () {
+    _verbose_level=
+    case $1 in
+	[0-9] )
+	    _verbose_level=$1
+	    shift
+	    ;;
+    esac
+    if test_verbose $_verbose_level; then
+	_outfile=/dev/stdout
+    else
+	_outfile=/dev/null
+    fi
+    cat > $_outfile
 }
 
 # Echo the parameters quoted to standard error if $debug is non-empty.
@@ -355,6 +382,33 @@ list_corpora () {
     rm -rf $tmp_prefix.corpids $tmp_prefix.corpid_errors
 }
 
+# run_mysql sql_command [MySQL options ...]
+#
+# Run sql_command on the Korp database using MySQL and get the raw
+# output (TSV format; first line containing column names). MySQL
+# username and password may be specified via the environment variables
+# KORP_MYSQL_USER and KORP_MYSQL_PASSWORD. Additional MySQL options
+# may be specified after sql_command.
+run_mysql () {
+    mysql $mysql_opts --batch --raw --execute "$@" $korpdb
+}
+
+# indent [step] < input > output
+#
+# Indent the input by step spaces (default: 2).
+indent_input () {
+    if [ "x$1" != x ]; then
+	_step=$1
+    else
+	_step=2
+    fi
+    _spaces=""
+    for i in $(seq $_step); do
+	_spaces="$_spaces "
+    done
+    awk '{print "'"$_spaces"'" $0}'
+}
+
 
 # Common initialization code
 
@@ -391,6 +445,9 @@ fi
 if [ "x$KORP_MYSQL_PASSWORD" != "x" ]; then
     mysql_opts="$mysql_opts --password=$KORP_MYSQL_PASSWORD"
 fi
+
+# The tab character
+tab='	'
 
 cleanup_on_exit=1
 

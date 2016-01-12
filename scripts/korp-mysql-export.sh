@@ -21,7 +21,7 @@ verbose=1
 
 dbname=korp
 
-tables_common="lemgram_index timespans corpus_info"
+tables_common="lemgram_index timespans timedata timedata_date corpus_info"
 tables_by_corpus="relations names"
 table_suffixes_relations="@ dep_rel head_rel rel sentences strings"
 table_suffixes_names="@ sentences strings"
