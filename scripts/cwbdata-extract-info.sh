@@ -37,6 +37,9 @@ all_corpora=
 backups=1
 backup_suffix=.bak
 
+std_info_keys_list="Sentences Updated"
+std_info_keys=$(echo "$std_info_keys_list" | sed -e 's/ /|/g')
+
 if which wdiff > /dev/null 2>&1; then
     wdiff=wdiff
 else
@@ -191,18 +194,26 @@ get_corpus_dir () {
     fi
 }
 
+get_sentence_count () {
+    _corpname=$1
+    $cwb_describe_corpus -r "$cwb_regdir" -s $_corpname |
+    grep -E 's-ATT sentence +' |
+    sed -e 's/.* \([0-9][0-9]*\) .*/\1/'
+}
+
+get_updated () {
+    _corpdir=$1
+    ls -lt --time-style=long-iso "$_corpdir" |
+    head -2 |
+    tail -1 |
+    awk '{print $6}'
+}
+
 extract_info () {
     corpdir=$1
     corpname=$2
-    sentcount=`
-    $cwb_describe_corpus -r "$cwb_regdir" -s $corpname |
-    grep -E 's-ATT sentence +' |
-    sed -e 's/.* \([0-9][0-9]*\) .*/\1/'`
-    updated=`
-    ls -lt --time-style=long-iso "$corpdir" |
-    head -2 |
-    tail -1 |
-    awk '{print $6}'`
+    sentcount=$(get_sentence_count $corpname)
+    updated=$(get_updated "$corpdir")
     echo "Sentences: $sentcount"
     echo "Updated: $updated"
     if [ "x$info_items" != x ]; then
@@ -216,9 +227,10 @@ infofile_tmp=$tmp_prefix.tmp
 
 sort_info () {
     cat > $infofile_tmp
-    egrep "^(Sentences|Updated):" $infofile_tmp |
-    sort
-    egrep -v "^(Sentences|Updated):" $infofile_tmp |
+    for std_key in $std_info_keys_list; do
+	egrep "^$std_key:" $infofile_tmp
+    done
+    egrep -v "^($std_info_keys):" $infofile_tmp |
     sort
 }
 
@@ -247,7 +259,7 @@ for corpus in $corpora; do
 	sort_info > $infofile_new
 	outfile=$corpdir/.info
 	if [ -e $outfile ]; then
-	    egrep "^(Sentences|Updated$info_keys):" $outfile |
+	    egrep "^($std_info_keys$info_keys):" $outfile |
 	    sort_info > $infofile_old
 	    if cmp -s $infofile_old $infofile_new; then
 		echo_verb "$corpus up to date"
@@ -264,7 +276,7 @@ for corpus in $corpora; do
 	    {
 		cat $infofile_new
 		if [ -e $outfile ]; then
-		    egrep -v "^(Sentences|Updated$info_keys):" $outfile
+		    egrep -v "^($std_info_keys$info_keys):" $outfile
 		fi
 	    } |
 	    sort_info > $infofile_comb
