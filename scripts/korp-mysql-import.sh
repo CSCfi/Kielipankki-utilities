@@ -144,6 +144,23 @@ relations_format_diff_int_column_format_CORPNAME_head_rel=new
 
 relations_table_types="CORPNAME CORPNAME_strings CORPNAME_rel CORPNAME_head_rel CORPNAME_dep_rel CORPNAME_sentences"
 
+# Filename base parts, only files for tables containing data for
+# multiple corpora
+filename_bases="lemgrams timespans"
+filename_bases_commas="$(echo $filename_bases | sed 's/ /, /g')"
+filename_bases_sed_re="$(echo $filename_bases | sed 's/ /\\|/g')"
+
+# The table name corresponding to each multi-corpus filename base
+tablename_lemgrams=lemgram_index
+tablename_timespans=timespans
+
+# All multi-corpus table names
+multicorpus_tablenames=$(
+    for fname_base in $filename_bases; do
+	eval echo "\$tablename_$fname_base"
+    done
+)
+
 shortopts="htI:v"
 longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:,hide-warnings,verbose,show-progress,progress-interval:"
 
@@ -279,25 +296,38 @@ fill_tablename_template () {
     sed -e "s/@/$1/"
 }
 
+# Get the table name base based on the filename argument.
+get_file_tablename_base () {
+    _fname=$1
+    for fname_base in $filename_bases; do
+	case "$_fname" in
+	    *_$fname_base.* )
+		eval echo "\$tablename_$fname_base"
+		break
+		;;
+	esac
+    done
+}
+
 make_tablename () {
     case "$1" in
-	*_lemgrams.* )
-	    fill_tablename_template lemgram_index
-	    ;;
-	*_timespans.* )
-	    fill_tablename_template timespans
-	    ;;
 	*_rels.* | *_rels_*.* )
 	    table_basename=$(fill_tablename_template relations)
 	    echo `basename "$1"` |
 	    sed -e 's/\(.\+\)_rels\([^.]*\).*/'"$table_basename"'_\U\1\E\2/'
+	    ;;
+	* )
+	    tablename_base=$(get_file_tablename_base "$1")
+	    if [ "x$tablename_base" != x ]; then
+		fill_tablename_template $tablename_base
+	    fi
 	    ;;
     esac
 }
 
 make_corpname () {
     echo `basename "$1"` |
-    sed -e 's/\(.\+\)_\(rels\(_.\+\)\?\|lemgrams\|timespans\).*/\1/'
+    sed -e 's/\(.\+\)_\(rels\(_.\+\)\?\|'"$filename_bases_sed_re"'\).*/\1/'
 }
 
 infer_relations_format () {
@@ -364,12 +394,6 @@ infer_relations_format () {
 
 get_colspec_name () {
     case "$1" in
-	*_lemgrams.* )
-	    colspec_name=lemgram_index
-	    ;;
-	*_timespans.* )
-	    colspec_name=timespans
-	    ;;
 	*_rels.* | *_rels_*.* )
 	    if [ "$relations_format" = "old" ]; then
 		base=relations
@@ -382,6 +406,9 @@ get_colspec_name () {
 		echo "$1" |
 		sed -e 's/.\+_rels\([^.]*\).*/'$base'_CORPNAME\1/'
 	    )
+	    ;;
+	* )
+	    colspec_name=$(get_file_tablename_base "$1")
 	    ;;
     esac
     echo $colspec_name
@@ -440,15 +467,15 @@ prepare_tables () {
     _tablename=$1
     _corpname=$2
     _colspec=$3
-    case $_tablename in
-	lemgram_index | timespans )
+    for tblname in $multicorpus_tablenames; do
+	if [ $tblname = $_tablename ]; then
 	    create_table $_tablename "$_colspec"
 	    delete_table_corpus_info $_tablename $_corpname
-	    ;;
-	* )
-	    create_new_table $tablename "$_colspec"
-	    ;;
-    esac
+	    return
+	fi
+    done
+    # Otherwise $_tablename not in $multicorpus_tablenames
+    create_new_table $tablename "$_colspec"
 }
 
 get_mysql_datafile_size () {
