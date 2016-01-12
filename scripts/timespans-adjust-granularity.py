@@ -29,26 +29,31 @@ class GranularityAdjuster(korpimport.util.InputProcessor):
         super(GranularityAdjuster, self).__init__()
         # Adjusting the granularities may collapse several input
         # values into one, so collect the counts first and output them
-        # at the end.
+        # at the end (unless --no-counts).
         self._counts = defaultdict(int)
 
     def process_input_stream(self, stream, filename=None):
         self._read_input_stream(stream)
-        self._write_output()
+        if not self._opts.no_counts:
+            self._write_output()
 
     def _read_input_stream(self, stream):
         from_fieldnr = self._opts.from_field
         to_fieldnr = self._opts.to_field
         count_fieldnr = self._opts.count_field
+        counts = not self._opts.no_counts
         for line in stream:
             fields = line[:-1].split('\t')
             fields[from_fieldnr] = self._make_from(fields[from_fieldnr])
             fields[to_fieldnr] = self._make_to(fields[to_fieldnr])
-            count = fields[count_fieldnr]
-            # @COUNT@ will be replaced by the final count when writing
-            # output
-            fields[count_fieldnr] = u'@COUNT@'
-            self._counts['\t'.join(fields)] += int(count)
+            if counts:
+                count = fields[count_fieldnr]
+                # @COUNT@ will be replaced by the final count when writing
+                # output
+                fields[count_fieldnr] = u'@COUNT@'
+                self._counts['\t'.join(fields)] += int(count)
+            else:
+                sys.stdout.write('\t'.join(fields) + '\n')
 
     def _make_from(self, date):
         datelen = len(date)
@@ -139,6 +144,9 @@ separated by tabs."""
                 type='int', default=4, metavar='N',
                 help=('field N contains the timespan count'
                       ' (default: %default)'))],
+            ['--no-counts', dict(
+                action='store_true',
+                help='the input does not contain a count field')],
         )
         self._granularity = gran_map[self._opts.granularity]
         self._opts.from_field -= 1
