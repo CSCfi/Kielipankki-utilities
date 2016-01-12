@@ -64,9 +64,9 @@ class InputProcessor(Runner):
 
     """An abstract class for a script processing input."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, args=None, **kwargs):
         super(InputProcessor, self).__init__(**kwargs)
-        self.getopts()
+        self.getopts(args)
 
     def process_input(self, args):
         if isinstance(args, list):
@@ -81,11 +81,13 @@ class InputProcessor(Runner):
     def process_input_stream(self, stream, filename=None):
         pass
 
-    def getopts(self):
+    def getopts(self, args=None):
         pass
 
-    def getopts_basic(self, optparser_args, *optlist):
+    def getopts_basic(self, optparser_args, args=None, *optlist):
         optparser = OptionParser(**optparser_args)
+        if args is None:
+            args = sys.argv[1:]
         if len(optlist) == 1 and isinstance(optlist[0], list):
             optlist = optlist[0]
         for optspec in optlist:
@@ -96,7 +98,7 @@ class InputProcessor(Runner):
                 optnames = optspec
                 optopts = {}
             optparser.add_option(*optnames, **optopts)
-        self._opts, self._args = optparser.parse_args()
+        self._opts, self._args = optparser.parse_args(args)
 
     def main(self):
         self.process_input(self._args or sys.stdin)
