@@ -344,7 +344,7 @@ make_tablename () {
 
 make_corpname () {
     echo `basename "$1"` |
-    sed -e 's/\(.\+\)_\(rels\(_.\+\)\?\|'"$filename_bases_sed_re"'\).*/\1/'
+    sed -e 's/\(.\+\)_\(rels\(_.\+\)\?\|'"$filename_bases_sed_re"'\).*/\U\1\E/'
 }
 
 infer_relations_format () {
