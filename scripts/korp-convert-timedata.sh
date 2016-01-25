@@ -102,32 +102,6 @@ make_timedata () {
     sort < $tmp_prefix.timedata.tsv
 }
 
-convert_mysql_timespans () {
-    _corpus=$1
-    echo_verb "  Converting MySQL timespans to timedata"
-    timespans_tsv=$tmp_prefix.timespans.tsv
-    run_mysql "SELECT * FROM timespans WHERE corpus='$_corpus';" |
-    tail -n+2 > $timespans_tsv
-    if [ ! -s $timespans_tsv ]; then
-	echo_verb "    No timespans data for corpus $_corpus; skipping"
-	return
-    fi
-    tsvdir_real=$(echo "$tsvdir" | sed -e "s/{corpid}/$_corpus/g")
-    if ! mkdir -p $tsvdir_real 2> /dev/null; then
-	error "Cannot create TSV directory $tsvdir_real"
-    fi
-    timedata_tsv=$tsvdir_real/${_corpus}_timedata.tsv.gz
-    timedata_date_tsv=$tsvdir_real/${_corpus}_timedata_date.tsv.gz
-    echo_verb "    Generating $timedata_tsv"
-    make_timedata second < $timespans_tsv | gzip > $timedata_tsv
-    echo_verb "    Generating $timedata_date_tsv"
-    make_timedata day < $timespans_tsv | gzip > $timedata_date_tsv
-    $progdir/korp-mysql-import.sh --prepare-tables \
-	$timedata_tsv $timedata_date_tsv |
-    cat_verb |
-    indent_input 4
-}
-
 add_registry_attrs () {
     _corpus=$1
     awk '
@@ -219,10 +193,18 @@ update_info () {
     indent_input 4
 }
 
+make_mysql_timedata () {
+    _corpus=$1
+    $progdir/korp-make-timedata-tables.sh --corpus-root=$corpus_root \
+	--tsv-dir=$tsvdir $verbose_opt $_corpus |
+    cat_verb |
+    indent_input 2
+}
+
 convert_timedata () {
     _corpus=$1
-    convert_mysql_timespans $_corpus
     fix_text_timedata $_corpus
+    make_mysql_timedata $_corpus
     update_info $_corpus
 }
 
