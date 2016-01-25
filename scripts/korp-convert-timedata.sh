@@ -85,6 +85,10 @@ done
 regdir=${CORPUS_REGISTRY:-$corpus_root/registry}
 tsvdir=${tsvdir:-$corpus_root/$tsvsubdir}
 
+if [ "x$1" = x ]; then
+    error "Please specify corpora"
+fi
+
 corpora=$(list_corpora $regdir "$@")
 
 verbose_opt=
