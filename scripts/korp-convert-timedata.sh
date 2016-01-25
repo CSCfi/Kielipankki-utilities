@@ -10,8 +10,9 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 shortopts="hc:t:v"
-longopts="help,corpus-root:,tsv-dir:,verbose"
+longopts="help,convert:,corpus-root:,tsv-dir:,verbose"
 
+convert_types=all
 tsvdir=$CORPUS_TSVDIR
 tsvsubdir=sql
 verbose=
@@ -37,6 +38,11 @@ Corpus names are specified in lower case. Shell wildcards may be used in them.
 
 Options:
   -h, --help      show this help
+  --convert TYPES
+                  convert the Korp timedata types listed in TYPES, separated
+                  by commas or spaces: one or more of textattrs (text
+                  date/time from/to attributes), mysql (MySQL tables), info
+                  (.info file) or all (all of the above) (default: $convert_types)
   -c, --corpus-root DIR
                   use DIR as the root directory of corpus files for the
                   source files (CORPUS_ROOT) (default: $corpus_root)
@@ -55,6 +61,10 @@ while [ "x$1" != "x" ] ; do
     case "$1" in
 	-h | --help )
 	    usage
+	    ;;
+	--convert )
+	    shift
+	    convert_types=$1
 	    ;;
 	-c | --corpus-root )
 	    shift
@@ -206,11 +216,21 @@ make_mysql_timedata () {
     indent_input 2
 }
 
+run_convert_stage () {
+    type=$1
+    shift
+    if [ "x$convert_types" = "xall" ] ||
+	{ echo $convert_types | grep -E -iq "\b$type\b"; };
+    then
+	"$@"
+    fi
+}
+
 convert_timedata () {
     _corpus=$1
-    fix_text_timedata $_corpus
-    make_mysql_timedata $_corpus
-    update_info $_corpus
+    run_convert_stage "textattrs?" fix_text_timedata $_corpus
+    run_convert_stage "mysql" make_mysql_timedata $_corpus
+    run_convert_stage "info" update_info $_corpus
 }
 
 
