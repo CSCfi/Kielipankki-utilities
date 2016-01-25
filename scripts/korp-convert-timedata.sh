@@ -143,7 +143,7 @@ add_registry_attrs () {
 fix_text_timedata () {
     _corpus=$1
     echo_verb "  Updating text date and time attributes in CWB data"
-    $cwb_bindir/cwb-s-decode $_corpus -S text \
+    $cwb_bindir/cwb-s-decode -r $regdir $_corpus -S text \
 	> $tmp_prefix.text.tsv 2> $tmp_prefix.text.err
     if grep -q "Can't access s-attribute" $tmp_prefix.text.err; then
 	echo_verb "    No structural attribute 'text' in corpus $_corpus; skipping"
@@ -151,7 +151,8 @@ fix_text_timedata () {
     fi
     for attrname in datefrom timefrom dateto timeto; do
 	_fname=$tmp_prefix.$attrname.tsv
-	$cwb_bindir/cwb-s-decode $_corpus -S text_$attrname 2> $_fname.err |
+	$cwb_bindir/cwb-s-decode -r $regdir $_corpus -S text_$attrname \
+	    2> $_fname.err |
 	cut -d"$tab" -f3 > $_fname
 	if grep -q "Can't access s-attribute" $_fname.err; then
 	    cat /dev/null > $_fname
@@ -175,7 +176,7 @@ fix_text_timedata () {
 	    done
 	fi
 	cut -d"$tab" -f1,2,$fieldnum $tmp_prefix.fromto_new.tsv |
-	$cwb_bindir/cwb-s-encode -B -d $corpus_root/data/$_corpus \
+	$cwb_bindir/cwb-s-encode -r $regdir -B -d $corpus_root/data/$_corpus \
 	    -V text_$attrname
     done <<EOF
 datefrom 3
