@@ -699,7 +699,7 @@ $(CORPCORPDIR)/.info: \
 	&& cp $(CORPNAME_BUILDDIR).info $(CORPCORPDIR)/.info
 
 %.info: %$(VRT_CKSUM)
-	$(CWBDATA_EXTRACT_INFO) > $@
+	$(CWBDATA_EXTRACT_INFO) $(CORPNAME) > $@
 
 %.sattrs: %$(VRT_CKSUM)
 	$(CAT) $(<:$(CKSUM_EXT)=) \
