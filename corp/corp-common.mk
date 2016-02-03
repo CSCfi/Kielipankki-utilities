@@ -142,11 +142,15 @@ VRT_ADD_LEMGRAMS := \
 				--pos-field $(call index,pos,$(P_ATTR_FIELDS),3)),\
 		cat)
 VRT_FIX_ATTRS_PROG = $(SCRIPTDIR)/vrt-fix-attrs.py
+S_ATTRS_FEATSET := $(call partvar,S_ATTRS_FEATSET)
+
 VRT_FIX_ATTRS_OPTS := \
 	$(call partvar_or_default,VRT_FIX_ATTRS_OPTS,\
 		--encode-special-chars=all --special-chars=$(SPECIAL_CHARS) \
 		--encoded-special-char-offset=$(ENCODED_SPECIAL_CHAR_OFFSET) \
 		--encoded-special-char-prefix=$(ENCODED_SPECIAL_CHAR_PREFIX) \
+		$(if $(S_ATTRS_FEATSET),\
+			--set-struct-attributes $(S_ATTRS_FEATSET)) \
 		$(call partvar,VRT_FIX_ATTRS_OPTS_EXTRA))
 VRT_FIX_ATTRS = $(VRT_FIX_ATTRS_PROG) $(VRT_FIX_ATTRS_OPTS)
 XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(call partvar,XML2VRT_RULES) \
