@@ -322,7 +322,7 @@ TARGETS := \
 			subdirs vrt reg \
 				$(if $(or $(PARCORP_PART),$(SUBCORPUS)),,pkg) \
 				$(if $(strip $(DB_TARGETS)),db) \
-				$(if $(strip $(FULLTEXT_SUBDIR)$(FULLTEXT_FILENAME_TEMPLATE)),fulltext)))
+				$(if $(strip $(FULLTEXT_FILENAME_TEMPLATE)),fulltext)))
 
 # Separator between corpus name and a subtarget (vrt, reg, db, pkg ...).
 # A : needs to be represented as \: and # as \\\#.
