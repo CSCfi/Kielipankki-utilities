@@ -477,7 +477,7 @@ create_new_table() {
     _tablename=$1
     _colspec=$2
     run_mysql "DROP TABLE IF EXISTS \`$_tablename\`;"
-    create_table \`$_tablename\` "$_colspec"
+    create_table $_tablename "$_colspec"
 }
 
 prepare_tables () {
