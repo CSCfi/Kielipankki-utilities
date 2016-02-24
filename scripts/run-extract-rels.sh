@@ -19,7 +19,7 @@ keep_temp_files=
 verbose=
 make_archive=1
 
-extract_rels_opts="--output-type=new-strings --word-form-pair-type=baseform"
+extract_rels_opts="--output-type=new-strings --word-form-pair-type=baseform --ignore-unknown-relations"
 
 . $progdir/korp-lib.sh
 

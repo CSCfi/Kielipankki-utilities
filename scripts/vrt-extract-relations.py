@@ -60,10 +60,11 @@ class Deprels(object):
               '_': 'XX'}
 
     def __init__(self, relmap=None, wordform_pairtypes=None, output_type=None,
-                 **kwargs):
+                 ignore_unknown_rels=False, **kwargs):
         self.relmap = relmap or self.__class__.relmap
         self._wordform_pairtypes = wordform_pairtypes or set()
         self._output_type = output_type
+        self._ignore_unknown_rels = ignore_unknown_rels
         iter_suffix = ('_stringids' if output_type == 'new-strings'
                        else '_strings')
         for iter_type in ['freqs', 'freqs_head_rel', 'freqs_rel_dep']:
@@ -203,6 +204,8 @@ class Deprels(object):
                 headnr = -1
             if headnr >= 0 and headnr < len(data):
                 rel = self.relmap.get(deprel, 'XX')
+                if rel == 'XX' and self._ignore_unknown_rels:
+                    continue
                 head = data[headnr][0]
                 self.freqs_rel[rel] += 1
                 self._add_info(sent_id, rel, head, dep, headnr, wordnr)
@@ -317,6 +320,7 @@ class RelationExtractor(object):
         deprels_common_args = {
             'relmap': relmap,
             'wordform_pairtypes': opts.word_form_pair_type,
+            'ignore_unknown_rels': opts.ignore_unknown_relations,
         }
         if self._opts.raw_output:
             filenames = {}
@@ -540,6 +544,8 @@ def getopts():
     # --include-word-forms superseded by --word-form-pair-type=wordform;
     # retained for backward compatibility
     optparser.add_option('--include-word-forms', action='store_true')
+    optparser.add_option('--ignore-unknown-relations',
+                         '--skip-unknown-relations', action='store_true')
     (opts, args) = optparser.parse_args()
     if opts.output_prefix is None and opts.corpus_name is not None:
         opts.output_prefix = 'relations_' + opts.corpus_name
