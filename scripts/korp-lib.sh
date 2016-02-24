@@ -308,6 +308,10 @@ toupper () {
 }
 
 comprcat () {
+    if [ "x$1" = "x--tar-args" ]; then
+	_comprcat_tar_args=$2
+	shift 2
+    fi
     if [ "x$1" = x ]; then
 	cat
     else
@@ -323,7 +327,7 @@ comprcat () {
 		    xzcat "$fname"
 		    ;;
 		*.tar | *.tar.[bgx]z | *.tar.bz2 | *.t[bgx]z | *.tbz2 )
-		    tar -xaOf "$fname"
+		    tar -xaOf "$fname" $_comprcat_tar_args
 		    ;;
 		* )
 		    cat "$fname"
