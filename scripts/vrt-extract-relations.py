@@ -59,7 +59,8 @@ class Deprels(object):
               'voc': 'TT',
               '_': 'XX'}
 
-    def __init__(self, relmap=None, wordform_pairtypes=None, output_type=None):
+    def __init__(self, relmap=None, wordform_pairtypes=None, output_type=None,
+                 **kwargs):
         self.relmap = relmap or self.__class__.relmap
         self._wordform_pairtypes = wordform_pairtypes or set()
         self._output_type = output_type
@@ -247,11 +248,10 @@ class DeprelsDirectWrite(Deprels):
     number of relations is small.
     """
 
-    def __init__(self, relmap=None, wordform_pairtypes=None, filenames=None):
+    def __init__(self, filenames=None, **kwargs):
         # FIXME: Deprels constructor creates attributes that
         # DeprelsDirectWrite does not need.
-        super(DeprelsDirectWrite, self).__init__(
-            relmap, wordform_pairtypes)
+        super(DeprelsDirectWrite, self).__init__(**kwargs)
         self._outfiles = dict((reltype, open(fname, 'w'))
                               for reltype, fname in filenames.iteritems())
 
@@ -314,6 +314,10 @@ class RelationExtractor(object):
             ('iter_sentences', '_sentences', True)]
         if output_new_strings:
             self._output_rels.append(('iter_strings', '_strings', True))
+        deprels_common_args = {
+            'relmap': relmap,
+            'wordform_pairtypes': opts.word_form_pair_type,
+        }
         if self._opts.raw_output:
             filenames = {}
             for _, rel_suffix, _ in self._output_rels:
@@ -325,11 +329,11 @@ class RelationExtractor(object):
                     rel_name = rel_suffix.lstrip('_')
                 filenames[rel_name] = self._make_output_filename(rel_suffix,
                                                                  '.raw')
-            self._deprels = DeprelsDirectWrite(relmap, opts.word_form_pair_type,
-                                               filenames)
+            self._deprels = DeprelsDirectWrite(filenames=filenames,
+                                               **deprels_common_args)
         else:
-            self._deprels = Deprels(relmap, opts.word_form_pair_type,
-                                    opts.output_type)
+            self._deprels = Deprels(output_type=opts.output_type,
+                                    **deprels_common_args)
 
     def _read_relmap(self, fname):
         relmap = {}
