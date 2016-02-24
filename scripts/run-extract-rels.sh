@@ -201,14 +201,22 @@ if [ "x$make_archive" = x ] || [ ! -e $output_dir/$rels_tar ]; then
     verbose subproc_times
     verbose tempdir_usage
     verbose echo_timestamp tar
+    real_output_dir=$output_dir
+    output_dir_firstchar=${output_dir:0:1}
+    if [ "x$output_dir_firstchar" != x/ ] &&
+	[ "x$output_dir_firstchar" != x~ ]
+    then
+	real_output_dir=$(pwd)/$output_dir
+    fi
     # tar cpf $rels_tar -C $output_dir --wildcards \*_rels\*.gz
     # Wildcards do not seem to work above in tar even with --wildcards. Why?
     (
 	cd $tmpfile_dir
 	if [ "x$make_archive" != x ]; then
-	    tar cpf $output_dir/$rels_tar --wildcards ${corpus_name}_rels*.tsv.gz
+	    tar cpf $real_output_dir/$rels_tar --wildcards \
+		${corpus_name}_rels*.tsv.gz
 	else
-	    mv ${corpus_name}_rels*.tsv.gz $output_dir
+	    mv ${corpus_name}_rels*.tsv.gz $real_output_dir
 	fi
     )
     verbose subproc_times
