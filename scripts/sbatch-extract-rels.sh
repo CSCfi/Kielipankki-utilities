@@ -4,12 +4,13 @@ progname=$(basename $0)
 progdir=$(dirname $0)
 
 shortopts="hnc:f:r:i:o:l:t:v"
-longopts="help,dry-run,corpus-name:,input-fields:,relation-map:,input:,output-dir:,log-dir:,token-count:,timelimit:,memory:,timelimit-factor:,memory-factor:,verbose"
+longopts="help,dry-run,corpus-name:,input-fields:,relation-map:,input:,decode-input,output-dir:,log-dir:,token-count:,timelimit:,memory:,timelimit-factor:,memory-factor:,verbose"
 
 corpus_name=
 input_fields=
 relation_map=
 input=
+decode_input=
 output_dir=.
 log_dir=.
 action=sbatch
@@ -38,6 +39,7 @@ Options:
   -f, --input-fields FIELDLIST
   -r, --relation-map FILE
   -i, --input FILESPEC
+  --decode-input
   -o, --output-dir DIR
   -l, --log-dir DIR
   -t, --token-count NUM
@@ -74,6 +76,9 @@ while [ "x$1" != "x" ] ; do
 	-i | --input )
 	    input=$2
 	    shift
+	    ;;
+	--decode-input )
+	    decode_input=--decode-input
 	    ;;
 	-o | --output-dir )
 	    output_dir=$2
@@ -214,5 +219,5 @@ echo Input: $input
 comprcat $input |
 $progdir/run-extract-rels.sh --corpus-name $corpus_name \
     --input-fields "$input_fields" --relation-map "$relation_map" \
-    --output-dir "$output_dir" --optimize-memory --verbose
+    --output-dir "$output_dir" $decode_input --optimize-memory --verbose
 EOF

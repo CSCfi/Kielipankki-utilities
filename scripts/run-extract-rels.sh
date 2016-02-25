@@ -7,13 +7,14 @@ cmdline="$@"
 export LC_ALL=C
 
 shortopts="hc:f:r:o:v"
-longopts="help,corpus-name:,input-fields:,relation-map:,output-dir:,optimize-memory,no-tar,no-archive,keep-temp-files,verbose"
+longopts="help,corpus-name:,input-fields:,relation-map:,output-dir:,decode-input,optimize-memory,no-tar,no-archive,keep-temp-files,verbose"
 
 corpus_name=
 input_fields=
 relation_map=
 input=
 output_dir=.
+decode_input=
 optimize_memory=
 keep_temp_files=
 verbose=
@@ -41,6 +42,7 @@ Options:
   -r, --relation-map FILE
   -i, --input FILESPEC
   -o, --output-dir DIR
+  --decode-input
   --optimize-memory
   --no-tar, --no-archive
   --keep-temp-files
@@ -75,6 +77,9 @@ while [ "x$1" != "x" ] ; do
 	-o | --output-dir )
 	    output_dir=$2
 	    shift
+	    ;;
+	--decode-input )
+	    decode_input=1
 	    ;;
 	--optimize-memory )
 	    optimize_memory=1
@@ -166,6 +171,14 @@ process_raw_output () {
     sort_and_gzip ${base_name}_rel.tsv ${base_name}_strings.tsv
 }
 
+preprocess_input () {
+    if [ "x$decode_input" != x ]; then
+	$progdir/vrt-convert-chars.py --decode
+    else
+	cat
+    fi
+}
+
 hostenv=`get_host_env`
 
 verbose echo Run: $0 "$cmdline"
@@ -181,6 +194,7 @@ if [ "x$make_archive" = x ] || [ ! -e $output_dir/$rels_tar ]; then
     fi
     mkdir -p $output_dir $tmpfile_dir
     verbose echo_timestamp vrt-extract-relations
+    preprocess_input |
     $progdir/vrt-extract-relations.py \
 	--output-prefix "$tmpfile_dir/${corpus_name}_rels" \
 	--input-fields "$input_fields" \
