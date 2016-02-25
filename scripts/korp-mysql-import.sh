@@ -19,6 +19,8 @@ imported_file_list=
 relations_format=auto
 table_name_template=@
 show_warnings=1
+mysql_prog=mysql
+mysql_extra_opts=
 verbose=
 show_progress=
 progress_interval=300
@@ -178,7 +180,7 @@ multicorpus_tablenames=$(
 )
 
 shortopts="htI:v"
-longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:,hide-warnings,verbose,show-progress,progress-interval:"
+longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:,hide-warnings,mysql-program:,mysql-options:,verbose,show-progress,progress-interval:"
 
 . $progdir/korp-lib.sh
 
@@ -222,6 +224,14 @@ Options:
                   timedata_date, timespans, relations) (default: $table_name_template)
   --hide-warnings
                   do not show possible MySQL warnings
+  --mysql-program PROG
+                  run PROG as the MySQL client program (mysql); the program
+                  name in PROG may also be followed by a space and mysql
+                  options to be specified before other options, in particular
+                  --defaults-file; useful with multiple instances of MySQL
+  --mysql-options OPTS
+                  pass OPTS as additional options to the MySQL client, after
+                  all other options
   -v, --verbose   show input file sizes, import times and MySQL data file size
                   increase
   --show-progress
@@ -266,6 +276,14 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	--hide-warnings )
 	    show_warnings=
+	    ;;
+	--mysql-program | mysql-binary )
+	    shift
+	    mysql_prog=$1
+	    ;;
+	--mysql-options )
+	    shift
+	    mysql_extra_opts=$1
 	    ;;
 	-v | --verbose )
 	    verbose=1
@@ -436,8 +454,8 @@ get_colspec () {
 }
 
 run_mysql () {
-    mysql --local-infile --skip-reconnect $mysql_opt_user --batch \
-	--execute "$@" $dbname
+    $mysql_prog --local-infile --skip-reconnect $mysql_opt_user --batch \
+	--execute "$@" $mysql_extra_opts $dbname
 }
 
 run_mysql_report_errors () {
