@@ -151,7 +151,10 @@ if [ "x$timelimit" = x ] || [ "x$memory" = x ]; then
 		    fi
 		done
 	    fi
-	    token_count=$(comprcat $input | grep -cv '^<')
+	    token_count=$(
+		comprcat --tar-args "--wildcards *.vrt" $input |
+		grep -cv '^<'
+	    )
 	else
 	    token_count=$default_token_count
 	fi
@@ -188,6 +191,7 @@ fi
 if [ "x$verbose" != x ]; then
     cat <<EOF
 Submitting job "extrels_$corpus_name" to partition "serial"
+Tokens: $token_count
 Max run time: $timelimit mins
 RAM per CPU: $memory MiB
 EOF
