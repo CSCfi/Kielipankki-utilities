@@ -552,9 +552,12 @@ report_progress () {
     while :; do
 	while :; do
 	    imported_rows=$(($(get_mysql_table_rowcount $tablename) - $init_rows))
-	    # If the number of imported rows is negative due to the
-	    # fluctuating approximate row count, try again.
-	    if [ $imported_rows -lt 0 ]; then
+	    new_imported_rows=$(($imported_rows - $prev_rows))
+	    # If the number of imported rows is negative or the number
+	    # of rows imported since the previous round is negative or
+	    # zero (due to the fluctuating approximate row count), try
+	    # again.
+	    if [ $imported_rows -lt 0 ] || [ $new_imported_rows -le 0 ]; then
 		continue
 	    fi
 	    if [ ! -s $progress_errorfile ] && [ "x$imported_rows" != x ]; then
