@@ -55,8 +55,16 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
             self._extract_informant_info(fields['informant']))
         fields['parish_name'], fields['village'] = self._split_village(
             fields['parishname'])
+        for field in ['text', 'search']:
+            fields[field + '_words'] = self._make_words_featset(fields[field])
+        if fields['search_words'] == '||':
+            fields['search_words'] = fields['text_words']
         fields['dialect_group'] = fields['area']
         fields['dialect_region'] = fields['dialect_group'][0]
+        # Should we convert a single dash to an empty value in other
+        # fields as well?
+        if fields['pdf'] == '-':
+            fields['pdf'] = ''
         result = []
         result.append(self._make_start_tag(
             'text', fields, ['dialect_region', 'dialect_group',
@@ -64,7 +72,8 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
         result.append(self._make_start_tag(
             'sentence', fields,
             ['id', 'signum', 'signumlist', 'informant', 'informant_sex',
-             'informant_birthyear', 'comment', 'location', 'pdf', 'updated']))
+             'informant_birthyear', 'comment', 'location', 'pdf', 'updated',
+             'text_words', 'search_words']))
         result.extend(self._verticalize(fields['text'], fields['search']))
         result.append('</sentence>')
         result.append('</text>')
@@ -95,6 +104,13 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
             return mo.group(1), mo.group(2)
         else:
             return parish_name, ''
+
+    def _make_words_featset(self, text):
+        return ('|'
+                + '|'.join(word for word in
+                           sorted(set(text.replace('|', u'\x83').split()))
+                           if word != '|')
+                + '|')
 
     def _make_start_tag(self, elemname, attrdict, attrs):
         return ('<' + elemname + ' '

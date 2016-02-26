@@ -12,10 +12,9 @@ P_ATTRS = searchword
 CORPUS_DATE = unknown
 
 COMPRESS_TARGETS = gz
-S_ATTRS_FEATSET = sentence_signum
+S_ATTRS_FEATSET = "sentence_signum sentence_text_words sentence_search_words"
 
-# Empty MAKE_VRT_PROG to avoid adding env as a dependency
-MAKE_VRT_PROG = 
+MAKE_VRT_PROG = ./dma-tsv2vrt.py
 # First convert Windows CP-1252 punctuation characters left in the
 # data to their UTF-8 equivalents and remove control characters.
 MAKE_VRT_CMD = \
