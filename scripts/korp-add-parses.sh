@@ -71,8 +71,8 @@ Options:
   --save-augmented-vrt-file VRT_FILE
                   save as VRT_FILE the VRT file with the added attributes
                   (lemmas without compound boundaries and lemgrams); the file
-                  can be used as input with --full-vrt-file, e.g., to resume
-                  faster an interrupted run
+                  can be used as input with --augmented-vrt-input, e.g., to
+                  resume faster an interrupted run
   --augmented-vrt-input
                   the input VRT contains the added attributes
   --lemgram-posmap POSMAP_FILE
@@ -405,6 +405,7 @@ stage_cwb_make () {
 }
 
 add_attrs_to_cwb () {
+    # TODO: Check separately for the need to run cwb-make
     if [ "x$new_attrs" != x ]; then
 	time_stage stage_cwb_encode
 	time_stage stage_cwb_make
@@ -445,7 +446,7 @@ extract_wordpict_rels () {
 
 stage_import_database () {
     echo_verb "Importing data to the MySQL database"
-    exit_on_error import_database
+    exit_on_error run_import_database
 }
 
 import_database () {
