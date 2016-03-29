@@ -25,7 +25,9 @@ HAS_SUBCORPORA = $(and $(or $(SUBCORPORA),$(SUBDIRS_AS_SUBCORPORA)),\
 # the language of Make messages, so  we use PARCORP_LANG instead.
 
 # Functions for handling variables with possibly language-specific
-# values in parallel corpora
+# values in parallel corpora or subcorpus-specific values.
+# Note: The functions do not work with user-defined functions
+# (variables with arguments).
 
 # Prefix values with $(defined_mark) so that also empty defined values
 # take precedence over the default value.
@@ -908,16 +910,22 @@ $(ALIGN_TIMESTAMP): $(addsuffix $(ALIGN_CKSUM),$(ALIGN_BASENAMES))
 	done
 	touch $@
 
+MAKE_ALIGN_CMD ?= \
+	mkfifo $(3).fifo; \
+	($(CWB_ALIGN) -o $(3).fifo -r $(REGDIR) \
+		-V $(LINK_ELEM)_$(LINK_ATTR) \
+		$(CORPNAME)_$(strip $(1)) $(CORPNAME)_$(strip $(2)) \
+		$(LINK_ELEM) > /dev/null &); \
+	$(COMPR) < $(3).fifo > $(3); \
+	rm -f $(3).fifo
+
 define MAKE_ALIGN_R
 $(CORP_BUILDDIR)_$$(strip $(1))/$(CORPNAME)_$$(strip $(1))_$$(strip $(2))$(ALIGN): \
 		$(CORPDIR)/$(CORPNAME)_$$(strip $(1))/.info
-	-mkfifo $$@.fifo
-	($(CWB_ALIGN) -o $$@.fifo -r $(REGDIR) -V $(LINK_ELEM)_$(LINK_ATTR) \
-		$(CORPNAME)_$$(strip $(1)) $(CORPNAME)_$$(strip $(2)) \
-		$(LINK_ELEM) > /dev/null &); \
-	$(COMPR) < $$@.fifo > $$@
-	-rm $$@.fifo
+	$(call MAKE_ALIGN_CMD,$$(strip $(1)),$$(strip $(2)),$$@)
 endef
+
+$(call showvars,ALIGN_FILES ALIGN_LANGS LANGPAIRS_ALIGN)
 
 $(foreach langpair,$(LANGPAIRS_ALIGN),\
 	$(eval $(call MAKE_ALIGN_R,$(call LANGPAIR_LANG1,$(langpair)),\
