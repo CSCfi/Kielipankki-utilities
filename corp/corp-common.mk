@@ -873,7 +873,7 @@ $(PKG_FILE): $(if $(SUBCORPORA),\
 
 ALIGN_CORP = \
 	$(CWB_REGEDIT) $(CORPNAME)_$(1) :add :a "$(CORPNAME)_$(2)"; \
-	align=$(CORPNAME)_$(1)_$(2)$(ALIGN); \
+	align=$(CORP_BUILDDIR)_$(1)/$(CORPNAME)_$(1)_$(2)$(ALIGN); \
 	fifo=$$align.fifo; \
 	mkfifo $$fifo; \
 	($(CAT) $$align > $$fifo &); \
