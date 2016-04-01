@@ -203,8 +203,8 @@ class Deprels(object):
             except ValueError:
                 headnr = -1
             if headnr >= 0 and headnr < len(data):
-                rel = self.relmap.get(deprel, 'XX')
-                if rel == 'XX' and self._ignore_unknown_rels:
+                rel = self.relmap.get(deprel, '')
+                if rel in ['', '-', '_', 'XX'] and self._ignore_unknown_rels:
                     continue
                 head = data[headnr][0]
                 self.freqs_rel[rel] += 1
