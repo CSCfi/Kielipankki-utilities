@@ -284,6 +284,9 @@ class DeprelsDirectWrite(Deprels):
 
 class RelationExtractor(object):
 
+    # TODO: Add an option for this
+    _str_maxlen = 100
+
     def __init__(self, opts):
         self._opts = opts
         relmap = None
@@ -396,12 +399,18 @@ class RelationExtractor(object):
                     # lemgram.
                     fields[fieldnr_lemgram_lemma] = (
                         fields[fieldnr_lemgram_lemma][1:-1])
+                    if len(fields[fieldnr_lemgram_lemma]) > self._str_maxlen:
+                        # Keep the lemgram POS code and sense number
+                        parts = fields[fieldnr_lemgram_lemma].rpartition('..')
+                        fields[fieldnr_lemgram_lemma] = (
+                            parts[0][:self._str_maxlen - len(parts[2]) - 2]
+                            + '..' + parts[2])
                 # Would we need this:
                 # fields.append('')	# An empty lemgram by default
                 data.append((fields[fieldnr_lemgram_lemma],
                              fields[fieldnr_deprel],
                              fields[fieldnr_dephead],
-                             fields[fieldnr_word]))
+                             fields[fieldnr_word][:self._str_maxlen]))
             elif line.startswith('<sentence'):
                 mo = sent_id_re.match(line)
                 if len(data) > 0:
