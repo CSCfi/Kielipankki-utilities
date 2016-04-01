@@ -346,7 +346,8 @@ class RelationExtractor(object):
         relmap = {}
         with open(fname, 'r') as f:
             for line in f:
-                if line.strip() == '' or line.startswith('#'):
+                line_strip = line.strip()
+                if line_strip == '' or line_strip.startswith('#'):
                     continue
                 (src_rels, trg_rel) = line[:-1].split('\t', 1)
                 if self._opts.inverse_relation_map:
