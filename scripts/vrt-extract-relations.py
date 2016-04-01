@@ -59,6 +59,18 @@ class Deprels(object):
               'voc': 'TT',
               '_': 'XX'}
 
+    # (R1, POS): R2: Map relation R1 to R2 if the head POS is POS.
+    # FIXME: This is ad hoc for the TDT; add a facility for reading
+    # the data from the relation map file.
+    rel_pos_map = {
+        ('ADV', 'JJ'): 'ET',
+        ('ADV', 'NN'): 'ET',
+        ('AT', 'VB'): 'ADV',
+        ('ET', 'VB'): 'ADV',
+        ('CPL', 'JJ'): 'ET',
+        ('CPL', 'NN'): 'ET',
+    }
+
     def __init__(self, relmap=None, wordform_pairtypes=None, output_type=None,
                  ignore_unknown_rels=False, **kwargs):
         self.relmap = relmap or self.__class__.relmap
@@ -207,6 +219,12 @@ class Deprels(object):
                 if rel in ['', '-', '_', 'XX'] and self._ignore_unknown_rels:
                     continue
                 head = data[headnr][0]
+                headpos = self._get_pos(head)
+                # sys.stderr.write(rel + ' ' + headpos)
+                rel = self.rel_pos_map.get((rel, headpos), rel)
+                # sys.stderr.write(' ' + rel + '\n')
+                if rel in ['', '-', '_', 'XX'] and self._ignore_unknown_rels:
+                    continue
                 self.freqs_rel[rel] += 1
                 self._add_info(sent_id, rel, head, dep, headnr, wordnr)
                 if self._wordform_pairtypes:
