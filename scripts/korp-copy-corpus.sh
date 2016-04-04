@@ -23,13 +23,17 @@ longopts=help,corpus-root:,registry:
 
 cwb_regdir=${CORPUS_REGISTRY:-$corpus_root/registry}
 
+multicorpus_tables="timedata timedata_date timespans lemgram_index corpus_info"
+multicorpus_tables_auth="auth_license auth_lbr_map auth_allow"
+
 
 usage () {
     cat <<EOF
 Usage: $progname [options] source target
 
 Copy a Korp corpus with id "source" to id "target": CWB data directory,
-registry file, Korp MySQL data (timespans, lemgram_index, relations tables).
+registry file and Korp MySQL data (time data, lemgram index, relations tables
+and authorization data).
 
 Options:
   -h, --help      show this help
@@ -103,20 +107,27 @@ s,^\(INFO .*/\)'$source'\(/\.info\),\1'$target'\2,' \
 }
 
 mysql_make_copy_table_rows () {
-    echo "
-INSERT INTO timespans (corpus, datefrom, dateto, tokens)
-  SELECT '$target_u', ts.datefrom, ts.dateto, ts.tokens
-  FROM timespans AS ts
-  WHERE ts.corpus='$source_u';
-INSERT INTO lemgram_index (lemgram, freq, freq_prefix, freq_suffix, corpus)
-  SELECT li.lemgram, li.freq, li.freq_prefix, li.freq_suffix, '$target_u'
-  FROM lemgram_index as li
-  WHERE li.corpus='$source_u';
-INSERT INTO corpus_info (corpus, "'`key`'", value)
-  SELECT '$target_u', ci."'`key`'", ci.value
-  FROM corpus_info as ci
-  WHERE ci.corpus='$source_u';
-"
+    auth=
+    if [ "x$1" = "x--auth" ]; then
+	auth=--auth
+	shift
+    fi
+    source_u=$1
+    target_u=$2
+    shift
+    shift
+    for table in "$@"; do
+	cols=$(mysql_list_table_cols $auth $table)
+	if [ "x$cols" != x ]; then
+	    cols_list=$(
+		echo $cols |
+		sed -e 's/\([^ ][^ ]*\)/`\1`/g; s/ /, /g;
+                        s/`corpus`/'"'$target_u'/"
+	    )
+	    echo "INSERT IGNORE INTO $table
+                  SELECT $cols_list FROM $table where corpus='$source_u';"
+	fi
+    done
 }
 
 mysql_make_copy_rel_tables () {
@@ -125,8 +136,10 @@ mysql_make_copy_rel_tables () {
     for tabletype in "" _dep_rel _head_rel _rel _sentences _strings; do
 	source_table=relations_$source_u$tabletype
 	target_table=relations_$target_u$tabletype
-	echo "CREATE TABLE $target_table LIKE $source_table;"
-	echo "INSERT INTO $target_table SELECT * FROM $source_table;"
+	if mysql_table_exists $source_table; then
+	    echo "CREATE TABLE IF NOT EXISTS $target_table LIKE $source_table;"
+	    echo "INSERT IGNORE INTO $target_table SELECT * FROM $source_table;"
+	fi
     done
 }
 
@@ -136,10 +149,13 @@ copy_database () {
     source_u=$(toupper $source)
     target_u=$(toupper $target)
     {
-	mysql_make_copy_table_rows
+	mysql_make_copy_table_rows $source_u $target_u $multicorpus_tables
 	mysql_make_copy_rel_tables $source_u $target_u
     } |
     mysql --batch $mysql_opts $korpdb
+    mysql_make_copy_table_rows --auth $source_u $target_u \
+	$multicorpus_tables_auth |
+    mysql --batch $mysql_opts $korpdb_auth
 }
 
 copy_corpus () {

@@ -386,15 +386,56 @@ list_corpora () {
     rm -rf $tmp_prefix.corpids $tmp_prefix.corpid_errors
 }
 
-# run_mysql sql_command [MySQL options ...]
+# run_mysql [--auth] sql_command [MySQL options ...]
 #
 # Run sql_command on the Korp database using MySQL and get the raw
-# output (TSV format; first line containing column names). MySQL
-# username and password may be specified via the environment variables
-# KORP_MYSQL_USER and KORP_MYSQL_PASSWORD. Additional MySQL options
-# may be specified after sql_command.
+# output (TSV format; first line containing column names). If --auth
+# is specified, use the Korp authorization database instead of the
+# main database. MySQL username and password may be specified via the
+# environment variables KORP_MYSQL_USER and KORP_MYSQL_PASSWORD.
+# Additional MySQL options may be specified after sql_command.
 run_mysql () {
-    mysql $mysql_opts --batch --raw --execute "$@" $korpdb
+    if [ "x$1" = "x--auth" ]; then
+	_db=$korpdb_auth
+	shift
+    else
+	_db=$korpdb
+    fi
+    mysql $mysql_opts --batch --raw --execute "$@" $_db
+}
+
+# mysql_table_exists [--auth] table_name
+#
+# Return true if table table_name exists in the Korp MySQL database.
+# If --auth, use the authorization database.
+mysql_table_exists () {
+    auth=
+    if [ "x$1" = "x--auth" ]; then
+	auth=--auth
+	shift
+    fi
+    table=$1
+    result=$(run_mysql $auth "DESCRIBE $table;" 2> /dev/null)
+    if [ "x$result" = x ]; then
+	return 1
+    fi
+}
+
+# mysql_list_table_cols [--auth] table_name
+#
+# List the column names of the Korp MySQL database table table_name
+# (empty if the table does not exist). If --auth, use the
+# authorization database.
+mysql_list_table_cols () {
+    auth=
+    if [ "x$1" = "x--auth" ]; then
+	auth=--auth
+	shift
+    fi
+    table=$1
+    run_mysql $auth "SHOW COLUMNS FROM $table;" 2> /dev/null |
+    tail -n+2 |
+    cut -d"$tab" -f1
 }
 
 # indent [step] < input > output
@@ -439,6 +480,8 @@ tmp_prefix=$tmpdir/$progname.$$
 
 # Korp MySQL database
 korpdb=korp
+# Korp MySQL database for authorization
+korpdb_auth=korp_auth
 # Unless specified via environment variables, assume that the Korp
 # MySQL database user and password are specified in a MySQL option
 # file
