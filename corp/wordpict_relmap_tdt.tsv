@@ -1,63 +1,70 @@
-# The codes are mostly MALT codes, used in Korp for constructing the
+# Map the TDT dependency relation labels to those used in the Korp
 # word picture: SS (subject), OBJ (object), ADV (adverbial), PA
-# (preposition), AT ((pre)modifier), ET (postmodifier). In addition,
-# some MAMBA codes are used from
-# http://stp.lingfil.uu.se/~nivre/swedish_treebank/dep.html
-# Too many relations (most modifiers and complements) might be mapped
-# to AT; some of them should perhaps be ET or -.
+# (preposition), AT ((pre)modifier), ET (postmodifier). Additional
+# labels: CPL (complement), APP (apposition), AUX (auxiliary verb),
+# CPR (compared element), CRD (coordinated element), CPS (copular
+# subject), OTH (other), MOD (modifier), VPT (verb particle).
+# Relations to be ignored are marked with a dash.
 
 _	-
-acomp	AT
+acomp	CPL
 adpos	PA
 advcl	ADV
-advmod	AT
+advmod	ADV
 amod	AT
-appos	-
-arg	AT
-aux	-
+appos	APP
+# Does not occur in corpora
+arg	-
+aux	AUX
 auxpass	-
 cc	-
-ccomp	ET
-comp	AT
-compar	-
+ccomp	CPL
+# Does not occur in corpora
+comp	-
+compar	CPR
 comparator	-
 complm	AT
-conj	-
+conj	CRD
 cop	-
 csubj	SS
-csubj-cop	SS
-dep	-
+csubj-cop	CPS
+dep	OTH
 det	-
 dobj	OBJ
+# Does not occur in corpora
 ellipsis	-
-gobj	OBJ
-gsubj	SS
-iccomp	AT
-infmod	AT
+gobj	AT
+gsubj	AT
+iccomp	CPL
+infmod	ET
 intj	-
 mark	-
+# Does not occur in corpora
 mod	AT
-name	-
+name	AT
 neg	-
 nn	AT
-nommod	AT
-nommod-own	SS
+nommod	MOD
+nommod-own	-
 nsubj	SS
-nsubj-cop	SS
+nsubj-cop	CPS
 num	-
 number	-
-parataxis	-
-partmod	AT
+parataxis	CRD
+partmod	MOD
 poss	AT
 preconj	-
-prt	-
+prt	VPT
 punct	-
-quantmod	AT
-rcmod	AT
+quantmod	-
+rcmod	MOD
 rel	-
 ROOT	-
+# Does not occur in corpora
 subj	SS
 voc	-
-xcomp	AT
+xcomp	CPL
+# Does not occur in corpora
 xsubj	SS
+# Does not occur in corpora
 xsubj-cop	SS
