@@ -1,10 +1,11 @@
 # Map the TDT dependency relation labels to those used in the Korp
 # word picture: SS (subject), OBJ (object), ADV (adverbial), PA
-# (preposition), AT ((pre)modifier), ET (postmodifier). Additional
-# labels: CPL (complement), APP (apposition), AUX (auxiliary verb),
-# CPR (compared element), CRD (coordinated element), CPS (copular
-# subject), OTH (other), MOD (modifier), OWN (owner), VPT (verb
-# particle). Relations to be ignored are marked with a dash.
+# (preposition), AT ((pre)modifier), ET (postmodifier), CPL
+# (complement). Additional, alternative labels, currently commented
+# out and converted to other labels or ignored: APP (apposition), AUX
+# (auxiliary verb), CPR (compared element), CRD (coordinated element),
+# CPS (copular subject), OTH (other), MOD (modifier), OWN (owner), VPT
+# (verb particle). Relations to be ignored are marked with a dash.
 #
 # In addition, the mapping contains in comments a few tentative
 # relation transformations: constructs for specifying derived
@@ -20,31 +21,41 @@
 # in the depenceny chain, from the first dependent to the head:
 # &number	h = d<<h
 
+
 _	-
 acomp	CPL
 adpos	PA
 advcl	ADV
 # ADV if head POS is V or Adv; otherwise MOD
 # advmod	ADV: h.pos~"V|Adv"; MOD
+# Could be converted to MOD (or ET) or maybe omitted for other than
+# verbs and adverbs
 advmod	ADV
 amod	AT
-appos	APP
+# appos	APP
+appos	-
 # Does not occur in corpora
 arg	-
-aux	AUX
+# aux	AUX
+aux	-
 auxpass	-
 cc	-
+# Could be converted to ET for nouns
 ccomp	CPL
 # Does not occur in corpora
 comp	-
-compar	CPR
+# compar	CPR
+compar	-
 comparator	-
 complm	AT
-conj	CRD
+# conj	CRD
+conj	-
 cop	-
 csubj	SS
-csubj-cop	CPS
-dep	OTH
+# csubj-cop	CPS
+csubj-cop	-
+# dep	OTH
+dep	-
 det	-
 dobj	OBJ
 # Does not occur in corpora
@@ -63,23 +74,29 @@ mod	AT
 name	AT
 neg	-
 nn	AT
-nommod	MOD
+# nommod	MOD
+nommod	ADV
 # Add an OWN relation from the nsubj dependent of head to the
 # dependent of nommod-own
 # nommod-own	OWN: -> h>nsubj d
 nommod-own	-
 nsubj	SS
-nsubj-cop	CPS
+# nsubj-cop	CPS
+nsubj-cop	-
 num	-
 number	-
-parataxis	CRD
-partmod	MOD
+# parataxis	CRD
+parataxis	-
+# partmod	MOD
+partmod	AT
 poss	AT
 preconj	-
-prt	VPT
+# prt	VPT
+prt	-
 punct	-
 quantmod	-
-rcmod	MOD
+# rcmod	MOD
+rcmod	ET
 rel	-
 ROOT	-
 # Does not occur in corpora
