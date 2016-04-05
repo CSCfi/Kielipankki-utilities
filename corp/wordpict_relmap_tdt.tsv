@@ -3,13 +3,29 @@
 # (preposition), AT ((pre)modifier), ET (postmodifier). Additional
 # labels: CPL (complement), APP (apposition), AUX (auxiliary verb),
 # CPR (compared element), CRD (coordinated element), CPS (copular
-# subject), OTH (other), MOD (modifier), VPT (verb particle).
-# Relations to be ignored are marked with a dash.
+# subject), OTH (other), MOD (modifier), OWN (owner), VPT (verb
+# particle). Relations to be ignored are marked with a dash.
+#
+# In addition, the mapping contains in comments a few tentative
+# relation transformations: constructs for specifying derived
+# relations that do not occur directly in the data. They are not (yet)
+# supported by vrt-extract-relations.py.
+
+
+# For a name relation, add an extra head containing all the words from
+# dependent to head:
+# &name	h = d..h
+
+# For a number relation, add an extra head containing all the words
+# in the depenceny chain, from the first dependent to the head:
+# &number	h = d<<h
 
 _	-
 acomp	CPL
 adpos	PA
 advcl	ADV
+# ADV if head POS is V or Adv; otherwise MOD
+# advmod	ADV: h.pos~"V|Adv"; MOD
 advmod	ADV
 amod	AT
 appos	APP
@@ -41,10 +57,16 @@ intj	-
 mark	-
 # Does not occur in corpora
 mod	AT
+# AT; inverse relation (dependent to head) ET; head covers all words
+# from the dependent to head:
+# name	AT; ^ET; @h = d..h
 name	AT
 neg	-
 nn	AT
 nommod	MOD
+# Add an OWN relation from the nsubj dependent of head to the
+# dependent of nommod-own
+# nommod-own	OWN: -> h>nsubj d
 nommod-own	-
 nsubj	SS
 nsubj-cop	CPS
