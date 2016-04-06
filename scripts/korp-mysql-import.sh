@@ -42,9 +42,8 @@ table_columns_lemgram_index='
 	`freq_prefix` int(11) DEFAULT NULL,
 	`freq_suffix` int(11) DEFAULT NULL,
 	`corpus` varchar(64) NOT NULL,
-	UNIQUE KEY `lemgram_corpus` (`lemgram`, `corpus`),
-	KEY `lemgram` (`lemgram`),
-	KEY `corpus` (`corpus`)
+	PRIMARY KEY `lemgram_corpus` (`lemgram`, `corpus`, `freq`,
+				      `freq_prefix`, `freq_suffix`)
 '
 table_columns_timespans='
 	`corpus` varchar(64) NOT NULL,
@@ -121,38 +120,43 @@ table_columns_relations_new_CORPNAME='
 	`bfdep` bool NOT NULL,
 	`wfhead` bool NOT NULL,
 	`wfdep` bool NOT NULL,
-	PRIMARY KEY (`id`),
-	KEY `head` (`head`),
-	KEY `dep` (`dep`),
-        KEY `bfhead` (`bfhead`),
-        KEY `bfdep` (`bfdep`),
-        KEY `wfhead` (`wfhead`),
-        KEY `wfdep` (`wfdep`)
+	PRIMARY KEY (`head`,`wfhead`,`dep`,`rel`,`freq`,`id`),
+	KEY `dep-wfdep-head-rel-freq-id` (`dep`,`wfdep`,`head`,`rel`,`freq`,`id`),
+	KEY `head-dep-bfhead-bfdep-rel-freq-id` (`head`,`dep`,`bfhead`,`bfdep`,`rel`,`freq`,`id`),
+	KEY `dep-head-bfhead-bfdep-rel-freq-id` (`dep`,`head`,`bfhead`,`bfdep`,`rel`,`freq`,`id`)
 '
 table_columns_relations_new_CORPNAME_strings='
 	`id` int UNIQUE NOT NULL,
 	`string` varchar(100) NOT NULL,
 	`stringextra` varchar(32) DEFAULT NULL,
 	`pos` varchar(5) DEFAULT NULL,
-	PRIMARY KEY (`id`),
-	KEY `string` (`string`)
+	PRIMARY KEY (`string`,`id`,`pos`,`stringextra`),
+	KEY `id-string-pos-stringextra` (`id`,`string`,`pos`,`stringextra`)
 '
-table_columns_relations_new_CORPNAME_rel=$table_columns_relations_CORPNAME_rel
+table_columns_relations_new_CORPNAME_rel='
+	`rel` '"$rel_type"',
+	`freq` int NOT NULL,
+	PRIMARY KEY (`rel`,`freq`)
+'
 table_columns_relations_new_CORPNAME_head_rel='
 	`head` int NOT NULL,
 	`rel` '"$rel_type"',
 	`freq` int NOT NULL,
-	KEY `head` (`head`),
-	KEY `rel` (`rel`)
+	PRIMARY KEY (`head`,`rel`,`freq`)
 '
 table_columns_relations_new_CORPNAME_dep_rel='
 	`dep` int NOT NULL,
 	`rel` '"$rel_type"',
 	`freq` int NOT NULL,
-	KEY `dep` (`dep`),
-	KEY `rel` (`rel`)
+	PRIMARY KEY (`dep`,`rel`,`freq`)
 '
-table_columns_relations_new_CORPNAME_sentences=$table_columns_relations_CORPNAME_sentences
+table_columns_relations_new_CORPNAME_sentences='
+	`id` int NOT NULL,
+	`sentence` varchar(64) NOT NULL,
+	`start` int NOT NULL,
+	`end` int NOT NULL,
+	KEY `id` (`id`)
+'
 
 # The number of columns in the old and new formats for the head_rel
 # table is the same, so we try to infer the format by the content of
@@ -484,7 +488,8 @@ create_table() {
     run_mysql "
 CREATE TABLE IF NOT EXISTS \`$_tablename\` (
     $_colspec
-    ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8 DEFAULT COLLATE=utf8_bin;
+    ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8 DEFAULT COLLATE=utf8_bin
+      ROW_FORMAT=COMPRESSED;
 "
 }
 
