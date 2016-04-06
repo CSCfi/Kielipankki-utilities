@@ -68,7 +68,7 @@ table_columns_timedata_date='
 	PRIMARY KEY (`corpus`, `datefrom`, `dateto`)
 '
 table_columns_relations_CORPNAME='
-        `id` int(11) UNIQUE NOT NULL,
+	`id` int(11) UNIQUE NOT NULL,
 	`head` varchar(100) NOT NULL,
 	`rel` char(3) NOT NULL,
 	`dep` varchar(100) NOT NULL,
@@ -100,18 +100,21 @@ table_columns_relations_CORPNAME_dep_rel='
 	KEY `rel` (`rel`)
 '
 table_columns_relations_CORPNAME_sentences='
-        `id` int(11) NOT NULL,
+	`id` int(11) NOT NULL,
 	`sentence` varchar(64) NOT NULL,
 	`start` int(11) NOT NULL,
 	`end` int(11) NOT NULL,
 	KEY `id` (`id`)
 '
-relations_new_rels_enum="ENUM('++','ADV','AN','AT','DT','ET','FV','head','IG','KA','NA','OBJ','PA','PL','SS','XX','YY')"
-# Below alternatively:	`rel` '$relations_new_rels_enum' NOT NULL,
+# relations_new_rels_enum="ENUM('++','ADV','AN','AT','DT','ET','FV','head','IG','KA','NA','OBJ','PA','PL','SS','XX','YY')"
+# TODO: Add an option for specifying the relation type type
+rel_type="enum('SS','OBJ','ADV','AT','ET','PA','APP','AUX','CPL','CPR','CRD','MOD','OTH','OWN','VPT') NOT NULL DEFAULT 'SS'"
+# # Alternatively:
+# rel_type="char(4) NOT NULL"
 table_columns_relations_new_CORPNAME='
-        `id` int UNIQUE NOT NULL,
+	`id` int UNIQUE NOT NULL,
 	`head` int NOT NULL,
-	`rel` char(4) NOT NULL,
+	`rel` '"$rel_type"',
 	`dep` int NOT NULL,
 	`freq` int NOT NULL,
 	`bfhead` bool NOT NULL,
@@ -137,14 +140,14 @@ table_columns_relations_new_CORPNAME_strings='
 table_columns_relations_new_CORPNAME_rel=$table_columns_relations_CORPNAME_rel
 table_columns_relations_new_CORPNAME_head_rel='
 	`head` int NOT NULL,
-	`rel` char(4) NOT NULL,
+	`rel` '"$rel_type"',
 	`freq` int NOT NULL,
 	KEY `head` (`head`),
 	KEY `rel` (`rel`)
 '
 table_columns_relations_new_CORPNAME_dep_rel='
 	`dep` int NOT NULL,
-	`rel` char(4) NOT NULL,
+	`rel` '"$rel_type"',
 	`freq` int NOT NULL,
 	KEY `dep` (`dep`),
 	KEY `rel` (`rel`)
