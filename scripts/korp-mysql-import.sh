@@ -593,6 +593,18 @@ report_progress () {
     done
 }
 
+has_column_name_header () {
+    file=$1
+    colspec=$2
+    # The header row is detected if the first word on the first row of
+    # the file is the same as the name of the first column in the
+    # column specification.
+    file_firstval=$(comprcat $file | head -1 | cut -d"$tab" -f1)
+    first_colname=$(echo $colspec | awk '{print $1}' | tr -d '`')
+    [ "x$file_firstval" = "x$first_colname" ]
+    return $?
+}
+
 mysql_import_main () {
     file=$1
     corpname=$2
@@ -602,8 +614,14 @@ mysql_import_main () {
 	prepare_tables $tablename $corpname "$colspec"
     fi
     fifo=$tmpfname_base.$tablename.fifo
+    pipe_skip_header=
+    if has_column_name_header "$file" "$colspec"; then
+	pipe_skip_header="| tail -n+2"
+    fi
     mkfifo $fifo
-    (comprcat $file > $fifo &)
+    (
+	eval "comprcat $file $pipe_skip_header" > $fifo &
+    )
     # Import optimization ideas (for InnoDB tables) taken from
     # http://derwiki.tumblr.com/post/24490758395/loading-half-a-billion-rows-into-mysql
     # Disabling foregin key checks probably does not matter, as
@@ -621,7 +639,7 @@ mysql_import_main () {
 	    show warnings;"
     fi
     if [ "x$show_progress" != x ]; then
-	total_rows=$(comprcat $file | wc -l)
+	total_rows=$(eval "comprcat $file $pipe_skip_header | wc -l")
 	report_progress $tablename $total_rows &
 	progress_pid=$!
     fi
@@ -687,13 +705,11 @@ mysql_import () {
 	return
     fi
     corpname=`make_corpname "$file"`
-    if [ "x$prepare_tables" != x ]; then
-	colspec_name=$(get_colspec_name $file)
-	colspec=$(get_colspec $colspec_name)
-	if [ x"$colspec" = x ]; then
-	    warn "Could not find columns specification for file $file; skipping"
-	    return
-	fi
+    colspec_name=$(get_colspec_name $file)
+    colspec=$(get_colspec $colspec_name)
+    if [ x"$colspec" = x ] && [ "x$prepare_tables" != x ]; then
+	warn "Could not find columns specification for file $file; skipping"
+	return
     fi
     echo Importing $fname into table $tablename
     if [ "x$verbose" != x ]; then
