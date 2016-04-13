@@ -25,6 +25,18 @@ def elem_at(seq, index, default=None):
         return default
 
 
+def unique(lst):
+    """Return the elements of list lst uniquified."""
+    # This will be slow if the list is long, but for a short list this
+    # might be as good as using a set. Another option might be an
+    # ordered set.
+    result = []
+    for item in lst:
+        if item not in result:
+            result.append(item)
+    return result
+
+
 class PartialStringFormatter(string.Formatter):
 
     """

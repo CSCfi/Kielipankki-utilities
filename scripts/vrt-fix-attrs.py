@@ -10,6 +10,8 @@ import errno
 from optparse import OptionParser
 from collections import defaultdict
 
+from korpimport.util import unique
+
 
 def replace_substrings(s, mapping):
     """Replace substrings in s according to mapping (a sequence of
@@ -25,7 +27,7 @@ def value_or_default(value, default):
     return value if value is not None else default
 
 
-def fix_feature_set_attr(value):
+def fix_feature_set_attr(value, unique_opt=None):
     if not value:
         value = '|'
     else:
@@ -33,6 +35,13 @@ def fix_feature_set_attr(value):
             value = '|' + value
         if value[-1] != '|':
             value += '|'
+        if unique_opt is not None:
+            values = unique(value[1:-1].split('|'))
+            # full: always remove duplicates; partial: remove
+            # duplicates only if all values are the same
+            if unique_opt == 'full' or (unique_opt == 'partial'
+                                        and len(values) == 1):
+                value = '|' + '|'.join(values) + '|'
     return value
 
 
@@ -65,6 +74,8 @@ class PosAttrConverter(object):
                 self._input_fieldnum = int(name) - 1
             for (key, val) in re.findall(
                 r'(\w+)(?:=((?:[^,\'\"]|\'[^\']+\'|"[^\"]+")+))?', opts):
+                if key == 'unique' and not val:
+                    val = 'partial'
                 self.set_option(key, self._remove_quotes(val))
 
         def _remove_quotes(self, value):
@@ -102,7 +113,8 @@ class PosAttrConverter(object):
                         input_fields[self._input_field_nums.get('word')])
                     # sys.stderr.write(' -> ' + result + '\n')
                 if 'set' in self._opts or 'setconvert' in self._opts:
-                    result = fix_feature_set_attr(result)
+                    result = fix_feature_set_attr(result,
+                                                  self._opts.get('unique'))
                 elif 'setfirst' in self._opts:
                     if result.startswith('|'):
                         result = result[1:]
