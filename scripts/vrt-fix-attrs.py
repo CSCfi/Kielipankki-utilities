@@ -309,6 +309,8 @@ class AttributeFixer(object):
                           'apos': '\'',
                           'lt': '<',
                           'gt': '>'}
+    _xml_char_entities_rev = dict(
+        (val, key) for key, val in _xml_char_entities.iteritems())
     _xml_char_entity_name_regex = \
         r'#x[0-9a-fA-F]+|#[0-9]+|' + '|'.join(_xml_char_entities.keys())
 
@@ -494,25 +496,33 @@ class AttributeFixer(object):
                 s)
 
     def _replace_character_entities(self, line):
+        numeric_only = (self._opts.replace_xml_character_entities
+                        in ['numeric', 'correctnumeric'])
 
         def replace_char_entity_ref(matchobj):
             name = matchobj.group(1)
-            if name in self._xml_char_entities:
+            if name in self._xml_char_entities and not numeric_only:
                 return self._xml_char_entities[name]
             elif name[0] == '#':
                 chrval = (int(name[2:], base=16)
                           if name[1] == 'x'
                           else int(name[1:]))
+                if chrval < 32:
+                    return name
                 try:
-                    return unichr(chrval)
+                    char = unichr(chrval)
                 except ValueError:
                     return name
+                if numeric_only and char in self._xml_char_entities_rev:
+                    return '&' + self._xml_char_entities_rev[char] + ';'
+                else:
+                    return char
             else:
                 return name
 
         line = re.sub(r'&(' + self._xml_char_entity_name_regex + r');',
                       replace_char_entity_ref, line)
-        if self._opts.replace_xml_character_entities == 'all':
+        if self._opts.replace_xml_character_entities in ['all', 'numeric']:
             line = re.sub(r'&(' + self._xml_char_entity_name_regex + r')(?=\s)',
                           replace_char_entity_ref, line)
         return line
@@ -659,7 +669,8 @@ def getopts():
     optparser.add_option('--add-element-id', '--add-elem-id', action='append',
                          default=[])
     optparser.add_option('--replace-xml-character-entities', type='choice',
-                         choices=['correct', 'all'])
+                         choices=['correct', 'all', 'numeric',
+                                  'correctnumeric'])
     optparser.add_option('--copy-struct-attribute', action='append', default=[])
     optparser.add_option('--encoding-errors', '--character-encoding-errors',
                          type='choice', choices=['strict', 'replace', 'ignore'],
