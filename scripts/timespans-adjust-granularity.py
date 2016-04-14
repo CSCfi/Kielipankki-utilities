@@ -15,6 +15,7 @@ tabs.
 
 
 import sys
+import re
 
 from collections import defaultdict
 
@@ -44,8 +45,12 @@ class GranularityAdjuster(korpimport.util.InputProcessor):
         counts = not self._opts.no_counts
         for line in stream:
             fields = line[:-1].split('\t')
-            fields[from_fieldnr] = self._make_from(fields[from_fieldnr])
-            fields[to_fieldnr] = self._make_to(fields[to_fieldnr])
+            new_from = self._make_date(fields[from_fieldnr], 'from')
+            new_to = self._make_date(fields[to_fieldnr], 'to')
+            if new_from == '' or new_to == '':
+                new_from = new_to = ''
+            fields[from_fieldnr] = new_from
+            fields[to_fieldnr] = new_to
             if counts:
                 count = fields[count_fieldnr]
                 # @COUNT@ will be replaced by the final count when writing
@@ -55,21 +60,18 @@ class GranularityAdjuster(korpimport.util.InputProcessor):
             else:
                 sys.stdout.write('\t'.join(fields) + '\n')
 
-    def _make_from(self, date):
+    def _make_date(self, date, type_):
         datelen = len(date)
-        if datelen == 0 or datelen == self._granularity:
+        if date and not re.match(r'^([0-9][0-9]){2,7}$', date):
+            # Return empty for invalid values
+            sys.stderr.write('Invalid date' + type_ + ': ' + date + '\n')
+            return ''
+        elif datelen == 0 or datelen == self._granularity:
             return date
         elif datelen > self._granularity:
             return date[:self._granularity]
-        else:
+        elif type_ == 'from':
             return date + 'YYYY0101000000'[datelen:self._granularity]
-
-    def _make_to(self, date):
-        datelen = len(date)
-        if datelen == 0 or datelen == self._granularity:
-            return date
-        elif datelen > self._granularity:
-            return date[:self._granularity]
         elif datelen != 6:
             return date + 'YYYY1231235959'[datelen:self._granularity]
         else:
