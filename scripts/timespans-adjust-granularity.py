@@ -110,8 +110,7 @@ class GranularityAdjuster(korpimport.util.InputProcessor):
         }
         self.getopts_basic(
             dict(usage="%progname [options] [input] > output",
-                 description="""Adjust the granularity of (Korp) timespan
-data specified as a starting and
+                 description="""Adjust the granularity of (Korp) timespan data specified as a starting and
 ending value in the format YYYYMMDDhhmmss or a prefix of that. A count
 field is associated with each timespan and adjusted accordingly, if
 the granularity adjustments collapse multiple timespan values into the
