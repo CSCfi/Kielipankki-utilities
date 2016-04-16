@@ -105,27 +105,14 @@ class Runner(object):
     def main(self):
         pass
 
-    
-class InputProcessor(Runner):
 
-    """An abstract class for a script processing input."""
+class OptionRunner(Runner):
+
+    """An abstract class for a script with options."""
 
     def __init__(self, args=None, **kwargs):
-        super(InputProcessor, self).__init__(**kwargs)
+        super(OptionRunner, self).__init__(**kwargs)
         self.getopts(args)
-
-    def process_input(self, args):
-        if isinstance(args, list):
-            for arg in args:
-                self.process_input(arg)
-        elif isinstance(args, basestring):
-            with codecs.open(args, 'r', encoding='utf-8') as f:
-                self.process_input_stream(f, args)
-        else:
-            self.process_input_stream(args)
-
-    def process_input_stream(self, stream, filename=None):
-        pass
 
     def getopts(self, args=None):
         pass
@@ -145,6 +132,27 @@ class InputProcessor(Runner):
                 optopts = {}
             optparser.add_option(*optnames, **optopts)
         self._opts, self._args = optparser.parse_args(args)
+
+
+class InputProcessor(OptionRunner):
+
+    """An abstract class for a script processing input."""
+
+    def __init__(self, args=None, **kwargs):
+        super(InputProcessor, self).__init__(args, **kwargs)
+
+    def process_input(self, args):
+        if isinstance(args, list):
+            for arg in args:
+                self.process_input(arg)
+        elif isinstance(args, basestring):
+            with codecs.open(args, 'r', encoding=self._input_encoding) as f:
+                self.process_input_stream(f, args)
+        else:
+            self.process_input_stream(args)
+
+    def process_input_stream(self, stream, filename=None):
+        pass
 
     def main(self):
         self.process_input(self._args or sys.stdin)
