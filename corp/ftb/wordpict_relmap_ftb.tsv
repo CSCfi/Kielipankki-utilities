@@ -1,19 +1,38 @@
-# Mapping from FTB dependency relation codes to those used in Korp
-# word picture
+# Map the FTB dependency relation labels to those used in the Korp
+# word picture: SS (subject), OBJ (object), ADV (adverbial), PA
+# (preposition), AT ((pre)modifier), ET (postmodifier), CPL
+# (complement). Additional, alternative labels, currently commented
+# out and converted to other labels or ignored: AUX (auxiliary verb),
+# CPR (compared element), CRD (coordinated element), VPT (verb
+# particle). Relations to be ignored are marked with a dash.
+#
+# In addition, the mapping contains in comments a few tentative
+# relation transformations: constructs for specifying derived
+# relations that do not occur directly in the data. They are not (yet)
+# supported by vrt-extract-relations.py.
+
+
 advl	ADV
 attr	AT
-aux	IV
-comp	OP
-conjunct	UK
-idiom	XF
-idom	XF
-main	HD
+# aux	AUX
+aux	-
+# comp	CPR
+comp	-
+# conjunct	CRD
+conjunct	-
+idiom	-
+idom	-
+main	-
 mod	ET
-modal	IV
+modal	-
 obj	OBJ
-phrm	XX
-phrv	PL
-scomp	SP
+# phrm with POS Adp could be marked as an adposition:
+# phrm	ADV: d.pos~"Adp"; -
+phrm	-
+# phrv	VPT
+phrv	-
+# Does it make sense to regard a predicative as a post-modifier?
+scomp	ET
 subj	SS
-voc	TT
-_	XX
+voc	-
+_	-
