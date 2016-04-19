@@ -26,7 +26,7 @@ extract_rels_opts="--output-type=new-strings --word-form-pair-type=baseform --ig
 
 usage () {
     cat <<EOF
-Usage: $progname [options]
+Usage: $progname [options] < input.vrt
 
 Extract dependency relations from VRT files to TSV files for the Korp
 word picture.
@@ -40,7 +40,6 @@ Options:
   -c, --corpus-name CORPUS
   -f, --input-fields FIELDLIST
   -r, --relation-map FILE
-  -i, --input FILESPEC
   -o, --output-dir DIR
   --decode-input
   --optimize-memory
