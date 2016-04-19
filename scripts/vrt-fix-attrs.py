@@ -463,6 +463,7 @@ class AttributeFixer(object):
             line = self._replace_character_entities(line)
         if self._encode_posattrs and not self._split_lines:
             line = self._encode_special_chars(line)
+        line = self._fix_ampersands(line)
         return line
 
     def _encode_special_chars(self, s, encode_map_key='base'):
@@ -527,6 +528,22 @@ class AttributeFixer(object):
                           replace_char_entity_ref, line)
         return line
 
+    def _fix_ampersands(self, line):
+        """Replace ampersands with &amp;: they always need to be encoded"""
+
+        if '&' not in line:
+            return line
+        # First encode & in valid (numeric or predefined) XML
+        # character entity references as \x01, then replace the rest
+        # with &amp; and finally restore the correct ampersands. Could
+        # we do this with a single regexp substitution and an
+        # appropriate substitution function?
+        line = re.sub(
+            r'&(?=(?:amp|apos|gt|lt|quot|#(?:[0-9]+|x[0-9a-fA-F]+));)',
+            '\x01', line)
+        line = line.replace('&', '&amp;')
+        return line.replace('\x01', '&')
+
     def _fix_structattrs(self, line):
         if self._elem_renames:
             line = self._rename_elem(line)
@@ -542,6 +559,7 @@ class AttributeFixer(object):
                 line = self._copy_struct_attrs(line)
             if self._set_struct_attrs:
                 line = self._fix_set_struct_attrs(line)
+            line = self._fix_ampersands(line)
         return line
 
     def _rename_elem(self, line):
