@@ -472,29 +472,24 @@ class AttributeFixer(object):
             s, self._special_char_encode_maps.get(encode_map_key, []))
 
     def _encode_special_chars_in_struct_attrs(self, s):
-        """Encode the special characters in the double-quoted substrings
-        of s.
+        """Encode the special characters in the double- or single-quoted
+        substrings of s.
         """
 
         def encode_attr(mo, encode_map_key=None, elemname=None):
-            return self._encode_special_chars(
-                mo.group(0),
-                encode_map_key or (
-                    'set' if (mo.group(2) in
-                              self._set_struct_attrs.get(elemname, set()))
-                    else 'base'))
+            encode_map_key = encode_map_key or (
+                'set' if (mo.group(1) in
+                          self._set_struct_attrs.get(elemname, set()))
+                else 'base')
+            # Strip possible whitespace around the equals sign.
+            return (mo.group(1) + '='
+                    + self._encode_special_chars(mo.group(2), encode_map_key))
 
         elemname = re.search(r'(\w+)', s).group(1)
-        if elemname in self._set_struct_attrs:
-            return re.sub(
-                r'((\w+)="(?:[^\\"]|\\[\\"])*")',
-                lambda mo: encode_attr(mo, elemname=elemname),
-                s)
-        else:
-            return re.sub(
-                r'("(?:[^\\"]|\\[\\"])*")',
-                lambda mo: encode_attr(mo, encode_map_key='base'),
-                s)
+        encode_map_key = None if elemname in self._set_struct_attrs else 'base'
+        return re.sub(r'''(\w+)\s*=\s*(".*?"|'.*?')''',
+                      lambda mo: encode_attr(mo, elemname=elemname,
+                                             encode_map_key=encode_map_key), s)
 
     def _replace_character_entities(self, line):
         numeric_only = (self._opts.replace_xml_character_entities
@@ -598,7 +593,8 @@ class AttributeFixer(object):
         return line
 
     def _extract_struct_attrs(self, line):
-        return dict(re.findall(r'(\w+)=\"([^\"]+)\"', line))
+        return dict((name, val.replace('"', '&quot;')) for name, _, val in
+                    re.findall(r'''(\w+)\s*=\s*([\"\'])(.*?)\2''', line))
 
     def _get_struct_attr_values(self, elem_attrname_list):
         result = []
@@ -618,15 +614,16 @@ class AttributeFixer(object):
 
         def fix_vbars(mo, feat_set_attrs):
             if mo.group(1) in feat_set_attrs:
-                return (mo.group(1) + '="' + fix_feature_set_attr(mo.group(2))
-                        + '"')
+                # Strip possible whitespace around the equals sign.
+                return (mo.group(1) + '=' + mo.group(2)
+                        + fix_feature_set_attr(mo.group(3)) + mo.group(2))
             else:
                 return mo.group(0)
 
         elemname = re.search(r'(\w+)', line).group(1)
         if elemname in self._set_struct_attrs:
             return re.sub(
-                r'(\w+)="((?:[^\\"]|\\[\\"])*)"',
+                r'''(\w+)\s*=\s*(["'])(.*?)\2''',
                 lambda mo: fix_vbars(mo, self._set_struct_attrs[elemname]),
                 line)
         else:

@@ -107,10 +107,10 @@ class CharConverter(object):
         return '\t'.join(attrs)
 
     def _convert_chars_in_struct_attrs(self, s):
-        """Encode the special characters in the double-quoted substrings
-        of s.
+        """Encode the special characters in the double- or single-quoted
+        substrings of s.
         """
-        return re.sub(r'("(?:[^\\"]|\\[\\"])*")',
+        return re.sub(r'''(([\"\']).*?\2)''',
                       lambda mo: self._convert_chars(mo.group(0)), s)
 
 
