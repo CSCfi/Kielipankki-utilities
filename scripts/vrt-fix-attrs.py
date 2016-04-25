@@ -52,7 +52,7 @@ class PosAttrConverter(object):
 
         def __init__(self, fieldspec, input_field_nums=None,
                      char_encode_maps=None, compound_boundary_marker=None,
-                     compound_boundary_hyphen=False):
+                     compound_boundary_hyphen=False, options=None):
             self._input_field_nums = input_field_nums or {}
             self._char_encode_maps = char_encode_maps or {'set': [], 'base': []}
             self._compound_boundary_re = re.compile(compound_boundary_marker or
@@ -61,7 +61,7 @@ class PosAttrConverter(object):
                 self._make_lemma_without_boundaries_tdt
                 if compound_boundary_hyphen
                 else self._make_lemma_without_boundaries_simple)
-            self._opts = {}
+            self._opts = options or {}
             self._parse_fieldspec(fieldspec)
 
         def _parse_fieldspec(self, fieldspec):
@@ -202,11 +202,15 @@ class PosAttrConverter(object):
         # print self._output_fields, output_field_fieldnums, self._max_fieldnum
         for num in xrange(max(output_field_fieldnums or [-1]) + 1,
                           self._max_fieldnum + 1):
+            opts = {}
+            if num in self._set_fields:
+                opts['set'] = True
             self._output_fields.append(
                 self.OutputFieldSpec(
                     str(num + 1), self._input_fields,
                     compound_boundary_marker=self._compound_boundary_marker,
-                    compound_boundary_hyphen=self._compound_boundary_hyphen))
+                    compound_boundary_hyphen=self._compound_boundary_hyphen,
+                    options=opts))
         for type_, values in [('empty', self._empty_field_values),
                               ('missing', self._missing_field_values)]:
             self._add_default_fieldvals(type_, values)
@@ -215,11 +219,13 @@ class PosAttrConverter(object):
 
     def _make_input_fields(self, fields):
         if fields:
-            fields = ' '.join(fields)
-            self._input_fields = dict(
-                [(name, num)
-                 for num, name in enumerate(fields.strip().split())])
+            fieldlist = ' '.join(fields).strip().split()
+            self._set_fields = set(num for num, name in enumerate(fieldlist)
+                                   if name[-1] == '/')
+            self._input_fields = dict((name.strip('/'), num)
+                                      for num, name in enumerate(fieldlist))
         else:
+            self._set_fields = set()
             self._input_fields = {}
 
     def _make_default_field_values(self, fieldspec):
