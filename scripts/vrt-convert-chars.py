@@ -9,6 +9,8 @@ import errno
 
 from optparse import OptionParser
 
+import korpimport.util as korputil
+
 
 def replace_substrings(s, mapping):
     """Replace substrings in s according to mapping (a sequence of
@@ -85,8 +87,8 @@ class CharConverter(object):
                     self._process_input(file_)
 
     def _process_input(self, file_):
-        for line in file_:
-            if line[0] == '<' and line.endswith('>\n'):
+        for line in korputil.whole_line_reader(file_):
+            if line[0] == '<' and line.rstrip()[-1] == '>':
                 if self._convert_structattrs:
                     line = self._convert_chars_in_struct_attrs(line)
             elif self._convert_posattrs:

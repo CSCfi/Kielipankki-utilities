@@ -11,6 +11,7 @@ from optparse import OptionParser
 from collections import defaultdict
 
 from korpimport.util import unique
+import korpimport.util as korputil
 
 
 def replace_substrings(s, mapping):
@@ -427,7 +428,7 @@ class AttributeFixer(object):
     def _fix_input(self, f):
         linenr = 1
         try:
-            for line in f:
+            for line in korputil.whole_line_reader(f):
                 sys.stdout.write(self._make_fixed_line(line))
                 linenr += 1
         except SyntaxError:

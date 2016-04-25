@@ -37,6 +37,27 @@ def unique(lst):
     return result
 
 
+def whole_line_reader(stream, linebreak_chars=None):
+    """Return whole lines from stream
+
+    Return lines ending in one of linebreak_chars (default: newline
+    \n), even if they may be split at other (Unicode) linebreak
+    characters, such as NEL (\u0085).
+    """
+    linebreak_chars = linebreak_chars or u'\n'
+    incompl_lines = []
+    for line in stream:
+        if line[-1] not in linebreak_chars:
+            incompl_lines.append(line)
+        elif incompl_lines:
+            yield ''.join(incompl_lines) + line
+            incompl_lines = []
+        else:
+            yield line
+    if incompl_lines:
+        yield ''.join(incompl_lines)
+
+
 class PartialStringFormatter(string.Formatter):
 
     """
