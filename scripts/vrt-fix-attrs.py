@@ -447,7 +447,8 @@ class AttributeFixer(object):
             raise
 
     def _make_fixed_line(self, line):
-        if line.startswith('<') and line.rstrip().endswith('>'):
+        if re.match(r'^</?[a-z0-9_]+(\s([^>\"]|\"[^\"]*\")+)?>$',
+                    line.rstrip()):
             line = self._fix_structattrs(line.rstrip()) + '\n'
             if self._encode_structattrs and line[1] != '/':
                 return self._encode_special_chars_in_struct_attrs(line)
