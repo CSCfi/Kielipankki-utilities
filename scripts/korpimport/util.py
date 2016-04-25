@@ -13,6 +13,7 @@ import sys
 import codecs
 import errno
 import string
+import csv
 
 from optparse import OptionParser
 
@@ -35,6 +36,38 @@ def unique(lst):
         if item not in result:
             result.append(item)
     return result
+
+
+def _tsv_stream_dictreader(stream, utf8_input=False, *args, **kwargs):
+    """Return a reader for TSV files, yield values in Unicode."""
+
+    def utf8_encoder(unicode_csv_data):
+        for line in unicode_csv_data:
+            yield line.encode('utf-8')
+
+    kwargs.update(dict(delimiter='\t', quoting=csv.QUOTE_NONE))
+    # print "tsv stream", repr(stream)
+    if not utf8_input:
+        # print "encode to utf8"
+        stream = utf8_encoder(stream)
+    reader = csv.DictReader(stream, *args, **kwargs)
+    for row in reader:
+        # decode UTF-8 back to Unicode, cell by cell:
+        yield dict((key, unicode(val, 'utf-8'))
+                   for key, val in row.iteritems())
+
+
+def tsv_dictreader(stream_or_fname, *args, **kwargs):
+    """Return a reader for a TSV stream or file to yield values in Unicode."""
+    if isinstance(stream_or_fname, basestring):
+        with open(stream_or_fname, 'rb') as stream:
+            for line in _tsv_stream_dictreader(
+                    stream, *args, utf8_input=True, **kwargs):
+                yield line
+    else:
+        for line in _tsv_stream_dictreader(stream_or_fname, *args, **kwargs):
+            # print line
+            yield line
 
 
 def whole_line_reader(stream, linebreak_chars=None):
