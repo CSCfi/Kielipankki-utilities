@@ -193,6 +193,10 @@ CWBDATA_EXTRACT_INFO = $(SCRIPTDIR)/cwbdata-extract-info.sh \
 
 PKG_DB_FORMAT ?= tsv
 
+# Load data into the Korp MySQL database only if LOAD_DB is non-empty;
+# by default, do not load.
+LOAD_DB ?=
+
 MAKE_CORPUS_PKG_OPTS := $(call partvar,MAKE_CORPUS_PKG_OPTS)
 MAKE_CORPUS_PKG = $(SCRIPTDIR)/korp-make-corpus-package.sh \
 			--corpus-root $(CORPROOT) --registry "$(REGDIR)" \
@@ -749,7 +753,11 @@ korp_db: $(DB_TARGETS)
 
 sql: $(DB_SQLDUMPS)
 
-korp_rels: $(CORPNAME_BUILDDIR)_rels_load.timestamp
+DB_TARGET_RELS = $(if $(LOAD_DB),\
+			$(CORPNAME_BUILDDIR)_rels_load.timestamp,\
+			$(RELS_TSV_CKSUM))
+
+korp_rels: $(DB_TARGET_RELS)
 
 .PHONY: db korp_db sql korp_rels
 
@@ -774,7 +782,7 @@ $(RELS_TSV): $(CORP_VRT_CKSUM) $(MAKE_RELS_DEPS)
 	| $(MAKE_RELS_CMD)
 
 define KORP_LOAD_DB_R
-korp_$(1): $(CORPNAME_BUILDDIR)_$(1)_load.timestamp
+korp_$(1): $(CORPNAME_BUILDDIR)_$(1)$(if $(LOAD_DB),_load.timestamp,$(TSV_CKSUM))
 
 .PHONY: korp_$(1)
 
