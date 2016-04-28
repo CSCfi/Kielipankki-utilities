@@ -249,10 +249,12 @@ SRC_FILES := $(or $(call partvar,SRC_FILES),$(call partvar,SRC_FILES_GENERATED))
 
 SRC_FILES_LS_OPTS := $(call partvar_or_default,SRC_FILE_LS_OPTS,-v)
 
+# List all the files sorted together. It might sometimes be desirable
+# to list the files of each file specification (possibly with
+# wildcards) separately, so maybe we should have a variable to control
+# the behaviour.
 list_files = \
-	$(foreach filespec,$(1),\
-		$(shell ls $(SRC_FILES_LS_OPTS) $(filespec) \
-			$(if $(DEBUG),,2> /dev/null)))
+	$(shell ls $(SRC_FILES_LS_OPTS) $(1) $(if $(DEBUG),,2> /dev/null))
 
 # SRC_FILES (relative to SRC_DIR) must be defined in a corpus-specific
 # makefile. Wildcards in SRC_FILES are expanded, and files specified
