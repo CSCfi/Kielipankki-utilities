@@ -126,7 +126,7 @@ DECODE_SPECIAL_CHARS = perl -C -e '\
 P_ATTRS := $(call partvar,P_ATTRS)
 P_ATTR_FIELDS := word $(P_ATTRS)
 
-index = $(or $(strip $(foreach wnum,1 2 3 4 5 6 7 8 9 10,\
+index = $(or $(strip $(foreach wnum,1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16,\
 			$(if $(call eqs,$(1),$(word $(wnum),$(2))),\
 				$(wnum)))),\
 		$(3))
@@ -161,6 +161,8 @@ XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(call partvar,XML2VRT_RULES) \
 # work correctly with UTF-8 encoding.
 XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name= \
 		--allow-stray-reserved-characters
+
+$(call showvars,LEMGRAM_POSMAP S_ATTRS_FEATSET VRT_FIX_ATTRS_OPTS)
 
 VRT_EXTRACT_TIMESPANS_PROG = $(SCRIPTDIR)/vrt-extract-timespans.py
 CORPUS_DATE := $(call partvar,CORPUS_DATE)
@@ -294,7 +296,7 @@ DB_TARGETS := \
 	$(call partvar_or_default,DB_TARGETS,\
 		$(if $(DB),$(DB_TARGETS_ALL),\
 			korp_timespans \
-			$(if $(filter lex,$(P_ATTRS)),\
+			$(if $(filter lex lex/,$(P_ATTRS)),\
 				korp_lemgrams \
 				$(if $(CORPUS_HAS_DEPRELS),korp_rels))))
 
