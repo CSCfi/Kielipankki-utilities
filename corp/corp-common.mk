@@ -79,8 +79,12 @@ TOPDIR = $(dir $(lastword $(MAKEFILE_LIST)))
 
 SCRIPTDIR = $(TOPDIR)/../scripts
 
+CORPROOT_ALTS = \
+	/v/corpora /proj/clarin/korp/corpora $(WRKDIR)/corpora \
+	/wrk/jyniemi/corpora
+
 # Root directory for various corpus files
-CORPROOT ?= /v/corpora
+CORPROOT ?= $(firstword $(wildcard $(CORPROOT_ALTS)))
 
 # Root directory for default corpus source files
 CORPSRCROOT := $(call partvar_or_default,CORPSRCROOT,\
@@ -420,7 +424,13 @@ DBNAME = korp
 # Unix group for CWB corpus files
 CORPGROUP = korp
 
-CWBDIR = /usr/local/cwb/bin
+CWBDIR_ALTS = \
+	/usr/local/cwb/bin /usr/local/bin /proj/clarin/korp/cwb/bin \
+        $(USERAPPL)/bin /v/util/cwb/utils
+
+# Choose the first directory (if any) containing cwb-encode
+CWBDIR ?= \
+	$(dir $(firstword $(wildcard $(addsuffix /cwb-encode,$(CWBDIR_ALTS)))))
 CORPDIR = $(CORPROOT)/data
 CORPCORPDIR = $(CORPDIR)/$(CORPNAME)
 REGDIR = $(CORPROOT)/registry
@@ -428,7 +438,7 @@ CORPSQLDIR = $(CORPROOT)/sql
 # Directory for various built files: VRT, TSV, timestamps
 CORP_BUILDDIR = $(CORPROOT)/vrt/$(CORPNAME)
 
-$(call showvars,CORPNAME CORPDIR CORPCORPDIR CORP_BUILDDIR)
+$(call showvars,CWBDIR CORPNAME CORPROOT CORPDIR CORPCORPDIR CORP_BUILDDIR)
 
 PKGNAME_BASE ?= $(CORPNAME_BASE)
 PKGDIR ?= $(CORPROOT)/pkgs
