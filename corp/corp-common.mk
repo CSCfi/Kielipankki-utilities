@@ -309,7 +309,26 @@ $(call showvars,PARCORP PARCORP_PART PARCORP_LANG LINK_ELEM)
 PARCORP := $(call partvar_or_default,PARCORP,\
 		$(and $(call partvar,LINK_ELEM),$(call not,$(PARCORP_PART))))
 
-$(call showvars,PARCORP PARCORP_PART)
+# The full names (including the corpus base name) of all subcorpora,
+# including the languages of aligned corpora. If the corpus has no
+# subcorpora nor aligned corpora and the corpus is not itself such,
+# the value is simply $(CORPNAME_BASE).
+# TODO: If possible, take into account that subcorpora may have
+# different aligned languages.
+SUBCORPORA_ALL := $(strip \
+	$(if $(or $(PARCORP_PART),$(SUBCORPUS)),\
+		,\
+		$(if $(PARCORP),\
+			$(if $(SUBCORPORA),\
+				$(foreach subcorp,$(SUBCORPORA),\
+					$(foreach lang,$(LANGUAGES),\
+						$(CORPNAME_BASEBASE)_$(subcorp)_$(lang))),\
+				$(addprefix $(CORPNAME_BASEBASE)_,$(LANGUAGES))),\
+			$(if $(SUBCORPORA),\
+				$(addprefix $(CORPNAME_BASEBASE)_,$(SUBCORPORA)),\
+				$(CORPNAME_BASE)))))
+
+$(call showvars,PARCORP PARCORP_PART SUBCORPORA_ALL)
 
 LANGPAIRS_ALIGN := \
 	$(call partvar_or_default,LANGPAIRS_ALIGN,\
@@ -332,9 +351,10 @@ LANGPAIR_LANG2 = $(lastword $(subst _, ,$(1)))
 TARGETS := \
 	$(call partvar_or_default,TARGETS,\
 		$(if $(PARCORP),\
-			align pkg-parcorp,\
+			align pkg,\
 			subdirs vrt reg \
-				$(if $(or $(PARCORP_PART),$(SUBCORPUS)),,pkg) \
+				$(if $(and $(or $(PARCORP_PART),$(SUBCORPUS)),\
+					$(call not,$(MAKE_PKG))),,pkg) \
 				$(if $(strip $(DB_TARGETS)),db) \
 				$(if $(strip $(FULLTEXT_FILENAME_TEMPLATE)),fulltext)))
 
@@ -616,7 +636,7 @@ endif
 # and to TARGETS in case we are processing a subcorpus.mk file
 ifneq ($(strip $(HAS_SUBCORPORA)),)
 TOP_TARGETS += subcorpora pkg
-TARGETS := subcorpora
+TARGETS := subcorpora $(if $(MAKE_PKG),pkg)
 endif
 
 $(call showvars,TOP_TARGETS TARGETS)
@@ -872,13 +892,10 @@ endif
 pkg: $(PKG_FILE)
 
 # TODO: Make this rule depend on database TSV/SQL files
-$(PKG_FILE): $(if $(SUBCORPORA),\
-		$(foreach subcorp,$(SUBCORPORA),\
-			$(CORPDIR)/$(CORPNAME_BASEBASE)_$(subcorp)/.info),\
-		$(CORPCORPDIR)/.info)
+$(PKG_FILE): $(foreach subcorp,$(SUBCORPORA_ALL),$(CORPDIR)/$(subcorp)/.info) \
+		$(if $(PARCORP),align)
 	-mkdir -p $(dir $@)
-	$(MAKE_CORPUS_PKG) $(PKGNAME_BASE) \
-		$(addprefix $(CORPNAME_BASEBASE)_,$(SUBCORPORA))
+	$(MAKE_CORPUS_PKG) $(PKGNAME_BASE) $(SUBCORPORA_ALL)
 
 .PHONY: pkg
 
@@ -963,7 +980,4 @@ MAKE_PARCORP_PARTS = \
 parcorp:
 	$(call MAKE_PARCORP_PARTS,all PARCORP_PART=1)
 
-pkg-parcorp: align
-	$(call MAKE_PARCORP_PARTS,pkg)
-
-.PHONY: parcorp pkg-parcorp
+.PHONY: parcorp
