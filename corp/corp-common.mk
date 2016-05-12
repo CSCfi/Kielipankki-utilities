@@ -416,7 +416,7 @@ PKG_FILE := \
 	$(or \
 		$(shell ls -t $(PKGDIR)/$(PKGNAME_BASE)/$(PKGNAME_BASE)_korp_* \
 			$(if $(DEBUG),,2> /dev/null) | head -1),\
-		$(PKGDIR)/$(PKGNAME_BASE)/$(PKGNAME_BASE)_korp_$(shell date '+%Y%m%d').$(COMPR_TAR_EXT))
+		$(PKGDIR)/$(PKGNAME_BASE)/$(PKGNAME_BASE)_korp_$(shell date '+%Y%m%d')$(COMPR_TAR_EXT))
 
 $(call showvars,PKGNAME_BASE PKGDIR PKG_FILE)
 
