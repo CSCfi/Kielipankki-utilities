@@ -401,7 +401,7 @@ run_mysql () {
     else
 	_db=$korpdb
     fi
-    mysql $mysql_opts --batch --raw --execute "$@" $_db
+    $mysql_bin $mysql_opts --batch --raw --execute "$@" $_db
 }
 
 # mysql_table_exists [--auth] table_name
@@ -487,10 +487,22 @@ korpdb_auth=korp_auth
 # file
 mysql_opts=
 if [ "x$KORP_MYSQL_USER" != "x" ]; then
-    mysql_opts=--user=$KORP_MYSQL_USER
+    mysql_opts="$mysql_opts --user=$KORP_MYSQL_USER"
+elif [ "x$MYSQL_USER" != "x" ]; then
+    mysql_opts="$mysql_opts --user=$MYSQL_USER"
 fi
 if [ "x$KORP_MYSQL_PASSWORD" != "x" ]; then
     mysql_opts="$mysql_opts --password=$KORP_MYSQL_PASSWORD"
+elif [ "x$MYSQL_PASSWORD" != "x" ]; then
+    mysql_opts="$mysql_opts --password=$MYSQL_PASSWORD"
+fi
+if [ "x$KORP_MYSQL_BIN" != "x" ]; then
+    mysql_bin=$KORP_MYSQL_BIN
+elif [ -x /opt/mariadb/bin/mysql ]; then
+    # MariaDB on the Korp server
+    mysql_bin="/opt/mariadb/bin/mysql --defaults-extra-file=/var/lib/mariadb/my.cnf"
+else
+    mysql_bin=mysql
 fi
 
 # The tab character

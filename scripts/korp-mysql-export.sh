@@ -129,10 +129,6 @@ if [ "x$MYSQL_USER" != "x" ]; then
 fi
 
 
-run_mysql () {
-    mysql $mysql_opt_user --batch --raw --execute "$@" $dbname
-}
-
 run_mysql_export () {
     tablename=$1
     outfname=$2

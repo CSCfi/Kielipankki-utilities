@@ -16,6 +16,9 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 
+# TODO: Replace much of the following initialization code with
+# sourcing korp-lib.sh
+
 # Korp MySQL database
 korpdb=korp
 # Unless specified via environment variables, assume that the Korp
@@ -27,6 +30,14 @@ if [ "x$KORP_MYSQL_USER" != "x" ]; then
 fi
 if [ "x$KORP_MYSQL_PASSWORD" != "x" ]; then
     mysql_opts="$mysql_opts --password=$KORP_MYSQL_PASSWORD"
+fi
+if [ "x$KORP_MYSQL_BIN" != "x" ]; then
+    mysql_bin=$KORP_MYSQL_BIN
+elif [ -x /opt/mariadb/bin/mysql ]; then
+    # MariaDB on the Korp server
+    mysql_bin="/opt/mariadb/bin/mysql --defaults-extra-file=/var/lib/mariadb/my.cnf"
+else
+    mysql_bin=mysql
 fi
 
 default_corpus_roots="/v/corpora /proj/clarin/korp/corpora $WRKDIR/corpora /wrk/jyniemi/corpora"

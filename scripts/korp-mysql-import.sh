@@ -19,7 +19,6 @@ imported_file_list=
 relations_format=auto
 table_name_template=@
 show_warnings=1
-mysql_prog=mysql
 mysql_extra_opts=
 verbose=
 show_progress=
@@ -187,7 +186,7 @@ multicorpus_tablenames=$(
 )
 
 shortopts="htI:v"
-longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:,hide-warnings,mysql-program:,mysql-options:,verbose,show-progress,progress-interval:"
+longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:,hide-warnings,mysql-program:,mysql-binary:mysql-options:,verbose,show-progress,progress-interval:"
 
 . $progdir/korp-lib.sh
 
@@ -237,8 +236,7 @@ Options:
                   options to be specified before other options, in particular
                   --defaults-file; useful with multiple instances of MySQL
   --mysql-options OPTS
-                  pass OPTS as additional options to the MySQL client, after
-                  all other options
+                  pass OPTS as additional options to the MySQL client
   -v, --verbose   show input file sizes, import times and MySQL data file size
                   increase
   --show-progress
@@ -284,9 +282,9 @@ while [ "x$1" != "x" ] ; do
 	--hide-warnings )
 	    show_warnings=
 	    ;;
-	--mysql-program | mysql-binary )
+	--mysql-program | --mysql-binary )
 	    shift
-	    mysql_prog=$1
+	    mysql_bin=$1
 	    ;;
 	--mysql-options )
 	    shift
@@ -317,9 +315,8 @@ while [ "x$1" != "x" ] ; do
 done
 
 
-if [ "x$MYSQL_USER" != "x" ]; then
-    mysql_opt_user="--user $MYSQL_USER"
-fi
+mysql_opts="$mysql_opts --local-infile --skip-reconnect $mysql_extra_opts"
+
 
 init_table_column_counts () {
     for tabletype in $relations_table_types; do
@@ -458,11 +455,6 @@ get_colspec_name () {
 
 get_colspec () {
     echo `eval "echo \\$table_columns_$1"`
-}
-
-run_mysql () {
-    $mysql_prog --local-infile --skip-reconnect $mysql_opt_user --batch \
-	--execute "$@" $mysql_extra_opts $dbname
 }
 
 run_mysql_report_errors () {
