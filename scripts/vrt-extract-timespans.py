@@ -177,7 +177,7 @@ class TimespanExtractor(object):
                     if time[0]:
                         timestruct = re.match(r'<(\S+)', line).group(1)
                         timestruct_depth += 1
-                        if 'add' in self._opts.mode:
+                        if 'add' in self._opts.mode and not 'datefrom=' in line:
                             datefrom, dateto = self._make_output_dates(time,
                                                                        'add')
                             line = (line[:-2] + (' datefrom="{0}" dateto="{1}"'
