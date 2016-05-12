@@ -744,6 +744,7 @@ VRT_POSTPROCESS = \
 	$(VRT_EXTRACT_TIMESPANS) \
 	| $(VRT_FIX_ATTRS) \
 	| $(VRT_ADD_LEMGRAMS) \
+	$(if $(VRT_POSTPROCESS_EXTRA_FINAL),| $(VRT_POSTPROCESS_EXTRA_FINAL)) \
 	| $(COMPR)
 
 # This does not support passing compressed files or files requiring
