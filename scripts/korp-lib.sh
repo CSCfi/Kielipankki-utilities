@@ -457,6 +457,9 @@ indent_input () {
 
 # Common initialization code
 
+# The tab character
+tab='	'
+
 default_corpus_roots=${default_corpus_roots:-"/v/corpora /proj/clarin/korp/corpora $WRKDIR/corpora /wrk/jyniemi/corpora"}
 
 # Root directory, relative to which the corpus directory resides
@@ -475,7 +478,31 @@ korp_frontend_dir=${KORP_FRONTEND_DIR:-$(find_existing_dir -e config.js $default
 default_filegroups="korp clarin"
 find_filegroup $default_filegroups
 
-tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
+# Directory for temporary files
+tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-$TEMP}}}
+if [ "x$tmpdir" = "x" ]; then
+    default_tmpdirs=${default_tmpdirs:-"/tmp /var/tmp"}
+    tmpdir_cands=
+    # Find the directories that are writable
+    for tmpdir_cand in $default_tmpdirs; do
+	if [ -w $tmpdir_cand ]; then
+	    tmpdir_cands="$tmpdir_cands $tmpdir_cand"
+	fi
+    done
+    # Find the directory with the most free space: first find the
+    # number of the dir in $tmpdir_cands, then choose the dir with
+    # that number.
+    tmpdir_num=$(
+	df $tmpdir_cands |
+	tail -n+2 |
+	cat -n |
+	awk '{print $1 "\t" $5}' |
+	sort -s -k2,2nr |
+	head -1 |
+	cut -d"$tab" -f1
+    )
+    tmpdir=$(echo $tmpdir_cands | cut -d' ' -f$tmpdir_num)
+fi
 tmp_prefix=$tmpdir/$progname.$$
 
 # Korp MySQL database
@@ -504,9 +531,6 @@ elif [ -x /opt/mariadb/bin/mysql ]; then
 else
     mysql_bin=mysql
 fi
-
-# The tab character
-tab='	'
 
 cleanup_on_exit=1
 
