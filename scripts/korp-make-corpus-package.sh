@@ -5,6 +5,8 @@
 # files and Korp MySQL database information
 
 # TODO:
+# - Include possible fulltext files, and modify korp-install-corpora
+#   to install them.
 # - Check that the CWB data files include all the necessary indices
 #   produced by cwb-make. Possibly also other sanity checks for the
 #   corpus.
@@ -98,6 +100,8 @@ Usage: $progname [options] corpus_name [corpus_id ...]
 
 Make an archive package for corpus corpus_name, containing the Korp
 corpora corpus_id ... (or corpus_name if corpus_id not specified).
+corpus_id may contain shell wildcards, in which case all matching
+corpora in the corpus registry are included.
 
 Options:
   -h, --help      show this help
