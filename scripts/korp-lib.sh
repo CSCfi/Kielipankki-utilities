@@ -454,6 +454,30 @@ indent_input () {
     awk '{print "'"$_spaces"'" $0}'
 }
 
+# set_corpus_registry dir
+#
+# Set the CWB corpus registry directory (CORPUS_REGISTRY, cwb_regdir)
+# to dir.
+set_corpus_registry () {
+    CORPUS_REGISTRY=$1
+    export CORPUS_REGISTRY
+    corpus_registry_set=1
+    cwb_regdir=$CORPUS_REGISTRY
+}
+
+# set_corpus_root dir
+#
+# Set the CWB corpus root directory (corpus_root) to dir and set
+# CORPUS_REGISTRY to dir/registry unless already set externally (in
+# which case set cwb_regdir to $CORPUS_REGISTRY).
+set_corpus_root () {
+    corpus_root=$1
+    if [ "x$CORPUS_REGISTRY" = x ] || [ "x$corpus_registry_set" != "x" ]; then
+	set_corpus_registry "$corpus_root/registry"
+    fi
+    cwb_regdir=$CORPUS_REGISTRY
+}
+
 
 # Common initialization code
 
@@ -463,7 +487,7 @@ tab='	'
 default_corpus_roots=${default_corpus_roots:-"/v/corpora /proj/clarin/korp/corpora $WRKDIR/corpora /wrk/jyniemi/corpora"}
 
 # Root directory, relative to which the corpus directory resides
-corpus_root=${CORPUS_ROOT:-$(find_existing_dir -d "" $default_corpus_roots)}
+set_corpus_root ${CORPUS_ROOT:-$(find_existing_dir -d "" $default_corpus_roots)}
 
 default_cwb_bindirs=${default_cwb_bindirs:-"/usr/local/cwb/bin /usr/local/bin /proj/clarin/korp/cwb/bin $USERAPPL/bin /v/util/cwb/utils"}
 

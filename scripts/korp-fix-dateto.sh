@@ -16,22 +16,19 @@ progdir=`dirname $0`
 . $progdir/korp-lib.sh
 
 
-registry=$corpus_root/registry
-
-
 fix_dateto () {
     corpus=$1
-    if [ ! -e $registry/$corpus ]; then
+    if [ ! -e $cwb_regdir/$corpus ]; then
 	printf "Warning: Corpus $corpus not found in the CWB corpus registry\n"
 	return
-    elif ! grep -q text_dateto $registry/$corpus; then
+    elif ! grep -q text_dateto $cwb_regdir/$corpus; then
 	printf "Warning: Corpus $corpus has no text_dateto attribute\n"
 	return
     fi
     printf "$corpus: "
     origfile=$tmp_prefix.text_dateto_orig.pos
     corrfile=$tmp_prefix.text_dateto_corr.pos
-    $cwb_bindir/cwb-s-decode -r $registry $corpus -S text_dateto > $origfile
+    $cwb_bindir/cwb-s-decode $corpus -S text_dateto > $origfile
     if egrep -q '(0[469]|11)31$' $origfile; then
 	printf "Fixing... "
 	perl -pe '

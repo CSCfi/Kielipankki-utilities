@@ -323,7 +323,7 @@ while [ "x$1" != "x" ] ; do
 	    usage
 	    ;;
 	-c | --corpus-root )
-	    corpus_root=$2
+	    set_corpus_root "$2"
 	    shift
 	    ;;
 	--target-corpus-root )
@@ -335,7 +335,7 @@ while [ "x$1" != "x" ] ; do
 	    shift
 	    ;;
 	-r | --registry )
-	    regdir=$2
+	    set_corpus_registry "$2"
 	    shift
 	    ;;
 	-s | --sql-dir )
@@ -469,7 +469,7 @@ fi
 
 target_corpus_root=${target_corpus_root:-$corpus_root}
 pkgdir=${pkgdir:-$corpus_root/$pkgsubdir}
-regdir=$(remove_trailing_slash ${regdir:-$corpus_root/$regsubdir})
+regdir=$(remove_trailing_slash $cwb_regdir)
 datadir=$(remove_trailing_slash ${datadir:-$corpus_root/$datasubdir})
 sqldir=$(remove_trailing_slash ${sqldir:-$corpus_root/$sqlsubdir})
 tsvdir=$(remove_trailing_slash ${tsvdir:-$sqldir})

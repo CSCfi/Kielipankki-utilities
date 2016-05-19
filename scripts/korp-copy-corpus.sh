@@ -21,8 +21,6 @@ longopts=help,corpus-root:,registry:
 
 . $progdir/korp-lib.sh
 
-cwb_regdir=${CORPUS_REGISTRY:-$corpus_root/registry}
-
 multicorpus_tables="timedata timedata_date timespans lemgram_index corpus_info"
 multicorpus_tables_auth="auth_license auth_lbr_map auth_allow"
 
@@ -54,11 +52,11 @@ while [ "x$1" != "x" ] ; do
 	    usage
 	    ;;
 	-c | --corpus-root )
-	    corpus_root=$2
+	    set_corpus_root "$2"
 	    shift
 	    ;;
 	-r | registry )
-	    cwb_regdir=$2
+	    set_corpus_registry "$2"
 	    shift
 	    ;;
 	-- )

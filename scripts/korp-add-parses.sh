@@ -106,7 +106,7 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-c | --corpus-root )
 	    shift
-	    corpus_root=$1
+	    set_corpus_root "$1"
 	    ;;
 	--input-attrs | --input-fields )
 	    shift
@@ -167,7 +167,7 @@ fi
 corpus=$1
 shift
 
-if [ ! -e $corpus_root/registry/$corpus ]; then
+if [ ! -e $cwb_regdir/$corpus ]; then
     error "Corpus $corpus does not exist"
 fi
 
@@ -325,7 +325,7 @@ run_cwb_encode () {
 }
 
 add_registry_attrs () {
-    regfile=$corpus_root/registry/$corpus
+    regfile=$cwb_regdir/$corpus
     cp -p $regfile $regfile.bak
     grep '^ATTRIBUTE ' $regfile | cut -d' ' -f2 > $tmp_prefix.old_attrs
     # Interleave the old and new attributes

@@ -55,7 +55,7 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-c | --corpus-root )
 	    shift
-	    corpus_root=$1
+	    set_corpus_root "$1"
 	    ;;
 	-t | --tsv-dir )
 	    shift
@@ -82,18 +82,17 @@ while [ "x$1" != "x" ] ; do
 done
 
 
-regdir=${CORPUS_REGISTRY:-$corpus_root/registry}
 tsvdir=${tsvdir:-$corpus_root/$tsvsubdir}
 
-corpora=$(list_corpora $regdir "$@")
+corpora=$(list_corpora $cwb_regdir "$@")
 
 verbose_opt=
 if [ "x$verbose" != x ]; then
     verbose_opt=--verbose
 fi
 
-descr_corpus="$cwb_bindir/cwb-describe-corpus -r $regdir"
-s_decode="$cwb_bindir/cwb-s-decode -r $regdir"
+descr_corpus="$cwb_bindir/cwb-describe-corpus"
+s_decode="$cwb_bindir/cwb-s-decode"
 mysql_import="/v/korp/scripts/korp-mysql-import.sh --prepare-tables"
 
 

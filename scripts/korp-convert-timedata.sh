@@ -68,7 +68,7 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-c | --corpus-root )
 	    shift
-	    corpus_root=$1
+	    set_corpus_root "$1"
 	    ;;
 	-t | --tsv-dir )
 	    shift
@@ -92,14 +92,13 @@ while [ "x$1" != "x" ] ; do
 done
 
 
-regdir=${CORPUS_REGISTRY:-$corpus_root/registry}
 tsvdir=${tsvdir:-$corpus_root/$tsvsubdir}
 
 if [ "x$1" = x ]; then
     error "Please specify corpora"
 fi
 
-corpora=$(list_corpora $regdir "$@")
+corpora=$(list_corpora $cwb_regdir "$@")
 
 verbose_opt=
 if [ "x$verbose" != x ]; then
@@ -147,17 +146,17 @@ add_registry_attrs () {
             prevtext = 0
         }
         { print }
-        ' $regdir/$_corpus > $tmp_prefix.registry_new
-    if ! cmp -s $regdir/$_corpus $tmp_prefix.registry_new; then
-	cp -p $regdir/$_corpus $regdir/$_corpus.bak
-	mv $tmp_prefix.registry_new $regdir/$_corpus
+        ' $cwb_regdir/$_corpus > $tmp_prefix.registry_new
+    if ! cmp -s $cwb_regdir/$_corpus $tmp_prefix.registry_new; then
+	cp -p $cwb_regdir/$_corpus $cwb_regdir/$_corpus.bak
+	mv $tmp_prefix.registry_new $cwb_regdir/$_corpus
     fi
 }
 
 fix_text_timedata () {
     _corpus=$1
     echo_verb "  Updating text date and time attributes in CWB data"
-    $cwb_bindir/cwb-s-decode -r $regdir $_corpus -S text \
+    $cwb_bindir/cwb-s-decode $_corpus -S text \
 	> $tmp_prefix.text.tsv 2> $tmp_prefix.text.err
     if grep -q "Can't access s-attribute" $tmp_prefix.text.err; then
 	echo_verb "    No structural attribute 'text' in corpus $_corpus; skipping"
@@ -165,7 +164,7 @@ fix_text_timedata () {
     fi
     for attrname in datefrom timefrom dateto timeto; do
 	_fname=$tmp_prefix.$attrname.tsv
-	$cwb_bindir/cwb-s-decode -r $regdir $_corpus -S text_$attrname \
+	$cwb_bindir/cwb-s-decode $_corpus -S text_$attrname \
 	    2> $_fname.err |
 	cut -d"$tab" -f3 > $_fname
 	if grep -q "Can't access s-attribute" $_fname.err; then
@@ -190,7 +189,7 @@ fix_text_timedata () {
 	    done
 	fi
 	cut -d"$tab" -f1,2,$fieldnum $tmp_prefix.fromto_new.tsv |
-	$cwb_bindir/cwb-s-encode -r $regdir -B -d $corpus_root/data/$_corpus \
+	$cwb_bindir/cwb-s-encode -B -d $corpus_root/data/$_corpus \
 	    -V text_$attrname
     done <<EOF
 datefrom 3

@@ -76,7 +76,7 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-c | --corpus-root )
 	    shift
-	    corpus_root=$1
+	    set_corpus_root "$1"
 	    ;;
 	-o | --output-dir )
 	    shift
@@ -118,9 +118,8 @@ For more information, run '$0 --help'."
 fi
 
 outputdir=${outputdir:-$corpus_root/$tsvsubdir}
-regdir=${CORPUS_REGISTRY:-$corpus_root/registry}
 
-corpora=$(list_corpora $regdir "$@")
+corpora=$(list_corpora $cwb_regdir "$@")
 
 fname_suffix=.tsv$(eval echo \$compr_suffix_$compress)
 
