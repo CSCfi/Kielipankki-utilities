@@ -1,11 +1,16 @@
 #! /bin/sh
 
-# Fix the unannotated text files of the Helsinki Corpus of Swahili:
+# Fix the files of the Helsinki Corpus of Swahili.
 # - Fix Windows-1252 characters to UTF-8
-# - Glue full stops to the preceding word
 # - Convert Windows CP-1252 apostrophes to ASCII ones
 # - Add possibly missing final </text>
 # - Add a final newline
+#
+# For unannotated files (*.shu):
+# - Glue full stops to the preceding word
+#
+# For annotated files (*.anl):
+# - Add missing sentence start and end tags
 
 
 progname=`basename $0`
@@ -26,7 +31,10 @@ usage () {
     cat <<EOF
 Usage: $progname [options] file ...
 
-Fix the unannotated text files of the Helsinki Corpus of Swahili.
+Fix the files of the Helsinki Corpus of Swahili.
+
+Uses a slightly different set of fixes depending on the file extension:
+.shu (unannotated text files) or .anl (analysed, VRT-like files).
 
 Options:
   -h, --help
@@ -64,16 +72,86 @@ while [ "x$1" != "x" ] ; do
     shift
 done
 
+fix_shu () {
+    perl -pe '
+        # Remove space before the final full stop
+	s/ \.$/./;'
+}
+
+fix_anl () {
+    perl -ne '
+        if (/^\s*$/) {
+           next;
+        }
+        if (/^<sentence.*id="(.*?)"/) {
+            $s_id = $1;
+            $s_idn = 0;
+            print $prev;
+            # If the previous sentence element was not closed, add an
+            # end tag
+            print "</sentence>\n" if ($in_s);
+            $in_s = 1;
+            $prev = $_;
+            next;
+        } elsif (/^<\/sentence/) {
+            $in_s = 0;
+        } elsif (/^<s>\t/ && $prev =~ /^"<(\d+?)\.>"\s+<Heur>/) {
+            # If the lemma is <s> and the previous line contains a
+            # number ending in a full stop and marked with <Heur>, add
+            # a sentence break, with the new sentence id taken from
+            # the previous line
+            print "</sentence>\n" if ($in_s);
+            $prev = "<sentence id=\"$1\">\n";
+            $s_id = $1;
+            $s_idn = 0;
+            $in_s = 1;
+            next;
+        } elsif (! /^</ && ! /^"<(\d+?)\.>"\s+<Heur>/ && ! $in_s) {
+            # A token line with no sentence open: add a sentence start
+            # tag with the id n-m, where n is the id of the previous
+            # specified sentence and m a running number starting from
+            # 1 for each n
+	    $s_idn += 1;
+            print $prev;
+	    $prev = ("<sentence id=\"$s_id" . sprintf ("-%02d", $s_idn)
+                     . "\">\n");
+            $in_s = 1;
+            next;
+        } elsif (/^<\/text/) {
+            # If the line preceding the text end tag was a sentence
+            # start tag, remove the latter; otherwise, if it was not a
+            # sentence end tag, add one
+            if ($prev =~ /^<sentence/) {
+                $prev = "";
+            } elsif ($prev !~ /^<\/sentence/) {
+                print $prev;
+                $prev = "</sentence>\n";
+            }
+            $prev .= $_;
+            last;
+        }
+        print $prev if ($prev);
+        $prev = $_;
+        END {
+            print $prev if ($prev && $prev !~ /^<sentence/);
+        }'
+	# } elsif (/^\($$/) {
+	# 	if ($$. > 1) {
+	# 		print "</text>\n";
+	# 	}
+	# 	print "<text>\n";
+	# 	next;
+}
+
 fix_file_content () {
     # repair-utf8 fixes invalid UTF-8, whereas ftfy
     # <https://github.com/LuminosoInsight/python-ftfy> fixes
     # UTF-8-encoded CP-1252 characters and also converts typographic
     # quotation marks to ASCII ones.
+    specific_fixer=fix_$(echo "$1" | sed -e 's/.*\.//')
     $scriptdir/repair-utf8 --encoding=cp1252 "$1" |
     ftfy |
     perl -CSD -pe '
-        # Remove space before the final full stop
-	s/ \.$/./;
         # Add a possibly missing newline to the end of the file
 	if (! /\n$/) {
 	    $_ = "$_\n";
@@ -91,7 +169,20 @@ fix_file_content () {
         END {
             # Add missing text end tag
             print "</text>\n" unless ($text_end);
-        }'
+        }' |
+    $specific_fixer
+}
+
+check_file () {
+    s_start=$(grep -c '^<sentence' "$1")
+    s_end=$(grep -c '^</sentence' "$1")
+    if [ $s_start != $s_end ]; then
+	echo "sentence tag counts differ: $s_start start tags, $s_end end tags"
+    fi
+    text_end=$(grep -c '^</text' "$1")
+    if [ $text_end != 1 ]; then
+	echo "$text_end </text> tags"
+    fi
 }
 
 fix_file () {
@@ -117,6 +208,7 @@ fix_file () {
     fi
     echo "Fixing $infile to $outfile"
     fix_file_content "$infile" > "$outfile"
+    check_file "$outfile"
 }
 
 fix_files () {
