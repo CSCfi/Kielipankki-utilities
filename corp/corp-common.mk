@@ -224,6 +224,9 @@ CORPNAME_BASEBASE := \
 	$(call partvar_or_default,CORPNAME_BASEBASE,\
 		$(or $(CORPNAME_BASEBASE),$(CORPNAME_BASE)))
 
+CORPNAME := $(call partvar,CORPNAME_PREFIX)$(CORPNAME_BASE)$(call partvar,CORPNAME_SUFFIX)
+CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
+
 # CORPORA: The corpora to make with the current makefile. If not
 # specified explicitly, all the stems of .mk files in the current
 # directory except *-common, *_any and those in IGNORE_CORPORA, or if
@@ -239,6 +242,15 @@ $(call showvars,SRC_SUBDIR)
 
 WITHIN_CORP_MK := $(filter %.mk,$(firstword $(MAKEFILE_LIST)))
 
+CORPDIR = $(CORPROOT)/data
+CORPCORPDIR = $(CORPDIR)/$(CORPNAME)
+REGDIR = $(CORPROOT)/registry
+CORPSQLDIR = $(CORPROOT)/sql
+# Directory for various built files: VRT, TSV, timestamps
+CORP_BUILDDIR = $(CORPROOT)/vrt/$(CORPNAME)
+
+$(call showvars,CORPNAME CORPNAME_U CORPROOT CORPDIR CORPCORPDIR CORP_BUILDDIR)
+
 # The subdirectory of CORPSRCROOT for the corpus source files; can be
 # overridden in individual corpus makefiles. WITHIN_CORP_MK is defined
 # if this file is included in a CORPUS.mk makefile (and not Makefile).
@@ -249,7 +261,9 @@ SRC_SUBDIR := \
 # corpus makefile
 SRC_DIR := $(call partvar_or_default,SRC_DIR,$(CORPSRCROOT)/$(SRC_SUBDIR))
 
-SRC_FILES := $(or $(call partvar,SRC_FILES),$(call partvar,SRC_FILES_GENERATED))
+SRC_FILES := $(call partvar,SRC_FILES)
+
+SRC_FILES_GENERATED := $(call partvar,SRC_FILES_GENERATED)
 
 SRC_FILES_LS_OPTS := $(call partvar_or_default,SRC_FILE_LS_OPTS,-v)
 
@@ -263,11 +277,17 @@ list_files = \
 # SRC_FILES (relative to SRC_DIR) must be defined in a corpus-specific
 # makefile. Wildcards in SRC_FILES are expanded, and files specified
 # in SRC_FILES_EXCLUDE (relative to SRC_DIR) are excluded.
+# SRC_FILES_GENERATED is appended, if any. NOTE: SRC_FILES_GENERATED
+# does not support wildcards
 SRC_FILES_REAL := \
-	$(filter-out $(addprefix $(SRC_DIR)/,\
-				 $(call partvar,SRC_FILES_EXCLUDE)),\
+	$(if $(SRC_FILES),\
+		$(filter-out \
+			$(addprefix $(SRC_DIR)/,\
+				$(call partvar,SRC_FILES_EXCLUDE)),\
 			$(call list_files,\
-			       $(addprefix $(SRC_DIR)/,$(SRC_FILES))))
+				$(addprefix $(SRC_DIR)/,$(SRC_FILES))))) \
+	$(addprefix $(CORP_BUILDDIR)/,$(SRC_FILES_GENERATED))
+
 
 FULLTEXT_SUBDIR := $(call partvar_or_default,FULLTEXT_SUBDIR,$(CORPNAME_MAIN))
 FULLTEXT_DIR := $(call partvar_or_default,FULLTEXT_DIR,\
@@ -366,9 +386,6 @@ TARGETS := \
 # A : needs to be represented as \: and # as \\\#.
 SUBTARGET_SEP = \:
 
-CORPNAME := $(call partvar,CORPNAME_PREFIX)$(CORPNAME_BASE)$(call partvar,CORPNAME_SUFFIX)
-CORPNAME_U := $(shell echo $(CORPNAME) | perl -pe 's/(.*)/\U$$1\E/')
-
 DEP_MAKEFILES := $(if $(call eqs,$(call lower,$(MAKEFILE_DEPS)),false),,\
 			$(MAKEFILE_LIST))
 
@@ -431,14 +448,8 @@ CWBDIR_ALTS = \
 # Choose the first directory (if any) containing cwb-encode
 CWBDIR ?= \
 	$(dir $(firstword $(wildcard $(addsuffix /cwb-encode,$(CWBDIR_ALTS)))))
-CORPDIR = $(CORPROOT)/data
-CORPCORPDIR = $(CORPDIR)/$(CORPNAME)
-REGDIR = $(CORPROOT)/registry
-CORPSQLDIR = $(CORPROOT)/sql
-# Directory for various built files: VRT, TSV, timestamps
-CORP_BUILDDIR = $(CORPROOT)/vrt/$(CORPNAME)
 
-$(call showvars,CWBDIR CORPNAME CORPROOT CORPDIR CORPCORPDIR CORP_BUILDDIR)
+$(call showvars,CWBDIR)
 
 PKGNAME_BASE ?= $(CORPNAME_BASE)
 PKGDIR ?= $(CORPROOT)/pkgs
@@ -605,8 +616,6 @@ ifeq ($(strip $(SRC_FILES_GENERATED)),)
 $(error No file(s) $(SRC_FILES) found in $(SRC_DIR))
 else
 TOP_TARGETS = generate-src all
-# NOTE: This means that SRC_FILES_GENERATED does not support wildcards
-SRC_FILES_REAL = $(addprefix $(CORP_BUILDDIR)/,$(SRC_FILES_GENERATED))
 endif
 endif
 
@@ -661,7 +670,7 @@ subdirs: $(SUBDIRS)
 $(SUBDIRS):
 	$(MAKE) -C $@
 
-generate-src: $(SRC_FILES_REAL)
+generate-src: $(SRC_FILES_GENERATED)
 
 .PHONY: all-top $(TOP_TARGETS) all subdirs $(SUBDIRS)
 
