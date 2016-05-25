@@ -127,8 +127,11 @@ class PartialStringFormatter(string.Formatter):
 def run(main, input_encoding='utf-8', output_encoding='utf-8', *args, **kwargs):
     """Run the main function; catch IOErrors and KeyboardInterrupt."""
     try:
-        sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
-        sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
+        if input_encoding:
+            sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
+        if output_encoding:
+            sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
+            sys.stderr = codecs.getwriter(output_encoding)(sys.stderr)
         main(*args, **kwargs)
     except IOError, e:
         if e.errno == errno.EPIPE:
