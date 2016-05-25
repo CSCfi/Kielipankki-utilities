@@ -6,6 +6,9 @@ CORPNAME_BASE = dma
 SRC_FILES = tsv/dma6.tsv
 # SRC_FILES = dma6-sample2.tsv.gz
 # SRC_FILES = dma6-test2.tsv
+SRC_FILES_GENERATED = dma_2014-2015.tsv
+
+src_files_new = $(SRC_DIR)/uudet/*.txt
 
 P_ATTRS = searchword wordtype
 
@@ -22,3 +25,19 @@ MAKE_VRT_CMD = \
 	| /usr/bin/env PYTHONPATH=$(SCRIPTDIR) ./dma-tsv2vrt.py
 
 include ../corp-common.mk
+
+
+# Convert the new original files to roughly the same format as the SUI
+# DMA MySQL database dump (dma6.tsv)
+$(CORP_BUILDDIR)/dma_2014-2015.tsv: $(src_files_new)
+	cat $^ \
+	| tr -d '\015' \
+	| grep -vih '^Area' \
+	| grep -v '^	' \
+	| perl -pe 's/\s+\n/\n/; s/(\s)\}(\s)/$$1]$$2/g' \
+	| awk -F'	' 'BEGIN {OFS = FS} {$$8 = $$4; print}' \
+	| scripts-old/muuta_korvausmerkit.pl \
+	| scripts-old/muuta_rakenne.pl \
+	| scripts-old/lisaa_pdf_linkit.pl \
+	| perl -pe 's/^(.*?)\t(.*?)(\t.+)$$/\t$$1\t$$1 $$2\t$$2$$3\t/' \
+	| iconv -fcp1252 > $@
