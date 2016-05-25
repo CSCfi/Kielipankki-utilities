@@ -17,6 +17,7 @@ The input TSV data is a dump of the DMA MySQL table.
 
 import sys
 import re
+import time
 
 from xml.sax.saxutils import escape
 
@@ -30,6 +31,7 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
         self._fieldnames = {}
         self._empty_count = 0
         self._mismatch_count = 0
+        self._timestamp = str(int(time.time()))
 
     def process_input_stream(self, stream, filename=None):
         first_line = True
@@ -66,6 +68,8 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
         # fields as well?
         if fields['pdf'] == '-':
             fields['pdf'] = ''
+        if not fields['updated']:
+            fields['updated'] = self._timestamp
         result = []
         result.append(self._make_start_tag(
             'text', fields, ['dialect_region', 'dialect_group',
