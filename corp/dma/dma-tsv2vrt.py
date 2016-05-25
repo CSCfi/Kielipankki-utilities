@@ -28,25 +28,24 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
 
     def __init__(self, args=None):
         super(DmaToVrtConverter, self).__init__()
+        self._linenr = 0
         self._fieldnames = {}
         self._empty_count = 0
         self._mismatch_count = 0
         self._timestamp = str(int(time.time()))
 
     def process_input_stream(self, stream, filename=None):
-        first_line = True
-        for line in stream:
-            if first_line:
+        for linenr, line in enumerate(stream):
+            if linenr == 0:
                 self._fieldnames = line[:-1].split('\t')
-                first_line = False
             else:
+                self._linenr = linenr + 1
                 sys.stdout.write(self._convert_line(line))
-        if self._empty_count > 0:
-            sys.stderr.write('Warning: {0} sentences with one empty sequence\n'
-                             .format(self._empty_count))
-        if self._mismatch_count > 0:
-            sys.stderr.write('Warning: {0} sentence token count mismatches\n'
-                             .format(self._mismatch_count))
+        for count, descr in [
+                (self._empty_count, 'sentences with one empty sequence'),
+                (self._mismatch_count, 'sentence token count mismatches'),]:
+            if count > 0:
+                sys.stderr.write('Warning: {0} {1}\n'.format(count, descr))
 
     def _convert_line(self, line):
         fields = self._make_fields(line[:-1].split('\t'))
@@ -154,9 +153,9 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
                 self._empty_count += 1
                 # print tokenfields
             else:
-                sys.stderr.write('Warning: token counts differ '
-                                 + repr(tokenfield_lens) + ': '
-                                 + repr(fields) + '\n')
+                sys.stderr.write(
+                    u'Warning: token counts differ on line {0}: {1!r}: {2!r}\n'
+                    .format(self._linenr, tokenfield_lens, fields))
                 self._mismatch_count += 1
                 tokenfields = self._justify(tokenfields)
         for i in xrange(max_tokencount):
