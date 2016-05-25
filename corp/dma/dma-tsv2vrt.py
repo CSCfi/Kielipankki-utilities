@@ -33,7 +33,9 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
         self._empty_count = 0
         self._mismatch_count = 0
         self._empty_text_count = 0
+        self._dupl_count = 0
         self._timestamp = str(int(time.time()))
+        self._seen_clauses = {}
 
     def process_input_stream(self, stream, filename=None):
         for linenr, line in enumerate(stream):
@@ -47,7 +49,8 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
         for count, descr in [
                 (self._empty_count, 'sentences with one empty sequence'),
                 (self._mismatch_count, 'sentence token count mismatches'),
-                (self._empty_text_count, 'sentences with empty text'),]:
+                (self._empty_text_count, 'sentences with empty text'),
+                (self._dupl_count, 'duplicate sentences'),]:
             if count > 0:
                 sys.stderr.write('Warning: {0} {1}\n'.format(count, descr))
 
@@ -58,6 +61,17 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
                              .format(self._linenr, line))
             self._empty_text_count += 1
             return ''
+        if (fields['parish'], fields['text']) in self._seen_clauses:
+            dupl_linenr, dupl_line = self._seen_clauses[(fields['parish'],
+                                                         fields['text'])]
+            sys.stderr.write(
+                u'Warning: skipping line {0} as duplicate of {1}:\n'
+                u'  {0}:\t{2}  {1}:\t{3}'
+                .format(self._linenr, dupl_linenr, line, dupl_line))
+            self._dupl_count += 1
+            return ''
+        self._seen_clauses[(fields['parish'], fields['text'])] = (self._linenr,
+                                                                  line)
         fields['signumlist'] = fields['signum']
         fields['signum'] = '|' + '|'.join(fields['signum'].split()) + '|'
         # sys.stderr.write(repr(fields) + '\n')
