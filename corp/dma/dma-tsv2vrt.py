@@ -32,6 +32,7 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
         self._fieldnames = {}
         self._empty_count = 0
         self._mismatch_count = 0
+        self._empty_text_count = 0
         self._timestamp = str(int(time.time()))
 
     def process_input_stream(self, stream, filename=None):
@@ -40,15 +41,23 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
                 self._fieldnames = line[:-1].split('\t')
             else:
                 self._linenr = linenr + 1
-                sys.stdout.write(self._convert_line(line))
+                converted_line = self._convert_line(line)
+                if converted_line:
+                    sys.stdout.write(converted_line)
         for count, descr in [
                 (self._empty_count, 'sentences with one empty sequence'),
-                (self._mismatch_count, 'sentence token count mismatches'),]:
+                (self._mismatch_count, 'sentence token count mismatches'),
+                (self._empty_text_count, 'sentences with empty text'),]:
             if count > 0:
                 sys.stderr.write('Warning: {0} {1}\n'.format(count, descr))
 
     def _convert_line(self, line):
         fields = self._make_fields(line[:-1].split('\t'))
+        if fields['text'] in ['-', '']:
+            sys.stderr.write(u'Warning: skipping line {0} with empty text:\n{1}'
+                             .format(self._linenr, line))
+            self._empty_text_count += 1
+            return ''
         fields['signumlist'] = fields['signum']
         fields['signum'] = '|' + '|'.join(fields['signum'].split()) + '|'
         # sys.stderr.write(repr(fields) + '\n')
