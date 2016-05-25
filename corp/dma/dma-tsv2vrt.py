@@ -61,6 +61,7 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
             fields['search_words'] = fields['text_words']
         fields['dialect_group'] = fields['area']
         fields['dialect_region'] = fields['dialect_group'][0]
+        fields['word_type'] = self._make_word_types(fields['text'])
         # Should we convert a single dash to an empty value in other
         # fields as well?
         if fields['pdf'] == '-':
@@ -74,7 +75,8 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
             ['id', 'signum', 'signumlist', 'informant', 'informant_sex',
              'informant_birthyear', 'comment', 'location', 'pdf', 'updated',
              'text_words', 'search_words']))
-        result.extend(self._verticalize(fields['text'], fields['search']))
+        result.extend(self._verticalize(fields['text'], fields['search'],
+                                        fields['word_type']))
         result.append('</sentence>')
         result.append('</text>')
         return '\n'.join(result) + '\n'
@@ -104,6 +106,17 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
             return mo.group(1), mo.group(2)
         else:
             return parish_name, ''
+
+    def _make_word_types(self, text):
+        word_types = []
+        comment = False
+        for word in text.split():
+            if word == '[':
+                comment = True
+            word_types.append('comment' if comment else 'informant')
+            if word == ']':
+                comment = False
+        return ' '.join(word_types)
 
     def _make_words_featset(self, text):
         return ('|'

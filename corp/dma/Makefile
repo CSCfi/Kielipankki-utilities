@@ -7,7 +7,7 @@ SRC_FILES = tsv/dma6.tsv
 # SRC_FILES = dma6-sample2.tsv.gz
 # SRC_FILES = dma6-test2.tsv
 
-P_ATTRS = searchword
+P_ATTRS = searchword wordtype
 
 CORPUS_DATE = unknown
 
