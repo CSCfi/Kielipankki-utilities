@@ -10,7 +10,9 @@ SRC_FILES_GENERATED = dma_2014-2015.tsv
 
 src_files_new = $(SRC_DIR)/uudet/*.txt
 
-P_ATTRS = searchword wordtype
+# lemma, pos and msd are only used to convey place name information to
+# Korp's map facility.
+P_ATTRS = searchword wordtype lemma pos msd
 
 CORPUS_DATE = unknown
 
@@ -23,6 +25,8 @@ MAKE_VRT_PROG = ./dma-tsv2vrt.py
 MAKE_VRT_CMD = \
 	perl -CSD -pe 's/\x85/\x{2026}/g; s/\x8A/\x{0160}/g; s/\x91/\x{2018}/g; s/\x92/\x{2019}/g; s/\x93/\x{201D}/g; s/\x94/\x{201E}/g; s/\x96/\x{2013}/g; s/\x9a/\x{0161}/g; s/[\x00-\x08\x0B-\x1F]//g' \
 	| /usr/bin/env PYTHONPATH=$(SCRIPTDIR) ./dma-tsv2vrt.py
+	| $(SCRIPTDIR)/vrt-add-placenames.py \
+		--source-attribute="text_parish_name"
 
 include ../corp-common.mk
 
