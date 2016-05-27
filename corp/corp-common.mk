@@ -79,6 +79,9 @@ TOPDIR = $(dir $(lastword $(MAKEFILE_LIST)))
 
 SCRIPTDIR = $(TOPDIR)/../scripts
 
+# Run a Python script that may use the modules in $(SCRIPTDIR)
+RUN_PYTHON = /usr/bin/env PYTHONPATH=$(SCRIPTDIR) python
+
 CORPROOT_ALTS = \
 	/v/corpora /proj/clarin/korp/corpora $(WRKDIR)/corpora \
 	/wrk/jyniemi/corpora
