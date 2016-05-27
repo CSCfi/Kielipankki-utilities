@@ -26,6 +26,25 @@ import korpimport.util
 
 class DmaToVrtConverter(korpimport.util.InputProcessor):
 
+    _replchars_remove = r'(?:[~/\\{}|^]|\\\\)'
+    _replchars_remove_re = re.compile(
+        r'(?<=\S)' + _replchars_remove + '|' + _replchars_remove + r'(?=\S)')
+    _replchars_replace = [
+        (u'£', u'ä'),
+        (u'å', u'o'),
+        (u'%', u'ö'),
+        (u'§', u't'),
+        (u'$', u't'),
+        (u'é', u'e'),
+        (u'ô', u'o'),
+        (u'ê', u'e'),
+        (u'î', u'i'),
+        (u'û', u'u'),
+        (u'##', u'ng'),
+        (u'#', u'n'),
+        (u'  ', u' '),
+    ]
+
     def __init__(self, args=None):
         super(DmaToVrtConverter, self).__init__()
         self._linenr = 0
@@ -34,6 +53,7 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
         self._mismatch_count = 0
         self._empty_text_count = 0
         self._dupl_count = 0
+        self._near_dupl_count = 0
         self._timestamp = str(int(time.time()))
         self._seen_clauses = {}
 
@@ -50,35 +70,53 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
                 (self._empty_count, 'sentences with one empty sequence'),
                 (self._mismatch_count, 'sentence token count mismatches'),
                 (self._empty_text_count, 'sentences with empty text'),
-                (self._dupl_count, 'duplicate sentences'),]:
+                (self._dupl_count, 'duplicate sentences'),
+                (self._near_dupl_count, 'sentences differing only in comment'),
+        ]:
             if count > 0:
                 sys.stderr.write('Warning: {0} {1}\n'.format(count, descr))
 
     def _convert_line(self, line):
         fields = self._make_fields(line[:-1].split('\t'))
+        self._lineinfo = u'{0} (id {1})'.format(self._linenr, fields['id'])
         if fields['text'] in ['-', '']:
             sys.stderr.write(u'Warning: skipping line {0} with empty text:\n{1}'
                              .format(self._linenr, line))
             self._empty_text_count += 1
             return ''
         if (fields['parish'], fields['text']) in self._seen_clauses:
-            dupl_linenr, dupl_line = self._seen_clauses[(fields['parish'],
-                                                         fields['text'])]
-            sys.stderr.write(
-                u'Warning: skipping line {0} as duplicate of {1}:\n'
-                u'  {0}:\t{2}  {1}:\t{3}'
-                .format(self._linenr, dupl_linenr, line, dupl_line))
-            self._dupl_count += 1
-            return ''
-        self._seen_clauses[(fields['parish'], fields['text'])] = (self._linenr,
-                                                                  line)
-        fields['signumlist'] = fields['signum']
-        fields['signum'] = '|' + '|'.join(fields['signum'].split()) + '|'
+            dupl_lineinfo, dupl_line, dupl_comment = self._seen_clauses[
+                (fields['parish'], fields['text'])]
+            if dupl_comment == fields['comment']:
+                sys.stderr.write(
+                    u'Warning: line {0} looks like a duplicate of {1}:\n'
+                    u'  {2}  {3}'
+                    .format(self._lineinfo, dupl_lineinfo, line, dupl_line))
+                self._dupl_count += 1
+            else:
+                sys.stderr.write(
+                    u'Warning: lines {0} and {1} differ only in comment:\n'
+                    u'  {2}  {3}'
+                    .format(self._lineinfo, dupl_lineinfo, line, dupl_line))
+                self._near_dupl_count += 1
+        self._seen_clauses[(fields['parish'], fields['text'])] = (
+            self._linenr, line, fields['comment'])
+        signums = sorted(list(set(fields['signum'].split())))
+        fields['signumlist'] = ' '.join(signums)
+        fields['signum'] = '|' + '|'.join(signums) + '|'
         # sys.stderr.write(repr(fields) + '\n')
         fields['informant_sex'], fields['informant_birthyear'] = (
             self._extract_informant_info(fields['informant']))
         fields['parish_name'], fields['village'] = self._split_village(
             fields['parishname'])
+        old_search = fields['search']
+        fields['search'] = self._convert_replchars(fields['text'])
+        if fields['search'] != old_search:
+            sys.stderr.write(
+                u'Changed the search field on line {0}:\n'
+                u'  text:       {1}\n  old search: {2}\n  new search: {3}\n'
+                .format(self._lineinfo, fields['text'], old_search,
+                        fields['search']))
         for field in ['text', 'search']:
             fields[field + '_words'] = self._make_words_featset(fields[field])
         if fields['search_words'] == '||':
@@ -108,7 +146,7 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
         return '\n'.join(result) + '\n'
     
     def _make_fields(self, values):
-        d = dict((self._fieldnames[num].lower(), val)
+        d = dict((self._fieldnames[num].lower(), val.strip())
                  for num, val in enumerate(values))
         # print values, d
         return d
@@ -144,6 +182,12 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
                 comment = False
         return ' '.join(word_types)
 
+    def _convert_replchars(self, text):
+        text = self._replchars_remove_re.sub('', text)
+        for c1, c2 in self._replchars_replace:
+            text = text.replace(c1, c2)
+        return text
+
     def _make_words_featset(self, text):
         return ('|'
                 + '|'.join(word for word in
@@ -178,7 +222,7 @@ class DmaToVrtConverter(korpimport.util.InputProcessor):
             else:
                 sys.stderr.write(
                     u'Warning: token counts differ on line {0}: {1!r}: {2!r}\n'
-                    .format(self._linenr, tokenfield_lens, fields))
+                    .format(self._lineinfo, tokenfield_lens, fields))
                 self._mismatch_count += 1
                 tokenfields = self._justify(tokenfields)
         for i in xrange(max_tokencount):

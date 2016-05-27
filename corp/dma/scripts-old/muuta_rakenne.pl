@@ -49,11 +49,11 @@ for ($i = 0; $i < @rivit; ++$i) {
          $ed_koodi =~ s#[ ]+$##;
       }
   
-      if ($ed_koodi eq $koodi) {
-          print STDERR "Huom! Poistettu duplikaatti. " . $pitaja . " r. " . $i . ": " . $ed_koodi . "<->" . $koodi . "\n";
-          next;
-      }
-      elsif ($koodi eq "") {
+      # if ($ed_koodi eq $koodi) {
+      #     print STDERR "Huom! Poistettu duplikaatti. " . $pitaja . " r. " . $i . ": " . $ed_koodi . "<->" . $koodi . "\n";
+      #     next;
+      # }
+      if ($koodi eq "") {
 	  next;
       }
       elsif (($koodi =~ /^[0-9]+[a-z][0-9]+/) && (length($koodi) == 7)) {
