@@ -23,9 +23,9 @@ class VrtData(list):
 
     def open_struct(self, name, attrs):
         self._struct_stack.append(name)
-        self.append([self._make_starttag(name, attrs)])
+        self.append([self.make_starttag(name, attrs)])
 
-    def _make_starttag(self, name, attrs):
+    def make_starttag(self, name, attrs):
         try:
             attrs = attrs.iteritems()
         except AttributeError:
@@ -38,9 +38,14 @@ class VrtData(list):
                            for attrname, attrval in attrs)
                 + '>')
 
-    def close_struct(self):
+    def close_struct(self, name=None):
+        if name and self._struct_stack and name != self._struct_stack[-1]:
+            return
         name = self._struct_stack.pop()
-        self.append(['</' + name + '>'])
+        self.append([self.make_endtag(name)])
+
+    def make_endtag(self, name):
+        return '</' + name + '>'
 
     def close_all_structs(self):
         while self._struct_stack:
@@ -110,6 +115,14 @@ class ElfaToVrtConverter(korpimport.util.InputProcessor):
 
     def __init__(self):
         super(ElfaToVrtConverter, self).__init__()
+        # TODO: Add an option to enable or disable this
+        self._break_utterances = True
+        if self._break_utterances:
+            self._sentence_break = ['<SENTENCE_BREAK>']
+            self._utterance_struct = 'paragraph'
+        else:
+            self._sentence_break = []
+            self._utterance_struct = 'sentence'
 
     def process_input_stream(self, stream, filename=None):
         # print 'FILE', filename
@@ -124,9 +137,6 @@ class ElfaToVrtConverter(korpimport.util.InputProcessor):
         self._elemstack = []
         self._mode = 'speaking'
         self._voice = 'normal'
-        self._synch = ''
-        self._other_speaker = ''
-        self._other_content = ''
         self._vrt = VrtData()
         self._construct_vrt()
         self._output_vrt()
@@ -255,7 +265,7 @@ class ElfaToVrtConverter(korpimport.util.InputProcessor):
             return []
 
     def _make_token(self, token, token_type='word', token_subtype='',
-                    span_id='', synch='', other_speaker='', other_content=''):
+                    span_id=''):
         if token_type == 'word':
             if token in ['er', 'erm', 'mhm', 'ah']:
                 token_type = 'hesitation'
@@ -265,11 +275,9 @@ class ElfaToVrtConverter(korpimport.util.InputProcessor):
                 token_subtype = 'unfinished'
         span_id = span_id or self._utterance_id
         voice = self._voice if token_type in ['word', 'voice_shift'] else ''
-        synch = synch or self._synch
-        other_speaker = other_speaker or self._other_speaker
-        other_content = other_content or self._other_content
         return [token, token_type, token_subtype, span_id, self._mode, voice,
-                ' '.join(self._elemstack), synch, other_speaker, other_content]
+                (('|' + '|'.join(self._elemstack) + '|') if self._elemstack
+                 else '|' )]
 
     def _make_elem_tokens(self, elem):
         tagname = self._tagname(elem)
@@ -299,18 +307,24 @@ class ElfaToVrtConverter(korpimport.util.InputProcessor):
         return ('<' + ' '.join([text.upper()] + list(attrs)) + '>'
                 + content + '</' + text.upper() + '>')
 
-    def _make_elem_tokens_pause(self, elem):
+    def _make_elem_tokens_pause(self, elem, breaks=True):
         pause_length = elem.get('type') or elem.get('dur')
+        sent_break = ([self._sentence_break]
+                      if self._break_utterances and breaks else [])
+        maybe_sent_break = []
         if pause_length == 'P2-3sec':
             token_text = ','
         elif pause_length == 'P3-4sec':
             token_text = '.'
+            maybe_sent_break = sent_break
         else:
             mo = re.match('PT(\d+)S', pause_length)
             if mo:
                 pause_length = mo.group(1)
             token_text = self._make_tag_text('P:', pause_length)
-        return [self._make_token(token_text, 'pause')]
+            maybe_sent_break = sent_break
+        # Should we also add a break before the pause?
+        return [self._make_token(token_text, 'pause')] + maybe_sent_break
 
     def _make_elem_tokens_gap(self, elem):
         return [self._make_token('(xx)', 'unclear')]
@@ -321,15 +335,17 @@ class ElfaToVrtConverter(korpimport.util.InputProcessor):
                                  token_subtype='anonymized_name')]
 
     def _make_elem_tokens_anchor(self, elem):
-        self._set_synch_info(elem)
-        token = [self._make_token(
-            self._make_tagged_text(self._other_speaker.split('_')[1],
-                                   self._other_content),
-            'backchannel')]
-        self._reset_synch_info()
-        return token
+        synch_info = self._get_synch_info(elem)
+        synch_info['type'] = 'anchor'
+        return [[self._vrt.make_starttag('synch', synch_info)],
+                self._make_token(
+                    self._make_tagged_text(
+                        synch_info['speaker_id'].split('_')[1],
+                        synch_info['content']),
+                    'backchannel'),
+                [self._vrt.make_endtag('synch')]]
 
-    def _set_synch_info(self, elem):
+    def _get_synch_info(self, elem):
         id_ = elem.get(self._xml_id)
         # print id_
         synch_cond = '@synch="#' + id_ + '"'
@@ -353,25 +369,26 @@ class ElfaToVrtConverter(korpimport.util.InputProcessor):
         synch_content = (
             ' | '.join(
                 ' '.join(token[0] for token in
-                         self._make_fragment_tokens(synch_elem))
+                         self._make_fragment_tokens(synch_elem)
+                         if token != self._sentence_break)
                 for synch_elem in synch_elems))
         # FIXME: For the first overlapping span (without a synch
         # attribute), the synch id should contain the ids of the seg
         # elements referring to it in their synch attributes
-        self._synch = id_
-        self._other_speaker = speaker_id
-        self._other_content = synch_content
-
-    def _reset_synch_info(self):
-        self._synch = self._other_speaker = self._other_content = ''
+        return {'id': id_,
+                'speaker_id': speaker_id,
+                'content': synch_content}
 
     def _make_elem_tokens_seg(self, elem):
-        self._set_synch_info(elem)
-        tokens = ([self._make_token('[', token_type='overlap_begin')]
+        synch_info = self._get_synch_info(elem)
+        synch_info['type'] = 'overlap'
+        tokens = ([[self._vrt.make_starttag('synch', synch_info)],
+                   self._make_token('[', token_type='overlap_begin')]
                   + self._make_fragment_tokens(elem, token_subtype='overlap',
-                                               span_id=self._synch)
-                  + [self._make_token(']', token_type='overlap_end')])
-        self._reset_synch_info()
+                                               span_id=synch_info['id'])
+                  + [self._make_token(']', token_type='overlap_end'),
+                     [self._vrt.make_endtag('synch')]])
+        # print 'seg', tokens
         return tokens
 
     def _make_elem_tokens_shift(self, elem):
@@ -423,31 +440,70 @@ class ElfaToVrtConverter(korpimport.util.InputProcessor):
         self._mode = prev_mode
         return tokens
 
-    def _make_elem_tokens_incident(self, elem):
+    def _make_elem_tokens_incident(self, elem, breaks=True):
         descr = self._xpath_first('t:desc/text()', elem)
-        return [self._make_token(self._make_tag_text(descr), 'incident')]
+        sent_break = ([self._sentence_break]
+                      if self._break_utterances and breaks else [])
+        return (sent_break
+                + [self._make_token(self._make_tag_text(descr), 'incident')]
+                + sent_break)
 
     def _append_incident(self, incident):
         self._incident_count += 1
         self._append_sentence(
-            self._make_elem_tokens_incident(incident),
+            self._make_elem_tokens_incident(incident, breaks=False),
             {'id': (self._text_id + '_i{0:03d}'.format(self._incident_count)),
              'type': 'incident'})
 
     def _append_pause(self, pause):
         self._pause_count += 1
         self._append_sentence(
-            self._make_elem_tokens_pause(pause),
+            self._make_elem_tokens_pause(pause, breaks=False),
             {'id': (self._text_id + '_p{0:03d}'.format(self._pause_count)),
              'type': 'pause'})
 
     def _append_sentence(self, tokens, attrs):
-        self._vrt.open_struct('sentence', self._make_sent_attrs(attrs))
-        self._vrt.extend(tokens)
-        self._vrt.close_struct()
+        self._vrt.open_struct(self._utterance_struct,
+                              self._make_sentence_attrs(attrs))
+        self._append_sentence_tokens(tokens, attrs)
+        self._vrt.close_struct(self._utterance_struct)
 
-    def _make_sent_attrs(self, attrs):
+    def _make_sentence_attrs(self, attrs):
         return attrs
+
+    def _append_sentence_tokens(self, tokens, attrs):
+
+        def open_sentence(sentnr):
+            self._vrt.open_struct(
+                'sentence', {'id': attrs['id'] + '_s{0:d}'.format(sentnr)})
+
+        if self._break_utterances:
+            last_tokennr = len(tokens) - 1
+            sentnr = 1
+            in_synch = False
+            open_sentence(sentnr)
+            prev_is_break = True
+            # print tokens
+            for tokennr, token in enumerate(tokens):
+                if token == self._sentence_break:
+                    if prev_is_break or tokennr == last_tokennr or in_synch:
+                        continue
+                    if tokennr != 0:
+                        self._vrt.close_struct('sentence')
+                    open_sentence(sentnr)
+                    prev_is_break = True
+                    sentnr += 1
+                else:
+                    if token[0].startswith('<synch'):
+                        in_synch = True
+                    elif token[0] == '</synch>':
+                        in_synch = False
+                    self._vrt.append(token)
+                    prev_is_break = False
+            self._vrt.close_struct('sentence')
+        else:
+            self._vrt.extend(token for token in tokens
+                             if token != self._sentence_break)
 
     def _output_vrt(self):
         for line in self._vrt.serialize():
