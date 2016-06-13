@@ -420,7 +420,7 @@ stage_extract_lemgrams () {
 }
 
 extract_lemgrams () {
-    if [ ! -e $tsvdir/${corpus}_lemgrams.tsv.gz ]; then
+    if [ ! -s $tsvdir/${corpus}_lemgrams.tsv.gz ]; then
 	time_stage stage_extract_lemgrams
     else
 	echo_verb "(Lemgrams already extracted; skipping)"
@@ -434,7 +434,7 @@ stage_extract_wordpict_rels () {
 
 extract_wordpict_rels () {
     if [ "x$wordpicture" != x ]; then
-	if [ ! -e $tsvdir/${corpus}_rels.tsv.gz ]; then
+	if [ ! -s $tsvdir/${corpus}_rels.tsv.gz ]; then
 	    time_stage stage_extract_wordpict_rels
 	else
 	    echo_verb "(Word picture relations already extracted; skipping)"
