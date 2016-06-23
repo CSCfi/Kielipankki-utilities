@@ -25,11 +25,11 @@ def replace_substrings(s, mapping):
 class CharConverter(object):
 
     _xml_char_entities = {
-        '&': 'amp',
-        '<': 'lt',
-        '>': 'gt',
-        '\'': 'apos',
-        '"': 'quot'
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '\'': '&apos;',
+        '"': '&quot;'
         }
 
     def __init__(self, opts, input_encoding='utf-8'):
@@ -69,13 +69,22 @@ class CharConverter(object):
 
     def _add_xml_char_refs_to_convert_map(self):
         if self._opts.convert_xml_char_refs:
-            xml_chars = []
-            for c1, c2 in self._convert_map:
-                if c1 in self._xml_char_entities:
-                    xml_chars.append((c1, c2))
-            self._convert_map.extend(
-                ('&' + self._xml_char_entities[c1] + ';', c2)
-                for c1, c2 in xml_chars)
+            if self._opts.mode == 'encode':
+                # When encoding, replace both literal characters and
+                # XML character entity references with the encoded
+                # characters.
+                self._convert_map.extend(
+                    (self._xml_char_entities[c1], c2)
+                    for c1, c2 in self._convert_map
+                    if c1 in self._xml_char_entities)
+            else:
+                # When decoding, replace the appropriate converted
+                # characters with XML character entity references and
+                # not the literal characters. The conversion map will
+                # be inverted only after this.
+                self._convert_map = [
+                    (self._xml_char_entities.get(c1, c1), c2)
+                    for c1, c2 in self._convert_map]
 
     def process_input(self, fnames):
         if not fnames:
