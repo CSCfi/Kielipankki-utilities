@@ -197,6 +197,12 @@ class InputProcessor(OptionRunner):
 
     def __init__(self, args=None, **kwargs):
         super(InputProcessor, self).__init__(args, **kwargs)
+        self._linenr = 0
+        self._filename = None
+        # FIXME: These are not yet the codecs versions, since they are
+        # initialized only in the run function
+        self._error_stream = sys.stderr
+        self._output_stream = sys.stdout
 
     def process_input(self, args):
         if isinstance(args, list):
@@ -210,6 +216,24 @@ class InputProcessor(OptionRunner):
 
     def process_input_stream(self, stream, filename=None):
         pass
+
+    def write_message(self, message, outstream=None, filename=None,
+                      linenr=None):
+        filename = filename or self._filename or '<stdin>'
+        linenr = linenr or self._linenr
+        outstream = outstream or sys.stderr
+        loc_info = ' (' + filename + (':' + str(linenr) if linenr else '') + ')'
+        outstream.write(message + loc_info + '\n')
+
+    def error(self, message, exitcode=1):
+        self.write_message('Error: ' + message, linenr=self._linenr)
+        exit(exitcode)
+
+    def warn(self, message):
+        self.write_message('Warning: ' + message, linenr=self._linenr)
+
+    def output(self, line):
+        sys.stdout.write(line)
 
     def main(self):
         self.process_input(self._args or sys.stdin)
