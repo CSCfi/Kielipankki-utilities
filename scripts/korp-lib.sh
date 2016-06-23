@@ -312,6 +312,11 @@ comprcat () {
 	_comprcat_tar_args=$2
 	shift 2
     fi
+    if [ "x$1" = "x--files" ]; then
+	_comprcat_tar_args="$_comprcat_tar_args --wildcards $2"
+	_comprcat_unzip_args="$2"
+	shift 2
+    fi
     if [ "x$1" = x ]; then
 	cat
     else
@@ -328,6 +333,9 @@ comprcat () {
 		    ;;
 		*.tar | *.tar.[bgx]z | *.tar.bz2 | *.t[bgx]z | *.tbz2 )
 		    tar -xaOf "$fname" $_comprcat_tar_args
+		    ;;
+		*.zip )
+		    unzip -p "$fname" $_comprcat_unzip_args
 		    ;;
 		* )
 		    cat "$fname"
