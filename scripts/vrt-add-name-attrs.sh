@@ -23,7 +23,12 @@ ne_attrs="name fulltype ex type subtype placename placename_origin"
 
 usage () {
     cat <<EOF
-Usage: $progname [options] corpus_id base_vrt_file name_vrt_file
+Usage: $progname [options] corpus_id {base_vrt_file | @data}
+                 {name_vrt_file | @data}
+
+Add name attributes as structural attributes ne and their data.
+
+Filename @data: use existing CWB data.
 
 Options:
   -h, --help      show this help
@@ -91,15 +96,32 @@ if [ -e "$datadir/ne_name.avs" ]; then
 fi
 
 
+get_wordform_lemma () {
+    if [ "$base_vrt" != "@data" ]; then
+	comprcat --files "*.vrt" "$base_vrt" |
+	cut -d"$tab" -f1,2
+    else
+	$cwb_bindir/cwb-decode -Cx $corpus -P word -P lemma |
+	grep -v '^<'
+    fi |
+    $progdir/vrt-convert-chars.py --decode
+}
+
+get_nertag () {
+    if [ "$name_vrt" != "@data" ]; then
+	comprcat --files "*.vrt" "$name_vrt" |
+	gawk -F"$tab" '/^</ {print ""; next} {print $NF}'
+    else
+	$cwb_bindir/cwb-decode -Cx $corpus -P nertag |
+	grep -v '^<'
+    fi |
+    $progdir/vrt-convert-chars.py --decode
+}
+
 make_names_vrt () {
-    # TODO: Filter out empty lines
     mkdir -p "$vrtdir"
-    paste \
-	<(comprcat --files "*.vrt" "$base_vrt" |
-	cut -d"$tab" -f1,2 |
-	$progdir/vrt-convert-chars.py --decode) \
-	<(comprcat --files "*.vrt" "$name_vrt" |
-	gawk -F"$tab" '/^</ {print ""; next} {print $NF}') |
+    paste <(get_wordform_lemma) <(get_nertag) |
+    gawk -F"$tab" '/^</ || NF == 3' |
     $progdir/vrt-convert-name-attrs.py --word-field=1 --lemma-field=2 \
 	 --nertag-field=3 --output-fields=1,3 > "$names_vrt_file"
 }
@@ -110,6 +132,12 @@ encode () {
     $progdir/vrt-convert-chars.py --encode |
     $cwb_bindir/cwb-encode -d "$datadir" -xsB -cutf8 \
 	-p - -P nertag -S ne:0+${ne_attrs// /+} -0 text -0 paragraph -0 sentence
+    $cwb_bindir/cwb-makeall -M 2000 $corpus nertag
+    $cwb_bindir/cwb-huffcode -P nertag $corpus
+    $cwb_bindir/cwb-compress-rdx -P nertag $corpus
+    for ext in "" .rdx .rev; do
+	rm "$datadir/nertag.corpus$ext"
+    done
 }
 
 add_registry_attrs () {
@@ -117,21 +145,29 @@ add_registry_attrs () {
     # contains only some of the attributes
     if [ ! -e "$regfile" ]; then
 	warn "Registry file $regfile does not exist: cannot add name attributes to the registry"
-    elif grep -q "STRUCTURE ne_name" "$regfile"; then
-	warn "Name attributes already appear to exist in registry file $regfile"
     else
-	cp -p "$regfile" "$regfile.old"
-	tailtext=$(tail -1 "$regfile")
-	head -n-2 "$regfile.old" > "$regfile"
-	echo "# <ne "$(echo "$ne_attrs" | sed -e 's/[^ ]*/&=".."/g')">
+	if grep -q "STRUCTURE ne_name" "$regfile"; then
+	    warn "Name attributes already appear to exist in registry file $regfile"
+	else
+	    cp -p "$regfile" "$regfile.old"
+	    tailtext=$(tail -1 "$regfile")
+	    head -n-2 "$regfile.old" > "$regfile"
+	    echo "# <ne "$(echo "$ne_attrs" | sed -e 's/[^ ]*/&=".."/g')">
 # (no recursive embedding allowed)
 STRUCTURE ne" >> "$regfile"
-	for attr in $ne_attrs; do
-	    printf "STRUCTURE %-20s # [annotations]\n" ne_$attr >> "$regfile"
-	done
-	echo "
+	    for attr in $ne_attrs; do
+		printf "STRUCTURE %-20s # [annotations]\n" ne_$attr \
+		    >> "$regfile"
+	    done
+	    echo "
 $tailtext" >> "$regfile"
-	# TODO: Add nertag P-attribute
+	fi
+	if ! grep -q 'ATTRIBUTE nertag$' "$regfile"; then
+	    cp -p "$regfile" "$regfile.old"
+	    awk '/^ATTRIBUTE/ { prev_attr = 1 }
+                 /^$/ && prev_attr { print "ATTRIBUTE nertag"; prev_attr = 0 }
+                 { print }' "$regfile.old" > "$regfile"
+	fi
     fi
 }
 
@@ -141,4 +177,4 @@ if [ "x$encode" != x ]; then
     encode
     add_registry_attrs
 fi
-gzip "$names_vrt_file"
+gzip -f "$names_vrt_file"
