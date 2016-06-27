@@ -3,7 +3,8 @@
 # Functions and other code common to several Bourne shell scripts
 # related to Korp corpus import
 #
-# NOTE: Some functions require Bash.
+# NOTE: Some functions require Bash. Some functions use "local", which
+# is not POSIX but supported by dash, ash.
 
 
 # Common functions
@@ -484,6 +485,123 @@ set_corpus_root () {
 	set_corpus_registry "$corpus_root/registry"
     fi
     cwb_regdir=$CORPUS_REGISTRY
+}
+
+# _cwb_registry_find_nonexistent_attrs registry_file prefix attrname ...
+_cwb_registry_find_nonexistent_attrs () {
+    local _regfile _prefix _new_attrs _attrname
+    _regfile=$1
+    _prefix=$2
+    shift 2
+    _new_attrs=
+    for _attrname in $*; do
+	if ! grep -E -q "^$_prefix$_attrname( |\$)" "$_regfile"; then
+	    _new_attrs="$_new_attrs $_attrname"
+	fi
+    done
+    echo $_new_attrs
+}
+
+# _cwb_registry_make_attrdecls format attrname ...
+_cwb_registry_make_attrdecls () {
+    local _format _attrname
+    _format=$1
+    shift
+    for _attrname in $*; do
+	echo $_attrname;
+    done |
+    awk '{printf "'"$_format"'\\n", $0}'
+}
+
+# cwb_registry_add_posattr corpus attrname ...
+#
+# Add positional attributes to the CWB registry file for corpus at the
+# end of the list of positional attributes if they do not already
+# exist. (The function does not use cwb-regedit, because it would
+# append the attributes at the very end of the registry file.)
+cwb_registry_add_posattr () {
+    local _corpus _regfile _new_attrs _new_attrdecls
+    _corpus=$1
+    shift
+    _regfile="$cwb_regdir/$_corpus"
+    _new_attrs=$(
+	_cwb_registry_find_nonexistent_attrs "$_regfile" "ATTRIBUTE " $*
+    )
+    _new_attrdecls="$(_cwb_registry_make_attrdecls "ATTRIBUTE %s" $_new_attrs)"
+    if [ "x$_new_attrdecls" != "x" ]; then
+	cp -p "$_regfile" "$_regfile.old"
+	awk '/^ATTRIBUTE/ { prev_attr = 1 }
+	     /^$/ && prev_attr { printf "'"$_new_attrdecls"'"; prev_attr = 0 }
+	     { print }' "$_regfile.old" > "$_regfile"
+    fi
+}
+
+# cwb_registry_add_structattr corpus struct [attrname ...]
+#
+# Add structural attributes (annotations) of the structure struct to
+# the CWB registry file for corpus at the end of the list of
+# structural attributes if they do not already exist. If attrname are
+# not specified, only add struct without annotations. (The function
+# does not use cwb-regedit, because it would append the attributes at
+# the very end of the registry file.)
+cwb_registry_add_structattr () {
+    local _corpus _struct _regfile _new_attrs _new_attrs_prefixed
+    local _new_attrdecls _xml_attrs
+    _corpus=$1
+    _struct=$2
+    shift 2
+    _regfile="$cwb_regdir/$_corpus"
+    if ! grep -q "STRUCTURE $_struct\$" "$_regfile"; then
+	cp -p "$_regfile" "$_regfile.old"
+	awk '/^$/ { empty = empty "\n"; next }
+             /^# Yours sincerely/ { printf "\n# <'$_struct'> ... </'$_struct'>\n# (no recursive embedding allowed)\nSTRUCTURE '$_struct'\n" }
+             /./ { printf empty; print; empty = "" }' \
+		 "$_regfile.old" > "$_regfile"
+    fi
+    _new_attrs=$(
+	_cwb_registry_find_nonexistent_attrs "$_regfile" \
+	    "STRUCTURE ${_struct}_" $*
+    )
+    if [ "x$_new_attrs" != "x" ]; then
+	_new_attrs_prefixed=$(
+	    echo $_new_attrs |
+	    awk '{ for (i = 1; i <= NF; i++) { print "'$_struct'_" $i } }'
+	)
+	_new_attrdecls="$(
+	    _cwb_registry_make_attrdecls "STRUCTURE %-20s # [annotations]" $_new_attrs_prefixed
+        )"
+	_xml_attrs="$(
+	    echo $_new_attrs |
+	    awk '{ for (i = 1; i <= NF; i++) { printf " %s=\\\"..\\\"", $i } }'
+	)"
+	cp -p "$_regfile" "$_regfile.old"
+	awk '
+	    /^# <'$_struct'[ >]/ { sub(/>/, "'"$_xml_attrs"'>") }
+	    /^STRUCTURE '$_struct'(_|$)/ { prev_struct = 1 }
+	    /^$/ && prev_struct {
+                printf "'"$_new_attrdecls"'";
+                prev_struct = 0;
+            }
+	    { print }' "$_regfile.old" > "$_regfile"
+    fi
+}
+
+# cwb_index_posattr corpus attrname ...
+#
+# Index and compress encoded CWB positional attributes attrname in
+# corpus (without using cwb-make).
+cwb_index_posattr () {
+    local _corpus _attrname
+    _corpus=$1
+    shift
+    for _attrname in $*; do
+	$cwb_bindir/cwb-makeall -M 2000 $_corpus $_attrname
+	$cwb_bindir/cwb-huffcode -P $_attrname $_corpus
+	$cwb_bindir/cwb-compress-rdx -P $_attrname $_corpus
+	for ext in "" .rdx .rev; do
+	    rm "$corpus_root/data/$_corpus/$_attrname.corpus$ext"
+	done
+    done
 }
 
 
