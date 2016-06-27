@@ -19,7 +19,10 @@ vrtdir=
 encode=1
 force=
 
+ne_struct=ne
 ne_attrs="name fulltype ex type subtype placename placename_origin"
+nertag_attr=nertag
+
 
 usage () {
     cat <<EOF
@@ -85,7 +88,7 @@ datadir=$corpus_root/data/$corpus
 names_vrt_file=$vrtdir/${corpus}_names.vrt
 regfile=$cwb_regdir/$corpus
 
-if [ -e "$datadir/ne_name.avs" ]; then
+if [ -e "$datadir/${ne_struct}_name.avs" ]; then
     printf "Name attributes seem to already exist in corpus $corpus; "
     if [ "x$force" != x ]; then
 	echo "regenerating them because --force was specified"
@@ -112,7 +115,7 @@ get_nertag () {
 	comprcat --files "*.vrt" "$name_vrt" |
 	gawk -F"$tab" '/^</ {print ""; next} {print $NF}'
     else
-	$cwb_bindir/cwb-decode -Cx $corpus -P nertag |
+	$cwb_bindir/cwb-decode -Cx $corpus -P $nertag_attr |
 	grep -v '^<'
     fi |
     $progdir/vrt-convert-chars.py --decode
@@ -131,13 +134,9 @@ encode () {
     cut -d"$tab" -f2 "$names_vrt_file" |
     $progdir/vrt-convert-chars.py --encode |
     $cwb_bindir/cwb-encode -d "$datadir" -xsB -cutf8 \
-	-p - -P nertag -S ne:0+${ne_attrs// /+} -0 text -0 paragraph -0 sentence
-    $cwb_bindir/cwb-makeall -M 2000 $corpus nertag
-    $cwb_bindir/cwb-huffcode -P nertag $corpus
-    $cwb_bindir/cwb-compress-rdx -P nertag $corpus
-    for ext in "" .rdx .rev; do
-	rm "$datadir/nertag.corpus$ext"
-    done
+	-p - -P $nertag_attr -S $ne_struct:0+${ne_attrs// /+} \
+	-0 text -0 paragraph -0 sentence
+    cwb_index_posattr $corpus $nertag_attr
 }
 
 add_registry_attrs () {
@@ -146,28 +145,12 @@ add_registry_attrs () {
     if [ ! -e "$regfile" ]; then
 	warn "Registry file $regfile does not exist: cannot add name attributes to the registry"
     else
-	if grep -q "STRUCTURE ne_name" "$regfile"; then
+	if grep -q "STRUCTURE ${ne_struct}_name" "$regfile"; then
 	    warn "Name attributes already appear to exist in registry file $regfile"
 	else
-	    cp -p "$regfile" "$regfile.old"
-	    tailtext=$(tail -1 "$regfile")
-	    head -n-2 "$regfile.old" > "$regfile"
-	    echo "# <ne "$(echo "$ne_attrs" | sed -e 's/[^ ]*/&=".."/g')">
-# (no recursive embedding allowed)
-STRUCTURE ne" >> "$regfile"
-	    for attr in $ne_attrs; do
-		printf "STRUCTURE %-20s # [annotations]\n" ne_$attr \
-		    >> "$regfile"
-	    done
-	    echo "
-$tailtext" >> "$regfile"
+	    cwb_registry_add_structattr $corpus $ne_struct $ne_attrs
 	fi
-	if ! grep -q 'ATTRIBUTE nertag$' "$regfile"; then
-	    cp -p "$regfile" "$regfile.old"
-	    awk '/^ATTRIBUTE/ { prev_attr = 1 }
-                 /^$/ && prev_attr { print "ATTRIBUTE nertag"; prev_attr = 0 }
-                 { print }' "$regfile.old" > "$regfile"
-	fi
+	cwb_registry_add_posattr $corpus $nertag_attr
     fi
 }
 
