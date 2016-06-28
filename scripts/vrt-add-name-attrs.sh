@@ -20,8 +20,9 @@ encode=1
 force=
 
 ne_struct=ne
-ne_attrs="name fulltype ex type subtype placename placename_origin"
-nertag_attr=nertag
+ne_attrs="name fulltype ex type subtype placename placename_source"
+attr_nertag=nertag
+attr_bio=nerbio
 
 
 usage () {
@@ -115,7 +116,7 @@ get_nertag () {
 	comprcat --files "*.vrt" "$name_vrt" |
 	gawk -F"$tab" '/^</ {print ""; next} {print $NF}'
     else
-	$cwb_bindir/cwb-decode -Cx $corpus -P $nertag_attr |
+	$cwb_bindir/cwb-decode -Cx $corpus -P $attr_nertag |
 	grep -v '^<'
     fi |
     $progdir/vrt-convert-chars.py --decode
@@ -126,17 +127,17 @@ make_names_vrt () {
     paste <(get_wordform_lemma) <(get_nertag) |
     gawk -F"$tab" '/^</ || NF == 3' |
     $progdir/vrt-convert-name-attrs.py --word-field=1 --lemma-field=2 \
-	 --nertag-field=3 --output-fields=1,3 > "$names_vrt_file"
+	--nertag-field=3 --output-fields=1,3 --add-bio-attribute \
+	> "$names_vrt_file"
 }
 
 encode () {
     mkdir -p "$datadir"
-    cut -d"$tab" -f2 "$names_vrt_file" |
+    cut -d"$tab" -f2,3 "$names_vrt_file" |
     $progdir/vrt-convert-chars.py --encode |
     $cwb_bindir/cwb-encode -d "$datadir" -xsB -cutf8 \
-	-p - -P $nertag_attr -S $ne_struct:0+${ne_attrs// /+} \
+	-p - -P $attr_nertag -P $attr_bio -S $ne_struct:0+${ne_attrs// /+} \
 	-0 text -0 paragraph -0 sentence
-    cwb_index_posattr $corpus $nertag_attr
 }
 
 add_registry_attrs () {
@@ -150,8 +151,12 @@ add_registry_attrs () {
 	else
 	    cwb_registry_add_structattr $corpus $ne_struct $ne_attrs
 	fi
-	cwb_registry_add_posattr $corpus $nertag_attr
+	cwb_registry_add_posattr $corpus $attr_nertag $attr_bio
     fi
+}
+
+index_posattrs () {
+    cwb_index_posattr $corpus $attr_nertag $attr_bio > /dev/null
 }
 
 
@@ -159,5 +164,6 @@ make_names_vrt
 if [ "x$encode" != x ]; then
     encode
     add_registry_attrs
+    index_posattrs
 fi
 gzip -f "$names_vrt_file"

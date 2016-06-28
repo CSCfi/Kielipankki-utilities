@@ -21,6 +21,7 @@ class NameAttrConverter(korpimport.util.InputProcessor):
         name_tokens = []
         for linenr, line in enumerate(stream):
             self._linenr = linenr + 1
+            bio = None
             if line[0] == '<':
                 if self._opts.output_input_structs:
                     self.output(line)
@@ -36,12 +37,16 @@ class NameAttrConverter(korpimport.util.InputProcessor):
                             if nertag[1:] != name_type:
                                 self.warn(u'NER tag mismatch: {0} closed by {1}'
                                           .format(name_type, nertag[1:]))
+                            if self._opts.add_bio_attribute:
+                                fields.append('I')
                             name_tokens.append(fields)
                             self._output_name(name_type, name_tokens)
                             name_type = None
                             name_tokens = []
                             continue
                     elif nertag[-1] == '/':
+                        if self._opts.add_bio_attribute:
+                            fields.append('B')
                         self._output_name(nertag[:-1], [fields])
                         continue
                     else:
@@ -49,9 +54,14 @@ class NameAttrConverter(korpimport.util.InputProcessor):
                             self.warn(u'ignoring lone NER end tag ' + nertag)
                         else:
                             name_type = nertag
+                            bio = 'B'
                 if name_type:
+                    if self._opts.add_bio_attribute:
+                        fields.append(bio or 'I')
                     name_tokens.append(fields)
                 else:
+                    if self._opts.add_bio_attribute:
+                        fields.append('O')
                     self._output_fields(fields)
         if name_tokens:
             self.warn('unclosed NER tag ' + name_type + ' at the end of file')
@@ -113,7 +123,7 @@ class NameAttrConverter(korpimport.util.InputProcessor):
             attrs.append((attrname, mo.group(group + 1).upper()))
         is_placename = mo.group(2) == 'Loc'
         attrs.append(('placename', name if is_placename else ''))
-        attrs.append(('placename_origin', 'ner' if is_placename else ''))
+        attrs.append(('placename_source', 'ner' if is_placename else ''))
         return xmlutil.make_starttag(self._opts.name_struct, attrs=attrs)
         
     def _make_name(self, name_tokens, name_cat):
@@ -183,6 +193,10 @@ form.
                 action='store_true',
                 help=('output structural attributes (tags) in the input',
                       ' (default: do not output)'))],
+            ['--add-bio-attribute', dict(
+                action='store_true',
+                help=('add a positional attribute containing the B-I-O'
+                      ' information of a word'))],
         )
         self._opts.word_field -= 1
         self._opts.lemma_field -= 1
@@ -193,6 +207,8 @@ form.
                 for fieldnr in re.split(r'[,\s]\s*', self._opts.output_fields)]
         else:
             self._opts.output_fields = []
+        if self._opts.add_bio_attribute:
+            self._opts.output_fields.append(-1)
 
 
 if __name__ == "__main__":
