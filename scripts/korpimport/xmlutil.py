@@ -9,30 +9,43 @@ importing and VRT processing scripts.
 """
 
 
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape, unescape
 
 
-def make_starttag(elemname, attrnames=None, attrdict=None):
+def make_starttag(elemname, attrnames=None, attrdict=None, attrs=None):
     """Make an XML start tag for element elemname, with given attributes.
 
     The start tag will contain the attributes listed in attrnames with
-    their values in the dictionary attrdict. See getattr for more
-    information on the values of attrnames and attrdict.
+    their values in the dictionary attrdict, or alternatively,
+    the name-value pairs in attrs. See get_attr for more information on
+    the values of attrnames and attrdict.
     """
     return ('<' + elemname
-            + (' ' + make_attrs(attrnames or [], attrdict or {}, elemname)
-               if attrnames else '')
+            + (' ' + make_attrs(attrnames or [], attrdict or {},
+                                attrs or [], elemname)
+               if attrnames or attrs else '')
             + '>')
 
 
-def make_attrs(attrnames, attrdict, elemname=''):
-    """Make a formatted attribute list for an element (also see get_attr)."""
-    attrs = []
-    for attrname in attrnames:
-        (name, value) = get_attr(attrname, attrdict, elemname)
-        attrs.append(u'{name}="{value}"'.format(
-            name=name, value=escape(value, {'"': '&quot;'})))
-    return ' '.join(attrs)
+def make_attrs(attrnames=None, attrdict=None, attrs=None, elemname=''):
+    """Make a formatted attribute list for an element (also see get_attr).
+
+    If attrs is specified (an iterable of name-value pairs), it is
+    used instead of attrnames and attrdict.
+    """
+    if not attrs:
+        attrnames = attrnames or []
+        attrdict = attrdict or {}
+        attrs = (get_attr(attrname, attrdict, elemname)
+                 for attrname in attrnames)
+    return ' '.join(make_attr(name, value) for name, value in attrs)
+
+
+def make_attr(name, value):
+    """Make name="value", with the appropriate characters in value escaped."""
+    return u'{name}="{value}"'.format(
+        name=name,
+        value=escape(unescape(value), {'"': '&quot;'}))
 
 
 def get_attr(attrname, attrdict, elemname=''):
