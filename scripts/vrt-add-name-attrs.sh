@@ -11,11 +11,14 @@ progdir=`dirname $0`
 
 
 shortopts="h"
-longopts="help,vrt-dir:,skip-encode,no-encode,force"
+longopts="help,vrt-dir:,text-sort-attribute:,verify-order,skip-encode,no-encode,force"
 
 . $progdir/korp-lib.sh
 
 vrtdir=
+sort_attr=
+output_input_structs=
+verify_order=
 encode=1
 force=
 
@@ -37,6 +40,8 @@ Filename @data: use existing CWB data.
 Options:
   -h, --help      show this help
   --vrt-dir DIR
+  --text-sort-attribute ATTRNAME
+  --verify-order
   --no-encode
   --force
 EOF
@@ -52,6 +57,14 @@ while [ "x$1" != "x" ] ; do
 	--vrt-dir )
 	    shift
 	    vrtdir=$1
+	    ;;
+	--text-sort-attribute )
+	    shift
+	    sort_attr=$1
+	    output_input_structs=--output-input-structs
+	    ;;
+	--verify-order )
+	    verify_order=1
 	    ;;
 	--no-encode )
 	    encode=
@@ -89,8 +102,29 @@ datadir=$corpus_root/data/$corpus
 names_vrt_file=$vrtdir/${corpus}_names.vrt
 regfile=$cwb_regdir/$corpus
 
+if [ "x$base_vrt" != "x@data" ]; then
+    if [ ! -r "$base_vrt" ]; then
+	error "Cannot read base VRT file $base_vrt"
+    fi
+else
+    if [ ! -r "$datadir/word.corpus.cnt" ] &&
+	[ ! -r "$datadir/lemma.corpus.cnt" ];
+    then
+	error "Cannot read CWB data files for base VRT"
+    fi
+fi
+if [ "x$name_vrt" != "x@data" ]; then
+    if [ ! -r "$name_vrt" ]; then
+	error "Cannot read name VRT file $name_vrt"
+    fi
+else
+    if [ ! -r "$datadir/$attr_nertag.corpus.cnt" ]; then
+	error "Cannot read CWB data files for NER VRT"
+    fi
+fi
+
 if [ -e "$datadir/${ne_struct}_name.avs" ]; then
-    printf "Name attributes seem to already exist in corpus $corpus; "
+    printf "Name attributes seem to exist already in corpus $corpus; "
     if [ "x$force" != x ]; then
 	echo "regenerating them because --force was specified"
     else
@@ -99,6 +133,9 @@ if [ -e "$datadir/${ne_struct}_name.avs" ]; then
     fi
 fi
 
+
+# TODO: The following two functions share much common; could the
+# common part be extracted to a function of its own?
 
 get_wordform_lemma () {
     if [ "$base_vrt" != "@data" ]; then
@@ -122,13 +159,46 @@ get_nertag () {
     $progdir/vrt-convert-chars.py --decode
 }
 
+sort_names_vrt () {
+    if [ "x$sort_attr" != "x" ]; then
+	$progdir/vrt-sort-texts.sh --attribute $sort_attr \
+	    --order-from-corpus $corpus
+    else
+	cat
+    fi
+}
+
 make_names_vrt () {
     mkdir -p "$vrtdir"
     paste <(get_wordform_lemma) <(get_nertag) |
     gawk -F"$tab" '/^</ || NF == 3' |
     $progdir/vrt-convert-name-attrs.py --word-field=1 --lemma-field=2 \
 	--nertag-field=3 --output-fields=1,3 --add-bio-attribute \
-	> "$names_vrt_file"
+	$output_input_structs |
+    sort_names_vrt > "$names_vrt_file"
+}
+
+get_cwb_corpus_attr () {
+    local corpus
+    corpus=$1
+    attr=$2
+    $cwb_bindir/cwb-decode -Cx $corpus -P $attr |
+    grep -v '^<' |
+    # This may need to be changed if vrt-convert-chars.py --decode is
+    # modified to encode at least the ampersand.
+    sed -e 's/&apos;/'"'"'/g; s/&quot;/"/g; s/&amp;/\&/g' |
+    $progdir/vrt-convert-chars.py --decode
+}
+
+verify_names_vrt_order () {
+    diff_file=$tmp_prefix.diff
+    diff <(get_cwb_corpus_attr $corpus word) \
+	<(grep -v '^<' "$names_vrt_file" | cut -d"$tab" -f1) > "$diff_file"
+    if [ "$?" != "0" ]; then
+	echo "Order of corpus tokens in the NER data differs from that in the encoded corpus:" > /dev/stderr
+	cat "$diff_file" > /dev/stderr
+	exit 1
+    fi
 }
 
 encode () {
@@ -161,6 +231,9 @@ index_posattrs () {
 
 
 make_names_vrt
+if [ "x$verify_order" != "x" ]; then
+    verify_names_vrt_order
+fi
 if [ "x$encode" != x ]; then
     encode
     add_registry_attrs
