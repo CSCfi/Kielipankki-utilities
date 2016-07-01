@@ -458,6 +458,8 @@ class AttributeFixer(object):
             return self._fix_posattrs(line)
 
     def _fix_posattrs(self, line):
+        if self._opts.replace_xml_character_entities:
+            line = self._replace_character_entities(line)
         if self._split_lines:
             attrs = line[:-1].split('\t')
             attrs = self._pos_attr_converter.convert(attrs)
@@ -467,8 +469,6 @@ class AttributeFixer(object):
         if self._opts.angle_brackets:
             line = (line.replace('<', self._opts.angle_brackets[0])
                     .replace('>', self._opts.angle_brackets[1]))
-        if self._opts.replace_xml_character_entities:
-            line = self._replace_character_entities(line)
         if self._encode_posattrs and not self._split_lines:
             line = self._encode_special_chars(line)
         line = self._fix_ampersands(line)
