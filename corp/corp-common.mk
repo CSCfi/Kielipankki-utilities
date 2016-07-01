@@ -200,6 +200,10 @@ CWBDATA_EXTRACT_INFO_OPTS := $(call partvar,CWBDATA_EXTRACT_INFO_OPTS)
 CWBDATA_EXTRACT_INFO = $(SCRIPTDIR)/cwbdata-extract-info.sh \
 			--registry "$(REGDIR)" $(CWBDATA_EXTRACT_INFO_OPTS)
 
+CONVERT_TIMEDATA = \
+	$(SCRIPTDIR)/korp-convert-timedata.sh \
+		--convert all --tsv-dir $(CORP_BUILDDIR)
+
 PKG_DB_FORMAT ?= tsv
 
 # Load data into the Korp MySQL database only if LOAD_DB is non-empty;
@@ -379,7 +383,7 @@ TARGETS := \
 	$(call partvar_or_default,TARGETS,\
 		$(if $(PARCORP),\
 			align pkg,\
-			subdirs vrt reg \
+			subdirs vrt reg timedata \
 				$(if $(and $(or $(PARCORP_PART),$(SUBCORPUS)),\
 					$(call not,$(MAKE_PKG))),,pkg) \
 				$(if $(strip $(DB_TARGETS)),db) \
@@ -740,7 +744,10 @@ reg: vrt
 
 vrt: $(CORPCORPDIR)/.info
 
-.PHONY: reg vrt
+timedata: reg
+	$(CONVERT_TIMEDATA) $(CORPNAME)
+
+.PHONY: reg vrt timedata
 
 # The info file $(CORPCORPDIR)/.info is (ab)used as a timestamp file
 # to avoid unnecessarily remaking the corpus data if the .vrt file has
