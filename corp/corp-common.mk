@@ -14,7 +14,7 @@ lower = $(shell echo $(1) | perl -pe 's/(.*)/\L$$1\E/')
 
 showvars = $(if $(DEBUG),$(foreach var,$(1),$(info $(var) = "$($(var))")))
 debuginfo = $(if $(DEBUG),$(info *** DEBUG: $(1) ***))
-
+debugtee = $(if $(DEBUG),| tee $(1))
 
 # The corpus has subcorpora if SUBCORPORA has been defined but not
 # SUBCORPUS (which would indicate this is a subcorpus).
@@ -791,6 +791,8 @@ ifdef MAKE_VRT_FILENAME_ARGS
 else
 	$(if $(MAKE_VRT_SEPARATE_FILES),\
 		for filename in $(SRC_FILES_REAL); do \
+			$(if $(DEBUG),\
+				echo "Processing $$filename" > /dev/stderr;) \
 			$(CAT_SRC) "$$filename" \
 			| $(TRANSCODE) \
 			| $(MAKE_VRT_CMD); \
