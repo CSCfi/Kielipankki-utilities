@@ -1,4 +1,5 @@
 #! /bin/sh
+# -*- coding: utf-8 -*-
 
 # Make a sorted and grouped word list of ScotsCorr as JSON (to be used
 # in the Korp word list pop-up) from a TSV file containing tokens and
@@ -9,51 +10,71 @@
 
 tab='	'
 
-grep -v '^{<' |
-grep -v ">}$tab" | 
-perl -ne '
+# grep -v '^{<' |
+# grep -v ">}$tab" |
+perl -CSD -ne '
+    BEGIN {
+        use feature "unicode_strings";
+        use utf8;
+    }
     chomp;
     ($w, $f) = /(.*?)\t(.*)/;
     $k = lc($w);
-    $k =~ s/[^a-zA-Z0-9]//g;
-    if (! $k) {
-        $k = "\x03$w";
-    } elsif ($k =~ /^[0-9]/) {
-        $k = "\x02$w";
-    } else {
-        if ($k ne $w) {
-            $k .= "\x02";
+    $k =~ s/[^a-zA-Z0-9£’'"'"']//g;
+    if ((($k eq "" || $k !~ /[[:alnum:]]/) && $w !~ /^\{.*\}$/)
+        || $k =~ /^\xa3/) {
+        $k = "\x06$w";
+        $g = "Punctuation marks";
+    } elsif ($w =~ /^\?/) {
+        ($qm) = ($w =~ /^(\?+)/);
+        $k = "\x02" . chr (length ($qm)) . $w;
+        $g = "Words with uncertain beginning";
+    } elsif ($w =~ /^\{/) {
+        if ($w =~ /^\{</) {
+            $k = "\x04$w";
+            $g = "Word-related comments";
         } else {
-            $k .= "\x01";
+            $k = "\x03$w";
+            $g = "Independent comments";
         }
-        $k = "\x01$k";
+    } else {
+	if (length ($k) != length ($w)) {
+	    $k = substr ($k, 0, 1) . "$k\x02";
+	} else {
+	    $k = substr ($k, 0, 1) . "$k\x01";
+	}
+        if ($k =~ /^[0-9]/) {
+            $k = "\x05$k";
+            $g = "Numerals";
+        } else {
+            $k = "\x01$k";
+	    ($g) = ($k =~ /([[:print:]])/);
+	    $g = uc($g);
+        }
     }
-    $g = uc(substr($k, 1, 1));
     print "$g\t$w\t$k\t$f\n"
 ' |
-LC_ALL=C sort -t"$tab" -sf -k3,3 -k2,2 |
+LC_ALL=C sort -t"$tab" -k3,3f -k2,2 |
 cut -d"$tab" -f1,2,4 |
 sed -e 's/\\/\\\\/g; s/"/\\"/g' |
-gawk -F"$tab" '
+perl -ne '
     BEGIN {
-        print "["
+        print "[\n";
+        $prevg = "";
     }
-    {
-        g = toupper(substr($1,1,1));
-        if (g != prev) {
-            if (prev) { print "\n]]," }
-            g0 = g
-            if (g == "\\") { g0 = "\\\\" }
-            printf "[\"%s\",[", g0
+    chomp;
+    ($g, $w, $f) = split (/\t/);
+    if ($g ne $prevg) {
+        if ($prevg) {
+            print "\n]],\n";
         }
-        if (g == prev) {
-            print ","
-        } else {
-            printf "\n"
-        }
-        prev = g
-        printf " [\"%s\",%s]", $1, $2
+        print "[\"$g\",[\n";
+    } else {
+        print ",\n";
     }
+    $prevg = $g;
+    print " [\"$w\",$f]";
     END {
-        print "\n]]\n ]"
-    }'
+        print "\n]]\n]\n";
+    }
+'
