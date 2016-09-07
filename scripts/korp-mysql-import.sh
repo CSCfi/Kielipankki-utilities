@@ -428,7 +428,8 @@ infer_relations_format () {
 	fi
 	return
     fi
-    warn "Could not infer relations format for file $_file; please specify --relations-format=new|old"
+    warn "Could not infer relations format for file $_file; assuming 'new'"
+    echo relations_new
 }
 
 get_colspec_name () {
