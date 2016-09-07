@@ -1,5 +1,5 @@
-# Map the TDT dependency relation labels to those used in the Korp
-# word picture: SS (subject), OBJ (object), ADV (adverbial), PA
+# Map the Finnish UD dependency relation labels to those used in the
+# Korp word picture: SS (subject), OBJ (object), ADV (adverbial), PA
 # (preposition), AT ((pre)modifier), ET (postmodifier), CPL
 # (complement). Additional, alternative labels, currently commented
 # out and converted to other labels or ignored: APP (apposition), AUX
@@ -17,14 +17,10 @@
 # dependent to head:
 # &name	h = d..h
 
-# For a number relation, add an extra head containing all the words
-# in the depenceny chain, from the first dependent to the head:
-# &number	h = d<<h
-
 
 _	-
-acomp	CPL
-adpos	PA
+acl	-
+acl:relcl	-
 advcl	ADV
 # ADV if head POS is V or Adv; otherwise MOD
 # advmod	ADV: h.pos~"V|Adv"; MOD
@@ -34,76 +30,54 @@ advmod	ADV
 amod	AT
 # appos	APP
 appos	-
-# Does not occur in corpora
-arg	-
 # aux	AUX
 aux	-
 auxpass	-
+# Could the following be PA, or maybe inverted PA?
+case	-
 cc	-
 # Could be converted to ET for nouns
 ccomp	CPL
-# Does not occur in corpora
-comp	-
-# compar	CPR
-compar	-
-comparator	-
-complm	AT
-# conj	CRD
+cc:preconj	-
+compound	AT
+compound:nn	AT
+compound:prt	-
 conj	-
 cop	-
 csubj	SS
-# csubj-cop	CPS
-csubj-cop	-
+# csubj:cop	CPS
+csubj:cop	-
 # dep	OTH
 dep	-
 det	-
+discourse	-
 dobj	OBJ
-# Does not occur in corpora
-ellipsis	-
-gobj	AT
-gsubj	AT
-iccomp	CPL
-infmod	ET
-intj	-
+goeswith	AT
 mark	-
-# Does not occur in corpora
-mod	AT
+mwe	ET
 # AT; inverse relation (dependent to head) ET; head covers all words
 # from the dependent to head:
 # name	AT; ^ET; @h = d..h
 name	AT
 neg	-
-nn	AT
-# nommod	MOD
-nommod	ADV
+nmod	ADV
+nmod:gobj	AT
+nmod:gsubj	AT
 # Add an OWN relation from the nsubj dependent of head to the
 # dependent of nommod-own
-# nommod-own	OWN: -> h>nsubj d
-nommod-own	-
+# nmod:own	OWN: -> h>nsubj d
+nmod:own	-
+nmod:poss	AT
 nsubj	SS
-# nsubj-cop	CPS
-nsubj-cop	-
-num	-
-number	-
+# nsubj:cop	CPS
+nsubj:cop	-
+nummod	-
 # parataxis	CRD
 parataxis	-
-# partmod	MOD
-partmod	AT
-poss	AT
-preconj	-
-# prt	VPT
-prt	-
 punct	-
-quantmod	-
-# rcmod	MOD
-rcmod	ET
+remnant	-
 rel	-
-ROOT	-
-# Does not occur in corpora
-subj	SS
-voc	-
+root	-
+vocative	-
 xcomp	CPL
-# Does not occur in corpora
-xsubj	SS
-# Does not occur in corpora
-xsubj-cop	SS
+xcomp:ds	CPL
