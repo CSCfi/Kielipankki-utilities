@@ -1,0 +1,109 @@
+# Map the TDT dependency relation labels to those used in the Korp
+# word picture: SS (subject), OBJ (object), ADV (adverbial), PA
+# (preposition), AT ((pre)modifier), ET (postmodifier), CPL
+# (complement). Additional, alternative labels, currently commented
+# out and converted to other labels or ignored: APP (apposition), AUX
+# (auxiliary verb), CPR (compared element), CRD (coordinated element),
+# CPS (copular subject), OTH (other), MOD (modifier), OWN (owner), VPT
+# (verb particle). Relations to be ignored are marked with a dash.
+#
+# In addition, the mapping contains in comments a few tentative
+# relation transformations: constructs for specifying derived
+# relations that do not occur directly in the data. They are not (yet)
+# supported by vrt-extract-relations.py.
+
+
+# For a name relation, add an extra head containing all the words from
+# dependent to head:
+# &name	h = d..h
+
+# For a number relation, add an extra head containing all the words
+# in the depenceny chain, from the first dependent to the head:
+# &number	h = d<<h
+
+
+_	-
+acomp	CPL
+adpos	PA
+advcl	ADV
+# ADV if head POS is V or Adv; otherwise MOD
+# advmod	ADV: h.pos~"V|Adv"; MOD
+# Could be converted to MOD (or ET) or maybe omitted for other than
+# verbs and adverbs
+advmod	ADV
+amod	AT
+# appos	APP
+appos	-
+# Does not occur in corpora
+arg	-
+# aux	AUX
+aux	-
+auxpass	-
+cc	-
+# Could be converted to ET for nouns
+ccomp	CPL
+# Does not occur in corpora
+comp	-
+# compar	CPR
+compar	-
+comparator	-
+complm	AT
+# conj	CRD
+conj	-
+cop	-
+csubj	SS
+# csubj-cop	CPS
+csubj-cop	-
+# dep	OTH
+dep	-
+det	-
+dobj	OBJ
+# Does not occur in corpora
+ellipsis	-
+gobj	AT
+gsubj	AT
+iccomp	CPL
+infmod	ET
+intj	-
+mark	-
+# Does not occur in corpora
+mod	AT
+# AT; inverse relation (dependent to head) ET; head covers all words
+# from the dependent to head:
+# name	AT; ^ET; @h = d..h
+name	AT
+neg	-
+nn	AT
+# nommod	MOD
+nommod	ADV
+# Add an OWN relation from the nsubj dependent of head to the
+# dependent of nommod-own
+# nommod-own	OWN: -> h>nsubj d
+nommod-own	-
+nsubj	SS
+# nsubj-cop	CPS
+nsubj-cop	-
+num	-
+number	-
+# parataxis	CRD
+parataxis	-
+# partmod	MOD
+partmod	AT
+poss	AT
+preconj	-
+# prt	VPT
+prt	-
+punct	-
+quantmod	-
+# rcmod	MOD
+rcmod	ET
+rel	-
+ROOT	-
+# Does not occur in corpora
+subj	SS
+voc	-
+xcomp	CPL
+# Does not occur in corpora
+xsubj	SS
+# Does not occur in corpora
+xsubj-cop	SS
