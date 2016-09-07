@@ -503,6 +503,7 @@ MAKE_RELS_OPTS := \
 	$(call partvar_or_default,MAKE_RELS_OPTS,\
 		--sort --output-type=new-strings \
 		--word-form-pair-type=baseform \
+		--ignore-unknown-relations \
 		$(MAKE_RELS_OPTS_EXTRA))
 MAKE_RELS_CMD := \
 	$(call partvar_or_default,MAKE_RELS_CMD,\
