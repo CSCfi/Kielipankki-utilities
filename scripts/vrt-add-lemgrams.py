@@ -23,7 +23,7 @@ def process_input_stream(f, posmap, opts):
     for linenr, line in enumerate(f):
         if line.startswith('<') and line.endswith('>\n'):
             sys.stdout.write(line)
-        else:
+        elif line != '\n':
             sys.stdout.write(add_lemgram(line, posmap, opts))
 
 
