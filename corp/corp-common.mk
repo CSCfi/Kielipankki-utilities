@@ -132,6 +132,7 @@ DECODE_SPECIAL_CHARS = perl -C -e '\
 
 P_ATTRS := $(call partvar,P_ATTRS)
 P_ATTR_FIELDS := word $(P_ATTRS)
+P_ATTR_FIELDS_NOSLASH := $(subst /,,$(P_ATTR_FIELDS))
 
 index = $(or $(strip $(foreach wnum,1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16,\
 			$(if $(call eqs,$(1),$(word $(wnum),$(2))),\
@@ -509,7 +510,7 @@ MAKE_RELS_CMD := \
 	$(call partvar_or_default,MAKE_RELS_CMD,\
 		$(if $(CORPUS_HAS_DEPRELS),\
 			$(SCRIPTDIR)/vrt-extract-relations.py \
-				--input-fields="$(P_ATTR_FIELDS)" \
+				--input-fields="$(P_ATTR_FIELDS_NOSLASH)" \
 				--output-prefix=$(CORPNAME_BUILDDIR)_rels \
 				--compress=$(COMPRESS) \
 				$(if $(WORDPICT_RELMAP),--relation-map $(WORDPICT_RELMAP)) \
