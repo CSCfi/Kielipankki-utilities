@@ -13,15 +13,27 @@ COMPRESS_TARGETS = gz
 # decodes both using the same set of attributes. The dummy lemmacomp
 # in Russian might not be needed if it were the last attribute in
 # Finnish.
-P_ATTRS = lemma lemmacomp pos msd amblemma/ amblemmacomp/ ambpos/ ambmsd/ lex/
+P_ATTRS = lemma lemmacomp pos msd dephead deprel ref lex/
 # P_ATTRS_ru = $(filter-out lemmacomp,$(P_ATTRS_fi))
 
-ADD_TEXT_FILENAME = perl -pe '\
+# Add a trailing newline if it is missing. (TODO: Handle this in
+# corp-common.mk.)
+# Add attribute year for the publication year of the text: translation
+# year if it exists, otherwise the original year.
+# Add attribute "filename" to "text" elements, based on an environment
+# variable containing the file name (in corp-common.mk).
+FIX_INPUT = perl -pe '\
+        if (! /\n$$/) { \
+		$$_ .= "\n"; \
+        } \
 	if (/^<text/) { \
-		s/>\s*\n/ filename="'"`basename $$filename .vrt`"'">\n/ \
+		($$yorig) = /yearorig="(.*?)"/; \
+		($$ytr) = /yeartr="(.*?)"/; \
+		$$y = $$ytr || $$yorig; \
+		s/\s*>\s*\n/ year="$$y" filename="'"`basename $$filename .vrt`"'">\n/; \
 	}'
 MAKE_VRT_SEPARATE_FILES = true
-MAKE_VRT_CMD ?= $(ADD_TEXT_FILENAME)
+MAKE_VRT_CMD ?= $(FIX_INPUT)
 MAKE_VRT_PROG =
 
 unknown = missing=UNKNOWN
@@ -32,24 +44,23 @@ VRT_FIX_ATTRS_OPTS_EXTRA = \
 	--replace-xml-character-entities="numeric" \
 	--copy-struct-attribute="link:text/*" \
 	--copy-struct-attribute="sentence:text/*" \
-	--input-fields="word lemma pos msd" \
-	--output-fields='word lemma:setfirst,noboundaries,$(unknown) lemma:setfirst,$(unknown) pos:setfirst,$(unknown) msd:setfirst,missing="" lemma:set,unique,noboundaries,$(unknown) lemma:set,unique,$(unknown) pos:set,unique,$(unknown) msd:set,unique,missing=""'
+	--input-fields="word ref lemma pos msd deprel dephead" \
+	--output-fields='word lemma:noboundaries lemma pos msd dephead deprel ref'
 
-# Combine link attributes txtnumber and id to a new id to be used for
+# Combine link attributes filename and id to a new id to be used for
 # alignment, and rename id as orig_id.
 VRT_POSTPROCESS_EXTRA_FINAL = perl -pe '\
 	if (/^<link/) { \
-		($$id0, $$fname) = /\bid="(.*?)".*?\btext_filename="(.*?)"/; \
-		($$fnum) = ($$fname =~ /(\d+)/); \
-		$$id = "$$fnum:$$id0"; \
+		($$id0, $$fbase) = /\bid="(.*?)".*?\btext_filename="(.*)_..\d"/; \
+		$$id = "$$fbase:$$id0"; \
 		s/\bid=/id="$$id" orig_id=/ \
 	}' \
 
 LEMGRAM_POSMAP ?= ../lemgram_posmap_uta_$(PARCORP_LANG).tsv
-# Use the ambiguous lemma and pos
-VRT_ADD_LEMGRAMS_OPTS = --lemma-field=6 --pos-field=8
+WORDPICT_RELMAP_fi ?= ../../wordpict_relmap_ud_fi.tsv
+WORDPICT_RELMAP_ru = ../wordpict_relmap_uta_ru.tsv
 
-CORPUS_DATE_PATTERN = "text period"
+CORPUS_DATE_PATTERN = "text year"
 
 # This file is included in Makefiles in subdirectories, so we need to
 # use ../../ here.
