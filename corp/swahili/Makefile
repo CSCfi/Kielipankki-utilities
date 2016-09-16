@@ -10,7 +10,7 @@ SRC_SUBDIR = hcs/hcs-valmis-anl-fixed-jussi
 # SRC_SUBDIR = hcs/anl-fixed
 SRC_FILES = $(subst _,-mat/,$(SUBCORPUS))/*.anl
 
-P_ATTRS = lemma pos msd gloss syntax msdextra
+P_ATTRS = lemma pos msd gloss syntax msdextra lex/
 
 COMPRESS_TARGETS = gz
 
@@ -37,6 +37,8 @@ MAKE_VRT_CMD = \
         s/((?:.*\t){4})\{\s*(.*?)\s*\}\t/$$1$$2\t/; \
 	print;' \
 	| tr -d '\000-\010\013-\037'
+
+LEMGRAM_POSMAP = lemgram_posmap_hcs2.tsv
 
 
 include ../corp-common.mk
