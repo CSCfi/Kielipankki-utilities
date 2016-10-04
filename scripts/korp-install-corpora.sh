@@ -500,7 +500,10 @@ install_corpus () {
 	--show-transformed-names '*/data' '*/registry' '*/sql' 2>&1 \
 	| tee $filelistfile \
 	| sed -e 's/^/    /'
-    if grep 'tar:' $filelistfile; then
+    # Allow missing directory sql
+    if grep '^tar:' $filelistfile |
+	grep -E -v '^tar: (\*/sql: Not found|Exiting with failure)';
+    then
 	error "Errors in extracting $corpus_pkg"
     fi
     (
