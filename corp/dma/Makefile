@@ -80,6 +80,7 @@ include ../corp-common.mk
 # DMA MySQL database dump (dma6.tsv), by using the old scripts. Add
 # ids beginning from the end of the old ones.
 $(CORP_BUILDDIR)/dma_2014-2015.tsv: $(src_files_new)
+	mkdir -p $(CORP_BUILDDIR)
 	cat $^ \
 	| tr -d '\015' \
 	| grep -viah '^Area' \
