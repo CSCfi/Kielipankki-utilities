@@ -28,7 +28,7 @@ class DmaDuplicateCombiner(korpimport.util.InputProcessor):
         self._dupl_count = {'full': 0, 'subset': 0, 'partial': 0}
         self._combine_fieldnames = [
             ('signum', self._combine_uniq, dict(split=None)),
-            ('informant', self._combine_uniq, dict(split='; ')),
+            ('informant', self._combine_uniq, dict(split='; ', join='; ')),
             ('comment', self._combine_nonempty, dict()),
             ('location', self._combine_uniq_loc, dict()),
             ('pdf', self._combine_uniq, dict(split=None)),
@@ -129,8 +129,8 @@ class DmaDuplicateCombiner(korpimport.util.InputProcessor):
             sys.stderr.write(u'  Line {0} is a subset of line {1}\n'
                              .format(self._lineinfo, self._prev_lineinfo))
 
-    def _combine_uniq(self, val1, val2, split=None):
-        return ' '.join(
+    def _combine_uniq(self, val1, val2, split=None, join=' '):
+        return join.join(
             sorted(val for val in set(val1.split(split) + val2.split(split))
                    if val != '-'))
 
