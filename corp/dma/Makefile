@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
-CORPNAME_BASE = dma
+CORPNAME_BASE = dma_2016
 
+SRC_SUBDIR = dma
 SRC_FILES = tsv/dma6.tsv
 # SRC_FILES = dma6-sample2.tsv
 # SRC_FILES = dma6-test2.tsv
