@@ -25,8 +25,10 @@ MAKE_VRT_PROG = ./dma-tsv2vrt.py
 # First convert Windows CP-1252 punctuation characters left in the
 # data to their UTF-8 equivalents, remove control characters, convert
 # double backslashes to single ones, replace lone right curly brackets
-# with square brackets and remove SKN page number information
-# (remaining after running the original scripts because of a comma).
+# with square brackets, remove SKN page number information (remaining
+# after running the original scripts because of a comma), and replace
+# "Xmlk" with "X mlk." and "[Pyhäjä]rvi Ol." with "[Pyhäjä]rvi" in the
+# parish name fields (avoid 8-bit characters in the Perl regexp).
 #
 # Sort the result (except the heading line) by parish and text, so
 # that duplicates can be removed. It seems that a literal tab cannot
@@ -43,7 +45,7 @@ MAKE_VRT_CMD = \
 		sort_keys=`echo $$header | awk '{for (i = 1; i <= NF; i++) { if ($$i ~ /^(parish|text)$$/) { printf " -k" i "," i } } }'`; \
 		echo "$$header"; \
 		tail -n+2 \
-		| perl -CSD -pe ' \
+		| perl -CSD -ne ' \
 			s/\x85/\x{2026}/g; s/\x8A/\x{0160}/g; \
 			s/\x91/\x{2018}/g; s/\x92/\x{2019}/g; \
 			s/\x93/\x{201D}/g; s/\x94/\x{201E}/g; \
@@ -52,7 +54,11 @@ MAKE_VRT_CMD = \
 			s/\\\\/\\/g; \
 			s/(\s)\}(\s)/$$1]$$2/g; \
 			s/(\s)\]\s+\](\s)/$$1]$$2/g; \
-			s/(SKN [0-9]+), +s\. +[0-9]+/\1/g;' \
+			s/(SKN [0-9]+), +s\. +[0-9]+/\1/g; \
+			@f = /^((?:.*?\t){4})(.*\n)$$/; \
+			$$f[0] =~ s/\s?mlk\.?\t/ mlk.\t/g; \
+			$$f[0] =~ s/(rvi) Ol\.\t/$$1\t/g; \
+			print join("", @f)' \
 		| LC_ALL=C sort "-t`cat tab.tmp`" -s $$sort_keys \
 	) $(if $(DEBUG), | tee $(CORP_BUILDDIR)/dma-sorted.tsv) \
 	| $(RUN_PYTHON) ./dma-combine-duplicates.py \
