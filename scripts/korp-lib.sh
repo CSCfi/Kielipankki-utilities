@@ -404,6 +404,10 @@ list_corpora () {
 # environment variables KORP_MYSQL_USER and KORP_MYSQL_PASSWORD.
 # Additional MySQL options may be specified after sql_command.
 run_mysql () {
+    if [ "x$mysql_bin" = x ]; then
+	warn "MySQL client mysql not found"
+	return 1
+    fi
     if [ "x$1" = "x--auth" ]; then
 	_db=$korpdb_auth
 	shift
@@ -679,7 +683,7 @@ elif [ -x /opt/mariadb/bin/mysql ]; then
     # MariaDB on the Korp server
     mysql_bin="/opt/mariadb/bin/mysql --defaults-extra-file=/var/lib/mariadb/my.cnf"
 else
-    mysql_bin=mysql
+    mysql_bin=$(find_prog mysql)
 fi
 
 cleanup_on_exit=1
