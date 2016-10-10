@@ -25,7 +25,6 @@
 # - Finding the most recent database files from either SQL or TSV
 #   files does not work correctly; see FIXME comments in the code.
 # - {corpid} does not work in the filename part of an extra VRT file.
-# - tar warning on non-existent *.vrt or *.vrt.* files
 
 
 progname=`basename $0`
@@ -232,7 +231,11 @@ $1 $2"
 }
 
 add_corpus_files () {
-    corpus_files="$corpus_files $@"
+    for _fname in "$@"; do
+	if ls $_fname > /dev/null 2>&1; then
+	    corpus_files="$corpus_files $_fname"
+	fi
+    done
 }
 
 has_wildcards () {
@@ -731,10 +734,10 @@ for corpus_id in $corpus_ids; do
 	add_corpus_files "$datadir/$corpus_id"
     fi
     if [ "x$dbformat" != xnone ]; then
-	add_corpus_files "$(list_db_files $corpus_id)"
+	add_corpus_files $(list_db_files $corpus_id)
     fi
     if [ "x$include_vrtdir" != x ]; then
-	add_corpus_files "$(remove_trailing_slash "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")"
+	add_corpus_files $(remove_trailing_slash "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")
     fi
 done
 for extra_file in $extra_corpus_files; do
