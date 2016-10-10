@@ -504,9 +504,15 @@ else
     corpus_ids=$@
 fi
 
-for fname_patt in $frontend_config_files; do
-    add_corpus_files $(echo $korp_frontend_dir/$fname_patt)
-done
+if [ "x$frontend_config_dir" = "x" ]; then
+    warn "Korp frontend directory not found"
+elif test_file -r $frontend_config_dir/config.js warn \
+    "$frontend_config_dir/config.js not found or not accessible; not including Korp configuration files";
+then
+    for fname_patt in $frontend_config_files; do
+	add_corpus_files $(echo $korp_frontend_dir/$fname_patt)
+    done
+fi
 
 (
     cd $regdir
@@ -834,10 +840,13 @@ make_tar_excludes () {
 dir_transforms=\
 "$datadir/ data/
 $target_regdir/ registry/
-$korp_frontend_dir/ korp_config/
 $sqldir/\\\\([^/]*\\\\.sql[^/]*\\\\) sql/{corpid}/\\\\1
 $tsvdir/\\\\([^/]*\\\\.tsv[^/]*\\\\) sql/{corpid}/\\\\1
 $vrtdir/\\\\([^/]*\\\\.vrt[^/]*\\\\) vrt/{corpid}/\\\\1"
+if [ "x$korp_frontend_dir" != "x" ]; then
+    dir_transforms="$dir_transforms
+$korp_frontend_dir/ korp_config/"
+fi
 if [ "x$extra_dir_and_file_transforms" != x ]; then
     dir_transforms="$dir_transforms$extra_dir_and_file_transforms"
 fi
