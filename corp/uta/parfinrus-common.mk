@@ -37,6 +37,9 @@ MAKE_VRT_CMD ?= $(FIX_INPUT)
 MAKE_VRT_PROG =
 
 unknown = missing=UNKNOWN
+# In contrast to the TDT annotations used in many corpora, the
+# annotations in the Finnish sides of ParFin and ParRus use # as the
+# compound boundary marker (the default for vrt-fix-attrs.py).
 VRT_FIX_ATTRS_OPTS_EXTRA = \
 	--rename-element="s:sentence" \
 	--rename-element="align:link" \
@@ -45,6 +48,7 @@ VRT_FIX_ATTRS_OPTS_EXTRA = \
 	--copy-struct-attribute="link:text/*" \
 	--copy-struct-attribute="sentence:text/*" \
 	--input-fields="word ref lemma pos msd deprel dephead" \
+	--compound-boundary-can-replace-hyphen \
 	--output-fields='word lemma:noboundaries lemma pos msd dephead deprel ref'
 
 # Combine link attributes filename and id to a new id to be used for
