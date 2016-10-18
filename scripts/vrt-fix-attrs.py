@@ -499,14 +499,18 @@ class AttributeFixer(object):
                       lambda mo: encode_attr(mo, elemname=elemname,
                                              encode_map_key=encode_map_key), s)
 
-    def _replace_character_entities(self, line):
+    def _replace_character_entities(self, line, retain=None):
         numeric_only = (self._opts.replace_xml_character_entities
                         in ['numeric', 'correctnumeric'])
+        retain = retain or []
 
         def replace_char_entity_ref(matchobj):
             name = matchobj.group(1)
             if name in self._xml_char_entities and not numeric_only:
-                return self._xml_char_entities[name]
+                if name not in retain:
+                    return self._xml_char_entities[name]
+                else:
+                    return '&' + name + ';'
             elif name[0] == '#':
                 chrval = (int(name[2:], base=16)
                           if name[1] == 'x'
@@ -556,6 +560,9 @@ class AttributeFixer(object):
                 if elemname in self._struct_attr_values:
                     del self._struct_attr_values[elemname]
         else:
+            if self._opts.replace_xml_character_entities:
+                line = self._replace_character_entities(line,
+                                                        retain=['quot', 'apos'])
             if self._elem_ids:
                 line = self._add_elem_id(line)
             if self._struct_attr_copy_sources:
