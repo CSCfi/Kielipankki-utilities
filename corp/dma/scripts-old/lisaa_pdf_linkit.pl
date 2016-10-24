@@ -51,7 +51,9 @@ for ($i = 0; $i < @rivit; ++$i) {
 	  $rivi = $rivi . $alue . "_" . $pitaja . "_" . $temp . ".pdf ";
           $tulostettu = 1;
 	}
-        if (($lokaatio eq "-") || ($lokaatio =~ /SKNA[:]*[0-9]+[:][0-9]+/) || ($lokaatio =~ /SKN[A]*[:][0-9]+/)) {
+        if (($lokaatio eq "-")
+	    || ($lokaatio =~ /(mahdollisesti |luultavasti )?SKNA([:]*[0-9]+[:][0-9]+)?/)
+	    || ($lokaatio =~ /SKN[A]*[:][0-9]+/)) {
 	  if (!$tulostettu) {
 	    $rivi = $rivi . "-";
 	  }
