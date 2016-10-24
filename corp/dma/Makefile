@@ -40,7 +40,8 @@ MAKE_VRT_PROG = ./dma-tsv2vrt.py
 MAKE_VRT_CMD = \
 	( \
 	header=`cat $(SRC_FILES_REAL) | head -1`; \
-	printf "\t" > tab.tmp; \
+	tab=$(CORP_BUILDDIR)/tab.tmp; \
+	printf "\t" > $$tab; \
 	( \
 		sort_keys=`echo $$header | awk '{for (i = 1; i <= NF; i++) { if ($$i ~ /^(parish|text)$$/) { printf " -k" i "," i } } }'`; \
 		echo "$$header"; \
@@ -59,7 +60,7 @@ MAKE_VRT_CMD = \
 			$$f[0] =~ s/\s?mlk\.?\t/ mlk.\t/g; \
 			$$f[0] =~ s/(rvi) Ol\.\t/$$1\t/g; \
 			print join("", @f)' \
-		| LC_ALL=C sort "-t`cat tab.tmp`" -s $$sort_keys \
+		| LC_ALL=C sort "-t`cat $$tab`" -s $$sort_keys \
 	) $(if $(DEBUG), | tee $(CORP_BUILDDIR)/dma-sorted.tsv) \
 	| $(RUN_PYTHON) ./dma-combine-duplicates.py \
 		2> $(CORP_BUILDDIR)/dma-combine-duplicates.err \
@@ -67,13 +68,13 @@ MAKE_VRT_CMD = \
 	| ( \
 		echo "$$header"; \
 		tail -n+2 \
-		| LC_ALL=C sort "-t`cat tab.tmp`" -s -k2 \
+		| LC_ALL=C sort "-t`cat $$tab`" -s -k2 \
 	) \
 	| $(RUN_PYTHON) ./dma-tsv2vrt.py \
 		2> $(CORP_BUILDDIR)/dma-tsv2vrt.err \
 	| $(SCRIPTDIR)/vrt-add-placenames.py \
 		--source-attribute="text_parish_name"; \
-	rm tab.tmp \
+	rm $$tab \
 	)
 
 MAKE_VRT_DEPS_EXTRA = dma-combine-duplicates.py dma-tsv2vrt.py
@@ -92,7 +93,7 @@ $(CORP_BUILDDIR)/dma_2014-2015.tsv: $(src_files_new)
 	| grep -viah '^Area' \
 	| grep -va '^	' \
 	| perl -pe 's/\s+\n/\n/; s/(\s)\}(\s)/$$1]$$2/g' \
-	| awk -F'	' 'BEGIN {OFS = FS} {$$8 = $$4; print}' \
+	| awk -F'$(t)' 'BEGIN {OFS = FS} {$$8 = $$4; print}' \
 	| scripts-old/muuta_korvausmerkit.pl \
 	| scripts-old/muuta_rakenne.pl \
 	| scripts-old/lisaa_pdf_linkit.pl \
