@@ -82,10 +82,10 @@ archive_ext_xz=txz
 
 archive_type_name=korp
 
-sql_file_types="lemgrams rels timespans"
-sql_file_types_multicorpus="lemgrams timespans"
+sql_file_types="lemgrams rels timespans timedata timedata_date"
+sql_file_types_multicorpus="lemgrams timespans timedata timedata_date"
 sql_table_name_lemgrams=lemgram_index
-rels_tables_basenames="@ rel head_rel dep_rel sentences"
+rels_tables_basenames="@ rel head_rel dep_rel strings sentences"
 
 frontend_config_files="config.js $(echo modes/{other_languages,parallel,swedish}_mode.js) translations/corpora-*.json"
 
