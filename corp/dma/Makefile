@@ -4,11 +4,11 @@
 CORPNAME_BASE = dma_2016
 
 SRC_SUBDIR = dma
-SRC_FILES = tsv/dma6.tsv
 # SRC_FILES = dma6-sample2.tsv
 # SRC_FILES = dma6-test2.tsv
-SRC_FILES_GENERATED = dma_2014-2015.tsv
+SRC_FILES_GENERATED = dma6_fixed.tsv dma_2014-2015.tsv
 
+src_files_old = $(SRC_DIR)/tsv/dma6.tsv
 src_files_new = $(SRC_DIR)/uudet/*.txt
 
 # lemma, pos and msd are only used to convey place name information to
@@ -26,9 +26,10 @@ MAKE_VRT_PROG = ./dma-tsv2vrt.py
 # data to their UTF-8 equivalents, remove control characters, convert
 # double backslashes to single ones, replace lone right curly brackets
 # with square brackets, remove SKN page number information (remaining
-# after running the original scripts because of a comma), and replace
-# "Xmlk" with "X mlk." and "[Pyhäjä]rvi Ol." with "[Pyhäjä]rvi" in the
-# parish name fields (avoid 8-bit characters in the Perl regexp).
+# after running the original scripts because of a comma), remove
+# "<error: loc>" markers (from the PDF field) and replace "Xmlk" with
+# "X mlk." and "[Pyhäjä]rvi Ol." with "[Pyhäjä]rvi" in the parish name
+# fields (avoid 8-bit characters in the Perl regexp).
 #
 # Sort the result (except the heading line) by parish and text, so
 # that duplicates can be removed. It seems that a literal tab cannot
@@ -56,6 +57,7 @@ MAKE_VRT_CMD = \
 			s/(\s)\}(\s)/$$1]$$2/g; \
 			s/(\s)\]\s+\](\s)/$$1]$$2/g; \
 			s/(SKN [0-9]+), +s\. +[0-9]+/\1/g; \
+			s/ ?<error: loc>//g; \
 			@f = /^((?:.*?\t){4})(.*\n)$$/; \
 			$$f[0] =~ s/\s?mlk\.?\t/ mlk.\t/g; \
 			$$f[0] =~ s/(rvi) Ol\.\t/$$1\t/g; \
@@ -83,12 +85,78 @@ MAKE_VRT_DEPS_EXTRA = dma-combine-duplicates.py dma-tsv2vrt.py
 include ../corp-common.mk
 
 
+# Fix truncated location fields by taking the locations from the PDF
+# field if the value of the location field is a prefix of the
+# locations in the PDF field.
+fix_truncated_locations = \
+	perl -F'\t' -ane ' \
+		$$loc = $$F[6]; \
+		$$pdfloc = $$F[8]; \
+		$$pdfloc =~ s/\S+_([0-9]{1,3}[a-z]?)\.pdf/$$1/g; \
+		$$pdfloc =~ s/\S+\.pdf//g; \
+		$$pdfloc =~ s/<error: loc>//g; \
+		$$pdfloc =~ s/^\s*(.*?)\s*$$/$$1/; \
+		if ($$pdfloc && $$pdfloc ne "-") { \
+			($$loc0, $$loc1, $$loc2) = ($$loc =~ /^(.*?)((?:[0-9]{1,3}[a-z]?)(?: (?:[0-9]{1,3}[a-z]?))*)(.*?)$$/); \
+			if ($$loc1 ne $$pdfloc) { \
+				$$locinfo = "$$. ($$F[0] $$F[1])"; \
+				if (substr ($$pdfloc, 0, length ($$loc1)) eq $$loc1) { \
+					print STDERR "$$locinfo: Fixing location based on pdf location: $$loc1 => $$pdfloc\n"; \
+					$$loc1 = $$pdfloc; \
+				} else { \
+					print STDERR "Warning: $$locinfo: location and PDF differ: $$loc1 <> $$pdfloc\n"; \
+				} \
+			} \
+		} \
+		$$F[6] = "$$loc0$$loc1$$loc2"; \
+		print join ("\t", @F);'
+
+# Fix the location field: move signums before SKNA location; replace
+# truncated prefixes of "Suomen kielen nauhoitearkisto" with "SKNA";
+# and move two apparent comments to the comment field.
+fix_location = \
+	perl -F'\t' -ane ' \
+		$$F[6] =~ s/^((?:mahdollisesti |luultavasti )?SKNA:\S+(?: tai SKNA:\S+)?)\s+((?:[0-9]+[a-z]? ?)+)/$$2 $$1/; \
+		$$F[6] =~ s/ Suomen kielen.*$$/ SKNA/; \
+		if ($$F[6] =~ /^(tark\. kaupungissa|paikosta-sanan s:n)/) { \
+			$$F[5] = $$F[6]; \
+			$$F[6] = "-"; \
+		} \
+		print join ("\t", @F);'
+
+# Fix the location data in some records of the older dma6 data from
+# SUI DMA database and re-add PDF links based on the fixed data. From
+# the input to lisaa_pdf_linkit.pl, we need to cut out fields added
+# only at later stages and paste them back afterwards.
+$(CORP_BUILDDIR)/dma6_fixed.tsv: $(src_files_old) Makefile
+	f1_4=$(CORP_BUILDDIR)/dma6_f1-4.tsv; \
+	f12=$(CORP_BUILDDIR)/dma6_f12.tsv; \
+	cut -d'$(t)' -f1-4 $(src_files_old) \
+	| tail -n+2 > $$f1_4; \
+	cut -d'$(t)' -f12 $(src_files_old) \
+	| tail -n+2 > $$f12; \
+	header=`cat $(src_files_old) | head -1`; \
+	( \
+		echo "$$header"; \
+		cut -d'$(t)' -f2,4-11 $(src_files_old) \
+		| tail -n+2 \
+		| $(fix_truncated_locations) \
+		| iconv -tlatin1 \
+		| cut -d'$(t)' -f1-8 \
+		| $(fix_location) \
+		| scripts-old/lisaa_pdf_linkit.pl \
+		| cut -d'$(t)' -f3- \
+		| iconv -flatin1 \
+		| paste $$f1_4 - $$f12 \
+	) > $@; \
+	rm $$f1_4 $$f12
+
 # Convert the new original files to roughly the same format as the SUI
 # DMA MySQL database dump (dma6.tsv), by using the old scripts. Add
 # ids beginning from the end of the old ones.
-$(CORP_BUILDDIR)/dma_2014-2015.tsv: $(src_files_new)
+$(CORP_BUILDDIR)/dma_2014-2015.tsv: $(src_files_new) Makefile
 	mkdir -p $(CORP_BUILDDIR)
-	cat $^ \
+	cat $(src_files_new) \
 	| tr -d '\015' \
 	| grep -viah '^Area' \
 	| grep -va '^	' \
@@ -96,6 +164,7 @@ $(CORP_BUILDDIR)/dma_2014-2015.tsv: $(src_files_new)
 	| awk -F'$(t)' 'BEGIN {OFS = FS} {$$8 = $$4; print}' \
 	| scripts-old/muuta_korvausmerkit.pl \
 	| scripts-old/muuta_rakenne.pl \
+	| $(fix_location) \
 	| scripts-old/lisaa_pdf_linkit.pl \
 	| perl -pe 'BEGIN {$$id = 403965} \
 		    s/^(.*?)\t(.*?)(\t.+)$$/$$id\t$$1\t$$1 $$2\t$$2$$3\t/; \
