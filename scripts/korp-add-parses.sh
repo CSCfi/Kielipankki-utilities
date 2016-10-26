@@ -220,47 +220,6 @@ filter_new_attrs () {
 
 new_attrs=$(filter_new_attrs "$input_attrs")
 
-cat_input () {
-    if [ "x$1" = x ]; then
-	cat
-    else
-	for fname in "$@"; do
-	    if [ ! -r "$fname" ]; then
-		error "Unable to read input file: $fname"
-	    fi
-	    case $fname in
-		*.tgz | *.tar.gz )
-		    tar xzOf "$fname"
-		    ;;
-		*.tbz | *.tbz2 | *.tar.bz2 )
-		    tar xjOf "$fname"
-		    ;;
-		*.txz | *.tar.xz )
-		    tar xJOf "$fname"
-		    ;;
-		*.tar )
-		    tar xOf "$fname"
-		    ;;
-		*.gz )
-		    zcat "$fname"
-		    ;;
-		*.bz2 )
-		    bzcat "$fname"
-		    ;;
-		*.xz )
-		    xzcat "$fname"
-		    ;;
-		*.zip )
-		    unzip -p "$fname"
-		    ;;
-		* )
-		    cat "$fname"
-		    ;;
-	    esac
-	done
-    fi
-}
-
 
 add_lemmas_without_boundaries () {
     $vrt_fix_attrs --input-fields "word $initial_input_attrs" \
@@ -378,7 +337,7 @@ stage_add_new_attrs () {
     # Skip empty lines in the input VRT, in order to avoid a differing
     # number of tokens from the already encoded attributes (assuming
     # that cwb-encode was told to skip empty lines).
-    cat_input "$@" |
+    comprcat "$@" |
     grep -v '^$' |
     add_lemmas_without_boundaries |
     add_lemgrams > $vrt_file
@@ -390,7 +349,7 @@ stage_add_new_attrs () {
 add_new_attrs () {
     if [ "x$augmented_vrt_input" != x ]; then
 	echo_verb "(Lemgrams and lemmas without compound boundaries already in input)"
-	cat_input "$@" > $vrt_file
+	comprcat "$@" > $vrt_file
     else
 	time_stage stage_add_new_attrs "$@"
     fi
