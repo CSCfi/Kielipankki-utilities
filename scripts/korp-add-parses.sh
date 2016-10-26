@@ -12,17 +12,18 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 shortopts="hc:"
-longopts="help,corpus-root:,input-attrs:,input-fields:,save-augmented-vrt-file:,augmented-vrt-input,lemgram-posmap:,posmap:,wordpict-relmap:,wordpicture-relation-map:,relmap:,tsv-dir:,no-wordpicture,skip-wordpicture,import-database,verbose,times"
+longopts="help,corpus-root:,input-attrs:,input-fields:,name-tags,ner-tags,name-attributes,name-attrs,save-augmented-vrt-file:,augmented-vrt-input,lemgram-posmap:,posmap:,wordpict-relmap:,wordpicture-relation-map:,relmap:,tsv-dir:,no-wordpicture,skip-wordpicture,import-database,verbose,times"
 
 . $progdir/korp-lib.sh
 
-# hcleanup_on_exit=
+# cleanup_on_exit=
 
 vrt_fix_attrs=$progdir/vrt-fix-attrs.py
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
 vrt_convert_chars=$progdir/vrt-convert-chars.py
 vrt_extract_lemgrams=$progdir/vrt-extract-lemgrams.sh
 run_extract_rels=$progdir/run-extract-rels.sh
+vrt_add_name_attrs=$progdir/vrt-add-name-attrs.sh
 korp_mysql_import=$progdir/korp-mysql-import.sh
 
 cwb_encode=$cwb_bindir/cwb-encode
@@ -39,7 +40,7 @@ vrt_file=$tmp_prefix.vrt
 augmented_vrt_input=
 lemgram_posmap=$mapdir/lemgram_posmap_tdt.tsv
 wordpict_relmap=$mapdir/wordpict_relmap_tdt.tsv
-name_tags=
+name_attrs=
 import_database=
 wordpicture=1
 tsvdir=
@@ -52,7 +53,7 @@ usage () {
 Usage: $progname [options] corpus [input_file ...]
 
 Add dependency parses and information derived from them to an existing Korp
-corpus.
+corpus. Optionally also add named-entity information.
 
 The input files may be either (possibly compressed) VRT files containing
 dependency parse information and name tags, or ZIP or (possibly compressed)
@@ -68,6 +69,8 @@ Options:
                   specify the names of the positional attributes in the input,
                   excluding the first one ("word" or token), separated by
                   spaces (default: "$initial_input_attrs")
+  --name-attrs    add named-entity information based on a NER tag as the last
+                  positional attribute
   --save-augmented-vrt-file VRT_FILE
                   save as VRT_FILE the VRT file with the added attributes
                   (lemmas without compound boundaries and lemgrams); the file
@@ -131,9 +134,9 @@ while [ "x$1" != "x" ] ; do
 	    shift
 	    tsvdir=$1
 	    ;;
-	# --name-tags )
-	#     name_tags=1
-	#     ;;
+	--name-tags | --ner-tags | --name-attributes | --name-attrs )
+	    name_attrs=1
+	    ;;
 	--no-wordpicture | --skip-wordpicture )
 	    wordpicture=
 	    ;;
@@ -176,7 +179,7 @@ tsvdir=${tsvdir//CORPUS/$corpus}
 
 mkdir -p $tsvdir
 
-if [ "x$name_tags" != x ]; then
+if [ "x$name_attrs" != x ]; then
     initial_input_attrs="$initial_input_attrs nertag"
 fi
 
@@ -444,6 +447,21 @@ extract_wordpict_rels () {
     fi
 }
 
+stage_add_name_attrs () {
+    echo_verb "Adding name attributes"
+    exit_on_error $vrt_add_name_attrs $corpus @data @data
+}
+
+add_name_attrs () {
+    if [ "x$name_attrs" != x ]; then
+	if ! corpus_has_attr $corpus s ne_ex; then
+	    time_stage stage_add_name_attrs
+	else
+	    echo_verb "(Name attributes already present; skipping)"
+	fi
+    fi
+}
+
 stage_import_database () {
     echo_verb "Importing data to the MySQL database"
     exit_on_error run_import_database
@@ -463,6 +481,7 @@ main () {
     add_attrs_to_cwb
     extract_lemgrams
     extract_wordpict_rels
+    add_name_attrs
     import_database
     echo_verb "Completed."
 }
