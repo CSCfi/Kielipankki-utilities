@@ -322,6 +322,9 @@ comprcat () {
 	cat
     else
 	for fname in "$@"; do
+	    if [ ! -r "$fname" ]; then
+		error "Unable to read input file: $fname"
+	    fi
 	    case "$fname" in
 		*.bz2 )
 		    bzcat "$fname"
