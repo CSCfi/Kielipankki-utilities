@@ -174,6 +174,8 @@ if [ ! -e $cwb_regdir/$corpus ]; then
     error "Corpus $corpus does not exist"
 fi
 
+input_files=( "$@" )
+
 tsvdir=${tsvdir:-$corpus_root/$tsv_subdir}
 tsvdir=${tsvdir//CORPUS/$corpus}
 
@@ -221,6 +223,53 @@ filter_new_attrs () {
 new_attrs=$(filter_new_attrs "$input_attrs")
 
 
+time_stage () {
+    time_cmd --format "- CPU time used: %U %R" "$@"
+}
+
+# Run a single stage function (name) after printing the description
+# (descr). If function test_skip_$name is defined and its output is
+# non-empty, skip the stage.
+run_stage () {
+    local name=$1
+    shift
+    local descr="$@"
+    if type -t "test_skip_$name" > /dev/null; then
+	msg=$(test_skip_$name)
+	if [ "x$msg" != "x" ]; then
+	    echo_verb "(Skipping ${descr,}: $msg)"
+	    return
+	fi
+    fi
+    echo_verb "$descr"
+    time_stage exit_on_error $name
+}
+
+# Run all the stages in $stages sequentially.
+run_stages () {
+    local stagecnt=${#stages[*]}
+    local i=0
+    while [ $i -lt $stagecnt ]; do
+	run_stage ${stages[$i]} "${stages[$(($i + 1))]}"
+	i=$(($i + 2))
+    done
+}
+
+
+# Stage functions and their descriptions
+stages=(
+    add_new_attrs "Adding lemgrams and lemmas without compound boundaries"
+    cwb_encode "Encoding the new attributes"
+    add_registry_attrs "Adding the new attributes to the corpus registry"
+    cwb_make "Indexing and compressing the new attributes"
+    extract_lemgrams "Extracting lemgrams for the database"
+    extract_wordpict_rels
+    "Extracting word picture relations for the database"
+    add_name_attrs "Adding name attributes"
+    import_database "Importing data to the MySQL database"
+)
+
+
 add_lemmas_without_boundaries () {
     $vrt_fix_attrs --input-fields "word $initial_input_attrs" \
 	--output-fields "word $(echo "$initial_input_attrs" | sed -e 's/lemma/lemma:noboundaries lemma/')" \
@@ -253,7 +302,27 @@ filter_attrs () {
     grep -E ":($(echo $new_attrs | sed -e 's/ /|/g'))/?\$"
 }
 
-run_cwb_encode_base () {
+add_new_attrs () {
+    # Skip empty lines in the input VRT, in order to avoid a differing
+    # number of tokens from the already encoded attributes (assuming
+    # that cwb-encode was told to skip empty lines).
+    comprcat "${input_files[@]}" |
+    grep -v '^$' |
+    add_lemmas_without_boundaries |
+    add_lemgrams > $vrt_file
+    if [ $? != 0 ]; then
+	exit_on_error false
+    fi
+}
+
+test_skip_add_new_attrs () {
+    if [ "x$augmented_vrt_input" != x ]; then
+	echo "already in input"
+	comprcat "${input_files[@]}" > $vrt_file
+    fi
+}
+
+cwb_encode_base () {
     _attrs=$1
     _is_featset=$2
     attrnames=$(echo $_attrs | sed -e 's/[0-9][0-9]*://g')
@@ -276,14 +345,18 @@ run_cwb_encode_base () {
 	$(add_prefix "-P " $attrnames)
 }
 
-run_cwb_encode () {
+cwb_encode () {
     attrs_base=$(filter_attrs "-v /|:word\$" "word $input_attrs")
     attrs_featset=$(filter_attrs "/" "word $input_attrs")
-    run_cwb_encode_base "$attrs_base"
+    cwb_encode_base "$attrs_base"
     if [ "x$attrs_featset" != x ]; then
-	run_cwb_encode_base "$attrs_featset" featset
+	cwb_encode_base "$attrs_featset" featset
     fi
     # exit 1
+}
+
+test_skip_cwb_encode () {
+    [ "x$new_attrs" = x ] && echo "already present"
 }
 
 add_registry_attrs () {
@@ -303,16 +376,28 @@ add_registry_attrs () {
 ATTRIBUTE ' $all_attrs)" -e '/^ATTRIBUTE/ d' $regfile.bak > $regfile
 }
 
-run_cwb_make () {
+test_skip_add_registry_attrs () {
+    test_skip_cwb_encode
+}
+
+cwb_make () {
     $cwb_make -V $corpus
 }
 
-run_extract_lemgrams () {
+test_skip_cwb_make () {
+    test_skip_cwb_encode
+}
+
+extract_lemgrams () {
     $vrt_extract_lemgrams --corpus-id $corpus < $vrt_file |
     gzip > $tsvdir/${corpus}_lemgrams.tsv.gz
 }
 
-run_extract_wordpict_rels () {
+test_skip_extract_lemgrams () {
+    [ -s $tsvdir/${corpus}_lemgrams.tsv.gz ] && echo "already extracted"
+}
+
+extract_wordpict_rels () {
     $run_extract_rels --corpus-name $corpus \
 	--input-fields "word ${input_attrs%/}" \
 	--output-dir "$tsvdir" --relation-map "$wordpict_relmap" \
@@ -320,7 +405,27 @@ run_extract_wordpict_rels () {
 	< $vrt_file
 }
 
-run_import_database () {
+test_skip_extract_wordpict_rels () {
+    if [ "x$wordpicture" = x ]; then
+	echo "requested not to extract"
+    elif [ -s $tsvdir/${corpus}_rels.tsv.gz ]; then
+	echo "already extracted"
+    fi
+}
+
+add_name_attrs () {
+    $vrt_add_name_attrs $corpus @data @data
+}
+
+test_skip_add_name_attrs () {
+    if [ "x$name_attrs" = x ]; then
+	echo "not requested"
+    elif corpus_has_attr $corpus s ne_ex; then
+	echo "already present"
+    fi
+}
+
+import_database () {
     tsv_files=$tsvdir/${corpus}_lemgrams.tsv.gz
     if [ "x$wordpicture" != x ]; then
 	tsv_files="$tsv_files $(echo $tsvdir/${corpus}_rels*.tsv.gz)"
@@ -328,120 +433,16 @@ run_import_database () {
     $korp_mysql_import --prepare-tables --relations-format new $tsv_files
 }
 
-time_stage () {
-    time_cmd --format "- CPU time used: %U %R" "$@"
+test_skip_import_database () {
+    [ "x$import_database" = x ] &&
+    echo "not requested"
 }
 
-stage_add_new_attrs () {
-    echo_verb "Adding lemgrams and lemmas without compound boundaries"
-    # Skip empty lines in the input VRT, in order to avoid a differing
-    # number of tokens from the already encoded attributes (assuming
-    # that cwb-encode was told to skip empty lines).
-    comprcat "$@" |
-    grep -v '^$' |
-    add_lemmas_without_boundaries |
-    add_lemgrams > $vrt_file
-    if [ $? != 0 ]; then
-	exit_on_error false
-    fi
-}
-
-add_new_attrs () {
-    if [ "x$augmented_vrt_input" != x ]; then
-	echo_verb "(Lemgrams and lemmas without compound boundaries already in input)"
-	comprcat "$@" > $vrt_file
-    else
-	time_stage stage_add_new_attrs "$@"
-    fi
-}
-
-stage_cwb_encode () {
-    echo_verb "Encoding the new attributes"
-    exit_on_error run_cwb_encode
-}
-
-stage_cwb_make () {
-    echo_verb "Indexing and compressing the new attributes"
-    exit_on_error add_registry_attrs
-    exit_on_error run_cwb_make
-}
-
-add_attrs_to_cwb () {
-    # TODO: Check separately for the need to run cwb-make
-    if [ "x$new_attrs" != x ]; then
-	time_stage stage_cwb_encode
-	time_stage stage_cwb_make
-    else
-	echo_verb "(Parse attributes already present; skipping)"
-    fi
-}
-
-stage_extract_lemgrams () {
-    echo_verb "Extracting lemgrams for the database"
-    exit_on_error run_extract_lemgrams
-}
-
-extract_lemgrams () {
-    if [ ! -s $tsvdir/${corpus}_lemgrams.tsv.gz ]; then
-	time_stage stage_extract_lemgrams
-    else
-	echo_verb "(Lemgrams already extracted; skipping)"
-    fi
-}
-
-stage_extract_wordpict_rels () {
-    echo_verb "Extracting word picture relations for the database"
-    exit_on_error run_extract_wordpict_rels
-}
-
-extract_wordpict_rels () {
-    if [ "x$wordpicture" != x ]; then
-	if [ ! -s $tsvdir/${corpus}_rels.tsv.gz ]; then
-	    time_stage stage_extract_wordpict_rels
-	else
-	    echo_verb "(Word picture relations already extracted; skipping)"
-	fi
-    else
-	echo_verb "(Skipping extracting word picture relations as requested)"
-    fi
-}
-
-stage_add_name_attrs () {
-    echo_verb "Adding name attributes"
-    exit_on_error $vrt_add_name_attrs $corpus @data @data
-}
-
-add_name_attrs () {
-    if [ "x$name_attrs" != x ]; then
-	if ! corpus_has_attr $corpus s ne_ex; then
-	    time_stage stage_add_name_attrs
-	else
-	    echo_verb "(Name attributes already present; skipping)"
-	fi
-    fi
-}
-
-stage_import_database () {
-    echo_verb "Importing data to the MySQL database"
-    exit_on_error run_import_database
-}
-
-import_database () {
-    if [ "x$import_database" != x ]; then
-	time_stage stage_import_database
-    fi
-}
 
 main () {
     echo_verb "Adding parse information to Korp corpus $corpus:"
     set -o pipefail
-    add_new_attrs "$@"
-    check_corpus_size
-    add_attrs_to_cwb
-    extract_lemgrams
-    extract_wordpict_rels
-    add_name_attrs
-    import_database
+    run_stages
     echo_verb "Completed."
 }
 
