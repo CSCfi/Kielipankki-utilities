@@ -608,6 +608,33 @@ cwb_index_posattr () {
     done
 }
 
+# corpus_has_attr corpus attrtype attrname
+#
+# Return true if corpus has attribute attrname of type attrtype (p =
+# positional, s = structural, a = alignment).
+corpus_has_attr () {
+    local corpus attrtype attrname
+    corpus=$1
+    attrtype=$2
+    attrname=$3
+    shift 3
+    case $attrtype in
+	[pP]* )
+	    attrtype="ATTRIBUTE"
+	    ;;
+	[sS]* )
+	    attrtype="STRUCTURE"
+	    ;;
+	[aA]* )
+	    attrtype="ALIGNED"
+	    ;;
+	* )
+	    return 1
+	    ;;
+    esac
+    grep -E -q -s "^$attrtype +$attrname\b" $cwb_regdir/$corpus
+}
+
 
 # Common initialization code
 
