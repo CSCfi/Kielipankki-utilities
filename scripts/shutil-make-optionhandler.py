@@ -183,7 +183,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                 opts.append(optspec['names'][0])
                 if optspec.get('optargname'):
                     opts.append(self._shell_quote(optspec['value']))
-        return ' '.join(opts + self._args)
+        return ' '.join(opts + [self._shell_quote(arg) for arg in self._args])
 
     def _make_output_getopt_opts(self):
         shortopts = []
