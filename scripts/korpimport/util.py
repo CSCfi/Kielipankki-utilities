@@ -218,19 +218,19 @@ class BasicInputProcessor(Runner):
         pass
 
     def write_message(self, message, outstream=None, filename=None,
-                      linenr=None):
+                      linenr=None, **kwargs):
         filename = filename or self._filename or '<stdin>'
         linenr = linenr or self._linenr
         outstream = outstream or sys.stderr
         loc_info = ' (' + filename + (':' + str(linenr) if linenr else '') + ')'
         outstream.write(message + loc_info + '\n')
 
-    def error(self, message, exitcode=1):
-        self.write_message('Error: ' + message, linenr=self._linenr)
+    def error(self, message, exitcode=1, **kwargs):
+        self.write_message('Error: ' + message, **kwargs)
         exit(exitcode)
 
-    def warn(self, message):
-        self.write_message('Warning: ' + message, linenr=self._linenr)
+    def warn(self, message, **kwargs):
+        self.write_message('Warning: ' + message, **kwargs)
 
     def output(self, line):
         sys.stdout.write(line)
