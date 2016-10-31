@@ -506,11 +506,9 @@ class AttributeFixer(object):
 
         def replace_char_entity_ref(matchobj):
             name = matchobj.group(1)
-            if name in self._xml_char_entities and not numeric_only:
-                if name not in retain:
-                    return self._xml_char_entities[name]
-                else:
-                    return '&' + name + ';'
+            if (name in self._xml_char_entities and not numeric_only
+                and name not in retain):
+                return self._xml_char_entities[name]
             elif name[0] == '#':
                 chrval = (int(name[2:], base=16)
                           if name[1] == 'x'
@@ -526,7 +524,7 @@ class AttributeFixer(object):
                 else:
                     return char
             else:
-                return name
+                return '&' + name + ';'
 
         line = re.sub(r'&(' + self._xml_char_entity_name_regex + r');',
                       replace_char_entity_ref, line)
