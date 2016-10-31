@@ -86,6 +86,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         optparser = OptionParser(add_help_option=False)
         for optnames, optopts in [
                 [['config-file'], dict()],
+                [['config-file-option-name'], dict()],
                 [['config-section'], dict(default='Default')],
                 [['output-section-separator'], dict(default='-----')],
         ]:
@@ -97,6 +98,13 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                 optopts['action'] = 'store_true'
             optparser.add_option(*optspec['names'], **optopts)
         self._opts, self._args = optparser.parse_args()
+        config_file_opt = self._opts._config_file_option_name
+        if config_file_opt:
+            optval = getattr(self._opts,
+                             config_file_opt.lstrip('-').replace('-', '_'),
+                             None)
+            if optval:
+                self._opts._config_file = optval
         for optspec in self._optspecs:
             optspec['value'] = getattr(self._opts, optspec['pytarget'], None)
 
