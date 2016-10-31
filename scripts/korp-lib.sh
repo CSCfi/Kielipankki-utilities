@@ -639,6 +639,62 @@ corpus_has_attr () {
 }
 
 
+# optinfo_get_sect filename sectname
+#
+# Output the section sectname in the option information file filename.
+optinfo_get_sect () {
+    local file sectname
+    file=$1
+    sectname=$2
+    awk "/^-----<<$sectname/,/^----->>/" $file | grep -v '^-----'
+}
+
+# optinfo_init < optspecs
+#
+# Initialize variables containing option processing code based on the
+# option specifications read from standard input. Set the following
+# variables: optinfo_cmdline_args, optinfo_getopt_opts,
+# optinfo_set_defaults, optinfo_opt_usage, optinfo_opt_handler.
+optinfo_init () {
+    local make_opthandler_opts optinfo_file
+    make_opthandler_opts='--_output-section-format -----<<{name}\n{content}\n----->>\n'
+    optinfo_file=$tmp_prefix.optinfo
+    if [ "x$config_file_optname" != "x" ]; then
+	make_opthandler_opts="$make_opthandler_opts --_config-file-option-name $config_file_optname"
+    fi
+    $progdir/shutil-make-optionhandler.py $make_opthandler_opts "$@" \
+	> $optinfo_file 2> $tmp_prefix.optparse-errors
+    if [ -s $tmp_prefix.optparse-errors ]; then
+	error "Error: $(sed -e 's/.* error: //' $tmp_prefix.optparse-errors)"
+    fi
+    optinfo_cmdline_args="$(optinfo_get_sect $optinfo_file cmdline_args)"
+    optinfo_getopt_opts="$(optinfo_get_sect $optinfo_file getopt_opts)"
+    optinfo_set_defaults="$(optinfo_get_sect $optinfo_file set_defaults)"
+    optinfo_opt_usage="$(optinfo_get_sect $optinfo_file opt_usage)"
+    optinfo_opt_handler="$(optinfo_get_sect $optinfo_file opt_handler)"
+    rm $optinfo_file
+}
+
+# usage
+#
+# Output a usage message based on the option information generated
+# from $optspecs, with $usage_header at the beginning and optionally
+# $usage_footer at the end. Exit with code 0.
+usage () {
+    safe_echo "$usage_header"
+    # Expand variable references inside $optinfo_opt_usage but retain
+    # spacing.
+    [ "x$optinfo_opt_usage" != "x" ] && eval "cat <<OPTS_EOF
+
+Options:
+$optinfo_opt_usage
+OPTS_EOF"
+    [ "x$usage_footer" != "x" ] && safe_echo "
+$usage_footer"
+    exit 0
+}
+
+
 # Common initialization code
 
 # The tab character
@@ -724,6 +780,19 @@ show_times=
 trap cleanup 0
 trap cleanup_abort 1 2 13 15
 
+
+# If the variable optspecs has been defined, initialize option
+# processing code based on it.
+if [ "x$optspecs" != x ]; then
+    # We cannot use a pipe here, since optinfo_init would be run in a
+    # different process and the variables set in it would not be
+    # visible after the call.
+    safe_echo "$optspecs" > $tmp_prefix.optspecs
+    optinfo_init "$@" < $tmp_prefix.optspecs
+    eval "$optinfo_getopt_opts"
+    eval "$optinfo_set_defaults"
+    eval set -- "$optinfo_cmdline_args"
+fi
 
 if [ "x$shortopts" != x ]; then
     shortopts="-o $shortopts"
