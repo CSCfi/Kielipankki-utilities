@@ -11,12 +11,61 @@
 progname=`basename $0`
 progdir=`dirname $0`
 
-shortopts="hc:"
-longopts="help,corpus-root:,input-attrs:,input-fields:,name-tags,ner-tags,name-attributes,name-attrs,save-augmented-vrt-file:,augmented-vrt-input,lemgram-posmap:,posmap:,wordpict-relmap:,wordpicture-relation-map:,relmap:,tsv-dir:,no-wordpicture,skip-wordpicture,import-database,verbose,times"
+mapdir=$progdir/../corp
+
+tsv_subdir=vrt/CORPUS
+
+usage_header="Usage: $progname [options] corpus [input_file ...]
+
+Add dependency parses and information derived from them to an existing Korp
+corpus. Optionally also add named-entity information.
+
+The input files may be either (possibly compressed) VRT files containing
+dependency parse information and name tags, or ZIP or (possibly compressed)
+tar archives containing such VRT files. If no input files are specified, read
+from the standard input."
+
+optspecs='
+c|corpus-root=DIR "$corpus_root"
+    use DIR as the root directory of corpus files
+input-attrs|input-fields=ATTRS "ref lemma pos msd dephead deprel" initial_input_attrs
+    specify the names of the positional attributes in the input,
+    excluding the first one ("word" or token), separated by spaces
+name-attrs|name-attributes|name-tags|ner-tags
+    add named-entity information based on a NER tag as the last
+    positional attribute
+save-augmented-vrt-file=VRT_FILE vrt_file
+    save as VRT_FILE the VRT file with the added attributes (lemmas
+    without compound boundaries and lemgrams); the file can be used as
+    input with --augmented-vrt-input, e.g., to resume faster an
+    interrupted run
+augmented-vrt-input
+    the input VRT contains the added attributes
+lemgram-posmap|posmap=POSMAP_FILE "$mapdir/lemgram_posmap_tdt.tsv"
+    use POSMAP_FILE as the mapping file from the corpus parts of
+    speech to those used in Korp lemgrams; the file should contain
+    lines with corpus POS and lemgram POS separated by a tab
+wordpict-relmap|wordpicture-relation-map=RELMAP_FILE "$mapdir/wordpict_relmap_tdt.tsv"
+    use RELMAP_FILE as the mapping file from corpus dependency
+    relations to those used in the Korp word picture; the file
+    should contain lines with corpus POS and lemgram POS
+    separated by a tab
+tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
+    output database tables as TSV files to DIR
+no-wordpicture|skip-wordpicture wordpicture!
+    do not extract word picture relations database tables
+import-database
+    import the database TSV files into the Korp MySQL database
+verbose
+    output some progress information
+times show_times
+    output the amount of CPU time used for each stage
+'
 
 . $progdir/korp-lib.sh
 
 # cleanup_on_exit=
+
 
 vrt_fix_attrs=$progdir/vrt-fix-attrs.py
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
@@ -31,138 +80,11 @@ cwb_describe_corpus=$cwb_bindir/cwb-describe-corpus
 # cwb-make is in the CWB/Perl package, so it might be in a different directory
 cwb_make=$(find_prog cwb-make $default_cwb_bindirs)
 
-mapdir=$progdir/../corp
-
-tsv_subdir=vrt/CORPUS
-
-initial_input_attrs="ref lemma pos msd dephead deprel"
 vrt_file=$tmp_prefix.vrt
-augmented_vrt_input=
-lemgram_posmap=$mapdir/lemgram_posmap_tdt.tsv
-wordpict_relmap=$mapdir/wordpict_relmap_tdt.tsv
-name_attrs=
-import_database=
-wordpicture=1
-tsvdir=
-verbose=
-show_times=
-
-
-usage () {
-    cat <<EOF
-Usage: $progname [options] corpus [input_file ...]
-
-Add dependency parses and information derived from them to an existing Korp
-corpus. Optionally also add named-entity information.
-
-The input files may be either (possibly compressed) VRT files containing
-dependency parse information and name tags, or ZIP or (possibly compressed)
-tar archives containing such VRT files. If no input files are specified, read
-from the standard input.
-
-Options:
-  -h, --help      show this help
-  -c, --corpus-root DIR
-                  use DIR as the root directory of corpus files (default:
-                  $corpus_root)
-  --input-attrs ATTRS
-                  specify the names of the positional attributes in the input,
-                  excluding the first one ("word" or token), separated by
-                  spaces (default: "$initial_input_attrs")
-  --name-attrs    add named-entity information based on a NER tag as the last
-                  positional attribute
-  --save-augmented-vrt-file VRT_FILE
-                  save as VRT_FILE the VRT file with the added attributes
-                  (lemmas without compound boundaries and lemgrams); the file
-                  can be used as input with --augmented-vrt-input, e.g., to
-                  resume faster an interrupted run
-  --augmented-vrt-input
-                  the input VRT contains the added attributes
-  --lemgram-posmap POSMAP_FILE
-                  use POSMAP_FILE as the mapping file from the corpus parts of
-                  speech to those used in Korp lemgrams; the file should
-                  contain lines with corpus POS and lemgram POS separated by
-                  a tab (default: $lemgram_posmap)
-  --wordpict-relmap RELMAP_FILE
-                  use RELMAP_FILE as the mapping file from corpus dependency
-                  relations to those used in the Korp word picture; the file
-                  should contain lines with corpus POS and lemgram POS
-                  separated by a tab (default: $wordpict_relmap)
-  --tsv-dir DIR   output database tables as TSV files to DIR (default:
-                  $corpus_root/$tsv_subdir)
-  --no-wordpicture
-                  do not extract word picture relations database tables
-  --import-database
-                  import the database TSV files into the Korp MySQL database
-  --verbose       output some progress information
-  --times         output the amount of CPU time used for each stage
-EOF
-    exit 0
-}
 
 
 # Process options
-while [ "x$1" != "x" ] ; do
-    case "$1" in
-	-h | --help )
-	    usage
-	    ;;
-	-c | --corpus-root )
-	    shift
-	    set_corpus_root "$1"
-	    ;;
-	--input-attrs | --input-fields )
-	    shift
-	    initial_input_attrs=$1
-	    ;;
-	--save-augmented-vrt-file )
-	    shift
-	    vrt_file=$1
-	    ;;
-	--augmented-vrt-input )
-	    augmented_vrt_input=1
-	    ;;
-	--lemgram-posmap | --posmap )
-	    shift
-	    lemgram_posmap=$1
-	    ;;
-	--wordpict-relmap | --relmap | --wordpicture-relation-map )
-	    shift
-	    wordpict_relmap=$1
-	    ;;
-	--tsv-dir )
-	    shift
-	    tsvdir=$1
-	    ;;
-	--name-tags | --ner-tags | --name-attributes | --name-attrs )
-	    name_attrs=1
-	    ;;
-	--no-wordpicture | --skip-wordpicture )
-	    wordpicture=
-	    ;;
-	--import-database )
-	    import_database=1
-	    ;;
-	--verbose )
-	    verbose=1
-	    ;;
-	--times )
-	    show_times=1
-	    ;;
-	-- )
-	    shift
-	    break
-	    ;;
-	--* )
-	    warn "Unrecognized option: $1"
-	    ;;
-	* )
-	    break
-	    ;;
-    esac
-    shift
-done
-
+eval "$optinfo_opt_handler"
 
 if [ "x$1" = "x" ]; then
     error "No corpus name specified"
