@@ -163,11 +163,11 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
 
     def _write_output(self):
         sectnames = [
-            'cmdline',
+            'cmdline_args',
             'getopt_opts',
-            'defaults',
-            'help',
-            'opthandler',
+            'set_defaults',
+            'opt_usage',
+            'opt_handler',
         ]
         # FIXME: Decode here to Unicode, since
         # BasicInputProcessor.output() expects that; however, it again
@@ -184,7 +184,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         replquote = quote1 + quote2 + quote1 + quote2 + quote1
         return quote1 + text.replace(quote1, replquote) + quote1
 
-    def _make_output_cmdline(self):
+    def _make_output_cmdline_args(self):
         opts = []
         for optspec in self._optspecs:
             if optspec['value'] is not None:
@@ -205,7 +205,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         return ('shortopts="' + ''.join(shortopts) + '"\n'
                 'longopts="' + ','.join(longopts) + '"')
 
-    def _make_output_defaults(self):
+    def _make_output_set_defaults(self):
         defaults = []
         for optspec in self._optspecs:
             if optspec.get('target') and not optspec.get('targetfn'):
@@ -214,13 +214,13 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                 defaults.append(optspec.get('target') + '=' + defaultval)
         return '\n'.join(defaults)
 
-    def _make_output_help(self):
+    def _make_output_opt_usage(self):
         usage = []
         for optspec in self._optspecs:
-            usage.extend(self._make_opt_help(optspec))
+            usage.extend(self._make_opt_usage_single(optspec))
         return '\n'.join(usage)
 
-    def _make_opt_help(self, optspec):
+    def _make_opt_usage_single(self, optspec):
         optlist = ', '.join(optspec['names'])
         optarg = optspec.get('optargname')
         if optarg:
@@ -245,12 +245,12 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         else:
             return [optlist]
 
-    def _make_output_opthandler(self):
+    def _make_output_opt_handler(self):
         code = [
             '''while [ "x$1" != "x" ]; do
     case "$1" in''']
         for optspec in self._optspecs:
-            code.extend(self._make_single_opt_handler(optspec))
+            code.extend(self._make_opt_handler_single(optspec))
         code.append(
             '''
         -- )
@@ -268,7 +268,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
 done''')
         return '\n'.join(code)
 
-    def _make_single_opt_handler(self, optspec):
+    def _make_opt_handler_single(self, optspec):
         indent8 = ' ' * 8
         indent12 = ' ' * 12
         code = []
