@@ -85,7 +85,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         self._optspecs.append(optspec)
 
     def _parse_opts(self):
-        optparser = OptionParser(add_help_option=False)
+        optparser = OptionParser(usage='', add_help_option=False)
         for optnames, optopts in [
                 [['config-file'], dict()],
                 [['config-file-option-name'], dict()],
