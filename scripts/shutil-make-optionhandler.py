@@ -31,7 +31,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             r'''(?P<optnames>[^\s=:]+)
                 (?:[=:](?P<optargname>\S+))?
                 (?:\s+(?P<default>"[^\"]*"))?
-                (?:\s+(?P<target>[^\s()]+) (?P<targetfn>\(\))?)?''',
+                (?:\s+(?P<target>[^\s()!]+) (?P<targetextra>(?:!|\(\)))?)?''',
             re.VERBOSE)
 
     def process_input_stream(self, stream, filename=None):
@@ -70,6 +70,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         # print optspec_lines[0], repr(optspec)
         for name in optspec['names']:
             self._optspec_map[name.strip('-')] = optspec
+        optspec['targetfn'] = (optspec['targetextra'] == '()')
+        optspec['defaulttrue'] = (optspec['targetextra'] == '!')
         if not optspec['target'] or optspec['targetfn']:
             long_opts = [name for name in optspec['names'] if len(name) > 2]
             target_name = long_opts[0] if long_opts else optspec['names'][0]
@@ -200,8 +202,9 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
     def _make_output_defaults(self):
         defaults = []
         for optspec in self._optspecs:
-            if optspec.get('target') and optspec.get('targetfn') is None:
-                defaultval = optspec.get('default') or ''
+            if optspec.get('target') and not optspec.get('targetfn'):
+                defaultval = (optspec.get('default')
+                              or ('1' if optspec.get('defaulttrue') else ''))
                 defaults.append(optspec.get('target') + '=' + defaultval)
         return '\n'.join(defaults)
 
@@ -271,7 +274,8 @@ done''')
             if optspec.get('optargname'):
                 set_line += ' $1'
         else:
-            set_line += '=' + ('$1' if optspec.get('optargname') else '1')
+            set_line += '=' + ('$1' if optspec.get('optargname')
+                               else ('' if optspec.get('defaulttrue') else '1'))
         code.append(indent12 + set_line)
         code.append(indent12 + ';;')
         return code
