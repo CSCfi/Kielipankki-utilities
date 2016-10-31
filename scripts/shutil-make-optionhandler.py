@@ -90,7 +90,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                 [['config-file'], dict()],
                 [['config-file-option-name'], dict()],
                 [['config-section'], dict(default='Default')],
-                [['output-section-separator'], dict(default='-----')],
+                [['output-section-format'],
+                 dict(default=u'----- {name}\n{content}\n-----\n')],
         ]:
             optparser.add_option(*['--_' + name for name in optnames],
                                  **optopts)
@@ -107,6 +108,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                              None)
             if optval:
                 self._opts._config_file = optval
+        self._opts._output_section_format = unicode(
+            self._opts._output_section_format.replace('\\n', '\n'))
         for optspec in self._optspecs:
             optspec['value'] = getattr(self._opts, optspec['pytarget'], None)
 
@@ -159,18 +162,17 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                 optspec['value'] = val
 
     def _write_output(self):
-        partnames = [
+        sectnames = [
             'cmdline',
             'getopt_opts',
             'defaults',
             'help',
             'opthandler',
         ]
-        for partname in partnames:
-            self.output(self._opts._output_section_separator
-                        + ' ' + partname + '\n'
-                        + getattr(self, '_make_output_' + partname)() + '\n'
-                        + self._opts._output_section_separator + '\n')
+        for sectname in sectnames:
+            self.output(self._opts._output_section_format.format(
+                name=sectname,
+                content=getattr(self, '_make_output_' + sectname)()))
 
     def _shell_quote(self, text, type_='double'):
         quote1 = '"' if type_ == 'double' else '\''
