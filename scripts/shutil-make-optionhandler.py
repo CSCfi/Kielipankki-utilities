@@ -1,6 +1,75 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+shutil-make-optionhandler.py
+
+Usage: shutil-make-optionhandler.py [options] [script_options]
+           [script_arguments] < option_specifications
+
+Generate option processing code for Bourne-like shell scripts (should
+also work in other shells than Bash) based on option specifications
+read from the standard input. script_options and script_arguments are
+passed to the target (calling) script, the options possibly modified
+by values read from a configuration file (INI-syntax).
+
+An option specification is of the form
+
+optname1|...|optnamen[=ARG] ["default"] [target[()|!]]
+  description
+  ...
+
+The first line may not have leading whitespace, whereas the
+description lines must have. The components are as follows:
+
+- optnameN: Option names, separated by vertical bars. Single-letter
+  option names correspond to short options, others to long ones.
+- =ARG: If specified, the option takes an argument. ARG is used in the
+  usage message for the option.
+- "default": The default (initial) value for the variable
+  corresponding to the option, enclosed in double quotes. References
+  to shell variables are (typically) expanded in the shell script.
+- target: Either the shell variable corresponding to the option value,
+  or if followed by (), the function to be called for the option. If
+  not specified, the variable is the first long option name with
+  dashes converted to underscores. If the target is followed by !,
+  the default value (for an argumentless option) is 1 and the option
+  resets it to the empty string.
+- description: A description of the option for the usage message; may
+  span several lines, each beginning with whitespace; is subject to
+  reformatting (word wrapping).
+
+Empty lines and lines beginning with a # are ignored.
+
+Options to this script are distinguished from the target script
+options by having their names prefixed with an underscore. The
+currently recognized options are:
+
+--_output-section-format=FORMAT: Format each output section according
+  to the format string FORMAT, which may contain the keys {name} for
+  section name and {content} for section content. Literal \n is
+  replaced with a newline. Default: "----- {name}\n{content}\n-----\n"
+--_config-file=FILE: Read FILE as a configuration file
+--_config-file-option-name=OPTION: Use the argument of the (target
+  script) option OPTION as the name of the configuration file to read
+--_config-section=SECT: Read options from configuration file section
+  SECT; default: "Default", which may be at the beginning of the
+  config file without an explicit section heading.
+
+The script generates the following sections:
+
+- cmdline_args: target script options and arguments (appropriately
+  quoted for 'eval set -- "$args"'), taking into account values from a
+  configuration file;
+- getopt_opts: getopt option specifications (arguments for -o and -l)
+  as shell variable assignments (for 'eval "..."');
+- set_defaults: setting defaul values as shell variable assignments
+  (for 'eval "..."');
+- opt_usage: option descriptions for a usage message; and
+- opt_handler: the actual option handler (a case statement, for 'eval
+  "..."').
+"""
+
 
 import re
 import codecs
