@@ -169,10 +169,14 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             'help',
             'opthandler',
         ]
+        # FIXME: Decode here to Unicode, since
+        # BasicInputProcessor.output() expects that; however, it again
+        # encodes to UTF-8.
         for sectname in sectnames:
             self.output(self._opts._output_section_format.format(
                 name=sectname,
-                content=getattr(self, '_make_output_' + sectname)()))
+                content=(getattr(self, '_make_output_' + sectname)()
+                         .decode(self._input_encoding or 'utf-8'))))
 
     def _shell_quote(self, text, type_='double'):
         quote1 = '"' if type_ == 'double' else '\''
