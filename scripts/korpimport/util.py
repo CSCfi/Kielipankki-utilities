@@ -191,12 +191,12 @@ class OptionRunner(Runner):
         self._opts, self._args = optparser.parse_args(args)
 
 
-class InputProcessor(OptionRunner):
+class BasicInputProcessor(Runner):
 
     """An abstract class for a script processing input."""
 
     def __init__(self, args=None, **kwargs):
-        super(InputProcessor, self).__init__(args, **kwargs)
+        super(BasicInputProcessor, self).__init__(args, **kwargs)
         self._linenr = 0
         self._filename = None
         # FIXME: These are not yet the codecs versions, since they are
@@ -237,3 +237,11 @@ class InputProcessor(OptionRunner):
 
     def main(self):
         self.process_input(self._args or sys.stdin)
+
+
+class InputProcessor(BasicInputProcessor, OptionRunner):
+
+    """An abstract class for a script processing input and with options."""
+
+    def __init__(self, args=None, **kwargs):
+        super(InputProcessor, self).__init__(args, **kwargs)
