@@ -188,6 +188,33 @@ echo_dbg () {
     fi
 }
 
+# echo_quoted [args ...]
+#
+# Print each argument in args: arguments containing spaces or quotes
+# are quoted, preferring single quotes unless the argument contains a
+# single quote.
+#
+# FIXME: The result cannot be used as shell command line arguments if
+# an argument contains shell metacharacters or both single and double
+# quotes.
+echo_quoted () {
+    local arg
+    for arg in "$@"; do
+	case $arg in
+	    *" "* | *'"'* | "" )
+		printf "'%s' " "$arg"
+		;;
+	    *"'"* )
+		printf '"%s" ' "$arg"
+		;;
+	    * )
+		printf "%s " "$arg"
+		;;
+	esac
+    done
+    printf "\n"
+}
+
 # Output timestamped (ISO date+time and epoch+nanoseconds) text
 echo_timestamp () {
     date +"[%F %T %s.%N] $*"
