@@ -3,9 +3,16 @@
 
 
 # TODO:
-# - Optionally re-encode the corpus completely, including existing
-#   positional and structural attributes.
+# - Read options from a config file.
+# - Allow specifying corpus (and input?) via options (config file).
+# - Log output to a file.
+# - Support corpora without parse attributes.
 # - Allow different compound boundary options.
+# - Add options to pass to korp-make-corpus-package (various extra
+#   files).
+# - Generate a VRT file containing all the added information.
+# - Make multiple (related) corpora in the same package.
+# - Make parallel corpora.
 
 
 progname=`basename $0`
@@ -13,12 +20,13 @@ progdir=`dirname $0`
 
 mapdir=$progdir/../corp
 
-tsv_subdir=vrt/CORPUS
+vrt_subdir=vrt/CORPUS
+tsv_subdir=$vrt_subdir
 
 usage_header="Usage: $progname [options] corpus [input_file ...]
 
-Add dependency parses and information derived from them to an existing Korp
-corpus. Optionally also add named-entity information.
+Process a VRT file to make a Korp corpus package containing CWB data files and
+MySQL database import files.
 
 The input files may be either (possibly compressed) VRT files containing
 dependency parse information and name tags, or ZIP or (possibly compressed)
@@ -34,13 +42,29 @@ input-attrs|input-fields=ATTRS "ref lemma pos msd dephead deprel" initial_input_
 name-attrs|name-attributes|name-tags|ner-tags
     add named-entity information based on a NER tag as the last
     positional attribute
-save-augmented-vrt-file=VRT_FILE vrt_file
-    save as VRT_FILE the VRT file with the added attributes (lemmas
-    without compound boundaries and lemgrams); the file can be used as
-    input with --augmented-vrt-input, e.g., to resume faster an
-    interrupted run
-augmented-vrt-input
-    the input VRT contains the added attributes
+corpus-date=DATE
+    use DATE as the date of all texts in the corpus; "unknown" if not
+    known
+corpus-date-pattern=PATTERN
+    recognize corpus date information based on PATTERN of the form
+    "ELEM ATTR REGEX": extract date information from the attribute
+    ATTR of element (structural attribute) ELEM using the regular
+    expression REGEX. ELEM and ATTR may be "*" (any element or
+    attribute) or they may contain several attribute or element names
+    separated with vertical bars. REGEX may contain named groups
+    (subpatterns) in Python'"'"'s regular expressions Y, M and D,
+    which extract year, month and day; for example, "(?:P<Y>[0-9]{4})"
+    would recognize a year. REGEX may also cover both the start and
+    end date, in which case the subpatterns for the start date are Y1,
+    M1 and D1, and those for the end date, Y2, M2 and D2. If REGEX
+    does not contain named subpatterns, recognize the first group as
+    the start date and the possible second group as the end date.
+corpus-date-full-order=ORDER
+    recognize full dates in the order ORDER (one of "ymd", "dmy",
+    "mdy")
+corpus-date-ranges
+    make the patterns recognize date ranges with different start and
+    end days
 lemgram-posmap|posmap=POSMAP_FILE "$mapdir/lemgram_posmap_tdt.tsv"
     use POSMAP_FILE as the mapping file from the corpus parts of
     speech to those used in Korp lemgrams; the file should contain
@@ -70,17 +94,21 @@ times show_times
 vrt_fix_attrs=$progdir/vrt-fix-attrs.py
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
 vrt_convert_chars=$progdir/vrt-convert-chars.py
+vrt_extract_timespans=$progdir/vrt-extract-timespans.py
+vrt_list_struct_attrs=$progdir/vrt-list-struct-attrs.py
+korp_convert_timedata=$progdir/korp-convert-timedata.sh
+cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
 vrt_extract_lemgrams=$progdir/vrt-extract-lemgrams.sh
 run_extract_rels=$progdir/run-extract-rels.sh
 vrt_add_name_attrs=$progdir/vrt-add-name-attrs.sh
+korp_make_corpus_package=$progdir/korp-make-corpus-package.sh
 korp_mysql_import=$progdir/korp-mysql-import.sh
 
 cwb_encode=$cwb_bindir/cwb-encode
 cwb_describe_corpus=$cwb_bindir/cwb-describe-corpus
-# cwb-make is in the CWB/Perl package, so it might be in a different directory
-cwb_make=$(find_prog cwb-make $default_cwb_bindirs)
+cwb_make=$progdir/cwb-make-safe
 
-vrt_file=$tmp_prefix.vrt
+vrt_file=
 
 
 # Process options
@@ -92,58 +120,81 @@ fi
 corpus=$1
 shift
 
-if [ ! -e $cwb_regdir/$corpus ]; then
-    error "Corpus $corpus does not exist"
-fi
+# if [ ! -e $cwb_regdir/$corpus ]; then
+#     error "Corpus $corpus does not exist"
+# fi
 
 input_files=( "$@" )
 
+vrtdir=${vrtdir:-$corpus_root/$vrt_subdir}
+vrtdir=${vrtdir//CORPUS/$corpus}
 tsvdir=${tsvdir:-$corpus_root/$tsv_subdir}
 tsvdir=${tsvdir//CORPUS/$corpus}
 
-mkdir -p $tsvdir
+mkdir -p $vrtdir $tsvdir
+
+if [ "x$vrt_file" = "x" ]; then
+    vrt_file=$vrtdir/$corpus.vrt
+fi
 
 if [ "x$name_attrs" != x ]; then
     initial_input_attrs="$initial_input_attrs nertag"
 fi
 
-if [ "x$augmented_vrt_input" != x ]; then
-    if [[ "$initial_input_attrs" != "* lemmacomp *" ]]; then
-	initial_input_attrs=${initial_input_attrs/lemma /lemma lemmacomp }
-    fi
-    if [[ "$initial_input_attrs" != "* lex/" ]]; then
-	initial_input_attrs="$initial_input_attrs lex/"
-    fi
-    input_attrs=$initial_input_attrs
-else
-    input_attrs="${initial_input_attrs/lemma /lemma lemmacomp } lex/"
+# if [ "x$augmented_vrt_input" != x ]; then
+#     if [[ "$initial_input_attrs" != "* lemmacomp *" ]]; then
+# 	initial_input_attrs=${initial_input_attrs/lemma /lemma lemmacomp }
+#     fi
+#     if [[ "$initial_input_attrs" != "* lex/" ]]; then
+# 	initial_input_attrs="$initial_input_attrs lex/"
+#     fi
+#     input_attrs=$initial_input_attrs
+# else
+#     input_attrs="${initial_input_attrs/lemma /lemma lemmacomp } lex/"
+# fi
+
+input_attrs="${initial_input_attrs/lemma /lemma lemmacomp } lex/"
+
+verbose_opt=
+if [ "x$verbose" != x ]; then
+    verbose_opt=--verbose
 fi
 
 
 filter_new_attrs () {
-    $cwb_describe_corpus -s $corpus |
-    awk '
-        BEGIN {
-            for (i = 1; i < ARGC; i++) { attrs[i] = ARGV[i] }
-            delete ARGV
-        }
-        /^p-ATT/ { old_attrs[$2] = 1 }
-        END {
-            for (i in attrs) {
-                attrname_bare = gensub (/\//, "", "g", attrs[i])
-                # Lemma needs to be recoded as lemmacomp if lemmacomp is
-                # not already present
-                if (! (attrname_bare in old_attrs) \
-                    || (attrname_bare == "lemma" \
-                        && ! ("lemmacomp" in old_attrs))) {
-                    print attrs[i]
-                }
-            }
-        }' $@
+    $cwb_describe_corpus -s $corpus > $tmp_prefix.corpusattrs 2> /dev/null
+    if [ $? != 0 ]; then
+	echo "$@"
+    else
+	awk '
+	    BEGIN {
+		for (i = 1; i < ARGC; i++) { attrs[i] = ARGV[i] }
+		delete ARGV
+	    }
+	    /^p-ATT/ { old_attrs[$2] = 1 }
+	    END {
+		for (i in attrs) {
+		    attrname_bare = gensub (/\//, "", "g", attrs[i])
+		    # Lemma needs to be recoded as lemmacomp if lemmacomp is
+		    # not already present
+		    if (! (attrname_bare in old_attrs) \
+			|| (attrname_bare == "lemma" \
+			    && ! ("lemmacomp" in old_attrs))) {
+			print attrs[i]
+		    }
+		}
+	    }' $@ < $tmp_prefix.corpusattrs
+    fi
 }
 
 new_attrs=$(filter_new_attrs "$input_attrs")
 
+
+run_cmd () {
+    verbose printf "  Running: " >&$top_stdout
+    verbose echo_quoted "$@" >&$top_stdout
+    "$@"
+}
 
 time_stage () {
     time_cmd --format "- CPU time used: %U %R" "$@"
@@ -181,25 +232,28 @@ run_stages () {
 # Stage functions and their descriptions
 stages=(
     add_new_attrs "Adding lemgrams and lemmas without compound boundaries"
-    cwb_encode "Encoding the new attributes"
-    add_registry_attrs "Adding the new attributes to the corpus registry"
-    cwb_make "Indexing and compressing the new attributes"
+    add_datefromto "Adding datefrom and dateto"
+    cwb_encode "Encoding the attributes for CWB"
+    cwb_make "Indexing and compressing the CWB data"
+    convert_timedata "Converting and augmenting time data"
+    extract_info "Extracting information for the .info file"
     extract_lemgrams "Extracting lemgrams for the database"
     extract_wordpict_rels
     "Extracting word picture relations for the database"
     add_name_attrs "Adding name attributes"
+    make_corpus_package "Creating corpus package"
     import_database "Importing data to the MySQL database"
 )
 
 
 add_lemmas_without_boundaries () {
-    $vrt_fix_attrs --input-fields "word $initial_input_attrs" \
+    run_cmd $vrt_fix_attrs --input-fields "word $initial_input_attrs" \
 	--output-fields "word $(echo "$initial_input_attrs" | sed -e 's/lemma/lemma:noboundaries lemma/')" \
 	--compound-boundary-marker='|' --compound-boundary-can-replace-hyphen
 }
 
 add_lemgrams () {
-    $vrt_add_lemgrams --pos-map-file "$lemgram_posmap" \
+    run_cmd $vrt_add_lemgrams --pos-map-file "$lemgram_posmap" \
 	--lemma-field=3 --pos-field=5
 }
 
@@ -238,80 +292,122 @@ add_new_attrs () {
 }
 
 test_skip_add_new_attrs () {
-    if [ "x$augmented_vrt_input" != x ]; then
-	echo "already in input"
-	comprcat "${input_files[@]}" > $vrt_file
-    fi
+    corpus_exists $corpus &&
+    corpus_has_attr $corpus p lemmacomp &&
+    corpus_has_attr $corpus p lex &&
+    echo "already encoded"
+    # if [ "x$augmented_vrt_input" != x ]; then
+    # 	echo "already in input"
+    # 	comprcat "${input_files[@]}" > $vrt_file
+    # fi
 }
 
-cwb_encode_base () {
-    _attrs=$1
-    _is_featset=$2
-    attrnames=$(echo $_attrs | sed -e 's/[0-9][0-9]*://g')
-    attrnums=$(echo $_attrs | sed -e 's/:[^ ]*//g' | tr ' ' ',')
-    convert_chars_opts=
-    featset_text=
-    if [ "x$_is_featset" != x ]; then
-	featset_attrnums=$(
-	    echo $(seq $(echo "$attrnames" | wc -w)) |
-	    tr ' ' ','
-	)
-	convert_chars_opts="--feature-set-attrs $featset_attrnums"
-	featset_text="feature-set "
+add_datefromto () {
+    local opts
+    if [ "x$corpus_date" = "xunknown" ]; then
+	opts=--unknown
+    elif [ "x$corpus_date" != "x" ]; then
+	opts=--fixed=$corpus_date
     fi
-    echo_verb Encoding $featset_text p-attributes: $attrnames
-    egrep -v '^<' $vrt_file |
-    cut -d'	' -f$attrnums |
-    $vrt_convert_chars $convert_chars_opts |
-    $cwb_encode -d $corpus_root/data/$corpus -p - -xsB -c utf8 \
-	$(add_prefix "-P " $attrnames)
+    if [ "x$corpus_date_ranges" != "x" ]; then
+	opts="$opts --ranges"
+    fi
+    if [ "x$corpus_date_full_order" != "x" ]; then
+	opts="$opts --full-dates --full-date-order=$corpus_date_full_order"
+    fi
+    run_cmd $vrt_extract_timespans --mode=add --output-full-dates=always \
+	$opts "$corpus_date_pattern" < $vrt_file > $vrt_file.new
+    mv $vrt_file $vrt_file.old
+    cp -p $vrt_file.new $vrt_file
+    rm $vrt_file.old
 }
+
+test_skip_add_datefromto () {
+    grep -q -s '^<text.* datefrom="' $vrt_file && echo "already present"
+}
+
+# cwb_encode_base () {
+#     _attrs=$1
+#     _is_featset=$2
+#     attrnames=$(echo $_attrs | sed -e 's/[0-9][0-9]*://g')
+#     attrnums=$(echo $_attrs | sed -e 's/:[^ ]*//g' | tr ' ' ',')
+#     convert_chars_opts=
+#     featset_text=
+#     if [ "x$_is_featset" != x ]; then
+# 	featset_attrnums=$(
+# 	    echo $(seq $(echo "$attrnames" | wc -w)) |
+# 	    tr ' ' ','
+# 	)
+# 	convert_chars_opts="--feature-set-attrs $featset_attrnums"
+# 	featset_text="feature-set "
+#     fi
+#     echo_verb Encoding $featset_text p-attributes: $attrnames
+#     egrep -v '^<' $vrt_file |
+#     cut -d'	' -f$attrnums |
+#     $vrt_convert_chars $convert_chars_opts |
+#     $cwb_encode -d $corpus_root/data/$corpus -p - -xsB -c utf8 \
+# 	$(add_prefix "-P " $attrnames)
+# }
+
+# cwb_encode0 () {
+#     attrs_base=$(filter_attrs "-v /|:word\$" "word $input_attrs")
+#     attrs_featset=$(filter_attrs "/" "word $input_attrs")
+#     cwb_encode_base "$attrs_base"
+#     if [ "x$attrs_featset" != x ]; then
+# 	cwb_encode_base "$attrs_featset" featset
+#     fi
+#     # exit 1
+# }
 
 cwb_encode () {
-    attrs_base=$(filter_attrs "-v /|:word\$" "word $input_attrs")
-    attrs_featset=$(filter_attrs "/" "word $input_attrs")
-    cwb_encode_base "$attrs_base"
-    if [ "x$attrs_featset" != x ]; then
-	cwb_encode_base "$attrs_featset" featset
+    local featset_attrnums convert_chars_opts structnames
+    featset_attrnums=$(
+	printf "word\n"${input_attrs// /\\n} |
+	grep -n '/$' |
+	cut -d: -f1 |
+	tr '\n' ',' |
+	sed -e 's/,$//'
+    )
+    convert_chars_opts=
+    if [ "x$featset_attrnums" != "x" ]; then
+	convert_chars_opts="--feature-set-attrs $featset_attrnums"
     fi
-    # exit 1
+    structnames=$(grep '^<' $vrt_file | $vrt_list_struct_attrs)
+    mkdir -p $corpus_root/data/$corpus
+    run_cmd $vrt_convert_chars $convert_chars_opts < $vrt_file |
+    run_cmd $cwb_encode -d $corpus_root/data/$corpus -R $cwb_regdir/$corpus \
+	-xsB -c utf8 $(add_prefix "-P " $input_attrs) \
+	$(add_prefix "-S " $structnames)
 }
 
 test_skip_cwb_encode () {
     [ "x$new_attrs" = x ] && echo "already present"
 }
 
-add_registry_attrs () {
-    regfile=$cwb_regdir/$corpus
-    cp -p $regfile $regfile.bak
-    grep '^ATTRIBUTE ' $regfile | cut -d' ' -f2 > $tmp_prefix.old_attrs
-    # Interleave the old and new attributes
-    all_attrs=$(
-	echo "word $input_attrs" |
-	tr -d '/' |
-	tr ' ' '\n' |
-	diff -U100 $tmp_prefix.old_attrs - |
-	grep -Ev '^(---|\+\+\+|@@)' |
-	cut -c2-
-    )
-    sed -e '/^ATTRIBUTE word/ a'"$(add_prefix '\
-ATTRIBUTE ' $all_attrs)" -e '/^ATTRIBUTE/ d' $regfile.bak > $regfile
-}
-
-test_skip_add_registry_attrs () {
-    test_skip_cwb_encode
-}
-
 cwb_make () {
-    $cwb_make -V $corpus
+    run_cmd $cwb_make -r $cwb_regdir -g $filegroup -M 2000 $corpus
 }
 
 test_skip_cwb_make () {
     test_skip_cwb_encode
 }
 
+convert_timedata () {
+    run_cmd $korp_convert_timedata --tsv-dir "$tsvdir" $verbose_opt $corpus
+}
+
+test_skip_convert_timedata () {
+    corpus_has_attr $corpus s text_timefrom &&
+    [ -s $tsvdir/${corpus}_timedata.tsv.gz ] &&
+    echo "already converted"
+}
+
+extract_info () {
+    run_cmd $cwbdata_extract_info $verbose_opt $corpus
+}
+
 extract_lemgrams () {
-    $vrt_extract_lemgrams --corpus-id $corpus < $vrt_file |
+    run_cmd $vrt_extract_lemgrams --corpus-id $corpus < $vrt_file |
     gzip > $tsvdir/${corpus}_lemgrams.tsv.gz
 }
 
@@ -320,7 +416,7 @@ test_skip_extract_lemgrams () {
 }
 
 extract_wordpict_rels () {
-    $run_extract_rels --corpus-name $corpus \
+    run_cmd $run_extract_rels --corpus-name $corpus \
 	--input-fields "word ${input_attrs%/}" \
 	--output-dir "$tsvdir" --relation-map "$wordpict_relmap" \
 	--optimize-memory --no-tar \
@@ -336,7 +432,7 @@ test_skip_extract_wordpict_rels () {
 }
 
 add_name_attrs () {
-    $vrt_add_name_attrs $corpus @data @data
+    run_cmd $vrt_add_name_attrs $corpus @data @data
 }
 
 test_skip_add_name_attrs () {
@@ -347,12 +443,19 @@ test_skip_add_name_attrs () {
     fi
 }
 
+make_corpus_package () {
+    run_cmd $korp_make_corpus_package --target-corpus-root /v/corpora \
+	--tsv-dir "$tsvdir" --database-format tsv --compress gzip \
+	--vrt-file "$vrt_file" $corpus
+}
+
 import_database () {
-    tsv_files=$tsvdir/${corpus}_lemgrams.tsv.gz
+    tsv_files="$(add_prefix $tsvdir/${corpus}_ lemgrams.tsv.gz timedata.tsv.gz timedata_date.tsv.gz)"
     if [ "x$wordpicture" != x ]; then
 	tsv_files="$tsv_files $(echo $tsvdir/${corpus}_rels*.tsv.gz)"
     fi
-    $korp_mysql_import --prepare-tables --relations-format new $tsv_files
+    run_cmd $korp_mysql_import --prepare-tables --relations-format new \
+	$tsv_files
 }
 
 test_skip_import_database () {
@@ -362,9 +465,14 @@ test_skip_import_database () {
 
 
 main () {
-    echo_verb "Adding parse information to Korp corpus $corpus:"
+    echo_verb "Making Korp corpus $corpus:"
+    # $top_stdout is used by run_cmd to output the command to the top
+    # stdout even if the command is run in a pipeline.
+    top_stdout=3
+    exec 3> /dev/stdout
     set -o pipefail
     run_stages
+    exec 3>&-
     echo_verb "Completed."
 }
 
