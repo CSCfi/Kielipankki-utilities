@@ -665,6 +665,13 @@ corpus_has_attr () {
     grep -E -q -s "^$attrtype +$attrname\b" $cwb_regdir/$corpus
 }
 
+# corpus_exists corpus
+#
+# Return true if corpus exists (cwb-describe-corpus returns true).
+corpus_exists () {
+    $cwb_bindir/cwb-describe-corpus $1 > /dev/null 2> /dev/null
+}
+
 
 # optinfo_get_sect filename sectname
 #
