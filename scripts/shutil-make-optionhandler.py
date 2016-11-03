@@ -1,6 +1,15 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
+# TODO:
+# - Allow extra arguments to target functions
+# - Handle options that can be specified many times: either multiple
+#   calls to a function or a single value with a specified separator
+# - Group options in the usage message
+# - Continuation lines in option specifications
+
+
 """
 shutil-make-optionhandler.py
 
@@ -297,7 +306,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         optlist = textwrap.fill(
             optlist, width=self._help_width,
             initial_indent=self._help_indent_text['opt'],
-            subsequent_indent=self._help_indent_text['opt'])
+            subsequent_indent=self._help_indent_text['opt'],
+            break_on_hyphens=False)
         helptext = optspec.get('descr') or ''
         default = optspec.get('default')
         if default:
