@@ -761,7 +761,7 @@ $cwbdata_extract_info --update --registry "$regdir" --data-root-dir "$datadir" \
     --tsv-dir "$tsvdir" --info-from-file "$extra_info_file" $corpus_ids
 
 corpus_date=`get_corpus_date $corpus_ids`
-mkdir -p $pkgdir/$corpus_name
+mkdir_perms $pkgdir/$corpus_name
 archive_basename=${corpus_name}_${archive_type_name}_$corpus_date
 archive_name=$pkgdir/$corpus_name/$archive_basename.$archive_ext
 archive_num=0

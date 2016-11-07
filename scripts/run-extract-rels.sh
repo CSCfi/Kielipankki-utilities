@@ -228,7 +228,9 @@ if [ "x$make_archive" = x ] || [ ! -e $output_dir/$rels_tar ]; then
 	if [ "x$make_archive" != x ]; then
 	    tar cpf $real_output_dir/$rels_tar --wildcards \
 		${corpus_name}_rels*.tsv.gz
+	    ensure_perms $real_output_dir/$rels_tar
 	else
+	    ensure_perms ${corpus_name}_rels*.tsv.gz
 	    mv ${corpus_name}_rels*.tsv.gz $real_output_dir
 	fi
     )

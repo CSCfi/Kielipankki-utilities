@@ -193,7 +193,7 @@ vrtdir=${vrtdir//CORPUS/$corpus}
 tsvdir=${tsvdir:-$corpus_root/$tsv_subdir}
 tsvdir=${tsvdir//CORPUS/$corpus}
 
-mkdir -p $vrtdir $tsvdir
+mkdir_perms $vrtdir $tsvdir 2> /dev/null
 
 if [ "x$vrt_file" = "x" ]; then
     vrt_file=$vrtdir/$corpus.vrt
@@ -443,7 +443,7 @@ cwb_encode () {
 	convert_chars_opts="--feature-set-attrs $featset_attrnums"
     fi
     structnames=$(grep '^<' $vrt_file | $vrt_list_struct_attrs)
-    mkdir -p $corpus_root/data/$corpus
+    mkdir_perms $corpus_root/data/$corpus
     run_cmd $vrt_convert_chars $convert_chars_opts < $vrt_file |
     run_cmd $cwb_encode -d $corpus_root/data/$corpus -R $cwb_regdir/$corpus \
 	-xsB -c utf8 $(add_prefix "-P " $input_attrs) \
@@ -455,7 +455,7 @@ test_skip_cwb_encode () {
 }
 
 cwb_make () {
-    run_cmd $cwb_make -r $cwb_regdir -g $filegroup -M 2000 $corpus
+    run_cmd $cwb_make -r $cwb_regdir -g $filegroup -p 664 -M 2000 $corpus
 }
 
 test_skip_cwb_make () {
@@ -564,6 +564,8 @@ main () {
     set -o pipefail
     run_stages
     exec 3>&-
+    ensure_perms $tsvdir/* $vrtdir/* $corpus_root/data/* $cwb_regdir/$corpus \
+	2> /dev/null
     echo_verb "Completed."
 }
 
