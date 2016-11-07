@@ -43,9 +43,6 @@ c|corpus-root=DIR "$corpus_root"
 input-attrs|input-fields=ATTRS "ref lemma pos msd dephead deprel" initial_input_attrs
     specify the names of the positional attributes in the input,
     excluding the first one ("word" or token), separated by spaces
-name-attrs|name-attributes|name-tags|ner-tags
-    add named-entity information based on a NER tag as the last
-    positional attribute
 corpus-date=DATE
     use DATE as the date of all texts in the corpus; "unknown" if not
     known
@@ -82,6 +79,9 @@ tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
     output database tables as TSV files to DIR
 no-wordpicture|skip-wordpicture wordpicture!
     do not extract word picture relations database tables
+no-name-attrs|no-name-attributes|skip-name-attrs|skip-name-attributes name_attrs!
+    do not add named-entity information based on a NER tag as the last
+    positional attribute
 import-database
     import the database TSV files into the Korp MySQL database
 verbose
@@ -472,7 +472,7 @@ add_name_attrs () {
 
 test_skip_add_name_attrs () {
     if [ "x$name_attrs" = x ]; then
-	echo "not requested"
+	echo "requested not to add"
     elif corpus_has_attr $corpus s ne_ex; then
 	echo "already present"
     fi
