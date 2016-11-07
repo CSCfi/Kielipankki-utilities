@@ -4,7 +4,6 @@
 
 # TODO:
 # - Allow specifying input via options (config file).
-# - Log output to a file.
 # - Support corpora without parse attributes.
 # - Allow different compound boundary options.
 # - Add options to pass to korp-make-corpus-package (various extra
@@ -93,6 +92,13 @@ config-file|configuration-file=FILE
     read FILE as an INI-style configuration file (without sections).
     Configuration keys correspond to option names without the leading
     dashes; internal dashes may be replaced with underscores.
+log-file=FILE logfile
+    log script output (standard output and standard error) to FILE
+    instead of the default
+    $corpus_root/log/${progname}_CORPUS_TIMESTAMP.log where CORPUS is
+    the corpus id and TIMESTAMP the start time of the script
+no-logging logging!
+    do not copy script output to a log file
 '
 
 config_file_optname=config-file
@@ -137,6 +143,21 @@ fi
 # if [ ! -e $cwb_regdir/$corpus ]; then
 #     error "Corpus $corpus does not exist"
 # fi
+
+if [ "x$logging" != x ]; then
+    if [ "x$logfile" = x ]; then
+	if [ ! -e "$corpus_root/log" ]; then
+	    mkdir_perms $corpus_root/log
+	fi
+	logfile=$corpus_root/log/${progname}_${corpus}_$(date +'%Y%m%d%H%M%S').log
+    fi
+    # http://stackoverflow.com/questions/3173131/redirect-copy-of-stdout-to-log-file-from-within-bash-script-itself
+    cat < /dev/null > $logfile
+    ensure_perms $logfile
+    exec > >(tee -ia $logfile)
+    exec 2> >(tee -ia $logfile >&2)
+    echo_verb "Logging output to $logfile"
+fi
 
 input_files=( "$@" )
 
@@ -491,7 +512,9 @@ main () {
 }
 
 
+echo_verb $(date +'[%F %T]')
 # FIXME: The format is not effective, since the formats used in inner
 # time_cmd calls take overwrite the format (TIMEFORMAT environment
 # variable).
 time_cmd --format "- Total CPU time used: %U %R" main "$@"
+echo_verb $(date +'[%F %T]')
