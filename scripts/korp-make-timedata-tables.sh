@@ -10,12 +10,12 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 shortopts="hc:t:v"
-longopts="help,corpus-root:,tsv-dir:,verbose,no-import"
+longopts="help,corpus-root:,tsv-dir:,verbose,import"
 
 tsvdir=$CORPUS_TSVDIR
 tsvsubdir=sql
 verbose=
-import=1
+import=
 
 dbname="korp"
 
@@ -41,7 +41,8 @@ Options:
                   Korp MySQL TSV data files; DIRTEMPL is a directory name
                   possibly containing the placeholder {corpid} for corpus id
                   (default: CORPUS_ROOT/$tsvsubdir)
-  --no-import     do not import data into Korp MySQL database
+  --import-database
+                  import data into the Korp MySQL database
   -v, --verbose   verbose output
 EOF
     exit 0
@@ -64,8 +65,8 @@ while [ "x$1" != "x" ] ; do
 	-v | --verbose )
 	    verbose=1
 	    ;;
-	--no-import )
-	    import=
+	--import-database )
+	    import=1
 	    ;;
 	-- )
 	    shift

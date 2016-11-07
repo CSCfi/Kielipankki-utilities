@@ -10,11 +10,12 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 shortopts="hc:t:v"
-longopts="help,convert:,corpus-root:,tsv-dir:,verbose"
+longopts="help,convert:,corpus-root:,tsv-dir:,import-database,verbose"
 
 convert_types=all
 tsvdir=$CORPUS_TSVDIR
 tsvsubdir=sql
+import_database=
 verbose=
 
 dbname="korp"
@@ -51,6 +52,8 @@ Options:
                   Korp MySQL TSV data files; DIRTEMPL is a directory name
                   possibly containing the placeholder {corpid} for corpus id
                   (default: CORPUS_ROOT/$tsvsubdir)
+  --import-database
+                  import the MySQL database tables to the database
   -v, --verbose   verbose output
 EOF
     exit 0
@@ -73,6 +76,9 @@ while [ "x$1" != "x" ] ; do
 	-t | --tsv-dir )
 	    shift
 	    tsvdir=$1
+	    ;;
+	--import-database )
+	    import_database=--import-database
 	    ;;
 	-v | --verbose )
 	    verbose=1
@@ -211,7 +217,7 @@ update_info () {
 make_mysql_timedata () {
     _corpus=$1
     $progdir/korp-make-timedata-tables.sh --corpus-root=$corpus_root \
-	--tsv-dir=$tsvdir $verbose_opt $_corpus |
+	--tsv-dir=$tsvdir $import_database $verbose_opt $_corpus |
     cat_verb |
     indent_input 2
 }
