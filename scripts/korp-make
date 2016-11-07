@@ -6,8 +6,8 @@
 # - Allow specifying input via options (config file).
 # - Support corpora without parse attributes.
 # - Allow different compound boundary options.
-# - Add options to pass to korp-make-corpus-package (various extra
-#   files).
+# - Allow multiple instances of extra file options to pass to
+#   korp-make-corpus-package
 # - Generate a VRT file containing all the added information.
 # - Make multiple (related) corpora in the same package.
 # - Make parallel corpora.
@@ -82,6 +82,33 @@ no-wordpicture|skip-wordpicture wordpicture!
 no-name-attrs|no-name-attributes|skip-name-attrs|skip-name-attributes name_attrs!
     do not add named-entity information based on a NER tag as the last
     positional attribute
+korp-frontend-dir=DIR "$korp_frontend_dir"
+    read Korp configuration files from DIR, to be included in corpus
+    package
+package-readme-file|readme-file=FILE
+    include FILE as a top-level read-me file in the corpus package;
+    FILE may contain shell wildcards (but braces are not expanded)
+package-doc-dir|doc-dir=DIR
+    include DIR as a documentation directory "doc" in the corpus
+    package
+package-doc-file|doc-file=FILE
+    include FILE as a documentation file in directory "doc" in the
+    corpus package; FILE may contain shell wildcards
+package-script-dir|script-dir=DIR
+    include DIR as a (conversion) script directory "scripts" of
+    the corpus package
+package-script-file|script-file=FILE
+    include FILE as a (conversion) script file in directory "scripts"
+    of the corpus package; FILE may contain shell wildcards
+package-extra-dir|extra-dir=SRCDIR[:DSTDIR]
+    include directory SRCDIR in the corpus package; if :DSTDIR is
+    specified, the directory is renamed as DSTDIR in the package
+package-extra-file|extra-file=SRCFILE[:DSTFILE]
+    include file SRCFILE in the corpus package; if :DSTFILE is
+    specified, the file is renamed as DSTFILE in the package; if
+    DSTFILE ends in a slash or if SRCFILE contains wildcards, DSTFILE
+    is considered a directory name and SRCFILE is placed in that
+    directory in the package
 import-database
     import the database TSV files into the Korp MySQL database
 v|verbose
@@ -479,9 +506,27 @@ test_skip_add_name_attrs () {
 }
 
 make_corpus_package () {
+    local extra_opts
+    [ "x$korp_frontend_dir" != x ] &&
+    extra_opts="$extra_opts --korp-frontend-dir=$korp_frontend_dir"
+    [ "x$package_readme_file" != x ] &&
+    extra_opts="--readme-file=$package_readme_file"
+    [ "x$package_doc_dir" != x ] &&
+    extra_opts="$extra_opts --doc-dir=$package_doc_dir"
+    [ "x$package_doc_file" != x ] &&
+    extra_opts="$extra_opts --doc-file=$package_doc_file"
+    [ "x$package_script_dir" != x ] &&
+    extra_opts="$extra_opts --script-dir=$package_script_dir"
+    [ "x$package_script_file" != x ] &&
+    extra_opts="$extra_opts --script-file=$package_script_file"
+    [ "x$package_extra_dir" != x ] &&
+    extra_opts="$extra_opts --extra-dir=$package_extra_dir"
+    [ "x$package_extra_file" != x ] &&
+    extra_opts="$extra_opts --extra-file=$package_extra_file"
+    run_cmd gzip --no-name $vrt_file
     run_cmd $korp_make_corpus_package --target-corpus-root /v/corpora \
 	--tsv-dir "$tsvdir" --database-format tsv --compress gzip \
-	--vrt-file "$vrt_file" $corpus
+	--vrt-file $vrt_file.gz $extra_opts $corpus
 }
 
 import_database () {
