@@ -105,8 +105,11 @@ if [ "x$corpus_id" = x ]; then
 fi
 
 decode_special_chars () {
+    # Removed 'use feature "unicode_strings";' from the Perl code
+    # below to be compatible with Perl 5.10 in Taito. Reading the
+    # "Unicode Bug" section in perlunicode man page, that probably
+    # does not affect the result. Is that right?
     perl -CSD -e '
-        use feature "unicode_strings";
 	$sp_chars = "'"$special_chars"'";
 	%sp_char_map = map {("'$encoded_special_char_prefix'"
 	                     . chr ('$encoded_special_char_offset' + $_))
