@@ -234,6 +234,8 @@ add_corpus_files () {
     for _fname in "$@"; do
 	if ls $_fname > /dev/null 2>&1; then
 	    corpus_files="$corpus_files $_fname"
+	else
+	    warn "File or directory not found: $_fname"
 	fi
     done
 }
