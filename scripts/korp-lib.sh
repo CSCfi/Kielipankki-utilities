@@ -77,7 +77,16 @@ test_file () {
 
 ensure_perms () {
     chgrp -R $filegroup "$@"
-    chmod -R g+rwX "$@"
+    chmod -R $fileperms "$@"
+}
+
+# mkdir_perms dir [dir ...]
+#
+# Create the directories dir and ensure that they have the desired
+# permissions ($filegroup and $fileperms).
+mkdir_perms () {
+    mkdir -p "$@"
+    ensure_perms "$@"
 }
 
 warn () {
@@ -751,6 +760,9 @@ korp_frontend_dir=${KORP_FRONTEND_DIR:-$(find_existing_dir -e config.js $default
 
 default_filegroups="korp clarin"
 find_filegroup $default_filegroups
+
+# File permissions used by ensure_perms
+fileperms=ug+rwX,o+rX
 
 # Directory for temporary files
 tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-$TEMP}}}
