@@ -3,8 +3,7 @@
 
 
 # TODO:
-# - Read options from a config file.
-# - Allow specifying corpus (and input?) via options (config file).
+# - Allow specifying input via options (config file).
 # - Log output to a file.
 # - Support corpora without parse attributes.
 # - Allow different compound boundary options.
@@ -23,10 +22,13 @@ mapdir=$progdir/../corp
 vrt_subdir=vrt/CORPUS
 tsv_subdir=$vrt_subdir
 
-usage_header="Usage: $progname [options] corpus [input_file ...]
+usage_header="Usage: $progname [options] [corpus] [input_file ...]
 
 Process a VRT file to make a Korp corpus package containing CWB data files and
 MySQL database import files.
+
+The corpus id must be specified either as the first non-option argument or via
+the option --corpus-id.
 
 The input files may be either (possibly compressed) VRT files containing
 dependency parse information and name tags, or ZIP or (possibly compressed)
@@ -34,6 +36,9 @@ tar archives containing such VRT files. If no input files are specified, read
 from the standard input."
 
 optspecs='
+corpus-id=CORPUS corpus
+    make corpus with id CORPUS; this is alternative to specifying the
+    corpus id as the first non-option argument
 c|corpus-root=DIR "$corpus_root"
     use DIR as the root directory of corpus files
 input-attrs|input-fields=ATTRS "ref lemma pos msd dephead deprel" initial_input_attrs
@@ -84,7 +89,14 @@ verbose
     output some progress information
 times show_times
     output the amount of CPU time used for each stage
+config-file|configuration-file=FILE
+    read FILE as an INI-style configuration file (without sections).
+    Configuration keys correspond to option names without the leading
+    dashes; internal dashes may be replaced with underscores.
 '
+
+config_file_optname=config-file
+
 
 . $progdir/korp-lib.sh
 
@@ -114,11 +126,13 @@ vrt_file=
 # Process options
 eval "$optinfo_opt_handler"
 
-if [ "x$1" = "x" ]; then
-    error "No corpus name specified"
+if [ "x$corpus" = "x" ]; then
+    if [ "x$1" = "x" ]; then
+	error "No corpus name specified"
+    fi
+    corpus=$1
+    shift
 fi
-corpus=$1
-shift
 
 # if [ ! -e $cwb_regdir/$corpus ]; then
 #     error "Corpus $corpus does not exist"
