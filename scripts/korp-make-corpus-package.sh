@@ -758,7 +758,7 @@ done
 echo_dbg corpus_files "$corpus_files"
 
 $cwbdata_extract_info --update --registry "$regdir" --data-root-dir "$datadir" \
-    --info-from-file "$extra_info_file" $corpus_ids
+    --tsv-dir "$tsvdir" --info-from-file "$extra_info_file" $corpus_ids
 
 corpus_date=`get_corpus_date $corpus_ids`
 mkdir -p $pkgdir/$corpus_name

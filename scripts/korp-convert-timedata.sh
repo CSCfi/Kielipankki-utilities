@@ -203,7 +203,8 @@ EOF
 update_info () {
     _corpus=$1
     echo_verb "  Adding FirstDate and LastDate to corpus .info file"
-    $progdir/cwbdata-extract-info.sh --update $verbose_opt $_corpus |
+    $progdir/cwbdata-extract-info.sh --update --tsv-dir "$tsvdir" \
+	$verbose_opt $_corpus |
     indent_input 4
 }
 
