@@ -354,10 +354,18 @@ add_new_attrs () {
 }
 
 test_skip_add_new_attrs () {
-    corpus_exists $corpus &&
-    corpus_has_attr $corpus p lemmacomp &&
-    corpus_has_attr $corpus p lex &&
-    echo "already encoded"
+    if corpus_exists $corpus &&
+	corpus_has_attr $corpus p lemmacomp &&
+	corpus_has_attr $corpus p lex;
+    then
+	if [ -r $vrt_file.gz ]; then
+	    gunzip $vrt_file.gz
+	fi
+	if [ ! -r $vrt_file ]; then
+	    comprcat "${input_files[@]}" > $vrt_file
+	fi
+	echo "already encoded"
+    fi
     # if [ "x$augmented_vrt_input" != x ]; then
     # 	echo "already in input"
     # 	comprcat "${input_files[@]}" > $vrt_file
