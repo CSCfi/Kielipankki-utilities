@@ -20,7 +20,7 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 shortopts="hc:r:d:s:tuvA"
-longopts="help,cwbdir:,registry:,data-root-dir:,set-info:,info-from-file:,test,update,verbose,all,no-backups,backup-suffix:"
+longopts="help,cwbdir:,registry:,data-root-dir:,tsv-dir:,set-info:,info-from-file:,test,update,verbose,all,no-backups,backup-suffix:"
 
 . $progdir/korp-lib.sh
 
@@ -29,6 +29,7 @@ cwb_regdir=${CORPUS_REGISTRY:-$corpus_root/registry}
 # Use the data directory specified in the registry file of a corpus,
 # unless specified via an option
 data_rootdir=
+tsvdir=
 
 update=
 verbose=
@@ -76,6 +77,8 @@ Options:
                   multiple times
   --info-from-file FILENAME
                   read information items to be added from file FILENAME
+  --tsv-dir DIR   extract FirstDate and LastDate information from
+                  DIR/CORPUS_timedata.tsv.gz instead of the MySQL database
   -t, --test      test whether the .info files need updating
   -u, --update    update the .info files for the corpora if needed
   -v, --verbose   show information about the processed corpora
@@ -132,6 +135,10 @@ while [ "x$1" != "x" ] ; do
 	    data_rootdir=$2
 	    shift
 	    ;;
+	--tsv-dir )
+	    tsvdir=$2
+	    shift
+	    ;;
 	-s | --set-info )
 	    set_info "$2"
 	    shift
@@ -176,6 +183,7 @@ done
 
 
 cwb_describe_corpus=$(find_prog cwb-describe-corpus $cwb_bindir)
+cwb_s_decode=$(find_prog cwb-s-decode $cwb_bindir)
 
 if [ ! -d "$cwb_regdir" ]; then
     error "Cannot access registry directory $cwb_regdir"
@@ -209,9 +217,10 @@ get_updated () {
     awk '{print $6}'
 }
 
-get_date () {
+get_date_mysql () {
     _type=$1
-    _corpname_u=$2
+    _corpname=$2
+    _corpname_u=$(echo "$_corpname" | sed -e 's/.*/\U&\E/')
     if [ "x$_type" = "xfirst" ]; then
 	_func=min
 	_field=datefrom
@@ -224,14 +233,44 @@ get_date () {
     grep -v '^NULL$'
 }
 
+get_date_tsv () {
+    local type corpname fieldnr sort_opts
+    type=$1
+    corpname=$2
+    if [ "x$type" = "xfirst" ]; then
+	fieldnr=2
+	sort_opts=-n
+    else
+	fieldnr=3
+	sort_opts=-nr
+    fi
+    comprcat $tsvdir/${corpus}_timedata.tsv* |
+    cut -d"$tab" -f$fieldnr |
+    grep -v '^$' |
+    sort $sort_opts |
+    head -1 |
+    sed -e 's/\([0-9][0-9][0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)/\1-\2-\3 \4:\5:\6/'
+}
+
+get_date () {
+    corpname=$2
+    if [ "x$tsvdir" != x ] && [ -s "$tsvdir/${corpname}_timedata.tsv.gz" ];
+    then
+	get_date_tsv "$@"
+    elif [ "x$mysql_bin" != x ]; then
+	get_date_mysql "$@"
+    else
+	warn "No MySQL client found and no --tsv-dir specified: cannot get FirstDate and LastDate information"
+    fi
+}
+
 extract_info () {
     corpdir=$1
     corpname=$2
     sentcount=$(get_sentence_count $corpname)
     updated=$(get_updated "$corpdir")
-    corpname_u=$(echo "$corpname" | sed -e 's/.*/\U&\E/')
-    firstdate=$(get_date first $corpname_u)
-    lastdate=$(get_date last $corpname_u)
+    firstdate=$(get_date first $corpname)
+    lastdate=$(get_date last $corpname)
     echo "Sentences: $sentcount"
     echo "Updated: $updated"
     if [ "x$firstdate" != x ]; then
