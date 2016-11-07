@@ -473,7 +473,10 @@ test_skip_convert_timedata () {
 }
 
 extract_info () {
-    run_cmd $cwbdata_extract_info $verbose_opt $corpus
+    # --verbose would add the corpus id to the .info file which is not
+    # desired.
+    run_cmd $cwbdata_extract_info --tsv-dir "$tsvdir" $corpus \
+	> $corpus_root/data/$corpus/.info
 }
 
 extract_lemgrams () {
