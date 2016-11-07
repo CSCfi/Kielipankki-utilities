@@ -4,11 +4,13 @@
 
 # TODO:
 # - Allow specifying input via options (config file).
+# - Option --force to force all stages.
 # - Support corpora without parse attributes.
 # - Allow different compound boundary options.
 # - Allow multiple instances of extra file options to pass to
 #   korp-make-corpus-package
 # - Generate a VRT file containing all the added information.
+# - Run stages based on checksums of previous stage's output.
 # - Make multiple (related) corpora in the same package.
 # - Make parallel corpora.
 
@@ -388,7 +390,7 @@ add_datefromto () {
     run_cmd $vrt_extract_timespans --mode=add --output-full-dates=always \
 	$opts "$corpus_date_pattern" < $vrt_file > $vrt_file.new
     mv $vrt_file $vrt_file.old
-    cp -p $vrt_file.new $vrt_file
+    mv $vrt_file.new $vrt_file
     rm $vrt_file.old
 }
 
