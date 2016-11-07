@@ -189,7 +189,7 @@ tmpfile_dir=$tmp_prefix.work
 
 if [ "x$make_archive" = x ] || [ ! -e $output_dir/$rels_tar ]; then
     if [ "x$hostenv" = "xtaito" ]; then
-	module load python-env/2.7.6
+	module load python-env/2.7.6 &> /dev/null
     fi
     mkdir -p $output_dir $tmpfile_dir
     verbose echo_timestamp vrt-extract-relations
