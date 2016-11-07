@@ -79,9 +79,9 @@ wordpict-relmap|wordpicture-relation-map=RELMAP_FILE "$mapdir/wordpict_relmap_td
     separated by a tab
 tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
     output database tables as TSV files to DIR
-no-wordpicture|skip-wordpicture wordpicture!
+no-wordpicture|skip-wordpicture !wordpicture
     do not extract word picture relations database tables
-no-name-attrs|no-name-attributes|skip-name-attrs|skip-name-attributes name_attrs!
+no-name-attrs|no-name-attributes|skip-name-attrs|skip-name-attributes !name_attrs
     do not add named-entity information based on a NER tag as the last
     positional attribute
 korp-frontend-dir=DIR "$korp_frontend_dir"
@@ -126,7 +126,7 @@ log-file=FILE logfile
     instead of the default
     $corpus_root/log/${progname}_CORPUS_TIMESTAMP.log where CORPUS is
     the corpus id and TIMESTAMP the start time of the script
-no-logging logging!
+no-logging !logging
     do not copy script output to a log file
 '
 

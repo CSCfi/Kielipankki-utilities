@@ -52,7 +52,7 @@ wordpict-relmap|wordpicture-relation-map=RELMAP_FILE "$mapdir/wordpict_relmap_td
     separated by a tab
 tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
     output database tables as TSV files to DIR
-no-wordpicture|skip-wordpicture wordpicture!
+no-wordpicture|skip-wordpicture !wordpicture
     do not extract word picture relations database tables
 import-database
     import the database TSV files into the Korp MySQL database
