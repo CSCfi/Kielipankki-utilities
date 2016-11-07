@@ -84,7 +84,7 @@ no-name-attrs|no-name-attributes|skip-name-attrs|skip-name-attributes name_attrs
     positional attribute
 import-database
     import the database TSV files into the Korp MySQL database
-verbose
+v|verbose
     output some progress information
 times show_times
     output the amount of CPU time used for each stage
