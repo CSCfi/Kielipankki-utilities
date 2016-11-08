@@ -3,8 +3,8 @@
 
 
 # TODO:
-# - Handle options that can be specified many times: either multiple
-#   calls to a function or a single value with a specified separator
+# - Specify value separator for options that can be specified many
+#   times (syntax maybe *"sep", *(sep) or *[sep]).
 # - Group options in the usage message
 # - Continuation lines in option specifications
 
@@ -23,7 +23,7 @@ by values read from a configuration file (INI-syntax).
 
 An option specification is of the form
 
-optname1|...|optnamen[=ARG] ["default"] [([!]target | {code})]
+optname1|...|optnamen[=ARG] ["default"] [*] [([!]target | {code})]
   description
   ...
 
@@ -37,6 +37,11 @@ description lines must have. The components are as follows:
 - "default": The default (initial) value for the variable
   corresponding to the option, enclosed in double quotes. References
   to shell variables are (typically) expanded in the shell script.
+- *: The option may be specified multiple times. If option handler
+  code is specified ({code}), it will be called separately for each
+  value. Otherwise, the target value will contain all the argument
+  values separated by a newline. The asterisk must be preceded and may
+  be followed by whitespace.
 - target: The shell variable corresponding to the option value. If
   not specified, the variable is the first long option name with
   dashes converted to underscores. If the target is immediately
@@ -112,6 +117,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                 (?: [=:] (?P<optargname> \S+) )?
                 (?: \s+ (?P<default> "[^\"]*") )?
                 (?: \s+
+                  (?: (?P<targetmulti> \*) \s* )?
                   (?:
                       (?P<targetneg> ! \s*)? (?P<target> [a-zA-Z0-9_]+)
                     | \{ \s* (?P<targetcode> .*) \s* \}
@@ -183,6 +189,9 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             optopts = {'dest': optspec['pytarget']}
             if optspec['optargname'] is None:
                 optopts['action'] = 'store_true'
+            elif optspec['targetmulti'] is not None:
+                optopts['action'] = 'append'
+            # print repr(optspec['names']), repr(optopts)
             optparser.add_option(*optspec['names'], **optopts)
         self._opts, self._args = optparser.parse_args()
         config_file_opt = self._opts._config_file_option_name
@@ -271,11 +280,30 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
     def _make_output_cmdline_args(self):
         opts = []
         for optspec in self._optspecs:
-            if optspec['value'] is not None:
-                opts.append(optspec['names'][0])
-                if optspec.get('optargname'):
-                    opts.append(self._shell_quote(optspec['value']))
+            optval = optspec['value']
+            if optval is not None:
+                optname = optspec['names'][0]
+                has_arg = optspec.get('optargname')
+                if optspec.get('targetmulti'):
+                    if optspec.get('targetcode'):
+                        for value in optval:
+                            opts.extend(
+                                self._make_cmdline_opt(optname, value, has_arg))
+                    else:
+                        opts.extend(
+                            self._make_cmdline_opt(optname, '\n'.join(optval),
+                                                   has_arg))
+                else:
+                    opts.extend(
+                        self._make_cmdline_opt(optname, optval, has_arg))
         return ' '.join(opts + [self._shell_quote(arg) for arg in self._args])
+
+    def _make_cmdline_opt(self, optname, value, has_arg=False):
+        opts = []
+        opts.append(optname)
+        if has_arg:
+            opts.append(self._shell_quote(value))
+        return opts
 
     def _make_output_getopt_opts(self):
         shortopts = []
