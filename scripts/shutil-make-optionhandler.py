@@ -108,13 +108,15 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         self._help_width = 78
         # FIXME: Handle defaults containing double quotes
         self._optspec_re = re.compile(
-            r'''(?P<optnames>[^\s=:]+)
-                (?:[=:](?P<optargname>\S+))?
-                (?:\s+(?P<default>"[^\"]*"))?
-                (?:\s+(?:
-                    (?P<targetneg> ! \s*)? (?P<target> [a-zA-Z0-9_]+)
-                  | \{\s* (?P<targetcode> .*) \s*\}
-                ))?''',
+            r'''(?P<optnames> [^\s=:]+)
+                (?: [=:] (?P<optargname> \S+) )?
+                (?: \s+ (?P<default> "[^\"]*") )?
+                (?: \s+
+                  (?:
+                      (?P<targetneg> ! \s*)? (?P<target> [a-zA-Z0-9_]+)
+                    | \{ \s* (?P<targetcode> .*) \s* \}
+                  )?
+                )?''',
             re.VERBOSE)
 
     def process_input_stream(self, stream, filename=None):
