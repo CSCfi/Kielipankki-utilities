@@ -277,8 +277,18 @@ run_stage () {
     local name=$1
     shift
     local descr="$@"
+    local msg exitstat
     if type -t "test_skip_$name" > /dev/null; then
-	msg=$(test_skip_$name)
+	msg=$(test_skip_$name 2> $tmp_prefix.errmsg)
+	exitstat=$?
+	# Exit with error if the test function (or the programs it
+	# runs) outputs something to stderr. An alternative would be [
+	# $? != 0 ], but that would require adding "return 0" to many
+	# of the test_skip_ functions.
+	if [ -s $tmp_prefix.errmsg ]; then
+	    cat $tmp_prefix.errmsg
+	    exit $exitstat
+	fi
 	if [ "x$msg" != "x" ]; then
 	    echo_verb "(Skipping ${descr,}: $msg)"
 	    return
@@ -362,17 +372,24 @@ add_new_attrs () {
 }
 
 test_skip_add_new_attrs () {
-    if corpus_exists $corpus &&
-	corpus_has_attr $corpus p lemmacomp &&
-	corpus_has_attr $corpus p lex;
+    if { corpus_exists $corpus &&
+	    corpus_has_attr $corpus p lemmacomp &&
+	    corpus_has_attr $corpus p lex; } ||
+	{ word_in lemmacomp "$initial_input_attrs" &&
+	    word_in lex/ "$initial_input_attrs"; }
     then
-	if [ -r $vrt_file.gz ]; then
+	if [ -r $vrt_file.gz ] && [ -s $vrt_file.gz ]; then
 	    gunzip $vrt_file.gz
 	fi
-	if [ ! -r $vrt_file ]; then
+	if [ ! -r $vrt_file ] || [ ! -s $vrt_file ]; then
 	    comprcat "${input_files[@]}" > $vrt_file
 	fi
-	echo "already encoded"
+	if [ ! -r $vrt_file ]; then
+	    error "Cannot read VRT file $vrt_file"
+	elif [ ! -s $vrt_file ]; then
+	    error "VRT file $vrt_file is empty"
+	fi
+	echo "already present"
     fi
     # if [ "x$augmented_vrt_input" != x ]; then
     # 	echo "already in input"
