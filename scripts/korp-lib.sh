@@ -738,6 +738,26 @@ $usage_footer"
 }
 
 
+# in_str substring string
+#
+# Return true if string contains substring, false otherwise.
+#
+# http://stackoverflow.com/questions/229551/string-contains-in-bash#20460402
+in_str () {
+    local substr str
+    substr=$1
+    str=$2
+    [ -z "${str##*$substr*}" ] && [ -z "$substr" -o -n "$str" ]
+}
+
+# word_in word text
+#
+# Return true if text contains word, text words separated by spaces.
+word_in () {
+    in_str " $1 " " $2 "
+}
+
+
 # Common initialization code
 
 # The tab character
