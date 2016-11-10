@@ -169,10 +169,6 @@ if [ "x$corpus" = "x" ]; then
     shift
 fi
 
-# if [ ! -e $cwb_regdir/$corpus ]; then
-#     error "Corpus $corpus does not exist"
-# fi
-
 if [ "x$logging" != x ]; then
     if [ "x$logfile" = x ]; then
 	if [ ! -e "$corpus_root/log" ]; then
@@ -204,19 +200,6 @@ fi
 if [ "x$name_attrs" != x ] && ! word_in nertag "$initial_input_attrs"; then
     initial_input_attrs="$initial_input_attrs nertag"
 fi
-
-# if [ "x$augmented_vrt_input" != x ]; then
-#     if [[ "$initial_input_attrs" != "* lemmacomp *" ]]; then
-# 	initial_input_attrs=${initial_input_attrs/lemma /lemma lemmacomp }
-#     fi
-#     if [[ "$initial_input_attrs" != "* lex/" ]]; then
-# 	initial_input_attrs="$initial_input_attrs lex/"
-#     fi
-#     input_attrs=$initial_input_attrs
-# else
-#     input_attrs="${initial_input_attrs/lemma /lemma lemmacomp } lex/"
-# fi
-
 input_attrs=$initial_input_attrs
 if ! word_in lemmacomp "$initial_input_attrs"; then
     input_attrs=${initial_input_attrs/lemma /lemma lemmacomp }
@@ -391,10 +374,6 @@ test_skip_add_new_attrs () {
 	fi
 	echo "already present"
     fi
-    # if [ "x$augmented_vrt_input" != x ]; then
-    # 	echo "already in input"
-    # 	comprcat "${input_files[@]}" > $vrt_file
-    # fi
 }
 
 add_datefromto () {
@@ -420,39 +399,6 @@ add_datefromto () {
 test_skip_add_datefromto () {
     grep -q -s '^<text.* datefrom="' $vrt_file && echo "already present"
 }
-
-# cwb_encode_base () {
-#     _attrs=$1
-#     _is_featset=$2
-#     attrnames=$(echo $_attrs | sed -e 's/[0-9][0-9]*://g')
-#     attrnums=$(echo $_attrs | sed -e 's/:[^ ]*//g' | tr ' ' ',')
-#     convert_chars_opts=
-#     featset_text=
-#     if [ "x$_is_featset" != x ]; then
-# 	featset_attrnums=$(
-# 	    echo $(seq $(echo "$attrnames" | wc -w)) |
-# 	    tr ' ' ','
-# 	)
-# 	convert_chars_opts="--feature-set-attrs $featset_attrnums"
-# 	featset_text="feature-set "
-#     fi
-#     echo_verb Encoding $featset_text p-attributes: $attrnames
-#     egrep -v '^<' $vrt_file |
-#     cut -d'	' -f$attrnums |
-#     $vrt_convert_chars $convert_chars_opts |
-#     $cwb_encode -d $corpus_root/data/$corpus -p - -xsB -c utf8 \
-# 	$(add_prefix "-P " $attrnames)
-# }
-
-# cwb_encode0 () {
-#     attrs_base=$(filter_attrs "-v /|:word\$" "word $input_attrs")
-#     attrs_featset=$(filter_attrs "/" "word $input_attrs")
-#     cwb_encode_base "$attrs_base"
-#     if [ "x$attrs_featset" != x ]; then
-# 	cwb_encode_base "$attrs_featset" featset
-#     fi
-#     # exit 1
-# }
 
 cwb_encode () {
     local featset_attrnums convert_chars_opts structnames
