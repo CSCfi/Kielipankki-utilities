@@ -201,7 +201,7 @@ if [ "x$vrt_file" = "x" ]; then
     vrt_file=$vrtdir/$corpus.vrt
 fi
 
-if [ "x$name_attrs" != x ]; then
+if [ "x$name_attrs" != x ] && ! word_in nertag "$initial_input_attrs"; then
     initial_input_attrs="$initial_input_attrs nertag"
 fi
 
@@ -217,7 +217,13 @@ fi
 #     input_attrs="${initial_input_attrs/lemma /lemma lemmacomp } lex/"
 # fi
 
-input_attrs="${initial_input_attrs/lemma /lemma lemmacomp } lex/"
+input_attrs=$initial_input_attrs
+if ! word_in lemmacomp "$initial_input_attrs"; then
+    input_attrs=${initial_input_attrs/lemma /lemma lemmacomp }
+fi
+if ! word_in lex/ "$initial_input_attrs"; then
+    input_attrs="$initial_input_attrs lex/"
+fi
 
 verbose_opt=
 if [ "x$verbose" != x ]; then
