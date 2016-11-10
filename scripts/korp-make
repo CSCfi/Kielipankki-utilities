@@ -467,7 +467,8 @@ cwb_encode () {
     if [ "x$featset_attrnums" != "x" ]; then
 	convert_chars_opts="--feature-set-attrs $featset_attrnums"
     fi
-    structnames=$(grep '^<' $vrt_file | $vrt_list_struct_attrs)
+    echo_verb "  Inferring structural attributes from the VRT file"
+    structnames=$(grep '^<' $vrt_file | run_cmd $vrt_list_struct_attrs)
     mkdir_perms $corpus_root/data/$corpus
     run_cmd $vrt_convert_chars $convert_chars_opts < $vrt_file |
     run_cmd $cwb_encode -d $corpus_root/data/$corpus -R $cwb_regdir/$corpus \
