@@ -24,6 +24,9 @@ output-text-struct=STRUCT "text" output_struct
     enclose the output of each input structure in STRUCT
 output-sentence-structs output_sent
     output extracted sentences within <sentence> elements
+unique
+    output only one of adjacent equal values (all attribute values must be
+    the same)
 '
 
 
@@ -39,7 +42,7 @@ eval "$optinfo_opt_handler"
 
 
 extract_attrs () {
-    local corpus attr attr_files
+    local corpus attr attr_files uniq last_endpos
     corpus=$1
     $cwb_s_decode $corpus -S $struct_name > $tmp_prefix.structpos
     attr_files=
@@ -48,10 +51,37 @@ extract_attrs () {
 	    > $tmp_prefix.attr.$attr
 	attr_files="$attr_files $tmp_prefix.attr.$attr"
     done
+    if [ "x$unique" != x ]; then
+	last_endpos=$(
+	    tail -1 $tmp_prefix.structpos |
+	    cut -d"$tab" -f2
+	)
+	# To be eval'ed below
+	uniq='uniq --skip-fields=2 --count |
+              perl -ne '"'"'
+                  s/^\s*(\d+)\s+/$1\t/;
+                  @f = split ("\t");
+                  if ($. > 1) {
+                      # This assumes that the struct attribute in
+                      # question is contiguous.
+                      $prev[2] = $f[1] - 1;
+                      print join ("\t", @prev);
+                  }
+                  @prev = @f;
+                  END {
+                      $prev[2] = "'"$last_endpos"'";
+                      print join ("\t", @prev);
+                  }
+              '"'"
+    else
+	uniq=cat
+    fi
     paste $tmp_prefix.structpos $attr_files |
+    eval "$uniq" |
     $decode_special_chars |
     perl -CSD -ne '
         BEGIN {
+            $counts = ("'"$unique"'" ne "");
             @extra_attrs = @ARGV;
             $last_extra_attr = $#extra_attrs;
             @ARGV = ();
@@ -69,7 +99,12 @@ extract_attrs () {
         }
         chomp;
         @f = split ("\t");
-        print "<'"$output_struct"' corpus=\"'"$corpus"'\" start=\"$f[0]\" end=\"$f[1]\"";
+        $count = "";
+        if ($counts) {
+            $count = " count=\"$f[0]\"";
+            shift (@f);
+        }
+        print "<'"$output_struct"' corpus=\"'"$corpus"'\" start=\"$f[0]\" end=\"$f[1]\"$count";
         for ($i = 0; $i <= $last_extra_attr; $i++) {
             $val = xml_encode ($f[$i + 2]);
             $val =~ s/\"/\&quot;/g;
