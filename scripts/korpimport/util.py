@@ -148,7 +148,12 @@ def run(main, input_encoding='utf-8', output_encoding='utf-8', *args, **kwargs):
 
 class Runner(object):
 
-    """An abstract runner class wrapping the run function."""
+    """
+    An abstract runner class wrapping the run function.
+
+    Also includes methods to write error and warning messages and to
+    write to output (sys.stdout).
+    """
 
     def __init__(self, input_encoding='utf-8', output_encoding='utf-8'):
         self._input_encoding = input_encoding
@@ -161,6 +166,26 @@ class Runner(object):
 
     def main(self):
         pass
+
+    def write_message(self, message, outstream=None, filename=None,
+                      linenr=None, **kwargs):
+        outstream = outstream or sys.stderr
+        if filename is not None:
+            loc_info = (' (' + filename + (':' + str(linenr) if linenr else '')
+                        + ')')
+        else:
+            loc_info = ''
+        outstream.write(message + loc_info + '\n')
+
+    def error(self, message, exitcode=1, **kwargs):
+        self.write_message('Error: ' + message, **kwargs)
+        exit(exitcode)
+
+    def warn(self, message, **kwargs):
+        self.write_message('Warning: ' + message, **kwargs)
+
+    def output(self, line):
+        sys.stdout.write(line)
 
 
 class OptionRunner(Runner):
@@ -221,19 +246,9 @@ class BasicInputProcessor(Runner):
                       linenr=None, **kwargs):
         filename = filename or self._filename or '<stdin>'
         linenr = linenr or self._linenr
-        outstream = outstream or sys.stderr
-        loc_info = ' (' + filename + (':' + str(linenr) if linenr else '') + ')'
-        outstream.write(message + loc_info + '\n')
-
-    def error(self, message, exitcode=1, **kwargs):
-        self.write_message('Error: ' + message, **kwargs)
-        exit(exitcode)
-
-    def warn(self, message, **kwargs):
-        self.write_message('Warning: ' + message, **kwargs)
-
-    def output(self, line):
-        sys.stdout.write(line)
+        super(BasicInputProcessor, self).write_message(
+            message, outstream=outstream, filename=filename, linenr=linenr,
+            **kwargs)
 
     def main(self):
         self.process_input(self._args or sys.stdin)
