@@ -52,9 +52,17 @@ class CorpusConfig(object):
         },
     }
     _corpus_feature_attr_order = ['paragraphs', 'parsed_tdt', 'finer']
+    # _corpus_attr_props contains triples of attribute type (as
+    # returned by CWBCorpusInfo), JavaScript property name for the
+    # attribute type in the Korp configuration, and a filter function
+    # that returns True for the attributes to be included in the
+    # configuration.
     _corpus_attr_props = [
         ('pos', 'attributes', lambda attr: attr['name'] != 'word'),
-        ('struct', 'struct_attributes', lambda attr: '_' in attr['name']),
+        ('struct', 'struct_attributes',
+         lambda attr: ('_' in attr['name']
+                       and not re.match(r'text_(date|time)(from|to)',
+                                        attr['name']))),
     ]
     _default_attr_props = ['label']
 
