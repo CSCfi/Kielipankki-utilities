@@ -67,9 +67,10 @@ class CorpusConfig(object):
     ]
     _default_attr_props = ['label']
 
-    def __init__(self, corpus_info, required_msg_fn=None,
-                 recommended_msg_fn=None):
+    def __init__(self, corpus_info, attr_prop_values=None,
+                 required_msg_fn=None, recommended_msg_fn=None):
         self._basic_corpus_info = {}
+        self._attr_prop_values = attr_prop_values or {}
         self._corpus_config = []
         self._init_basic_corpus_info(corpus_info,
                                      required_msg_fn=required_msg_fn,
@@ -137,14 +138,23 @@ class CorpusConfig(object):
 
     def _make_attrs(self, corpus_info):
         result = []
-        for attrtype, propname, filter_fn in self._corpus_attr_props:
-            attrlist = [(attr['name'],
-                         [(attrpropname, '""')
-                          for attrpropname in self._default_attr_props])
-                        for attr in corpus_info.attributes[attrtype]
-                        if filter_fn(attr)]
+        for attrtype, attrs_propname, filter_fn in self._corpus_attr_props:
+            attrlist = []
+            for attr in corpus_info.attributes[attrtype]:
+                if filter_fn(attr):
+                    result_attr_props = []
+                    attrname = attr['name']
+                    attr_props = self._attr_prop_values.get(attrname, [])
+                    propnames = set(propname for propname, _ in attr_props)
+                    for attr_prop in attr_props:
+                        result_attr_props.append(attr_prop)
+                    result_attr_props.extend(
+                        (attrpropname, '""')
+                        for attrpropname in self._default_attr_props
+                        if  attrpropname not in propnames)
+                    attrlist.append((attrname, result_attr_props))
             if attrlist:
-                result.append((propname, attrlist))
+                result.append((attrs_propname, attrlist))
         return result
 
 
@@ -159,6 +169,7 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
     def main(self, *args, **kwargs):
         if not self._opts.corpus_id and not self._opts.corpus_list_file:
             self._error('Please specify corpus id')
+        self._make_attr_prop_values()
         self._make_basic_corpus_info()
         if self._opts.corpus_list_file:
             self._read_corpus_list_file()
@@ -167,6 +178,12 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
         for corpus_info in self._corpus_info:
             self.output(self._format_corpus_config(self._make_corpus_config(
                 corpus_info)) + '\n')
+
+    def _make_attr_prop_values(self):
+        self._attr_prop_values = {}
+        for labelinfo in self._opts.attribute_label or []:
+            attrname, label = re.split(r'\s*[:=]\s*', labelinfo, 1)
+            self._attr_prop_values[attrname] = [('label', '"' + label + '"')]
 
     def _make_basic_corpus_info(self):
         prefix = 'corpus_'
@@ -196,7 +213,9 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
                 self._corpus_info.append(info)
 
     def _make_corpus_config(self, corpus_info):
-        return CorpusConfig(corpus_info, required_msg_fn=self.error,
+        return CorpusConfig(corpus_info,
+                            attr_prop_values=self._attr_prop_values,
+                            required_msg_fn=self.error,
                             recommended_msg_fn=self.warn)
 
     def _format_corpus_config(self, corpus_config):
@@ -248,7 +267,13 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
                 the prefix "corpus_" and with dashes converted to
                 underscores). If the file name ends in ".tsv", it is
                 considered as a tab-separated values file, otherwise a
-                CSV file.""")]
+                CSV file.""")],
+            ['attribute-label label = ATTRNAME:LABEL', dict(
+                action='append',
+                help=('use LABEL as the value of property "label" of'
+                      ' attribute ATTRNAME; the option may be specified'
+                      ' multiple times to give labels for multiple'
+                      ' attributes'))]
         )
         
 
