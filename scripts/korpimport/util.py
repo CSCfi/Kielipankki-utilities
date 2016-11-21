@@ -14,6 +14,7 @@ import codecs
 import errno
 import string
 import csv
+import re
 
 from optparse import OptionParser
 
@@ -200,6 +201,19 @@ class OptionRunner(Runner):
         pass
 
     def getopts_basic(self, optparser_args, args=None, *optlist):
+        """Get command-line options using optparse.
+
+        The arguments in `optlist` correspond to the arguments to
+        `OptionParser.add_option`: option names followed by a
+        dictionary corresponding to the keyword argumnets. The iniial
+        dashes in option names are optional. If only one option name
+        argument is present, it is split by spaces, commas and
+        vertical bars to get the actual option names. In addition, the
+        value for the `add_option` keyword argument `metavar` may be
+        specified after an equals sign following the option names. A
+        missing `metavar` does *not* indicate that the option has no
+        argument.
+        """
         optparser = OptionParser(**optparser_args)
         if args is None:
             args = sys.argv[1:]
@@ -212,6 +226,15 @@ class OptionRunner(Runner):
             else:
                 optnames = optspec
                 optopts = {}
+            if len(optnames) == 1:
+                optnames = re.split(r'\s*=\s*', optnames[0])
+                if len(optnames) == 2:
+                    optopts['metavar'] = optnames[1]
+                optnames = re.split(r'\s*[\s,|]\s*', optnames[0])
+            for optnamenum, optname in enumerate(optnames):
+                if optname[0] != '-':
+                    optnames[optnamenum] = (
+                        ('-' if len(optname) == 1 else '--') + optname)
             optparser.add_option(*optnames, **optopts)
         self._opts, self._args = optparser.parse_args(args)
 
