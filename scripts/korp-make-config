@@ -1,0 +1,176 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
+# Output a Korp corpus configuration based on the following
+# information:
+#
+# - Corpus attribute information from cwb-describe-corpus
+# - Configuration file (INI-style)
+# - A content file (TSV or CSV) for making configurations of multiple
+#   similar corpora.
+# - Possible Korp JavaScript configuration files to add the new
+#   configuration directly
+# - Later possibly cwb-lexdecode, cwb-s-decode to get attribute values
+#   for dataset properties.
+
+
+import sys
+import re
+
+import korpimport.util
+import korpimport.cwbutil as cwb
+
+
+class CorpusConfigMaker(korpimport.util.OptionRunner):
+
+    _corpus_props_basic = [
+        ('id', 'str', 'required'),
+        ('title', 'str', 'required'),
+        ('description', 'str', 'recommended'),
+        ('urn', 'str', 'recommended'),
+        ('metadata_urn', 'str', 'recommended'),
+        ('homepage_url', 'str', 'optinal'),
+        ('licence', 'obj', 'recommended'),
+    ]
+    _prop_value_default = {
+        'str': '""',
+        'obj': '{}'
+    }
+    _corpus_feature_attrs = {
+        'paragraphs': {
+            'struct': ['paragraph'],
+        },
+        'parsed_tdt': {
+            'pos': ['lemma', 'lemmacomp', 'pos', 'msd', 'dephead', 'deprel',
+                    'ref', 'lex'],
+        },
+        'finer': {
+            'pos': ['nertag', 'nerbio'],
+            'struct': ['ne_name', 'ne_ex', 'ne_type', 'ne_subtype',
+                       'ne_fulltype', 'ne_placename', 'ne_placename_source'],
+        },
+    }
+    _corpus_feature_attr_order = ['paragraphs', 'parsed_tdt', 'finer']
+    _corpus_attr_props = [
+        ('pos', 'attributes', lambda attr: attr['name'] != 'word'),
+        ('struct', 'struct_attributes', lambda attr: '_' in attr['name']),
+    ]
+    _default_attr_props = ['label']
+
+    def __init__(self, args=None):
+        super(CorpusConfigMaker, self).__init__()
+        self._init_basic_corpus_info()
+
+    def _init_basic_corpus_info(self):
+        self._basic_corpus_info = {}
+        for propname, proptype, required in self._corpus_props_basic:
+            propval = getattr(self._opts, 'corpus_' + propname, None)
+            if propval is None:
+                if required == 'required':
+                    self.error('Please specify corpus ' + propname)
+                elif required == 'recommended':
+                    self.warn('No corpus ' + propname + ' specified')
+                    propval = self._prop_value_default[proptype]
+            elif proptype == 'str' and propval[0] != '"':
+                propval = '"' + propval + '"'
+            if propval is not None:
+                self._basic_corpus_info[propname] = propval
+
+    def main(self, *args, **kwargs):
+        sys.stdout.write(self._make_corpus_config(self._basic_corpus_info))
+
+    def _make_corpus_config(self, basic_corpus_info):
+        corpus_id = basic_corpus_info['id'].strip('"')
+        corpus_info = cwb.CWBCorpusInfo(corpus_id)
+        result = []
+        for key, _, _ in self._corpus_props_basic:
+            value = basic_corpus_info.get(key)
+            if value is not None:
+                result.append((key, value))
+        result.append(self._make_corpus_features(corpus_info))
+        result.extend(self._make_attrs(corpus_info))
+        return ('settings.corpora.' + corpus_id + ' = {\n'
+                + self._format_js_props(result)
+                + '\n};\n')
+
+    def _make_corpus_features(self, corpus_info, other_feats=None):
+        feats = []
+        feats.extend(other_feats or [])
+        for feat in self._corpus_feature_attr_order:
+            feat_attrs = self._corpus_feature_attrs[feat]
+            corpus_has_all_feat_attrs = True
+            for attrtype, attrnames in feat_attrs.iteritems():
+                attrtype1 = attrtype[0]
+                if not all(attrname in corpus_info.attrdict
+                           and (corpus_info.attrdict[attrname]['type']
+                                == attrtype1)
+                           for attrname in attrnames):
+                    corpus_has_all_feat_attrs = False
+                    break
+            if corpus_has_all_feat_attrs:
+                feats.append(feat)
+                feat_attrs_set = set(featname
+                                     for featnames in feat_attrs.itervalues()
+                                     for featname in featnames)
+                for attrtype in feat_attrs.iterkeys():
+                    attrtype1 = attrtype[0]
+                    attrs = corpus_info.attributes[attrtype1]
+                    attrs[:] = (attr for attr in attrs
+                                if attr['name'] not in feat_attrs_set)
+        return ('features',
+                '[' + ', '.join('"' + feat + '"' for feat in feats) + ']')
+
+    def _make_attrs(self, corpus_info):
+        result = []
+        for attrtype, propname, filter_fn in self._corpus_attr_props:
+            attrlist = [(attr['name'],
+                         [(attrpropname, '""')
+                          for attrpropname in self._default_attr_props])
+                        for attr in corpus_info.attributes[attrtype]
+                        if filter_fn(attr)]
+            if attrlist:
+                result.append((propname, attrlist))
+        return result
+
+    def _format_js_props(self, props, indent=0):
+        return '\n'.join(self._format_js_prop(propname, propval, indent + 4)
+                          for propname, propval in props)
+
+    def _format_js_prop(self, name, value, indent=4):
+        if isinstance(value, basestring):
+            formatted_value = value
+        elif value == []:
+            formatted_value = '{}'
+        else:
+            formatted_value = ('{\n' + self._format_js_props(value, indent)
+                               + '\n' + (indent * ' ') + '}')
+        return (indent * ' ') + name + ': ' + formatted_value + ','
+
+    def getopts(self, args=None):
+        self.getopts_basic(
+            dict(usage="%progname [corpus] > output",
+                 description=(
+"""Generate a Korp frontend JavaScript configuration for an encoded corpus.""")
+             ),
+            args,
+            ['corpus-id id = CORPUS', dict(
+                help=(''))],
+            ['corpus-name name corpus-title title = NAME', dict(
+                dest='corpus_title',
+                help=(''))],
+            ['corpus-description description = DESCR', dict(
+                help=(''))],
+            ['corpus-urn urn = URN', dict(
+                help=(''))],
+            ['corpus-metadata-urn metadata-urn = URN', dict(
+                help=(''))],
+            ['corpus-homepage-url homepage-url = URL', dict(
+                help=(''))],
+            ['corpus-licence licence = LICENCE', dict(
+                help=(''))]
+        )
+        
+
+if __name__ == "__main__":
+    CorpusConfigMaker().run()
