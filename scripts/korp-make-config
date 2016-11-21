@@ -142,7 +142,10 @@ class CorpusConfig(object):
 class CorpusConfigMaker(korpimport.util.OptionRunner):
 
     def __init__(self, args=None):
-        super(CorpusConfigMaker, self).__init__()
+        # No input nor output encoding: use UTF-8 byte strings
+        # internally instead of unicode.
+        super(CorpusConfigMaker, self).__init__(input_encoding=None,
+                                                output_encoding=None)
 
     def main(self, *args, **kwargs):
         self.output(self._format_corpus_config(self._make_corpus_config()))
