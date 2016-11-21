@@ -191,7 +191,7 @@ form.
                       ' STRUCTNAME (default: %default)'))],
             ['--output-input-structs', dict(
                 action='store_true',
-                help=('output structural attributes (tags) in the input',
+                help=('output structural attributes (tags) in the input'
                       ' (default: do not output)'))],
             ['--add-bio-attribute', dict(
                 action='store_true',
