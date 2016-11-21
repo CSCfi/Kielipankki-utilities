@@ -22,7 +22,7 @@ import korpimport.util
 import korpimport.cwbutil as cwb
 
 
-class CorpusConfigMaker(korpimport.util.OptionRunner):
+class CorpusConfig(object):
 
     _corpus_props_basic = [
         ('id', 'str', 'required'),
@@ -58,41 +58,46 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
     ]
     _default_attr_props = ['label']
 
-    def __init__(self, args=None):
-        super(CorpusConfigMaker, self).__init__()
-        self._init_basic_corpus_info()
+    def __init__(self, corpus_info, required_msg_fn=None,
+                 recommended_msg_fn=None):
+        self._basic_corpus_info = {}
+        self._corpus_config = []
+        self._init_basic_corpus_info(corpus_info,
+                                     required_msg_fn=required_msg_fn,
+                                     recommended_msg_fn=recommended_msg_fn)
+        self._init_config(corpus_info)
 
-    def _init_basic_corpus_info(self):
+    def get_id(self):
+        return self._basic_corpus_info['id'].strip('"')
+
+    def get_config(self):
+        return self._corpus_config
+
+    def _init_basic_corpus_info(self, corpus_info, required_msg_fn=None,
+                                recommended_msg_fn=None):
         self._basic_corpus_info = {}
         for propname, proptype, required in self._corpus_props_basic:
-            propval = getattr(self._opts, 'corpus_' + propname, None)
+            propval = corpus_info.get(propname)
             if propval is None:
                 if required == 'required':
-                    self.error('Please specify corpus ' + propname)
+                    required_msg_fn('Please specify corpus ' + propname)
                 elif required == 'recommended':
-                    self.warn('No corpus ' + propname + ' specified')
+                    recommended_msg_fn('No corpus ' + propname + ' specified')
                     propval = self._prop_value_default[proptype]
             elif proptype == 'str' and propval[0] != '"':
                 propval = '"' + propval + '"'
             if propval is not None:
                 self._basic_corpus_info[propname] = propval
 
-    def main(self, *args, **kwargs):
-        sys.stdout.write(self._make_corpus_config(self._basic_corpus_info))
-
-    def _make_corpus_config(self, basic_corpus_info):
-        corpus_id = basic_corpus_info['id'].strip('"')
+    def _init_config(self, corpus_info):
+        corpus_id = self._basic_corpus_info['id'].strip('"')
         corpus_info = cwb.CWBCorpusInfo(corpus_id)
-        result = []
         for key, _, _ in self._corpus_props_basic:
-            value = basic_corpus_info.get(key)
+            value = self._basic_corpus_info.get(key)
             if value is not None:
-                result.append((key, value))
-        result.append(self._make_corpus_features(corpus_info))
-        result.extend(self._make_attrs(corpus_info))
-        return ('settings.corpora.' + corpus_id + ' = {\n'
-                + self._format_js_props(result)
-                + '\n};\n')
+                self._corpus_config.append((key, value))
+        self._corpus_config.append(self._make_corpus_features(corpus_info))
+        self._corpus_config.extend(self._make_attrs(corpus_info))
 
     def _make_corpus_features(self, corpus_info, other_feats=None):
         feats = []
@@ -132,6 +137,31 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
             if attrlist:
                 result.append((propname, attrlist))
         return result
+
+
+class CorpusConfigMaker(korpimport.util.OptionRunner):
+
+    def __init__(self, args=None):
+        super(CorpusConfigMaker, self).__init__()
+
+    def main(self, *args, **kwargs):
+        self.output(self._format_corpus_config(self._make_corpus_config()))
+
+    def _make_corpus_config(self):
+        if not self._opts.corpus_id:
+            self._error('Please specify corpus id')
+        prefix = 'corpus_'
+        prefix_len = len(prefix)
+        basic_corpus_info = dict(
+            (optname[prefix_len:], getattr(self._opts, optname))
+            for optname in dir(self._opts) if optname.startswith(prefix))
+        return CorpusConfig(basic_corpus_info, required_msg_fn=self.error,
+                            recommended_msg_fn=self.warn)
+
+    def _format_corpus_config(self, corpus_config):
+        return ('settings.corpora.' + corpus_config.get_id() + ' = {\n'
+                + self._format_js_props(corpus_config.get_config())
+                + '\n};\n')
 
     def _format_js_props(self, props, indent=0):
         return '\n'.join(self._format_js_prop(propname, propval, indent + 4)
