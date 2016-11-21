@@ -145,14 +145,17 @@ class CorpusConfig(object):
                     result_attr_props = []
                     attrname = attr['name']
                     attr_props = self._attr_prop_values.get(attrname, [])
-                    propnames = set(propname for propname, _ in attr_props)
-                    for attr_prop in attr_props:
-                        result_attr_props.append(attr_prop)
-                    result_attr_props.extend(
-                        (attrpropname, '""')
-                        for attrpropname in self._default_attr_props
-                        if  attrpropname not in propnames)
-                    attrlist.append((attrname, result_attr_props))
+                    if isinstance(attr_props, basestring):
+                        attrlist.append((attrname, attr_props))
+                    else:
+                        propnames = set(propname for propname, _ in attr_props)
+                        for attr_prop in attr_props:
+                            result_attr_props.append(attr_prop)
+                        result_attr_props.extend(
+                            (attrpropname, '""')
+                            for attrpropname in self._default_attr_props
+                            if  attrpropname not in propnames)
+                        attrlist.append((attrname, result_attr_props))
             if attrlist:
                 result.append((attrs_propname, attrlist))
         return result
@@ -181,9 +184,24 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
 
     def _make_attr_prop_values(self):
         self._attr_prop_values = {}
-        for labelinfo in self._opts.attribute_label or []:
-            attrname, label = re.split(r'\s*[:=]\s*', labelinfo, 1)
-            self._attr_prop_values[attrname] = [('label', '"' + label + '"')]
+
+        def set_propinfo(opt_values, error_msg, get_value_fn):
+            for spec in opt_values or []:
+                try:
+                    attrname, value = re.split(r'\s*[:=]\s*', spec, 1)
+                    self._attr_prop_values[attrname] = get_value_fn(value)
+                except ValueError:
+                    self.error(error_msg)
+
+        set_propinfo(self._opts.attribute_label,
+                     '--attribute-label argument must be of the form'
+                     ' ATTRNAME:LABEL',
+                     lambda val: [('label', '"' + val + '"')])
+        set_propinfo(self._opts.attribute_properties,
+                     '--attribute-properties argument must be of the form'
+                     ' ATTRNAME:PROPERTIES',
+                     lambda val: val)
+        # print self._attr_prop_values
 
     def _make_basic_corpus_info(self):
         prefix = 'corpus_'
@@ -272,8 +290,15 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
                 action='append',
                 help=('use LABEL as the value of property "label" of'
                       ' attribute ATTRNAME; the option may be specified'
-                      ' multiple times to give labels for multiple'
-                      ' attributes'))]
+                      ' multiple times to specify labels for multiple'
+                      ' attributes'))],
+            ['attribute-properties properties props = ATTRNAME:PROPERTIES',
+             dict(
+                 action='append',
+                 help=('use PROPERTIES as the complete properties object of'
+                       ' attribute ATTRNAME; the option may be specified'
+                       ' multiple times to specify properties of multiple'
+                       ' attributes'))]
         )
         
 
