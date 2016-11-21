@@ -30,7 +30,7 @@ reconnect_delay_base=30
 
 mysql_datadir=/var/lib/mysql
 mysql_datafile=$mysql_datadir/ibdata1
-if [ ! -r $mysql_datadir ]; then
+if [ ! -r $mysql_datadir ] || [ ! -e $mysql_datafile ]; then
     mysql_datadir=
     mysql_datafile=
 fi
@@ -523,7 +523,7 @@ get_mysql_datafile_size () {
 show_mysql_datafile_size () {
     datasize=$1
     datasize_prev=$2
-    if [ "x$datasize" != "x" ]; then
+    if [ "x$datasize" != "x" ] && [ "x$mysql_datafile" != "x" ]; then
 	echo \
 	    "  MySQL data file size: $datasize = "`calc_gib $datasize`" GiB"
 	if [ "x$datasize_prev" != "x" ]; then
