@@ -17,6 +17,7 @@
 
 import sys
 import re
+import csv
 
 import korpimport.util
 import korpimport.cwbutil as cwb
@@ -156,17 +157,46 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
                                                 output_encoding=None)
 
     def main(self, *args, **kwargs):
-        self.output(self._format_corpus_config(self._make_corpus_config()))
-
-    def _make_corpus_config(self):
-        if not self._opts.corpus_id:
+        if not self._opts.corpus_id and not self._opts.corpus_list_file:
             self._error('Please specify corpus id')
+        self._make_basic_corpus_info()
+        if self._opts.corpus_list_file:
+            self._read_corpus_list_file()
+        else:
+            self._corpus_info = [self._basic_corpus_info]
+        for corpus_info in self._corpus_info:
+            self.output(self._format_corpus_config(self._make_corpus_config(
+                corpus_info)) + '\n')
+
+    def _make_basic_corpus_info(self):
         prefix = 'corpus_'
         prefix_len = len(prefix)
-        basic_corpus_info = dict(
+        self._basic_corpus_info = dict(
             (optname[prefix_len:], getattr(self._opts, optname))
             for optname in dir(self._opts) if optname.startswith(prefix))
-        return CorpusConfig(basic_corpus_info, required_msg_fn=self.error,
+
+    def _read_corpus_list_file(self):
+        csv_reader_kwargs = dict()
+        if self._opts.corpus_list_file.endswith('.tsv'):
+            csv_reader_kwargs = dict(delimiter='\t',
+                                     quoting=csv.QUOTE_NONE)
+        self._corpus_info = []
+        with open(self._opts.corpus_list_file) as f:
+            prefix = 'corpus_'
+            prefix_len = len(prefix)
+            reader = csv.DictReader(f, **csv_reader_kwargs)
+            reader.fieldnames[:] = [
+                name[prefix_len:] if name.startswith(prefix) else name
+                for name in reader.fieldnames]
+            for row in reader:
+                # print repr(row)
+                info = {}
+                info.update(self._basic_corpus_info)
+                info.update(row)
+                self._corpus_info.append(info)
+
+    def _make_corpus_config(self, corpus_info):
+        return CorpusConfig(corpus_info, required_msg_fn=self.error,
                             recommended_msg_fn=self.warn)
 
     def _format_corpus_config(self, corpus_config):
@@ -209,7 +239,16 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
             ['corpus-homepage-url homepage-url = URL', dict(
                 help=(''))],
             ['corpus-licence licence = LICENCE', dict(
-                help=(''))]
+                help=(''))],
+            ['corpus-list-file list-file = FILE', dict(
+                help="""read from the CSV or TSV file FILE information on the
+                corpora whose configurations to generate. The first
+                line of the file lists the property names
+                corresponding to the options above (with or without
+                the prefix "corpus_" and with dashes converted to
+                underscores). If the file name ends in ".tsv", it is
+                considered as a tab-separated values file, otherwise a
+                CSV file.""")]
         )
         
 
