@@ -15,6 +15,7 @@ import errno
 import string
 import csv
 import re
+import os
 
 from optparse import OptionParser
 
@@ -90,6 +91,22 @@ def whole_line_reader(stream, linebreak_chars=None):
             yield line
     if incompl_lines:
         yield ''.join(incompl_lines)
+
+
+def subst_var_refs(str_, vardict=None):
+    """Substitute variable references in `str_` with values in `vardict`.
+
+    Substitute variable references of the kind ``$var`` and ``${var}``
+    with the value `vardict['var']`. If the key `'var'` is not in
+    `vardict`, replace the reference with an empty string. If
+    `vardict` is not specified, use `os.environ`.
+    """
+    vardict = vardict or os.environ
+
+    def get_envvar(matchobj):
+        return vardict.get(matchobj.group(1).strip('{}'), '')
+
+    return re.sub(r'\$(\{.+?\}|\w+)', get_envvar, str_)
 
 
 class PartialStringFormatter(string.Formatter):
