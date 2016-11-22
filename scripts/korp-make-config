@@ -18,6 +18,8 @@
 import sys
 import re
 import csv
+# configparser in Python 3
+import ConfigParser as configparser
 
 import korpimport.util
 import korpimport.cwbutil as cwb
@@ -94,7 +96,7 @@ class CorpusConfig(object):
                 elif required == 'recommended':
                     recommended_msg_fn('No corpus ' + propname + ' specified')
                     propval = self._prop_value_default[proptype]
-            elif proptype == 'str' and propval[0] != '"':
+            elif proptype == 'str' and (propval == '' or propval[0] != '"'):
                 propval = '"' + propval + '"'
             if propval is not None:
                 self._basic_corpus_info[propname] = propval
@@ -170,6 +172,8 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
                                                 output_encoding=None)
 
     def main(self, *args, **kwargs):
+        if self._opts.config_file:
+            self._read_config_file()
         if not self._opts.corpus_id and not self._opts.corpus_list_file:
             self._error('Please specify corpus id')
         self._make_attr_prop_values()
@@ -181,6 +185,43 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
         for corpus_info in self._corpus_info:
             self.output(self._format_corpus_config(self._make_corpus_config(
                 corpus_info)) + '\n')
+
+    def _read_config_file(self):
+        with open(self._opts.config_file) as conf:
+            try:
+                confparser = configparser.SafeConfigParser()
+                confparser.optionxform = str
+                confparser.readfp(conf, self._opts.config_file)
+                config_items = {}
+                for sect in confparser.sections():
+                    config_items[sect] = [
+                        (optname.replace('-', '_'), optval)
+                        for optname, optval in confparser.items(sect)]
+            except configparser.Error as e:
+                self.error('Parsing configuration file: ' + str(e),
+                           filename=self._opts._config_file)
+            self._set_config_options(config_items)
+
+    def _set_config_options(self, config_items):
+        if not self._opts.corpus_list_file:
+            for optname, optval in config_items.get('Options', []):
+                if optname == 'corpus_list_file':
+                    self._opts.corpus_list_file = (
+                        korpimport.util.subst_var_refs(optval))
+                    break
+        for optname, optval in config_items.get('Corpus', []):
+            if getattr(self._opts, 'corpus_' + optname, None) is None:
+                setattr(self._opts, 'corpus_' + optname, optval)
+        for sectname, cmd_optname in [('Attributes', 'properties'),
+                                      ('Labels', 'label')]:
+            cmd_optval = (getattr(self._opts, 'attribute_' + cmd_optname, [])
+                          or [])
+            # Prepend the values from the config file so that those
+            # specified on the command line take precendence.
+            cmd_optval[:0] = [
+                optname + ':' + optval
+                for optname, optval in config_items.get(sectname, [])]
+            setattr(self._opts, 'attribute_' + cmd_optname, cmd_optval)
 
     def _make_attr_prop_values(self):
         self._attr_prop_values = {}
@@ -262,6 +303,9 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
 """Generate a Korp frontend JavaScript configuration for an encoded corpus.""")
              ),
             args,
+            ['config-file configuration-file = FILE', dict(
+                help=('read configuration options from INI-style configuration'
+                      ' file FILE'))],
             ['corpus-id id = CORPUS', dict(
                 help=(''))],
             ['corpus-name name corpus-title title = NAME', dict(
