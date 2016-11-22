@@ -68,11 +68,17 @@ class CorpusConfig(object):
                                         attr['name']))),
     ]
     _default_attr_props = ['label']
+    _default_attr_prop_values = {
+        'paragraph_id': 'sattrs.paragraph_id_hidden',
+        'sentence_id': 'sattrs.sentence_id_hidden',
+    }
 
     def __init__(self, corpus_info, attr_prop_values=None,
                  required_msg_fn=None, recommended_msg_fn=None):
         self._basic_corpus_info = {}
-        self._attr_prop_values = attr_prop_values or {}
+        self._attr_prop_values = self._default_attr_prop_values
+        if attr_prop_values:
+            self._attr_prop_values.update(attr_prop_values)
         self._corpus_config = []
         self._init_basic_corpus_info(corpus_info,
                                      required_msg_fn=required_msg_fn,
