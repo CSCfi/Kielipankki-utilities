@@ -257,7 +257,7 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
 
     def getopts(self, args=None):
         self.getopts_basic(
-            dict(usage="%progname [corpus] > output",
+            dict(usage="%progname [options] > output",
                  description=(
 """Generate a Korp frontend JavaScript configuration for an encoded corpus.""")
              ),
