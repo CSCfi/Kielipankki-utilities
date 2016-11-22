@@ -13,6 +13,15 @@ import re
 from subprocess import Popen, PIPE
 
 
+class CWBError(Exception):
+    """An error from a CWB utility program."""
+
+
+class CWBCorpusAccessError(CWBError):
+    """Error in accessing a CWB corpus."""
+    # TODO: The corpus whose access caused the error as a parameter
+
+
 class CWBCorpusInfo(object):
 
     """
@@ -37,8 +46,13 @@ class CWBCorpusInfo(object):
 
     def _describe_corpus(self):
         proc = Popen(['cwb-describe-corpus', '-s', self._corpus_id],
-                     stdout=PIPE, bufsize=-1)
+                     stdout=PIPE, stderr=PIPE, bufsize=-1)
         stdout, stderr = proc.communicate()
+        if stderr:
+            # TODO: Raise CWBCorpusAccessError if the error is in
+            # accessing the corpus
+            raise CWBError('Error in cwb-describe-corpus:\n'
+                           + stderr.rstrip('\n'))
         for line in stdout.split('\n'):
             if line[1:5] == '-ATT':
                 mo = re.match(
