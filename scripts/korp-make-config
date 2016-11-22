@@ -171,6 +171,13 @@ class CorpusConfig(object):
 
 class CorpusConfigMaker(korpimport.util.OptionRunner):
 
+    # Pairs (template option name, template format placeholder)
+    _template_opts = [
+        ('id', 'id'),
+        ('title', 'title'),
+        ('description', 'descr')
+    ]
+
     def __init__(self, args=None):
         # No input nor output encoding: use UTF-8 byte strings
         # internally instead of unicode.
@@ -278,6 +285,7 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
                 self._corpus_info.append(info)
 
     def _make_corpus_config(self, corpus_info):
+        corpus_info = self._apply_templates(corpus_info)
         try:
             return CorpusConfig(corpus_info,
                                 attr_prop_values=self._attr_prop_values,
@@ -285,6 +293,14 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
                                 recommended_msg_fn=self.warn)
         except cwb.CWBError as e:
             self.error(e.message)
+
+    def _apply_templates(self, corpus_info):
+        for templ_opt, templ_var in self._template_opts:
+            templ_val = getattr(self._opts, 'templ_' + templ_opt, None)
+            if templ_val:
+                corpus_info[templ_opt] = templ_val.format(
+                    **{templ_var: corpus_info[templ_opt]})
+        return corpus_info
 
     def _format_corpus_config(self, corpus_config):
         return ('settings.corpora.' + corpus_config.get_id() + ' = {\n'
@@ -330,6 +346,20 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
                 help=(''))],
             ['corpus-licence licence = LICENCE', dict(
                 help=(''))],
+            ['template-corpus-id template-id templ-id = TEMPL', dict(
+                dest='templ_id',
+                help=('format corpus id using template TEMPL, which contains'
+                      ' {} for the corpus id specified otherwise'))],
+            ['template-corpus-title template-title templ-title = TEMPL', dict(
+                dest='templ_title',
+                help=('format corpus title using template TEMPL, which contains'
+                      ' {} for the corpus title specified otherwise'))],
+            ['template-corpus-description template-description'
+             ' templ-description = TEMPL', dict(
+                dest='templ_description',
+                help=('format corpus description using template TEMPL, which'
+                      ' contains {} for the corpus description specified'
+                      ' otherwise'))],
             ['corpus-list-file list-file = FILE', dict(
                 help="""read from the CSV or TSV file FILE information on the
                 corpora whose configurations to generate. The first
@@ -353,6 +383,12 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
                        ' multiple times to specify properties of multiple'
                        ' attributes'))]
         )
+        for templ_opt, templ_var in self._template_opts:
+            templ_opt_name = 'templ_' + templ_opt
+            templ_val = getattr(self._opts, templ_opt_name, None)
+            if templ_val:
+                setattr(self._opts, templ_opt_name,
+                        templ_val.replace('{}', '{' + templ_var + '}'))
         
 
 if __name__ == "__main__":
