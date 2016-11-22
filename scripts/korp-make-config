@@ -313,13 +313,22 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
 
     def _format_js_prop(self, name, value, indent=4):
         if isinstance(value, basestring):
-            formatted_value = value
+            formatted_value = self._format_js_prop_value(value, indent)
         elif value == []:
             formatted_value = '{}'
         else:
             formatted_value = ('{\n' + self._format_js_props(value, indent)
                                + '\n' + (indent * ' ') + '}')
         return (indent * ' ') + name + ': ' + formatted_value + ','
+
+    def _format_js_prop_value(self, value, indent=4):
+        # TODO: Format a deeper structured value represented as a
+        # string
+        value = value.strip()
+        value = re.sub(r'^{\s*', '{\n', value)
+        value = re.sub(r'\s*}$', '\n' + (indent * ' ') + '}', value)
+        newline_cnt = value.count('\n')
+        return value.replace('\n', '\n' + ((indent + 4) * ' '), newline_cnt - 1)
 
     def getopts(self, args=None):
         self.getopts_basic(
