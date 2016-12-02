@@ -4,7 +4,6 @@
 
 # TODO:
 # - Allow specifying input via options (config file).
-# - Option --force to force all stages.
 # - Support corpora without parse attributes.
 # - Allow different compound boundary options.
 # - Allow multiple instances of extra file options to pass to
@@ -115,6 +114,9 @@ import-database
     import the database TSV files into the Korp MySQL database
 v|verbose
     output some progress information
+force
+    force all stages of processing by first removing all the output
+    files if they exist
 times show_times
     output the amount of CPU time used for each stage
 config-file|configuration-file=FILE
@@ -534,6 +536,10 @@ main () {
     top_stdout=3
     exec 3> /dev/stdout
     set -o pipefail
+    if [ "x$force" != x ]; then
+	rm -f $datadir/* $cwb_regdir/$corpus $tsvdir/$corpus_*.tsv.gz \
+	    $vrtdir/$corpus.vrt $vrtdir/$corpus.vrt.gz
+    fi
     run_stages
     exec 3>&-
     ensure_perms $tsvdir/* $vrtdir/* $datadir/* $cwb_regdir/$corpus 2> /dev/null
