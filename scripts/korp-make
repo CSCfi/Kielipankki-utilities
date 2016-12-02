@@ -190,6 +190,7 @@ vrtdir=${vrtdir:-$corpus_root/$vrt_subdir}
 vrtdir=${vrtdir//CORPUS/$corpus}
 tsvdir=${tsvdir:-$corpus_root/$tsv_subdir}
 tsvdir=${tsvdir//CORPUS/$corpus}
+datadir=$corpus_root/data/$corpus
 
 mkdir_perms $vrtdir $tsvdir 2> /dev/null
 
@@ -415,9 +416,9 @@ cwb_encode () {
     fi
     echo_verb "  Inferring structural attributes from the VRT file"
     structnames=$(grep '^<' $vrt_file | run_cmd $vrt_list_struct_attrs)
-    mkdir_perms $corpus_root/data/$corpus
+    mkdir_perms $datadir
     run_cmd $vrt_convert_chars $convert_chars_opts < $vrt_file |
-    run_cmd $cwb_encode -d $corpus_root/data/$corpus -R $cwb_regdir/$corpus \
+    run_cmd $cwb_encode -d $datadir -R $cwb_regdir/$corpus \
 	-xsB -c utf8 $(add_prefix "-P " $input_attrs) \
 	$(add_prefix "-S " $structnames)
 }
@@ -447,8 +448,7 @@ test_skip_convert_timedata () {
 extract_info () {
     # --verbose would add the corpus id to the .info file which is not
     # desired.
-    run_cmd $cwbdata_extract_info --tsv-dir "$tsvdir" $corpus \
-	> $corpus_root/data/$corpus/.info
+    run_cmd $cwbdata_extract_info --tsv-dir "$tsvdir" $corpus > $datadir/.info
 }
 
 extract_lemgrams () {
@@ -536,8 +536,7 @@ main () {
     set -o pipefail
     run_stages
     exec 3>&-
-    ensure_perms $tsvdir/* $vrtdir/* $corpus_root/data/* $cwb_regdir/$corpus \
-	2> /dev/null
+    ensure_perms $tsvdir/* $vrtdir/* $datadir/* $cwb_regdir/$corpus 2> /dev/null
     echo_verb "Completed."
 }
 
