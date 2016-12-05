@@ -205,10 +205,10 @@ if [ "x$name_attrs" != x ] && ! word_in nertag "$initial_input_attrs"; then
 fi
 input_attrs=$initial_input_attrs
 if ! word_in lemmacomp "$initial_input_attrs"; then
-    input_attrs=${initial_input_attrs/lemma /lemma lemmacomp }
+    input_attrs=${input_attrs/lemma /lemma lemmacomp }
 fi
 if ! word_in lex/ "$initial_input_attrs"; then
-    input_attrs="$initial_input_attrs lex/"
+    input_attrs="$input_attrs lex/"
 fi
 
 verbose_opt=
