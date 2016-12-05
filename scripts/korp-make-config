@@ -185,11 +185,6 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
                                                 output_encoding=None)
 
     def main(self, *args, **kwargs):
-        if self._opts.config_file:
-            self._read_config_file()
-        if not self._opts.corpus_id and not self._opts.corpus_list_file:
-            self._error('Please specify corpus id')
-        self._make_attr_prop_values()
         self._make_basic_corpus_info()
         if self._opts.corpus_list_file:
             self._read_corpus_list_file()
@@ -404,6 +399,11 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
                        ' multiple times to specify properties of multiple'
                        ' attributes'))]
         )
+        if self._opts.config_file:
+            self._read_config_file()
+        if not self._opts.corpus_id and not self._opts.corpus_list_file:
+            self.error('Please specify corpus id')
+        self._make_attr_prop_values()
         for templ_opt, templ_var in self._template_opts:
             templ_opt_name = 'templ_' + templ_opt
             templ_val = getattr(self._opts, templ_opt_name, None)
