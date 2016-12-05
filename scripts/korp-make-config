@@ -303,7 +303,10 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
         return corpus_info
 
     def _format_corpus_config(self, corpus_config):
-        return ('settings.corpora.' + corpus_config.get_id() + ' = {\n'
+        corpus_id = corpus_config.get_id()
+        prop_selector = (('["' + corpus_id + '"]') if '-' in corpus_id
+                         else ("." + corpus_id))
+        return ('settings.corpora' + prop_selector + ' = {\n'
                 + self._format_js_props(corpus_config.get_config())
                 + '\n};\n')
 
