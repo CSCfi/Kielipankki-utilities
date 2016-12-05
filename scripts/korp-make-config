@@ -223,7 +223,16 @@ class CorpusConfigMaker(korpimport.util.OptionRunner):
                         korpimport.util.subst_var_refs(optval))
                     break
         for optname, optval in config_items.get('Corpus', []):
-            if getattr(self._opts, 'corpus_' + optname, None) is None:
+            if optname.startswith('templ') or optname.endswith('template'):
+                # Support option names beginning with "templ(ate)" or
+                # ending with "template" and optionally containing
+                # "corpus"
+                optname = 'templ_' + (optname.replace('template', '')
+                                      .replace('templ', '').replace('corpus', '')
+                                      .replace('_', ''))
+                if getattr(self._opts, optname, None) is None:
+                    setattr(self._opts, optname, optval)
+            elif getattr(self._opts, 'corpus_' + optname, None) is None:
                 setattr(self._opts, 'corpus_' + optname, optval)
         for sectname, cmd_optname in [('Attributes', 'properties'),
                                       ('Labels', 'label')]:
