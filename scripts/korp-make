@@ -426,7 +426,7 @@ cwb_encode () {
 }
 
 test_skip_cwb_encode () {
-    [ "x$new_attrs" = x ] && echo "already present"
+    [ -s $cwb_regdir/$corpus ] && [ "x$new_attrs" = x ] && echo "already present"
 }
 
 cwb_make () {
@@ -434,7 +434,7 @@ cwb_make () {
 }
 
 test_skip_cwb_make () {
-    test_skip_cwb_encode
+    [ -s $datadir/word.crx ] && echo "already done"
 }
 
 convert_timedata () {
