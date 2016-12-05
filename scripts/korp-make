@@ -5,9 +5,11 @@
 # TODO:
 # - Allow specifying input via options (config file).
 # - Support corpora without parse attributes.
+# - Add text, sentence and paragraph ids unless already present.
 # - Allow different compound boundary options.
 # - Allow multiple instances of extra file options to pass to
 #   korp-make-corpus-package
+# - Option to request scrambleing sentences or paragraphs with text
 # - Generate a VRT file containing all the added information.
 # - Run stages based on checksums of previous stage's output.
 # - Make multiple (related) corpora in the same package.
