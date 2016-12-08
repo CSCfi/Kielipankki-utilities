@@ -176,42 +176,42 @@ u /ida/sa/clarin/corpora/lehti90-00/H2 2007-3_2013/H2 2007-3_2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Haagalainen_2005-2009/Haagalainen_2005-2009_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Haavi 2008-2013/Haavi 2008-2013 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Haavi 2008-2013/Haavi 2008-2013 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Haavi 2008-2013/Haavi 2008-2013 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Haavi 2008-2013/Haavi 2008-2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Hallaus 2009-2014/Hallaus 2009-2014 -aineiston numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Hallaus 2009-2014/Hallaus_2009-2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Hallaus 2009-2014/Hallaus_2009-2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Hallaus 2009-2014/Hallaus_2009-2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Harukaze 2000-2013/Harukaze 2000-2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Havina 2009-2013/Havina 2009-2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Helen 2010-1_2015/Helen 2010-1_2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Helen 2010-1_2015/Helen 2010-1_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Helen 2010-1_2015/Helen 2010-1_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Helmeri 2006-1_2016/Helmeri_2006-1_2016_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Helmeri 2006-1_2016/Helmeri_2006-1_2016_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Helmeri 2006-1_2016/Helmeri_2006-1_2016_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Helmi 2009-2014/Helmi 2009-2014 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Helmi 2009-2014/Helmi 2009-2014 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Helsingin Henki 2009-1_2014/Helsingin Henki 2009-1_2014 -aineistosta puuttuvat numerot .docx
 x /ida/sa/clarin/corpora/lehti90-00/Helsingin Henki 2009-1_2014/Helsingin Henki 2009-1_2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Helsingin Henki 2009-1_2014/Helsingin Henki 2009-1_2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Helsingin Henki 2009-1_2014/Helsingin Henki 2009-1_2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Helsingin yliopiston kirjaston tiedotuslehti 2000-2002 ja Kansalliskirjasto-lehti 2003-2013/HYn kirjaston tiedotuslehti ja Kansalliskirjasto-lehti 2000-2013 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Helsingin yliopiston kirjaston tiedotuslehti 2000-2002 ja Kansalliskirjasto-lehti 2003-2013/HYn kirjaston tiedotuslehti ja Kansalliskirjasto-lehti 2000-2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Helsinki_Info_2004-2016/Hki-info_2004-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Hengitys 2_2012-2-3_2016/Hengitys 2_2012-2-3_2016 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Hengitys 2_2012-2-3_2016/Hengitys 2_2012-2-3_2016 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Hengitys 2_2012-2-3_2016/Hengitys 2_2012-2-3_2016 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Heppu 2011-3_2016/Heppu 2011-3_2016 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Heppu 2011-3_2016/Heppu 2011-3_2016_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Heppu 2011-3_2016/Heppu 2011-3_2016_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Heppu 2011-3_2016/Heppu 2011-3_2016_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Hervannan_Sanomat_2012-2016/Hervannansanomat_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Hiidenkivi 2009-2012/Hiidenkivi 2009-2012 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Hima 3_2013-1_2016/Hima_3_2013-1_2016_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Hima 3_2013-1_2016/Hima_3_2013-1_2016_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Hima 3_2013-1_2016/Hima_3_2013-1_2016_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Historiallinen Aikakauskirja 2001-2013/Historiallinen_Aikakauskirja_2001-2013.pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Historiallinen Aikakauskirja 2001-2013/Historiallinen_Aikakauskirja_2001-2013.txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Historian_Ystava 2010-1_2016/Historian_Ystava_2010-1_2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Historian_Ystava 2010-1_2016/Historian_Ystava_2010-1_2016_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Hopealeijona_2003-2007/Hopealeijona_2003-2007_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Huili 2-3_2013/Huili_2_2013_ja_3_2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Huili 2-3_2013/Huili_2_2013_ja_3_2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Huili 2-3_2013/Huili_2_2013_ja_3_2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Humanistilehti 2002-2010/Humanistilehti 2002-2010 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Humanistilehti 2002-2010/Humanistilehti 2002-2010 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Humanistilehti 2002-2010/Humanistilehti 2002-2010 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Hyvä_asiakas_2012-2016/hyva_asukas2012-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Ilmansuojelu-lehti 2007-2015/Ilmansuojelu-lehti_2007-2015_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Ilmansuojelu-lehti 2007-2015/Ilmansuojelu-lehti_2007-2015_txt.zip
@@ -219,37 +219,37 @@ x /ida/sa/clarin/corpora/lehti90-00/Informaatiotutkimus 2000-2015/Informaatiotut
 x /ida/sa/clarin/corpora/lehti90-00/Informaatiotutkimus 2000-2015/Informaatiotutkimus 2000-2015 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/INFORS_1998-2016/INFORS_1998-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/inFront 3_2009-1_2014/inFront_3_2009-1_2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/inFront 3_2009-1_2014/inFront_3_2009-1_2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/inFront 3_2009-1_2014/inFront_3_2009-1_2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Jane&Paulo 2012-2015/Jane&Paulo_2012-2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Jane&Paulo 2012-2015/Jane&Paulo_2012-2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Jane&Paulo 2012-2015/Jane&Paulo_2012-2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Joensuun Uutiset 2012-2013/Joensuun Uutiset 2012-2013 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Joensuun Uutiset 2012-2013/Joensuun Uutiset 2012-2013 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Joensuun Uutiset 2012-2013/Joensuun Uutiset 2012-2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Julkaisija 2011-2014/Julkaisija-2011-2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Julkaisija 2011-2014/Julkaisija-2011-2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Julkaisija 2011-2014/Julkaisija-2011-2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kalastuslehti 2013-3_2015/Kalastuslehti_2013-3_2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Kalastuslehti 2013-3_2015/Kalastuslehti_2013-3_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Kalastuslehti 2013-3_2015/Kalastuslehti_2013-3_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Karhunkierros_1990-2016/Karhunkierros_1990-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Karhunpalvelus 2002-2015/Karhunpalvelus_2002-2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Karhunpalvelus 2002-2015/Karhunpalvelus_2002-2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Karhunpalvelus 2002-2015/Karhunpalvelus_2002-2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kasvu 2012-1_2016/Kasvu_2012-1_2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kasvu 2012-1_2016/Kasvu_2012-1_2016_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kauppapolitiikka 2013-1_2015/Kauppapolitiikka 2013-1_2015 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Kauppapolitiikka 2013-1_2015/Kauppapolitiikka 2013-1_2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Kauppapolitiikka 2013-1_2015/Kauppapolitiikka 2013-1_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Kauppapolitiikka 2013-1_2015/Kauppapolitiikka 2013-1_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kaupunkilainen 2_2012-1_2015/Kaupunkilainen_2013-1_2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Kaupunkilainen 2_2012-1_2015/Kaupunkilainen_2013-1_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Kaupunkilainen 2_2012-1_2015/Kaupunkilainen_2013-1_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kaupunkilainen 2_2012-1_2015/Kaupunkilainen 2_2012-1_2015 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Kaupunkilainen 2_2012-1_2015/Kaupunkilainen_2_2012_ja_4_2012_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Kaupunkilainen 2_2012-1_2015/Kaupunkilainen_2_2012_ja_4_2012_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Kaupunkilainen 2_2012-1_2015/Kaupunkilainen_2_2012_ja_4_2012_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Käytännön maamies 2000-2013/Kaytannon_maamies_2000_2007_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Käytännön maamies 2000-2013/Kaytannon_maamies_2000_2007_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Käytännön maamies 2000-2013/Kaytannon_maamies_2000_2007_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Käytännön maamies 2000-2013/Kaytannon_maamies_2008_2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Käytännön maamies 2000-2013/Kaytannon_maamies_2008_2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Käytännön maamies 2000-2013/Kaytannon_maamies_2008_2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kehittaja_2005-2015/Kehittaja_2005-2015_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kemia-Kemi 2002-4_2016/Kemia-Kemi 2002-4_2016 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Kemia-Kemi 2002-4_2016/Kemia-Kemi 2002-4_2016 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Kemia-Kemi 2002-4_2016/Kemia-Kemi 2002-4_2016 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kemiläinen 2012-1_2016/Kemilainen_2012-1_2016_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Kemiläinen 2012-1_2016/Kemilainen_2012-1_2016_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Kemiläinen 2012-1_2016/Kemilainen_2012-1_2016_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kerberos_2000-2010/Kerberos_2000-2010_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Keski-Espoon_sanomat_1990-2015/Keski-Espoon_sanomat_1990-2015_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Keski-Espoon_sanomat_1990-2015/KITA_2010-2016/KITA_2010-2016_pdf.zip
@@ -264,13 +264,13 @@ x /ida/sa/clarin/corpora/lehti90-00/Kognitiivinen psykoterapia 2004-2013/Kogniti
 x /ida/sa/clarin/corpora/lehti90-00/Kompositio 2007-2013/Kompositio_2007-2013_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kompositio 2007-2013/Kompositio_2007-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kontakt 2010-2013/Kontakt_2010-2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Kontakt 2010-2013/Kontakt_2010-2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Kontakt 2010-2013/Kontakt_2010-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kosmopolis 2000-2013/Kosmopolis_2000-2013_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kosmopolis 2000-2013/Kosmopolis_2000-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Koti 2012-2014/Koti_7_2012_7_2013_ja_2_2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Koti 2012-2014/Koti_7_2012_7_2013_ja_2_2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Koti 2012-2014/Koti_7_2012_7_2013_ja_2_2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kotipuutarha 2009-2014/Kotipuutarha 2009-2014 -aineistosta puuttuvat numerot.docx
-x /ida/sa/clarin/corpora/lehti90-00/Kotipuutarha 2009-2014/Kotipuutarha_2009-2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Kotipuutarha 2009-2014/Kotipuutarha_2009-2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kotipuutarha 2009-2014/Kotipuutarha 2009-2014.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kuljetusyrittaja_2007-2016/Kuljetusyrittaja_2007-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kulttuurintutkimus 2004-2013/Kulttuurintutkimus2004-2012_pdf.zip
@@ -281,26 +281,26 @@ x /ida/sa/clarin/corpora/lehti90-00/Kulutustutkimus.Nyt 2007-2013/Kulutustutkimu
 x /ida/sa/clarin/corpora/lehti90-00/Kulutustutkimus.Nyt 2007-2013/Kulutustutkimus2007-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kumposti 2005-1_2016/Kumposti 2005-1_2016 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Kumposti 2005-1_2016/Kumposti_2005-1_2016_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Kumposti 2005-1_2016/Kumposti_2005-1_2016_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Kumposti 2005-1_2016/Kumposti_2005-1_2016_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/KunnallisSuomi 2010-2013/KunnallisSuomen numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/KunnallisSuomi 2010-2013/KunnallisSuomi_2010_2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/KunnallisSuomi 2010-2013/KunnallisSuomi_2010_2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/KunnallisSuomi 2010-2013/KunnallisSuomi_2010_2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kunnallistieteellinen aikakauskirja 2002-2012/Kunnallistieteellinen_aikakauskirja_2002-2012_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kunnallistieteellinen aikakauskirja 2002-2012/Kunnallistieteellinen_aikakauskirja_2002-2012_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kunnossapito 2004-2007/Kunnossapito_2004-2007_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Kunnossapito 2004-2007/Kunnossapito_2004-2007_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Kunnossapito 2004-2007/Kunnossapito_2004-2007_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kuntoutus 2011-2012/Kuntoutus 2011-2012 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kuntoutus 2011-2012/Kuntoutus 2011-2012 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kuuloset 4_2004-2013/Kuuloset_4_2004-2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Kuuloset 4_2004-2013/Kuuloset_4_2004-2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Kuuloset 4_2004-2013/Kuuloset_4_2004-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Kynnys 2010-2013/Kynnyksen numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Kynnys 2010-2013/Kynnys_2010-2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Kynnys 2010-2013/Kynnys_2010-2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Kynnys 2010-2013/Kynnys_2010-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Lahde_liikkeelle_2003-2014/Lahde_liikkeelle_2003-2014_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Lapsen Maailma 3_2014/Lapsen_Maailma_03_2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Lapsen Maailma 3_2014/Lapsen_Maailma_03_2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Lapsen Maailma 3_2014/Lapsen_Maailma_03_2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Legenda 2002_2015/Legenda_2002_2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Legenda 2002_2015/Legenda_2002_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Legenda 2002_2015/Legenda_2002_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Leija 2009-3_2016/Leija 2009-3_2016 -aineistosta puuttuvat numerot .docx
 x /ida/sa/clarin/corpora/lehti90-00/Leija 2009-3_2016/Leija 2009-3_2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Leija 2009-3_2016/Leija 2009-3_2016_txt.zip
@@ -313,61 +313,61 @@ x /ida/sa/clarin/corpora/lehti90-00/Liikunta ja tiede 2008-2013 tutkimusartikkel
 x /ida/sa/clarin/corpora/lehti90-00/Lounais-Hämeen luonto 2000-2010/LounaisHameenLuonto2000-2010_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Lounais-Hämeen luonto 2000-2010/LounaisHameenLuonto2000-2010_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Luokanopettaja 3_2006-2_2015/Luokanopettaja-lehdet_2006_3-2015_2_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Luokanopettaja 3_2006-2_2015/Luokanopettaja-lehdet_2006_3-2015_2_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Luokanopettaja 3_2006-2_2015/Luokanopettaja-lehdet_2006_3-2015_2_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Luuppisanomat 1997-2013/Luuppisanomat_1997-2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Luuppisanomat 1997-2013/Luuppisanomat_1997-2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Luuppisanomat 1997-2013/Luuppisanomat_1997-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Maa_ja_Ilma_2006-2012/maailma_2006-2012_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Maaseudun uusi aika 2000-2013/MaaseudunUusiAika2000-2013_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Maaseudun uusi aika 2000-2013/MaaseudunUusiAika2000-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Matkailututkimus 2005-2013/Matkailututkimus2005-2013_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Matkailututkimus 2005-2013/Matkailututkimus2005-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Me 2014, 4_2015-6_7_2016/Me 4_2015-6_7_2016 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Me 2014, 4_2015-6_7_2016/Me 4_2015-6_7_2016 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Me 2014, 4_2015-6_7_2016/Me 4_2015-6_7_2016 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Me 2014, 4_2015-6_7_2016/Me-lehti_2014_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Media & Viestintä 2010-2014 ja Tiedotustutkimus 2005-2009/Tiedotustutkimus_2005-2009_ja_Media&viestinta_2010-2014_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Media & Viestintä 2010-2014 ja Tiedotustutkimus 2005-2009/Tiedotustutkimus_2005-2009_ja_Media&viestinta_2010-2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Mercurius 2004-3_2012/Mercurius_2004-3_2012_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Mercurius 2004-3_2012/Mercurius_2004-3_2012_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Mercurius 2004-3_2012/Mercurius_2004-3_2012_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Meripelastus_lehti_2011-2016/Meripelastus_lehti_2011-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Metsätieteen aikakauskirja 2000-2013/MetsatieteenAikakauskirja2000-2013_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Metsätieteen aikakauskirja 2000-2013/MetsatieteenAikakauskirja2000-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Minna-lehti_2005-2016/Minna-lehti_2005-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Modin 2012-3_2015/Modin_2012-3_2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Modin 2012-3_2015/Modin_2012-3_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Modin 2012-3_2015/Modin_2012-3_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Muinaistutkija 2000-2012/Muinaistutkija 2000-2012 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Muinaistutkija 2000-2012/Muinaistutkija 2000-2012 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Musetti 2_2013-2_2015/Musetti_2_2013-2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Musetti 2_2013-2_2015/Musetti_2_2013-2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Musetti 2_2013-2_2015/Musetti_2_2013-2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Musiikin suunta 2003-2013/Musiikin suunta 2003-2013 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Musiikin suunta 2003-2013/Musiikin suunta 2003-2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Musiikkikasvatus 2014/Musiikkikasvatus 2014 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Nakyva_nainen_2008-2016/Nakyva_nainen_2008-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Näyttämö & tutkimus 2005, 2006, 2009, 2011, 2014/Nayttamo & tutkimus 2005, 2006, 2009, 2011, 2014 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Näyttämö & tutkimus 2005, 2006, 2009, 2011, 2014/Nayttamo & tutkimus 2005, 2006, 2009, 2011, 2014 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Näyttämö & tutkimus 2005, 2006, 2009, 2011, 2014/Nayttamo & tutkimus 2005, 2006, 2009, 2011, 2014 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/niin & näin 2000-4_2013/niin & näin 2000-4_2013 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/niin & näin 2000-4_2013/niin & näin 2000-4_2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/NMI-Bulletin 2002-2003, 2007-2012/NMI-Bulletin 2002-2003, 2007-2012_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/NMI-Bulletin 2002-2003, 2007-2012/NMI-Bulletin 2002-2003, 2007-2012_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/NonSordino 2006-1_2015/NonSordino 2006-1_2015 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/NonSordino 2006-1_2015/NonSordino 2006-1_2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/NonSordino 2006-1_2015/NonSordino 2006-1_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/NonSordino 2006-1_2015/NonSordino 2006-1_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/OLLA55+ 1_2014/OLLA55+ 1_2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/OLLA55+ 1_2014/OLLA55+ 1_2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/OLLA55+ 1_2014/OLLA55+ 1_2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Omakotisanomat 1_2011-2015/Omakotisanomat_1_2011-2_2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Omakotisanomat 1_2011-2015/Omakotisanomat_1_2011-2_2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Omakotisanomat 1_2011-2015/Omakotisanomat_1_2011-2_2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Omakotisanomat 1_2011-2015/Omakotisanomat 3_2013-2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Omakotisanomat 1_2011-2015/Omakotisanomat 3_2013-2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Omakotisanomat 1_2011-2015/Omakotisanomat 3_2013-2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Ota opiksi 2012-2015/Ota_opiksi_2012-2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Ota opiksi 2012-2015/Ota_opiksi_2012-2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Ota opiksi 2012-2015/Ota_opiksi_2012-2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pakolainen 2010-2014/Pakolainen 2010-2014 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pakolainen 2010-2014/Pakolainen 2010-2014 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pakolainen 2010-2014/Pakolainen 2010-2014 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Paraisten Kuulutukset 04.1.-30.5.2013/Paraisten_Kuulutukset_2013_tammi-toukokuu_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Paraisten Kuulutukset 04.1.-30.5.2013/Paraisten_Kuulutukset_2013_tammi-toukokuu_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Paraisten Kuulutukset 04.1.-30.5.2013/Paraisten_Kuulutukset_2013_tammi-toukokuu_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Partio-lehti & Jalki-liite 4_2011-3_2013/Partio-lehti & Jalki-liite 4_2011-3_2013 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Partio-lehti & Jalki-liite 4_2011-3_2013/Partio-lehti & Jalki-liite 4_2011-3_2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Patria_2008-2016/Patria_2008-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pelastusalan ammattilainen 2007-2014/Pelastusalan_ammattilainen_2007-2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pelastusalan ammattilainen 2007-2014/Pelastusalan_ammattilainen_2007-2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pelastusalan ammattilainen 2007-2014/Pelastusalan_ammattilainen_2007-2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pelastustieto 2007-2014/2007_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pelastustieto 2007-2014/2008_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pelastustieto 2007-2014/2009_pdf.zip
@@ -378,72 +378,72 @@ x /ida/sa/clarin/corpora/lehti90-00/Pelastustieto 2007-2014/2013_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pelastustieto 2007-2014/2014_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Perussuomalainen-lehti_2013-2016/Perussuomalainen-lehti_2013-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pihlajiston ja Viikinmäen asukaslehti 2009-2015/Pihlajisto_2009-2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pihlajiston ja Viikinmäen asukaslehti 2009-2015/Pihlajisto_2009-2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pihlajiston ja Viikinmäen asukaslehti 2009-2015/Pihlajisto_2009-2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pippuri 2012-2014/Pippuri_2012_ja_2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pippuri 2012-2014/Pippuri_2012_ja_2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pippuri 2012-2014/Pippuri_2012_ja_2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_1_2013_33_2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_1_2013_33_2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_1_2013_33_2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_1_2016-16_2016_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_1_2016-16_2016_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_1_2016-16_2016_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen 2006-16_2016 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2006_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2006_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2006_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2007_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2007_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2007_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2008_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2008_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2008_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2009_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2009_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2009_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2010_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2010_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2010_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2011_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2011_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2011_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2012_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2012_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2012_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_34-52_2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_34-52_2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pirkkalainen 2006-16_2016/Pirkkalainen_34-52_2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pirta_2012-2016/Pirta_2012-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pispalalainen 2_2015, 1_2016/Pispalalainen 2_2015, 1_2016 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pispalalainen 2_2015, 1_2016/Pispalalainen 2_2015, 1_2016 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pointti Porin ylioppilasyhdistyksen jäsenlehti 2011-1_2015/Pointti_Porin_ylioppilaslehti_2011-1_2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pointti Porin ylioppilasyhdistyksen jäsenlehti 2011-1_2015/Pointti_Porin_ylioppilaslehti_2011-1_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pointti Porin ylioppilasyhdistyksen jäsenlehti 2011-1_2015/Pointti_Porin_ylioppilaslehti_2011-1_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Poleemi 2009-2013/Poleemi 2009-2013 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Poleemi 2009-2013/Poleemi 2009-2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Poleemi 2009-2013/Poleemi 2009-2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Poleemi 2009-2013/Poleemi 2009-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Polemiikki 2_2013 & 2014-2_2016/Polemiikki 2_2013 & 2014-2_2016 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Polemiikki 2_2013 & 2014-2_2016/Polemiikki 2_2013 & 2014-2_2016 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Polemiikki 2_2013 & 2014-2_2016/Polemiikki 2_2013 & 2014-2_2016 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Policy 2008, 2011-1_2013, 3-4_2015/Policy 2008, 2011-1_2013, 3-4_2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Policy 2008, 2011-1_2013, 3-4_2015/Policy 2008, 2011-1_2013, 3-4_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Policy 2008, 2011-1_2013, 3-4_2015/Policy 2008, 2011-1_2013, 3-4_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Poliittinen talous 2013-1_2014/Poliittinen talous 2013-1_2014 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Poromies 2009-2014/Poromies_2009-2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Poromies 2009-2014/Poromies_2009-2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Poromies 2009-2014/Poromies_2009-2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Print&Media 2011-2014/print&media_2011_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Print&Media 2011-2014/print&media_2011_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Print&Media 2011-2014/print&media_2011_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Print&Media 2011-2014/print&media_2012_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Print&Media 2011-2014/print&media_2012_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Print&Media 2011-2014/print&media_2012_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Print&Media 2011-2014/print&media_2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Print&Media 2011-2014/print&media_2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Print&Media 2011-2014/print&media_2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Print&Media 2011-2014/print&media_2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Print&Media 2011-2014/print&media_2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Print&Media 2011-2014/print&media_2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pro Etela-Pohjanmaa 2_2012-2015/Pro Etela-Pohjanmaa 2_2012-2015 (2_2013 puuttuu)_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Pro Etela-Pohjanmaa 2_2012-2015/Pro Etela-Pohjanmaa 2_2012-2015 (2_2013 puuttuu)_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Pro Etela-Pohjanmaa 2_2012-2015/Pro Etela-Pohjanmaa 2_2012-2015 (2_2013 puuttuu)_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Pro Etela-Pohjanmaa 2_2012-2015/Pro Etelä-Pohjanmaa 2_2012-2015 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Prologi 2009-2013/Prologi2009-2013_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Prologi 2009-2013/Prologi2009-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Promaint 2008-1_2_2015/Promaint_2008-1_2_2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Promaint 2008-1_2_2015/Promaint_2008-1_2_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Promaint 2008-1_2_2015/Promaint_2008-1_2_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Psykologia-lehti 2009-2010/Psykologia 2009-2010 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Psykologia-lehti 2009-2010/Psykologia-lehti 2009-2010.zip
 x /ida/sa/clarin/corpora/lehti90-00/Puutarha-Sanomat 2011-5_2015/Puutarha-Sanomat_2011_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Puutarha-Sanomat 2011-5_2015/Puutarha-Sanomat_2011_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Puutarha-Sanomat 2011-5_2015/Puutarha-Sanomat_2011_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Puutarha-Sanomat 2011-5_2015/Puutarha-Sanomat_2012-2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Puutarha-Sanomat 2011-5_2015/Puutarha-Sanomat_2012-2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Puutarha-Sanomat 2011-5_2015/Puutarha-Sanomat_2012-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Puutarha-Sanomat 2011-5_2015/Puutarha-Sanomat_2014-5_2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Puutarha-Sanomat 2011-5_2015/Puutarha-Sanomat_2014-5_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Puutarha-Sanomat 2011-5_2015/Puutarha-Sanomat_2014-5_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Rakenteiden Mekaniikka 2000-2014/RakenteidenMekaniikka2000-2014_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Rakenteiden Mekaniikka 2000-2014/RakenteidenMekaniikka2000-2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Rautatievirkamies_2011-2016/Rautatievirkamies_2011-2016_pdf.zip
@@ -467,16 +467,16 @@ x /ida/sa/clarin/corpora/lehti90-00/Skholion 2009-1_2012/Skholion_2009-1_2012_pd
 x /ida/sa/clarin/corpora/lehti90-00/Skholion 2009-1_2012/Skholion_2009-1_2012_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Skrolli_2012-2016/Skrolli_2012-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Sofia 2000-1_2016/Sofia 2001-1_2016 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Sofia 2000-1_2016/Sofia 2001-1_2016 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Sofia 2000-1_2016/Sofia 2001-1_2016 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Solidaarisuus 2007-2014/Solidaarisuus 2007-2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Solidaarisuus 2007-2014/Solidaarisuus 2007-2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Solidaarisuus 2007-2014/Solidaarisuus 2007-2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Solubiologi 2007-2014/Solubiologi 2007-2014 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Solubiologi 2007-2014/Solubiologi 2007-2014 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Solubiologi 2007-2014/Solubiologi 2007-2014 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Sosiaalilääketieteellinen Aikakauslehti 2006-2013/Sosiaalilääketieteellinen aikakauslehti 2006-2013 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Sosiaalilääketieteellinen Aikakauslehti 2006-2013/Sosiaalilääketieteellinen aikakauslehti 2006-2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Sosiologia 2000-2013/Sosiologia_2000-2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Sosiologia 2000-2013/Sosiologia_2000-2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Sosiologia 2000-2013/Sosiologia_2000-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Sosso_2003-2016/Sosso_2003-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Suo 2005-2013/Suo 2005-2013 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Suo 2005-2013/Suo 2005-2013 txt.zip
@@ -485,13 +485,13 @@ x /ida/sa/clarin/corpora/lehti90-00/Suomalais-Ugrilaisen Seuran Aikakauskirja 20
 x /ida/sa/clarin/corpora/lehti90-00/Suomen kirkkohistoriallisen seuran vuosikirja 2000-2014/suomenkirkkohistoria_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Suomen kirkkohistoriallisen seuran vuosikirja 2000-2014/suomenkirkkohistoria_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Suomenmaa 2013/suomenmaa 3_5 3_9 ja 3_12_2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Suomenmaa 2013/suomenmaa 3_5 3_9 ja 3_12_2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Suomenmaa 2013/suomenmaa 3_5 3_9 ja 3_12_2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Suomenmaa 2013/Suomenmaan numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Sydänääni 2013/Sydänääni 2013 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Sydänääni 2013/Sydänääni 2013 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Sydänääni 2013/Sydänääni 2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Sydän-Hämeen Lehti 2013/Sydän-Hämeen Lehden numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Sydän-Hämeen Lehti 2013/Sydan-Hameen_Lehti_2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Sydän-Hämeen Lehti 2013/Sydan-Hameen_Lehti_2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Sydän-Hämeen Lehti 2013/Sydan-Hameen_Lehti_2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Synnyt 2004-2013/Synnyt 2004-2013 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Synnyt 2004-2013/Synnyt 2004-2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/TAHITI – Taidehistoria tieteenä 2011-4_2013/TAHITI 2011-4_2013 txt.zip
@@ -499,9 +499,9 @@ x /ida/sa/clarin/corpora/lehti90-00/Taimiuutiset 2000-2013/taimiuutiset2000-2013
 x /ida/sa/clarin/corpora/lehti90-00/Taimiuutiset 2000-2013/taimiuutiset2000-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/TAKU 2000-1_2016/TAKU 2000-1_2016 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/TAKU 2000-1_2016/TAKU 2000-1_2016_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/TAKU 2000-1_2016/TAKU 2000-1_2016_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/TAKU 2000-1_2016/TAKU 2000-1_2016_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Taloustaito 2009-2013/Taloustaito_2009-2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Taloustaito 2009-2013/Taloustaito_2009-2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Taloustaito 2009-2013/Taloustaito_2009-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/TAMKnyt_2011-2016/TAMKnyt_2011-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tampereen_liikuntasanomat_2005-2016/Tampereen_liikuntasanomat_2005-2013_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tampereen_liikuntasanomat_2005-2016/Tampereen_liikuntasanomat_2014-2016_pdf.zip
@@ -512,17 +512,17 @@ x /ida/sa/clarin/corpora/lehti90-00/TAMPU_lehti_2009-2015/TAMPU_lehti_2009-2015_
 x /ida/sa/clarin/corpora/lehti90-00/Tanhuviesti_2009-2015/Tanhuviesti_2009-2015_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tatsi_2011-2016/Tatsi_2011-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tek verkkolehti 7_2012-6_2013, 1_2015, 5_2015/Tek verkkolehti 7_2012-6_2013 1_2015 5_2015 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Tek verkkolehti 7_2012-6_2013, 1_2015, 5_2015/Tek verkkolehti 7_2012-6_2013 1_2015 5_2015 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Tek verkkolehti 7_2012-6_2013, 1_2015, 5_2015/Tek verkkolehti 7_2012-6_2013 1_2015 5_2015 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Teologinen aikakauskirja 2004-2013/Teologinen aikakauskirja 2004-2013 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Teologinen aikakauskirja 2004-2013/Teologinen aikakauskirja 2004-2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Terminfo 2010-2015/Terminfo 2010-2015 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Terra 2000-2013/terra2000-2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Terra 2000-2013/terra2000-2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Terra 2000-2013/terra2000-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Terve_2005-2011/Terve_2005-2011_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/TervePirkanmaa_2008-2016/TervePirkanmaa_2008-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/TervetuloaJyvaskylaan_2006-2013/TervetuloaJyvaskylaan_2006-2013_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Terveydeksi! 2_2014 & 4_2014/Terveydeksi_2_ja_4_2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Terveydeksi! 2_2014 & 4_2014/Terveydeksi_2_ja_4_2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Terveydeksi! 2_2014 & 4_2014/Terveydeksi_2_ja_4_2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Thanatos 2012-2013/thanatos2012-2013_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Thanatos 2012-2013/thanatos2012-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tiede ja ase 2000-2013/Tiede ja ase 2000-2013 pdf.zip
@@ -536,10 +536,10 @@ x /ida/sa/clarin/corpora/lehti90-00/Tietojenkäsittelytiede 2003-2015/Tietojenka
 x /ida/sa/clarin/corpora/lehti90-00/Tietojenkäsittelytiede 2003-2015/Tietojenkasittelytiede 2003-2015 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tietolinja 2000-2_2013/Tietolinja 1_2000-2_2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Toimi 2009-2014/Toimi 2009-2010 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Toimi 2009-2014/Toimi 2009-2010 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Toimi 2009-2014/Toimi 2009-2010 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Toimi 2009-2014/Toimi 2009-2014 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Toimi 2009-2014/Toimi_2011-2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Toimi 2009-2014/Toimi_2011-2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Toimi 2009-2014/Toimi_2011-2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Toisin sanoen 2005-2014/Toisin_sanoen_2005-2014_html_20160414.zip
 x /ida/sa/clarin/corpora/lehti90-00/Toisin sanoen 2005-2014/Toisin_sanoen_2005-2014_txt_20160414.zip
 x /ida/sa/clarin/corpora/lehti90-00/Toisin sanoen 2005-2014/Toisin_sanoen_2005-2014_word.zip
@@ -553,37 +553,37 @@ x /ida/sa/clarin/corpora/lehti90-00/Transmitteri 2000-2013/transmitteri2000-2013
 x /ida/sa/clarin/corpora/lehti90-00/Trio 2012-2014/trio2012-2014_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Trio 2012-2014/trio2012-2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tukilinja 2010-2014/Tukilinja_2010-2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Tukilinja 2010-2014/Tukilinja_2010-2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Tukilinja 2010-2014/Tukilinja_2010-2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tukiviesti 6_2010-1_2014/Tukiviesti 6_2010-1_2014 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Tukiviesti 6_2010-1_2014/Tukiviesti 6_2010-1_2014 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Tukiviesti 6_2010-1_2014/Tukiviesti 6_2010-1_2014 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Tukiviesti 6_2010-1_2014/Tukiviesti 6_2010-1_2014 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Turkuposti & Turkupostin liitteet 2011-1_2016/Turkuposti & Turkupostin liitteet 2011-1_2016 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Turkuposti & Turkupostin liitteet 2011-1_2016/Turkuposti & Turkupostin liitteet 2011-1_2016 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Turkuposti & Turkupostin liitteet 2011-1_2016/Turkuposti & Turkupostin liitteet 2011-1_2016 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Turkuposti & Turkupostin liitteet 2011-1_2016/Turkuposti & Turkupostin liitteet 2011-1_2016 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tutkain 2010-2_2014/Tutkain 2010-2_2014 -aineistosta puuttuvat numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Tutkain 2010-2_2014/Tutkain 2010-2_2014 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Tutkain 2010-2_2014/Tutkain 2010-2_2014 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Tutkain 2010-2_2014/Tutkain 2010-2_2014 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tutkimustiedote 2000-2014/Tutkimustiedote 2000-2014 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tutkimustiedote 2000-2014/Tutkimustiedote 2000-2014 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tutkiva sosiaalityö 2010-2013/Tutkiva sosiaalityo 2010-2013 pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tutkiva sosiaalityö 2010-2013/Tutkiva sosiaalityo 2010-2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Tuulivoima_2003-2016/Tuulivoima_2003-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Työelämän tutkimus 2003-2012/Tyoelaman_tutkimus2003-2012_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Työelämän tutkimus 2003-2012/Tyoelaman_tutkimus2003-2012_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Työelämän tutkimus 2003-2012/Tyoelaman_tutkimus2003-2012_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Ubik 2012-3_2013/Ubik 2012-3_2013 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Ubik 2012-3_2013/Ubik 2012-3_2013 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Ubik 2012-3_2013/Ubik 2012-3_2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Uljas 2014-4_2016/Uljas 2014-4_2016 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Uljas 2014-4_2016/Uljas 2014-4_2016 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Uljas 2014-4_2016/Uljas 2014-4_2016 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Uniikki 2014-3_2015/UNIIKKI_2014-3_2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Uniikki 2014-3_2015/UNIIKKI_2014-3_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Uniikki 2014-3_2015/UNIIKKI_2014-3_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Unioni_2004-2013/Unioni_2004-2013_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Universitas 2012-2_2016/Universitas 2012-2_2016 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Universitas 2012-2_2016/Universitas 2012-2_2016 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Universitas 2012-2_2016/Universitas 2012-2_2016 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Ura 2012-2013 ja Valtiotieteilijä 2009-2011/ura2012-2013_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Ura 2012-2013 ja Valtiotieteilijä 2009-2011/ura2012-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Ura 2012-2013 ja Valtiotieteilijä 2009-2011/valtiotieteilija_2009-2011_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Ura 2012-2013 ja Valtiotieteilijä 2009-2011/valtiotieteilija_2009-2011_txt.zip
-x /ida/sa/clarin/corpora/lehti90-00/Utain 2002-2013/Utain_2002-2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Utain 2002-2013/Utain_2002-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Utain 2002-2013/Utain2002.zip
 x /ida/sa/clarin/corpora/lehti90-00/Utain 2002-2013/Utain2003.zip
 x /ida/sa/clarin/corpora/lehti90-00/Utain 2002-2013/Utain2004.zip
@@ -597,28 +597,28 @@ x /ida/sa/clarin/corpora/lehti90-00/Utain 2002-2013/UTAIN2011.zip
 x /ida/sa/clarin/corpora/lehti90-00/Utain 2002-2013/UTAIN2012.zip
 x /ida/sa/clarin/corpora/lehti90-00/Utain 2002-2013/UTAIN2013.zip
 x /ida/sa/clarin/corpora/lehti90-00/Uusiouutiset 2005-2015/Uusiouutiset_2005-2015_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Uusiouutiset 2005-2015/Uusiouutiset_2005-2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Uusiouutiset 2005-2015/Uusiouutiset_2005-2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Uusi Päivä 2011-2015/Uusi Paiva 2011-2015 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Uusi Päivä 2011-2015/Uusi Paiva 2011-2015 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Uusi Päivä 2011-2015/Uusi Paiva 2011-2015 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Uutis-Jousi 2013/Uutis-Jousi_2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Uutis-Jousi 2013/Uutis-Jousi_2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Uutis-Jousi 2013/Uutis-Jousi_2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Uutis-Jousi 2013/Uuutis-Jousi-lehden numerot.docx
 x /ida/sa/clarin/corpora/lehti90-00/Vaasan Ylioppilaslehti 5_2012-5_2013/Vaasan Ylioppilaslehti 5_2012-5_2013 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Vaasan Ylioppilaslehti 5_2012-5_2013/Vaasan Ylioppilaslehti 5_2012-5_2013 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Vaasan Ylioppilaslehti 5_2012-5_2013/Vaasan Ylioppilaslehti 5_2012-5_2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/VälitysUutiset 2012-2013/ValitysUutiset_2012-2013_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/VälitysUutiset 2012-2013/ValitysUutiset_2012-2013_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/VälitysUutiset 2012-2013/ValitysUutiset_2012-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Vammaisurheilu & -liikunta 2010-1_2016/Vammaisurheilu & -liikunta 2010-1_2016 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Vammaisurheilu & -liikunta 2010-1_2016/Vammaisurheilu & -liikunta 2010-1_2016 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Vammaisurheilu & -liikunta 2010-1_2016/Vammaisurheilu & -liikunta 2010-1_2016 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Vanhustyö 2009-2015/Vanhustyo_2009-2013_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Vanhustyö 2009-2015/Vanhustyö 2009-2013.zip
-x /ida/sa/clarin/corpora/lehti90-00/Vanhustyö 2009-2015/Vanhustyo_2014-2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Vanhustyö 2009-2015/Vanhustyo_2014-2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Vanhustyö 2009-2015/Vanhustyö 2014-2015.zip
-x /ida/sa/clarin/corpora/lehti90-00/Vanhustyö 2009-2015/Vanhustyo_6-7_2015_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Vanhustyö 2009-2015/Vanhustyo_6-7_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Vanhustyö 2009-2015/Vanhustyo-lehti 6-7 2015.zip
 x /ida/sa/clarin/corpora/lehti90-00/Vankilavirkailija 2009-3_2011/Vankilavirkailija 2009-3_2011 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Vankilavirkailija 2009-3_2011/Vankilavirkailija 2009-3_2011 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Vankilavirkailija 2009-3_2011/Vankilavirkailija 2009-3_2011 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Vantaan Akseli 2009-1_2013/Vantaan Akseli 2009-1_2013 pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Vantaan Akseli 2009-1_2013/Vantaan Akseli 2009-1_2013 txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Vantaan Akseli 2009-1_2013/Vantaan Akseli 2009-1_2013 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Vantaan_asukaslehti_2014-2016/Vantaan_asukaslehti_2014-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Vartija-lehti 2006-2_2015/Vartija_2006-2_2015_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Vartija-lehti 2006-2_2015/Vartija 2006-2_2015.zip
@@ -629,7 +629,7 @@ x /ida/sa/clarin/corpora/lehti90-00/Versus 2_2011-1_2015/Versus 2011-1_2015 pdf.
 x /ida/sa/clarin/corpora/lehti90-00/Versus 2_2011-1_2015/Versus 2011-1_2015 txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/Veturimies_2006-2012/veturimies_2006-2012_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Via 3 2013 - 3 2014/Via_3_2013-3_2014_pdf.zip
-x /ida/sa/clarin/corpora/lehti90-00/Via 3 2013 - 3 2014/Via_3_2013-3_2014_txt.zip
+u /ida/sa/clarin/corpora/lehti90-00/Via 3 2013 - 3 2014/Via_3_2013-3_2014_txt.zip
 x /ida/sa/clarin/corpora/lehti90-00/ViaHelsinki_2009-2013/ViaHelsinki_lehti_2009-2013_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Vilkku_2014-2016/Vilkku_2014-2016_pdf.zip
 x /ida/sa/clarin/corpora/lehti90-00/Virittäjä 3_2006–4_2013/virittaja2009-4_2013_pdf.zip
