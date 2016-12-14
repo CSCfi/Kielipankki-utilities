@@ -705,7 +705,7 @@ optinfo_init () {
     if [ "x$config_file_optname" != "x" ]; then
 	make_opthandler_opts="$make_opthandler_opts --_config-file-option-name $config_file_optname"
     fi
-    $progdir/shutil-make-optionhandler.py $make_opthandler_opts "$@" \
+    $scriptdir/shutil-make-optionhandler.py $make_opthandler_opts "$@" \
 	> $optinfo_file 2> $tmp_prefix.optparse-errors
     if [ -s $tmp_prefix.optparse-errors ]; then
 	error "Error: $(sed -e 's/.* error: //' $tmp_prefix.optparse-errors)"
@@ -762,6 +762,19 @@ word_in () {
 
 # The tab character
 tab='	'
+
+# The (main) directory for scripts (also containing this file): needed
+# instead of $progdir for scripts in the subdirectories of corp/ to be
+# able to run scripts in the main script directory. NOTE that this
+# only works for Bash; for sh scripts, you need to set scriptdir
+# manually in the main script if it is not the same as $progdir.
+if [ "x$scriptdir" = x ]; then
+    if [ "x$BASH_VERSION" != x ]; then
+	scriptdir=$(dirname "${BASH_SOURCE[0]}")
+    else
+	scriptdir=$progdir
+    fi
+fi
 
 default_corpus_roots=${default_corpus_roots:-"/v/corpora /proj/clarin/korp/corpora $WRKDIR/corpora /wrk/jyniemi/corpora"}
 
