@@ -3,15 +3,73 @@
 
 # Make a sorted and grouped word list of ScotsCorr as JSON (to be used
 # in the Korp word list pop-up) from a TSV file containing tokens and
-# their frequencies.
+# their frequencies. Alternatively, if corpus ids are specified as
+# arguments, read the token frequencies from the named corpora. The
+# corpus ids may contain shell wildcards.
 #
 # Usage: scotscorr-make-wordlist.sh < tokenfreqs.tsv > wordlist.json
+#        scotscorr-make-wordlist.sh [--output-tsv tokenfreqs.tsv]
+#                                   corpus ... > wordlist.json
 
 
-tab='	'
+progname=`basename $0`
+progdir=`dirname $0`
 
-# grep -v '^{<' |
-# grep -v ">}$tab" |
+scriptdir=$progdir/../../scripts
+
+usage_header="Usage: $progname < tokenfreqs.tsv > wordlist.json
+       $progname [--output-tsv tokenfreqs.tsv]
+           corpus ... > wordlist.json
+
+Make a sorted and grouped word list of ScotsCorr as JSON (to be used
+in the Korp word list pop-up) from a TSV file containing tokens and
+their frequencies. Alternatively, if corpus ids are specified as
+arguments, read the token frequencies from the named corpora. The
+corpus ids may contain shell wildcards."
+
+optspecs='
+output-tsv=TSV_FILE
+    write the tokens and their frequencies extracted from the corpora
+    specified as arguments to the TSV file TSV_FILE
+'
+
+. $scriptdir/korp-lib.sh
+
+# Process options
+eval "$optinfo_opt_handler"
+
+
+tee=cat
+if [ "x$output_tsv" != x ]; then
+    tee="tee $output_tsv"
+fi
+
+if [ "x$1" != x ]; then
+    for corpus in $(list_corpora $cwb_regdir "$@"); do
+	cwb-lexdecode -f $corpus
+    done |
+    perl -pe 's/^\s*(\d+)\s+(.*)/$2\t$1/' |
+    LC_ALL=C sort |
+    $scriptdir/vrt-convert-chars.py --decode |
+    sed -e 's/&lt;/</g; s/&gt;/>/g; s/&amp;/\&/g' |
+    perl -ne '
+        chomp;
+        ($w, $f) = split (/\t/);
+        if ($w ne $prev) {
+            if (defined ($prev)) {
+                print "$prev\t$sum\n";
+                $sum = 0;
+            }
+	    $prev = $w;
+	}
+	$sum += $f;
+	END {
+	    print "$prev\t$sum\n";
+	}' |
+    $tee
+else
+    cat
+fi |
 perl -CSD -ne '
     BEGIN {
         use feature "unicode_strings";
