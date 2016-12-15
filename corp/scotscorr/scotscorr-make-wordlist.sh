@@ -55,6 +55,7 @@ perl -CSD -ne '
     print "$g\t$w\t$k\t$f\n"
 ' |
 LC_ALL=C sort -t"$tab" -k3,3f -k2,2 |
+grep -v '^Word-related' |
 cut -d"$tab" -f1,2,4 |
 sed -e 's/\\/\\\\/g; s/"/\\"/g' |
 perl -ne '
