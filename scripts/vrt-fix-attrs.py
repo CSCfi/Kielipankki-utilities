@@ -698,7 +698,8 @@ def getopts():
                          default=[])
     optparser.add_option('--replace-xml-character-entities', type='choice',
                          choices=['correct', 'all', 'numeric',
-                                  'correctnumeric'])
+                                  'correctnumeric'],
+                         default='correct')
     optparser.add_option('--copy-struct-attribute', action='append', default=[])
     optparser.add_option('--encoding-errors', '--character-encoding-errors',
                          type='choice', choices=['strict', 'replace', 'ignore'],
