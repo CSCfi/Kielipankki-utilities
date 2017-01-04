@@ -11,7 +11,7 @@ progdir=`dirname $0`
 
 
 shortopts="h"
-longopts="help,vrt-dir:,text-sort-attribute:,verify-order,skip-encode,no-encode,force"
+longopts="help,vrt-dir:,text-sort-attribute:,verify-order,skip-encode,no-encode,force,verbose"
 
 . $progdir/korp-lib.sh
 
@@ -21,6 +21,7 @@ output_input_structs=
 verify_order=
 encode=1
 force=
+verbose=
 
 ne_struct=ne
 ne_attrs="name fulltype ex type subtype placename placename_source"
@@ -44,6 +45,7 @@ Options:
   --verify-order
   --no-encode
   --force
+  --verbose
 EOF
     exit 0
 }
@@ -71,6 +73,9 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	--force )
 	    force=1
+	    ;;
+	--verbose )
+	    verbose=1
 	    ;;
 	-- )
 	    shift
@@ -169,6 +174,7 @@ sort_names_vrt () {
 }
 
 make_names_vrt () {
+    verbose echo_timestamp "Generating a VRT file with name data"
     mkdir -p "$vrtdir"
     paste <(get_wordform_lemma) <(get_nertag) |
     gawk -F"$tab" '/^</ || NF == 3' |
@@ -191,6 +197,7 @@ get_cwb_corpus_attr () {
 }
 
 verify_names_vrt_order () {
+    verbose echo_timestamp "Verifying the order of corpus tokens"
     diff_file=$tmp_prefix.diff
     diff <(get_cwb_corpus_attr $corpus word) \
 	<(grep -v '^<' "$names_vrt_file" | cut -d"$tab" -f1) > "$diff_file"
@@ -202,6 +209,7 @@ verify_names_vrt_order () {
 }
 
 encode () {
+    verbose echo_timestamp "Encoding the name data for CWB"
     mkdir -p "$datadir"
     cut -d"$tab" -f2,3 "$names_vrt_file" |
     $progdir/vrt-convert-chars.py --encode |
@@ -226,6 +234,7 @@ add_registry_attrs () {
 }
 
 index_posattrs () {
+    verbose echo_timestamp "Indexing and compressing the new positional attributes"
     cwb_index_posattr $corpus $attr_nertag $attr_bio > /dev/null
 }
 
@@ -239,4 +248,6 @@ if [ "x$encode" != x ]; then
     add_registry_attrs
     index_posattrs
 fi
+verbose echo_timestamp "Compressing the names VRT file"
 gzip -f "$names_vrt_file"
+verbose echo_timestamp "Done"
