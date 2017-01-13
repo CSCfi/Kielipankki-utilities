@@ -45,7 +45,7 @@ if [ "x$output_tsv" != x ]; then
 fi
 
 if [ "x$1" != x ]; then
-    for corpus in $(list_corpora $cwb_regdir "$@"); do
+    for corpus in $(list_corpora "$@"); do
 	cwb-lexdecode -f $corpus
     done |
     perl -pe 's/^\s*(\d+)\s+(.*)/$2\t$1/' |

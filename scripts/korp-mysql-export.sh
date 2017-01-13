@@ -119,7 +119,7 @@ fi
 
 outputdir=${outputdir:-$corpus_root/$tsvsubdir}
 
-corpora=$(list_corpora $cwb_regdir "$@")
+corpora=$(list_corpora "$@")
 
 fname_suffix=.tsv$(eval echo \$compr_suffix_$compress)
 

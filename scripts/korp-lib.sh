@@ -402,23 +402,26 @@ add_prefix () {
     printf -- "$_add_prefix_prefix%s " "$@"
 }
 
-# list_corpora [--on-error error_cmd] registry_dir corpus_id ...
+# list_corpora [--registry registry_dir] [--on-error error_cmd] corpus_id ...
 #
-# List the corpora in the parameters as found in registry_dir,
-# expanding shell wildcards (but not braces). If some listed corpora
-# are not found, call error_cmd (default: error) with an error
-# message.
+# List the corpora in the parameters as found in registry_dir
+# (default: $cwb_regdir), expanding shell wildcards (but not braces).
+# If some listed corpora are not found, call error_cmd (default:
+# error) with an error message.
 list_corpora () {
-    _list_corpora_no_error=
-    _list_corpora_error_func=error
-    if [ "x$1" = "x--on-error" ]; then
-	shift
-	_list_corpora_error_func=$1
-	shift
-    fi
-    _list_corpora_registry=$1
-    shift
-    ls $(add_prefix $_list_corpora_registry/ "$@") \
+    local no_error error_func error_files registry
+    no_error=
+    error_func=error
+    registry=$cwb_regdir
+    while [ "x${1##--}" != "x$1" ]; do
+	if [ "x$1" = "x--on-error" ]; then
+	    error_func=$2
+	elif [ "x$1" = "x--registry" ]; then
+	    registry=$2
+	fi
+	shift 2
+    done
+    ls $(add_prefix $registry/ "$@") \
 	2> $tmp_prefix.corpid_errors |
     sed -e 's,.*/,,' |
     grep '^[a-z_][a-z0-9_-]*$' > $tmp_prefix.corpids
@@ -427,8 +430,8 @@ list_corpora () {
 	    sed -e 's,^.*cannot access .*/\([^:/]*\):.*$,\1,' \
 		< $tmp_prefix.corpid_errors
 	)
-	$_list_corpora_error_func \
-	    "Corpora not found in the CWB corpus registry: $error_files"
+	$error_func \
+	    "Corpora not found in the CWB corpus registry $registry: $error_files"
     fi
     cat $tmp_prefix.corpids
     rm -rf $tmp_prefix.corpids $tmp_prefix.corpid_errors

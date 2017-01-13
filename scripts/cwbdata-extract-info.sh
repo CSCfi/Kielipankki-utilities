@@ -303,9 +303,9 @@ infofile_new=$tmp_prefix.new
 infofile_comb=$tmp_prefix.comb
 
 if [ "x$all_corpora" != "x" ]; then
-    corpora=$(list_corpora "$cwb_regdir" "*")
+    corpora=$(list_corpora "*")
 else
-    corpora=$(list_corpora "$cwb_regdir" $*)
+    corpora=$(list_corpora $*)
 fi
 
 for corpus in $corpora; do

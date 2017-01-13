@@ -85,7 +85,7 @@ done
 
 tsvdir=${tsvdir:-$corpus_root/$tsvsubdir}
 
-corpora=$(list_corpora $cwb_regdir "$@")
+corpora=$(list_corpora "$@")
 
 verbose_opt=
 if [ "x$verbose" != x ]; then

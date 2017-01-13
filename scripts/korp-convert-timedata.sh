@@ -104,7 +104,7 @@ if [ "x$1" = x ]; then
     error "Please specify corpora"
 fi
 
-corpora=$(list_corpora $cwb_regdir "$@")
+corpora=$(list_corpora "$@")
 
 verbose_opt=
 if [ "x$verbose" != x ]; then
