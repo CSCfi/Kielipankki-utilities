@@ -88,7 +88,10 @@ perl -CSD -ne '
         $k = "\x02" . chr (length ($qm)) . $w;
         $g = "Words with uncertain beginning";
     } elsif ($w =~ /^\{/) {
-        if ($w =~ /^\{</) {
+        # Treat {<hand N} and comments containing balanced <...> as
+        # independent comments instead of word-related, despite the
+        # leading <
+        if ($w =~ /^\{<([^<>]|<[^<>]*>)*\}$/ && $w !~ /^\{<\s*hand/) {
             $k = "\x04$w";
             $g = "Word-related comments";
         } else {
