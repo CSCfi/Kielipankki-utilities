@@ -76,8 +76,16 @@ perl -CSD -ne '
         use utf8;
     }
     chomp;
+    # $w = word (token), $f = (absolute) frequency, $k = sort key,
+    # $k2 = secondary sort key, $g = token group name
     ($w, $f) = /(.*?)\t(.*)/;
     $k = lc($w);
+    $k2 = $k;
+    # Remove word-internal {ins} and {del} from the primary sort key,
+    # so that "ins" and "del" are not considered part of the word
+    $k =~ s/\{ins\}//g;
+    $k =~ s/\{del\}.*?\{del\}//g;
+    $k =~ s/\{del\}.*$//g;
     $k =~ s/[^a-zA-Z0-9£’'"'"']//g;
     if ((($k eq "" || $k !~ /[[:alnum:]]/) && $w !~ /^\{.*\}$/)
         || $k =~ /^\xa3/) {
@@ -99,7 +107,28 @@ perl -CSD -ne '
             $g = "Independent comments";
         }
     } else {
+        # Capitalized words after all-lower-case ones
+        if ($w =~ /[A-Z]/) {
+            $k2 .= "\x7C";
+        }
 	if (length ($k) != length ($w)) {
+            # Words containing *...% follow words with the same
+            # letters but without *...%. If multiple words have the
+            # same letters with *...% in different places, they are
+            # sorted according to the length of the prefix before
+            # *...%, longest prefix first.
+            $k2 =~ s/\*/\x7D/g;
+            # Words ending in a " flourish follow those without
+            $k2 =~ s/\"/\x7E/;
+            # Words containing ? (uncertainty) follow those without
+            # (or with ").
+            $k2 =~ s/\?/\x7F/g;
+            # A word containing \ (line break) follows the same word
+            # with no line break but before those having *...% or ?.
+            if ($k2 =~ /\\/) {
+                $k2 =~ s/\\//g;
+                $k2 .= "\x7B";
+            }
 	    $k = substr ($k, 0, 1) . "$k\x02";
 	} else {
 	    $k = substr ($k, 0, 1) . "$k\x01";
@@ -113,11 +142,11 @@ perl -CSD -ne '
 	    $g = uc($g);
         }
     }
-    print "$g\t$w\t$k\t$f\n"
+    print "$g\t$w\t$k\t$k2\t$f\n"
 ' |
-LC_ALL=C sort -t"$tab" -k3,3f -k2,2 |
+LC_ALL=C sort -t"$tab" -k3,3f -k4,4 -k2,2 |
 grep -v '^Word-related' |
-cut -d"$tab" -f1,2,4 |
+cut -d"$tab" -f1,2,5 |
 sed -e 's/\\/\\\\/g; s/"/\\"/g' |
 perl -ne '
     BEGIN {
