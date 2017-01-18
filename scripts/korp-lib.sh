@@ -684,6 +684,13 @@ corpus_exists () {
     $cwb_bindir/cwb-describe-corpus $1 > /dev/null 2> /dev/null
 }
 
+# get_corpus_token_count corpus
+#
+# Print the number of tokens in corpus.
+get_corpus_token_count () {
+    $cwb_bindir/cwb-describe-corpus -s $1 |
+    awk '$1 ~ /^size/ {print $3}'
+}
 
 # optinfo_get_sect filename sectname
 #
