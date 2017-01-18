@@ -184,6 +184,15 @@ make_names_vrt () {
     sort_names_vrt > "$names_vrt_file"
 }
 
+verify_names_vrt_size () {
+    local token_cnt names_vrt_len
+    token_cnt=$(get_corpus_token_count $corpus)
+    names_vrt_len=$(grep -cv '^<' "$names_vrt_file")
+    if [ "$token_cnt" != "$names_vrt_len" ]; then
+	error "The generated names VRT file has $names_vrt_len tokens whereas the corpus has $token_cnt tokens"
+    fi
+}
+
 get_cwb_corpus_attr () {
     local corpus
     corpus=$1
@@ -240,6 +249,7 @@ index_posattrs () {
 
 
 make_names_vrt
+verify_names_vrt_size
 if [ "x$verify_order" != "x" ]; then
     verify_names_vrt_order
 fi
