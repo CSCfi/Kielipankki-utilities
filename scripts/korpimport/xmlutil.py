@@ -45,7 +45,9 @@ def make_attr(name, value):
     """Make name="value", with the appropriate characters in value escaped."""
     return u'{name}="{value}"'.format(
         name=name,
-        value=escape(unescape(value), {'"': '&quot;'}))
+        value=escape(unescape(value,
+                              {'&quot;': '"', '&apos;': '\''}),
+                     {'"': '&quot;'}))
 
 
 def get_attr(attrname, attrdict, elemname=''):
