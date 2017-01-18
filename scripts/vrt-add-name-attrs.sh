@@ -211,8 +211,8 @@ verify_names_vrt_order () {
     diff <(get_cwb_corpus_attr $corpus word) \
 	<(grep -v '^<' "$names_vrt_file" | cut -d"$tab" -f1) > "$diff_file"
     if [ "$?" != "0" ]; then
-	echo "Order of corpus tokens in the NER data differs from that in the encoded corpus:" > /dev/stderr
-	cat "$diff_file" > /dev/stderr
+	echo "Order of corpus tokens in the NER data differs from that in the encoded corpus:" >> /dev/stderr
+	cat "$diff_file" >> /dev/stderr
 	exit 1
     fi
 }
