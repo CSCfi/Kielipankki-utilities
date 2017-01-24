@@ -29,6 +29,7 @@ class VrtScrambler(korpimport.util.InputProcessor):
         units = []
         current_unit = []
         for line in stream:
+            self._linenr += 1
             if collecting:
                 if line.startswith(scramble_end):
                     if current_unit:
@@ -41,6 +42,14 @@ class VrtScrambler(korpimport.util.InputProcessor):
                     if current_unit:
                         units.append(current_unit)
                     current_unit = [line]
+                elif line.startswith('<') and current_unit == []:
+                    mo = re.match(r'<([a-z_0-9]+)', line)
+                    struct = ''
+                    if mo:
+                        struct = mo.group(1)
+                    self.error('Structure \'' + struct + '\' between \''
+                               + self._opts.scramble_within + '\' and \''
+                               + self._opts.scramble_unit + '\'')
                 else:
                     current_unit.append(line)
             else:
