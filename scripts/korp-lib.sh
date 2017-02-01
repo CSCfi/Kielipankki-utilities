@@ -197,7 +197,7 @@ echo_dbg () {
     fi
 }
 
-# echo_quoted [args ...]
+# quote_args args ...
 #
 # Print each argument in args: arguments containing spaces or quotes
 # are quoted, preferring single quotes unless the argument contains a
@@ -206,7 +206,7 @@ echo_dbg () {
 # FIXME: The result cannot be used as shell command line arguments if
 # an argument contains shell metacharacters or both single and double
 # quotes.
-echo_quoted () {
+quote_args () {
     local arg
     for arg in "$@"; do
 	case $arg in
@@ -221,6 +221,13 @@ echo_quoted () {
 		;;
 	esac
     done
+}
+
+# echo_quoted [args ...]
+#
+# Like quote_args but print a trailing newline.
+echo_quoted () {
+    quote_args "$@"
     printf "\n"
 }
 
