@@ -779,6 +779,11 @@ word_in () {
 
 # Common initialization code
 
+# Original (unprocessed) command line (arguments), shell expansions
+# done and without redirections, but options not processed
+cmdline_args_orig=$(echo_quoted "$@")
+cmdline_orig="$(echo_quoted "$0") $cmdline_args_orig"
+
 # The tab character
 tab='	'
 
@@ -913,3 +918,7 @@ if [ "x$shortopts" != x ] || [ "x$longopts" != x ]; then
     # If not GNU getopt, arguments of long options must be separated from
     # the option string by a space; getopt allows an equals sign.
 fi
+
+# Command line (arguments) with options processed
+cmdline_args_processed=$(echo_quoted "$@")
+cmdline_processed="$(echo_quoted "$0") $cmdline_args_processed"
