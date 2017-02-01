@@ -296,6 +296,7 @@ add_registry_attrs () {
     )
     sed -e '/^ATTRIBUTE word/ a'"$(add_prefix '\
 ATTRIBUTE ' $all_attrs)" -e '/^ATTRIBUTE/ d' $regfile.bak > $regfile
+    ensure_perms $regfile $regfile.bak
 }
 
 test_skip_add_registry_attrs () {

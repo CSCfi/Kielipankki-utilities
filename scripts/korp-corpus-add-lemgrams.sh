@@ -9,6 +9,7 @@
 # TODO:
 # - Handle lemma and POS when feature set attributes (maybe in
 #   vrt-add-lemgrams.py)
+# - Convert to using korp-lib.sh
 
 
 progname=`basename $0`
@@ -292,6 +293,7 @@ else
 	/^ATTRIBUTE / {attrs = 1}
 	/^ *$/ && attrs {print "ATTRIBUTE lex"; attrs = 0}
 	{print}' < $regfile.bak > $regfile
+    ensure_perms $regfile $regfile.bak
 fi
 
 echo_verb "Indexing and compressing the lex attribute"

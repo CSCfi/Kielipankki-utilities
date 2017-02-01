@@ -156,6 +156,7 @@ add_registry_attrs () {
     if ! cmp -s $cwb_regdir/$_corpus $tmp_prefix.registry_new; then
 	cp -p $cwb_regdir/$_corpus $cwb_regdir/$_corpus.bak
 	mv $tmp_prefix.registry_new $cwb_regdir/$_corpus
+	ensure_perms $cwb_regdir/$_corpus $cwb_regdir/$_corpus.bak
     fi
 }
 

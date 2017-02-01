@@ -580,6 +580,7 @@ cwb_registry_add_posattr () {
 	     /^$/ && prev_attr { printf "'"$_new_attrdecls"'"; prev_attr = 0 }
 	     { print }' "$_regfile.old" > "$_regfile"
     fi
+    ensure_perms "$_regfile" "$_regfile.old"
 }
 
 # cwb_registry_add_structattr corpus struct [attrname ...]
@@ -630,6 +631,7 @@ cwb_registry_add_structattr () {
             }
 	    { print }' "$_regfile.old" > "$_regfile"
     fi
+    ensure_perms "$_regfile" "$_regfile.old"
 }
 
 # cwb_index_posattr corpus attrname ...

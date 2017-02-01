@@ -346,5 +346,6 @@ for corpus in $corpora; do
 	    cp -p $infofile_comb $outfile
 	    echo_verb "$corpus updated"
 	fi
+	ensure_perms $outfile $outfile$backup_suffix
     fi
 done

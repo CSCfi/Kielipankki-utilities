@@ -40,6 +40,7 @@ fix_dateto () {
 	for suff in avs avx rng; do
 	    fname=$datadir/text_dateto.$suff
 	    cp -p --backup=numbered $fname $fname.bak
+	    ensure_perms $fname.bak*
 	done
 	$cwb_bindir/cwb-s-encode -d $datadir -B -V text_dateto < $corrfile
 	$progdir/korp-convert-timedata.sh --convert mysql,info $corpus
