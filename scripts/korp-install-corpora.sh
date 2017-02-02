@@ -326,14 +326,14 @@ filter_corpora () {
 	if [ "x$corpname" = "x$corpname_prev" ]; then
 	    :
 	    # TODO: Show this only with --verbose
-	    # echo "  $corpname: skipping $pkgfile as older than $corp_pkgfile" > /dev/stderr
+	    # echo "  $corpname: skipping $pkgfile as older than $corp_pkgfile" >> /dev/stderr
 	else
 	    installed_date=$(grep -E "^[^	]+	$corpname	" $installed_list \
 		| cut -d'	' -f4 \
 		| sort -r \
 		| head -1)
 	    if expr "$timestamp" "<=" "$installed_date" > /dev/null; then
-		echo "  $corpname: skipping $(format_package_name_host $pkgfile $pkghost) as not newer than the installed package ($timestamp <= $installed_date)" > /dev/stderr
+		echo "  $corpname: skipping $(format_package_name_host $pkgfile $pkghost) as not newer than the installed package ($timestamp <= $installed_date)" >> /dev/stderr
 	    else
 		printf "%s\t%s\t%s\t%s\t%s\n" $corpname $pkghost "$pkgfile" \
 		    $timestamp $pkgsize

@@ -62,7 +62,7 @@ while [ "x$1" != "x" ] ; do
 	    break
 	    ;;
 	--* )
-	    echo "$0: Unrecognized option: $1" > /dev/stderr
+	    echo "$0: Unrecognized option: $1" >> /dev/stderr
 	    ;;
 	* )
 	    break

@@ -191,9 +191,9 @@ cat_verb () {
 echo_dbg () {
     if [ "x$debug" != x ]; then
 	for _arg in "$@"; do
-	    printf "%s " "'$_arg'" > /dev/stderr
+	    printf "%s " "'$_arg'" >> /dev/stderr
 	done
-	printf "\n" > /dev/stderr
+	printf "\n" >> /dev/stderr
     fi
 }
 
@@ -284,7 +284,7 @@ time_cmd_uncond () {
                 sub (/@@@TIMES: /, "")
                 print
             } else {
-                print > "/dev/stderr"
+                print >> "/dev/stderr"
             }
         }' < $fifo &
     local filter_pid=$!
