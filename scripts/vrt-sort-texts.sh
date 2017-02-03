@@ -19,10 +19,19 @@ of them."
 optspecs='
 attribute=ATTR attrname
 order-from-corpus=CORPUS_ID order_corpus
-transform=TRANSFORM "s///"
+transform=TRANSFORM * { add_transform "$1" }
 '
 
 . $progdir/korp-lib.sh
+
+
+transforms=
+
+add_transform () {
+    transforms="$transforms
+\$key =~ $1;"
+}
+
 
 # Process options
 eval "$optinfo_opt_handler"
@@ -47,10 +56,10 @@ add_sort_keys () {
 	    open (my $orderf, "<", "'"$order_file"'")
 		or die ("Cannot open file: $!");
 	    %order = ();
-	    while (<$orderf>) {
+	    while ($key = <$orderf>) {
 		chomp;
-		$_ =~ '"$transform"';
-		$order{$_} = $.;
+                '"$transforms"'
+		$order{$key} = $.;
 	    }
             $keylen = length ($. + 1);
             $post_key = sprintf ("%0*d", $keylen, $. + 1);
@@ -71,7 +80,7 @@ add_sort_keys () {
         }
 	if (/^<text.* '$attrname'="(.+?)"/) {
 	    $key = $1;
-	    $key =~ '"$transform"';
+           '"$transforms"'
             '"$map_key_code"'
             $text_seen = 1;
             $in_text = 1;
