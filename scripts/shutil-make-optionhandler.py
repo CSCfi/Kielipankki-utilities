@@ -71,6 +71,16 @@ currently recognized options are:
 --_config-section=SECT: Read options from configuration file section
   SECT; default: "Default", which may be at the beginning of the
   config file without an explicit section heading.
+--_config-values-single-quoted: Generate single-quoted strings from
+  option values specified in the configuration file, without expanding
+  shell (environment) variables or backquotes. (Single quotes are
+  allowed.) By default, the script generates double-quoted strings,
+  subject to shell variable and backquote expansion, so literal $, `
+  and \ must be protected by a backslash.
+
+Note that option values specified on the command line are treated as
+single-quoted strings when they are processed by this script; the
+possible expansions have already been performed by the shell.
 
 The script generates the following sections:
 
@@ -176,13 +186,15 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
 
     def _parse_opts(self):
         optparser = OptionParser(usage='', add_help_option=False)
-        for optnames, optopts in [
-                [['config-file'], dict()],
-                [['config-file-option-name'], dict()],
-                [['config-section'], dict(default='Default')],
-                [['output-section-format'],
-                 dict(default=u'----- {name}\n{content}\n-----\n')],
-        ]:
+        script_opts = [
+            [['config-file'], dict()],
+            [['config-file-option-name'], dict()],
+            [['config-section'], dict(default='Default')],
+            [['config-values-single-quoted'], dict(action='store_true')],
+            [['output-section-format'],
+             dict(default=u'----- {name}\n{content}\n-----\n')],
+        ]
+        for optnames, optopts in script_opts:
             optparser.add_option(*['--_' + name for name in optnames],
                                  **optopts)
         for optspec in self._optspecs:
@@ -307,7 +319,10 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         opts = []
         opts.append(optname)
         if has_arg:
-            quote_type = 'double' if value_from_config else 'single'
+            quote_type = (
+                'double' if (value_from_config and
+                             not self._opts._config_values_single_quoted)
+                else 'single')
             opts.append(self._shell_quote(value, quote_type))
         return opts
 
