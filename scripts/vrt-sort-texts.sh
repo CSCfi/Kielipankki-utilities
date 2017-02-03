@@ -8,74 +8,32 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 
-shortopts="h"
-longopts="help,attribute:,order-from-corpus:,transform:"
-
-. $progdir/korp-lib.sh
-
-attrname=
-order_corpus=
-transform=s///
-
-order_file=$tmp_prefix.order
-
-
-usage () {
-    cat <<EOF
-Usage: $progname [options] [input.vrt] > output.vrt
+usage_header="Usage: $progname [options] [input.vrt] > output.vrt
 
 Sort the text elements in a VRT file based on an attribute.
 
 Note that the input may have an element spanning the whole input containing
 the text elements but no elements that span multiple text elements but not all
-of them.
+of them."
 
-Options:
-  -h, --help      show this help
-  --attribute ATTR
-  --order-from-corpus CORPUS_ID
-  --transform TRANSFORM
-EOF
-    exit 0
-}
+optspecs='
+attribute=ATTR attrname
+order-from-corpus=CORPUS_ID order_corpus
+transform=TRANSFORM "s///"
+'
+
+. $progdir/korp-lib.sh
 
 # Process options
-while [ "x$1" != "x" ] ; do
-    case "$1" in
-	-h | --help )
-	    usage
-	    ;;
-	--attribute )
-	    shift
-	    attrname=$1
-	    ;;
-	--order-from-corpus )
-	    shift
-	    order_corpus=$1
-	    ;;
-	--transform )
-	    shift
-	    transform=$1
-	    ;;
-	-- )
-	    shift
-	    break
-	    ;;
-	--* )
-	    warn "Unrecognized option: $1"
-	    ;;
-	* )
-	    break
-	    ;;
-    esac
-    shift
-done
+eval "$optinfo_opt_handler"
 
 
 if [ "x$attrname" = "x" ]; then
     error "Please specify the sort attribute via --attribute"
 fi
 
+
+order_file=$tmp_prefix.order
 
 read_order_from_corpus () {
     $cwb_bindir/cwb-s-decode -n $order_corpus -S text_$attrname > $order_file
