@@ -253,6 +253,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                 self.warn('Unrecognized configuration option: ' + name)
             elif optspec.get('value') is None:
                 optspec['value'] = val
+                optspec['valuefromconfig'] = True
 
     def _write_output(self):
         sectnames = [
@@ -284,25 +285,30 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             if optval is not None:
                 optname = optspec['names'][0]
                 has_arg = optspec.get('optargname')
+                value_from_config = optspec.get('valuefromconfig')
                 if optspec.get('targetmulti'):
                     if optspec.get('targetcode'):
                         for value in optval:
                             opts.extend(
-                                self._make_cmdline_opt(optname, value, has_arg))
+                                self._make_cmdline_opt(optname, value, has_arg,
+                                                       value_from_config))
                     else:
                         opts.extend(
                             self._make_cmdline_opt(optname, '\n'.join(optval),
-                                                   has_arg))
+                                                   has_arg, value_from_config))
                 else:
                     opts.extend(
-                        self._make_cmdline_opt(optname, optval, has_arg))
+                        self._make_cmdline_opt(optname, optval, has_arg,
+                                               value_from_config))
         return ' '.join(opts + [self._shell_quote(arg) for arg in self._args])
 
-    def _make_cmdline_opt(self, optname, value, has_arg=False):
+    def _make_cmdline_opt(self, optname, value, has_arg=False,
+                          value_from_config=False):
         opts = []
         opts.append(optname)
         if has_arg:
-            opts.append(self._shell_quote(value))
+            quote_type = 'double' if value_from_config else 'single'
+            opts.append(self._shell_quote(value, quote_type))
         return opts
 
     def _make_output_getopt_opts(self):
