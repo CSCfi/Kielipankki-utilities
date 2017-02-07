@@ -188,6 +188,9 @@ if [ "x$logging" != x ]; then
     echo_verb "Logging output to $logfile"
 fi
 
+echo_verb "Running: $cmdline_orig"
+echo_verb "Processed arguments: $cmdline_args_processed"
+
 input_files=( "$@" )
 
 vrtdir=${vrtdir:-$corpus_root/$vrt_subdir}
