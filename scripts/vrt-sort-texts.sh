@@ -3,6 +3,12 @@
 
 # Usage: vrt-sort-texts.sh [options] [input.vrt] > output.vrt
 
+# TODO:
+# - Allow sort keys composed of the values of multiple attributes
+# - Allow specifying sort options to the key
+# - Allow --transform argument to contain arbitrary Perl expressions
+#   modifying $key
+
 
 progname=`basename $0`
 progdir=`dirname $0`
@@ -10,7 +16,8 @@ progdir=`dirname $0`
 
 usage_header="Usage: $progname [options] [input.vrt] > output.vrt
 
-Sort the text elements in a VRT file based on an attribute.
+Sort the text elements in a VRT file using the values of an attribute as sort
+keys.
 
 Note that the input may have an element spanning the whole input containing
 the text elements but no elements that span multiple text elements but not all
@@ -18,8 +25,18 @@ of them."
 
 optspecs='
 attribute=ATTR attrname
+    sort text elements by the attribute ATTR; sort by byte values into
+    ascending order, without taking the locale into account; this
+    option is required
 order-from-corpus=CORPUS_ID order_corpus
+    use the order of text elements (by attribute ATTR) in the corpus
+    CORPUS_ID
 transform=TRANSFORM * { add_transform "$1" }
+    transform the sorting attribute values with the Perl regular
+    expression substitution (s/.../.../) TRANSFORM to get the key to
+    be used for sorting; this option may be specified multiple times,
+    in which case the substitutions are applied in the order in which
+    they are specified
 '
 
 . $progdir/korp-lib.sh
