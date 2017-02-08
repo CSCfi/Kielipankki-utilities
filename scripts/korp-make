@@ -78,6 +78,15 @@ wordpict-relmap|wordpicture-relation-map=RELMAP_FILE "$mapdir/wordpict_relmap_td
     relations to those used in the Korp word picture; the file
     should contain lines with corpus POS and lemgram POS
     separated by a tab
+text-sort-attribute=ATTR { add_text_sort_opt --attribute "$1" }
+    sort text elements in the corpus by the attribute ATTR; sort by
+    byte values into ascending order, without taking the locale into
+    account
+text-sort-transform=TRANSFORM * { add_text_sort_opt --transform "$1" }
+    transform the sorting attribute values with the Perl regular
+    expression substitution (s/.../.../) TRANSFORM to get the key to
+    be used for sorting; this option may be specified multiple times,
+    in which case the substitutions are applied in the specified order
 tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
     output database tables as TSV files to DIR
 no-wordpicture|skip-wordpicture !wordpicture
@@ -144,6 +153,7 @@ config_file_optname=config-file
 
 vrt_fix_attrs=$progdir/vrt-fix-attrs.py
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
+vrt_sort_texts=$progdir/vrt-sort-texts.sh
 vrt_convert_chars=$progdir/vrt-convert-chars.py
 vrt_extract_timespans=$progdir/vrt-extract-timespans.py
 vrt_list_struct_attrs=$progdir/vrt-list-struct-attrs.py
@@ -161,6 +171,18 @@ cwb_make=$progdir/cwb-make-safe
 
 vrt_file=
 
+
+text_sort_opts=
+sort_texts=
+
+add_text_sort_opt () {
+    local optname=$1
+    local optarg=$2
+    if [ "x$optname" = "x--attribute" ]; then
+	sort_texts=1
+    fi
+    text_sort_opts="$text_sort_opts $optname $(quote_args_safe "$optarg")"
+}
 
 # Process options
 eval "$optinfo_opt_handler"
@@ -304,6 +326,7 @@ run_stages () {
 stages=(
     add_new_attrs "Adding lemgrams and lemmas without compound boundaries"
     add_datefromto "Adding datefrom and dateto"
+    sort_texts "Sorting text elements"
     cwb_encode "Encoding the attributes for CWB"
     cwb_make "Indexing and compressing the CWB data"
     convert_timedata "Converting and augmenting time data"
@@ -404,6 +427,18 @@ add_datefromto () {
 
 test_skip_add_datefromto () {
     grep -q -s '^<text.* datefrom="' $vrt_file && echo "already present"
+}
+
+sort_texts () {
+    # Use eval to get the separate options in $text_sort_opts
+    # correctly
+    eval run_cmd $vrt_sort_texts $text_sort_opts < $vrt_file > $vrt_file.new
+    replace_file $vrt_file $vrt_file.new
+}
+
+test_skip_sort_texts () {
+    [ "x$sort_texts" = x ] &&
+    echo "not requested"
 }
 
 cwb_encode () {
