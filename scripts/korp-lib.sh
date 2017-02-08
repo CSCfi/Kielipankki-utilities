@@ -223,6 +223,29 @@ quote_args () {
     done
 }
 
+# quote_args_safe args ...
+#
+# Print each argument in args enclosed in single quotes, single quotes
+# themselves converted to '"'"'. The result may be used to retain
+# spaces in arguments in "$(eval command $result)", for example.
+#
+# Adapted from http://stackoverflow.com/questions/1668649/how-to-keep-quotes-in-args#answer-8723305
+#
+# FIXME: The result contains a trailing space
+quote_args_safe () {
+    local arg
+    for arg in "$@"; do
+	case "$arg" in
+            *"'"* )
+		printf "%s" "$arg" | sed "s/'/'\"'\"'/g; s/^\(.*\)$/'&' /"
+		;;
+            * )
+		printf "'%s' " "$arg"
+		;;
+	esac
+    done
+}
+
 # echo_quoted [args ...]
 #
 # Like quote_args but print a trailing newline.
