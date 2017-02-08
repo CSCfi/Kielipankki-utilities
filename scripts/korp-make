@@ -399,9 +399,7 @@ add_datefromto () {
     fi
     run_cmd $vrt_extract_timespans --mode=add --output-full-dates=always \
 	$opts "$corpus_date_pattern" < $vrt_file > $vrt_file.new
-    mv $vrt_file $vrt_file.old
-    mv $vrt_file.new $vrt_file
-    rm $vrt_file.old
+    replace_file $vrt_file $vrt_file.new
 }
 
 test_skip_add_datefromto () {
