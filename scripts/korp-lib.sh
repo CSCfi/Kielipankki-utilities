@@ -724,6 +724,45 @@ get_corpus_token_count () {
     awk '$1 ~ /^size/ {print $3}'
 }
 
+# replace_file [--backup backup_file] old_file new_file
+#
+# Safely replace old_file with new_file. If --backup is specified,
+# rename old_file as backup_file.
+#
+# TODO: Allow numbered backups
+replace_file () {
+    local oldfile newfile bakfile backup
+    backup=
+    if [ "x$1" = "x--backup" ]; then
+	backup=1
+	bakfile=$2
+	shift 2
+    fi
+    oldfile=$1
+    newfile=$2
+    if [ "x$bakfile" = x ]; then
+	bakfile=$oldfile.old
+    fi
+    if [ ! -r "$oldfile" ]; then
+	error "Cannot read file: $oldfile"
+    fi
+    {
+	mv -f "$oldfile" "$bakfile" &&
+	mv -f "$newfile" "$oldfile"
+    }
+    if [ "$?" = 0 ]; then
+	if [ "x$backup" = x ]; then
+	    rm "$bakfile"
+	fi
+    else
+	# If the old file was removed, replace it with the backup file
+	if [ ! -e "$oldfile" ] && [ -e "$bakfile" ]; then
+	    mv -f "$bakfile" "$oldfile"
+	fi
+	error "Could not replace file $oldfile with $newfile"
+    fi
+}
+
 # optinfo_get_sect filename sectname
 #
 # Output the section sectname in the option information file filename.
