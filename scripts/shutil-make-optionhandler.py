@@ -7,6 +7,11 @@
 #   times (syntax maybe *"sep", *(sep) or *[sep]).
 # - Group options in the usage message
 # - Continuation lines in option specifications
+# - Optionally strip quotes from values specified in a configuration
+#   file. The quote type should determine the quote type for the
+#   command-line arguments, overriding other specifications. The
+#   stripping option could be enabled by a ^ in the option
+#   specification after the quote type.
 
 
 """
@@ -23,7 +28,7 @@ by values read from a configuration file (INI-syntax).
 
 An option specification is of the form
 
-optname1|...|optnamen[=ARG] ["default"] [*] [([!]target | {code})]
+optname1|...|optnamen[=ARG] ["default"] ['|"] [*] [([!]target | {code})]
   description
   ...
 
@@ -37,6 +42,10 @@ description lines must have. The components are as follows:
 - "default": The default (initial) value for the variable
   corresponding to the option, enclosed in double quotes. References
   to shell variables are (typically) expanded in the shell script.
+- '|": The option values read from a configuration file should be
+  enclosed in this kind of quotes in the generated command-line
+  arguments instead of the default ones (double quotes unless
+  --_config-values-single-quoted is specified).
 - *: The option may be specified multiple times. If option handler
   code is specified ({code}), it will be called separately for each
   value. Otherwise, the target value will contain all the argument
@@ -145,6 +154,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                 (?: [=:] (?P<optargname> \S+) )?
                 (?: \s+ (?P<default> "[^\"]*") )?
                 (?: \s+
+                  (?: (?P<quotetype> [\'\"]) \s* )?
                   (?: (?P<targetmulti> \*) \s* )?
                   (?:
                       (?P<targetneg> ! \s*)? (?P<target> [a-zA-Z0-9_]+)
@@ -352,35 +362,29 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         for optspec in self._optspecs:
             optval = optspec['value']
             if optval is not None:
-                optname = optspec['names'][0]
-                has_arg = optspec.get('optargname')
-                value_from_config = optspec.get('valuefromconfig')
                 if optspec.get('targetmulti'):
                     if optspec.get('targetcode'):
                         for value in optval:
-                            opts.extend(
-                                self._make_cmdline_opt(optname, value, has_arg,
-                                                       value_from_config))
+                            opts.extend(self._make_cmdline_opt(optspec, value))
                     else:
                         opts.extend(
-                            self._make_cmdline_opt(optname, '\n'.join(optval),
-                                                   has_arg, value_from_config))
+                            self._make_cmdline_opt(optspec, '\n'.join(optval)))
                 else:
-                    opts.extend(
-                        self._make_cmdline_opt(optname, optval, has_arg,
-                                               value_from_config))
+                    opts.extend(self._make_cmdline_opt(optspec, optval))
         return ' '.join(opts + [self._shell_quote(arg) for arg in self._args])
 
-    def _make_cmdline_opt(self, optname, value, has_arg=False,
-                          value_from_config=False):
+    def _make_cmdline_opt(self, optspec, optval):
         opts = []
-        opts.append(optname)
-        if has_arg:
+        opts.append(optspec['names'][0])
+        if optspec.get('optargname'):
             quote_type = (
-                'double' if (value_from_config and
-                             not self._opts._config_values_single_quoted)
+                'double' if (optspec.get('valuefromconfig')
+                             and ((not self._opts._config_values_single_quoted
+                                   and optspec['quotetype'] != '\'')
+                                  or (self._opts._config_values_single_quoted
+                                      and optspec['quotetype'] == '"')))
                 else 'single')
-            opts.append(self._shell_quote(value, quote_type))
+            opts.append(self._shell_quote(optval, quote_type))
         return opts
 
     def _make_output_getopt_opts(self):
