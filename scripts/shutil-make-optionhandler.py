@@ -293,7 +293,10 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             confparser.optionxform = str
             confparser.readfp(reader, self._opts._config_file)
             reader.close()
-            config_items = confparser.items(self._opts._config_section)
+            # raw=True: Do not expand %(...) variable references in
+            # option values
+            config_items = confparser.items(self._opts._config_section,
+                                            raw=True)
         except configparser.Error as e:
             self.error('Parsing configuration file: ' + str(e),
                        filename=self._opts._config_file)
