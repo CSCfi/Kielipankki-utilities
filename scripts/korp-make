@@ -5,11 +5,13 @@
 # TODO:
 # - Allow specifying input via options (config file).
 # - Support corpora without parse attributes.
-# - Add text, sentence and paragraph ids unless already present.
 # - Allow different compound boundary options.
 # - Allow multiple instances of extra file options to pass to
 #   korp-make-corpus-package
-# - Option to request scrambleing sentences or paragraphs with text
+# - Option to request scrambling sentences or paragraphs with text
+# - --add-structure-ids: Specify by structure type if existing values
+#   should be overwritten or not.
+# - Allow specifying structure id value format.
 # - Generate a VRT file containing all the added information.
 # - Run stages based on checksums of previous stage's output.
 # - Make multiple (related) corpora in the same package.
@@ -87,6 +89,13 @@ text-sort-transform=TRANSFORM * { add_text_sort_opt --transform "$1" }
     expression substitution (s/.../.../) TRANSFORM to get the key to
     be used for sorting; this option may be specified multiple times,
     in which case the substitutions are applied in the specified order
+add-structure-ids|add-element-ids=STRUCTLIST "text paragraph sentence" add_struct_ids
+    add id attributes to the structures listed in STRUCTLIST
+    (separated by spaces); if STRUCTLIST is an empty string, do not
+    add id attributes
+keep-structure-ids|keep-element-ids keep_struct_ids
+    do not overwrite existing id attribute values in the structures
+    listed with --add-structure-ids
 tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
     output database tables as TSV files to DIR
 no-wordpicture|skip-wordpicture !wordpicture
@@ -154,6 +163,7 @@ config_file_optname=config-file
 vrt_fix_attrs=$progdir/vrt-fix-attrs.py
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
 vrt_sort_texts=$progdir/vrt-sort-texts.sh
+vrt_add_struct_ids=$progdir/vrt-add-struct-ids.sh
 vrt_convert_chars=$progdir/vrt-convert-chars.py
 vrt_extract_timespans=$progdir/vrt-extract-timespans.py
 vrt_list_struct_attrs=$progdir/vrt-list-struct-attrs.py
@@ -327,6 +337,7 @@ stages=(
     add_new_attrs "Adding lemgrams and lemmas without compound boundaries"
     add_datefromto "Adding datefrom and dateto"
     sort_texts "Sorting text elements"
+    add_struct_ids "Adding structure ids"
     cwb_encode "Encoding the attributes for CWB"
     cwb_make "Indexing and compressing the CWB data"
     convert_timedata "Converting and augmenting time data"
@@ -439,6 +450,24 @@ sort_texts () {
 test_skip_sort_texts () {
     [ "x$sort_texts" = x ] &&
     echo "not requested"
+}
+
+add_struct_ids () {
+    local opts=
+    local struct
+    if [ "x$keep_struct_ids" = x ]; then
+	opts=--force
+    fi
+    for struct in $add_struct_ids; do
+	opts="$opts --structure=$struct"
+    done
+    run_cmd $vrt_add_struct_ids $opts < $vrt_file > $vrt_file.new
+    replace_file $vrt_file $vrt_file.new
+}
+
+test_skip_add_struct_ids () {
+    [ "x$add_struct_ids" = x ] &&
+    echo "requested not to add"
 }
 
 cwb_encode () {
