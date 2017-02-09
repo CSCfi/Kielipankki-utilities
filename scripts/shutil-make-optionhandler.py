@@ -82,6 +82,17 @@ Note that option values specified on the command line are treated as
 single-quoted strings when they are processed by this script; the
 possible expansions have already been performed by the shell.
 
+The syntax of configuration files have two extensions to that natively
+supported by Python's ConfigParser module:
+
+- Options may be specified at the beginning of the configuration file
+  without a section heading.
+
+- An option may be specified multiple times in the configuration file
+  with different values, corresponding to a command-line option that
+  can be specified multiple times. For a single-value option, the last
+  specified value takes effect, as usual with ConfigParser.
+
 The script generates the following sections:
 
 - cmdline_args: target script options and arguments (appropriately
@@ -107,6 +118,13 @@ from collections import defaultdict
 from optparse import OptionParser
 
 import korpimport.util
+
+# A similar approach is used in ConfigParser
+try:
+    from collections import OrderedDict as ConfigBaseDict
+except ImportError:
+    # For Python 2.6
+    ConfigBaseDict = dict
 
 
 class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
@@ -236,11 +254,42 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         def close(self):
             self._file.close()
 
+    class ListExtendDict(ConfigBaseDict):
+
+        """Extend old value with new with a '' between if both are lists.
+
+        When setting a value of a key in a dictionary, if a previous
+        value exists and if both the previous and the new value are
+        lists, instead of replacing the old value with the new one,
+        extend the existing list with the new one, with an empty
+        string element in between.
+
+        This is used to make ConfigParser handle options that may be
+        specified multiple times in the configuration file. They will
+        have two consecutive newlines between the different values for
+        an option, whereas a single multi-line value has a single
+        newline between each line.
+
+        NOTE: This works because (Raw)ConfigParser.read() internally
+        collects multi-line values to lists. If that changes, this
+        probably will not work.
+        """
+
+        def __setitem__(self, key, val):
+            if (key in self and isinstance(self[key], list)
+                and isinstance(val, list)):
+                self[key].append('')
+                self[key].extend(val)
+            else:
+                super(ShellOptionHandlerGenerator.ListExtendDict,
+                      self).__setitem__(key, val)
+
     def _read_config_file(self):
         reader = self.ConfigReader(self._opts._config_file,
                                    self._input_encoding)
         try:
-            confparser = configparser.SafeConfigParser()
+            confparser = configparser.SafeConfigParser(
+                dict_type=self.ListExtendDict)
             confparser.optionxform = str
             confparser.readfp(reader, self._opts._config_file)
             reader.close()
@@ -264,7 +313,12 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             if optspec is None:
                 self.warn('Unrecognized configuration option: ' + name)
             elif optspec.get('value') is None:
-                optspec['value'] = val
+                vals = val.split('\n\n')
+                if optspec['targetmulti'] is not None:
+                    optspec['value'] = vals
+                else:
+                    # Take the last value
+                    optspec['value'] = vals[-1]
                 optspec['valuefromconfig'] = True
 
     def _write_output(self):
