@@ -84,11 +84,13 @@ text-sort-attribute=ATTR { add_text_sort_opt --attribute "$1" }
     sort text elements in the corpus by the attribute ATTR; sort by
     byte values into ascending order, without taking the locale into
     account
-text-sort-transform=TRANSFORM * { add_text_sort_opt --transform "$1" }
+text-sort-transform=TRANSFORM '"'"' * { add_text_sort_opt --transform "$1" }
     transform the sorting attribute values with the Perl regular
     expression substitution (s/.../.../) TRANSFORM to get the key to
     be used for sorting; this option may be specified multiple times,
-    in which case the substitutions are applied in the specified order
+    in which case the substitutions are applied in the specified
+    order; if read from a configuration file, TRANSFORM is treated as
+    enclosed in single quotes, so you need not protect $ or \
 add-structure-ids|add-element-ids=STRUCTLIST "text paragraph sentence" add_struct_ids
     add id attributes to the structures listed in STRUCTLIST
     (separated by spaces); if STRUCTLIST is an empty string, do not
