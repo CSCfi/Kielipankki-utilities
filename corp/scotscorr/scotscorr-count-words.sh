@@ -13,7 +13,7 @@ ScotsCorr data.
 
 The columns in the output are: corpus id, filename, word count, year,
 datefrom, from, to, srg, arg, largeregion, lcinf, lclet, old word
-count."
+count, word count difference (new - old)."
 
 optspecs=
 
@@ -24,17 +24,25 @@ vrt_count_words () {
     local corp
     corp=$1
     perl -ne '
+        BEGIN {
+            @attrlist = qw(corpus fn wc_new year datefrom from to srg arg
+                           largeregion lcinf lclet wc wc_diff);
+            if ('"$headings"') {
+                print join ("\t", @attrlist) . "\n";
+            }
+        }
         chomp;
         if (/^<text/) {
             $wc = 0;
             %attrs = /([[:alnum:]]+?)="(.*?)"/g;
         } elsif (/^<\/text>/) {
-            print join ("\t",
-                        "'"$corp"'", $attrs{fn}, $wc,
-                        map ("$attrs{$_}",
-                             qw(year datefrom from to srg arg largeregion lcinf lclet wc)),
-                             $wc - $attrs{wc})
-                  . "\n";
+            %attrs = (
+                %attrs,
+                corpus => "'"$corp"'",
+                wc_new => $wc,
+                wc_diff => $wc - $attrs{wc}
+            );
+            print join ("\t", map ("$attrs{$_}", @attrlist)) . "\n";
         } elsif (/^<.*>$/) {
             next;
         } else {
@@ -54,9 +62,11 @@ corpus_count_words () {
     $scriptdir/cwbdata2vrt.py $corp |
     $scriptdir/vrt-convert-chars.py --decode |
     vrt_count_words $corp
+    headings=0
 }
 
 corpora=$(list_corpora scots_* | grep -v 1550)
+headings=1
 
 for corp in $corpora; do
     corpus_count_words $corp
