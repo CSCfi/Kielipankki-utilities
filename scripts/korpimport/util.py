@@ -40,14 +40,13 @@ def unique(lst):
     return result
 
 
-def _tsv_stream_dictreader(stream, utf8_input=False, *args, **kwargs):
-    """Return a reader for TSV files, yield values in Unicode."""
+def _delimited_stream_dictreader(stream, utf8_input=False, *args, **kwargs):
+    """Return a reader for CSV/TSV files, yield values in Unicode."""
 
     def utf8_encoder(unicode_csv_data):
         for line in unicode_csv_data:
             yield line.encode('utf-8')
 
-    kwargs.update(dict(delimiter='\t', quoting=csv.QUOTE_NONE))
     # print "tsv stream", repr(stream)
     if not utf8_input:
         # print "encode to utf8"
@@ -59,17 +58,25 @@ def _tsv_stream_dictreader(stream, utf8_input=False, *args, **kwargs):
                    for key, val in row.iteritems())
 
 
-def tsv_dictreader(stream_or_fname, *args, **kwargs):
-    """Return a reader for a TSV stream or file to yield values in Unicode."""
+def delimited_dictreader(stream_or_fname, *args, **kwargs):
+    """Return a reader for a CSV/TSV stream or file, yield values in Unicode."""
     if isinstance(stream_or_fname, basestring):
         with open(stream_or_fname, 'rb') as stream:
-            for line in _tsv_stream_dictreader(
+            for line in _delimited_stream_dictreader(
                     stream, *args, utf8_input=True, **kwargs):
                 yield line
     else:
-        for line in _tsv_stream_dictreader(stream_or_fname, *args, **kwargs):
+        for line in _delimited_stream_dictreader(
+                stream_or_fname, *args, **kwargs):
             # print line
             yield line
+
+
+def tsv_dictreader(stream_or_fname, *args, **kwargs):
+    """Return a reader for a TSV stream or file to yield values in Unicode."""
+    kwargs.update(dict(delimiter='\t', quoting=csv.QUOTE_NONE))
+    for line in delimited_dictreader(stream_or_fname, *args, **kwargs):
+        yield line
 
 
 def whole_line_reader(stream, linebreak_chars=None):
