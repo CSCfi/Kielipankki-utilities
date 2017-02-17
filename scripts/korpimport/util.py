@@ -186,9 +186,9 @@ class Runner(object):
         pass
 
     def write_message(self, message, outstream=None, filename=None,
-                      linenr=None, **kwargs):
+                      linenr=None, show_fileinfo=True, **kwargs):
         outstream = outstream or sys.stderr
-        if filename is not None:
+        if show_fileinfo and filename is not None:
             loc_info = (' (' + filename + (':' + str(linenr) if linenr else '')
                         + ')')
         else:
@@ -284,12 +284,13 @@ class BasicInputProcessor(Runner):
         pass
 
     def write_message(self, message, outstream=None, filename=None,
-                      linenr=None, **kwargs):
-        filename = filename or self._filename or '<stdin>'
-        linenr = linenr or self._linenr
+                      linenr=None, show_fileinfo=True, **kwargs):
+        if show_fileinfo:
+            filename = filename or self._filename or '<stdin>'
+            linenr = linenr or self._linenr
         super(BasicInputProcessor, self).write_message(
             message, outstream=outstream, filename=filename, linenr=linenr,
-            **kwargs)
+            show_fileinfo=show_fileinfo, **kwargs)
 
     def main(self):
         self.process_input(self._args or sys.stdin)
