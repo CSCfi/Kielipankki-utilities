@@ -234,7 +234,8 @@ class OptionRunner(Runner):
         optparser = OptionParser(**optparser_args)
         if args is None:
             args = sys.argv[1:]
-        if len(optlist) == 1 and isinstance(optlist[0], list):
+        if (len(optlist) == 1 and isinstance(optlist[0], list)
+            and isinstance(optlist[0][0], list)):
             optlist = optlist[0]
         for optspec in optlist:
             if isinstance(optspec[-1], dict):
