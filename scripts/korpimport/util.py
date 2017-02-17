@@ -282,6 +282,7 @@ class BasicInputProcessor(Runner):
             for arg in args:
                 self.process_input(arg)
         elif isinstance(args, basestring):
+            self._filename = args
             with codecs.open(args, 'r', encoding=self._input_encoding) as f:
                 self.process_input_stream(f, args)
         else:
