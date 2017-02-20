@@ -10,7 +10,7 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 shortopts="hc:t:v"
-longopts="help,corpus-root:,tsv-dir:,verbose,import"
+longopts="help,corpus-root:,tsv-dir:,verbose,import-database"
 
 tsvdir=$CORPUS_TSVDIR
 tsvsubdir=sql
