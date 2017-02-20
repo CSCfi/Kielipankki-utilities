@@ -152,7 +152,7 @@ class WordCountDocMaker(korputil.InputProcessor):
         writer = self.OutputWriterText(write_fn=self.output)
         writer.output(self._output_data)
 
-    class OutputWriterText(object):
+    class OutputWriter(object):
 
         _tags = {
             'none': ('', ''),
@@ -175,9 +175,11 @@ class WordCountDocMaker(korputil.InputProcessor):
                 getattr(self, '_output_' + data_type)(data, next_type)
 
         def _output_heading(self, data, level):
+            self._write_fn(self._make_heading(data, level))
+
+        def _make_heading(self, data, level):
             tagname = u'h' + unicode(level)
-            self._write_fn('<' + tagname + '>' + data + '</' + tagname
-                           + '>\n\n')
+            return '<' + tagname + '>' + data + '</' + tagname + '>\n\n'
 
         def _output_file_heading(self, data, _):
             self._output_heading(data, 1)
@@ -189,31 +191,44 @@ class WordCountDocMaker(korputil.InputProcessor):
             self._output_heading(data, 3)
 
         def _output_letter_info(self, data, next_type):
+            self._write_fn(self._make_letter_info(data, next_type))
+
+        def _make_letter_info(self, data, next_type):
             locality_inf, locality_letter, filename, word_count = data
             if next_type != 'letter_info':
                 mo = re.match(r'(\S+?)(\d{7}.*)$', filename)
                 filename = (self._tags['bold'][0] + mo.group(1)
                             + self._tags['bold'][1] + mo.group(2))
-            self._write_fn('%LC: {lcinf}, {lclet}\n%FN: {fn}\n%WC: {wc}'
-                           .format(lcinf=locality_inf,
-                                   lclet=locality_letter,
-                                   fn=filename,
-                                   wc=word_count))
+            result = ('%LC: {lcinf}, {lclet}\n%FN: {fn}\n%WC: {wc}'
+                      .format(lcinf=locality_inf,
+                              lclet=locality_letter,
+                              fn=filename,
+                              wc=word_count))
             if next_type == 'letter_info':
-                self._write_fn('\n\n')
+                result += '\n\n'
+            return result
 
         def _output_informant_total(self, data, next_type):
+            self._write_fn(self._make_informant_total(data, next_type))
+
+        def _make_informant_total(self, data, next_type):
             words, letters = data
-            self._write_fn('\t\t\t{wc}\tLetters {lc}'
-                           .format(wc=words, lc=letters))
+            result = '\t\t\t{wc}\tLetters {lc}'.format(wc=words, lc=letters)
             if next_type == 'letter_info':
-                self._write_fn('\n\n')
+                result += '\n\n'
+            return result
 
         def _output_locality_total(self, data, _):
+            self._write_fn(self._make_locality_total(data))
+
+        def _make_locality_total(self, data):
             words, letters, informants = data
-            self._write_fn('\tTotal {wc}\n\t\t\t\t\t\t\t{ic}/{lc}\n\n'
-                           .format(wc=words, lc=letters, ic=informants))
-            
+            return ('\tTotal {wc}\n\t\t\t\t\t\t\t{ic}/{lc}\n\n'
+                    .format(wc=words, lc=letters, ic=informants))
+
+    class OutputWriterText(OutputWriter):
+
+        pass
             
     def getopts(self, args=None):
         self.getopts_basic(
