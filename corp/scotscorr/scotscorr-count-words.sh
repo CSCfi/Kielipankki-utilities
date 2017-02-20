@@ -25,8 +25,10 @@ vrt_count_words () {
     corp=$1
     perl -ne '
         BEGIN {
-            @attrlist = qw(corpus fn wc_new year datefrom from to srg arg
-                           largeregion lcinf lclet wc wc_diff);
+            use feature "unicode_strings";
+            use utf8;
+            @attrlist = qw(corpus period gender fn wc_new year datefrom
+                           from to srg arg largeregion lcinf lclet wc wc_diff);
             if ('"$headings"') {
                 print join ("\t", @attrlist) . "\n";
             }
@@ -36,11 +38,18 @@ vrt_count_words () {
             $wc = 0;
             %attrs = /([[:alnum:]]+?)="(.*?)"/g;
         } elsif (/^<\/text>/) {
+            $corpus = "'"$corp"'";
+            ($period) = ($corpus =~ /_[mf]?([\d_]+|royal)/);
+            $period =~ s/_/–/;
+            ($gender) = ($corpus =~ /_(m|f|royal)/);
+            $gender = {m => "male", f => "female", royal => "royal"}->{$gender};
             %attrs = (
                 %attrs,
-                corpus => "'"$corp"'",
+                corpus => $corpus,
+                period => $period,
+                gender => $gender,
                 wc_new => $wc,
-                wc_diff => $wc - $attrs{wc}
+                wc_diff => $wc - $attrs{wc},
             );
             print join ("\t", map ("$attrs{$_}", @attrlist)) . "\n";
         } elsif (/^<.*>$/) {
