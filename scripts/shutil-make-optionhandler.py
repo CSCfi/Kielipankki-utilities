@@ -272,7 +272,9 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         value exists and if both the previous and the new value are
         lists, instead of replacing the old value with the new one,
         extend the existing list with the new one, with an empty
-        string element in between.
+        string element in between. If a previous value exists and if
+        both the previous and the new value are strings, append two
+        newlines and the new value to the old value.
 
         This is used to make ConfigParser handle options that may be
         specified multiple times in the configuration file. They will
@@ -280,19 +282,26 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         an option, whereas a single multi-line value has a single
         newline between each line.
 
-        NOTE: This works because (Raw)ConfigParser.read() internally
-        collects multi-line values to lists. If that changes, this
-        probably will not work.
+        NOTE: This works because (Raw)ConfigParser.read() in Python
+        2.7 internally collects multi-line values to lists, and Python
+        2.6 collects them to strings. If that changes, this probably
+        will not work.
         """
 
         def __setitem__(self, key, val):
-            if (key in self and isinstance(self[key], list)
-                and isinstance(val, list)):
-                self[key].append('')
-                self[key].extend(val)
-            else:
-                super(ShellOptionHandlerGenerator.ListExtendDict,
-                      self).__setitem__(key, val)
+            # print key, repr(val), repr(self)
+            if key in self:
+                if isinstance(self[key], list) and isinstance(val, list):
+                    # Python 2.7
+                    self[key].append('')
+                    self[key].extend(val)
+                    return
+                elif (isinstance(self[key], basestring)
+                      and isinstance(val, basestring)):
+                    # Python 2.6
+                    val = self[key] + '\n\n' + val
+            super(ShellOptionHandlerGenerator.ListExtendDict,
+                  self).__setitem__(key, val)
 
     def _read_config_file(self):
         reader = self.ConfigReader(self._opts._config_file,
