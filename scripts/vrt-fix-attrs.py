@@ -458,7 +458,7 @@ class AttributeFixer(object):
             return self._fix_posattrs(line)
 
     def _fix_posattrs(self, line):
-        if self._opts.replace_xml_character_entities:
+        if self._opts.replace_xml_character_entities != 'none':
             line = self._replace_character_entities(line)
         if self._split_lines:
             attrs = line[:-1].split('\t')
@@ -558,7 +558,7 @@ class AttributeFixer(object):
                 if elemname in self._struct_attr_values:
                     del self._struct_attr_values[elemname]
         else:
-            if self._opts.replace_xml_character_entities:
+            if self._opts.replace_xml_character_entities != 'none':
                 line = self._replace_character_entities(line,
                                                         retain=['quot', 'apos'])
             if self._elem_ids:
@@ -697,9 +697,9 @@ def getopts():
     optparser.add_option('--add-element-id', '--add-elem-id', action='append',
                          default=[])
     optparser.add_option('--replace-xml-character-entities', type='choice',
-                         choices=['correct', 'all', 'numeric',
+                         choices=['none', 'correct', 'all', 'numeric',
                                   'correctnumeric'],
-                         default='correct')
+                         default='correctnumeric')
     optparser.add_option('--copy-struct-attribute', action='append', default=[])
     optparser.add_option('--encoding-errors', '--character-encoding-errors',
                          type='choice', choices=['strict', 'replace', 'ignore'],
