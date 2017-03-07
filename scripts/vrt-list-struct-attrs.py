@@ -27,13 +27,17 @@ class StructAttrLister(korpimport.util.InputProcessor):
         # for order?
         self._struct_attrdict = defaultdict(dict)
         self._struct_attrlist = defaultdict(list)
-        self._structname_re = re.compile(r'</?([^\s>]+)')
+        self._structname_re = re.compile(r'</?([a-z0-9_-]+)')
         self._attr_re = re.compile(r'''(\S+?)\s*=\s*([\"\']).*?\2''')
 
     def process_input_stream(self, stream, filename=None):
         for line in stream:
+            self._linenr += 1
             mo = self._structname_re.match(line)
             if not mo:
+                if line[0] == '<':
+                    self.warn('Literal "<" at the beginning of a non-tag line: '
+                              + line.rstrip('\n'))
                 continue
             structname = mo.group(1)
             if structname not in self._struct_depth:
