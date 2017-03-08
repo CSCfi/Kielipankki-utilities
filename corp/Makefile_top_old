@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
 
+# NOTE: This Makefile is badly out-of-date and probably largely
+# obsolete as of 2017-03. For example, it assumes that all
+# Korp-related files are stored in a single Mercurial repository.
+#
+# TODO: Check if this file contains parts that could still be useful,
+# extract them elsewhere and remove this file.
+
+
 # Requires GNU Make
 
 
