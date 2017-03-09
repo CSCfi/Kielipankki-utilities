@@ -1,0 +1,143 @@
+filename	*korp_id	*korp_alias	dialect_region	*dialect_region_name	dialect_group	*dialect_group_name	parish_title	parish
+vare_karuna1	karuna	karuna	LOU	Lounaismurteet	VarE	Eteläinen Varsinais-Suomi	Karuna	Karuna
+vare_kis1	kisk	kisko	LOU	Lounaismurteet	VarE	Eteläinen Varsinais-Suomi	Kisko	Kisko
+vare_muurl1	muurl	muurla	LOU	Lounaismurteet	VarE	Eteläinen Varsinais-Suomi	Muurla	Muurla
+vare_muurl_hali1	muuhal	muurla_halikko	LOU	Lounaismurteet	VarE	Eteläinen Varsinais-Suomi	Muurla/Halikko	Muurla/Halikko
+vare_pai1	paim	paimio	LOU	Lounaismurteet	VarE	Eteläinen Varsinais-Suomi	Paimio	Paimio
+vare_pern1	pern	pernio	LOU	Lounaismurteet	VarE	Eteläinen Varsinais-Suomi	Perniö	Perniö
+vare_usk1	uske	uskela	LOU	Lounaismurteet	VarE	Eteläinen Varsinais-Suomi	Uskela	Uskela
+varp_eura1	eura	eura	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Eura	Eura
+varp_eurj1	eurj	eurajoki	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Eurajoki	Eurajoki
+varp_kalan1	kalan	kalanti	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Kalanti	Kalanti
+varp_kartl1	kartl	karjala_tl	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Karjala Tl	Karjala Tl
+varp_kus1	kust	kustavi	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Kustavi 1	Kustavi
+varp_kus2	kust	kustavi	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Kustavi 2	Kustavi
+varp_laptl	laptl	lappi_tl	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Lappi Tl	Lappi Tl
+varp_luv1	luvi	luvia	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Luvia	Luvia
+varp_mas1	mask	masku	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Masku	Masku
+varp_pyhm1	pyhm	pyhamaa	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Pyhämaa	Pyhämaa
+varp_raum1	raum	rauma	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Rauma 1	Rauma
+varp_raum2	raum	rauma	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Rauma 2	Rauma
+varp_rym1	ryma	rymattyla	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Rymättylä 1	Rymättylä
+varp_rym2	ryma	rymattyla	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Rymättylä 2	Rymättylä
+varp_tais1	tais	taivassalo	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Taivassalo	Taivassalo
+varp_vel1	velk	velkua	LOU	Lounaismurteet	VarP	Pohjoinen Varsinais-Suomi	Velkua	Velkua
+sate_koke1	koke	kokemaki	LVÄ	Lounaiset välimurteet	SatE	Etelä-Satakunta	Kokemäki	Kokemäki
+sate_loi1	loim	loimaa	LVÄ	Lounaiset välimurteet	SatE	Etelä-Satakunta	Loimaa	Loimaa
+sate_vam1	vamp	vampula	LVÄ	Lounaiset välimurteet	SatE	Etelä-Satakunta	Vampula	Vampula
+satl_ahl1	ahla	ahlainen	LVÄ	Lounaiset välimurteet	SatL	Länsi-Satakunta	Ahlainen	Ahlainen
+satl_merk1	merk	merikarvia	LVÄ	Lounaiset välimurteet	SatL	Länsi-Satakunta	Merikarvia	Merikarvia
+satl_noo1	noor	noormarkku	LVÄ	Lounaiset välimurteet	SatL	Länsi-Satakunta	Noormarkku	Noormarkku
+satl_pori1	pori	pori	LVÄ	Lounaiset välimurteet	SatL	Länsi-Satakunta	Pori	Pori
+sate_kostl1	kostl	koski_tl	LVÄ	Lounaiset välimurteet	VarY	Varsinais-Suomen ylämaa	Koski Tl	Koski Tl
+sate_po_y1	poyt	poytya	LVÄ	Lounaiset välimurteet	VarY	Varsinais-Suomen ylämaa	Pöytyä	Pöytyä
+som_somero1	somero	somero	LVÄ	Lounaiset välimurteet	VarY	Varsinais-Suomen ylämaa	Somero	Somero
+sate_sa_ky1	saky	sakyla	LVÄ	Lounaiset välimurteet	VarY	Varsinais-Suomen ylämaa	Säkylä	Säkylä
+sate_tar1	tarv	tarvasjoki	LVÄ	Lounaiset välimurteet	VarY	Varsinais-Suomen ylämaa	Tarvasjoki	Tarvasjoki
+uusl_sam1	samm	sammatti	LVÄ	Lounaiset välimurteet	VarU	Länsi-Uusimaa	Sammatti	Sammatti
+uusl_viht1	viht	vihti	LVÄ	Lounaiset välimurteet	VarU	Länsi-Uusimaa	Vihti	Vihti
+hame_hat1	hatt	hattula	HÄM	Hämäläismurteet	HämE	Etelä-Häme	Hattula	Hattula
+hame_haus1	haus	hausjarvi	HÄM	Hämäläismurteet	HämE	Etelä-Häme	Hausjärvi	Hausjärvi
+uusi_nurj1	nurj	nurmijarvi	HÄM	Hämäläismurteet	HämE	Etelä-Häme	Nurmijärvi	Nurmijärvi
+hame_ren1	renk	renko	HÄM	Hämäläismurteet	HämE	Etelä-Häme	Renko	Renko
+hame_sa_a_k1	saak	saaksmaki	HÄM	Hämäläismurteet	HämE	Etelä-Häme	Sääksmäki	Sääksmäki
+hame_tamm1	tamm	tammela	HÄM	Hämäläismurteet	HämE	Etelä-Häme	Tammela	Tammela
+uusi_asko1	asko	askola	HÄM	Hämäläismurteet	HämK	Kaakkois-Häme	Askola	Askola
+hamk_asi1	asik	asikkala	HÄM	Hämäläismurteet	HämK	Kaakkois-Häme	Asikkala	Asikkala
+hamk_lam1	lamm	lammi	HÄM	Hämäläismurteet	HämK	Kaakkois-Häme	Lammi	Lammi
+hamp_juup1	juup	juupajoki	HÄM	Hämäläismurteet	HämP	Pohjois-Häme	Juupajoki	Juupajoki
+hamp_kuru1	kuru	kuru	HÄM	Hämäläismurteet	HämP	Pohjois-Häme	Kuru	Kuru
+hamp_luo1	luop	luopioinen	HÄM	Hämäläismurteet	HämP	Pohjois-Häme	Luopioinen	Luopioinen
+hamp_pir1	pirk	pirkkala	HÄM	Hämäläismurteet	HämP	Pohjois-Häme	Pirkkala	Pirkkala
+hamp_pohjasl1	pohjasl	pohjaslahti	HÄM	Hämäläismurteet	HämP	Pohjois-Häme	Pohjaslahti	Pohjaslahti
+hamp_vesl1	vesl	vesilahti	HÄM	Hämäläismurteet	HämP	Pohjois-Häme	Vesilahti	Vesilahti
+satp_ika1	ikaa	ikaalinen	HÄM	Hämäläismurteet	SatP	Pohjois-Satakunta	Ikaalinen	Ikaalinen
+satp_kanp1	kanp	kankaanpaa	HÄM	Hämäläismurteet	SatP	Pohjois-Satakunta	Kankaanpää	Kankaanpää
+satp_kark1	kark	karkku	HÄM	Hämäläismurteet	SatP	Pohjois-Satakunta	Karkku	Karkku
+satp_kih1	kihn	kihnio	HÄM	Hämäläismurteet	SatP	Pohjois-Satakunta	Kihniö	Kihniö
+satp_punl1	punl	punkalaidun	HÄM	Hämäläismurteet	SatP	Pohjois-Satakunta	Punkalaidun 1	Punkalaidun
+satp_punl2	punl	punkalaidun	HÄM	Hämäläismurteet	SatP	Pohjois-Satakunta	Punkalaidun 2	Punkalaidun
+satp_suod1	suod	suodenniemi	HÄM	Hämäläismurteet	SatP	Pohjois-Satakunta	Suodenniemi	Suodenniemi
+kyml_iit1	iitt	iitti	HÄM	Hämäläismurteet	Kym	Kymenlaakso	Iitti	Iitti
+kyml_lapinj1	lapinj	lapinjarvi	HÄM	Hämäläismurteet	Kym	Kymenlaakso	Lapinjärvi	Lapinjärvi
+kyml_suu1	suur	suursaari	HÄM	Hämäläismurteet	Kym	Kymenlaakso	Suursaari	Suursaari
+kyml_vehk1	vehk	vehkalahti	HÄM	Hämäläismurteet	Kym	Kymenlaakso	Vehkalahti	Vehkalahti
+pohe_isoj1	isoj	isojoki	POH	Pohjalaismurteet	PohE	Etelä-Pohjanmaa	Isojoki	Isojoki
+pohe_kauhava1	kauhava	kauhava	POH	Pohjalaismurteet	PohE	Etelä-Pohjanmaa	Kauhava	Kauhava
+pohe_kuri1	kuri	kurikka	POH	Pohjalaismurteet	PohE	Etelä-Pohjanmaa	Kurikka	Kurikka
+pohe_laih1	laih	laihia	POH	Pohjalaismurteet	PohE	Etelä-Pohjanmaa	Laihia	Laihia
+pohe_nmo1	nrmo	nurmo	POH	Pohjalaismurteet	PohE	Etelä-Pohjanmaa	Nurmo 1	Nurmo
+pohe_nmo2	nrmo	nurmo	POH	Pohjalaismurteet	PohE	Etelä-Pohjanmaa	Nurmo 2	Nurmo
+pohe_pers1	pers	peraseinajoki	POH	Pohjalaismurteet	PohE	Etelä-Pohjanmaa	Peräseinäjoki	Peräseinäjoki
+pohe_yha_r1	yhar	yliharma	POH	Pohjalaismurteet	PohE	Etelä-Pohjanmaa	Ylihärmä	Ylihärmä
+pohki_haaj1	haaj	haapajarvi	POH	Pohjalaismurteet	PohK	Keski-Pohjanmaa	Haapajärvi	Haapajärvi
+pohki_haav1	haav	haapavesi	POH	Pohjalaismurteet	PohK	Keski-Pohjanmaa	Haapavesi	Haapavesi
+pohkl_him1	hima	himanka	POH	Pohjalaismurteet	PohK	Keski-Pohjanmaa	Himanka	Himanka
+pohki_kest1	kest	kestila	POH	Pohjalaismurteet	PohK	Keski-Pohjanmaa	Kestilä	Kestilä
+pohki_les1	lest	lestijarvi	POH	Pohjalaismurteet	PohK	Keski-Pohjanmaa	Lestijärvi	Lestijärvi
+pohkl_pyhj1	pyhj	pyhajoki	POH	Pohjalaismurteet	PohK	Keski-Pohjanmaa	Pyhäjoki 1	Pyhäjoki
+pohkl_pyhj2	pyhj	pyhajoki	POH	Pohjalaismurteet	PohK	Keski-Pohjanmaa	Pyhäjoki 2	Pyhäjoki
+pohkl_toho1	toho	toholampi	POH	Pohjalaismurteet	PohK	Keski-Pohjanmaa	Toholampi	Toholampi
+pohkl_vet1	vete	veteli	POH	Pohjalaismurteet	PohK	Keski-Pohjanmaa	Veteli	Veteli
+pohkl_yvie1	yvie	ylivieska	POH	Pohjalaismurteet	PohK	Keski-Pohjanmaa	Ylivieska 1	Ylivieska
+pohkl_yvie2	yvie	ylivieska	POH	Pohjalaismurteet	PohK	Keski-Pohjanmaa	Ylivieska 2	Ylivieska
+pohp_hai1	hail	hailuoto	POH	Pohjalaismurteet	PohP	Pohjois-Pohjanmaa	Hailuoto	Hailuoto
+pohp_paav1	paav	paavola	POH	Pohjalaismurteet	PohP	Pohjois-Pohjanmaa	Paavola	Paavola
+pohp_tem1	temm	temmes	POH	Pohjalaismurteet	PohP	Pohjois-Pohjanmaa	Temmes	Temmes
+pohp_yii1	ylii	yli_ii	POH	Pohjalaismurteet	PohP	Pohjois-Pohjanmaa	Yli-Ii	Yli-Ii
+pohp_ykii1	ykii	ylikiiminki	POH	Pohjalaismurteet	PohP	Pohjois-Pohjanmaa	Ylikiiminki	Ylikiiminki
+lanp_ator1	ator	alatornio	POH	Pohjalaismurteet	LänP	Länsipohja	Alatornio	Alatornio
+lanp_muon1	muon	muonio	POH	Pohjalaismurteet	LänP	Länsipohja	Muonio	Muonio
+perpl_kemi1	kemi	kemi	POH	Pohjalaismurteet	PerP	Peräpohjola	Kemi	Kemi
+perpl_rov1	rova	rovaniemi	POH	Pohjalaismurteet	PerP	Peräpohjola	Rovaniemi	Rovaniemi
+perpi_sall1	sall	salla	POH	Pohjalaismurteet	PerP	Peräpohjola	Salla	Salla
+perpl_sod1	soda	sodankyla	POH	Pohjalaismurteet	PerP	Peräpohjola	Sodankylä	Sodankylä
+hami_joutsa1	joutsa	joutsa	SAV	Savolaismurteet	KesE	Eteläinen Keski-Suomi	Joutsa	Joutsa
+hami_ja_ms1	jams	jamsa	SAV	Savolaismurteet	KesE	Eteläinen Keski-Suomi	Jämsä	Jämsä
+hami_sys1	sysm	sysma	SAV	Savolaismurteet	KesE	Eteläinen Keski-Suomi	Sysmä	Sysmä
+jarp_lappa1	lappa	lappajarvi	SAV	Savolaismurteet	KesL	Läntinen Keski-Suomi	Lappajärvi	Lappajärvi
+jare_pihl1	pihl	pihlajavesi	SAV	Savolaismurteet	KesL	Läntinen Keski-Suomi	Pihlajavesi	Pihlajavesi
+jarp_soi1	soin	soini	SAV	Savolaismurteet	KesL	Läntinen Keski-Suomi	Soini	Soini
+kess_kong1	kong	konginkangas	SAV	Savolaismurteet	KesP	Pohjoinen Keski-Suomi	Konginkangas	Konginkangas
+kess_lau1	lauk	laukaa	SAV	Savolaismurteet	KesP	Pohjoinen Keski-Suomi	Laukaa	Laukaa
+kess_mul1	mult	multia	SAV	Savolaismurteet	KesP	Pohjoinen Keski-Suomi	Multia	Multia
+kess_piht1	piht	pihtipudas	SAV	Savolaismurteet	KesP	Pohjoinen Keski-Suomi	Pihtipudas	Pihtipudas
+save_enok1	enok	enonkoski	SAV	Savolaismurteet	SavE	Etelä-Savo	Enonkoski	Enonkoski
+save_mik1	mikk	mikkeli	SAV	Savolaismurteet	SavE	Etelä-Savo	Mikkeli	Mikkeli
+save_ma_nh1	manh	mantyharju	SAV	Savolaismurteet	SavE	Etelä-Savo	Mäntyharju	Mäntyharju
+save_punh1	punh	punkaharju	SAV	Savolaismurteet	SavE	Etelä-Savo	Punkaharju	Punkaharju
+savp_hauv1	hauv	haukivuori	SAV	Savolaismurteet	SavP	Pohjois-Savo	Haukivuori	Haukivuori
+savp_lapl1	lapl	lapinlahti	SAV	Savolaismurteet	SavP	Pohjois-Savo	Lapinlahti	Lapinlahti
+savp_lep1	lepp	leppavirta	SAV	Savolaismurteet	SavP	Pohjois-Savo	Leppävirta	Leppävirta
+savp_nil1	nils	nilsia	SAV	Savolaismurteet	SavP	Pohjois-Savo	Nilsiä	Nilsiä
+savp_rans1	rans	rantasalmi	SAV	Savolaismurteet	SavP	Pohjois-Savo	Rantasalmi	Rantasalmi
+savp_raul1	raul	rautalampi	SAV	Savolaismurteet	SavP	Pohjois-Savo	Rautalampi	Rautalampi
+savp_rii1	riis	riistavesi	SAV	Savolaismurteet	SavP	Pohjois-Savo	Riistavesi 1	Riistavesi
+savp_rii2	riis	riistavesi	SAV	Savolaismurteet	SavP	Pohjois-Savo	Riistavesi 2	Riistavesi
+savp_tervo1	tervo	tervo	SAV	Savolaismurteet	SavP	Pohjois-Savo	Tervo	Tervo
+savp_vie1	vier	vierema	SAV	Savolaismurteet	SavP	Pohjois-Savo	Vieremä	Vieremä
+karp_ilo1	ilom	ilomantsi	SAV	Savolaismurteet	KarP	Pohjois-Karjala	Ilomantsi	Ilomantsi
+karp_juuk1	juuk	juuka	SAV	Savolaismurteet	KarP	Pohjois-Karjala	Juuka 1	Juuka
+karp_juuk2	juuk	juuka	SAV	Savolaismurteet	KarP	Pohjois-Karjala	Juuka 2	Juuka
+karp_kiih1	kiih	kiihtelysvaara	SAV	Savolaismurteet	KarP	Pohjois-Karjala	Kiihtelysvaara	Kiihtelysvaara
+karp_kite1	kite	kitee	SAV	Savolaismurteet	KarP	Pohjois-Karjala	Kitee	Kitee
+karp_kont1	kont	kontiolahti	SAV	Savolaismurteet	KarP	Pohjois-Karjala	Kontiolahti	Kontiolahti
+karp_lip1	lipe	liperi	SAV	Savolaismurteet	KarP	Pohjois-Karjala	Liperi	Liperi
+kai_pos1	posi	posio	SAV	Savolaismurteet	Kai	Kainuu	Posio	Posio
+kai_sot1	sotk	sotkamo	SAV	Savolaismurteet	Kai	Kainuu	Sotkamo	Sotkamo
+kai_suos1	suos	suomussalmi	SAV	Savolaismurteet	Kai	Kainuu	Suomussalmi	Suomussalmi
+kare_antr1	antr	antrea	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Antrea	Antrea
+kare_koiv1	koiv	koivisto	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Koivisto	Koivisto
+kare_lappe1	lappe	lappee	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Lappee	Lappee
+kare_luu1	luum	luumaki	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Luumäki	Luumäki
+kare_muol1	muol	muolaa	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Muolaa	Muolaa
+kare_nui1	nuij	nuijamaa	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Nuijamaa	Nuijamaa
+kare_ruok1	ruok	ruokolahti	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Ruokolahti	Ruokolahti
+kare_savtl1	savt	savitaipale	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Savitaipale	Savitaipale
+kare_seis1	seis	seiskari	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Seiskari	Seiskari
+kare_taip1	taip	taipalsaari	KAA	Kaakkoismurteet	KarE	Etelä-Karjala	Taipalsaari	Taipalsaari
+kark_lumv1	lumv	lumivaara	KAA	Kaakkoismurteet	KarK	Keski-Karjala	Lumivaara	Lumivaara
+kark_pari1	pari	parikkala	KAA	Kaakkoismurteet	KarK	Keski-Karjala	Parikkala	Parikkala
+kark_ra_i1	raisa	raisala	KAA	Kaakkoismurteet	KarK	Keski-Karjala	Räisälä	Räisälä
+kark_rautu1	rautu	rautu	KAA	Kaakkoismurteet	KarK	Keski-Karjala	Rautu	Rautu
+kark_sor1	sort	sortavala	KAA	Kaakkoismurteet	KarK	Keski-Karjala	Sortavala	Sortavala

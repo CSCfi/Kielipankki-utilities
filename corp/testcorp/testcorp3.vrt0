@@ -1,0 +1,10 @@
+<sentence test = "|quote-/|testfoo|" test2="foo\\bar" test3="foo\\" test4="&quot;foo&quot;-&apos;bar&apos;" test5="'foo'/"  >
+<clause>
+foo
+</clause>
+</sentence>
+<sentence test='quote|-testfoo' test2='foo\\bar' test3='foo\\' test4='&quot;foo&quot;-&apos;bar&apos;' test5='"foo"/'>
+<clause>
+bar
+</clause>
+</sentence>

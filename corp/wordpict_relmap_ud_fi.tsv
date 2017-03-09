@@ -1,0 +1,83 @@
+# Map the Finnish UD dependency relation labels to those used in the
+# Korp word picture: SS (subject), OBJ (object), ADV (adverbial), PA
+# (preposition), AT ((pre)modifier), ET (postmodifier), CPL
+# (complement). Additional, alternative labels, currently commented
+# out and converted to other labels or ignored: APP (apposition), AUX
+# (auxiliary verb), CPR (compared element), CRD (coordinated element),
+# CPS (copular subject), OTH (other), MOD (modifier), OWN (owner), VPT
+# (verb particle). Relations to be ignored are marked with a dash.
+#
+# In addition, the mapping contains in comments a few tentative
+# relation transformations: constructs for specifying derived
+# relations that do not occur directly in the data. They are not (yet)
+# supported by vrt-extract-relations.py.
+
+
+# For a name relation, add an extra head containing all the words from
+# dependent to head:
+# &name	h = d..h
+
+
+_	-
+acl	-
+acl:relcl	-
+advcl	ADV
+# ADV if head POS is V or Adv; otherwise MOD
+# advmod	ADV: h.pos~"V|Adv"; MOD
+# Could be converted to MOD (or ET) or maybe omitted for other than
+# verbs and adverbs
+advmod	ADV
+amod	AT
+# appos	APP
+appos	-
+# aux	AUX
+aux	-
+auxpass	-
+# Could the following be PA, or maybe inverted PA?
+case	-
+cc	-
+# Could be converted to ET for nouns
+ccomp	CPL
+cc:preconj	-
+compound	AT
+compound:nn	AT
+compound:prt	-
+conj	-
+cop	-
+csubj	SS
+# csubj:cop	CPS
+csubj:cop	-
+# dep	OTH
+dep	-
+det	-
+discourse	-
+dobj	OBJ
+goeswith	AT
+mark	-
+mwe	ET
+# AT; inverse relation (dependent to head) ET; head covers all words
+# from the dependent to head:
+# name	AT; ^ET; @h = d..h
+name	AT
+neg	-
+nmod	ADV
+nmod:gobj	AT
+nmod:gsubj	AT
+# Add an OWN relation from the nsubj dependent of head to the
+# dependent of nommod-own
+# nmod:own	OWN: -> h>nsubj d
+nmod:own	-
+nmod:poss	AT
+nsubj	SS
+# nsubj:cop	CPS
+nsubj:cop	-
+nummod	-
+# parataxis	CRD
+parataxis	-
+punct	-
+remnant	-
+rel	-
+root	-
+vocative	-
+xcomp	CPL
+xcomp:ds	CPL

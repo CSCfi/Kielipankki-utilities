@@ -1,0 +1,44 @@
+#! /usr/bin/perl
+
+# Repair UTF-8 containing mixed single-byte encoding, such as CP-1252
+
+# Slightly modified from http://plasmasturm.org/log/416/
+
+
+use strict;
+use warnings;
+
+use Encode qw( decode FB_QUIET );
+
+use Getopt::Long;
+
+my $mixed_encoding = "cp1252";
+GetOptions ("encoding=s" => \$mixed_encoding);
+
+binmode STDIN, ':bytes';
+binmode STDOUT, ':encoding(UTF-8)';
+
+my $out;
+my $outch;
+
+while ( <> ) {
+  $out = '';
+  while ( length ) {
+    # consume input string up to the first UTF-8 decode error
+    $out .= decode( "utf-8", $_, FB_QUIET );
+    # consume one character; all octets are valid Latin-1 but
+    # apparently not CP-1252 (such as \x90, \x9D), so first try the
+    # specified encoding and if it does not produce any output, try
+    # Latin-1
+    if ( length ) {
+      $outch = decode( $mixed_encoding, substr( $_, 0, 1 ), FB_QUIET );
+      if ( $outch ) {
+        $out .= $outch;
+      }
+      else {
+        $out .= decode( 'iso-8859-1', substr( $_, 0, 1 ), FB_QUIET );
+      }
+    }
+  }
+  print $out;
+}

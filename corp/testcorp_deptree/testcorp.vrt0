@@ -1,0 +1,9 @@
+<sentence id="1">
+ML	ML	Abbr	<roman> ABBR NOM SG <up>	0	main	1	ML	|ML..an.1|
+:	:	Pun	PUNCT	_	_	2	:	|:..xx.1|
+No	no	Interj	INTJ <up>	6	advl	3	no	|no..in.1|
+niin	niin	Adv	ADV	5	attr	4	niin	|niin..ab.1|
+varmaan	varmaan	Adv	ADV	6	advl	5	varmaan	|varmaan..ab.1|
+onkin	olla	V	COP V PRES ACT SG3 kin	1	obj	6	onki	|olla..vb.1|
+.	.	Pun	PUNCT	_	_	7	[.]	|...xx.1|
+</sentence>

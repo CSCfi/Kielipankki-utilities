@@ -1,0 +1,18 @@
+_	xx
+A	jj
+# AN in the target is not PoS category but a feature,
+# but we treat it as a category here.
+ABBR	an
+AD-A	ab
+ADV	ab
+C	kn
+N	nn
+NUM	rg
+PCP1	vb
+PCP2	vb
+PP	pp
+PSP	pp
+PRON	pn
+REFL/PRON	pn
+PUNCT	xx
+V	vb

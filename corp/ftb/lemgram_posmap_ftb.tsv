@@ -1,0 +1,22 @@
+# -*- coding: utf-8 -*-
+_	xx
+A	jj
+# AN in the target is not PoS category but a feature,
+# but we treat it as a category here.
+Abbr	an
+Adp	pp
+Adp Po	pp
+Adv	ab
+CC	kn
+CC V	kn
+Con	kn
+CS	sn
+Interj	in
+INTERJ	in
+Noun	nn
+N	nn
+Num	rg
+POST	pp
+Pron	pn
+Pun	xx
+V	vb

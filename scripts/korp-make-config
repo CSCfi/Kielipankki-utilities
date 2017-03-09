@@ -1,0 +1,416 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
+# Output a Korp corpus configuration based on the following
+# information:
+#
+# - Corpus attribute information from cwb-describe-corpus
+# - Configuration file (INI-style)
+# - A content file (TSV or CSV) for making configurations of multiple
+#   similar corpora.
+# - Possible Korp JavaScript configuration files to add the new
+#   configuration directly
+# - Later possibly cwb-lexdecode, cwb-s-decode to get attribute values
+#   for dataset properties.
+
+
+import sys
+import re
+import csv
+# configparser in Python 3
+import ConfigParser as configparser
+
+import korpimport.util
+import korpimport.cwbutil as cwb
+
+
+class CorpusConfig(object):
+
+    _corpus_props_basic = [
+        ('id', 'str', 'required'),
+        ('title', 'str', 'required'),
+        ('description', 'str', 'recommended'),
+        ('urn', 'str', 'recommended'),
+        ('metadata_urn', 'str', 'recommended'),
+        ('homepage_url', 'str', 'optinal'),
+        ('licence', 'obj', 'recommended'),
+    ]
+    _prop_value_default = {
+        'str': '""',
+        'obj': '{}'
+    }
+    _corpus_feature_attrs = {
+        'paragraphs': {
+            'struct': ['paragraph'],
+        },
+        'parsed_tdt': {
+            'pos': ['lemma', 'lemmacomp', 'pos', 'msd', 'dephead', 'deprel',
+                    'ref', 'lex'],
+        },
+        'finer': {
+            'pos': ['nertag', 'nerbio'],
+            'struct': ['ne_name', 'ne_ex', 'ne_type', 'ne_subtype',
+                       'ne_fulltype', 'ne_placename', 'ne_placename_source'],
+        },
+    }
+    _corpus_feature_attr_order = ['paragraphs', 'parsed_tdt', 'finer']
+    # _corpus_attr_props contains triples of attribute type (as
+    # returned by CWBCorpusInfo), JavaScript property name for the
+    # attribute type in the Korp configuration, and a filter function
+    # that returns True for the attributes to be included in the
+    # configuration.
+    _corpus_attr_props = [
+        ('pos', 'attributes', lambda attr: attr['name'] != 'word'),
+        ('struct', 'struct_attributes',
+         lambda attr: ('_' in attr['name']
+                       and not re.match(r'text_(date|time)(from|to)',
+                                        attr['name']))),
+    ]
+    _default_attr_props = ['label']
+    _default_attr_prop_values = {
+        'paragraph_id': 'sattrs.paragraph_id_hidden',
+        'sentence_id': 'sattrs.sentence_id_hidden',
+    }
+
+    def __init__(self, corpus_info, attr_prop_values=None,
+                 required_msg_fn=None, recommended_msg_fn=None):
+        self._basic_corpus_info = {}
+        self._attr_prop_values = self._default_attr_prop_values
+        if attr_prop_values:
+            self._attr_prop_values.update(attr_prop_values)
+        self._corpus_config = []
+        self._init_basic_corpus_info(corpus_info,
+                                     required_msg_fn=required_msg_fn,
+                                     recommended_msg_fn=recommended_msg_fn)
+        self._init_config(corpus_info)
+
+    def get_id(self):
+        return self._basic_corpus_info['id'].strip('"')
+
+    def get_config(self):
+        return self._corpus_config
+
+    def _init_basic_corpus_info(self, corpus_info, required_msg_fn=None,
+                                recommended_msg_fn=None):
+        self._basic_corpus_info = {}
+        for propname, proptype, required in self._corpus_props_basic:
+            propval = corpus_info.get(propname)
+            if propval is None:
+                if required == 'required':
+                    required_msg_fn('Please specify corpus ' + propname)
+                elif required == 'recommended':
+                    recommended_msg_fn('No corpus ' + propname + ' specified')
+                    propval = self._prop_value_default[proptype]
+            elif proptype == 'str' and (propval == '' or propval[0] != '"'):
+                propval = '"' + propval + '"'
+            if propval is not None:
+                self._basic_corpus_info[propname] = propval
+
+    def _init_config(self, corpus_info):
+        corpus_id = self._basic_corpus_info['id'].strip('"')
+        corpus_info = cwb.CWBCorpusInfo(corpus_id)
+        for key, _, _ in self._corpus_props_basic:
+            value = self._basic_corpus_info.get(key)
+            if value is not None:
+                self._corpus_config.append((key, value))
+        self._corpus_config.append(self._make_corpus_features(corpus_info))
+        self._corpus_config.extend(self._make_attrs(corpus_info))
+
+    def _make_corpus_features(self, corpus_info, other_feats=None):
+        feats = []
+        feats.extend(other_feats or [])
+        for feat in self._corpus_feature_attr_order:
+            feat_attrs = self._corpus_feature_attrs[feat]
+            corpus_has_all_feat_attrs = True
+            for attrtype, attrnames in feat_attrs.iteritems():
+                attrtype1 = attrtype[0]
+                if not all(attrname in corpus_info.attrdict
+                           and (corpus_info.attrdict[attrname]['type']
+                                == attrtype1)
+                           for attrname in attrnames):
+                    corpus_has_all_feat_attrs = False
+                    break
+            if corpus_has_all_feat_attrs:
+                feats.append(feat)
+                feat_attrs_set = set(featname
+                                     for featnames in feat_attrs.itervalues()
+                                     for featname in featnames)
+                for attrtype in feat_attrs.iterkeys():
+                    attrtype1 = attrtype[0]
+                    attrs = corpus_info.attributes[attrtype1]
+                    attrs[:] = (attr for attr in attrs
+                                if attr['name'] not in feat_attrs_set)
+        return ('features',
+                '[' + ', '.join('"' + feat + '"' for feat in feats) + ']')
+
+    def _make_attrs(self, corpus_info):
+        result = []
+        for attrtype, attrs_propname, filter_fn in self._corpus_attr_props:
+            attrlist = []
+            for attr in corpus_info.attributes[attrtype]:
+                if filter_fn(attr):
+                    result_attr_props = []
+                    attrname = attr['name']
+                    attr_props = self._attr_prop_values.get(attrname, [])
+                    if isinstance(attr_props, basestring):
+                        attrlist.append((attrname, attr_props))
+                    else:
+                        propnames = set(propname for propname, _ in attr_props)
+                        for attr_prop in attr_props:
+                            result_attr_props.append(attr_prop)
+                        result_attr_props.extend(
+                            (attrpropname, '""')
+                            for attrpropname in self._default_attr_props
+                            if  attrpropname not in propnames)
+                        attrlist.append((attrname, result_attr_props))
+            if attrlist:
+                result.append((attrs_propname, attrlist))
+        return result
+
+
+class CorpusConfigMaker(korpimport.util.OptionRunner):
+
+    # Pairs (template option name, template format placeholder)
+    _template_opts = [
+        ('id', 'id'),
+        ('title', 'title'),
+        ('description', 'descr')
+    ]
+
+    def __init__(self, args=None):
+        # No input nor output encoding: use UTF-8 byte strings
+        # internally instead of unicode.
+        super(CorpusConfigMaker, self).__init__(input_encoding=None,
+                                                output_encoding=None)
+
+    def main(self, *args, **kwargs):
+        self._make_basic_corpus_info()
+        if self._opts.corpus_list_file:
+            self._read_corpus_list_file()
+        else:
+            self._corpus_info = [self._basic_corpus_info]
+        for corpus_info in self._corpus_info:
+            self.output(self._format_corpus_config(self._make_corpus_config(
+                corpus_info)) + '\n')
+
+    def _read_config_file(self):
+        with open(self._opts.config_file) as conf:
+            try:
+                confparser = configparser.SafeConfigParser()
+                confparser.optionxform = str
+                confparser.readfp(conf, self._opts.config_file)
+                config_items = {}
+                for sect in confparser.sections():
+                    config_items[sect] = [
+                        (optname.replace('-', '_'), optval)
+                        for optname, optval in confparser.items(sect)]
+            except configparser.Error as e:
+                self.error('Parsing configuration file: ' + str(e),
+                           filename=self._opts._config_file)
+            self._set_config_options(config_items)
+
+    def _set_config_options(self, config_items):
+        if not self._opts.corpus_list_file:
+            for optname, optval in config_items.get('Options', []):
+                if optname == 'corpus_list_file':
+                    self._opts.corpus_list_file = (
+                        korpimport.util.subst_var_refs(optval))
+                    break
+        for optname, optval in config_items.get('Corpus', []):
+            if optname.startswith('templ') or optname.endswith('template'):
+                # Support option names beginning with "templ(ate)" or
+                # ending with "template" and optionally containing
+                # "corpus"
+                optname = 'templ_' + (optname.replace('template', '')
+                                      .replace('templ', '').replace('corpus', '')
+                                      .replace('_', ''))
+                if getattr(self._opts, optname, None) is None:
+                    setattr(self._opts, optname, optval)
+            elif getattr(self._opts, 'corpus_' + optname, None) is None:
+                setattr(self._opts, 'corpus_' + optname, optval)
+        for sectname, cmd_optname in [('Attributes', 'properties'),
+                                      ('Labels', 'label')]:
+            cmd_optval = (getattr(self._opts, 'attribute_' + cmd_optname, [])
+                          or [])
+            # Prepend the values from the config file so that those
+            # specified on the command line take precendence.
+            cmd_optval[:0] = [
+                optname + ':' + optval
+                for optname, optval in config_items.get(sectname, [])]
+            setattr(self._opts, 'attribute_' + cmd_optname, cmd_optval)
+
+    def _make_attr_prop_values(self):
+        self._attr_prop_values = {}
+
+        def set_propinfo(opt_values, error_msg, get_value_fn):
+            for spec in opt_values or []:
+                try:
+                    attrname, value = re.split(r'\s*[:=]\s*', spec, 1)
+                    self._attr_prop_values[attrname] = get_value_fn(value)
+                except ValueError:
+                    self.error(error_msg)
+
+        set_propinfo(self._opts.attribute_label,
+                     '--attribute-label argument must be of the form'
+                     ' ATTRNAME:LABEL',
+                     lambda val: [('label', '"' + val + '"')])
+        set_propinfo(self._opts.attribute_properties,
+                     '--attribute-properties argument must be of the form'
+                     ' ATTRNAME:PROPERTIES',
+                     lambda val: val)
+        # print self._attr_prop_values
+
+    def _make_basic_corpus_info(self):
+        prefix = 'corpus_'
+        prefix_len = len(prefix)
+        self._basic_corpus_info = dict(
+            (optname[prefix_len:], getattr(self._opts, optname))
+            for optname in dir(self._opts) if optname.startswith(prefix))
+
+    def _read_corpus_list_file(self):
+        csv_reader_kwargs = dict()
+        if self._opts.corpus_list_file.endswith('.tsv'):
+            csv_reader_kwargs = dict(delimiter='\t',
+                                     quoting=csv.QUOTE_NONE)
+        self._corpus_info = []
+        with open(self._opts.corpus_list_file) as f:
+            prefix = 'corpus_'
+            prefix_len = len(prefix)
+            reader = csv.DictReader(f, **csv_reader_kwargs)
+            reader.fieldnames[:] = [
+                name[prefix_len:] if name.startswith(prefix) else name
+                for name in reader.fieldnames]
+            for row in reader:
+                # print repr(row)
+                info = {}
+                info.update(self._basic_corpus_info)
+                info.update(row)
+                self._corpus_info.append(info)
+
+    def _make_corpus_config(self, corpus_info):
+        corpus_info = self._apply_templates(corpus_info)
+        try:
+            return CorpusConfig(corpus_info,
+                                attr_prop_values=self._attr_prop_values,
+                                required_msg_fn=self.error,
+                                recommended_msg_fn=self.warn)
+        except cwb.CWBError as e:
+            self.error(e.message)
+
+    def _apply_templates(self, corpus_info):
+        for templ_opt, templ_var in self._template_opts:
+            templ_val = getattr(self._opts, 'templ_' + templ_opt, None)
+            if templ_val:
+                corpus_info[templ_opt] = templ_val.format(
+                    **{templ_var: corpus_info[templ_opt]})
+        return corpus_info
+
+    def _format_corpus_config(self, corpus_config):
+        corpus_id = corpus_config.get_id()
+        prop_selector = (('["' + corpus_id + '"]') if '-' in corpus_id
+                         else ("." + corpus_id))
+        return ('settings.corpora' + prop_selector + ' = {\n'
+                + self._format_js_props(corpus_config.get_config())
+                + '\n};\n')
+
+    def _format_js_props(self, props, indent=0):
+        return '\n'.join(self._format_js_prop(propname, propval, indent + 4)
+                          for propname, propval in props)
+
+    def _format_js_prop(self, name, value, indent=4):
+        if isinstance(value, basestring):
+            formatted_value = self._format_js_prop_value(value, indent)
+        elif value == []:
+            formatted_value = '{}'
+        else:
+            formatted_value = ('{\n' + self._format_js_props(value, indent)
+                               + '\n' + (indent * ' ') + '}')
+        return (indent * ' ') + name + ': ' + formatted_value + ','
+
+    def _format_js_prop_value(self, value, indent=4):
+        # TODO: Format a deeper structured value represented as a
+        # string
+        value = value.strip()
+        value = re.sub(r'^{\s*', '{\n', value)
+        value = re.sub(r'\s*}$', '\n' + (indent * ' ') + '}', value)
+        newline_cnt = value.count('\n')
+        return value.replace('\n', '\n' + ((indent + 4) * ' '), newline_cnt - 1)
+
+    def getopts(self, args=None):
+        self.getopts_basic(
+            dict(usage="%progname [options] > output",
+                 description=(
+"""Generate a Korp frontend JavaScript configuration for an encoded corpus.""")
+             ),
+            args,
+            ['config-file configuration-file = FILE', dict(
+                help=('read configuration options from INI-style configuration'
+                      ' file FILE'))],
+            ['corpus-id id = CORPUS', dict(
+                help=(''))],
+            ['corpus-name name corpus-title title = NAME', dict(
+                dest='corpus_title',
+                help=(''))],
+            ['corpus-description description = DESCR', dict(
+                help=(''))],
+            ['corpus-urn urn = URN', dict(
+                help=(''))],
+            ['corpus-metadata-urn metadata-urn = URN', dict(
+                help=(''))],
+            ['corpus-homepage-url homepage-url = URL', dict(
+                help=(''))],
+            ['corpus-licence licence = LICENCE', dict(
+                help=(''))],
+            ['template-corpus-id template-id templ-id = TEMPL', dict(
+                dest='templ_id',
+                help=('format corpus id using template TEMPL, which contains'
+                      ' {} for the corpus id specified otherwise'))],
+            ['template-corpus-title template-title templ-title = TEMPL', dict(
+                dest='templ_title',
+                help=('format corpus title using template TEMPL, which contains'
+                      ' {} for the corpus title specified otherwise'))],
+            ['template-corpus-description template-description'
+             ' templ-description = TEMPL', dict(
+                dest='templ_description',
+                help=('format corpus description using template TEMPL, which'
+                      ' contains {} for the corpus description specified'
+                      ' otherwise'))],
+            ['corpus-list-file list-file = FILE', dict(
+                help="""read from the CSV or TSV file FILE information on the
+                corpora whose configurations to generate. The first
+                line of the file lists the property names
+                corresponding to the options above (with or without
+                the prefix "corpus_" and with dashes converted to
+                underscores). If the file name ends in ".tsv", it is
+                considered as a tab-separated values file, otherwise a
+                CSV file.""")],
+            ['attribute-label label = ATTRNAME:LABEL', dict(
+                action='append',
+                help=('use LABEL as the value of property "label" of'
+                      ' attribute ATTRNAME; the option may be specified'
+                      ' multiple times to specify labels for multiple'
+                      ' attributes'))],
+            ['attribute-properties properties props = ATTRNAME:PROPERTIES',
+             dict(
+                 action='append',
+                 help=('use PROPERTIES as the complete properties object of'
+                       ' attribute ATTRNAME; the option may be specified'
+                       ' multiple times to specify properties of multiple'
+                       ' attributes'))]
+        )
+        if self._opts.config_file:
+            self._read_config_file()
+        if not self._opts.corpus_id and not self._opts.corpus_list_file:
+            self.error('Please specify corpus id')
+        self._make_attr_prop_values()
+        for templ_opt, templ_var in self._template_opts:
+            templ_opt_name = 'templ_' + templ_opt
+            templ_val = getattr(self._opts, templ_opt_name, None)
+            if templ_val:
+                setattr(self._opts, templ_opt_name,
+                        templ_val.replace('{}', '{' + templ_var + '}'))
+        
+
+if __name__ == "__main__":
+    CorpusConfigMaker().run()
