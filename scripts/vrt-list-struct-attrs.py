@@ -35,7 +35,7 @@ class StructAttrLister(korpimport.util.InputProcessor):
             self._linenr += 1
             mo = self._structname_re.match(line)
             if not mo:
-                if line[0] == '<':
+                if line[0] == '<' and line[1] not in '!?':
                     self.warn('Literal "<" at the beginning of a non-tag line: '
                               + line.rstrip('\n'))
                 continue
