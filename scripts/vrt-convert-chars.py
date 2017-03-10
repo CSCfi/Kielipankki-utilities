@@ -98,7 +98,9 @@ class CharConverter(object):
     def _process_input(self, file_):
         for line in korputil.whole_line_reader(file_):
             if line[0] == '<' and line.rstrip()[-1] == '>':
-                if self._convert_structattrs:
+                # Note: This does not skip multi-line XML comments, as
+                # cwb-encode does not recognize them
+                if self._convert_structattrs and line[1] not in '!?':
                     line = self._convert_chars_in_struct_attrs(line)
             elif self._convert_posattrs:
                 line = self._convert_chars_in_pos_attrs(line)

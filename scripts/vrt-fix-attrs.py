@@ -454,6 +454,8 @@ class AttributeFixer(object):
                 return self._encode_special_chars_in_struct_attrs(line)
             else:
                 return line
+        elif line[0] == '<' and line[1] in '!?':
+            return line
         else:
             return self._fix_posattrs(line)
 
