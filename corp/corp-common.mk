@@ -163,7 +163,7 @@ VRT_FIX_ATTRS_OPTS := \
 		--encode-special-chars=all --special-chars=$(SPECIAL_CHARS) \
 		--encoded-special-char-offset=$(ENCODED_SPECIAL_CHAR_OFFSET) \
 		--encoded-special-char-prefix=$(ENCODED_SPECIAL_CHAR_PREFIX) \
-		--replace-xml-character-entities=correct \
+		--replace-xml-character-entities=correctnumeric \
 		$(if $(S_ATTRS_FEATSET),\
 			--set-struct-attributes $(S_ATTRS_FEATSET)) \
 		$(call partvar,VRT_FIX_ATTRS_OPTS_EXTRA))
