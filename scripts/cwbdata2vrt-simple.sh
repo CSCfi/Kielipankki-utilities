@@ -56,14 +56,16 @@ corpora=$(list_corpora "$@")
 struct_attrs_lines=$(echo $struct_attrs | tr ' ' '\n')
 struct_attrs_multi=$(
     echo "$struct_attrs_lines" | sort | sed -e 's/_.*//' | uniq -d)
-echo "$struct_attrs_lines" | sort > $tmp_prefix.struct_attrs
 # Filter out structural attributes without values (corresponding to
 # XML tags without attributes) if they also occur with a value (XML
 # tags with attributes), since the tag will be output anyway and so
 # that process_tags_multi needs not take into account attributes
 # without values.
-# TODO: Preserve the original order of the tags
-struct_attrs=$(echo "$struct_attrs_multi" | comm -23 $tmp_prefix.struct_attrs -)
+struct_attrs=$(
+    echo "$struct_attrs_lines" |
+    perl -e '$r = "^(" . join("|", qw('"$struct_attrs_multi"')) . ")\$";
+             while (<>) { print if ($_ !~ $r); }'
+)
 
 attr_opts="$(add_prefix '-P ' $pos_attrs) $(add_prefix '-S ' $struct_attrs)"
 
