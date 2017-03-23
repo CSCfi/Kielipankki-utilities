@@ -52,7 +52,30 @@ if [ "x$1" = x ]; then
 fi
 
 corpora=$(list_corpora "$@")
+
+struct_attrs_lines=$(echo $struct_attrs | tr ' ' '\n')
+struct_attrs_multi=$(
+    echo "$struct_attrs_lines" | sort | sed -e 's/_.*//' | uniq -d)
+echo "$struct_attrs_lines" | sort > $tmp_prefix.struct_attrs
+# Filter out structural attributes without values (corresponding to
+# XML tags without attributes) if they also occur with a value (XML
+# tags with attributes), since the tag will be output anyway and so
+# that process_tags_multi needs not take into account attributes
+# without values.
+# TODO: Preserve the original order of the tags
+struct_attrs=$(echo "$struct_attrs_multi" | comm -23 $tmp_prefix.struct_attrs -)
+
 attr_opts="$(add_prefix '-P ' $pos_attrs) $(add_prefix '-S ' $struct_attrs)"
+
+if [ "${struct_attrs#*_}" != "$struct_attrs" ]; then
+    if [ "x$struct_attrs_multi" != x ]; then
+	process_tags=process_tags_multi
+    else
+	process_tags=process_tags_single
+    fi
+else
+    process_tags=cat
+fi
 
 if [ "x$include_corpus_element" = x ]; then
     if [ "x$include_xml_declaration" = x ]; then
@@ -82,6 +105,41 @@ else
     add_attribute_comment=cat
 fi
 
+process_tags_single () {
+    # This is somewhat faster than using sed, but not significantly
+    # faster than process_tags_multi below
+    perl -pe 's/^(<[^\/_\s]*)_([^ ]*) ([^>]*)>/$1 $2="$3">/;
+              s/^(<\/[^_]*)_.*>/$1>/;'
+}
+
+process_tags_multi () {
+    perl -ne '
+        BEGIN {
+            $prevtag = $tag = $attrs = "";
+        }
+        if (/^(<[^\/_\s]*)_([^ ]*) ([^>]*)>/) {
+            $tag = $1;
+            if ($tag ne $prevtag && $attrs) {
+                print "$prevtag$attrs>\n";
+                $attrs = "";
+            }
+            $prevtag = $tag;
+            $attrs .= " $2=\"$3\"";
+        } elsif (/^(<\/[^_]*)_.*>/) {
+            $tag = $1;
+            if ($tag ne $prevtag) {
+                print "$tag>\n";
+            }
+            $prevtag = $tag;
+        } else {
+            if ($prevtag && $attrs) {
+                print "$prevtag$attrs>\n";
+            }
+            $tag = $prevtag = $attrs = "";
+            print;
+        }'
+}
+
 add_attribute_comment () {
     gawk 'NR == 1 {
               if (/^<\?xml/) { print }
@@ -106,6 +164,7 @@ extract_vrt () {
     $cwb_bindir/cwb-decode -Cx $corp $attr_opts |
     # This is faster than calling vrt-convert-chars.py --decode
     perl -CSD -pe 's/\x{007f}/ /g; s/\x{0080}/\//g; s/\x{0081}/&lt;/g; s/\x{0082}/&gt;/g; s/\x{0083}/|/g' |
+    $process_tags |
     eval "$head_filter" |
     $tail_filter |
     $add_attribute_comment > $outfile
