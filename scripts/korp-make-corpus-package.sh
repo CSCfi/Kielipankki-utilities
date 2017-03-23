@@ -451,7 +451,11 @@ while [ "x$1" != "x" ] ; do
 	    ;;
 	-z | --compress )
 	    if [ "x$2" = "xnone" ] || which $2 &> /dev/null; then
-		compress=$2
+		if [ "x$2" = "xcat" ]; then
+		    compress=none
+		else
+		    compress=$2
+		fi
 	    else
 		warn "Compression program $2 not found; using $compress"
 	    fi
