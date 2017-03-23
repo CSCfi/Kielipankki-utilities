@@ -503,6 +503,10 @@ if [ "x$omit_cwb_data" != x ]; then
 fi
 
 eval archive_ext=\$archive_ext_$compress
+if [ "x$archive_ext" = x ]; then
+    archive_ext=tar.$compress
+    warn "Unrecognized compression program $compress: using package file name extension .$archive_ext"
+fi
 
 if [ "x$1" = "x" ]; then
     corpus_ids=$corpus_name
