@@ -28,6 +28,9 @@ include-xml-declaration
 include-corpus-element
     include in the output the top-level "corpus" element added by cwb-decode
     (omitted by default)
+omit-attribute-comment
+    omit the comment listing the positional attributes shown at the top of
+    the output VRT
 vrt-file-name-template=FILE "{corpid}.vrt" outfile_templ
     write the output VRT to file named FILE, where {corpid} is replaced
     with the corpus id; FILE may contain a directory part as well
@@ -73,6 +76,21 @@ else
     tail_filter=cat
 fi
 
+if [ "x$omit_attribute_comment" = x ]; then
+    add_attribute_comment=add_attribute_comment
+else
+    add_attribute_comment=cat
+fi
+
+add_attribute_comment () {
+    gawk 'NR == 1 {
+              if (/^<\?xml/) { print }
+              print "<!-- Positional attributes: '"$pos_attrs"' -->";
+              if (/^<\?xml/) { next }
+          }
+          { print }'
+}
+
 extract_vrt () {
     local corp
     corp=$1
@@ -89,7 +107,8 @@ extract_vrt () {
     # This is faster than calling vrt-convert-chars.py --decode
     perl -CSD -pe 's/\x{007f}/ /g; s/\x{0080}/\//g; s/\x{0081}/&lt;/g; s/\x{0082}/&gt;/g; s/\x{0083}/|/g' |
     eval "$head_filter" |
-    $tail_filter > $outfile
+    $tail_filter |
+    $add_attribute_comment > $outfile
 }
 
 
