@@ -344,6 +344,9 @@ cleanup () {
     # This does not kill processes that have changed their process
     # group (cf.
     # http://stackoverflow.com/questions/360201/kill-background-process-when-shell-script-exit).
+    # FIXME: If the script is a part of a pipe, this also kills all
+    # the other processes in the pipe. It would probably be better to
+    # kill recursively all the descendants of the current process.
     kill -- -$$ 2> /dev/null
 }
 
@@ -796,7 +799,9 @@ optinfo_init () {
     optinfo_set_defaults="$(optinfo_get_sect $optinfo_file set_defaults)"
     optinfo_opt_usage="$(optinfo_get_sect $optinfo_file opt_usage)"
     optinfo_opt_handler="$(optinfo_get_sect $optinfo_file opt_handler)"
-    rm $optinfo_file
+    # $optinfo_file is removed at cleanup unless cleanup_on_exit is
+    # empty
+    # rm $optinfo_file
 }
 
 # usage
@@ -836,6 +841,27 @@ in_str () {
 # Return true if text contains word, text words separated by spaces.
 word_in () {
     in_str " $1 " " $2 "
+}
+
+
+# decode_special_chars [--xml-entities]
+#
+# Decode the special characters encoded in Korp corpora in stdin and
+# write to stdout. If --xml-entities is specified, decode < and > as
+# &lt; and &gt;.
+#
+# This is faster than using vrt-convert-chars.py --decode.
+decode_special_chars () {
+    local lt gt
+    lt="<"
+    gt=">"
+    if [ "x$1" = "x--xml-entities" ]; then
+	lt="&lt;"
+	gt="&gt;"
+    fi
+    perl -CSD -pe 's/\x{007f}/ /g; s/\x{0080}/\//g;
+                   s/\x{0081}/'"$lt"'/g; s/\x{0082}/'"$gt"'/g;
+                   s/\x{0083}/|/g'
 }
 
 
