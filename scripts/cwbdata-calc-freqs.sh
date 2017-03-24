@@ -13,14 +13,17 @@ Calculate the absolute and relative frequencies of the values of a single
 positional attribute in a corpus or a group of corpora, based on the data
 stored in CWB.
 
-The output is in three-column tab-separated format: attribute value, absolute
-frequency, relative frequency per million tokens.
+The output is in tab-separated format with three columns (four with --rank):
+attribute value, absolute frequency, relative frequency per million tokens,
+rank of the value.
 
 The corpus ids specified may contain shell wildcards that are expanded."
 
 optspecs='
 attribute=ATTR "word" attr
     calculate the frequencies of the positional attribute ATTR
+rank
+    add rank
 v|verbose
     output progress information to stderr
 '
@@ -35,7 +38,25 @@ if [ "x$1" = x ]; then
     error "Please specify corpora"
 fi
 
+if [ "x$rank" != x ]; then
+    add_rank=add_rank
+else
+    add_rank=cat
+fi
+
 corpora=$(list_corpora "$@")
+
+
+add_rank () {
+    awk -F"$tab" '
+        BEGIN { OFS = "\t" }
+        {
+            if ($3 != prev_freq) { rank = NR }
+            prev_freq = $3
+            print $0, rank
+        }'
+}
+
 
 tokencnt=0
 
@@ -69,4 +90,5 @@ awk 'function print_line (token, freq) {
      }
      END { print_line(prev, freq) }' |
 decode_special_chars |
-sort -k2,2nr -s
+sort -k2,2nr -s |
+add_rank
