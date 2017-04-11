@@ -221,7 +221,7 @@ class WordCountDocMaker(korputil.InputProcessor):
 
         def _make_informant_total(self, data, next_type):
             words, letters = data
-            result = '\t\t\t{wc}\tLetters {lc}'.format(wc=words, lc=letters)
+            result = '\t\t\t\t\t{wc}\tLetters {lc}'.format(wc=words, lc=letters)
             if next_type == 'letter_info':
                 result += '\n\n'
             return result
@@ -231,7 +231,7 @@ class WordCountDocMaker(korputil.InputProcessor):
 
         def _make_locality_total(self, data):
             words, letters, informants = data
-            return ('\tTotal {wc}\n\t\t\t\t\t\t\t{ic}/{lc}\n\n'
+            return ('\tTotal {wc}\n\t\t\t\t\t\t\t\t\t{ic}/{lc}\n\n'
                     .format(wc=words, lc=letters, ic=informants))
 
     class OutputWriterText(OutputWriter):
