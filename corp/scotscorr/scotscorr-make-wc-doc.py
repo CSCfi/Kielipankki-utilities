@@ -8,6 +8,12 @@
 import re
 import codecs
 
+from cStringIO import StringIO
+
+# Package python-docx: https://python-docx.readthedocs.io/en/latest/
+import docx
+from docx.shared import Pt, Mm
+
 import korpimport.util as korputil
 
 
@@ -149,7 +155,9 @@ class WordCountDocMaker(korputil.InputProcessor):
             ('locality_total', stats.get_and_reset_locality()))
 
     def _write_output(self):
-        writer = self.OutputWriterText(write_fn=self.output)
+        writer_class = getattr(
+            self, 'OutputWriter' + self._opts.output_format.title())
+        writer = writer_class(write_fn=self.output)
         writer.output(self._output_data)
 
     class OutputWriter(object):
@@ -229,6 +237,70 @@ class WordCountDocMaker(korputil.InputProcessor):
     class OutputWriterText(OutputWriter):
 
         pass
+
+    class OutputWriterDocx(OutputWriter):
+
+        def __init__(self, write_fn=None):
+
+            def reset_font(style):
+                font = style.font
+                font.color.rgb = None
+                font.name = 'Times New Roman'
+                if font.size < Pt(12):
+                    font.size = Pt(12)
+
+            def move_space_after(style):
+                parfmt = style.paragraph_format
+                if parfmt.space_before > 0:
+                    parfmt.space_after = parfmt.space_before
+                    parfmt.space_before = 0
+
+            self._write_fn = self._default_write_fn
+            self._write_final_fn = write_fn or sys.stdout.write
+            self._doc = docx.Document()
+            styles = self._doc.styles
+            for style_name in ['Heading 1', 'Heading 2', 'Heading 3', 'Normal']:
+                reset_font(styles[style_name])
+                move_space_after(styles[style_name])
+            styles['Heading 1'].font.small_caps = True
+            sect = self._doc.sections[0]
+            sect.page_height = Mm(297)
+            sect.page_width = Mm(210)
+            sect.left_margin = sect.right_margin = sect.top_margin
+
+        def _default_write_fn(self, text):
+            import sys
+            # sys.stderr.write(repr(text) + '\n')
+            text = text.rstrip('\n')
+            self._curr_para = self._doc.add_paragraph(text)
+
+        def _output_heading(self, data, level):
+            self._doc.add_heading(data, level)
+
+        def _output_letter_info(self, data, next_type):
+            text = self._make_letter_info(data, next_type)
+            text.rstrip('\n')
+            parts = re.split(
+                self._tags['bold'][0] + '|' + self._tags['bold'][1], text)
+            # sys.stderr.write(repr(parts) + '\n')
+            self._write_fn(parts[0])
+            for partnr, part in enumerate(parts[1:]):
+                run = self._curr_para.add_run(part)
+                if partnr % 2 == 0:
+                    run.bold = True
+
+        def output(self, output_data):
+            super(WordCountDocMaker.OutputWriterDocx, self).output(output_data)
+            outf = StringIO()
+            self._doc.save(outf)
+            self._write_final_fn(outf.getvalue())
+
+        def _output_informant_total(self, data, next_type):
+            self._curr_para.add_run(
+                self._make_informant_total(data, next_type).rstrip('\n'))
+
+        def _output_locality_total(self, data, _):
+            self._curr_para.add_run(self._make_locality_total(data).rstrip('\n'))
             
     def getopts(self, args=None):
         self.getopts_basic(
@@ -243,7 +315,14 @@ on the variables for each letter.""")
                 help=('read the order of letters from FILE; FILE should be'
                       ' a plain-text file with lines beginning with "%FN:"'
                       ' marking file names'))],
+            ['output-format = FORMAT', dict(
+                type='choice',
+                choices=['text', 'docx'],
+                default='text',
+                help='output in FORMAT: text or docx (default: %default)')]
         )
+        if self._opts.output_format == 'docx':
+            self._output_encoding = None
 
 
 if __name__ == "__main__":
