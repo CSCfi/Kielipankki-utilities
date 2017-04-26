@@ -73,18 +73,18 @@ def get_attr(attrname, attrdict, elemname=''):
     return (attrname_output, attrval)
 
 
-def make_elem(elemname, content='', attrname=None, attrdict=None, attrs=None,
+def make_elem(elemname, content='', attrnames=None, attrdict=None, attrs=None,
               indent=0, newlines=False):
     """Make an XML element for elemname with the given content and attributes.
 
-    The parameters elemname, attrname, attrdict and attrs are as for
+    The parameters elemname, attrnames, attrdict and attrs are as for
     make_starttag; content is the content of the element or None for
     an empty element; indent is the indentation depth (number of space
     characters) to be prepended to each line of content; if newlines
     is True, add a newline after the start tag and before the end tag
     (unless content ends in a newline).
     """
-    starttag = make_starttag(elemname, attrname, attrdict, attrs)
+    starttag = make_starttag(elemname, attrnames, attrdict, attrs)
     if content is None:
         return starttag[:-1] + u'/>'
     content_end = ''
