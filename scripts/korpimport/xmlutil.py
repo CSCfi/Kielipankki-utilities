@@ -31,13 +31,16 @@ def make_attrs(attrnames=None, attrdict=None, attrs=None, elemname=''):
     """Make a formatted attribute list for an element (also see get_attr).
 
     If attrs is specified (an iterable of name-value pairs), it is
-    used instead of attrnames and attrdict.
+    used instead of attrnames and attrdict. If an (output) attribute
+    name in attrnames is falsey, the attribute is omitted.
     """
     if not attrs:
         attrnames = attrnames or []
         attrdict = attrdict or {}
-        attrs = (get_attr(attrname, attrdict, elemname)
-                 for attrname in attrnames)
+        attrs = ((attrname, attrval) for attrname, attrval
+                 in (get_attr(attrname, attrdict, elemname)
+                     for attrname in attrnames)
+                 if attrname)
     return ' '.join(make_attr(name, value) for name, value in attrs)
 
 
