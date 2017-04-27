@@ -161,7 +161,12 @@ class WlpToVrtConverter:
         return result
 
     def _format_lines(self, lines):
-        return '\n'.join('\t'.join(fields) for fields in lines) + '\n'
+
+        def format_field(text):
+            return text.strip()
+
+        return '\n'.join('\t'.join(format_field(field) for field in fields)
+                         for fields in lines) + '\n'
 
     def _output(self, text):
         sys.stdout.write(text)
