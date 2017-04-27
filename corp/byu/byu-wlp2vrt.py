@@ -47,7 +47,7 @@ class WlpToVrtConverter:
         self._read_metadata_file(args.metadata_file)
 
     def _read_metadata_file(self, filename):
-        with open(filename, 'r', encoding='utf-8') as metadatafile:
+        with open(filename, 'r', encoding='cp1252') as metadatafile:
             reader = csv.DictReader(metadatafile, delimiter='\t',
                                     quoting=csv.QUOTE_NONE, restval='')
             for fields in reader:
@@ -61,7 +61,7 @@ class WlpToVrtConverter:
 
     def convert(self):
         for filename in self._filenames:
-            with open(filename, 'r', encoding='utf-8') as f:
+            with open(filename, 'r', encoding='cp1252') as f:
                 self._convert_file(filename, f)
 
     def _convert_file(self, filename, f):
