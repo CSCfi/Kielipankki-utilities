@@ -27,7 +27,7 @@ class WlpToVrtConverter:
         'subgen': 'subgenre',
         '': 'publ_info',          # For coca-sources.txt
         'Publication information': 'publ_info',
-        '(publication info, for non-spoken)': None,
+        '(publication info, for non-spoken)': '',
         'Library of Congress Classification (NF)': 'lcc',
         'URL': 'url',
     }
@@ -46,7 +46,8 @@ class WlpToVrtConverter:
                     self._metadata[fields['textID']] = dict(
                         ((name, val.strip()) for name, val in fields.items()))
             self._attrnames = [
-                (self._attrname_map.get(fieldname, fieldname), fieldname)
+                (self._attrname_map.get(fieldname, fieldname)
+                 .lower().replace(' ', '_'), fieldname)
                 for fieldname in reader.fieldnames] + ['filename']
 
     def convert(self):
