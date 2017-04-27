@@ -6,6 +6,15 @@
 Convert Mark Davies's corpora in word/lemma/PoS format to VRT.
 """
 
+# TODO:
+# - Encode &, < and > as XML predefined entities
+# - Add datefrom, dateto based on year (if available) or possible date
+#   info in the publication info or URL
+# - Check the handling of sentence boundaries at quotes and brackets
+# - Check for unwanted characters, like special spaces
+# - Split the GloWbE metadata field "country genre" in to separate
+#   country and genre
+
 
 import re
 import csv
