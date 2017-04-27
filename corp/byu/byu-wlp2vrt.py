@@ -86,44 +86,62 @@ class WlpToVrtConverter:
         self._output('</text>\n')
 
     def _add_structs(self, lines):
-        has_para_tags = any(line[0] == '<p>' for line in lines)
-        lines = self._add_sentences(lines, not has_para_tags)
-        if has_para_tags:
-            lines = self._add_paragraphs(lines)
-        return lines
-
-    def _add_sentences(self, lines, sent_as_para=False):
+        para_tags = ['<p>', '<h>']
+        para_types = {'<p>': 'paragraph', '<h>': 'heading'}
         result = []
+        sent_start_para_type = (
+            None if any(line[0] == '<p>' for line in lines) else 'sentence')
+        sent_start = 0
 
-        def add_start_tags():
-            if sent_as_para:
-                result.append(['<paragraph>'])
-            result.append(['<sentence>'])
+        def add_start_tags(para_type=None):
+            nonlocal sent_start
+            if para_type:
+                result.append(['<paragraph type="' + para_type + '">'])
+            result.append(['<sentence gaps="no">'])
+            sent_start = len(result) - 1
 
-        def add_end_tags():
+        def add_end_tags(para_type=None):
+            nonlocal gaps
             result.append(['</sentence>'])
-            if sent_as_para:
+            if para_type:
                 result.append(['</paragraph>'])
+            if gaps:
+                result[sent_start] = ['<sentence gaps="yes">']
+                gaps = False
 
-        add_start_tags()
         end_after_next = False
+        gaps = False
         for linenr, line in enumerate(lines):
-            result.append(line)
-            if linenr < len(lines) - 1:
-                if end_after_next:
-                    add_end_tags()
-                    add_start_tags()
-                    end_after_next = False
-                if line[0] in '.?!:':
-                    if lines[linenr + 1][0][0] in '"”)]':
-                        if (line[0] == '.'
-                            or (linenr < len(lines) - 2
-                                and lines[linenr + 2][0][0].isupper())):
-                            end_after_next = True
-                    elif line[0] == '.' or lines[linenr + 1][0][0].isupper():
-                        add_end_tags()
-                        add_start_tags()
-        add_end_tags()
+            if line[0] in para_tags:
+                para_type = para_types[line[0]]
+                if linenr > 0:
+                    add_end_tags(para_type)
+                add_start_tags(para_type)
+            else:
+                if line[0] == '@':
+                    gaps = True
+                if linenr == 0:
+                    # No <p> at the start of the text
+                    add_start_tags(sent_start_para_type or 'paragraph')
+                result.append(line)
+                if linenr < len(lines) - 1:
+                    if end_after_next:
+                        if lines[linenr + 1] not in para_tags:
+                            add_end_tags(sent_start_para_type)
+                            add_start_tags(sent_start_para_type)
+                        end_after_next = False
+                    if line[0] in '.?!:':
+                        if lines[linenr + 1][0][0] in '"”)]':
+                            if (line[0] == '.'
+                                or (linenr < len(lines) - 2
+                                    and lines[linenr + 2][0][0].isupper())):
+                                end_after_next = True
+                        elif ((line[0] == '.'
+                               or lines[linenr + 1][0][0].isupper())
+                              and lines[linenr + 1][0] not in para_tags):
+                            add_end_tags(sent_start_para_type)
+                            add_start_tags(sent_start_para_type)
+        add_end_tags('paragraph')
         return result
 
     def _add_paragraphs(self, lines):
