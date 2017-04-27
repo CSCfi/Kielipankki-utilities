@@ -7,7 +7,6 @@ Convert Mark Davies's corpora in word/lemma/PoS format to VRT.
 """
 
 # TODO:
-# - Encode &, < and > as XML predefined entities
 # - Add datefrom, dateto based on year (if available) or possible date
 #   info in the publication info or URL
 # - Check the handling of sentence boundaries at quotes and brackets
@@ -23,6 +22,7 @@ import argparse
 import os.path
 
 from io import open
+from xml.sax.saxutils import escape, unescape
 
 import korpimport.xmlutil as xu
 
@@ -172,11 +172,21 @@ class WlpToVrtConverter:
 
     def _format_lines(self, lines):
 
-        def format_field(text):
-            return text.strip()
+        def format_line(fields):
+            if len(fields) == 1:
+                return fields[0]
+            else:
+                return '\t'.join(format_field(field) for field in fields)
 
-        return '\n'.join('\t'.join(format_field(field) for field in fields)
-                         for fields in lines) + '\n'
+        def format_field(text):
+            # First convert any existing &lt;, &gt; and &amp; to the
+            # corresponding characters and then convert the characters
+            # to the entities.
+            # FIXME: This does not handle numeric or other character
+            # entities.
+            return escape(unescape(text.strip()))
+
+        return '\n'.join(format_line(line) for line in lines) + '\n'
 
     def _output(self, text):
         sys.stdout.write(text)
