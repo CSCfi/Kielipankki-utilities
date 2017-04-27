@@ -68,16 +68,17 @@ class WlpToVrtConverter:
         lines = []
         text_id = None
         for linenr, line in enumerate(f):
-            if line.startswith('##') or line.startswith('@@'):
+            # Take the last three fields to skip the token number
+            # and text id in the COCA addednum.
+            fields = line.strip('\n').split('\t')[-3:]
+            if fields[0].startswith('##') or fields[0].startswith('@@'):
                 if lines:
                     self._output_text(text_id, lines, filename, linenr)
                     lines = []
-                matchobj = re.search(r'(\d+)', line)
+                matchobj = re.search(r'(\d+)', fields[0])
                 text_id = matchobj.group(1) if matchobj else None
             else:
-                # Take the last three fields to skip the token number
-                # and text id in the COCA addednum.
-                lines.append(line.strip().split('\t')[-3:])
+                lines.append(fields)
         if lines:
             self._output_text(text_id, lines, filename, linenr)
 
