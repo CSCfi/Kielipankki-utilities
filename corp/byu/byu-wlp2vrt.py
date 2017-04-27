@@ -7,12 +7,15 @@ Convert Mark Davies's corpora in word/lemma/PoS format to VRT.
 """
 
 # TODO:
-# - Add datefrom, dateto based on year (if available) or possible date
-#   info in the publication info or URL
-# - Check the handling of sentence boundaries at quotes and brackets
-# - Check for unwanted characters, like special spaces
+# - Add finer-grained datefrom, dateto based on possible date info in
+#   the publication info or URL.
+# - Extract more information (such as publication name, volume issue)
+#   from the publication information field to separate attributes,
+#   dependent on corpus and genre.
+# - Check the handling of sentence boundaries at quotes and brackets.
+# - Check for unwanted characters, like special spaces.
 # - Split the GloWbE metadata field "country genre" in to separate
-#   country and genre
+#   country and genre.
 
 
 import re
@@ -36,7 +39,7 @@ class WlpToVrtConverter:
         'subgen': 'subgenre',
         '': 'publ_info',          # For coca-sources.txt
         'Publication information': 'publ_info',
-        '(publication info, for non-spoken)': '',
+        '(publication info, for non-spoken)': '',  # Skip; for coca-sources.txt
         'Library of Congress Classification (NF)': 'lcc',
         'URL': 'url',
     }
@@ -57,7 +60,8 @@ class WlpToVrtConverter:
             self._attrnames = [
                 (self._attrname_map.get(fieldname, fieldname)
                  .lower().replace(' ', '_'), fieldname)
-                for fieldname in reader.fieldnames] + ['filename']
+                for fieldname in reader.fieldnames] + [
+                        'filename', 'datefrom', 'dateto']
 
     def convert(self):
         for filename in self._filenames:
@@ -89,12 +93,22 @@ class WlpToVrtConverter:
             self._warn('Metadata information not found for text id ' + text_id,
                        filename, linenr + 1)
         # print(attrs, self._metadata_fieldnames)
+        self._add_dateinfo(attrs)
         self._output(xu.make_starttag('text', attrnames=self._attrnames,
                                       attrdict=attrs)
                      + '\n')
         lines = self._add_structs(lines)
         self._output(self._format_lines(lines))
         self._output('</text>\n')
+
+    def _add_dateinfo(self, attrs):
+        # TODO: Add month or date information whenever available in
+        # publ_info or url
+        if 'year' in attrs:
+            attrs['datefrom'] = attrs['year'] + '0101'
+            attrs['dateto'] = attrs['year'] + '1231'
+        else:
+            attrs['datefrom'] = attrs['dateto'] = ''
 
     def _add_structs(self, lines):
         para_tags = ['<p>', '<h>']
