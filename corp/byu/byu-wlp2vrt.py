@@ -42,10 +42,12 @@ class WlpToVrtConverter:
         'Library of Congress Classification (NF)': 'lcc',
         'URL': 'url',
     }
+    _progress_step = 1000000
 
     def __init__(self, args):
         self._filenames = args.filenames or []
         self._metadata = {}
+        self._opts = args
         self._read_metadata_file(args.metadata_file)
 
     def _read_metadata_file(self, filename):
@@ -70,7 +72,11 @@ class WlpToVrtConverter:
     def _convert_file(self, filename, f):
         lines = []
         text_id = None
+        self._output_verbose(filename + ':')
         for linenr, line in enumerate(f):
+            if self._opts.verbose and (linenr + 1) % self._progress_step == 0:
+                self._output_verbose(
+                    ' ' + str((linenr + 1) // self._progress_step))
             fields = line.strip('\n').split('\t')
             if len(fields) == 5:
                 # Take the last three fields to skip the token number
@@ -89,6 +95,7 @@ class WlpToVrtConverter:
                 self._fix_lemma(fields)
                 self._add_pos_set(fields)
                 lines.append(fields)
+        self._output_verbose(' ' + str(linenr + 1) + ' lines\n')
         if lines:
             self._output_text(text_id, lines, filename, linenr)
 
@@ -340,6 +347,11 @@ class WlpToVrtConverter:
     def _output(self, text):
         sys.stdout.write(text)
 
+    def _output_verbose(self, text):
+        if self._opts.verbose:
+            sys.stderr.write(text)
+            sys.stderr.flush()
+
     def _warn(self, text, filename=None, linenr=None):
         msg = 'Warning ' + text
         if filename:
@@ -361,6 +373,8 @@ def getargs():
                            help='names of input files in word/lemma/PoS format')
     argparser.add_argument('--metadata-file', metavar='FILE', required=True,
                            help='read text metadata from FILE in TSV format')
+    argparser.add_argument('--verbose', action='store_true',
+                           help='output progess information to stderr')
     return argparser.parse_args()
 
 
