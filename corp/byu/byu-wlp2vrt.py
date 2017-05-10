@@ -88,6 +88,7 @@ class WlpToVrtConverter:
                 text_id = matchobj.group(1) if matchobj else None
             else:
                 self._fix_lemma(fields)
+                self._add_pos_set(fields)
                 lines.append(fields)
         if lines:
             self._output_text(text_id, lines, filename, linenr)
@@ -107,6 +108,21 @@ class WlpToVrtConverter:
         if fields[0] == '@' and fields[1] in ['', '\x00', '@']:
             fields[1] = '@'
             fields[2] = 'GAP'
+
+    def _add_pos_set(self, fields):
+        """Add a split, normalized PoS a feature set attribute
+
+        Split PoS at underscores to different alternatives, strip
+        trailing % and @ and strip the multi-word-expression markers
+        (two trailing digits). Enclose and separate the resulting PoS
+        by vertical bars and add it as the third field.
+        """
+
+        def get_base_pos(pos):
+            return re.sub(r'[2-9]\d$', '', re.sub(r'(?<!")[@%]', '', pos))
+
+        fields[2:2] = ['|' + '|'.join(get_base_pos(pos)
+                                      for pos in fields[2].split('_')) + '|']
 
     def _output_text(self, text_id, lines, filename, linenr):
         attrs = self._metadata.get(text_id, {})
