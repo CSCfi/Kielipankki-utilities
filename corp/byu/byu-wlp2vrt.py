@@ -12,9 +12,8 @@ Convert Mark Davies's corpora in word/lemma/PoS format to VRT.
 # - Extract more information (such as publication name, volume issue)
 #   from the publication information field to separate attributes,
 #   dependent on corpus and genre.
-# - Check the handling of sentence boundaries at quotes and brackets.
 # - Check for unwanted characters, like special spaces.
-# - Split the GloWbE metadata field "country genre" in to separate
+# - Split the GloWbE metadata field "country genre" to separate
 #   country and genre.
 
 
@@ -149,12 +148,19 @@ class WlpToVrtConverter:
             attrs['datefrom'] = attrs['dateto'] = ''
 
     def _add_structs(self, lines):
-        para_tags = ['<p>', '<h>']
-        para_types = {'<p>': 'paragraph', '<h>': 'heading'}
+        para_tags = ['<p>', '<h>', '#']
+        para_types = {'<p>': 'paragraph',
+                      '<h>': 'heading',
+                      '#': 'paragraph/heading'}
         result = []
         sent_start_para_type = (
-            None if any(line[0] == '<p>' for line in lines) else 'sentence')
+            None if any(line[0] in ['<p>', '#'] for line in lines)
+            else 'sentence')
         sent_start = 0
+        next_sent_end = None
+        line_count = len(lines)
+        in_quote = None
+        in_gap = False
 
         def add_start_tags(para_type=None):
             nonlocal sent_start
@@ -172,38 +178,129 @@ class WlpToVrtConverter:
                 result[sent_start] = ['<sentence gaps="yes">']
                 gaps = False
 
-        end_after_next = False
+        def is_sent_start_word(line):
+            """Check if the token is a likely sentence start word.
+
+            Return 0 if the word does not begin with an upper-case
+            letter, 1 if it begins with an upper-case letter but is or
+            may be a proper noun, and 2 if it is not marked as a
+            proper noun.
+            """
+            if not line[0][0].isupper():
+                return 0
+            elif not any(tag[:2] == 'np' for tag in line[3].split('_')):
+                return 2
+            else:
+                return 1
+
+        def is_quote(line):
+            return (line[0] == '"' or line[3] == '"@')
+
+        def is_closing_quote(line):
+            return (is_quote(line) and in_quote == line[0])
+
+        def is_sent_end(linenr, line):
+            nonlocal next_sent_end, in_gap, result
+            if next_sent_end is not None:
+                if next_sent_end == linenr:
+                    next_sent_end = None
+                    return True
+                else:
+                    return False
+            if linenr >= line_count - 1:
+                return False
+            line1 = lines[linenr + 1]
+            if line[0] == '@' and is_sent_start_word(line1) == 2:
+                in_gap = False
+                result.append(['</gap>'])
+                return True
+            if (line1[0] in '#*' and linenr + 2 < line_count
+                and (is_sent_start_word(lines[linenr + 2]) == 2
+                     or (linenr + 3 < line_count
+                         and is_sent_start_word(lines[linenr + 3]) == 2
+                         and is_quote(lines[linenr + 2])))):
+                return True
+            if line[0] not in '...?!:':
+                return False
+            linenr1 = linenr + 1
+            while linenr1 < line_count and (lines[linenr1][0] == ')'
+                                            or is_quote(lines[linenr1])):
+                linenr1 += 1
+            if linenr1 == line_count:
+                next_sent_end = linenr1 - 1
+                return False
+            elif (not is_sent_start_word(lines[linenr1])
+                  and lines[linenr1][0] not in ['@', '(']):
+                return False
+            elif linenr1 == linenr + 1:
+                return True
+            next_sent_end = find_sent_end(linenr + 1, linenr1)
+            if next_sent_end == linenr:
+                next_sent_end = None
+            return (next_sent_end is None)
+
+        def find_sent_end(start, end):
+            # Check the following punctuation ("e = end quote,
+            # "s = start quote, A = capitalized word):
+            # . ) <s> A | . "e <s> A | . <s> "s A |
+            # . ) "e <s> A | . ) <s> "s A | . "e ) <s> A | . "s ) <s> A |
+            # . ' "e <s> A | . ' "e ) <s> A | . "e <s> "s A
+            # nonlocal next_sent_end
+            closing_quote_seen = False
+            linenr = start
+            # TODO: Explain, what this does
+            while (linenr < end
+                   and (lines[linenr][0] == ')'
+                        or (is_quote(lines[linenr])
+                            and ((is_closing_quote(lines[linenr])
+                                  and not closing_quote_seen)
+                                 or (linenr + 1 < end
+                                     and lines[linenr + 1][0] == ')'))))):
+                if is_closing_quote(lines[linenr]):
+                    closing_quote_seen = True
+                linenr += 1
+            return linenr - 1
+
         gaps = False
         for linenr, line in enumerate(lines):
             if line[0] in para_tags:
+                if linenr < line_count - 1 and lines[linenr + 1] in para_tags:
+                    # Only the last consecutive paragraph tag counts
+                    continue
                 para_type = para_types[line[0]]
+                in_quote = None
                 if linenr > 0:
                     add_end_tags(para_type)
                 add_start_tags(para_type)
             else:
-                if line[0] == '@':
-                    gaps = True
+                if line[3] == 'GAP':
+                    if not in_gap:
+                        gaps = True
+                        in_gap = True
+                        result.append(['<gap>'])
+                elif in_gap:
+                    result.append(['</gap>'])
+                    in_gap = False
                 if linenr == 0:
                     # No <p> at the start of the text
                     add_start_tags(sent_start_para_type or 'paragraph')
+                if is_quote(line):
+                    if (in_quote == line[0]
+                        or (linenr < line_count - 1
+                            and lines[linenr + 1][0] == ')')):
+                        # A quote that is immediately followed by a
+                        # closing bracket is hardly an opening quote;
+                        # it might be a closing quote, whose opening
+                        # quote is replaced by a gap.
+                        in_quote = None
+                    else:
+                        in_quote = line[0]
                 result.append(line)
-                if linenr < len(lines) - 1:
-                    if end_after_next:
-                        if lines[linenr + 1] not in para_tags:
-                            add_end_tags(sent_start_para_type)
-                            add_start_tags(sent_start_para_type)
-                        end_after_next = False
-                    if line[0] in '.?!:':
-                        if lines[linenr + 1][0][0] in '"”)]':
-                            if (line[0] == '.'
-                                or (linenr < len(lines) - 2
-                                    and lines[linenr + 2][0][0].isupper())):
-                                end_after_next = True
-                        elif ((line[0] == '.'
-                               or lines[linenr + 1][0][0].isupper())
-                              and lines[linenr + 1][0] not in para_tags):
-                            add_end_tags(sent_start_para_type)
-                            add_start_tags(sent_start_para_type)
+                if (linenr < line_count - 1
+                    and lines[linenr + 1][0] not in para_tags
+                    and is_sent_end(linenr, line)):
+                    add_end_tags(sent_start_para_type)
+                    add_start_tags(sent_start_para_type)
         add_end_tags('paragraph')
         return result
 
