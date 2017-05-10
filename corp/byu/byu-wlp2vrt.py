@@ -72,9 +72,14 @@ class WlpToVrtConverter:
         lines = []
         text_id = None
         for linenr, line in enumerate(f):
-            # Take the last three fields to skip the token number
-            # and text id in the COCA addednum.
-            fields = line.strip('\n').split('\t')[-3:]
+            fields = line.strip('\n').split('\t')
+            if len(fields) == 5:
+                # Take the last three fields to skip the token number
+                # and text id in the COCA addednum.
+                fields = fields[-3:]
+            elif len(fields) == 4 and fields[3] == '':
+                # COHA sometimes has a trailing tab
+                fields = fields[:3]
             if fields[0].startswith('##') or fields[0].startswith('@@'):
                 if lines:
                     self._output_text(text_id, lines, filename, linenr)
@@ -82,9 +87,22 @@ class WlpToVrtConverter:
                 matchobj = re.search(r'(\d+)', fields[0])
                 text_id = matchobj.group(1) if matchobj else None
             else:
+                self._fix_lemma(fields)
                 lines.append(fields)
         if lines:
             self._output_text(text_id, lines, filename, linenr)
+
+    def _fix_lemma(self, fields):
+        # COHA sometimes has NULL in the lemma field
+        if fields[1] == '\x00':
+            fields[1] = fields[0]
+        # GloWbE has an empty lemma for punctuation and the
+        # punctuation mark as the PoS
+        if (fields[1] == '' and fields[2] == fields[0]
+            and (len(fields[0]) == 1 or fields[0] == '...')
+            and not fields[0][0].isalnum()):
+            fields[1] = fields[0]
+            fields[2] = 'y'
 
     def _output_text(self, text_id, lines, filename, linenr):
         attrs = self._metadata.get(text_id, {})
