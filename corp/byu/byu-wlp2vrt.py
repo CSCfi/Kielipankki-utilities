@@ -103,6 +103,10 @@ class WlpToVrtConverter:
             and not fields[0][0].isalnum()):
             fields[1] = fields[0]
             fields[2] = 'y'
+        # Copy @ to lemma and add PoS GAP for omitted parts
+        if fields[0] == '@' and fields[1] in ['', '\x00', '@']:
+            fields[1] = '@'
+            fields[2] = 'GAP'
 
     def _output_text(self, text_id, lines, filename, linenr):
         attrs = self._metadata.get(text_id, {})
