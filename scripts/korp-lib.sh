@@ -843,6 +843,42 @@ word_in () {
     in_str " $1 " " $2 "
 }
 
+# word_index word args ...
+#
+# Output the one-based number of the first argument in args that is
+# equal to word; -1 if none is.
+word_index () {
+    local word arg argnr
+    word=$1
+    shift
+    argnr=1
+    for arg in "$@"; do
+	if [ "$word" = "$arg" ]; then
+	    echo $argnr
+	    return
+	fi
+	argnr=$(($argnr + 1))
+    done
+    echo -1
+}
+
+# get_attr_num attrname attrlist
+#
+# Output the one-based number of positional attribute attrname
+# (possibly followed by a slash) in attrlist.
+get_attr_num () {
+    # set -vx
+    local attrname attrlist index
+    attrname=$1
+    attrlist=$2
+    index=$(word_index $attrname $attrlist)
+    if [ "$index" = -1 ]; then
+	index=$(word_index $attrname/ $attrlist)
+    fi
+    echo $index
+    # set +vx
+}
+
 
 # decode_special_chars [--xml-entities]
 #
