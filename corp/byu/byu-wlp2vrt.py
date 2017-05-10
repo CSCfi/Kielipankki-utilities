@@ -85,6 +85,11 @@ class WlpToVrtConverter:
             elif len(fields) == 4 and fields[3] == '':
                 # COHA sometimes has a trailing tab
                 fields = fields[:3]
+            # COHA files have lines with "q!" as the word, lemma and
+            # PoS at the end of many files. It probably won't hurt to
+            # remove them.
+            if fields[0] == 'q!':
+                continue
             if fields[0].startswith('##') or fields[0].startswith('@@'):
                 if lines:
                     self._output_text(text_id, lines, filename, linenr)
