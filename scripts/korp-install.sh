@@ -32,7 +32,7 @@ progname=$(basename $0)
 
 revert=
 
-remote_git_repo_pattern=taito:/proj/clarin/korp/git/korp-%s.git
+remote_git_repo_pattern=git@github.com:CSCfi/korp-%s.git
 local_git_root=/v/korp/git
 local_git_prefix=$local_git_root/korp-
 backup_root=/v/korp/backup
