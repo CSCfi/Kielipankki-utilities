@@ -72,6 +72,7 @@ class WlpToVrtConverter:
     def _convert_file(self, filename, f):
         lines = []
         text_id = None
+        text_id_marker = None
         self._output_verbose(filename + ':')
         for linenr, line in enumerate(f):
             if self._opts.verbose and (linenr + 1) % self._progress_step == 0:
@@ -90,12 +91,21 @@ class WlpToVrtConverter:
             # remove them.
             if fields[0] == 'q!':
                 continue
-            if fields[0].startswith('##') or fields[0].startswith('@@'):
+            # Check if the line contains a text id: some lines may
+            # begin with a "##" without being text start lines, at
+            # least in COHA.
+            matchobj = None
+            if text_id_marker is None:
+                if fields[0].startswith('##') or fields[0].startswith('@@'):
+                    text_id_marker = fields[0][:2]
+                    matchobj = re.search(r'(\d+)', fields[0])
+            elif fields[0].startswith(text_id_marker):
+                matchobj = re.search(r'([1-9]\d*)', fields[0])
+            if matchobj:
                 if lines:
                     self._output_text(text_id, lines, filename, linenr)
                     lines = []
-                matchobj = re.search(r'(\d+)', fields[0])
-                text_id = matchobj.group(1) if matchobj else None
+                text_id = matchobj.group(1)
             else:
                 self._fix_lemma(fields)
                 self._add_pos_set(fields)
@@ -137,11 +147,16 @@ class WlpToVrtConverter:
 
     def _output_text(self, text_id, lines, filename, linenr):
         attrs = self._metadata.get(text_id, {})
-        attrs['filename'] = os.path.basename(filename)
+        filename_base = os.path.basename(filename)
+        if not attrs:
+            mo = re.search(r'_[12]\d{3}_(\d+)\.txt', filename_base)
+            if mo:
+                text_id = mo.group(1)
+                attrs = self._metadata.get(text_id, {})
         if not attrs:
             self._warn('Metadata information not found for text id ' + text_id,
                        filename, linenr + 1)
-        # print(attrs, self._metadata_fieldnames)
+        attrs['filename'] = filename_base
         self._add_dateinfo(attrs)
         self._output(xu.make_starttag('text', attrnames=self._attrnames,
                                       attrdict=attrs)
