@@ -35,11 +35,13 @@ class WlpToVrtConverter:
         'textID': 'id',
         '#words': 'wordcount',
         '# words': 'wordcount',
+        ' # words ': 'wordcount',  # sources_coha.txt has a leading space
         'subgen': 'subgenre',
         '': 'publ_info',          # For coca-sources.txt
         'Publication information': 'publ_info',
         '(publication info, for non-spoken)': '',  # Skip; for coca-sources.txt
         'Library of Congress Classification (NF)': 'lcc',
+        'Library of Congress classification (NF)': 'lcc',
         'URL': 'url',
     }
     _progress_step = 1000000
