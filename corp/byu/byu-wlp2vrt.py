@@ -216,7 +216,10 @@ class WlpToVrtConverter:
             sent_start = len(result) - 1
 
         def add_end_tags(para_type=None):
-            nonlocal gaps
+            nonlocal gaps, in_gap
+            if in_gap:
+                result.append(['</gap>'])
+                in_gap = False
             result.append(['</sentence>'])
             if para_type:
                 result.append(['</paragraph>'])
