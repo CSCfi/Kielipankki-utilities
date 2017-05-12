@@ -395,7 +395,7 @@ class WlpToVrtConverter:
             sys.stderr.flush()
 
     def _warn(self, text, filename=None, linenr=None):
-        msg = 'Warning ' + text
+        msg = 'Warning: ' + text
         if filename:
             msg += ' (' + filename
         if linenr is not None:
