@@ -72,7 +72,31 @@ class WlpToVrtConverter:
     def _convert_file(self, filename, f):
         lines = []
         text_id = None
-        text_id_marker = None
+
+        def check_text_id(fields):
+            # A line looking like a text id is regarded as a text id
+            # only if the metadata contains information for the id.
+            matchobj = re.search(r'(?:##|@@)([1-9]\d*)', fields[0])
+            if not matchobj:
+                return text_id
+            possible_text_id = matchobj.group(1)
+            if possible_text_id in self._metadata:
+                return possible_text_id
+            else:
+                self._warn('Skipping ' + fields[0]
+                           + (', which looks like a text id but metadata'
+                              ' information not found'),
+                           filename, linenr + 1)
+                return text_id
+
+        def is_possible_text_id(fields):
+            return (fields[0].startswith('##') or fields[0].startswith('@@'))
+
+        mo = re.search(r'_[12]\d{3}_(\d+)\.txt$', filename)
+        if mo:
+            text_id = mo.group(1)
+        text_id_from_filename = (mo is not None)
+        new_text_id = text_id
         self._output_verbose(filename + ':')
         for linenr, line in enumerate(f):
             if self._opts.verbose and (linenr + 1) % self._progress_step == 0:
@@ -91,21 +115,19 @@ class WlpToVrtConverter:
             # remove them.
             if fields[0] == 'q!':
                 continue
-            # Check if the line contains a text id: some lines may
-            # begin with a "##" without being text start lines, at
-            # least in COHA.
-            matchobj = None
-            if text_id_marker is None:
-                if fields[0].startswith('##') or fields[0].startswith('@@'):
-                    text_id_marker = fields[0][:2]
-                    matchobj = re.search(r'(\d+)', fields[0])
-            elif fields[0].startswith(text_id_marker):
-                matchobj = re.search(r'([1-9]\d*)', fields[0])
-            if matchobj:
+            if (not text_id_from_filename and (lines or text_id is None)
+                and is_possible_text_id(fields)):
+                new_text_id = check_text_id(fields)
+            elif (text_id_from_filename and not lines
+                  and is_possible_text_id(fields)):
+                # Skip the first line for COHA files whose text id is
+                # taken from the file name.
+                continue
+            if new_text_id != text_id:
                 if lines:
                     self._output_text(text_id, lines, filename, linenr)
                     lines = []
-                text_id = matchobj.group(1)
+                text_id = new_text_id
             else:
                 self._fix_lemma(fields)
                 self._add_pos_set(fields)
@@ -148,11 +170,6 @@ class WlpToVrtConverter:
     def _output_text(self, text_id, lines, filename, linenr):
         attrs = self._metadata.get(text_id, {})
         filename_base = os.path.basename(filename)
-        if not attrs:
-            mo = re.search(r'_[12]\d{3}_(\d+)\.txt', filename_base)
-            if mo:
-                text_id = mo.group(1)
-                attrs = self._metadata.get(text_id, {})
         if not attrs:
             self._warn('Metadata information not found for text id ' + text_id,
                        filename, linenr + 1)
