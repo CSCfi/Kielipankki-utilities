@@ -13,8 +13,6 @@ Convert Mark Davies's corpora in word/lemma/PoS format to VRT.
 #   from the publication information field to separate attributes,
 #   dependent on corpus and genre.
 # - Check for unwanted characters, like special spaces.
-# - Split the GloWbE metadata field "country genre" to separate
-#   country and genre.
 
 
 import re
@@ -57,14 +55,28 @@ class WlpToVrtConverter:
             reader = csv.DictReader(metadatafile, delimiter='\t',
                                     quoting=csv.QUOTE_NONE, restval='')
             for fields in reader:
-                if fields['textID'] not in ['----', '']:
-                    self._metadata[fields['textID']] = dict(
+                if fields['textID'].isdigit():
+                    fieldvals = dict(
                         ((name, val.strip()) for name, val in fields.items()))
+                    if 'country genre' in fields:
+                        # print(fields['textID'], fields['country genre'])
+                        country, genre = fields['country genre'].split()
+                        fieldvals.update(
+                            dict([('country', country), ('genre', genre)]))
+                    self._metadata[fields['textID']] = fieldvals
+            # The items in _attrnames are names or pairs (output_name,
+            # input_name) handled by korpimport.xmlutil.make_starttag
             self._attrnames = [
                 (self._attrname_map.get(fieldname, fieldname)
                  .lower().replace(' ', '_'), fieldname)
-                for fieldname in reader.fieldnames] + [
-                        'filename', 'datefrom', 'dateto']
+                for fieldname in reader.fieldnames]
+            try:
+                cg_index = self._attrnames.index(
+                    ('country_genre', 'country genre'))
+                self._attrnames[cg_index:cg_index+1] = ['country', 'genre']
+            except ValueError:
+                pass
+            self._attrnames += ['filename', 'datefrom', 'dateto']
 
     def convert(self):
         for filename in self._filenames:
