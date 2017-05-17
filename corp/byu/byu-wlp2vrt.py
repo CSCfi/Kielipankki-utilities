@@ -151,9 +151,11 @@ class WlpToVrtConverter:
             self._output_text(text_id, lines, filename, linenr)
 
     def _fix_lemma(self, fields):
-        # COHA sometimes has NULL in the lemma field
+        # COHA sometimes has NULL in the lemma or PoS field
         if fields[1] == '\x00':
             fields[1] = fields[0]
+        if fields[2] == '\x00':
+            fields[2] = 'UNKNOWN'
         # GloWbE has an empty lemma for punctuation and the
         # punctuation mark as the PoS
         if (fields[1] == '' and fields[2] == fields[0]
