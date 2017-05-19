@@ -133,8 +133,8 @@ class WlpToVrtConverter:
                 fields = fields[:3]
             # COHA files have lines with "q!" as the word, lemma and
             # PoS at the end of many files. It probably won't hurt to
-            # remove them.
-            if fields[0] == 'q!':
+            # remove them. A file in GloWbE ends in Ctrl-Z.
+            if fields[0] in ['q!', '\x1a']:
                 continue
             if (not text_id_from_filename and (lines or text_id is None)
                 and is_possible_text_id(fields)):
@@ -159,9 +159,9 @@ class WlpToVrtConverter:
 
     def _fix_lemma(self, fields):
         # COHA sometimes has NULL in the lemma or PoS field
-        if fields[1] == '\x00':
+        if len(fields) < 2 or fields[1] == '\x00':
             fields[1] = fields[0]
-        if fields[2] == '\x00':
+        if len(fields) < 3 or fields[2] == '\x00':
             fields[2] = 'UNKNOWN'
         # GloWbE has an empty lemma for punctuation and the
         # punctuation mark as the PoS
