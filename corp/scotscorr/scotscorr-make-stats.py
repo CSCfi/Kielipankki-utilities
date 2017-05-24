@@ -92,39 +92,13 @@ class StatsMaker(korputil.InputProcessor):
             self._output_tables.append(self._make_by_locality(gender))
 
     def _make_by_locality(self, gender):
-
-        def make_counts(df, group_cols):
-            counts = {}
-            groups = df.groupby(group_cols)
-            counts['letters'] = groups.count()['wc']
-            counts['tokens'] = groups['wc'].sum()
-            # Hint for this from
-            # http://stackoverflow.com/questions/17679089/pandas-dataframe-groupby-two-columns-and-get-counts
-            counts['informants'] = (
-                groups['from']
-                .value_counts()
-                .groupby(level=range(len(group_cols)))
-                .count())
-            return counts
-
-        def get_counts(counts, key):
-            # print key
-            try:
-                # for count_type in counts.iterkeys():
-                #     print count_type, key, type(counts[count_type]), repr(counts[count_type].ix[key] if isinstance(key, basestring) else counts[count_type].ix[key[0]][key[1]]).decode('utf-8')
-                return dict([(count_type, counts[count_type].ix[key])
-                             for count_type in counts.iterkeys()])
-            except (KeyError, IndexingError):
-                # print "KeyError"
-                return {}
-
         table = DictTable()
         letters = self._letter_info.query(
             'gender == "{gender}"'.format(gender=gender))
-        counts = make_counts(letters, ['lcinf', 'period'])
-        loc_counts = make_counts(letters, ['lcinf'])
-        lr_counts = make_counts(letters, ['largeregion'])
-        total_counts = make_counts(letters, ['period'])
+        counts = self._make_counts(letters, ['lcinf', 'period'])
+        loc_counts = self._make_counts(letters, ['lcinf'])
+        lr_counts = self._make_counts(letters, ['largeregion'])
+        total_counts = self._make_counts(letters, ['period'])
         token_count_total_all = lr_counts['tokens'].sum()
         token_count_total_geodef = (
             letters.query('lcinf != "Professional" and lcinf != "unlocalised"')
@@ -133,7 +107,8 @@ class StatsMaker(korputil.InputProcessor):
 
         def add_larger_region_totals(table, region):
             table[-1]['Larger region']['bold'] = True
-            table.add_cell('Larger region total', get_counts(lr_counts, region))
+            table.add_cell('Larger region total',
+                           self._get_counts(lr_counts, region))
             table.add_cell(
                 'Larger region total %',
                 (lr_counts['tokens'][region] * 1.0
@@ -151,13 +126,14 @@ class StatsMaker(korputil.InputProcessor):
             table.add_cell('Larger region total', cnts)
             table.add_cell('Larger region total %', 100.0)
             for period in self._periods:
-                table.add_cell(period, get_counts(total_counts, period))
+                table.add_cell(period, self._get_counts(total_counts, period))
             table.add_row()
             table.add_cell('Locality', 'Total %')
             for period in self._periods:
-                table.add_cell(period,
-                               (get_counts(total_counts, period)['tokens'] * 1.0
-                                / token_count_total_all * 100.0))
+                table.add_cell(
+                    period,
+                    (self._get_counts(total_counts, period)['tokens'] * 1.0
+                     / token_count_total_all * 100.0))
             table.add_cell('Larger region total %', 100.0)
 
         for locality, larger_region in self._locality_order:
@@ -178,7 +154,8 @@ class StatsMaker(korputil.InputProcessor):
                     '% of geographically defined',
                     token_cnt * 1.0 / token_count_total_geodef * 100.0)
             for period in self._periods:
-                table.add_cell(period, get_counts(counts, (locality, period)))
+                table.add_cell(period,
+                               self._get_counts(counts, (locality, period)))
             prev_lr = larger_region
         add_larger_region_totals(table, prev_lr)
         add_totals(table)
@@ -194,6 +171,31 @@ class StatsMaker(korputil.InputProcessor):
             'title': gender.title() + (u' informants in the Helsinki Corpus of'
                                        u' Scottish Correspondence 1540–1750'),
         }
+
+    def _make_counts(self, df, group_cols):
+        counts = {}
+        groups = df.groupby(group_cols)
+        counts['letters'] = groups.count()['wc']
+        counts['tokens'] = groups['wc'].sum()
+        # Hint for this from
+        # http://stackoverflow.com/questions/17679089/pandas-dataframe-groupby-two-columns-and-get-counts
+        counts['informants'] = (
+            groups['from']
+            .value_counts()
+            .groupby(level=range(len(group_cols)))
+            .count())
+        return counts
+
+    def _get_counts(self, counts, key):
+        # print key
+        try:
+            # for count_type in counts.iterkeys():
+            #     print count_type, key, type(counts[count_type]), repr(counts[count_type].ix[key] if isinstance(key, basestring) else counts[count_type].ix[key[0]][key[1]]).decode('utf-8')
+            return dict([(count_type, counts[count_type].ix[key])
+                         for count_type in counts.iterkeys()])
+        except (KeyError, IndexingError):
+            # print "KeyError"
+            return {}
 
     def _format_table(self, table, col_order, headings=None):
         formatted_table = []
