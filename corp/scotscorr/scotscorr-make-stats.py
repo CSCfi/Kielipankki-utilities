@@ -640,7 +640,7 @@ td.num {text-align: right;}
                 type='choice',
                 choices=['html', 'docx'],
                 default='html',
-                help='output in FORMAT: text or docx (default: %default)')]
+                help='output in FORMAT: html or docx (default: %default)')]
         )
         if self._opts.output_format == 'docx':
             self._output_encoding = None
