@@ -42,7 +42,7 @@ class StatsMaker(korputil.InputProcessor):
     _localities = [
         ('North', [
             'Moray',
-            #'Invernesshire',
+            'Invernessshire',
             'Sutherland',
             'Ross',]),
         ('North-East', [
