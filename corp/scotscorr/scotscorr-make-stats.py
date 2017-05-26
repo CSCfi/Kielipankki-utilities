@@ -523,8 +523,9 @@ class StatsMaker(korputil.InputProcessor):
 
         def output(self, tables_info):
             self._output_header()
-            for table_info in tables_info:
-                self._output_heading(table_info['title'], 2)
+            for tablenum, table_info in enumerate(tables_info):
+                self._output_heading('Table ' + unicode(tablenum + 1) + '. '
+                                     + table_info['title'], 2)
                 self._output_table(table_info['table'])
             self._output_footer()
 
