@@ -477,8 +477,8 @@ class StatsMaker(korputil.InputProcessor):
                 elif 'value' not in cell:
                     if cell.get('tokens'):
                         cell['value'] = (
-                            u'{tokens}\n{informants} / {letters}'
-                            .format(**dict((key, str(cell.get(key)))
+                            u'{tokens:,d}\n{informants:,d} / {letters:,d}'
+                            .format(**dict((key, cell.get(key))
                                            for key in ['tokens', 'informants',
                                                        'letters'])))
                     else:
@@ -486,9 +486,12 @@ class StatsMaker(korputil.InputProcessor):
                     cell['class'] = 'num'
                 else:
                     value = cell.get('value')
-                    cell['value'] = ('{0:.1f}'.format(value)
-                                     if isinstance(value, float) 
-                                     else str(value))
+                    if isinstance(value, float):
+                        cell['value'] = '{0:.1f}'.format(value)
+                    elif isinstance(value, int):
+                        cell['value'] = '{0:,d}'.format(value)
+                    else:
+                        cell['value'] = unicode(value)
                     if isinstance(value, float) or isinstance(value, int):
                         cell['class'] = 'num'
                 formatted_row.append(cell)
