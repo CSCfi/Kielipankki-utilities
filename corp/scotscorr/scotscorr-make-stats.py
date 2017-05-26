@@ -85,7 +85,8 @@ class StatsMaker(korputil.InputProcessor):
         self._letter_info = pd.read_csv(
             stream, sep='\t', encoding=self._input_encoding, index_col='fn')
         self._letter_info = self._letter_info[
-            ['period', 'gender', 'lcinf', 'largeregion', 'wc_new', 'from']]
+            ['period', 'gender', 'lcinf', 'largeregion', 'wc_new', 'from',
+             'from_lcinf']]
         self._letter_info = self._letter_info.rename(columns={'wc_new': 'wc'})
 
     def _generate_output(self):
@@ -195,7 +196,7 @@ class StatsMaker(korputil.InputProcessor):
         # Hint for this from
         # http://stackoverflow.com/questions/17679089/pandas-dataframe-groupby-two-columns-and-get-counts
         counts['informants'] = (
-            groups['from']
+            groups['from_lcinf']
             .value_counts()
             .groupby(level=range(len(group_cols)))
             .count())
@@ -225,7 +226,7 @@ class StatsMaker(korputil.InputProcessor):
             self._letter_info.groupby(['gender'])['wc'].sum())
         counts['informants'] = (
             self._letter_info.groupby(['gender'])
-            ['from']
+            ['from_lcinf']
             .value_counts()
             .groupby(level=0)
             .count())
@@ -399,7 +400,7 @@ class StatsMaker(korputil.InputProcessor):
         table.add_row()
         table.add_cell('Locality', 'Total')
         table.add_cell('Number of informants',
-                       letters['from'].value_counts().count())
+                       letters['from_lcinf'].value_counts().count())
         table.add_cell('Number of letters', letters['wc'].count())
         formatted_table = self._format_table(
             table, ['Locality', 'Number of informants', 'Number of letters',
@@ -429,7 +430,7 @@ class StatsMaker(korputil.InputProcessor):
                 table.add_cell('%', 100.0 * period_total / total_words)
                 table.add_cell('N Letters', letters['wc'].count())
                 table.add_cell('N Informants',
-                               letters['from'].value_counts().count())
+                               letters['from_lcinf'].value_counts().count())
 
         for cat in cats:
             if ' ' in cat:
