@@ -64,6 +64,7 @@ class StatsMaker(korputil.InputProcessor):
         ('Unlocalised', ['unlocalised']),
     ]
     _periods = [u'1540–1599', u'1600–1649', u'1650–1699', u'1700–1749']
+    _genders = [u'male', u'female', u'royal']
 
     def __init__(self):
         super(StatsMaker, self).__init__()
@@ -88,8 +89,22 @@ class StatsMaker(korputil.InputProcessor):
         self._letter_info = self._letter_info.rename(columns={'wc_new': 'wc'})
 
     def _generate_output(self):
-        for gender in ['male', 'female']:
-            self._output_tables.append(self._make_by_locality(gender))
+        make_table_fns = [(self._make_by_locality, True),
+                          (self._make_overview, False),
+                          (self._make_by_larger_region, True),
+                          (self._make_by_category, False),
+                          (self._make_geodef, False),
+                          (self._make_informants_by_locality, True),
+                          (self._make_by_category_period, False)]
+        for make_table_fn, split_by_gender in make_table_fns:
+            self._add_output_tables(make_table_fn, split_by_gender)
+
+    def _add_output_tables(self, make_table_fn, split_by_gender=False):
+        if split_by_gender:
+            for gender in ['male', 'female']:
+                self._output_tables.append(make_table_fn(gender))
+        else:
+            self._output_tables.append(make_table_fn())
 
     def _make_by_locality(self, gender):
         table = DictTable()
@@ -196,6 +211,259 @@ class StatsMaker(korputil.InputProcessor):
         except (KeyError, IndexingError):
             # print "KeyError"
             return {}
+
+    def _make_overview(self):
+        table = DictTable()
+        counts = {}
+        counts['tokens'] = (
+            self._letter_info.groupby(['period', 'gender'])['wc'].sum())
+        tokens_total = counts['tokens'].sum()
+        # sys.stdout.write(repr(counts['tokens']).decode('utf-8'))
+        counts['period_totals'] = (
+            self._letter_info.groupby(['period'])['wc'].sum())
+        counts['gender_totals'] = (
+            self._letter_info.groupby(['gender'])['wc'].sum())
+        counts['informants'] = (
+            self._letter_info.groupby(['gender'])
+            ['from']
+            .value_counts()
+            .groupby(level=0)
+            .count())
+        counts['letters'] = self._letter_info.groupby(['gender']).count()['wc']
+        for gender in self._genders:
+            table.add_row()
+            table.add_cell('Gender/rank',
+                           gender.title() if gender != 'royal' else 'Court')
+            for period in self._periods:
+                try:
+                    count = counts['tokens'].ix[period].ix[gender]
+                except (KeyError, IndexingError):
+                    count = {}
+                table.add_cell(period, count)
+            table.add_cell('Total', counts['gender_totals'].ix[gender])
+            table.add_cell(
+                '%', 100.0 * counts['gender_totals'].ix[gender] / tokens_total)
+            table.add_cell('N Informants', counts['informants'].ix[gender])
+            table.add_cell('N Letters', counts['letters'].ix[gender])
+        table.add_row()
+        table.add_cell('Gender/rank', 'Total')
+        for period in self._periods:
+            table.add_cell(period, counts['period_totals'].ix[period])
+        table.add_cell('Total', tokens_total)
+        table.add_cell('N Informants', counts['informants'].sum())
+        table.add_cell('N Letters', counts['letters'].sum())
+        table.add_row()
+        table.add_cell('Gender/rank', '%')
+        for period in self._periods:
+            table.add_cell(
+                period,
+                100.0 * counts['period_totals'].ix[period] / tokens_total)
+        table.add_cell('%', 100.0)
+        formatted_table = self._format_table(
+            table, (['Gender/rank'] + self._periods
+                    + ['Total', '%', 'N Informants', 'N Letters']),
+            headings='bold')
+        return {
+            'table': formatted_table,
+            'title': (u'Informants in the Helsinki Corpus of'
+                      u' Scottish Correspondence 1540–1750'),
+        }
+
+    def _make_by_larger_region(self, gender):
+        table = DictTable()
+        letters = self._letter_info.query(
+            'gender == "{gender}"'.format(gender=gender))
+        lr_counts = self._make_counts(letters, ['largeregion'])['tokens']
+        # sys.stdout.write(repr(lr_counts))
+        token_count_total_geodef = (
+            letters.query('lcinf != "Professional" and lcinf != "unlocalised"')
+            ['wc'].sum())
+        # print(token_count_total_geodef)
+        larger_regions = [lr for lr, regs in self._localities
+                          if lr not in ['Professional', 'Unlocalised']]
+        for larger_region in larger_regions:
+            table.add_row()
+            table.add_cell('Area', larger_region)
+            table.add_cell(
+                'Percentage',
+                100.0 * lr_counts.ix[larger_region] / token_count_total_geodef)
+        table.add_row()
+        table.add_cell('Area', 'Total')
+        table.add_cell('Percentage', 100.0)
+        formatted_table = self._format_table(table, ['Area', 'Percentage'],
+                                             headings='bold')
+        return {
+            'table': formatted_table,
+            'title': (u'Percentages of correspondence by ' + gender
+                      + u' writers in the five larger areas of Scotland in'
+                      + u'the ScotsCorr corpus'),
+        }
+
+    def _make_geodef(self):
+        table = DictTable()
+        letters = self._letter_info.query(
+            'lcinf != "Professional" and lcinf != "unlocalised"'
+            ' and lcinf != "Court"')
+        counts = letters.groupby(['largeregion', 'gender'])['wc'].sum()
+        counts_gender = letters.groupby(['gender'])['wc'].sum()
+        token_count_total_geodef = letters['wc'].sum()
+        larger_regions = [lr for lr, regs in self._localities
+                          if lr not in ['Professional', 'Unlocalised']]
+        for larger_region in larger_regions:
+            table.add_row()
+            table.add_cell('Region', larger_region)
+            for gender in ['male', 'female']:
+                table.add_cell(gender.title(), counts.ix[larger_region, gender])
+            total = counts.ix[larger_region].sum()
+            table.add_cell('Total', total)
+            table.add_cell('%', 100.0 * total / token_count_total_geodef)
+        table.add_row()
+        table.add_cell('Region', 'Total')
+        for gender in ['male', 'female']:
+            table.add_cell(gender.title(), counts_gender[gender])
+            table.add_cell('Total', token_count_total_geodef)
+            table.add_cell('%', 100.0)
+        formatted_table = self._format_table(
+            table, ['Region', 'Male', 'Female', 'Total', '%'],
+            headings='bold')
+        return {
+            'table': formatted_table,
+            'title': (u'Geographically defined informants in the ScotsCorr'
+                      u' corpus'),
+        }
+
+    def _make_by_category(self):
+        table = DictTable()
+        total = self._letter_info['wc'].sum()
+        table.add_row()
+        table.add_cell('Category', 'Geographically defined')
+        token_count = self._letter_info.query(
+            'lcinf != "Professional" and lcinf != "unlocalised"'
+            ' and lcinf != "Court"')['wc'].sum()
+        table.add_cell('Words', token_count)
+        table.add_cell('%', 100.0 * token_count / total)
+        for lcinf in ['Professional', 'unlocalised', 'Court']:
+            token_count = (
+                self._letter_info.query('lcinf == "{0}"'.format(lcinf))
+                ['wc'].sum())
+            table.add_row()
+            table.add_cell('Category', lcinf.title())
+            table.add_cell('Words', token_count)
+            table.add_cell('%', 100.0 * token_count / total)
+        table.add_row()
+        table.add_cell('Category', 'Total')
+        table.add_cell('Words', total)
+        table.add_cell('%', 100.0)
+        formatted_table = self._format_table(
+            table, ['Category', 'Words', '%'], headings='bold')
+        return {
+            'table': formatted_table,
+            'title': (u'Number of words by letter category in the ScotsCorr'
+                      u' corpus'),
+        }
+
+    def _make_informants_by_locality(self, gender):
+        table = DictTable()
+        letters = self._letter_info.query(
+            'gender == "{gender}"'.format(gender=gender))
+        loc_counts = self._make_counts(letters, ['lcinf'])
+        lr_counts = self._make_counts(letters, ['largeregion'])
+        # total_counts = self._make_counts(letters, [])
+
+        def get_count(count, locality):
+            try:
+                return count.ix[locality]
+            except (KeyError, IndexingError):
+                return {}
+
+        def get_count_str(count, locality):
+            return unicode(get_count(count, locality) or u'–')
+
+        def add_row(table, locality, counts):
+            table.add_row()
+            table.add_cell('Locality', locality)
+            table.add_cell('Number of informants',
+                           get_count(counts['informants'], locality))
+            table.add_cell('Number of letters',
+                           get_count(counts['letters'], locality))
+
+        for larger_region, localities in self._localities:
+            for locality in localities:
+                add_row(table, locality, loc_counts)
+            table.add_cell(
+                'Larger region',
+                larger_region + ' '
+                + get_count_str(lr_counts['informants'], larger_region)
+                + ' / '
+                + get_count_str(lr_counts['letters'], larger_region))
+        table.add_row()
+        table.add_cell('Locality', 'Total')
+        table.add_cell('Number of informants',
+                       letters['from'].value_counts().count())
+        table.add_cell('Number of letters', letters['wc'].count())
+        formatted_table = self._format_table(
+            table, ['Locality', 'Number of informants', 'Number of letters',
+                    'Larger region'],
+            headings='bold')
+        return {
+            'table': formatted_table,
+            'title': (u'Number of ' + gender + ' informants and their letters'
+                      u' by locality or district in the ScotsCorr corpus'),
+        }
+
+    def _make_by_category_period(self):
+        cats = ['Male', 'Male Professional', 'Male unlocalised',
+                'Female', 'Female unlocalised', 'Court']
+        table = DictTable()
+        total_words = self._letter_info['wc'].sum()
+
+        def add_row(table, letters, cat):
+            table.add_row()
+            table.add_cell('Category', cat)
+            for period in self._periods:
+                table.add_cell(
+                    period, letters.query(u'period == u"{period}"'
+                                          .format(period=period))['wc'].sum())
+                period_total = letters['wc'].sum()
+                table.add_cell('Total', period_total)
+                table.add_cell('%', 100.0 * period_total / total_words)
+                table.add_cell('N Letters', letters['wc'].count())
+                table.add_cell('N Informants',
+                               letters['from'].value_counts().count())
+
+        for cat in cats:
+            if ' ' in cat:
+                gender, lcinf = cat.split()
+                lcinf_cond = ' and lcinf == "{lcinf}"'.format(lcinf=lcinf)
+            elif cat == 'Court':
+                gender = 'royal'
+                lcinf_cond = ''
+            else:
+                gender = cat
+                lcinf_cond = (
+                    ' and lcinf != "Court" and lcinf != "Professional"'
+                    ' and lcinf != "unlocalised"')
+            letters = self._letter_info.query(
+                'gender == "{gender}"{lcinf_cond}'.format(
+                    gender=gender.lower(), lcinf_cond=lcinf_cond))
+            add_row(table, letters, cat)
+        add_row(table, self._letter_info, 'Total')
+        table.add_row()
+        table.add_cell('Category', '%')
+        for period in self._periods:
+            table.add_cell(period,
+                           100.0 * table[-2][period]['value'] / total_words)
+            table.add_cell('Total', 100.0)
+        formatted_table = self._format_table(
+            table, (['Category'] + self._periods
+                    + ['Total', '%', 'N Informants', 'N Letters']),
+            headings='bold')
+        return {
+            'table': formatted_table,
+            'title': (u'Geographically defined male and female writers,'
+                      u' professional male writers, and unlocalized male and'
+                      ' female writers in the ScotsCorr corpus'),
+        }
 
     def _format_table(self, table, col_order, headings=None):
         formatted_table = []
