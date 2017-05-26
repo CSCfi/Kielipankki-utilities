@@ -6,7 +6,7 @@ progdir=`dirname $0`
 
 scriptdir=$progdir/../../scripts
 
-usage_header="Usage: $progname > wordcounts.tsv
+usage_header="Usage: $progname [options] > wordcounts.tsv
 
 Make a table of word counts (in TSV format) in each letter in the
 ScotsCorr data.
@@ -15,9 +15,16 @@ The columns in the output are: corpus id, filename, word count, year,
 datefrom, from, to, srg, arg, largeregion, lcinf, lclet, old word
 count, word count difference (new - old)."
 
-optspecs=
+optspecs='
+vrt-dir=DIR
+    use the VRT files in DIR instead of the encoded CWB corpus data
+'
 
 . $scriptdir/korp-lib.sh
+
+
+# Process options
+eval "$optinfo_opt_handler"
 
 
 vrt_count_words () {
@@ -65,11 +72,21 @@ vrt_count_words () {
     '
 }
 
+cat_corpus () {
+    local corp
+    corp=$1
+    if [ "x$vrt_dir" != x ]; then
+	cat "$vrt_dir/$corp.vrt"
+    else
+	$scriptdir/cwbdata2vrt.py $corp |
+	$scriptdir/vrt-convert-chars.py --decode
+    fi
+}
+
 corpus_count_words () {
     local corp
     corp=$1
-    $scriptdir/cwbdata2vrt.py $corp |
-    $scriptdir/vrt-convert-chars.py --decode |
+    cat_corpus $corp |
     vrt_count_words $corp
     headings=0
 }
