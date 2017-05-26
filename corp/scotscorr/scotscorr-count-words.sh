@@ -37,7 +37,7 @@ vrt_count_words () {
 	use utf8;
 	@attrlist = qw(corpus period gender fn wc_new year datefrom
 		       from to wgr agr largeregion lcinf lclet from_lcinf
-                       wc wc_diff);
+                       from_period wc wc_diff);
         %gender_map = (m => "male", f => "female", royal => "royal");
 	if ('"$headings"') {
 	    print join ("\t", @attrlist) . "\n";
@@ -72,6 +72,7 @@ vrt_count_words () {
 		    wc_new => $wc,
 		    wc_diff => $wc - $attrs{wc},
                     from_lcinf => "$attrs{from} ($attrs{lcinf})",
+                    from_period => "$attrs{from} ($period)"
 		);
 		print join ("\t", map ("$attrs{$_}", @attrlist)) . "\n";
 	    } elsif (/^<.*>$/) {
