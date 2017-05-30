@@ -105,6 +105,8 @@ no-wordpicture|skip-wordpicture !wordpicture
 no-name-attrs|no-name-attributes|skip-name-attrs|skip-name-attributes !name_attrs
     do not add named-entity information based on a NER tag as the last
     positional attribute
+no-package !make_package
+    do not create a corpus package
 korp-frontend-dir=DIR "$korp_frontend_dir"
     read Korp configuration files from DIR, to be included in corpus
     package
@@ -583,6 +585,11 @@ make_corpus_package () {
     run_cmd $korp_make_corpus_package --target-corpus-root /v/corpora \
 	--tsv-dir "$tsvdir" --database-format tsv --compress gzip \
 	--vrt-file $vrt_file.gz $extra_opts $corpus
+}
+
+test_skip_make_corpus_package () {
+    [ "x$make_package" = x ] &&
+    echo "requested not to create"
 }
 
 import_database () {
