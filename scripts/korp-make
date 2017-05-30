@@ -100,6 +100,10 @@ keep-structure-ids|keep-element-ids keep_struct_ids
     listed with --add-structure-ids
 tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
     output database tables as TSV files to DIR
+no-lemmas-without-boundaries|skip-lemmas-without-boundaries !lemams_without_boundaries
+    do not add lemmas without compound boundaries
+no-lemgrams|skip-lemgrams !lemgrams
+    do not add lemgrams
 no-wordpicture|skip-wordpicture !wordpicture
     do not extract word picture relations database tables
 no-name-attrs|no-name-attributes|skip-name-attrs|skip-name-attributes !name_attrs
@@ -245,12 +249,6 @@ if [ "x$name_attrs" != x ] && ! word_in nertag "$initial_input_attrs"; then
     initial_input_attrs="$initial_input_attrs nertag"
 fi
 input_attrs=$initial_input_attrs
-if ! word_in lemmacomp "$initial_input_attrs"; then
-    input_attrs=${input_attrs/lemma /lemma lemmacomp }
-fi
-if ! word_in lex/ "$initial_input_attrs"; then
-    input_attrs="$input_attrs lex/"
-fi
 
 verbose_opt=
 if [ "x$verbose" != x ]; then
@@ -343,7 +341,9 @@ run_stages () {
 
 # Stage functions and their descriptions
 stages=(
-    add_new_attrs "Adding lemgrams and lemmas without compound boundaries"
+    combine_input "Combining input files"
+    add_lemgrams "Adding lemgrams"
+    add_lemmas_without_boundaries "Anding lemmas without compound boundaries"
     add_datefromto "Adding datefrom and dateto"
     sort_texts "Sorting text elements"
     add_struct_ids "Adding structure ids"
@@ -360,49 +360,71 @@ stages=(
 )
 
 
-add_lemmas_without_boundaries () {
-    run_cmd $vrt_fix_attrs --input-fields "word $initial_input_attrs" \
-	--output-fields "word $(echo "$initial_input_attrs" | sed -e 's/lemma/lemma:noboundaries lemma/')" \
-	--compound-boundary-marker='|' --compound-boundary-can-replace-hyphen
-}
-
-add_lemgrams () {
-    run_cmd $vrt_add_lemgrams --pos-map-file "$lemgram_posmap" \
-	--lemma-field=3 --pos-field=5
-}
-
-add_new_attrs () {
+combine_input () {
     # Skip empty lines in the input VRT, in order to avoid a differing
     # number of tokens from the already encoded attributes (assuming
     # that cwb-encode was told to skip empty lines).
     comprcat "${input_files[@]}" |
-    grep -v '^$' |
-    add_lemmas_without_boundaries |
-    add_lemgrams > $vrt_file
-    if [ $? != 0 ]; then
-	exit_on_error false
+    grep -v '^$' > $vrt_file
+}
+
+test_skip_combine_input () {
+    if [ -r $vrt_file.gz ] && [ -s $vrt_file.gz ]; then
+	gunzip $vrt_file.gz
+    fi
+    if [ -r $vrt_file ] && [ -s $vrt_file ]; then
+	echo "using existing VRT file $vrt_file"
     fi
 }
 
-test_skip_add_new_attrs () {
-    if { corpus_exists $corpus &&
-	    corpus_has_attr $corpus p lemmacomp &&
-	    corpus_has_attr $corpus p lex; } ||
-	{ word_in lemmacomp "$initial_input_attrs" &&
-	    word_in lex/ "$initial_input_attrs"; }
+add_lemmas_without_boundaries () {
+    process_vrt $vrt_fix_attrs --input-fields "word $initial_input_attrs" \
+	--output-fields "word $(input_attrs/lemma/lemma:noboundaries lemma/)" \
+	--compound-boundary-marker='|' --compound-boundary-can-replace-hyphen
+    input_attrs=${input_attrs/lemma /lemma lemmacomp }
+}
+
+test_skip_add_lemmas_without_boundaries () {
+    if [ "x$lemmas_without_boundaries" = x ]; then
+	echo "requested not to add"
+    elif ! word_in lemma "$initial_input_attrs"; then
+	echo "no attribute lemma"
+    elif { corpus_exists $corpus &&
+	    corpus_has_attr $corpus p lemmacomp; } ||
+	word_in lemmacomp "$initial_input_attrs"
     then
-	if [ -r $vrt_file.gz ] && [ -s $vrt_file.gz ]; then
-	    gunzip $vrt_file.gz
-	fi
-	if [ ! -r $vrt_file ] || [ ! -s $vrt_file ]; then
-	    comprcat "${input_files[@]}" > $vrt_file
-	fi
-	if [ ! -r $vrt_file ]; then
-	    error "Cannot read VRT file $vrt_file"
-	elif [ ! -s $vrt_file ]; then
-	    error "VRT file $vrt_file is empty"
-	fi
 	echo "already present"
+    fi
+}
+
+add_lemgrams () {
+    process_vrt $vrt_add_lemgrams --pos-map-file "$lemgram_posmap" \
+	--lemma-field=$(($(get_attr_num lemma "$input_attrs") + 1)) \
+	--pos-field=$(($(get_attr_num pos "$input_attrs") + 1))
+    if [ $? != 0 ]; then
+	exit_on_error false
+    fi
+    input_attrs="$input_attrs lex/"
+}
+
+test_skip_add_lemgrams () {
+    local attr
+    if [ "x$lemgrams" = x ]; then
+	echo "requested not to add"
+    elif { corpus_exists $corpus &&
+	    corpus_has_attr $corpus p lex; } ||
+	word_in lex/ "$initial_input_attrs"
+    then
+	echo "already present"
+    else
+	for attr in lemma pos; do
+	    if ! { word_in $attr "$initial_input_attrs" ||
+		    word_in $attr/ "$initial_input_attrs"; }
+	    then
+		echo "no attribute $attr"
+		break
+	    fi
+	done
     fi
 }
 
