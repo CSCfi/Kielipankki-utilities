@@ -371,27 +371,6 @@ add_lemgrams () {
 	--lemma-field=3 --pos-field=5
 }
 
-check_corpus_size () {
-    curr_size=$(
-	$cwb_describe_corpus $corpus |
-	grep -E '^size \(tokens\)' |
-	awk '{print $NF}'
-    )
-    new_size=$(grep -E -cv '^<' $vrt_file)
-    if [ $curr_size != $new_size ]; then
-	error "The input has $new_size tokens, whereas the existing corpus has $curr_size; aborting"
-    fi
-}
-
-filter_attrs () {
-    _grep_opts="$1"
-    shift
-    echo "$@" |
-    tr ' ' '\n' |
-    grep -En $_grep_opts |
-    grep -E ":($(echo $new_attrs | sed -e 's/ /|/g'))/?\$"
-}
-
 add_new_attrs () {
     # Skip empty lines in the input VRT, in order to avoid a differing
     # number of tokens from the already encoded attributes (assuming
