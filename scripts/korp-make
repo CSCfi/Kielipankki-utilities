@@ -291,6 +291,11 @@ run_cmd () {
     "$@"
 }
 
+process_vrt () {
+    run_cmd "$@" < $vrt_file > $vrt_file.new
+    replace_file $vrt_file $vrt_file.new
+}
+
 time_stage () {
     time_cmd --format "- CPU time used: %U %R" "$@"
 }
@@ -433,9 +438,8 @@ add_datefromto () {
     if [ "x$corpus_date_full_order" != "x" ]; then
 	opts="$opts --full-dates --full-date-order=$corpus_date_full_order"
     fi
-    run_cmd $vrt_extract_timespans --mode=add --output-full-dates=always \
-	$opts "$corpus_date_pattern" < $vrt_file > $vrt_file.new
-    replace_file $vrt_file $vrt_file.new
+    process_vrt $vrt_extract_timespans --mode=add --output-full-dates=always \
+	$opts "$corpus_date_pattern"
 }
 
 test_skip_add_datefromto () {
@@ -445,8 +449,7 @@ test_skip_add_datefromto () {
 sort_texts () {
     # Use eval to get the separate options in $text_sort_opts
     # correctly
-    eval run_cmd $vrt_sort_texts $text_sort_opts < $vrt_file > $vrt_file.new
-    replace_file $vrt_file $vrt_file.new
+    eval process_vrt $vrt_sort_texts $text_sort_opts
 }
 
 test_skip_sort_texts () {
@@ -463,8 +466,7 @@ add_struct_ids () {
     for struct in $add_struct_ids; do
 	opts="$opts --structure=$struct"
     done
-    run_cmd $vrt_add_struct_ids $opts < $vrt_file > $vrt_file.new
-    replace_file $vrt_file $vrt_file.new
+    process_vrt $vrt_add_struct_ids $opts
 }
 
 test_skip_add_struct_ids () {
