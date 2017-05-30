@@ -532,7 +532,11 @@ extract_lemgrams () {
 }
 
 test_skip_extract_lemgrams () {
-    [ -s $tsvdir/${corpus}_lemgrams.tsv.gz ] && echo "already extracted"
+    if ! word_in lex/ "$input_attrs"; then
+	echo "lemgrams not present"
+    elif [ -s $tsvdir/${corpus}_lemgrams.tsv.gz ]; then
+	echo "already extracted"
+    fi
 }
 
 extract_wordpict_rels () {
@@ -544,6 +548,15 @@ extract_wordpict_rels () {
 }
 
 test_skip_extract_wordpict_rels () {
+    local attr
+    for attr in lemma pos deprel depehad ref; do
+	if ! { word_in $attr "$input_attrs" ||
+		word_in $attr/ "$input_attrs"; }
+	then
+	    echo "no attribute $attr"
+	    break
+	fi
+    done
     if [ "x$wordpicture" = x ]; then
 	echo "requested not to extract"
     elif [ -s $tsvdir/${corpus}_rels.tsv.gz ]; then
