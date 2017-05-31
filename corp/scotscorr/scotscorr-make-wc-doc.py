@@ -24,7 +24,33 @@ class WordCountDocMakerError(Exception):
 
 class WordCountDocMaker(korputil.InputProcessor):
 
-    _gender_order = {'male': 1, 'female': 2, 'royal': 3}
+    # Function for class attribute definition, not a method
+    def _make_order(list_):
+        return dict((key, num) for num, key in enumerate(list_))
+
+    _genders = ['male', 'female', 'royal']
+    _localities = [
+        'Moray',
+        'Invernessshire',
+        'Sutherland',
+        'Ross',
+        'Aberdeenshire',
+        'Angus',
+        'Perthshire',
+        'Lanarkshire',
+        'Fife',
+        'Lothian',
+        'Borders',
+        'Stirlingshire',
+        'Ayrshire',
+        'Argyllshire',
+        'South-West',
+        'Professional',
+        'Court',
+        'unlocalised',
+    ]
+    _gender_order = _make_order(_genders)
+    _locality_order = _make_order(_localities)
 
     def __init__(self):
         super(WordCountDocMaker, self).__init__()
@@ -60,7 +86,7 @@ class WordCountDocMaker(korputil.InputProcessor):
             info = self._letter_info[fn]
             return (self._gender_order[info['gender']],
                     info['period'],
-                    info['lcinf'],
+                    self._locality_order[info['lcinf']],
                     fn)
 
         self._letter_order = self._letter_info.keys()
