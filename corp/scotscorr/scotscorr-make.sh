@@ -2,13 +2,8 @@
 
 # Make a Korp corpus package for ScotsCorr, based on VRT files.
 #
-# Usage: scotscorr-make.sh
-#
 # Note that this script does not regenerate the word count file or
 # documentation files.
-#
-# The script (and scotscorr-vrt-fix-all.sh) assumes that the VRT files
-# are in /v/corpora/src/scotscorr/vrt.
 
 
 progname=`basename $0`
@@ -42,8 +37,9 @@ corpora=$(list_corpora scots_* | grep -v "1550")
 
 for corp in $corpora; do
     ./scotscorr-vrt-fix-all.sh $corp
-    $scriptdir/korp-make --force --input-attrs comment --no-name-attrs \
-	--no-package --verbose --corpus-id $corp $fixed_vrtdir/$corp.vrt
+    $scriptdir/korp-make --force --input-attrs comment \
+	--add-structure-ids "sentence paragraph" --no-name-attrs --no-package \
+	--verbose --corpus-id $corp $fixed_vrtdir/$corp.vrt
     add_line_attr $corp
     cwb_registry_add_structattr $corp line
 done
