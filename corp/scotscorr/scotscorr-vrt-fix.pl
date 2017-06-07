@@ -104,6 +104,17 @@ for my $line (@text) {
 	$line =~ s/((?:letter|script)type)two/$1 . "2"/ge;
 	# Fix locality East Lothian to Lothian
 	$line =~ s/(lcinf=")East (Lothian")/$1$2/;
+	# Replace ASCII double quotes with curved closing quotes
+	$line =~ s/(“.*?)&quot;/$1”/g;
+    } elsif ($line !~ /^</) {
+	# In tokens, replace curved closing quotes (flourish markers)
+	# with ASCII quotes
+	$line =~ s/”/"/g;
+    }
+    # Replace all straight and opening single quotes in non-comment
+    # tokens with closing single quotes (apostrophes)
+    if ($line !~ /^[<{]/) {
+	$line =~ s/([‘\']|&apos;)/’/g;
     }
 }
 
@@ -134,7 +145,6 @@ for my $k (keys (%subst)) {
 $text =~ s/^\.\}$/./gm;
 # Fix wrong type of opening bracket
 $text =~ s/^[\[\(]in\n/{in /gm;
-# $text =~ s/^(hand|margin)>}$/{$1>}/gm;
 # This fixes errors probably introduced in Aleksi's conversion scripts
 $text =~ s/^\\(\{.*?\})/$1/gm;
 $text =~ s/^(\{.*?\})/us2sp($1)/gme;
@@ -148,6 +158,13 @@ $text =~ s/\s+(>?})/$1/gm;
 $text =~ s/{= *([^a-z]+?)}/\L{=$1}\E/gm;
 # Remove remnants of HTML tags
 $text =~ s/<[A-Z]+>$//gm;
+
+# Lone ASCII quotes following a word ending n or m should be flourish
+# markers attached to the previous word. (These occur in two letters.)
+$text =~ s/([nm])\n"/$1"/gm;
+
+# This would fix two lone apostrophes; on hold for the while.
+# $text =~ s/ ’ /’/gm;
 
 # Decode characters encoded above
 # $text =~ s/ +/\n/g;
