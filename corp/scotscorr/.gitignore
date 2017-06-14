@@ -1,0 +1,3 @@
+# Ignore TSV and JSON files generated (and used) by the ScotsCorr scripts
+*.tsv
+*.json
