@@ -862,6 +862,13 @@ word_index () {
     echo -1
 }
 
+# count_words args ...
+#
+# Output the number of arguments.
+count_words () {
+    echo "$#"
+}
+
 # get_attr_num attrname attrlist
 #
 # Output the one-based number of positional attribute attrname
@@ -877,6 +884,26 @@ get_attr_num () {
     fi
     echo $index
     # set +vx
+}
+
+# nth_arg n arg ...
+#
+# Output the argument number n (one-based) of the rest of the
+# arguments.
+nth_arg () {
+    local n
+    n=$1
+    shift
+    eval echo "\${$n}"
+}
+
+# is_int arg
+#
+# Return true if arg is an integer
+#
+# Source: https://stackoverflow.com/a/309789
+is_int () {
+    [ "$1" -eq "$1" 2> /dev/null ]
 }
 
 
