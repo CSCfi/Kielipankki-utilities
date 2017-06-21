@@ -76,8 +76,9 @@ test_file () {
 }
 
 ensure_perms () {
-    chgrp -R $filegroup "$@"
-    chmod -R $fileperms "$@"
+    chgrp -R $filegroup "$@" 2> /dev/null
+    chmod -R $fileperms "$@" 2> /dev/null
+    return 0
 }
 
 # mkdir_perms dir [dir ...]
