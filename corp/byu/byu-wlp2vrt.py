@@ -67,7 +67,7 @@ class WlpToVrtConverter:
                     if 'URL' in fields:
                         mo = re.search(r'://(.*?)(/|$)', fieldvals['URL'])
                         if mo:
-                            fieldvals['site'] = mo.group(1)
+                            fieldvals['webdomain'] = mo.group(1)
                     self._metadata[fields['textID']] = fieldvals
             # The items in _attrnames are names or pairs (output_name,
             # input_name) handled by korpimport.xmlutil.make_starttag
@@ -82,7 +82,7 @@ class WlpToVrtConverter:
             except ValueError:
                 pass
             if ('url', 'URL') in self._attrnames:
-                self._attrnames += ['site']
+                self._attrnames += ['webdomain']
             self._attrnames += ['filename', 'datefrom', 'dateto']
 
     def convert(self):
