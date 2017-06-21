@@ -179,8 +179,10 @@ fix_text_timedata () {
 	fi
     done
     for fromto in from to; do
+	# If incomplete date, ignore possible time
 	paste $tmp_prefix.date$fromto.tsv $tmp_prefix.time$fromto.tsv |
-	tr -d '\t' > $tmp_prefix.$fromto.tsv
+	awk -F"$tab" 'length($1) < 8 { $2 = "" } { print $1 $2 }' \
+	    > $tmp_prefix.$fromto.tsv
     done
     paste $tmp_prefix.text.tsv $tmp_prefix.from.tsv $tmp_prefix.to.tsv |
     $progdir/timespans-adjust-granularity.py \
