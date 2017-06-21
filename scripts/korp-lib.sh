@@ -1027,7 +1027,11 @@ else
     mysql_bin=$(find_prog mysql)
 fi
 
-cleanup_on_exit=1
+if [ "x$debug" != x ]; then
+    cleanup_on_exit=
+else
+    cleanup_on_exit=1
+fi
 
 show_times=
 
