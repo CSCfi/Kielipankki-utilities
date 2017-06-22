@@ -24,8 +24,9 @@ def extract_dateinfo_from_url(url):
             return s
 
     url_path = url.split('/', 3)[-1]
+    # The GloWbE corpus is from 2012–2013, so ignore later years
     mo = re.search(
-        r'''\b (?P<year> (?: 19[89]\d | 200\d | 201[0-6] ) ) \b
+        r'''\b (?P<year> (?: 19[89]\d | 200\d | 201[0-3] ) ) \b
             (?: (?P<sep> [-/] ) (?P<month> 0?[1-9] | 1[012] ) \b
                 (?: (?P=sep) (?P<day> 0?[1-9] | [12][0-9] | 3[01] )
                     (?: (?P=sep) | [/.] | $ ) )?
@@ -36,14 +37,17 @@ def extract_dateinfo_from_url(url):
         # to find ISO short date yyyymm(dd), but only starting from
         # 2000.
         mo2 = re.search(
-            r'''\b (?P<year> 200[0-9] | 201[0-6] )
+            r'''\b (?P<year> 200[0-9] | 201[0-3] )
                    (?P<month> 0[1-9] | 1[012] )
                    (?P<day> 0[1-9] | [12][0-9] | 3[01] )?
                 \b''',
             url_path, re.X)
         if mo2:
             mo = mo2
-        elif not mo:
+        elif not mo or mo.group('year') < '2000':
+            # To be safer, ignore bare years before 2000, since
+            # they may be later documents referring to earlier
+            # years.
             return ''
     year = mo.group('year')
     month = zero_pad(mo.group('month'))
