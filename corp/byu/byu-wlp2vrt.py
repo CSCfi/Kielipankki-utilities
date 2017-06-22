@@ -83,6 +83,8 @@ class WlpToVrtConverter:
                 pass
             if ('url', 'URL') in self._attrnames:
                 self._attrnames += ['webdomain']
+                if 'year' not in self._attrnames:
+                    self._attrnames += ['year']
             self._attrnames += ['filename', 'datefrom', 'dateto']
 
     def convert(self):
@@ -211,11 +213,10 @@ class WlpToVrtConverter:
         if attrs.get('year'):
             attrs['datefrom'] = attrs['year'] + '0101'
             attrs['dateto'] = attrs['year'] + '1231'
-        elif 'url' in attrs:
+        elif 'URL' in attrs:
             attrs['datefrom'] = attrs['dateto'] = (
-                self._extract_dateinfo_from_url(url))
-            if attrs['datefrom']:
-                attrs['year'] = attrs['datefrom'][:4]
+                self._extract_dateinfo_from_url(attrs['URL']))
+            attrs['year'] = attrs['datefrom'][:4]
         else:
             attrs['datefrom'] = attrs['dateto'] = ''
 
