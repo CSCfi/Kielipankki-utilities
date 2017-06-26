@@ -95,8 +95,8 @@ add-structure-ids|add-element-ids=STRUCTLIST "text paragraph sentence" add_struc
     add id attributes to the structures listed in STRUCTLIST
     (separated by spaces); if STRUCTLIST is an empty string, do not
     add id attributes
-keep-structure-ids|keep-element-ids keep_struct_ids
-    do not overwrite existing id attribute values in the structures
+overwrite-structure-ids|overwrite-element-ids !keep_struct_ids
+    overwrite possible existing id attribute values in the structures
     listed with --add-structure-ids
 tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
     output database tables as TSV files to DIR
