@@ -48,6 +48,7 @@ class WlpToVrtConverter:
     def __init__(self, args):
         self._filenames = args.filenames or []
         self._metadata = {}
+        self._seen_text_ids = set()
         self._opts = args
         self._read_metadata_file(args.metadata_file)
 
@@ -110,11 +111,19 @@ class WlpToVrtConverter:
             matchobj = re.match(r'^' + prefix + r'([1-9]\d*)$', fields[0])
             if not matchobj:
                 return text_id
+            possible_text_id = matchobj.group(1)
+            # Treat a line looking like a text id seen before as an
+            # ordinary token.
+            if possible_text_id in self._seen_text_ids:
+                self._warn('Skipping ' + fields[0]
+                           + ', which has appeared as a text id before',
+                           filename, linenr + 1)
+                return text_id
             # A line looking like a text id is regarded as a text id
             # only if the metadata contains information for the id.
-            possible_text_id = matchobj.group(1)
             if possible_text_id in self._metadata:
                 text_id_prefix = fields[0][:2]
+                self._seen_text_ids.add(possible_text_id)
                 return possible_text_id
             else:
                 self._warn('Skipping ' + fields[0]
