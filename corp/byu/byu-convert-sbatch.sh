@@ -16,6 +16,7 @@ n|dry-run { action=cat }
 l|log-dir=DIR "."
 timelimit=MINS "10"
 memory=MB "1000"
+output-dir=DIR
 metadata-file=FILE
 v|verbose
 '
@@ -37,6 +38,11 @@ for file in "$@"; do
     if [ -e "$file.vrt" ]; then
 	echo "Skipping $file: $file.vrt already exists"
 	continue
+    fi
+    if [ "x$output_dir" != x ]; then
+	outfile=$output_dir/$jobname_base.txt.vrt
+    else
+	outfile=$file.vrt
     fi
 
     if [ "x$verbose" != x ]; then
@@ -62,7 +68,7 @@ fi
 echo Job: \$SLURM_JOB_ID \$SLURM_JOB_NAME
 echo Input: "$file"
 $progdir/byu-convert.sh --metadata-file "$metadata_file" --verbose \
-    "$file" > "$file.vrt"
+    "$file" > "$outfile"
 EOF
 
 done
