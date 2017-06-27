@@ -96,15 +96,25 @@ class WlpToVrtConverter:
     def _convert_file(self, filename, f):
         lines = []
         text_id = None
+        text_id_prefix = None
 
         def check_text_id(fields):
-            # A line looking like a text id is regarded as a text id
-            # only if the metadata contains information for the id.
-            matchobj = re.search(r'(?:##|@@)([1-9]\d*)', fields[0])
+            nonlocal text_id_prefix
+            # Text ids may have the PoS "fo" but not "nnu"
+            if len(fields) > 2 and fields[2] == 'nnu':
+                return text_id
+            # Only look for the text id prefix that has previously
+            # been used in the file; look for both ## and @@ only if
+            # this is the first text id the file.
+            prefix = text_id_prefix or r'(?:##|@@)'
+            matchobj = re.match(r'^' + prefix + r'([1-9]\d*)$', fields[0])
             if not matchobj:
                 return text_id
+            # A line looking like a text id is regarded as a text id
+            # only if the metadata contains information for the id.
             possible_text_id = matchobj.group(1)
             if possible_text_id in self._metadata:
+                text_id_prefix = fields[0][:2]
                 return possible_text_id
             else:
                 self._warn('Skipping ' + fields[0]
@@ -139,8 +149,7 @@ class WlpToVrtConverter:
             # remove them. A file in GloWbE ends in Ctrl-Z.
             if fields[0] in ['q!', '\x1a']:
                 continue
-            if (not text_id_from_filename and (lines or text_id is None)
-                and is_possible_text_id(fields)):
+            if not text_id_from_filename and is_possible_text_id(fields):
                 new_text_id = check_text_id(fields)
             elif (text_id_from_filename and not lines
                   and is_possible_text_id(fields)):
