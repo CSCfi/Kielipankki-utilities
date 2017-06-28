@@ -300,6 +300,20 @@ time_stage () {
     time_cmd --format "- CPU time used: %U %R" "$@"
 }
 
+check_errors_from_log () {
+    # FIXME: Grepping the log file for system error messages is a bit
+    # kludgy way to catch "Disk quota exceeded" (and possibly other
+    # similar) system errors. In particular, the error might prevent
+    # the process from writing the message to the log file. The
+    # subprocesses should notice the errors and exit with an error
+    # status. Or can they do that?
+    if grep '^\[Errno [0-9]' "$logfile" \
+	> $tmp_prefix.subproc_error 2> /dev/null;
+    then
+	error "Aborting because of an error: $(cat $tmp_prefix.subproc_error)"
+    fi
+}
+
 # Run a single stage function (name) after printing the description
 # (descr). If function test_skip_$name is defined and its output is
 # non-empty, skip the stage.
@@ -326,6 +340,7 @@ run_stage () {
     fi
     echo_verb "$descr"
     time_stage exit_on_error $name
+    check_errors_from_log
 }
 
 # Run all the stages in $stages sequentially.
