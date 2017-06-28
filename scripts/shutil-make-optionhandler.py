@@ -12,6 +12,16 @@
 #   command-line arguments, overriding other specifications. The
 #   stripping option could be enabled by a ^ in the option
 #   specification after the quote type.
+# - Comment out option specification lines by prepending a #.
+# - Obligatory options: error message if missing. Would it be better
+#   to output the error from the Python code or generate shell script
+#   code for checking if the option is specified?
+# - Pass-through options: allow unrecognized options to be collected,
+#   probably to a separate output section, so that this script can be
+#   used to handle options in wrapper scripts that process only some
+#   of the options while passing the rest to a called script. That
+#   requires either converting to use argparse (parse_known_args) or
+#   subclassing OptionParser (https://stackoverflow.com/a/9307174).
 
 
 """
