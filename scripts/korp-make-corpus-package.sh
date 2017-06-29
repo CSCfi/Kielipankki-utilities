@@ -552,9 +552,10 @@ if [ "x$generate_vrt" != x ]; then
     for corpus_id in $corpus_ids; do
 	$cwbdata2vrt --registry "$regdir" --cwbdir "$cwb_bindir" $corpus_id |
 	$vrt_decode_chars > $tmp_prefix.vrt/$corpus_id.vrt
+	add_corpus_files $tmp_prefix.vrt/$corpus_id.vrt
+	add_transform $tmp_prefix.vrt/$corpus_id.vrt \
+	    vrt/$corpus_id/$corpus_id.vrt
     done
-    add_corpus_files $tmp_prefix.vrt
-    add_transform $tmp_prefix.vrt/ "vrt/{corpid}/"
 fi
 
 add_prefix () {
@@ -767,8 +768,12 @@ for extra_file in $extra_corpus_files; do
 done
 echo_dbg corpus_files "$corpus_files"
 
-$cwbdata_extract_info --update --registry "$regdir" --data-root-dir "$datadir" \
-    --tsv-dir "$tsvdir" --info-from-file "$extra_info_file" $corpus_ids
+for corpus_id in $corpus_ids; do
+    $cwbdata_extract_info --update --registry "$regdir" \
+	--data-root-dir "$datadir" \
+	--tsv-dir $(fill_dirtempl "$tsvdir" $corpus_id) \
+	--info-from-file "$extra_info_file" $corpus_ids
+done
 
 corpus_date=`get_corpus_date $corpus_ids`
 mkdir_perms $pkgdir/$corpus_name
