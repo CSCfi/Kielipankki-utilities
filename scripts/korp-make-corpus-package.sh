@@ -550,7 +550,7 @@ fi
 if [ "x$generate_vrt" != x ]; then
     mkdir -p $tmp_prefix.vrt
     for corpus_id in $corpus_ids; do
-	$cwbdata2vrt $corpus_id |
+	$cwbdata2vrt --registry "$regdir" --cwbdir "$cwb_bindir" $corpus_id |
 	$vrt_decode_chars > $tmp_prefix.vrt/$corpus_id.vrt
     done
     add_corpus_files $tmp_prefix.vrt
