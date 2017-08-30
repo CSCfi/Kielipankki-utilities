@@ -100,7 +100,7 @@ overwrite-structure-ids|overwrite-element-ids !keep_struct_ids
     listed with --add-structure-ids
 tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
     output database tables as TSV files to DIR
-no-lemmas-without-boundaries|skip-lemmas-without-boundaries !lemams_without_boundaries
+no-lemmas-without-boundaries|skip-lemmas-without-boundaries !lemmas_without_boundaries
     do not add lemmas without compound boundaries
 no-lemgrams|skip-lemgrams !lemgrams
     do not add lemgrams
@@ -357,8 +357,8 @@ run_stages () {
 # Stage functions and their descriptions
 stages=(
     combine_input "Combining input files"
+    add_lemmas_without_boundaries "Adding lemmas without compound boundaries"
     add_lemgrams "Adding lemgrams"
-    add_lemmas_without_boundaries "Anding lemmas without compound boundaries"
     add_datefromto "Adding datefrom and dateto"
     sort_texts "Sorting text elements"
     add_struct_ids "Adding structure ids"
@@ -393,8 +393,8 @@ test_skip_combine_input () {
 }
 
 add_lemmas_without_boundaries () {
-    process_vrt $vrt_fix_attrs --input-fields "word $initial_input_attrs" \
-	--output-fields "word $(input_attrs/lemma/lemma:noboundaries lemma/)" \
+    process_vrt $vrt_fix_attrs --input-fields "word $input_attrs" \
+	--output-fields "word ${input_attrs/lemma /lemma:noboundaries lemma }" \
 	--compound-boundary-marker='|' --compound-boundary-can-replace-hyphen
     input_attrs=${input_attrs/lemma /lemma lemmacomp }
 }
