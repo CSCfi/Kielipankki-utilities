@@ -200,22 +200,26 @@ echo_dbg () {
 
 # quote_args args ...
 #
-# Print each argument in args: arguments containing spaces or quotes
-# are quoted, preferring single quotes unless the argument contains a
-# single quote.
+# Print each argument in args: arguments containing spaces, quotes or
+# other shell metacharacters are enclosed in single quotes, with
+# single quotes themselves converted to '"'"'. Unlike quote_args_safe
+# (below), quote_args does not quote arguments not containing any of
+# these characters.
 #
-# FIXME: The result cannot be used as shell command line arguments if
-# an argument contains shell metacharacters or both single and double
-# quotes.
+# TODO: Check if the list of shell metacharacters to be quoted is
+# complete. If it is, this function could always be used instead of
+# quote_args_safe.
+# FIXME: The result contains a trailing space.
 quote_args () {
     local arg
     for arg in "$@"; do
 	case $arg in
-	    *" "* | *'"'* | "" )
-		printf "'%s' " "$arg"
-		;;
 	    *"'"* )
-		printf '"%s" ' "$arg"
+		# Copied from quote_args_safe
+		printf "%s" "$arg" | sed "s/'/'\"'\"'/g; s/^\(.*\)$/'&' /"
+		;;
+	    *[' "`?*<>|\[]$(){}&;=!']* | "" )
+		printf "'%s' " "$arg"
 		;;
 	    * )
 		printf "%s " "$arg"
