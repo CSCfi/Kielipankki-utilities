@@ -1,0 +1,1 @@
+/usr/local/cwb/bin/cwb-encode -xsB -c utf8 -d /v/corpora/data/ylilauta -R /v/corpora/registry/ylilauta -P ref -P lemma -P pos -P msd -P dephead -P deprel -P nertag -S text:0+title+sec+id+date+clock+datefrom+dateto -S paragraph:0+id -S sentence:0+id -f yliauta.vrt
