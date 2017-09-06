@@ -431,13 +431,15 @@ get_filesize () {
     ls -l "$1" | awk '{print $5}'
 }
 
-# add_prefix prefix args ...
+# add_prefix prefix [args] ...
 #
-# Prepend prefix to all args.
+# Prepend prefix to all args. If no args, do not output anything.
 add_prefix () {
     _add_prefix_prefix=$1
     shift
-    printf -- "$_add_prefix_prefix%s " "$@"
+    if [ "$#" != 0 ]; then
+	printf -- "$_add_prefix_prefix%s " "$@"
+    fi
 }
 
 # list_corpora [--registry registry_dir] [--on-error error_cmd] corpus_id ...
