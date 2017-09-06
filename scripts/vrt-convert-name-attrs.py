@@ -79,6 +79,10 @@ class NameAttrConverter(korpimport.util.InputProcessor):
                 if name_type:
                     # If inside a name, close it if a the tags contain
                     # a corresponding end tag
+                    # FIXME: This produces a misleading warnings for
+                    # such cases as A A></A /A, which contain crossing
+                    # NER tags ("Ignoring alternative NER end tag A",
+                    # "Ignoring lone NER end tag /A")
                     for tag in nertags:
                         if tag[1:] == name_type:
                             self.warn(u'ignoring alternative NER end tag '
