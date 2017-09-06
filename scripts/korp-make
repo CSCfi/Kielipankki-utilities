@@ -140,8 +140,10 @@ package-extra-file|extra-file=SRCFILE[:DSTFILE]
     directory in the package
 import-database
     import the database TSV files into the Korp MySQL database
-v|verbose
-    output some progress information
+v|verbose "1"
+    output some progress information (the default)
+quiet { verbose= }
+    do not output progress information (except for some subprocesses)
 force
     force all stages of processing by first removing all the output
     files if they exist
