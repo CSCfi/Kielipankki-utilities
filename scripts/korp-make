@@ -77,9 +77,9 @@ lemgram-posmap|posmap=POSMAP_FILE "$mapdir/lemgram_posmap_tdt.tsv"
     lines with corpus POS and lemgram POS separated by a tab
 wordpict-relmap|wordpicture-relation-map=RELMAP_FILE "$mapdir/wordpict_relmap_tdt.tsv"
     use RELMAP_FILE as the mapping file from corpus dependency
-    relations to those used in the Korp word picture; the file
-    should contain lines with corpus POS and lemgram POS
-    separated by a tab
+    relation codes to those used in the Korp word picture; the file
+    should contain lines with corpus dependency relation code and word
+    picture dependency relation code separated by a tab
 text-sort-attribute=ATTR { add_text_sort_opt --attribute "$1" }
     sort text elements in the corpus by the attribute ATTR; sort by
     byte values into ascending order, without taking the locale into
@@ -90,7 +90,7 @@ text-sort-transform=TRANSFORM '"'"' * { add_text_sort_opt --transform "$1" }
     be used for sorting; this option may be specified multiple times,
     in which case the substitutions are applied in the specified
     order; if read from a configuration file, TRANSFORM is treated as
-    enclosed in single quotes, so you need not protect $ or \
+    enclosed in single quotes, so you need not protect \$ nor \\
 add-structure-ids|add-element-ids=STRUCTLIST "text paragraph sentence" add_struct_ids
     add id attributes to the structures listed in STRUCTLIST
     (separated by spaces); if STRUCTLIST is an empty string, do not
