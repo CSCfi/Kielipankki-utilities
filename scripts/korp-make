@@ -567,7 +567,7 @@ extract_wordpict_rels () {
 
 test_skip_extract_wordpict_rels () {
     local attr
-    for attr in lemma pos deprel depehad ref; do
+    for attr in lemma pos deprel dephead ref; do
 	if ! { word_in $attr "$input_attrs" ||
 		word_in $attr/ "$input_attrs"; }
 	then
