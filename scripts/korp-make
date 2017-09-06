@@ -4,7 +4,6 @@
 
 # TODO:
 # - Allow specifying input via options (config file).
-# - Support corpora without parse attributes.
 # - Allow different compound boundary options.
 # - Allow multiple instances of extra file options to pass to
 #   korp-make-corpus-package
@@ -45,7 +44,7 @@ corpus-id=CORPUS corpus
     corpus id as the first non-option argument
 c|corpus-root=DIR "$corpus_root"
     use DIR as the root directory of corpus files
-input-attrs|input-fields=ATTRS "ref lemma pos msd dephead deprel" initial_input_attrs
+input-attrs|input-attributes|input-fields=ATTRS "ref lemma pos msd dephead deprel nertag" initial_input_attrs
     specify the names of the positional attributes in the input,
     excluding the first one ("word" or token), separated by spaces
 corpus-date=DATE
@@ -247,9 +246,6 @@ if [ "x$vrt_file" = "x" ]; then
     vrt_file=$vrtdir/$corpus.vrt
 fi
 
-if [ "x$name_attrs" != x ] && ! word_in nertag "$initial_input_attrs"; then
-    initial_input_attrs="$initial_input_attrs nertag"
-fi
 input_attrs=$initial_input_attrs
 
 verbose_opt=
@@ -589,6 +585,8 @@ add_name_attrs () {
 test_skip_add_name_attrs () {
     if [ "x$name_attrs" = x ]; then
 	echo "requested not to add"
+    elif ! word_in "nertag" "$input_attrs"; then
+	echo "NER tags not present (positional attribute nertag)"
     elif corpus_has_attr $corpus s ne_ex; then
 	echo "already present"
     fi
