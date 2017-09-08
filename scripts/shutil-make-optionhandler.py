@@ -5,7 +5,6 @@
 # TODO:
 # - Specify value separator for options that can be specified many
 #   times (syntax maybe *"sep", *(sep) or *[sep]).
-# - Group options in the usage message
 # - Optionally strip quotes from values specified in a configuration
 #   file. The quote type should determine the quote type for the
 #   command-line arguments, overriding other specifications. The
@@ -82,6 +81,13 @@ have leading whitespace, regardless of whether it continues the first
 line or a description line. Any whitespace surrounding the
 continuation backslash is replaced with a single space.
 
+Options can be grouped with with lines of the form
+
+@ label
+
+where label is the label for the group to be shown above the options
+following in the usage message.
+
 Options to this script are distinguished from the target script
 options by having their names prefixed with an underscore. The
 currently recognized options are:
@@ -102,6 +108,10 @@ currently recognized options are:
   allowed.) By default, the script generates double-quoted strings,
   subject to shell variable and backquote expansion, so literal $, `
   and \ must be protected by a backslash.
+--_option-group-label-format=FORMAT: Format each option group label
+  according to the format string FORMAT, which must contain the key
+  {label} for the group label. Literal \n is replaced with a newline.
+  Default: "\n{label}:"
 
 Note that option values specified on the command line are treated as
 single-quoted strings when they are processed by this script; the
@@ -160,7 +170,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         self._optspec_map = {}
         self._opts = None
         self._args = None
-        self._help_indent = {'opt': 2, 'text': 18}
+        self._help_indent = {'opt': 2, 'text': 18, 'grouplabel': 0}
         self._help_indent_text = dict(
             (key, val * ' ') for key, val in self._help_indent.iteritems())
         self._help_width = 78
@@ -177,6 +187,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                   )?
                 )?''',
             re.VERBOSE)
+        self._curr_optgroup = None
+        self._optgroups = []
 
     def process_input_stream(self, stream, filename=None):
         self._add_optspec(['h|help {usage}', 'show this help'])
@@ -214,6 +226,11 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
     def _add_optspec(self, optspec_lines):
         if not optspec_lines:
             return
+        if optspec_lines[0][0] == '@':
+            self._add_optgroup(optspec_lines)
+            return
+        elif not self._optgroups:
+            self._add_optgroup([])
         optspec = {}
         mo = self._optspec_re.match(optspec_lines[0])
         if not mo:
@@ -236,6 +253,14 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         optspec['descr'] = (
             ' '.join(optspec_lines[1:]) if len(optspec_lines) > 1 else '')
         self._optspecs.append(optspec)
+        self._curr_optgroup.append(optspec)
+
+    def _add_optgroup(self, optspec_lines):
+        if not optspec_lines:
+            self._optgroups.append(('', []))
+        else:
+            self._optgroups.append((optspec_lines[0].strip('@').strip(), []))
+        self._curr_optgroup = self._optgroups[-1][1]
 
     def _parse_opts(self):
         optparser = OptionParser(usage='', add_help_option=False)
@@ -246,6 +271,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             [['config-values-single-quoted'], dict(action='store_true')],
             [['output-section-format'],
              dict(default=u'----- {name}\n{content}\n-----\n')],
+            [['option-group-label-format'], dict(default=u'\n{label}:')],
         ]
         for optnames, optopts in script_opts:
             optparser.add_option(*['--_' + name for name in optnames],
@@ -268,6 +294,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                 self._opts._config_file = optval
         self._opts._output_section_format = unicode(
             self._opts._output_section_format.replace('\\n', '\n'))
+        self._opts._option_group_label_format = unicode(
+            self._opts._option_group_label_format.replace('\\n', '\n'))
         for optspec in self._optspecs:
             optspec['value'] = getattr(self._opts, optspec['pytarget'], None)
 
@@ -444,8 +472,14 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
 
     def _make_output_opt_usage(self):
         usage = []
-        for optspec in self._optspecs:
-            usage.extend(self._make_opt_usage_single(optspec))
+        for optgroup in self._optgroups:
+            label, optspecs = optgroup
+            if label != '':
+                usage.append(self._opts._option_group_label_format.format(
+                    label=self._wrap_usage_text(label, 'grouplabel',
+                                                break_on_hyphens=False)))
+            for optspec in optspecs:
+                usage.extend(self._make_opt_usage_single(optspec))
         return '\n'.join(usage)
 
     def _make_opt_usage_single(self, optspec):
