@@ -39,14 +39,89 @@ tar archives containing such VRT files. If no input files are specified, read
 from the standard input."
 
 optspecs='
+@ General options
+
 corpus-id=CORPUS corpus
     make corpus with id CORPUS; this is alternative to specifying the
     corpus id as the first non-option argument
+force
+    force all stages of processing by first removing all the output
+    files if they exist
+config-file|configuration-file=FILE
+    read FILE as an INI-style configuration file (without sections).
+    Configuration keys correspond to option names without the leading
+    dashes; internal dashes may be replaced with underscores.
+
+@ Diagnostic output
+
+v|verbose "1"
+    output some progress information (the default)
+quiet { verbose= }
+    do not output progress information (except for some subprocesses)
+times show_times
+    output the amount of CPU time used for each stage
+log-file=FILE logfile
+    log script output (standard output and standard error) to FILE
+    instead of the default
+    $corpus_root/log/${progname}_CORPUS_TIMESTAMP.log where CORPUS is
+    the corpus id and TIMESTAMP the start time of the script
+no-logging !logging
+    do not copy script output to a log file
+
+@ Directories
+
 c|corpus-root=DIR "$corpus_root"
     use DIR as the root directory of corpus files
-input-attrs|input-attributes|input-fields=ATTRS "ref lemma pos msd dephead deprel nertag" initial_input_attrs
+tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
+    output database tables as TSV files to DIR
+
+@ Input attributes
+
+input-attrs|input-attributes|input-fields=ATTRS \
+  "ref lemma pos msd dephead deprel nertag" initial_input_attrs
     specify the names of the positional attributes in the input,
     excluding the first one ("word" or token), separated by spaces
+
+@ Annotation mappings
+
+lemgram-posmap|posmap=POSMAP_FILE "$mapdir/lemgram_posmap_tdt.tsv"
+    use POSMAP_FILE as the mapping file from the corpus parts of
+    speech to those used in Korp lemgrams; the file should contain
+    lines with corpus POS and lemgram POS separated by a tab
+wordpict-relmap|wordpicture-relation-map=RELMAP_FILE \
+  "$mapdir/wordpict_relmap_tdt.tsv"
+    use RELMAP_FILE as the mapping file from corpus dependency
+    relation codes to those used in the Korp word picture; the file
+    should contain lines with corpus dependency relation code and word
+    picture dependency relation code separated by a tab
+
+@ Structure ids
+
+add-structure-ids|add-element-ids=STRUCTLIST \
+  "text paragraph sentence" add_struct_ids
+    add id attributes to the structures listed in STRUCTLIST
+    (separated by spaces); if STRUCTLIST is an empty string, do not
+    add id attributes
+overwrite-structure-ids|overwrite-element-ids !keep_struct_ids
+    overwrite possible existing id attribute values in the structures
+    listed with --add-structure-ids
+
+@ Sorting text structures
+
+text-sort-attribute=ATTR { add_text_sort_opt --attribute "$1" }
+    sort text elements in the corpus by the attribute ATTR; sort by
+    byte values into ascending order, without taking the locale into
+    account
+text-sort-transform=TRANSFORM '"'"' * { add_text_sort_opt --transform "$1" }
+    transform the sorting attribute values with the Perl regular
+    expression substitution (s/.../.../) TRANSFORM to get the key to
+    be used for sorting; this option may be specified multiple times,
+    in which case the substitutions are applied in the specified
+    order; if read from a configuration file, TRANSFORM is treated as
+    enclosed in single quotes, so you need not protect \$ nor \\
+
+@ Date information
+
 corpus-date=DATE
     use DATE as the date of all texts in the corpus; "unknown" if not
     known
@@ -70,44 +145,23 @@ corpus-date-full-order=ORDER
 corpus-date-ranges
     make the patterns recognize date ranges with different start and
     end days
-lemgram-posmap|posmap=POSMAP_FILE "$mapdir/lemgram_posmap_tdt.tsv"
-    use POSMAP_FILE as the mapping file from the corpus parts of
-    speech to those used in Korp lemgrams; the file should contain
-    lines with corpus POS and lemgram POS separated by a tab
-wordpict-relmap|wordpicture-relation-map=RELMAP_FILE "$mapdir/wordpict_relmap_tdt.tsv"
-    use RELMAP_FILE as the mapping file from corpus dependency
-    relation codes to those used in the Korp word picture; the file
-    should contain lines with corpus dependency relation code and word
-    picture dependency relation code separated by a tab
-text-sort-attribute=ATTR { add_text_sort_opt --attribute "$1" }
-    sort text elements in the corpus by the attribute ATTR; sort by
-    byte values into ascending order, without taking the locale into
-    account
-text-sort-transform=TRANSFORM '"'"' * { add_text_sort_opt --transform "$1" }
-    transform the sorting attribute values with the Perl regular
-    expression substitution (s/.../.../) TRANSFORM to get the key to
-    be used for sorting; this option may be specified multiple times,
-    in which case the substitutions are applied in the specified
-    order; if read from a configuration file, TRANSFORM is treated as
-    enclosed in single quotes, so you need not protect \$ nor \\
-add-structure-ids|add-element-ids=STRUCTLIST "text paragraph sentence" add_struct_ids
-    add id attributes to the structures listed in STRUCTLIST
-    (separated by spaces); if STRUCTLIST is an empty string, do not
-    add id attributes
-overwrite-structure-ids|overwrite-element-ids !keep_struct_ids
-    overwrite possible existing id attribute values in the structures
-    listed with --add-structure-ids
-tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
-    output database tables as TSV files to DIR
-no-lemmas-without-boundaries|skip-lemmas-without-boundaries !lemmas_without_boundaries
+
+@ Output data
+
+no-lemmas-without-boundaries|skip-lemmas-without-boundaries \
+  !lemmas_without_boundaries
     do not add lemmas without compound boundaries
 no-lemgrams|skip-lemgrams !lemgrams
     do not add lemgrams
 no-wordpicture|skip-wordpicture !wordpicture
     do not extract word picture relations database tables
-no-name-attrs|no-name-attributes|skip-name-attrs|skip-name-attributes !name_attrs
+no-name-attrs|no-name-attributes|skip-name-attrs|skip-name-attributes \
+  !name_attrs
     do not add named-entity information based on a NER tag as the last
     positional attribute
+
+@ Packaging
+
 no-package !make_package
     do not create a corpus package
 korp-frontend-dir=DIR "$korp_frontend_dir"
@@ -137,28 +191,11 @@ package-extra-file|extra-file=SRCFILE[:DSTFILE]
     DSTFILE ends in a slash or if SRCFILE contains wildcards, DSTFILE
     is considered a directory name and SRCFILE is placed in that
     directory in the package
+
+@ Database import
+
 import-database
     import the database TSV files into the Korp MySQL database
-v|verbose "1"
-    output some progress information (the default)
-quiet { verbose= }
-    do not output progress information (except for some subprocesses)
-force
-    force all stages of processing by first removing all the output
-    files if they exist
-times show_times
-    output the amount of CPU time used for each stage
-config-file|configuration-file=FILE
-    read FILE as an INI-style configuration file (without sections).
-    Configuration keys correspond to option names without the leading
-    dashes; internal dashes may be replaced with underscores.
-log-file=FILE logfile
-    log script output (standard output and standard error) to FILE
-    instead of the default
-    $corpus_root/log/${progname}_CORPUS_TIMESTAMP.log where CORPUS is
-    the corpus id and TIMESTAMP the start time of the script
-no-logging !logging
-    do not copy script output to a log file
 '
 
 config_file_optname=config-file
