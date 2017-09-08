@@ -453,26 +453,26 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         optarg = optspec.get('optargname')
         if optarg:
             optlist += ' ' + optarg
-        optlist = textwrap.fill(
-            optlist, width=self._help_width,
-            initial_indent=self._help_indent_text['opt'],
-            subsequent_indent=self._help_indent_text['opt'],
-            break_on_hyphens=False)
+        optlist = self._wrap_usage_text(optlist, 'opt', break_on_hyphens=False)
         helptext = optspec.get('descr') or ''
         default = optspec.get('default')
         if default:
             helptext += (' ' if helptext else '') + '(default: ' + default + ')'
         if helptext:
-            helptext = textwrap.fill(
-                helptext, width=self._help_width,
-                initial_indent=self._help_indent_text['text'],
-                subsequent_indent=self._help_indent_text['text'])
+            helptext = self._wrap_usage_text(helptext, 'text')
         if len(optlist) <= self._help_indent['text'] - 2:
             return [optlist + helptext[len(optlist):]]
         elif helptext:
             return [optlist, helptext]
         else:
             return [optlist]
+
+    def _wrap_usage_text(self, text, text_type, break_on_hyphens=True):
+        return textwrap.fill(
+            text, width=self._help_width,
+            initial_indent=self._help_indent_text[text_type],
+            subsequent_indent=self._help_indent_text[text_type],
+            break_on_hyphens=break_on_hyphens)
 
     def _make_output_opt_handler(self):
         code = [
