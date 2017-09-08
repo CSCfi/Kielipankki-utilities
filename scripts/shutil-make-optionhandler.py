@@ -194,8 +194,9 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         self._optgroups = []
 
     def process_input_stream(self, stream, filename=None):
-        self._add_optspec(['h|help {usage}', 'show this help'])
         self._read_optspecs(stream)
+        if 'help' not in self._optspec_map:
+            self._add_help_opt()
         # print repr(self._optspecs)
         self._parse_opts()
         # print repr(self._optspecs)
@@ -226,7 +227,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             optspec_lines.append(' '.join(continued_line))
         self._add_optspec(optspec_lines)
 
-    def _add_optspec(self, optspec_lines):
+    def _add_optspec(self, optspec_lines, optgroup=None, prepend=False):
         if not optspec_lines:
             return
         if optspec_lines[0][0] == '@':
@@ -256,7 +257,12 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         optspec['descr'] = (
             ' '.join(optspec_lines[1:]) if len(optspec_lines) > 1 else '')
         self._optspecs.append(optspec)
-        self._curr_optgroup.append(optspec)
+        if optgroup is None:
+            optgroup = self._curr_optgroup
+        if prepend:
+            optgroup[0:0] = [optspec]
+        else:
+            optgroup.append(optspec)
 
     def _add_optgroup(self, optspec_lines):
         if not optspec_lines:
@@ -264,6 +270,12 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         else:
             self._optgroups.append((optspec_lines[0].strip('@').strip(), []))
         self._curr_optgroup = self._optgroups[-1][1]
+
+    def _add_help_opt(self):
+        if self._optgroups[0][0] != '':
+            self._optgroups[0:0] = [('Help', [])]
+        self._add_optspec(['h|help {usage}', 'show this help'],
+                          self._optgroups[0][1], prepend=True)
 
     def _parse_opts(self):
         optparser = OptionParser(usage='', add_help_option=False)
