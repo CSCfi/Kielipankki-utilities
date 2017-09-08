@@ -51,7 +51,9 @@ description lines must have. The components are as follows:
   usage message for the option.
 - "default": The default (initial) value for the variable
   corresponding to the option, enclosed in double quotes. References
-  to shell variables are (typically) expanded in the shell script.
+  to shell variables are (typically) expanded in the shell script. A
+  double quote (or a backslash) in the value itself must be escaped by
+  a backslash.
 - '|": The option values read from a configuration file should be
   enclosed in this kind of quotes in the generated command-line
   arguments instead of the default ones (double quotes unless
@@ -158,11 +160,10 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         self._help_indent_text = dict(
             (key, val * ' ') for key, val in self._help_indent.iteritems())
         self._help_width = 78
-        # FIXME: Handle defaults containing double quotes
         self._optspec_re = re.compile(
             r'''(?P<optnames> [^\s=:]+)
                 (?: [=:] (?P<optargname> \S+) )?
-                (?: \s+ (?P<default> "[^\"]*") )?
+                (?: \s+ (?P<default> "([^\"\\]|\\.)*") )?
                 (?: \s+
                   (?: (?P<quotetype> [\'\"]) \s* )?
                   (?: (?P<targetmulti> \*) \s* )?
