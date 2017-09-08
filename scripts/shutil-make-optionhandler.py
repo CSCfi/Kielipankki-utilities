@@ -6,7 +6,6 @@
 # - Specify value separator for options that can be specified many
 #   times (syntax maybe *"sep", *(sep) or *[sep]).
 # - Group options in the usage message
-# - Continuation lines in option specifications
 # - Optionally strip quotes from values specified in a configuration
 #   file. The quote type should determine the quote type for the
 #   command-line arguments, overriding other specifications. The
@@ -76,7 +75,12 @@ description lines must have. The components are as follows:
   span several lines, each beginning with whitespace; is subject to
   reformatting (word wrapping).
 
-Empty lines and lines beginning with a # are ignored.
+Empty lines and lines beginning with a # are ignored. A line may be
+continued on the next line by ending in a backslash. This is useful in
+particular for the first line. A continuation line may but need not
+have leading whitespace, regardless of whether it continues the first
+line or a description line. Any whitespace surrounding the
+continuation backslash is replaced with a single space.
 
 Options to this script are distinguished from the target script
 options by having their names prefixed with an underscore. The
@@ -187,14 +191,24 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
 
     def _read_optspecs(self, stream):
         optspec_lines = []
+        continued_line = []
         for line in stream:
             line_strip = line.strip()
             if not line_strip or line_strip[0] == '#':
                 continue
-            if line[0] not in [' ', '\t']:
+            if line[0] not in [' ', '\t'] and not continued_line:
                 self._add_optspec(optspec_lines)
                 optspec_lines = []
-            optspec_lines.append(line_strip)
+            # FIXME: This does not allow a literal backslash at the
+            # end of a line. Should we use a double backslash for
+            # that?
+            if line_strip[-1] == '\\':
+                continued_line.append(line_strip[:-1].strip())
+            else:
+                optspec_lines.append(' '.join(continued_line + [line_strip]))
+                continued_line = []
+        if continued_line:
+            optspec_lines.append(' '.join(continued_line))
         self._add_optspec(optspec_lines)
 
     def _add_optspec(self, optspec_lines):
