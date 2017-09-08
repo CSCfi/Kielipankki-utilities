@@ -5,12 +5,12 @@
 # TODO:
 # - Specify value separator for options that can be specified many
 #   times (syntax maybe *"sep", *(sep) or *[sep]).
+# - Support specifying a hard line break in the option description.
 # - Optionally strip quotes from values specified in a configuration
 #   file. The quote type should determine the quote type for the
 #   command-line arguments, overriding other specifications. The
 #   stripping option could be enabled by a ^ in the option
 #   specification after the quote type.
-# - Comment out option specification lines by prepending a #.
 # - Obligatory options: error message if missing. Would it be better
 #   to output the error from the Python code or generate shell script
 #   code for checking if the option is specified?
@@ -20,6 +20,9 @@
 #   of the options while passing the rest to a called script. That
 #   requires either converting to use argparse (parse_known_args) or
 #   subclassing OptionParser (https://stackoverflow.com/a/9307174).
+# - Options without a value in the configuration file. This would be
+#   simple with ConfigParser for Python 2.7 (allow_no_value=True), but
+#   how about with Python 2.6?
 
 
 """
