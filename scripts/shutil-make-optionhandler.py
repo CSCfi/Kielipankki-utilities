@@ -39,7 +39,7 @@ by values read from a configuration file (INI-syntax).
 
 An option specification is of the form
 
-optname1|...|optnamen[=ARG] ["default"] ['|"] [*] [([!]target | {code})]
+optname1|...|optnamen[=ARG] ["default"] ['|"] [*] [[!]target] [{code}]
   description
   ...
 
@@ -72,7 +72,11 @@ description lines must have. The components are as follows:
 - {code}: Shell script code (for example, a function call) to be
   executed when encountering the option, instead of directly setting a
   variable value. In the code, the option argument value can be
-  referred to as $1 and the option itself as $optname.
+  referred to as $1 and the option itself as $optname. A target may
+  be specified in addition to code; in that case, the target variable
+  is used for setting the default value. (Note that the specified code
+  is *not* executed at the initialization phase.) If no target nor
+  default value is specified, no variable is initialized.
 - description: A description of the option for the usage message; may
   span several lines, each beginning with whitespace; is subject to
   reformatting (word wrapping).
@@ -184,10 +188,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                 (?: \s+
                   (?: (?P<quotetype> [\'\"]) \s* )?
                   (?: (?P<targetmulti> \*) \s* )?
-                  (?:
-                      (?P<targetneg> ! \s*)? (?P<target> [a-zA-Z0-9_]+)
-                    | \{ \s* (?P<targetcode> .*) \s* \}
-                  )?
+                  (?: (?P<targetneg> ! \s*)? (?P<target> [a-zA-Z0-9_]+) \s* )?
+                  (?: \{ \s* (?P<targetcode> .*) \s* \} )?
                 )?''',
             re.VERBOSE)
         self._curr_optgroup = None
@@ -246,14 +248,14 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         for name in optspec['names']:
             self._optspec_map[name.strip('-')] = optspec
         optspec['defaulttrue'] = (optspec['targetneg'] == '!')
-        if not optspec['target'] or optspec['targetcode']:
+        if not optspec['target']:
             long_opts = [name for name in optspec['names'] if len(name) > 2]
             target_name = long_opts[0] if long_opts else optspec['names'][0]
             optspec['pytarget'] = target_name.strip('-').replace('-', '_')
-            if not optspec['target']:
-                optspec['target'] = optspec['pytarget']
+            optspec['target'] = optspec['pytarget']
         else:
             optspec['pytarget'] = optspec['target']
+            optspec['explicit_target'] = True
         optspec['descr'] = (
             ' '.join(optspec_lines[1:]) if len(optspec_lines) > 1 else '')
         self._optspecs.append(optspec)
@@ -479,7 +481,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
     def _make_output_set_defaults(self):
         defaults = []
         for optspec in self._optspecs:
-            if optspec.get('target') and not optspec.get('targetcode'):
+            if (optspec.get('default') or optspec.get('explicit_target')
+                or not optspec.get('targetcode')):
                 defaultval = (optspec.get('default')
                               or ('1' if optspec.get('defaulttrue') else ''))
                 defaults.append(optspec.get('target') + '=' + defaultval)
