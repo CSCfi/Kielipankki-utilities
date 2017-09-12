@@ -392,7 +392,7 @@ fi
 if [ "x$1" = "x" ]; then
     corpus_ids=$corpus_name
 else
-    corpus_ids=$@
+    corpus_ids="$(list_corpora "$@")"
 fi
 
 if [ "x$korp_frontend_dir" = "x" ]; then
@@ -404,19 +404,6 @@ then
 	add_corpus_files $(echo $korp_frontend_dir/$fname_patt)
     done
 fi
-
-(
-    cd $regdir
-    ls $corpus_ids 2> $tmp_prefix.errors |
-    grep '^[a-z_][a-z0-9_-]*$' > $tmp_prefix.corpora
-)
-
-if [ -s $tmp_prefix.errors ]; then
-    error_files=`sed -e 's/^.*cannot access \([^:]*\):.*$/\1/' < $tmp_prefix.errors`
-    error "Corpora not found in the CWB corpus registry: $error_files"
-fi
-
-corpus_ids=`cat $tmp_prefix.corpora`
 
 if [ "x$has_readme" = x ]; then
     warn "No readme file included"
