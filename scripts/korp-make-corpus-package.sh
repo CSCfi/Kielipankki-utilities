@@ -50,11 +50,11 @@ p|package-dir=DIR "CORPUS_ROOT/$pkgsubdir" pkgdir
     directory DIR
 r|registry=DIR "CORPUS_ROOT/$regsubdir" { set_corpus_registry "$1" }
     use DIR as the CWB registry
-s|sql-dir=DIRTEMPL "CORPUS_ROOT/$sqlsubdir" sqldir
+s|sql-dir=DIRTEMPL "CORPUS_ROOT/$sqlsubdir/{corpid}" sqldir
     use DIRTEMPL as the source directory template for Korp MySQL
     dumps; DIRTEMPL is a directory name possibly containing
     placeholder {corpname} for corpus name or {corpid} for corpus id
-t|tsv-dir=DIRTEMPL "CORPUS_ROOT/$sqlsubdir" tsvdir
+t|tsv-dir=DIRTEMPL "CORPUS_ROOT/$tsvsubdir/{corpid}" tsvdir
     use DIRTEMPL as the source directory template for Korp MySQL TSV
     data files
 korp-frontend-dir=DIR "$korp_frontend_dir" { set_korp_frontend_dir "$1" }
@@ -150,6 +150,7 @@ vrt_decode_chars="$progdir/vrt-convert-chars.py --decode"
 regsubdir=registry
 datasubdir=data
 sqlsubdir=sql
+tsvsubdir=vrt
 pkgsubdir=pkgs
 vrtsubdir=vrt
 
@@ -361,8 +362,8 @@ target_corpus_root=${target_corpus_root:-$corpus_root}
 pkgdir=${pkgdir:-$corpus_root/$pkgsubdir}
 regdir=$(remove_trailing_slash $cwb_regdir)
 datadir=$(remove_trailing_slash ${datadir:-$corpus_root/$datasubdir})
-sqldir=$(remove_trailing_slash ${sqldir:-$corpus_root/$sqlsubdir})
-tsvdir=$(remove_trailing_slash ${tsvdir:-$sqldir})
+sqldir=$(remove_trailing_slash ${sqldir:-"$corpus_root/$sqlsubdir/{corpid}"})
+tsvdir=$(remove_trailing_slash ${tsvdir:-"$corpus_root/$tsvsubdir/{corpid}"})
 vrtdir=$(remove_trailing_slash ${vrtdir:-"$corpus_root/$vrtsubdir/{corpid}"})
 
 if [ "x$include_vrtdir$generate_vrt" != "x" ]; then
