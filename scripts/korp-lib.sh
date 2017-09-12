@@ -118,7 +118,9 @@ safe_echo () {
     if [ $# -gt 0 ]; then
 	printf "%s" "$1"
 	shift
-	printf " %s" "$@"
+	if [ $# -gt 0 ]; then
+	    printf " %s" "$@"
+	fi
     fi
     printf "\n"
 }
