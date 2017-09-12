@@ -514,10 +514,10 @@ else
     corpus_ids=$@
 fi
 
-if [ "x$frontend_config_dir" = "x" ]; then
+if [ "x$korp_frontend_dir" = "x" ]; then
     warn "Korp frontend directory not found"
-elif test_file -r $frontend_config_dir/config.js warn \
-    "$frontend_config_dir/config.js not found or not accessible; not including Korp configuration files";
+elif test_file -r $korp_frontend_dir/config.js warn \
+    "$korp_frontend_dir/config.js not found or not accessible; not including Korp configuration files";
 then
     for fname_patt in $frontend_config_files; do
 	add_corpus_files $(echo $korp_frontend_dir/$fname_patt)
