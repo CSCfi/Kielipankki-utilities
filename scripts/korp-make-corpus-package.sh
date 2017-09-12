@@ -39,6 +39,8 @@ corpus_id may contain shell wildcards, in which case all matching
 corpora in the corpus registry are included."
 
 optspecs='
+@ Directory options
+
 c|corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
     use DIR as the root directory of corpus files for the source files
     (CORPUS_ROOT)
@@ -59,6 +61,9 @@ t|tsv-dir=DIRTEMPL "CORPUS_ROOT/$tsvsubdir/{corpid}" tsvdir
     data files
 korp-frontend-dir=DIR "$korp_frontend_dir" { set_korp_frontend_dir "$1" }
     read Korp configuration files from DIR
+
+@ Options for VRT files
+
 vrt-dir=DIRTEMPL "CORPUS_ROOT/$vrtsubdir/{corpid}" \
   { include_vrtdir=1; vrtdir=$1 }
     use DIRTEMPL as the source directory template for VRT files
@@ -78,6 +83,9 @@ generate-vrt
 no-cwb-data omit_cwb_data
     omit CWB data files from the package; this option requires
     that VRT files are being included in the package
+
+@ Options for corpus information
+
 set-info=KEY:VALUE * { printf "%s\n" "$1" >> "$extra_info_file" }
     set the corpus information item KEY (in the file .info) to the
     value VALUE, where KEY is of the form [SECTION_]SUBITEM, where
@@ -86,6 +94,9 @@ set-info=KEY:VALUE * { printf "%s\n" "$1" >> "$extra_info_file" }
     multiple times
 info-from-file=FILENAME { cat "$1" >> "$extra_info_file" }
     read information items to be added from file FILENAME
+
+@ Options for additional files
+
 readme-file=FILE * { add_extra_file "$1" /; has_readme=1 }
     include FILE as a top-level read-me file; the option may be
     specified multiple times to include multiple files, and FILE may
@@ -112,6 +123,9 @@ extra-file=SRCFILE[:DSTFILE] * { add_extra_file "$1" }
     slash or if SRCFILE contains wildcards, DSTFILE is considered a
     directory name and SRCFILE is placed in that directory in the
     package; the option may be specified multiple times
+
+@ Options controlling the output
+
 f|database-format=FMT "auto" dbformat { set_db_format "$1" }
     include database files in format FMT: either sql (SQL), tsv (TSV),
     auto (SQL or TSV, whichever files are newer) or none (do not
