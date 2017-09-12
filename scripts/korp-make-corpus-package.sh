@@ -30,10 +30,104 @@
 progname=`basename $0`
 progdir=`dirname $0`
 
-shortopts="hc:p:r:s:t:f:vz:"
-longopts="help,corpus-root:,target-corpus-root:,package-dir:,registry:,sql-dir:,tsv-dir:,korp-frontend-dir:,vrt-dir:,include-vrt-dir,vrt-file:,generate-vrt,no-cwb-data,omit-cwb-data,set-info:,info-from-file:,readme-file:,doc-dir:,doc-file:,script-dir:,script-file:,extra-dir:,extra-file:,database-format:,compress:,verbose"
+usage_header="Usage: $progname [options] corpus_name [corpus_id ...]
+
+Make an archive package for corpus corpus_name, containing the Korp
+corpora corpus_id ... (or corpus_name if corpus_id not specified).
+corpus_id may contain shell wildcards, in which case all matching
+corpora in the corpus registry are included."
+
+optspecs='
+c|corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
+    use DIR as the root directory of corpus files for the source files
+    (CORPUS_ROOT)
+target-corpus-root=DIR "CORPUS_ROOT"
+    use DIR as the root directory of corpus files for the target files
+    (to adjust paths in the corpus registry files)
+p|package-dir=DIR "CORPUS_ROOT/$pkgsubdir" pkgdir
+    put the resulting package to a subdirectory CORPUS_NAME under the
+    directory DIR
+r|registry=DIR "CORPUS_ROOT/$regsubdir" { set_corpus_registry "$1" }
+    use DIR as the CWB registry
+s|sql-dir=DIRTEMPL "CORPUS_ROOT/$sqlsubdir" sqldir
+    use DIRTEMPL as the source directory template for Korp MySQL
+    dumps; DIRTEMPL is a directory name possibly containing
+    placeholder {corpname} for corpus name or {corpid} for corpus id
+t|tsv-dir=DIRTEMPL "CORPUS_ROOT/$sqlsubdir" tsvdir
+    use DIRTEMPL as the source directory template for Korp MySQL TSV
+    data files
+korp-frontend-dir=DIR "$korp_frontend_dir" { set_korp_frontend_dir "$1" }
+    read Korp configuration files from DIR
+vrt-dir=DIRTEMPL "CORPUS_ROOT/$vrtsubdir/{corpid}" \
+  { include_vrtdir=1; vrtdir=$1 }
+    use DIRTEMPL as the source directory template for VRT files
+    (*.vrt, *.vrt.*)
+include-vrt-dir include_vrtdir
+    include the files in the (default) VRT directory in the package;
+    this option needs to be specified only if using the default VRT
+    directory
+vrt-file=FILE * { include_vrt=1; add_extra_file "$1" vrt/{corpid}/ }
+    include FILE as a VRT file in directory "vrt/{corpname}" (or
+    ("vrt/{corpid}" if the directory component of FILE contains
+    {corpid}) in the package; this option may be specified multiple
+    times, and FILE may contain shell wildcards
+generate-vrt
+    generate a single VRT file for each corpus from the CWB
+    corpus data
+no-cwb-data omit_cwb_data
+    omit CWB data files from the package; this option requires
+    that VRT files are being included in the package
+set-info=KEY:VALUE * { printf "%s\n" "$1" >> "$extra_info_file" }
+    set the corpus information item KEY (in the file .info) to the
+    value VALUE, where KEY is of the form [SECTION_]SUBITEM, where
+    SECTION can be "Metadata", "Licence" or "Compiler" and SUBITEM
+    "URL", "URN", "Name" or "Description"; this option can be repeated
+    multiple times
+info-from-file=FILENAME { cat "$1" >> "$extra_info_file" }
+    read information items to be added from file FILENAME
+readme-file=FILE * { add_extra_file "$1" /; has_readme=1 }
+    include FILE as a top-level read-me file; the option may be
+    specified multiple times to include multiple files, and FILE may
+    contain shell wildcards (but braces are not expanded)
+doc-dir=DIR { add_extra_dir "$1" doc/; has_docs=1 }
+    include DIR as a documentation directory "doc" in the package
+doc-file=FILE * { add_extra_file "$1" doc/; has_docs=1 }
+    include FILE as a documentation file in directory "doc"; may be
+    specified multiple times, and FILE may contain shell wildcards
+script-dir=DIR { add_extra_dir "$1" scripts/; has_scripts=1 }
+    include DIR as a (conversion) script directory "scripts" in the
+    package
+script-file=FILE * { add_extra_file "$1" scripts/; has_scripts=1}
+    include FILE as a (conversion) script file in directory "scripts";
+    may be specified multiple times, and FILE may contain shell
+    wildcards
+extra-dir=SRCDIR[:DSTDIR] * { add_extra_dir "$1" }
+    include directory SRCDIR in the package; if :DSTDIR is specified,
+    the directory is renamed as DSTDIR in the package; the option may
+    be specified multiple times
+extra-file=SRCFILE[:DSTFILE] * { add_extra_file "$1" }
+    include file SRCFILE in the package; if :DSTFILE is specified, the
+    file is renamed as DSTFILE in the package; if DSTFILE ends in a
+    slash or if SRCFILE contains wildcards, DSTFILE is considered a
+    directory name and SRCFILE is placed in that directory in the
+    package; the option may be specified multiple times
+f|database-format=FMT "auto" dbformat { set_db_format "$1" }
+    include database files in format FMT: either sql (SQL), tsv (TSV),
+    auto (SQL or TSV, whichever files are newer) or none (do not
+    include database files)
+z|compress=PROG "gzip" { set_compress "$1" }
+    compress files with PROG; "none" for no compression
+'
+
+usage_footer="Environment variables:
+  Default values for the various directories can also be specified via
+  the following environment variables: CORPUS_ROOT, TARGET_CORPUS_ROOT,
+  CORPUS_PKGDIR, CORPUS_REGISTRY, CORPUS_SQLDIR, CORPUS_TSVDIR, CORPUS_VRTDIR,
+  KORP_FRONTEND_DIR."
+
 
 . $progdir/korp-lib.sh
+
 
 # Uncomment to enable some debug output to stderr:
 # debug=1
@@ -48,8 +142,6 @@ pkgdir=$CORPUS_PKGDIR
 tsvdir=$CORPUS_TSVDIR
 vrtdir=$CORPUS_VRTDIR
 
-tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
-
 cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
 cwbdata2vrt=$progdir/cwbdata2vrt.py
 vrt_decode_chars="$progdir/vrt-convert-chars.py --decode"
@@ -60,14 +152,7 @@ sqlsubdir=sql
 pkgsubdir=pkgs
 vrtsubdir=vrt
 
-compress=gzip
-verbose=
-dbformat=auto
-
-omit_cwb_data=
-include_vrtdir=
 include_vrt=
-generate_vrt=
 
 exclude_files="backup *~ *.bak *.bak[0-9] *.old *.old[0-9] *.prev *.prev[0-9]"
 
@@ -92,113 +177,11 @@ frontend_config_files="config.js $(echo modes/{other_languages,parallel,swedish}
 extra_info_file=$tmp_prefix.info
 touch $extra_info_file
 
-
-usage () {
-    cat <<EOF
-Usage: $progname [options] corpus_name [corpus_id ...]
-
-Make an archive package for corpus corpus_name, containing the Korp
-corpora corpus_id ... (or corpus_name if corpus_id not specified).
-corpus_id may contain shell wildcards, in which case all matching
-corpora in the corpus registry are included.
-
-Options:
-  -h, --help      show this help
-  -c, --corpus-root DIR
-                  use DIR as the root directory of corpus files for the
-                  source files (CORPUS_ROOT) (default: $corpus_root)
-  --target-corpus-root DIR
-                  use DIR as the root directory of corpus files for the
-                  target files (to adjust paths in the corpus registry files)
-                  (default: CORPUS_ROOT)
-  -p, --package-dir DIR
-                  put the resulting package to a subdirectory CORPUS_NAME
-                  under the directory DIR (default: CORPUS_ROOT/$pkgsubdir)
-  -r, --registry DIR
-                  use DIR as the CWB registry (default: CORPUS_ROOT/$regsubdir)
-  -s, --sql-dir DIRTEMPL
-                  use DIRTEMPL as the source directory template for Korp MySQL
-                  dumps; DIRTEMPL is a directory name possibly containing
-                  placeholder {corpname} for corpus name or {corpid} for
-                  corpus id (default: CORPUS_ROOT/$sqlsubdir)
-  -t, --tsv-dir DIRTEMPL
-                  use DIRTEMPL as the source directory template for Korp MySQL
-                  TSV data files (default: CORPUS_ROOT/$sqlsubdir)
-  --korp-frontend-dir DIR
-                  read Korp configuration files from DIR (default:
-                  $korp_frontend_dir)
-  --vrt-dir DIRTEMPL
-                  use DIRTEMPL as the source directory template for VRT files
-                  (*.vrt, *.vrt.*) (default: CORPUS_ROOT/$vrtsubdir/{corpid})
-  --include-vrt-dir
-                  include the files in the (default) VRT directory in the
-                  package; this option needs to be specified only if using the
-                  default VRT directory
-  --vrt-file FILE
-                  include FILE as a VRT file in directory 'vrt/{corpname}' (or
-                  ('vrt/{corpid}' if the directory component of FILE contains
-                  {corpid}) in the package; this option may be specified
-                  multiple times, and FILE may contain shell wildcards
-  --generate-vrt  generate a single VRT file for each corpus from the CWB
-                  corpus data
-  --no-cwb-data   omit CWB data files from the package; this option requires
-                  that VRT files are being included in the package
-  --set-info KEY:VALUE
-                  set the corpus information item KEY (in the file .info) to
-                  the value VALUE, where KEY is of the form [SECTION_]SUBITEM,
-                  where SECTION can be "Metadata", "Licence" or "Compiler" and
-                  SUBITEM "URL", "URN", "Name" or "Description"; this option
-                  can be repeated multiple times
-  --info-from-file FILENAME
-                  read information items to be added from file FILENAME
-  --readme-file FILE
-                  include FILE as a top-level read-me file; the option may
-                  be specified multiple times to include multiple files, and
-                  FILE may contain shell wildcards (but braces are not
-                  expanded)
-  --doc-dir DIR   include DIR as a documentation directory 'doc' in the
-                  package
-  --doc-file FILE include FILE as a documentation file in directory 'doc';
-                  may be specified multiple times, and FILE may contain shell
-                  wildcards
-  --script-dir DIR
-                  include DIR as a (conversion) script directory 'scripts' in
-                  the package
-  --script-file FILE
-                  include FILE as a (conversion) script file in directory
-                  'scripts'; may be specified multiple times, and FILE may
-                  contain shell wildcards
-  --extra-dir SRCDIR[:DSTDIR]
-                  include directory SRCDIR in the package; if :DSTDIR is
-                  specified, the directory is renamed as DSTDIR in the
-                  package; the option may be specified multiple times
-  --extra-file SRCFILE[:DSTFILE]
-                  include file SRCFILE in the package; if :DSTFILE is
-                  specified, the file is renamed as DSTFILE in the package;
-                  if DSTFILE ends in a slash or if SRCFILE contains wildcards,
-                  DSTFILE is considered a directory name and SRCFILE is placed
-                  in that directory in the package; the option may be
-                  specified multiple times
-  -f, --database-format FMT
-                  include database files in format FMT: either sql (SQL),
-                  tsv (TSV), auto (SQL or TSV, whichever files are newer) or
-                  none (do not include database files) (default: $dbformat)
-  -z, --compress PROG
-                  compress files with PROG; "none" for no compression
-                  (default: $compress)
-
-Environment variables:
-  Default values for the various directories can also be specified via
-  the following environment variables: CORPUS_ROOT, TARGET_CORPUS_ROOT,
-  CORPUS_PKGDIR, CORPUS_REGISTRY, CORPUS_SQLDIR, CORPUS_TSVDIR, CORPUS_VRTDIR,
-  KORP_FRONTEND_DIR.
-EOF
-    exit 0
-}
-
-
 corpus_files=
 extra_dir_and_file_transforms=
+
+
+# Functions used in the option handler (directly or indirectly)
 
 remove_leading_slash () {
     printf '%s\n' "$1" | sed -e 's,^/*,,'
@@ -254,6 +237,46 @@ has_wildcards () {
 wildcards_to_regex () {
     echo "$1" |
     sed -e 's,\.,\\.,g; s,?,[^/],g; s,\*,[^/]*,g;'
+}
+
+set_korp_frontend_dir () {
+    if test_file -r $1/config.js warn \
+	"config.js not found or not accessible in directory $1; using the default Korp frontend directory $korp_frontend_dir"
+    then
+	korp_frontend_dir=$1
+    fi
+}
+
+set_db_format () {
+    case "$1" in
+	sql | SQL )
+	    dbformat=sql
+	    ;;
+	tsv | TSV )
+	    dbformat=tsv
+	    ;;
+	auto | automatic )
+	    dbformat=auto
+	    ;;
+	none )
+	    dbformat=none
+	    ;;
+	* )
+	    warn "Invalid database format '$1'; using $dbformat"
+	    ;;
+    esac
+}
+
+set_compress () {
+    if [ "x$1" = "xnone" ] || which $1 &> /dev/null; then
+	if [ "x$1" = "xcat" ]; then
+	    compress=none
+	else
+	    compress=$1
+	fi
+    else
+	warn "Compression program $1 not found; using $compress"
+    fi
 }
 
 add_extra_dir_or_file () {
@@ -326,154 +349,7 @@ add_extra_dir () {
 
 
 # Process options
-while [ "x$1" != "x" ] ; do
-    case "$1" in
-	-h | --help )
-	    usage
-	    ;;
-	-c | --corpus-root )
-	    set_corpus_root "$2"
-	    shift
-	    ;;
-	--target-corpus-root )
-	    target_corpus_root=$2
-	    shift
-	    ;;
-	-p | --package-dir )
-	    pkgdir=$2
-	    shift
-	    ;;
-	-r | --registry )
-	    set_corpus_registry "$2"
-	    shift
-	    ;;
-	-s | --sql-dir )
-	    sqldir=$2
-	    shift
-	    ;;
-	-t | --tsv-dir )
-	    tsvdir=$2
-	    shift
-	    ;;
-	--korp-frontend-dir | --frontend-dir )
-	    if test_file -r $2/config.js warn \
-		"config.js not found or not accessible in directory $2; using the default Korp frontend directory $korp_frontend_dir"
-	    then
-		korp_frontend_dir=$2
-	    fi
-	    shift
-	    ;;
-        --include-vrt-dir )
-	    include_vrt=1
-	    include_vrtdir=1
-	    ;;
-	--vrt-dir )
-	    include_vrt=1
-	    include_vrtdir=1
-	    vrtdir=$2
-	    shift
-	    ;;
-	--vrt-file )
-	    include_vrt=1
-	    add_extra_file "$2" vrt/{corpid}/
-	    shift
-	    ;;
-	--generate-vrt )
-	    include_vrt=1
-	    generate_vrt=1
-	    ;;
-	--no-cwb-data | --omit-cwb-data )
-	    omit_cwb_data=1
-	    ;;
-	--set-info )
-	    printf "%s\n" "$2" >> $extra_info_file
-	    shift
-	    ;;
-	--info-from-file )
-	    cat "$2" >> $extra_info_file
-	    shift
-	    ;;
-	--readme-file )
-	    add_extra_file "$2" /
-	    has_readme=1
-	    shift
-	    ;;
-	--doc-dir )
-	    add_extra_dir "$2" doc/
-	    has_docs=1
-	    shift
-	    ;;
-	--doc-file )
-	    add_extra_file "$2" doc/
-	    has_docs=1
-	    shift
-	    ;;
-	--script-dir )
-	    add_extra_dir "$2" scripts/
-	    has_scripts=1
-	    shift
-	    ;;
-	--script-file )
-	    add_extra_file "$2" scripts/
-	    has_scripts=1
-	    shift
-	    ;;
-	--extra-dir )
-	    add_extra_dir "$2"
-	    shift
-	    ;;
-	--extra-file )
-	    add_extra_file "$2"
-	    shift
-	    ;;
-	-f | --database-format )
-	    case "$2" in
-		sql | SQL )
-		    dbformat=sql
-		    ;;
-		tsv | TSV )
-		    dbformat=tsv
-		    ;;
-		auto | automatic )
-		    dbformat=auto
-		    ;;
-		none )
-		    dbformat=none
-		    ;;
-		* )
-		    warn "Invalid database format '$2'; using $dbformat"
-		    ;;
-	    esac
-	    shift
-	    ;;
-	-v | --verbose )
-	    verbose=1
-	    ;;
-	-z | --compress )
-	    if [ "x$2" = "xnone" ] || which $2 &> /dev/null; then
-		if [ "x$2" = "xcat" ]; then
-		    compress=none
-		else
-		    compress=$2
-		fi
-	    else
-		warn "Compression program $2 not found; using $compress"
-	    fi
-	    shift
-	    ;;
-	-- )
-	    shift
-	    break
-	    ;;
-	--* )
-	    warn "Unrecognized option: $1"
-	    ;;
-	* )
-	    break
-	    ;;
-    esac
-    shift
-done
+eval "$optinfo_opt_handler"
 
 
 if [ "x$1" = "x" ]; then
@@ -487,6 +363,10 @@ datadir=$(remove_trailing_slash ${datadir:-$corpus_root/$datasubdir})
 sqldir=$(remove_trailing_slash ${sqldir:-$corpus_root/$sqlsubdir})
 tsvdir=$(remove_trailing_slash ${tsvdir:-$sqldir})
 vrtdir=$(remove_trailing_slash ${vrtdir:-"$corpus_root/$vrtsubdir/{corpid}"})
+
+if [ "x$include_vrtdir$generate_vrt" != "x" ]; then
+    include_vrt=1
+fi
 
 corpus_name=$1
 shift
