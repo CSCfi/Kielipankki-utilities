@@ -438,14 +438,6 @@ if [ "x$generate_vrt" != x ]; then
     done
 fi
 
-add_prefix () {
-    prefix=$1
-    shift
-    for arg in "$@"; do
-	echo $prefix$arg
-    done
-}
-
 fill_dirtempl () {
     dirtempl=$1
     corpus_id=$2
