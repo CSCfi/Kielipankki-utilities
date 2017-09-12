@@ -77,7 +77,7 @@ has_scripts=
 
 archive_ext_none=tar
 archive_ext_gzip=tgz
-archive_ext_bzip=tbz
+archive_ext_bzip2=tbz
 archive_ext_xz=txz
 
 archive_type_name=korp
