@@ -25,6 +25,7 @@
 # - Finding the most recent database files from either SQL or TSV
 #   files does not work correctly; see FIXME comments in the code.
 # - {corpid} does not work in the filename part of an extra VRT file.
+# - Directory name transformation does not seem to work for ../dir.
 
 
 progname=`basename $0`
