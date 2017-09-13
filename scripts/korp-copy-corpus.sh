@@ -102,6 +102,7 @@ s,^\(ID *\)'$source',\1'$target',;
 s,^\(HOME .*/\)'$source',\1'$target',;
 s,^\(INFO .*/\)'$source'\(/\.info\),\1'$target'\2,' \
     > "$cwb_regdir/$target"
+    ensure_perms "$cwb_regdir/$target"
 }
 
 mysql_make_copy_table_rows () {
