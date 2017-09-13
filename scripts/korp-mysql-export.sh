@@ -21,7 +21,7 @@ verbose=1
 
 dbname=korp
 
-tables_common="lemgram_index timespans timedata timedata_date corpus_info"
+tables_common="lemgram_index timespans timedata timedata_date corpus_info auth_license auth_lbr_map"
 tables_by_corpus="relations names"
 table_suffixes_relations="@ dep_rel head_rel rel sentences strings"
 table_suffixes_names="@ sentences strings"
@@ -138,7 +138,7 @@ run_mysql_export () {
     fi
     wc -l < $tmp_prefix.fifo > $tmp_prefix.wc &
     pid=$!
-    run_mysql "$@" 2> /dev/null |
+    run_mysql --table $tablename "$@" 2> /dev/null |
     tail -n+2 |
     tee $tmp_prefix.fifo |
     $compress > $outfname
