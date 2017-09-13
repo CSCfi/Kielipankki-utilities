@@ -86,8 +86,11 @@ ensure_perms () {
 # Create the directories dir and ensure that they have the desired
 # permissions ($filegroup and $fileperms).
 mkdir_perms () {
-    mkdir -p "$@"
-    ensure_perms "$@"
+    if mkdir -p "$@"; then
+	ensure_perms "$@"
+    else
+	return $?;
+    fi
 }
 
 warn () {
