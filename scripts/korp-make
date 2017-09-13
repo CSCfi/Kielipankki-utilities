@@ -75,6 +75,16 @@ c|corpus-root=DIR "$corpus_root"
 tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
     output database tables as TSV files to DIR
 
+@ Corpus licence information
+
+licence-type=LIC auth_opts { add_auth_opts licence_type $optname $1 }
+    set the corpus licence type to LIC, where LIC is one of PUB, ACA,
+    ACA-Fi or RES
+lbr-id=URN { add_auth_opts lbr_id $optname $1 }
+    set the LBR id of the corpus to URN, which is of the form
+    [urn:nbn:fi:lb-]YYYYMMNNN[@LBR], where YYYYMM is year and month
+    and NNN 3 to 5 digits; the bracketed parts are added if left out
+
 @ Input attributes
 
 input-attrs|input-attributes|input-fields=ATTRS \
@@ -230,6 +240,16 @@ vrt_file=
 
 text_sort_opts=
 sort_texts=
+
+add_auth_opts () {
+    local type opt val
+    type=$1
+    opt=$2
+    val=$3
+    val=$(eval "make_$type \$val")
+    exit_if_error $?
+    auth_opts="$auth_opts $opt $val"
+}
 
 add_text_sort_opt () {
     local optname=$1
@@ -650,7 +670,7 @@ make_corpus_package () {
     run_cmd gzip --no-name $vrt_file
     run_cmd $korp_make_corpus_package --target-corpus-root /v/corpora \
 	--tsv-dir "$tsvdir" --database-format tsv --compress gzip \
-	--vrt-file $vrt_file.gz $extra_opts $corpus
+	--vrt-file $vrt_file.gz $auth_opts $extra_opts $corpus
 }
 
 test_skip_make_corpus_package () {

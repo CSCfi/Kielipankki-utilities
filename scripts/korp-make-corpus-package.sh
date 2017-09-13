@@ -86,6 +86,13 @@ no-cwb-data omit_cwb_data
 
 @ Options for corpus information
 
+licence-type=LIC auth_opts { add_auth_opts licence_type $optname $1 }
+    set the corpus licence type to LIC, where LIC is one of PUB, ACA,
+    ACA-Fi or RES
+lbr-id=URN { add_auth_opts lbr_id $optname $1 }
+    set the LBR id of the corpus to URN, which is of the form
+    [urn:nbn:fi:lb-]YYYYMMNNN[@LBR], where YYYYMM is year and month
+    and NNN 3 to 5 digits; the bracketed parts are added if left out
 set-info=KEY:VALUE * { printf "%s\n" "$1" >> "$extra_info_file" }
     set the corpus information item KEY (in the file .info) to the
     value VALUE, where KEY is of the form [SECTION_]SUBITEM, where
@@ -160,6 +167,7 @@ vrtdir=$CORPUS_VRTDIR
 cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
 cwbdata2vrt=$progdir/cwbdata2vrt.py
 vrt_decode_chars="$progdir/vrt-convert-chars.py --decode"
+korp_make_auth_info=$progdir/korp-make-auth-info.sh
 
 regsubdir=registry
 datasubdir=data
@@ -363,6 +371,15 @@ add_extra_dir () {
     add_extra_dir_or_file "$(echo "$1" | sed -e 's,:,/:,; s,$,/,')" "$target"
 }
 
+add_auth_opts () {
+    local type opt val
+    type=$1
+    opt=$2
+    val=$3
+    val=$(eval "make_$type \$val")
+    exit_if_error $?
+    auth_opts="$auth_opts $opt $val"
+}
 
 # Process options
 eval "$optinfo_opt_handler"
@@ -612,6 +629,11 @@ else
 	sed -e "s,^\(HOME\|INFO\) .*\($corpus_id\),\1 $target_corpus_root/$datasubdir/\2," $regdir/$corpus_id > $target_regdir/$corpus_id
 	touch --reference=$regdir/$corpus_id $target_regdir/$corpus_id
     done
+fi
+
+
+if [ "x$auth_opts" != "x" ]; then
+    $korp_make_auth_info --tsv-dir "$tsvdir" $auth_opts $corpus_ids
 fi
 
 echo_dbg extra_files "$corpus_files"
