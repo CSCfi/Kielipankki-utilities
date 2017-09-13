@@ -97,19 +97,53 @@ warn () {
     echo "$progname: Warning: $1" >&2
 }
 
+# error [exitcode] msg
+#
+# Print msg (prefixed with progname) to stderr and exit with exitcode
+# (default: 1).
 error () {
-    echo "$progname: $1" >&2
-    exit 1
+    local exitcode
+    exitcode=1
+    if [ $# -gt 1 ]; then
+	exitcode=$1
+	shift
+    fi
+    safe_echo "$progname: $1" >&2
+    exit $exitcode
 }
 
-# exit_on_error cmd [args ...]
+# exit_on_error [--message msg] cmd [args ...]
 #
-# If cmd returns a non-zero, propagate the error and exit.
+# If cmd returns a non-zero, propagate the error and exit with the
+# exit code returned by cmd. Print the message specified with
+# --message, or a default one.
 exit_on_error () {
+    local msg _exit_code
+    msg=
+    if [ "x$1" = "x--message" ]; then
+	msg="$2"
+	shift 2
+    fi
     "$@"
     _exit_code=$?
     if [ $_exit_code != 0 ]; then
-	error "Terminating due to errors in subprocess $1 (exit code $_exit_code)"
+	if [ "x$msg" = x ]; then
+	    msg="Terminating due to errors in subprocess $1 (exit code $_exit_code)"
+	fi
+	error $_exit_code "$msg"
+    fi
+}
+
+# exit_if_error exitcode
+#
+# If exitcode is non-zero, exit with it. This function can be used
+# when the call of a function fn that may exit using function "error"
+# is within $(...) but the output of which should saved, since an exit
+# in such as subprocess does not exit the parent: $(fn ...);
+# exit_if_error $?
+exit_if_error () {
+    if [ "x$1" != "x0" ]; then
+	exit $1
     fi
 }
 
