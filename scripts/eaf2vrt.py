@@ -175,7 +175,7 @@ class EafRiesslerToVrtConverter(EafToVrtConverter):
 
     def getopts(self):
         self.getopts_basic(
-            dict(usage="%progname [options] [input] > output"),
+            dict(usage="%prog [options] [input] > output"),
             ['--original-words', '--orig-words', dict(action='store_true')],
             ['--participant'],
             ['--metadata-file'],

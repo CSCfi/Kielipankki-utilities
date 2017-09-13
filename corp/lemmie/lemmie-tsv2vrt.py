@@ -228,7 +228,7 @@ class LemmieToVrtConverter(korputil.InputProcessor):
 
     def getopts(self, args=None):
         self.getopts_basic(
-            dict(usage="%progname [options] [input] > output"),
+            dict(usage="%prog [options] [input] > output"),
             args,
             ['--doc-info-file', '--document-info-file'],
             ['--elem-file', '--element-file'],

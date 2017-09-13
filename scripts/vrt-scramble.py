@@ -67,7 +67,7 @@ class VrtScrambler(korpimport.util.InputProcessor):
 
     def getopts(self, args=None):
         self.getopts_basic(
-            dict(usage="%progname [options] [input] > output",
+            dict(usage="%prog [options] [input] > output",
                  description=(
 """Scramble (randomly shuffle) given structures (elements), such as sentences,
 within larger structures, such as texts, in the VRT input and output the

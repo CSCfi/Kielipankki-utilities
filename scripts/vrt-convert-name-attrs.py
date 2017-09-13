@@ -157,7 +157,7 @@ class NameAttrConverter(korpimport.util.InputProcessor):
  
     def getopts(self, args=None):
         self.getopts_basic(
-            dict(usage="%progname [options] [input] > output",
+            dict(usage="%prog [options] [input] > output",
                  description=(
 """Add named entity (NE) tags (structural attributes) to VRT input based on
 positional attributes containing Pmatch-style NER tags, word form and base

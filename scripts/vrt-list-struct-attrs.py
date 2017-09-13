@@ -72,7 +72,7 @@ class StructAttrLister(korpimport.util.InputProcessor):
 
     def getopts(self, args=None):
         self.getopts_basic(
-            dict(usage="%progname [input.vrt ...] > output",
+            dict(usage="%prog [input.vrt ...] > output",
                  description=(
 """List the structural attributes (elements and their attributes) in the VRT
 input in the format suitable as arguments of the option -S of cwb-encode:
