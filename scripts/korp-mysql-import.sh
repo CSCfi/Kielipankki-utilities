@@ -172,18 +172,10 @@ filename_bases="lemgrams timedata timedata_date timespans"
 filename_bases_commas="$(echo $filename_bases | sed 's/ /, /g')"
 filename_bases_sed_re="$(echo $filename_bases | sed 's/ /\\|/g')"
 
-# The table name corresponding to each multi-corpus filename base
+# The table name corresponding to a multi-corpus filename base; if not
+# defined, default to the filename base
 tablename_lemgrams=lemgram_index
-tablename_timedata=timedata
-tablename_timedata_date=timedata_date
-tablename_timespans=timespans
 
-# All multi-corpus table names
-multicorpus_tablenames=$(
-    for fname_base in $filename_bases; do
-	eval echo "\$tablename_$fname_base"
-    done
-)
 
 shortopts="htI:v"
 longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:,hide-warnings,mysql-program:,mysql-binary:mysql-options:,verbose,show-progress,progress-interval:"
@@ -335,13 +327,24 @@ fill_tablename_template () {
     sed -e "s/@/$1/"
 }
 
+get_tablename_for_filename_base () {
+    local fname_base tablename_base
+    fname_base=$1
+    tablename_base=$(eval echo "\$tablename_$fname_base")
+    if [ "x$tablename_base" = "x" ]; then
+	tablename_base=$fname_base
+    fi
+    echo $tablename_base
+}
+
 # Get the table name base based on the filename argument.
 get_file_tablename_base () {
+    local _fname fname_base
     _fname=$1
     for fname_base in $filename_bases; do
 	case "$_fname" in
 	    *_$fname_base.* )
-		eval echo "\$tablename_$fname_base"
+		echo $(get_tablename_for_filename_base $fname_base)
 		break
 		;;
 	esac
@@ -499,11 +502,18 @@ create_new_table() {
     create_table $_tablename "$_colspec"
 }
 
+get_multicorpus_tablenames () {
+    local tablename
+    for fname_base in $filename_bases; do
+	echo $(get_tablename_for_filename_base $fname_base)
+    done
+}
+
 prepare_tables () {
     _tablename=$1
     _corpname=$2
     _colspec=$3
-    for tblname in $multicorpus_tablenames; do
+    for tblname in $(get_multicorpus_tablenames); do
 	if [ $tblname = $_tablename ]; then
 	    create_table $_tablename "$_colspec"
 	    delete_table_corpus_info $_tablename $_corpname
