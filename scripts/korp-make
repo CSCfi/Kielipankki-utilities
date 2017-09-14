@@ -511,8 +511,12 @@ add_datefromto () {
     if [ "x$corpus_date_full_order" != "x" ]; then
 	opts="$opts --full-dates --full-date-order=$corpus_date_full_order"
     fi
-    process_vrt $vrt_extract_timespans --mode=add --output-full-dates=always \
-	$opts "$corpus_date_pattern"
+    if [ "x$corpus_date_pattern" != x ]; then
+	opts="$opts --pattern $(quote_args_safe "$corpus_date_pattern")"
+    fi
+    # Use eval to get the quoted argument of --pattern correctly
+    eval process_vrt $vrt_extract_timespans --mode=add \
+	--output-full-dates=always $opts
 }
 
 test_skip_add_datefromto () {
