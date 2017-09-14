@@ -89,13 +89,12 @@ sentences are scrambled within texts, the input may not have paragraphs.
                       ' structures are not moved across STRUCT boundaries'
                       ' (default: %default)'))],
             ['random-seed|seed =SEED', dict(
-                type='int',
-                default=2017,
-                help=('set random number generator seed to SEED (an integer);'
-                      ' use 0 for a random seed (non-repeatable output)'
-                      ' (default: %default)'))],
+                default='2017',
+                help=('set random number generator seed to SEED (any string);'
+                      ' use 0 or "" for a random seed (non-reproducible'
+                      ' output) (default: %default)'))],
         )
-        if self._opts.random_seed == 0:
+        if self._opts.random_seed in ['', '0']:
             self._opts.random_seed = None
 
 
