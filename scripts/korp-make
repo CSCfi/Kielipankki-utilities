@@ -7,7 +7,6 @@
 # - Allow different compound boundary options.
 # - Allow multiple instances of extra file options to pass to
 #   korp-make-corpus-package
-# - Option to request scrambling sentences or paragraphs with text
 # - --add-structure-ids: Specify by structure type if existing values
 #   should be overwritten or not.
 # - Allow specifying structure id value format.
@@ -130,6 +129,19 @@ text-sort-transform=TRANSFORM '"'"' * { add_text_sort_opt --transform "$1" }
     order; if read from a configuration file, TRANSFORM is treated as
     enclosed in single quotes, so you need not protect \$ nor \\
 
+@ Scrambling structures
+
+scramble=STRUCTS
+    scramble structures listed in STRUCTS, separated by spaces;
+    allowed structures are sentence and paragraph; they are scrambled
+    within the immediately containing structure, typically within
+    paragraph and text, respectively; "sentence paragraph" scrambles
+    both ways
+scramble-seed=SEED
+    use the string SEED as the random number generator seed for
+    scrambling data; "0" for random seed (non-reproducible order)
+    (default: corpus id)
+
 @ Date information
 
 corpus-date=DATE
@@ -224,6 +236,7 @@ vrt_convert_chars=$progdir/vrt-convert-chars.py
 vrt_extract_timespans=$progdir/vrt-extract-timespans.py
 vrt_list_struct_attrs=$progdir/vrt-list-struct-attrs.py
 korp_convert_timedata=$progdir/korp-convert-timedata.sh
+vrt_scramble=$progdir/vrt-scramble.py
 cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
 vrt_extract_lemgrams=$progdir/vrt-extract-lemgrams.sh
 run_extract_rels=$progdir/run-extract-rels.sh
@@ -416,6 +429,7 @@ stages=(
     add_lemgrams "Adding lemgrams"
     add_datefromto "Adding datefrom and dateto"
     sort_texts "Sorting text elements"
+    scramble_structs "Scrambling structures"
     add_struct_ids "Adding structure ids"
     cwb_encode "Encoding the attributes for CWB"
     cwb_make "Indexing and compressing the CWB data"
@@ -531,6 +545,72 @@ sort_texts () {
 
 test_skip_sort_texts () {
     [ "x$sort_texts" = x ] &&
+    echo "not requested"
+}
+
+# find_containing_struct struct vrt_fname
+#
+# Print the structure immediately containing struct in the VRT file
+# vrt_fname, an empty string if struct is the top-level structure. If
+# struct is not found in vrt_fname, return error.
+#
+# This assumes that if the text has paragraphs, no sentence is outside
+# a paragraph. Likewise, if the text has chapters between text and
+# paragraph, all paragraphs should be inside a chapter. This also does
+# not work with crossing structures, like lines or pages interleaved
+# with others. It is unclear how or if scrambling should be done in
+# such cases.
+find_containing_struct () {
+    local struct vrt_fname
+    struct=$1
+    vrt_fname=$2
+    if ! grep -q -s "^<$struct" $vrt_fname; then
+	return $?
+    fi
+    grep '^<' $vrt_fname |
+    awk '
+	BEGIN { top = 0 }
+	/^<[^\/]/ {
+	    struct = substr($1, 2)
+	    if (struct == "'"$struct"'") {
+		print (top > 0 ? stack[top] : "")
+                exit 0
+	    }
+	    stack[++top] = struct
+	}
+	/^<\// { top-- }
+    '
+    return 0
+}
+
+scramble_structs () {
+    local unit within
+    if [ "x$scramble_seed" = x ]; then
+	scramble_seed=$corpus
+    fi
+    for unit in $scramble; do
+	case $unit in
+	    "paragraph" | "sentence" )
+		within=$(find_containing_struct $unit "$vrt_file")
+		if [ $? != 0 ]; then
+		    warn "Input VRT has no $unit structures specified with --scramble"
+		elif [ "x$within" = x ]; then
+		    warn "Cannot scramble top-level structures $unit"
+		fi
+		;;
+	    * )
+		warn "Structure $unit unsupported for scrambling"
+		;;
+	esac
+	if [ "x$within" != x ]; then
+	    process_vrt $vrt_scramble --seed $scramble_seed \
+		--unit $unit --within $within
+	fi
+    done
+}
+
+test_skip_scramble_structs () {
+    [ "x$scramble" = x ] &&
     echo "not requested"
 }
 
