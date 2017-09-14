@@ -222,8 +222,11 @@ class PosAttrConverter(object):
             fieldlist = ' '.join(fields).strip().split()
             self._set_fields = set(num for num, name in enumerate(fieldlist)
                                    if name[-1] == '/')
-            self._input_fields = dict((name.strip('/'), num)
+            self._input_fields = dict((name, num)
                                       for num, name in enumerate(fieldlist))
+            self._input_fields.update(dict((name.strip('/'), num)
+                                           for num, name in enumerate(fieldlist)
+                                           if name[-1] == '/'))
         else:
             self._set_fields = set()
             self._input_fields = {}
