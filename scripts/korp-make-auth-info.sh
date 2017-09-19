@@ -87,17 +87,18 @@ make_tsv_file () {
 }
 
 main () {
-    local corpora corpus
+    local corpora corpus corpus_u
     check_args "$@"
     corpora=$(list_corpora "$@")
     for corpus in $corpora; do
+	corpus_u=$(toupper $corpus)
 	if [ "x$licence_type" != "x" ]; then
 	    verbose printf "Generating licence data file for $corpus: "
-	    make_tsv_file $corpus license $corpus "$licence_type"
+	    make_tsv_file $corpus license $corpus_u "$licence_type"
 	fi
 	if [ "x$lbr_id" != "x" ]; then
 	    verbose printf "Generating LBR map data file for $corpus: "
-	    make_tsv_file $corpus lbr_map "$lbr_id" $corpus
+	    make_tsv_file $corpus lbr_map "$lbr_id" $corpus_u
 	fi
     done
 }
