@@ -810,6 +810,36 @@ get_corpus_token_count () {
     awk '$1 ~ /^size/ {print $3}'
 }
 
+# get_corpus_struct_count struct corpus
+#
+# Print the number of structures struct in corpus.
+get_corpus_struct_count () {
+    $cwb_bindir/cwb-describe-corpus -s $2 |
+    awk "/^s-ATT $1"' / {print $3}'
+}
+
+# get_vrt_token_count [vrt_file ...]
+#
+# Print the number of tokens in the VRT input vrt_file. vrt_file may
+# be compressed. If vrt_file is not specified, read from stdin.
+get_vrt_token_count () {
+    comprcat "$@" |
+    grep -E -cv '^($|<)'
+}
+
+# get_vrt_struct_count struct [vrt_file ...]
+#
+# Print the number of structures struct in the VRT input vrt_file.
+# vrt_file may be compressed. If vrt_file is not specified, read from
+# stdin.
+get_vrt_struct_count () {
+    local struct
+    struct=$1
+    shift
+    comprcat "$@" |
+    grep -c "^<$struct "
+}
+
 # replace_file [--backup backup_file] old_file new_file
 #
 # Safely replace old_file with new_file. If --backup is specified,
