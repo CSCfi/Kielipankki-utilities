@@ -670,7 +670,8 @@ test_skip_cwb_make () {
 }
 
 convert_timedata () {
-    run_cmd $korp_convert_timedata --tsv-dir "$tsvdir" $verbose_opt $corpus
+    run_cmd $korp_convert_timedata --tsv-dir "$tsvdir" $verbose_opt \
+	--corpus-root "$corpus_root" $corpus
 }
 
 test_skip_convert_timedata () {
@@ -757,6 +758,7 @@ make_corpus_package () {
     extra_opts="$extra_opts --extra-file=$package_extra_file"
     run_cmd gzip --no-name $vrt_file
     run_cmd $korp_make_corpus_package --target-corpus-root /v/corpora \
+	--corpus-root "$corpus_root" \
 	--tsv-dir "$tsvdir" --database-format tsv --compress gzip \
 	--vrt-file $vrt_file.gz $auth_opts $extra_opts $corpus
 }

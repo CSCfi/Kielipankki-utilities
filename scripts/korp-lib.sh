@@ -638,10 +638,13 @@ set_corpus_registry () {
 
 # set_corpus_root dir
 #
-# Set the CWB corpus root directory (corpus_root) to dir and set
-# CORPUS_REGISTRY to dir/registry unless already set externally (in
-# which case set cwb_regdir to $CORPUS_REGISTRY).
+# Set the CWB corpus root directory (corpus_root) to dir and export it
+# as CORPUS_ROOT. Also set CORPUS_REGISTRY to dir/registry unless
+# already set externally (in which case set cwb_regdir to
+# $CORPUS_REGISTRY).
 set_corpus_root () {
+    CORPUS_ROOT=$1
+    export CORPUS_ROOT
     corpus_root=$1
     if [ "x$CORPUS_REGISTRY" = x ] || [ "x$corpus_registry_set" != "x" ]; then
 	set_corpus_registry "$corpus_root/registry"
