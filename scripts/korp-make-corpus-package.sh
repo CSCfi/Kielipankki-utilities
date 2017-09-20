@@ -13,19 +13,21 @@
 # - Working --verbose (or --quiet).
 # - Update MySQL dumps if older than the database files (or if an
 #   option is specified).
-# - An option to generate MySQL dumps or the corresponding TSV files
-#   from the database using a separate script (korp-mysql-export).
+# - An option to generate MySQL dumps from the database, complementary
+#   to the --export-database.
+# - --export-database: Generate TSV files only if they do not exist or
+#   if they are older than corpus data files.
 # - An option to generate both a CWB data package and a VRT package
 #   with a single command.
-# - Also include data for table auth_license in korp_auth: maybe add
-#   the data (as TSV) based on an option specifying the licence -
-#   category.
 #
 # FIXME:
 # - Finding the most recent database files from either SQL or TSV
 #   files does not work correctly; see FIXME comments in the code.
 # - {corpid} does not work in the filename part of an extra VRT file.
 # - Directory name transformation does not seem to work for ../dir.
+# - If the TSV or SQL directory contains files for the same table
+#   compressed with different programs, they are all included, instead
+#   of only the newest ones.
 
 
 progname=`basename $0`
@@ -137,6 +139,9 @@ f|database-format=FMT "auto" dbformat { set_db_format "$1" }
     include database files in format FMT: either sql (SQL), tsv (TSV),
     auto (SQL or TSV, whichever files are newer) or none (do not
     include database files)
+export-database export_db { export_db=1; set_db_format "tsv" }
+    export database data into TSV files to be packaged; implies
+   --database-format=tsv
 z|compress=PROG "gzip" { set_compress "$1" }
     compress files with PROG; "none" for no compression
 '
@@ -167,6 +172,7 @@ vrtdir=$CORPUS_VRTDIR
 cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
 cwbdata2vrt=$progdir/cwbdata2vrt.py
 vrt_decode_chars="$progdir/vrt-convert-chars.py --decode"
+korp_mysql_export="$progdir/korp-mysql-export.sh"
 korp_make_auth_info=$progdir/korp-make-auth-info.sh
 
 regsubdir=registry
@@ -646,6 +652,10 @@ for corpus_id in $corpus_ids; do
     add_corpus_files "$target_regdir/$corpus_id"
     if [ "x$omit_cwb_data" = x ]; then
 	add_corpus_files "$datadir/$corpus_id"
+    fi
+    if [ "x$export_db" != x ]; then
+	$korp_mysql_export --corpus-root "$corpus_root" \
+	    --output-dir "$tsvdir" --compress "$compress" $corpus_id
     fi
     if [ "x$dbformat" != xnone ]; then
 	add_corpus_files $(list_db_files $corpus_id)
