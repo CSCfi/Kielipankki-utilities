@@ -69,7 +69,7 @@ no-logging !logging
 
 @ Directories
 
-c|corpus-root=DIR "$corpus_root"
+c|corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
     use DIR as the root directory of corpus files
 tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
     output database tables as TSV files to DIR
