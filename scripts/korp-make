@@ -71,7 +71,7 @@ no-logging !logging
 
 c|corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
     use DIR as the root directory of corpus files
-tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
+tsv-dir=DIR "CORPUS_ROOT/$tsv_subdir" tsvdir
     output database tables as TSV files to DIR
 
 @ Corpus licence information
@@ -307,6 +307,7 @@ input_files=( "$@" )
 vrtdir=${vrtdir:-$corpus_root/$vrt_subdir}
 vrtdir=${vrtdir//CORPUS/$corpus}
 tsvdir=${tsvdir:-$corpus_root/$tsv_subdir}
+tsvdir=${tsvdir/CORPUS_ROOT/$corpus_root}
 tsvdir=${tsvdir//CORPUS/$corpus}
 datadir=$corpus_root/data/$corpus
 
