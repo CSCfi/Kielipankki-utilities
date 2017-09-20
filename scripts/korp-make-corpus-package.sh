@@ -244,13 +244,24 @@ $1 $2"
 }
 
 add_corpus_files () {
+    local any any_added _fname
+    # If --any is specified, warn on non-existent files only if none
+    # of the files specified as arguments is found.
+    if [ "x$1" = "x--any" ]; then
+	any=1
+	shift
+    fi
     for _fname in "$@"; do
 	if ls $_fname > /dev/null 2>&1; then
 	    corpus_files="$corpus_files $_fname"
-	else
+	    any_added=1
+	elif [ "x$any" = x ]; then
 	    warn "File or directory not found: $_fname"
 	fi
     done
+    if [ "x$any" != x ] &&  [ "x$any_added" = x ]; then
+	warn "None of the files or directories found: $*"
+    fi
 }
 
 has_wildcards () {
@@ -661,7 +672,10 @@ for corpus_id in $corpus_ids; do
 	add_corpus_files $(list_db_files $corpus_id)
     fi
     if [ "x$include_vrtdir" != x ]; then
-	add_corpus_files $(remove_trailing_slash "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")
+	filepatt=$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)
+	# --any to warn only if neither *.vrt nor *.vrt.* is found
+	add_corpus_files --any $(remove_trailing_slash \
+	    "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")
     fi
 done
 for extra_file in $extra_corpus_files; do
