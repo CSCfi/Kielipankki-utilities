@@ -80,8 +80,14 @@ vrt-file=FILE * { include_vrt=1; add_extra_file "$1" vrt/{corpid}/ }
     {corpid}) in the package; this option may be specified multiple
     times, and FILE may contain shell wildcards
 generate-vrt
-    generate a single VRT file for each corpus from the CWB
-    corpus data
+    generate a single VRT file for each corpus from the CWB corpus
+    data; include the file in the package but do not add it to the VRT
+    directory
+update-vrt|generate-missing-vrt { update_vrt=1; include_vrtdir=1; }
+    update or generate a single VRT file from the CWB corpus data for
+    each corpus for which it is missing from the VRT directory or is
+    older than the CWB data of the corpus, and include the file in the
+    package
 no-cwb-data omit_cwb_data
     omit CWB data files from the package; this option requires
     that VRT files are being included in the package
@@ -432,6 +438,11 @@ if [ "x$omit_cwb_data" != x ]; then
     archive_type_name=vrt
 fi
 
+if [ "x$generate_vrt" != x ] && [ "x$update_vrt" != x ]; then
+    warn "Both --generate-vrt and --update-vrt specified; assuming --update-vrt"
+    generate_vrt=
+fi
+
 eval archive_ext=\$archive_ext_$compress
 if [ "x$archive_ext" = x ]; then
     archive_ext=tar.$compress
@@ -464,14 +475,19 @@ if [ "x$has_scripts" = x ]; then
     warn "No conversion scripts included"
 fi
 
+generate_vrt () {
+    local corpus_id=$1
+    $cwbdata2vrt --registry "$regdir" --cwbdir "$cwb_bindir" $corpus_id |
+    $vrt_decode_chars
+}
+
 if [ "x$generate_vrt" != x ]; then
     mkdir -p $tmp_prefix.vrt
     for corpus_id in $corpus_ids; do
-	$cwbdata2vrt --registry "$regdir" --cwbdir "$cwb_bindir" $corpus_id |
-	$vrt_decode_chars > $tmp_prefix.vrt/$corpus_id.vrt
-	add_corpus_files $tmp_prefix.vrt/$corpus_id.vrt
-	add_transform $tmp_prefix.vrt/$corpus_id.vrt \
-	    vrt/$corpus_id/$corpus_id.vrt
+	vrt_file=$tmp_prefix.vrt/$corpus_id.vrt
+	generate_vrt $corpus_id > "$vrt_file"
+	add_corpus_files "$vrt_file"
+	add_transform "$vrt_file" vrt/$corpus_id/$corpus_id.vrt
     done
 fi
 
@@ -481,6 +497,35 @@ fill_dirtempl () {
     echo "$dirtempl" |
     sed -e "s,{corpname},$corpus_name,g; s,{corpid},$corpus_id,g"
 }
+
+vrt_file_is_uptodate () {
+    local corpus_id=$1
+    local vrt_file=$2
+    local newer_corpus_files
+    vrt_file=$(ls -t "$vrt_file" "$vrt_file".* 2> /dev/null | head -1)
+    if [ "x$vrt_file" = x ]; then
+	return 1
+    fi
+    newer_corpus_files=$(
+	find "$datadir"/$corpus_id -newer "$vrt_file" -name '[a-z]*')
+    [ "x$newer_corpus_files" = x ]
+}
+
+if [ "x$update_vrt" != x ]; then
+    for corpus_id in $corpus_ids; do
+	corpus_vrtdir=$(fill_dirtempl "$vrtdir" $corpus_id)
+	vrt_file=$corpus_vrtdir/$corpus_id.vrt
+	mkdir -p "$corpus_vrtdir"
+	if ! vrt_file_is_uptodate $corpus_id "$vrt_file"; then
+	    # Would the following be safe?
+	    # rm -f "$vrt_file" "vrt_file".*
+	    generate_vrt $corpus_id > "$vrt_file"
+	    if [ "x$compress" != "xnone" ]; then
+		$compress -f "$vrt_file"
+	    fi
+	fi
+    done
+fi
 
 make_rels_table_names () {
     corp_id_upper=`echo $1 | sed -e 's/\(.*\)/\U\1\E/'`
