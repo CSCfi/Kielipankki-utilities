@@ -27,8 +27,13 @@ class StructAttrLister(korpimport.util.InputProcessor):
         # for order?
         self._struct_attrdict = defaultdict(dict)
         self._struct_attrlist = defaultdict(list)
+        # For each attribute of each structure, a dictionary of two
+        # keys: 'basic' for the number of "basic" values and 'featset'
+        # for the number of values that can be interpreted as feature
+        # set values (beginning and ending with a vertical bar).
+        self._struct_attr_value_count = defaultdict(dict)
         self._structname_re = re.compile(r'</?([a-z0-9_-]+)')
-        self._attr_re = re.compile(r'''(\S+?)\s*=\s*([\"\']).*?\2''')
+        self._attr_re = re.compile(r'''(\S+?)\s*=\s*([\"\'])(.*?)\2''')
 
     def process_input_stream(self, stream, filename=None):
         for line in stream:
@@ -56,9 +61,17 @@ class StructAttrLister(korpimport.util.InputProcessor):
         attriter = self._attr_re.finditer(line)
         for mo in attriter:
             attrname = mo.group(1)
+            attrval = mo.group(3)
+            attrval_type = ('featset' if (attrval and attrval[0] == '|'
+                                          and attrval[-1] == '|')
+                            else 'basic')
             if attrname not in self._struct_attrdict[structname]:
                 self._struct_attrdict[structname][attrname] = True
                 self._struct_attrlist[structname].append(attrname)
+                self._struct_attr_value_count[structname][attrname] = {
+                    'basic': 0, 'featset': 0 }
+            self._struct_attr_value_count[structname][attrname][
+                attrval_type] += 1
 
     def _output_structs(self):
         structspecs = []
@@ -66,9 +79,33 @@ class StructAttrLister(korpimport.util.InputProcessor):
             structspec = (structname + ':'
                           + str(self._struct_maxdepth[structname] - 1))
             if structname in self._struct_attrlist:
-                structspec += '+' + '+'.join(self._struct_attrlist[structname])
+                structspec += (
+                    '+' + '+'.join(
+                        self._make_attrspec(structname, attrname)
+                        for attrname in self._struct_attrlist[structname]))
             structspecs.append(structspec)
         self.output(' '.join(structspecs) + '\n')
+
+    def _make_attrspec(self, structname, attrname):
+        attrtype_names = {'featset': 'feature-set',
+                          'basic': 'non-feature-set'}
+        val_counts = self._struct_attr_value_count[structname][attrname]
+        attrtype = ('featset' if val_counts['featset'] > val_counts['basic']
+                    else 'basic')
+        attrtype_other = 'featset' if attrtype == 'basic' else 'basic'
+        if val_counts[attrtype_other] != 0:
+            self.warn(
+                ('Attribute {attrname} of structure {structname} interpreted'
+                 ' as a {attrtype} attribute, even though it has'
+                 ' {attrtype_other_count} {attrtype_other} values in addition'
+                 ' to {attrtype_count} {attrtype} values.').format(
+                     structname=structname, attrname=attrname,
+                     attrtype=attrtype_names[attrtype],
+                     attrtype_other=attrtype_names[attrtype_other],
+                     attrtype_count=val_counts[attrtype],
+                     attrtype_other_count=val_counts[attrtype_other]),
+                show_fileinfo=False)
+        return attrname + ('/' if attrtype == 'featset' else '')
 
     def getopts(self, args=None):
         self.getopts_basic(
@@ -77,7 +114,9 @@ class StructAttrLister(korpimport.util.InputProcessor):
 """List the structural attributes (elements and their attributes) in the VRT
 input in the format suitable as arguments of the option -S of cwb-encode:
 ELEMENT:NESTLEVEL+ATTR1+...+ATTRn. The elements in the input need not be
-strictly nested.""")
+strictly nested. If most of the values of an attribute begin and end with a
+vertical bar ("|...|"), it is interpretede as a feature-set attribute, and
+the attribute name is suffixed with a slash in the output.""")
              ),
             args
         )

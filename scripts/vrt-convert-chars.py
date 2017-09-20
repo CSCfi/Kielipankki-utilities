@@ -2,6 +2,11 @@
 # -*- coding: utf-8 -*-
 
 
+# TODO:
+# - Add an option not to decode encoded vertical bars in feature set
+#   attributes to allow correct round-trip conversion.
+
+
 import sys
 import codecs
 import re
@@ -44,6 +49,8 @@ class CharConverter(object):
         self._add_xml_char_refs_to_convert_map()
         self._feat_set_attrs = set(
             self._make_attr_list(self._opts.feature_set_attributes))
+        self._feat_set_struct_attrs = self._make_feat_set_struct_attrs()
+        # print repr(self._feat_set_struct_attrs)
         if opts.mode == 'decode':
             self._convert_map = [(enc, dec) for dec, enc in self._convert_map]
         if (opts.mode == 'encode' and self._convert_posattrs
@@ -52,6 +59,13 @@ class CharConverter(object):
                 self._convert_chars_in_pos_attrs_featsets)
         else:
             self._convert_chars_in_pos_attrs = self._convert_chars
+        if (opts.mode == 'encode' and self._convert_structattrs
+            and self._feat_set_struct_attrs):
+            self._convert_chars_in_struct_attrs = (
+                self._convert_chars_in_struct_attrs_featsets)
+        else:
+            self._convert_chars_in_struct_attrs = (
+                self._convert_chars_in_struct_attrs_simple)
         self._convert_map_featset = [
             (dec, enc) for dec, enc in self._convert_map if dec != '|']
         self._struct_re = (
@@ -66,6 +80,33 @@ class CharConverter(object):
                     for numstr in re.split(r'\s*[\s,]\s*', attrnumlist)]
         else:
             return []
+
+    def _make_feat_set_struct_attrs(self):
+        set_struct_attrs = {}
+        for attr_spec_list in (self._opts.feature_set_struct_attributes or []):
+            for attr_spec in attr_spec_list.split():
+                if ':' in attr_spec:
+                    elemname, attrnames_str = attr_spec.split(':', 1)
+                    attrnames = re.split(r'[,+]', attrnames_str)
+                    # A structural attribute specification for
+                    # cwb-encode, recognized from the first element
+                    # being numeric: only take the attribute names
+                    # ending in a slash
+                    if attrnames[0].isdigit():
+                        attrnames = [attrname[:-1] for attrname in attrnames[1:]
+                                     if attrname[-1] == '/']
+                    else:
+                        # Otherwise, allow but do not require a
+                        # trailing slash
+                        attrnames = [
+                            attrname.strip('/') for attrname in attrnames]
+                elif '_' in attr_spec:
+                    elemname, attrname = attr_spec.split('_', 1)
+                    attrnames = [attrname]
+                if attrnames:
+                    elem_attrs = set_struct_attrs.setdefault(elemname, set())
+                    elem_attrs |= set(attrnames)
+        return set_struct_attrs
 
     def _add_xml_char_refs_to_convert_map(self):
         if self._opts.convert_xml_char_refs:
@@ -106,9 +147,9 @@ class CharConverter(object):
                 line = self._convert_chars_in_pos_attrs(line)
             sys.stdout.write(line)
 
-    def _convert_chars(self, s):
+    def _convert_chars(self, s, convert_map=None):
         """Encode the special characters in s."""
-        return replace_substrings(s, self._convert_map)
+        return replace_substrings(s, convert_map or self._convert_map)
 
     def _convert_chars_in_pos_attrs_featsets(self, s):
         attrs = s.split('\t')
@@ -119,12 +160,31 @@ class CharConverter(object):
                        else self._convert_map))
         return '\t'.join(attrs)
 
-    def _convert_chars_in_struct_attrs(self, s):
+    def _convert_chars_in_struct_attrs_simple(self, s):
         """Encode the special characters in the double- or single-quoted
         substrings of s.
         """
         return re.sub(r'''(([\"\']).*?\2)''',
                       lambda mo: self._convert_chars(mo.group(0)), s)
+
+    def _convert_chars_in_struct_attrs_featsets(self, s):
+
+        def convert_attr(mo, convert_map=None, elemname=None):
+            convert_map = convert_map or (
+                self._convert_map_featset
+                if (mo.group(1) in self._feat_set_struct_attrs.get(elemname,
+                                                                   set()))
+                else self._convert_map)
+            # Strip possible whitespace around the equals sign.
+            return (mo.group(1) + '='
+                    + self._convert_chars(mo.group(2), convert_map))
+
+        elemname = re.search(r'(\w+)', s).group(1)
+        convert_map = (None if elemname in self._feat_set_struct_attrs
+                       else self._convert_map)
+        # print elemname, convert_map
+        return re.sub(r'''(\w+)\s*=\s*(".*?"|'.*?')''',
+                      lambda mo: convert_attr(mo, convert_map, elemname), s)
 
 
 def getopts():
@@ -162,6 +222,29 @@ Encode or decode in VRT files special characters that are problematic in CWB."""
         help=('do not encode vertical bars in positional attributes whose'
               ' numbers are listed in ATTRNUMLIST, separated by spaces or'
               ' commas; attribute numbering begins from 1'))
+    optparser.add_option(
+        '--feature-set-struct-attributes', '--set-struct-atrrs',
+        action='append', default=[],
+        help=('Treat the structural attributes specified in the attribute'
+              ' specification ATTRSPEC as feature-set attributes and do not'
+              ' convert the vertical bar characters in them.'
+              ' ATTRSPEC is a space-separated list of element definitions, of'
+              ' the form ELEMNAME_ATTRNAME, ELEMNAME:ATTRNAMELIST or'
+              ' ELEMNAME:N+ATTRNAMELIST, where'
+              ' ELEMNAME is the name of the XML element, ATTRNAME is a single'
+              ' attribute name and ATTRNAMELIST is a list of attribute names'
+              ' separated by commas or pluses. The third form corresponds to'
+              ' a structural attribute specification for cwb-encode where N'
+              ' is a non-negative integer (ignored), and the feature-set'
+              ' attribute names in ATTRNAMELIST must be suffixed by a slash;'
+              ' others are ignored. In contrast, in the second form, all the'
+              ' attributes listed in ATTRLIST are considered feature-set'
+              ' attributes regardless of whether they end in a slash or not.'
+              ' For example, the values "elem_attr1 elem_attr2",'
+              ' "elem:attr1,attr2" and "elem:0+attr0+attr1/+attr2/" are'
+              ' equivalent.'
+              ' This option can be repeated.'),
+        metavar='ATTRSPEC')
     optparser.add_option(
         '--recognize-structs',
         metavar='STRUCTLIST',
