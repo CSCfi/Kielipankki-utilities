@@ -102,20 +102,16 @@ s,^\(ID *\)'$source',\1'$target',;
 s,^\(HOME .*/\)'$source',\1'$target',;
 s,^\(INFO .*/\)'$source'\(/\.info\),\1'$target'\2,' \
     > "$cwb_regdir/$target"
+    ensure_perms "$cwb_regdir/$target"
 }
 
 mysql_make_copy_table_rows () {
-    auth=
-    if [ "x$1" = "x--auth" ]; then
-	auth=--auth
-	shift
-    fi
     source_u=$1
     target_u=$2
     shift
     shift
     for table in "$@"; do
-	cols=$(mysql_list_table_cols $auth $table)
+	cols=$(mysql_list_table_cols $table)
 	if [ "x$cols" != x ]; then
 	    cols_list=$(
 		echo $cols |
@@ -151,8 +147,7 @@ copy_database () {
 	mysql_make_copy_rel_tables $source_u $target_u
     } |
     $mysql_bin --batch $mysql_opts $korpdb
-    mysql_make_copy_table_rows --auth $source_u $target_u \
-	$multicorpus_tables_auth |
+    mysql_make_copy_table_rows $source_u $target_u $multicorpus_tables_auth |
     $mysql_bin --batch $mysql_opts $korpdb_auth
 }
 

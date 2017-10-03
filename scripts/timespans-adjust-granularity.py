@@ -61,7 +61,11 @@ class GranularityAdjuster(korpimport.util.InputProcessor):
                 sys.stdout.write('\t'.join(fields) + '\n')
 
     def _make_date(self, date, type_):
+        date = date.strip()
+        if not date:
+            return date
         datelen = len(date)
+        # TODO: Check the validity of the date more precisely
         if date and not re.match(r'^([0-9][0-9]){2,7}$', date):
             # Return empty for invalid values
             sys.stderr.write('Invalid date' + type_ + ': ' + date + '\n')
@@ -80,6 +84,9 @@ class GranularityAdjuster(korpimport.util.InputProcessor):
 
     def _get_monthdays(self, date):
         mon = int(date[4:6])
+        if mon < 1 or mon > 12:
+            sys.stderr.write('Invalid month in date: ' + date + '\n')
+            return '00'
         mdays = self._month_days[mon - 1]
         if mdays == 28:
             year = int(date[:4])
@@ -111,7 +118,7 @@ class GranularityAdjuster(korpimport.util.InputProcessor):
             's': 14
         }
         self.getopts_basic(
-            dict(usage="%progname [options] [input] > output",
+            dict(usage="%prog [options] [input] > output",
                  description="""Adjust the granularity of (Korp) timespan data specified as a starting and
 ending value in the format YYYYMMDDhhmmss or a prefix of that. A count
 field is associated with each timespan and adjusted accordingly, if

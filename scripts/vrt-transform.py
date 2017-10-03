@@ -56,7 +56,7 @@ class VrtTransformer(korputil.InputProcessor):
 
     def getopts(self, args=None):
         self.getopts_basic(
-            dict(usage="%progname [options] [input] > output"),
+            dict(usage="%prog [options] [input] > output"),
             args,
             ['--xslt-stylesheet'],
             ['--pos-attrs', '--pos-attribute-names'],

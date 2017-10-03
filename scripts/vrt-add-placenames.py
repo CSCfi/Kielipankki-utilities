@@ -41,7 +41,7 @@ class PlaceNameAdder(korpimport.util.InputProcessor):
                 
     def getopts(self, args=None):
         self.getopts_basic(
-            dict(usage="%progname [options] [input] > output",
+            dict(usage="%prog [options] [input] > output",
                  description=(
 """Add place names in the structural attributes to positional attributes in
 the form recognized by Korp's map feature: the first token of each sentece

@@ -222,8 +222,11 @@ class PosAttrConverter(object):
             fieldlist = ' '.join(fields).strip().split()
             self._set_fields = set(num for num, name in enumerate(fieldlist)
                                    if name[-1] == '/')
-            self._input_fields = dict((name.strip('/'), num)
+            self._input_fields = dict((name, num)
                                       for num, name in enumerate(fieldlist))
+            self._input_fields.update(dict((name.strip('/'), num)
+                                           for num, name in enumerate(fieldlist)
+                                           if name[-1] == '/'))
         else:
             self._set_fields = set()
             self._input_fields = {}
@@ -454,6 +457,8 @@ class AttributeFixer(object):
                 return self._encode_special_chars_in_struct_attrs(line)
             else:
                 return line
+        elif line[0] == '<' and line[1] in '!?':
+            return line
         else:
             return self._fix_posattrs(line)
 

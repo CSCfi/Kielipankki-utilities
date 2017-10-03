@@ -4,11 +4,9 @@
 
 # TODO:
 # - Allow specifying input via options (config file).
-# - Support corpora without parse attributes.
 # - Allow different compound boundary options.
 # - Allow multiple instances of extra file options to pass to
 #   korp-make-corpus-package
-# - Option to request scrambling sentences or paragraphs with text
 # - --add-structure-ids: Specify by structure type if existing values
 #   should be overwritten or not.
 # - Allow specifying structure id value format.
@@ -40,14 +38,112 @@ tar archives containing such VRT files. If no input files are specified, read
 from the standard input."
 
 optspecs='
+@ General options
+
 corpus-id=CORPUS corpus
     make corpus with id CORPUS; this is alternative to specifying the
     corpus id as the first non-option argument
-c|corpus-root=DIR "$corpus_root"
+force
+    force all stages of processing by first removing all the output
+    files if they exist
+config-file|configuration-file=FILE
+    read FILE as an INI-style configuration file (without sections).
+    Configuration keys correspond to option names without the leading
+    dashes; internal dashes may be replaced with underscores.
+
+@ Diagnostic output
+
+v|verbose "1"
+    output some progress information (the default)
+quiet { verbose= }
+    do not output progress information (except for some subprocesses)
+times show_times
+    output the amount of CPU time used for each stage
+log-file=FILE logfile
+    log script output (standard output and standard error) to FILE
+    instead of the default
+    $corpus_root/log/${progname}_CORPUS_TIMESTAMP.log where CORPUS is
+    the corpus id and TIMESTAMP the start time of the script
+no-logging !logging
+    do not copy script output to a log file
+
+@ Directories
+
+c|corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
     use DIR as the root directory of corpus files
-input-attrs|input-fields=ATTRS "ref lemma pos msd dephead deprel" initial_input_attrs
+tsv-dir=DIR "CORPUS_ROOT/$tsv_subdir" tsvdir
+    output database tables as TSV files to DIR
+
+@ Corpus licence information
+
+licence-type=LIC auth_opts { add_auth_opts licence_type $optname $1 }
+    set the corpus licence type to LIC, where LIC is one of PUB, ACA,
+    ACA-Fi or RES
+lbr-id=URN { add_auth_opts lbr_id $optname $1 }
+    set the LBR id of the corpus to URN, which is of the form
+    [urn:nbn:fi:lb-]YYYYMMNNN[@LBR], where YYYYMM is year and month
+    and NNN 3 to 5 digits; the bracketed parts are added if left out
+
+@ Input attributes
+
+input-attrs|input-attributes|input-fields=ATTRS \
+  "ref lemma pos msd dephead deprel nertag" initial_input_attrs
     specify the names of the positional attributes in the input,
     excluding the first one ("word" or token), separated by spaces
+
+@ Annotation mappings
+
+lemgram-posmap|posmap=POSMAP_FILE "$mapdir/lemgram_posmap_tdt.tsv"
+    use POSMAP_FILE as the mapping file from the corpus parts of
+    speech to those used in Korp lemgrams; the file should contain
+    lines with corpus POS and lemgram POS separated by a tab
+wordpict-relmap|wordpicture-relation-map=RELMAP_FILE \
+  "$mapdir/wordpict_relmap_tdt.tsv"
+    use RELMAP_FILE as the mapping file from corpus dependency
+    relation codes to those used in the Korp word picture; the file
+    should contain lines with corpus dependency relation code and word
+    picture dependency relation code separated by a tab
+
+@ Structure ids
+
+add-structure-ids|add-element-ids=STRUCTLIST \
+  "text paragraph sentence" add_struct_ids
+    add id attributes to the structures listed in STRUCTLIST
+    (separated by spaces); if STRUCTLIST is an empty string, do not
+    add id attributes
+overwrite-structure-ids|overwrite-element-ids !keep_struct_ids
+    overwrite possible existing id attribute values in the structures
+    listed with --add-structure-ids
+
+@ Sorting text structures
+
+text-sort-attribute=ATTR { add_text_sort_opt --attribute "$1" }
+    sort text elements in the corpus by the attribute ATTR; sort by
+    byte values into ascending order, without taking the locale into
+    account
+text-sort-transform=TRANSFORM '"'"' * { add_text_sort_opt --transform "$1" }
+    transform the sorting attribute values with the Perl regular
+    expression substitution (s/.../.../) TRANSFORM to get the key to
+    be used for sorting; this option may be specified multiple times,
+    in which case the substitutions are applied in the specified
+    order; if read from a configuration file, TRANSFORM is treated as
+    enclosed in single quotes, so you need not protect \$ nor \\
+
+@ Scrambling structures
+
+scramble=STRUCTS
+    scramble structures listed in STRUCTS, separated by spaces;
+    allowed structures are sentence and paragraph; they are scrambled
+    within the immediately containing structure, typically within
+    paragraph and text, respectively; "sentence paragraph" scrambles
+    both ways
+scramble-seed=SEED
+    use the string SEED as the random number generator seed for
+    scrambling data; "0" for random seed (non-reproducible order)
+    (default: corpus id)
+
+@ Date information
+
 corpus-date=DATE
     use DATE as the date of all texts in the corpus; "unknown" if not
     known
@@ -71,40 +167,25 @@ corpus-date-full-order=ORDER
 corpus-date-ranges
     make the patterns recognize date ranges with different start and
     end days
-lemgram-posmap|posmap=POSMAP_FILE "$mapdir/lemgram_posmap_tdt.tsv"
-    use POSMAP_FILE as the mapping file from the corpus parts of
-    speech to those used in Korp lemgrams; the file should contain
-    lines with corpus POS and lemgram POS separated by a tab
-wordpict-relmap|wordpicture-relation-map=RELMAP_FILE "$mapdir/wordpict_relmap_tdt.tsv"
-    use RELMAP_FILE as the mapping file from corpus dependency
-    relations to those used in the Korp word picture; the file
-    should contain lines with corpus POS and lemgram POS
-    separated by a tab
-text-sort-attribute=ATTR { add_text_sort_opt --attribute "$1" }
-    sort text elements in the corpus by the attribute ATTR; sort by
-    byte values into ascending order, without taking the locale into
-    account
-text-sort-transform=TRANSFORM '"'"' * { add_text_sort_opt --transform "$1" }
-    transform the sorting attribute values with the Perl regular
-    expression substitution (s/.../.../) TRANSFORM to get the key to
-    be used for sorting; this option may be specified multiple times,
-    in which case the substitutions are applied in the specified
-    order; if read from a configuration file, TRANSFORM is treated as
-    enclosed in single quotes, so you need not protect $ or \
-add-structure-ids|add-element-ids=STRUCTLIST "text paragraph sentence" add_struct_ids
-    add id attributes to the structures listed in STRUCTLIST
-    (separated by spaces); if STRUCTLIST is an empty string, do not
-    add id attributes
-keep-structure-ids|keep-element-ids keep_struct_ids
-    do not overwrite existing id attribute values in the structures
-    listed with --add-structure-ids
-tsv-dir=DIR "$corpus_root/$tsv_subdir" tsvdir
-    output database tables as TSV files to DIR
+
+@ Output data
+
+no-lemmas-without-boundaries|skip-lemmas-without-boundaries \
+  !lemmas_without_boundaries
+    do not add lemmas without compound boundaries
+no-lemgrams|skip-lemgrams !lemgrams
+    do not add lemgrams
 no-wordpicture|skip-wordpicture !wordpicture
     do not extract word picture relations database tables
-no-name-attrs|no-name-attributes|skip-name-attrs|skip-name-attributes !name_attrs
+no-name-attrs|no-name-attributes|skip-name-attrs|skip-name-attributes \
+  !name_attrs
     do not add named-entity information based on a NER tag as the last
     positional attribute
+
+@ Packaging
+
+no-package !make_package
+    do not create a corpus package
 korp-frontend-dir=DIR "$korp_frontend_dir"
     read Korp configuration files from DIR, to be included in corpus
     package
@@ -132,26 +213,11 @@ package-extra-file|extra-file=SRCFILE[:DSTFILE]
     DSTFILE ends in a slash or if SRCFILE contains wildcards, DSTFILE
     is considered a directory name and SRCFILE is placed in that
     directory in the package
+
+@ Database import
+
 import-database
     import the database TSV files into the Korp MySQL database
-v|verbose
-    output some progress information
-force
-    force all stages of processing by first removing all the output
-    files if they exist
-times show_times
-    output the amount of CPU time used for each stage
-config-file|configuration-file=FILE
-    read FILE as an INI-style configuration file (without sections).
-    Configuration keys correspond to option names without the leading
-    dashes; internal dashes may be replaced with underscores.
-log-file=FILE logfile
-    log script output (standard output and standard error) to FILE
-    instead of the default
-    $corpus_root/log/${progname}_CORPUS_TIMESTAMP.log where CORPUS is
-    the corpus id and TIMESTAMP the start time of the script
-no-logging !logging
-    do not copy script output to a log file
 '
 
 config_file_optname=config-file
@@ -170,6 +236,7 @@ vrt_convert_chars=$progdir/vrt-convert-chars.py
 vrt_extract_timespans=$progdir/vrt-extract-timespans.py
 vrt_list_struct_attrs=$progdir/vrt-list-struct-attrs.py
 korp_convert_timedata=$progdir/korp-convert-timedata.sh
+vrt_scramble=$progdir/vrt-scramble.py
 cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
 vrt_extract_lemgrams=$progdir/vrt-extract-lemgrams.sh
 run_extract_rels=$progdir/run-extract-rels.sh
@@ -186,6 +253,16 @@ vrt_file=
 
 text_sort_opts=
 sort_texts=
+
+add_auth_opts () {
+    local type opt val
+    type=$1
+    opt=$2
+    val=$3
+    val=$(eval "make_$type \$val")
+    exit_if_error $?
+    auth_opts="$auth_opts $opt $val"
+}
 
 add_text_sort_opt () {
     local optname=$1
@@ -230,6 +307,7 @@ input_files=( "$@" )
 vrtdir=${vrtdir:-$corpus_root/$vrt_subdir}
 vrtdir=${vrtdir//CORPUS/$corpus}
 tsvdir=${tsvdir:-$corpus_root/$tsv_subdir}
+tsvdir=${tsvdir/CORPUS_ROOT/$corpus_root}
 tsvdir=${tsvdir//CORPUS/$corpus}
 datadir=$corpus_root/data/$corpus
 
@@ -239,16 +317,7 @@ if [ "x$vrt_file" = "x" ]; then
     vrt_file=$vrtdir/$corpus.vrt
 fi
 
-if [ "x$name_attrs" != x ] && ! word_in nertag "$initial_input_attrs"; then
-    initial_input_attrs="$initial_input_attrs nertag"
-fi
 input_attrs=$initial_input_attrs
-if ! word_in lemmacomp "$initial_input_attrs"; then
-    input_attrs=${input_attrs/lemma /lemma lemmacomp }
-fi
-if ! word_in lex/ "$initial_input_attrs"; then
-    input_attrs="$input_attrs lex/"
-fi
 
 verbose_opt=
 if [ "x$verbose" != x ]; then
@@ -291,8 +360,27 @@ run_cmd () {
     "$@"
 }
 
+process_vrt () {
+    run_cmd "$@" < $vrt_file > $vrt_file.new
+    replace_file $vrt_file $vrt_file.new
+}
+
 time_stage () {
     time_cmd --format "- CPU time used: %U %R" "$@"
+}
+
+check_errors_from_log () {
+    # FIXME: Grepping the log file for system error messages is a bit
+    # kludgy way to catch "Disk quota exceeded" (and possibly other
+    # similar) system errors. In particular, the error might prevent
+    # the process from writing the message to the log file. The
+    # subprocesses should notice the errors and exit with an error
+    # status. Or can they do that?
+    if grep '^\[Errno [0-9]' "$logfile" \
+	> $tmp_prefix.subproc_error 2> /dev/null;
+    then
+	error "Aborting because of an error: $(cat $tmp_prefix.subproc_error)"
+    fi
 }
 
 # Run a single stage function (name) after printing the description
@@ -321,6 +409,7 @@ run_stage () {
     fi
     echo_verb "$descr"
     time_stage exit_on_error $name
+    check_errors_from_log
 }
 
 # Run all the stages in $stages sequentially.
@@ -336,9 +425,12 @@ run_stages () {
 
 # Stage functions and their descriptions
 stages=(
-    add_new_attrs "Adding lemgrams and lemmas without compound boundaries"
+    combine_input "Combining input files"
+    add_lemmas_without_boundaries "Adding lemmas without compound boundaries"
+    add_lemgrams "Adding lemgrams"
     add_datefromto "Adding datefrom and dateto"
     sort_texts "Sorting text elements"
+    scramble_structs "Scrambling structures"
     add_struct_ids "Adding structure ids"
     cwb_encode "Encoding the attributes for CWB"
     cwb_make "Indexing and compressing the CWB data"
@@ -353,70 +445,73 @@ stages=(
 )
 
 
-add_lemmas_without_boundaries () {
-    run_cmd $vrt_fix_attrs --input-fields "word $initial_input_attrs" \
-	--output-fields "word $(echo "$initial_input_attrs" | sed -e 's/lemma/lemma:noboundaries lemma/')" \
-	--compound-boundary-marker='|' --compound-boundary-can-replace-hyphen
-}
-
-add_lemgrams () {
-    run_cmd $vrt_add_lemgrams --pos-map-file "$lemgram_posmap" \
-	--lemma-field=3 --pos-field=5
-}
-
-check_corpus_size () {
-    curr_size=$(
-	$cwb_describe_corpus $corpus |
-	grep -E '^size \(tokens\)' |
-	awk '{print $NF}'
-    )
-    new_size=$(grep -E -cv '^<' $vrt_file)
-    if [ $curr_size != $new_size ]; then
-	error "The input has $new_size tokens, whereas the existing corpus has $curr_size; aborting"
-    fi
-}
-
-filter_attrs () {
-    _grep_opts="$1"
-    shift
-    echo "$@" |
-    tr ' ' '\n' |
-    grep -En $_grep_opts |
-    grep -E ":($(echo $new_attrs | sed -e 's/ /|/g'))/?\$"
-}
-
-add_new_attrs () {
+combine_input () {
     # Skip empty lines in the input VRT, in order to avoid a differing
     # number of tokens from the already encoded attributes (assuming
     # that cwb-encode was told to skip empty lines).
     comprcat "${input_files[@]}" |
-    grep -v '^$' |
-    add_lemmas_without_boundaries |
-    add_lemgrams > $vrt_file
-    if [ $? != 0 ]; then
-	exit_on_error false
+    grep -v '^$' > $vrt_file
+    input_token_count=$(get_vrt_token_count "$vrt_file")
+    echo_verb "  $input_token_count tokens in the input VRT"
+}
+
+test_skip_combine_input () {
+    if [ -r $vrt_file.gz ] && [ -s $vrt_file.gz ]; then
+	gunzip $vrt_file.gz
+    fi
+    if [ -r $vrt_file ] && [ -s $vrt_file ]; then
+	echo "using existing VRT file $vrt_file"
     fi
 }
 
-test_skip_add_new_attrs () {
-    if { corpus_exists $corpus &&
-	    corpus_has_attr $corpus p lemmacomp &&
-	    corpus_has_attr $corpus p lex; } ||
-	{ word_in lemmacomp "$initial_input_attrs" &&
-	    word_in lex/ "$initial_input_attrs"; }
+add_lemmas_without_boundaries () {
+    process_vrt $vrt_fix_attrs --input-fields "word $input_attrs" \
+	--output-fields "word ${input_attrs/lemma /lemma:noboundaries lemma }" \
+	--compound-boundary-marker='|' --compound-boundary-can-replace-hyphen
+    input_attrs=${input_attrs/lemma /lemma lemmacomp }
+}
+
+test_skip_add_lemmas_without_boundaries () {
+    if [ "x$lemmas_without_boundaries" = x ]; then
+	echo "requested not to add"
+    elif ! word_in lemma "$initial_input_attrs"; then
+	echo "no attribute lemma"
+    elif { corpus_exists $corpus &&
+	    corpus_has_attr $corpus p lemmacomp; } ||
+	word_in lemmacomp "$initial_input_attrs"
     then
-	if [ -r $vrt_file.gz ] && [ -s $vrt_file.gz ]; then
-	    gunzip $vrt_file.gz
-	fi
-	if [ ! -r $vrt_file ] || [ ! -s $vrt_file ]; then
-	    comprcat "${input_files[@]}" > $vrt_file
-	fi
-	if [ ! -r $vrt_file ]; then
-	    error "Cannot read VRT file $vrt_file"
-	elif [ ! -s $vrt_file ]; then
-	    error "VRT file $vrt_file is empty"
-	fi
 	echo "already present"
+    fi
+}
+
+add_lemgrams () {
+    process_vrt $vrt_add_lemgrams --pos-map-file "$lemgram_posmap" \
+	--lemma-field=$(($(get_attr_num lemma "$input_attrs") + 1)) \
+	--pos-field=$(($(get_attr_num pos "$input_attrs") + 1))
+    if [ $? != 0 ]; then
+	exit_on_error false
+    fi
+    input_attrs="$input_attrs lex/"
+}
+
+test_skip_add_lemgrams () {
+    local attr
+    if [ "x$lemgrams" = x ]; then
+	echo "requested not to add"
+    elif { corpus_exists $corpus &&
+	    corpus_has_attr $corpus p lex; } ||
+	word_in lex/ "$initial_input_attrs"
+    then
+	echo "already present"
+    else
+	for attr in lemma pos; do
+	    if ! { word_in $attr "$initial_input_attrs" ||
+		    word_in $attr/ "$initial_input_attrs"; }
+	    then
+		echo "no attribute $attr"
+		break
+	    fi
+	done
     fi
 }
 
@@ -433,9 +528,12 @@ add_datefromto () {
     if [ "x$corpus_date_full_order" != "x" ]; then
 	opts="$opts --full-dates --full-date-order=$corpus_date_full_order"
     fi
-    run_cmd $vrt_extract_timespans --mode=add --output-full-dates=always \
-	$opts "$corpus_date_pattern" < $vrt_file > $vrt_file.new
-    replace_file $vrt_file $vrt_file.new
+    if [ "x$corpus_date_pattern" != x ]; then
+	opts="$opts --pattern $(quote_args_safe "$corpus_date_pattern")"
+    fi
+    # Use eval to get the quoted argument of --pattern correctly
+    eval process_vrt $vrt_extract_timespans --mode=add \
+	--output-full-dates=always $opts
 }
 
 test_skip_add_datefromto () {
@@ -445,12 +543,77 @@ test_skip_add_datefromto () {
 sort_texts () {
     # Use eval to get the separate options in $text_sort_opts
     # correctly
-    eval run_cmd $vrt_sort_texts $text_sort_opts < $vrt_file > $vrt_file.new
-    replace_file $vrt_file $vrt_file.new
+    eval process_vrt $vrt_sort_texts $text_sort_opts
 }
 
 test_skip_sort_texts () {
     [ "x$sort_texts" = x ] &&
+    echo "not requested"
+}
+
+# find_containing_struct struct vrt_fname
+#
+# Print the structure immediately containing struct in the VRT file
+# vrt_fname, an empty string if struct is the top-level structure. If
+# struct is not found in vrt_fname, return error.
+#
+# This assumes that if the text has paragraphs, no sentence is outside
+# a paragraph. Likewise, if the text has chapters between text and
+# paragraph, all paragraphs should be inside a chapter. This also does
+# not work with crossing structures, like lines or pages interleaved
+# with others. It is unclear how or if scrambling should be done in
+# such cases.
+find_containing_struct () {
+    local struct vrt_fname
+    struct=$1
+    vrt_fname=$2
+    if ! grep -q -s "^<$struct" $vrt_fname; then
+	return $?
+    fi
+    grep '^<' $vrt_fname |
+    awk '
+	BEGIN { top = 0 }
+	/^<[^\/]/ {
+	    struct = substr($1, 2)
+	    if (struct == "'"$struct"'") {
+		print (top > 0 ? stack[top] : "")
+                exit 0
+	    }
+	    stack[++top] = struct
+	}
+	/^<\// { top-- }
+    '
+    return 0
+}
+
+scramble_structs () {
+    local unit within
+    if [ "x$scramble_seed" = x ]; then
+	scramble_seed=$corpus
+    fi
+    for unit in $scramble; do
+	case $unit in
+	    "paragraph" | "sentence" )
+		within=$(find_containing_struct $unit "$vrt_file")
+		if [ $? != 0 ]; then
+		    warn "Input VRT has no $unit structures specified with --scramble"
+		elif [ "x$within" = x ]; then
+		    warn "Cannot scramble top-level structures $unit"
+		fi
+		;;
+	    * )
+		warn "Structure $unit unsupported for scrambling"
+		;;
+	esac
+	if [ "x$within" != x ]; then
+	    process_vrt $vrt_scramble --seed $scramble_seed \
+		--unit $unit --within $within
+	fi
+    done
+}
+
+test_skip_scramble_structs () {
+    [ "x$scramble" = x ] &&
     echo "not requested"
 }
 
@@ -463,8 +626,7 @@ add_struct_ids () {
     for struct in $add_struct_ids; do
 	opts="$opts --structure=$struct"
     done
-    run_cmd $vrt_add_struct_ids $opts < $vrt_file > $vrt_file.new
-    replace_file $vrt_file $vrt_file.new
+    process_vrt $vrt_add_struct_ids $opts
 }
 
 test_skip_add_struct_ids () {
@@ -488,7 +650,8 @@ cwb_encode () {
     echo_verb "  Inferring structural attributes from the VRT file"
     structnames=$(grep '^<' $vrt_file | run_cmd $vrt_list_struct_attrs)
     mkdir_perms $datadir
-    run_cmd $vrt_convert_chars $convert_chars_opts < $vrt_file |
+    run_cmd $vrt_convert_chars $convert_chars_opts \
+	--feature-set-struct-attributes "$structnames" < $vrt_file |
     run_cmd $cwb_encode -d $datadir -R $cwb_regdir/$corpus \
 	-xsB -c utf8 $(add_prefix "-P " $input_attrs) \
 	$(add_prefix "-S " $structnames)
@@ -507,7 +670,8 @@ test_skip_cwb_make () {
 }
 
 convert_timedata () {
-    run_cmd $korp_convert_timedata --tsv-dir "$tsvdir" $verbose_opt $corpus
+    run_cmd $korp_convert_timedata --tsv-dir "$tsvdir" $verbose_opt \
+	--corpus-root "$corpus_root" $corpus
 }
 
 test_skip_convert_timedata () {
@@ -528,7 +692,11 @@ extract_lemgrams () {
 }
 
 test_skip_extract_lemgrams () {
-    [ -s $tsvdir/${corpus}_lemgrams.tsv.gz ] && echo "already extracted"
+    if ! word_in lex/ "$input_attrs"; then
+	echo "lemgrams not present"
+    elif [ -s $tsvdir/${corpus}_lemgrams.tsv.gz ]; then
+	echo "already extracted"
+    fi
 }
 
 extract_wordpict_rels () {
@@ -540,6 +708,15 @@ extract_wordpict_rels () {
 }
 
 test_skip_extract_wordpict_rels () {
+    local attr
+    for attr in lemma pos deprel dephead ref; do
+	if ! { word_in $attr "$input_attrs" ||
+		word_in $attr/ "$input_attrs"; }
+	then
+	    echo "no attribute $attr"
+	    break
+	fi
+    done
     if [ "x$wordpicture" = x ]; then
 	echo "requested not to extract"
     elif [ -s $tsvdir/${corpus}_rels.tsv.gz ]; then
@@ -554,6 +731,8 @@ add_name_attrs () {
 test_skip_add_name_attrs () {
     if [ "x$name_attrs" = x ]; then
 	echo "requested not to add"
+    elif ! word_in "nertag" "$input_attrs"; then
+	echo "NER tags not present (positional attribute nertag)"
     elif corpus_has_attr $corpus s ne_ex; then
 	echo "already present"
     fi
@@ -579,8 +758,14 @@ make_corpus_package () {
     extra_opts="$extra_opts --extra-file=$package_extra_file"
     run_cmd gzip --no-name $vrt_file
     run_cmd $korp_make_corpus_package --target-corpus-root /v/corpora \
+	--corpus-root "$corpus_root" \
 	--tsv-dir "$tsvdir" --database-format tsv --compress gzip \
-	--vrt-file $vrt_file.gz $extra_opts $corpus
+	--vrt-file $vrt_file.gz $auth_opts $extra_opts $corpus
+}
+
+test_skip_make_corpus_package () {
+    [ "x$make_package" = x ] &&
+    echo "requested not to create"
 }
 
 import_database () {

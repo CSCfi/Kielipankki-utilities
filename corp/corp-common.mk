@@ -163,7 +163,7 @@ VRT_FIX_ATTRS_OPTS := \
 		--encode-special-chars=all --special-chars=$(SPECIAL_CHARS) \
 		--encoded-special-char-offset=$(ENCODED_SPECIAL_CHAR_OFFSET) \
 		--encoded-special-char-prefix=$(ENCODED_SPECIAL_CHAR_PREFIX) \
-		--replace-xml-character-entities=correct \
+		--replace-xml-character-entities=correctnumeric \
 		$(if $(S_ATTRS_FEATSET),\
 			--set-struct-attributes $(S_ATTRS_FEATSET)) \
 		$(call partvar,VRT_FIX_ATTRS_OPTS_EXTRA))
@@ -174,6 +174,7 @@ XML2VRT = $(SCRIPTDIR)/xml2vrt.py --rule-file $(call partvar,XML2VRT_RULES) \
 # work correctly with UTF-8 encoding.
 XMLSTATS = $(SCRIPTDIR)/xmlstats.py --wrapper-element-name= \
 		--allow-stray-reserved-characters
+VRT_LIST_STRUCT_ATTRS = $(SCRIPTDIR)/vrt-list-struct-attrs.py
 
 $(call showvars,LEMGRAM_POSMAP S_ATTRS_FEATSET VRT_FIX_ATTRS_OPTS)
 
@@ -200,7 +201,7 @@ VRT_EXTRACT_TIMESPANS = \
 		--output-full-dates=always \
 		$(VRT_EXTRACT_TIMESPANS_OPTS)
 
-MAKE_CWB_STRUCT_ATTRS = $(XMLSTATS) --cwb-struct-attrs
+MAKE_CWB_STRUCT_ATTRS = $(VRT_LIST_STRUCT_ATTRS)
 
 CWBDATA_EXTRACT_INFO_OPTS := $(call partvar,CWBDATA_EXTRACT_INFO_OPTS)
 CWBDATA_EXTRACT_INFO = $(SCRIPTDIR)/cwbdata-extract-info.sh \

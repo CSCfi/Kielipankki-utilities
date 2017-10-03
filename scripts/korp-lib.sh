@@ -76,8 +76,9 @@ test_file () {
 }
 
 ensure_perms () {
-    chgrp -R $filegroup "$@"
-    chmod -R $fileperms "$@"
+    chgrp -R $filegroup "$@" 2> /dev/null
+    chmod -R $fileperms "$@" 2> /dev/null
+    return 0
 }
 
 # mkdir_perms dir [dir ...]
@@ -85,27 +86,64 @@ ensure_perms () {
 # Create the directories dir and ensure that they have the desired
 # permissions ($filegroup and $fileperms).
 mkdir_perms () {
-    mkdir -p "$@"
-    ensure_perms "$@"
+    if mkdir -p "$@"; then
+	ensure_perms "$@"
+    else
+	return $?;
+    fi
 }
 
 warn () {
     echo "$progname: Warning: $1" >&2
 }
 
+# error [exitcode] msg
+#
+# Print msg (prefixed with progname) to stderr and exit with exitcode
+# (default: 1).
 error () {
-    echo "$progname: $1" >&2
-    exit 1
+    local exitcode
+    exitcode=1
+    if [ $# -gt 1 ]; then
+	exitcode=$1
+	shift
+    fi
+    safe_echo "$progname: $1" >&2
+    exit $exitcode
 }
 
-# exit_on_error cmd [args ...]
+# exit_on_error [--message msg] cmd [args ...]
 #
-# If cmd returns a non-zero, propagate the error and exit.
+# If cmd returns a non-zero, propagate the error and exit with the
+# exit code returned by cmd. Print the message specified with
+# --message, or a default one.
 exit_on_error () {
+    local msg _exit_code
+    msg=
+    if [ "x$1" = "x--message" ]; then
+	msg="$2"
+	shift 2
+    fi
     "$@"
     _exit_code=$?
     if [ $_exit_code != 0 ]; then
-	error "Terminating due to errors in subprocess $1 (exit code $_exit_code)"
+	if [ "x$msg" = x ]; then
+	    msg="Terminating due to errors in subprocess $1 (exit code $_exit_code)"
+	fi
+	error $_exit_code "$msg"
+    fi
+}
+
+# exit_if_error exitcode
+#
+# If exitcode is non-zero, exit with it. This function can be used
+# when the call of a function fn that may exit using function "error"
+# is within $(...) but the output of which should saved, since an exit
+# in such as subprocess does not exit the parent: $(fn ...);
+# exit_if_error $?
+exit_if_error () {
+    if [ "x$1" != "x0" ]; then
+	exit $1
     fi
 }
 
@@ -117,7 +155,9 @@ safe_echo () {
     if [ $# -gt 0 ]; then
 	printf "%s" "$1"
 	shift
-	printf " %s" "$@"
+	if [ $# -gt 0 ]; then
+	    printf " %s" "$@"
+	fi
     fi
     printf "\n"
 }
@@ -199,22 +239,26 @@ echo_dbg () {
 
 # quote_args args ...
 #
-# Print each argument in args: arguments containing spaces or quotes
-# are quoted, preferring single quotes unless the argument contains a
-# single quote.
+# Print each argument in args: arguments containing spaces, quotes or
+# other shell metacharacters are enclosed in single quotes, with
+# single quotes themselves converted to '"'"'. Unlike quote_args_safe
+# (below), quote_args does not quote arguments not containing any of
+# these characters.
 #
-# FIXME: The result cannot be used as shell command line arguments if
-# an argument contains shell metacharacters or both single and double
-# quotes.
+# TODO: Check if the list of shell metacharacters to be quoted is
+# complete. If it is, this function could always be used instead of
+# quote_args_safe.
+# FIXME: The result contains a trailing space.
 quote_args () {
     local arg
     for arg in "$@"; do
 	case $arg in
-	    *" "* | *'"'* | "" )
-		printf "'%s' " "$arg"
-		;;
 	    *"'"* )
-		printf '"%s" ' "$arg"
+		# Copied from quote_args_safe
+		printf "%s" "$arg" | sed "s/'/'\"'\"'/g; s/^\(.*\)$/'&' /"
+		;;
+	    *[' "`?*<>|\[]$(){}&;=!']* | "" )
+		printf "'%s' " "$arg"
 		;;
 	    * )
 		printf "%s " "$arg"
@@ -333,6 +377,41 @@ time_cmd () {
     fi
 }
 
+# kill_descendants [--and-self] [-SIG] pid [...]
+#
+# Kill all the descendant processes of the process(es) with the pid(s)
+# listed. If --and-self is specified, also kill the processes
+# themselves. If -SIG is specified, it is passed to kill.
+#
+# Adapted from https://stackoverflow.com/a/26966800
+kill_descendants () {
+    local self sig pids pid children
+    self=
+    sig=
+    if [ "x$1" = "x--and-self" ]; then
+	self=1
+	shift
+    fi
+    if [ "${1#-}" != "$1" ]; then
+	sig=$1
+	shift
+    fi
+    pids="$@"
+    for pid in $pids; do
+	children=$(pgrep -P $pid)
+	if [ "x$children" != x ]; then
+            kill_descendants --and-self $sig $children
+        fi
+    done
+    if [ "x$self" != x ]; then
+	kill $sig $pids
+	# According to https://stackoverflow.com/a/5722874, this
+	# should prevent the "Terminated" messages from background
+	# processes, but it does not seem to. What would work?
+	wait $pids 2> /dev/null
+    fi
+}
+
 cleanup () {
     if [ "x$tmp_prefix" != "x" ] && [ "x$cleanup_on_exit" != x ]; then
 	rm -rf $tmp_prefix.*
@@ -340,11 +419,10 @@ cleanup () {
     # Register a no-op handler for SIGTERM, so that kill does not
     # trigger it recursively
     trap ':' TERM
-    # Kill all processes in the process group of the running script.
-    # This does not kill processes that have changed their process
-    # group (cf.
-    # http://stackoverflow.com/questions/360201/kill-background-process-when-shell-script-exit).
-    kill -- -$$ 2> /dev/null
+    # Kill all the descendant processes of the running script. If the
+    # script is a part of a pipe, this avoids killing the other
+    # processes in the pipe, as killing by process group would do.
+    kill_descendants $$ 2> /dev/null
 }
 
 cleanup_abort () {
@@ -423,13 +501,15 @@ get_filesize () {
     ls -l "$1" | awk '{print $5}'
 }
 
-# add_prefix prefix args ...
+# add_prefix prefix [args] ...
 #
-# Prepend prefix to all args.
+# Prepend prefix to all args. If no args, do not output anything.
 add_prefix () {
     _add_prefix_prefix=$1
     shift
-    printf -- "$_add_prefix_prefix%s " "$@"
+    if [ "$#" != 0 ]; then
+	printf -- "$_add_prefix_prefix%s " "$@"
+    fi
 }
 
 # list_corpora [--registry registry_dir] [--on-error error_cmd] corpus_id ...
@@ -467,15 +547,24 @@ list_corpora () {
     rm -rf $tmp_prefix.corpids $tmp_prefix.corpid_errors
 }
 
-# run_mysql [--auth] sql_command [MySQL options ...]
+# run_mysql [--auth | --table table_name] sql_command [MySQL options ...]
 #
 # Run sql_command on the Korp database using MySQL and get the raw
-# output (TSV format; first line containing column names). If --auth
-# is specified, use the Korp authorization database instead of the
-# main database. MySQL username and password may be specified via the
-# environment variables KORP_MYSQL_USER and KORP_MYSQL_PASSWORD.
-# Additional MySQL options may be specified after sql_command.
+# output (TSV format; first line containing column names).
+#
+# If --auth is specified, use the Korp authorization database instead
+# of the main database. If --table is specified, use the authorization
+# database if table_name begins with "auth_", otherwise the main
+# database. Note that this assumes that only the authorization
+# database has table names beginning "auth_" and that all the table
+# names in the authorization database begin with it.
+#
+# MySQL username and password may be specified via the environment
+# variables KORP_MYSQL_USER and KORP_MYSQL_PASSWORD. Additional MySQL
+# options may be specified after sql_command.
 run_mysql () {
+    local _db
+    _db=$korpdb
     if [ "x$mysql_bin" = x ]; then
 	warn "MySQL client mysql not found"
 	return 1
@@ -483,42 +572,39 @@ run_mysql () {
     if [ "x$1" = "x--auth" ]; then
 	_db=$korpdb_auth
 	shift
-    else
-	_db=$korpdb
+    elif [ "x$1" = "x--table" ]; then
+	shift
+	# Test if the table name begins with "auth_"
+	if [ "$1" != "${1#auth_}" ]; then
+	    _db=$korpdb_auth
+	fi
+	shift
     fi
     $mysql_bin $mysql_opts --batch --raw --execute "$@" $_db
 }
 
-# mysql_table_exists [--auth] table_name
+# mysql_table_exists table_name
 #
 # Return true if table table_name exists in the Korp MySQL database.
-# If --auth, use the authorization database.
+# If table_name begins with "auth_", use the authorization database.
 mysql_table_exists () {
-    auth=
-    if [ "x$1" = "x--auth" ]; then
-	auth=--auth
-	shift
-    fi
+    local table result
     table=$1
-    result=$(run_mysql $auth "DESCRIBE $table;" 2> /dev/null)
+    result=$(run_mysql --table $table "DESCRIBE $table;" 2> /dev/null)
     if [ "x$result" = x ]; then
 	return 1
     fi
 }
 
-# mysql_list_table_cols [--auth] table_name
+# mysql_list_table_cols table_name
 #
 # List the column names of the Korp MySQL database table table_name
-# (empty if the table does not exist). If --auth, use the
-# authorization database.
+# (empty if the table does not exist). If table_name begins with
+# "auth_", use the authorization database.
 mysql_list_table_cols () {
-    auth=
-    if [ "x$1" = "x--auth" ]; then
-	auth=--auth
-	shift
-    fi
+    local table
     table=$1
-    run_mysql $auth "SHOW COLUMNS FROM $table;" 2> /dev/null |
+    run_mysql --table $table "SHOW COLUMNS FROM $table;" 2> /dev/null |
     tail -n+2 |
     cut -d"$tab" -f1
 }
@@ -552,10 +638,13 @@ set_corpus_registry () {
 
 # set_corpus_root dir
 #
-# Set the CWB corpus root directory (corpus_root) to dir and set
-# CORPUS_REGISTRY to dir/registry unless already set externally (in
-# which case set cwb_regdir to $CORPUS_REGISTRY).
+# Set the CWB corpus root directory (corpus_root) to dir and export it
+# as CORPUS_ROOT. Also set CORPUS_REGISTRY to dir/registry unless
+# already set externally (in which case set cwb_regdir to
+# $CORPUS_REGISTRY).
 set_corpus_root () {
+    CORPUS_ROOT=$1
+    export CORPUS_ROOT
     corpus_root=$1
     if [ "x$CORPUS_REGISTRY" = x ] || [ "x$corpus_registry_set" != "x" ]; then
 	set_corpus_registry "$corpus_root/registry"
@@ -724,6 +813,36 @@ get_corpus_token_count () {
     awk '$1 ~ /^size/ {print $3}'
 }
 
+# get_corpus_struct_count struct corpus
+#
+# Print the number of structures struct in corpus.
+get_corpus_struct_count () {
+    $cwb_bindir/cwb-describe-corpus -s $2 |
+    awk "/^s-ATT $1"' / {print $3}'
+}
+
+# get_vrt_token_count [vrt_file ...]
+#
+# Print the number of tokens in the VRT input vrt_file. vrt_file may
+# be compressed. If vrt_file is not specified, read from stdin.
+get_vrt_token_count () {
+    comprcat "$@" |
+    grep -E -cv '^($|<)'
+}
+
+# get_vrt_struct_count struct [vrt_file ...]
+#
+# Print the number of structures struct in the VRT input vrt_file.
+# vrt_file may be compressed. If vrt_file is not specified, read from
+# stdin.
+get_vrt_struct_count () {
+    local struct
+    struct=$1
+    shift
+    comprcat "$@" |
+    grep -c "^<$struct "
+}
+
 # replace_file [--backup backup_file] old_file new_file
 #
 # Safely replace old_file with new_file. If --backup is specified,
@@ -796,7 +915,9 @@ optinfo_init () {
     optinfo_set_defaults="$(optinfo_get_sect $optinfo_file set_defaults)"
     optinfo_opt_usage="$(optinfo_get_sect $optinfo_file opt_usage)"
     optinfo_opt_handler="$(optinfo_get_sect $optinfo_file opt_handler)"
-    rm $optinfo_file
+    # $optinfo_file is removed at cleanup unless cleanup_on_exit is
+    # empty
+    # rm $optinfo_file
 }
 
 # usage
@@ -838,6 +959,140 @@ word_in () {
     in_str " $1 " " $2 "
 }
 
+# word_index word args ...
+#
+# Output the one-based number of the first argument in args that is
+# equal to word; -1 if none is.
+word_index () {
+    local word arg argnr
+    word=$1
+    shift
+    argnr=1
+    for arg in "$@"; do
+	if [ "$word" = "$arg" ]; then
+	    echo $argnr
+	    return
+	fi
+	argnr=$(($argnr + 1))
+    done
+    echo -1
+}
+
+# count_words args ...
+#
+# Output the number of arguments.
+count_words () {
+    echo "$#"
+}
+
+# get_attr_num attrname attrlist
+#
+# Output the one-based number of positional attribute attrname
+# (possibly followed by a slash) in attrlist.
+get_attr_num () {
+    # set -vx
+    local attrname attrlist index
+    attrname=$1
+    attrlist=$2
+    index=$(word_index $attrname $attrlist)
+    if [ "$index" = -1 ]; then
+	index=$(word_index $attrname/ $attrlist)
+    fi
+    echo $index
+    # set +vx
+}
+
+# nth_arg n arg ...
+#
+# Output the argument number n (one-based) of the rest of the
+# arguments.
+nth_arg () {
+    local n
+    n=$1
+    shift
+    eval echo "\${$n}"
+}
+
+# is_int arg
+#
+# Return true if arg is an integer
+#
+# Source: https://stackoverflow.com/a/309789
+is_int () {
+    [ "$1" -eq "$1" 2> /dev/null ]
+}
+
+
+# decode_special_chars [--xml-entities]
+#
+# Decode the special characters encoded in Korp corpora in stdin and
+# write to stdout. If --xml-entities is specified, decode < and > as
+# &lt; and &gt;.
+#
+# This is faster than using vrt-convert-chars.py --decode.
+decode_special_chars () {
+    local lt gt
+    lt="<"
+    gt=">"
+    if [ "x$1" = "x--xml-entities" ]; then
+	lt="&lt;"
+	gt="&gt;"
+    fi
+    perl -CSD -pe 's/\x{007f}/ /g; s/\x{0080}/\//g;
+                   s/\x{0081}/'"$lt"'/g; s/\x{0082}/'"$gt"'/g;
+                   s/\x{0083}/|/g'
+}
+
+
+# make_licence_type licence_type
+#
+# Check licence_type and output it normalized (upper-case except
+# "ACA-Fi"). If licence_type is not among the allowed ones, exit with
+# an error message.
+make_licence_type () {
+    local lic_type
+    lic_type=$(toupper $1)
+    case $lic_type in
+	PUB | ACA | ACA-FI | RES )
+	    :
+	    ;;
+	* )
+	    error "Please use licence type PUB, ACA, ACA-Fi or RES."
+	    ;;
+    esac
+    if [ "x$lic_type" = "xACA-FI" ]; then
+	lic_type=ACA-Fi
+    fi
+    echo $lic_type
+}
+
+# make_lbr_id lbr_id
+#
+# Check the form of lbr_id and output it normalized, with the
+# Kielipankki URN prefix and the suffix "@LBR". If lbr_id is not of
+# the required format, exit with an error message.
+make_lbr_id () {
+    local id prefix d
+    id=$1
+    if [ "$id" = "${id#$urn_prefix}" ]; then
+	id="$urn_prefix$id"
+    fi
+    d=[0-9]
+    prefix=${urn_prefix}20[1-9][0-9][01][0-9]$d$d$d
+    case ${id%@LBR} in
+	$prefix | ${prefix}$d | ${prefix}$d$d )
+	    :
+	    ;;
+	* )
+	    error "LBR id must be of the form [$urn_prefix]YYYYMMNNN[@LBR], where YYYYMM is year and month and NNN 3 to 5 digits"
+	    ;;
+    esac
+    if [ "$id" = "${id%@LBR}" ]; then
+	id="$id@LBR"
+    fi
+    echo $id
+}
+
 
 # Common initialization code
 
@@ -848,6 +1103,9 @@ cmdline_orig="$(echo_quoted "$0") $cmdline_args_orig"
 
 # The tab character
 tab='	'
+
+# Kielipankki URN prefix
+urn_prefix=urn:nbn:fi:lb-
 
 # The (main) directory for scripts (also containing this file): needed
 # instead of $progdir for scripts in the subdirectories of corp/ to be
@@ -937,7 +1195,11 @@ else
     mysql_bin=$(find_prog mysql)
 fi
 
-cleanup_on_exit=1
+if [ "x$debug" != x ]; then
+    cleanup_on_exit=
+else
+    cleanup_on_exit=1
+fi
 
 show_times=
 

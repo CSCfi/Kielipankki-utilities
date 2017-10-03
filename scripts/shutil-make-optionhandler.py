@@ -5,13 +5,24 @@
 # TODO:
 # - Specify value separator for options that can be specified many
 #   times (syntax maybe *"sep", *(sep) or *[sep]).
-# - Group options in the usage message
-# - Continuation lines in option specifications
+# - Support specifying a hard line break in the option description.
 # - Optionally strip quotes from values specified in a configuration
 #   file. The quote type should determine the quote type for the
 #   command-line arguments, overriding other specifications. The
 #   stripping option could be enabled by a ^ in the option
 #   specification after the quote type.
+# - Obligatory options: error message if missing. Would it be better
+#   to output the error from the Python code or generate shell script
+#   code for checking if the option is specified?
+# - Pass-through options: allow unrecognized options to be collected,
+#   probably to a separate output section, so that this script can be
+#   used to handle options in wrapper scripts that process only some
+#   of the options while passing the rest to a called script. That
+#   requires either converting to use argparse (parse_known_args) or
+#   subclassing OptionParser (https://stackoverflow.com/a/9307174).
+# - Options without a value in the configuration file. This would be
+#   simple with ConfigParser for Python 2.7 (allow_no_value=True), but
+#   how about with Python 2.6?
 
 
 """
@@ -28,7 +39,7 @@ by values read from a configuration file (INI-syntax).
 
 An option specification is of the form
 
-optname1|...|optnamen[=ARG] ["default"] ['|"] [*] [([!]target | {code})]
+optname1|...|optnamen[=ARG] ["default"] ['|"] [*] [[!]target] [{code}]
   description
   ...
 
@@ -41,7 +52,9 @@ description lines must have. The components are as follows:
   usage message for the option.
 - "default": The default (initial) value for the variable
   corresponding to the option, enclosed in double quotes. References
-  to shell variables are (typically) expanded in the shell script.
+  to shell variables are (typically) expanded in the shell script. A
+  double quote (or a backslash) in the value itself must be escaped by
+  a backslash.
 - '|": The option values read from a configuration file should be
   enclosed in this kind of quotes in the generated command-line
   arguments instead of the default ones (double quotes unless
@@ -59,12 +72,28 @@ description lines must have. The components are as follows:
 - {code}: Shell script code (for example, a function call) to be
   executed when encountering the option, instead of directly setting a
   variable value. In the code, the option argument value can be
-  referred to as $1 and the option itself as $optname.
+  referred to as $1 and the option itself as $optname. A target may
+  be specified in addition to code; in that case, the target variable
+  is used for setting the default value. (Note that the specified code
+  is *not* executed at the initialization phase.) If no target nor
+  default value is specified, no variable is initialized.
 - description: A description of the option for the usage message; may
   span several lines, each beginning with whitespace; is subject to
   reformatting (word wrapping).
 
-Empty lines and lines beginning with a # are ignored.
+Empty lines and lines beginning with a # are ignored. A line may be
+continued on the next line by ending in a backslash. This is useful in
+particular for the first line. A continuation line may but need not
+have leading whitespace, regardless of whether it continues the first
+line or a description line. Any whitespace surrounding the
+continuation backslash is replaced with a single space.
+
+Options can be grouped with with lines of the form
+
+@ label
+
+where label is the label for the group to be shown above the options
+following in the usage message.
 
 Options to this script are distinguished from the target script
 options by having their names prefixed with an underscore. The
@@ -86,6 +115,10 @@ currently recognized options are:
   allowed.) By default, the script generates double-quoted strings,
   subject to shell variable and backquote expansion, so literal $, `
   and \ must be protected by a backslash.
+--_option-group-label-format=FORMAT: Format each option group label
+  according to the format string FORMAT, which must contain the key
+  {label} for the group label. Literal \n is replaced with a newline.
+  Default: "\n{label}:"
 
 Note that option values specified on the command line are treated as
 single-quoted strings when they are processed by this script; the
@@ -144,28 +177,28 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         self._optspec_map = {}
         self._opts = None
         self._args = None
-        self._help_indent = {'opt': 2, 'text': 18}
+        self._help_indent = {'opt': 2, 'text': 18, 'grouplabel': 0}
         self._help_indent_text = dict(
             (key, val * ' ') for key, val in self._help_indent.iteritems())
         self._help_width = 78
-        # FIXME: Handle defaults containing double quotes
         self._optspec_re = re.compile(
             r'''(?P<optnames> [^\s=:]+)
                 (?: [=:] (?P<optargname> \S+) )?
-                (?: \s+ (?P<default> "[^\"]*") )?
+                (?: \s+ (?P<default> "([^\"\\]|\\.)*") )?
                 (?: \s+
                   (?: (?P<quotetype> [\'\"]) \s* )?
                   (?: (?P<targetmulti> \*) \s* )?
-                  (?:
-                      (?P<targetneg> ! \s*)? (?P<target> [a-zA-Z0-9_]+)
-                    | \{ \s* (?P<targetcode> .*) \s* \}
-                  )?
+                  (?: (?P<targetneg> ! \s*)? (?P<target> [a-zA-Z0-9_]+) \s* )?
+                  (?: \{ \s* (?P<targetcode> .*) \s* \} )?
                 )?''',
             re.VERBOSE)
+        self._curr_optgroup = None
+        self._optgroups = []
 
     def process_input_stream(self, stream, filename=None):
-        self._add_optspec(['h|help {usage}', 'show this help'])
         self._read_optspecs(stream)
+        if 'help' not in self._optspec_map:
+            self._add_help_opt()
         # print repr(self._optspecs)
         self._parse_opts()
         # print repr(self._optspecs)
@@ -176,19 +209,34 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
 
     def _read_optspecs(self, stream):
         optspec_lines = []
+        continued_line = []
         for line in stream:
             line_strip = line.strip()
             if not line_strip or line_strip[0] == '#':
                 continue
-            if line[0] not in [' ', '\t']:
+            if line[0] not in [' ', '\t'] and not continued_line:
                 self._add_optspec(optspec_lines)
                 optspec_lines = []
-            optspec_lines.append(line_strip)
+            # FIXME: This does not allow a literal backslash at the
+            # end of a line. Should we use a double backslash for
+            # that?
+            if line_strip[-1] == '\\':
+                continued_line.append(line_strip[:-1].strip())
+            else:
+                optspec_lines.append(' '.join(continued_line + [line_strip]))
+                continued_line = []
+        if continued_line:
+            optspec_lines.append(' '.join(continued_line))
         self._add_optspec(optspec_lines)
 
-    def _add_optspec(self, optspec_lines):
+    def _add_optspec(self, optspec_lines, optgroup=None, prepend=False):
         if not optspec_lines:
             return
+        if optspec_lines[0][0] == '@':
+            self._add_optgroup(optspec_lines)
+            return
+        elif not self._optgroups:
+            self._add_optgroup([])
         optspec = {}
         mo = self._optspec_re.match(optspec_lines[0])
         if not mo:
@@ -200,17 +248,36 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         for name in optspec['names']:
             self._optspec_map[name.strip('-')] = optspec
         optspec['defaulttrue'] = (optspec['targetneg'] == '!')
-        if not optspec['target'] or optspec['targetcode']:
+        if not optspec['target']:
             long_opts = [name for name in optspec['names'] if len(name) > 2]
             target_name = long_opts[0] if long_opts else optspec['names'][0]
             optspec['pytarget'] = target_name.strip('-').replace('-', '_')
-            if not optspec['target']:
-                optspec['target'] = optspec['pytarget']
+            optspec['target'] = optspec['pytarget']
         else:
             optspec['pytarget'] = optspec['target']
+            optspec['explicit_target'] = True
         optspec['descr'] = (
             ' '.join(optspec_lines[1:]) if len(optspec_lines) > 1 else '')
         self._optspecs.append(optspec)
+        if optgroup is None:
+            optgroup = self._curr_optgroup
+        if prepend:
+            optgroup[0:0] = [optspec]
+        else:
+            optgroup.append(optspec)
+
+    def _add_optgroup(self, optspec_lines):
+        if not optspec_lines:
+            self._optgroups.append(('', []))
+        else:
+            self._optgroups.append((optspec_lines[0].strip('@').strip(), []))
+        self._curr_optgroup = self._optgroups[-1][1]
+
+    def _add_help_opt(self):
+        if self._optgroups[0][0] != '':
+            self._optgroups[0:0] = [('Help', [])]
+        self._add_optspec(['h|help {usage}', 'show this help'],
+                          self._optgroups[0][1], prepend=True)
 
     def _parse_opts(self):
         optparser = OptionParser(usage='', add_help_option=False)
@@ -221,6 +288,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             [['config-values-single-quoted'], dict(action='store_true')],
             [['output-section-format'],
              dict(default=u'----- {name}\n{content}\n-----\n')],
+            [['option-group-label-format'], dict(default=u'\n{label}:')],
         ]
         for optnames, optopts in script_opts:
             optparser.add_option(*['--_' + name for name in optnames],
@@ -243,6 +311,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                 self._opts._config_file = optval
         self._opts._output_section_format = unicode(
             self._opts._output_section_format.replace('\\n', '\n'))
+        self._opts._option_group_label_format = unicode(
+            self._opts._option_group_label_format.replace('\\n', '\n'))
         for optspec in self._optspecs:
             optspec['value'] = getattr(self._opts, optspec['pytarget'], None)
 
@@ -411,7 +481,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
     def _make_output_set_defaults(self):
         defaults = []
         for optspec in self._optspecs:
-            if optspec.get('target') and not optspec.get('targetcode'):
+            if (optspec.get('default') or optspec.get('explicit_target')
+                or not optspec.get('targetcode')):
                 defaultval = (optspec.get('default')
                               or ('1' if optspec.get('defaulttrue') else ''))
                 defaults.append(optspec.get('target') + '=' + defaultval)
@@ -419,8 +490,14 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
 
     def _make_output_opt_usage(self):
         usage = []
-        for optspec in self._optspecs:
-            usage.extend(self._make_opt_usage_single(optspec))
+        for optgroup in self._optgroups:
+            label, optspecs = optgroup
+            if label != '':
+                usage.append(self._opts._option_group_label_format.format(
+                    label=self._wrap_usage_text(label, 'grouplabel',
+                                                break_on_hyphens=False)))
+            for optspec in optspecs:
+                usage.extend(self._make_opt_usage_single(optspec))
         return '\n'.join(usage)
 
     def _make_opt_usage_single(self, optspec):
@@ -428,26 +505,26 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         optarg = optspec.get('optargname')
         if optarg:
             optlist += ' ' + optarg
-        optlist = textwrap.fill(
-            optlist, width=self._help_width,
-            initial_indent=self._help_indent_text['opt'],
-            subsequent_indent=self._help_indent_text['opt'],
-            break_on_hyphens=False)
+        optlist = self._wrap_usage_text(optlist, 'opt', break_on_hyphens=False)
         helptext = optspec.get('descr') or ''
         default = optspec.get('default')
         if default:
             helptext += (' ' if helptext else '') + '(default: ' + default + ')'
         if helptext:
-            helptext = textwrap.fill(
-                helptext, width=self._help_width,
-                initial_indent=self._help_indent_text['text'],
-                subsequent_indent=self._help_indent_text['text'])
+            helptext = self._wrap_usage_text(helptext, 'text')
         if len(optlist) <= self._help_indent['text'] - 2:
             return [optlist + helptext[len(optlist):]]
         elif helptext:
             return [optlist, helptext]
         else:
             return [optlist]
+
+    def _wrap_usage_text(self, text, text_type, break_on_hyphens=True):
+        return textwrap.fill(
+            text, width=self._help_width,
+            initial_indent=self._help_indent_text[text_type],
+            subsequent_indent=self._help_indent_text[text_type],
+            break_on_hyphens=break_on_hyphens)
 
     def _make_output_opt_handler(self):
         code = [

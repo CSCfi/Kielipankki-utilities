@@ -22,6 +22,7 @@ progdir=`dirname $0`
 
 # Korp MySQL database
 korpdb=korp
+korpdb_auth=korp_auth
 # Unless specified via environment variables, assume that the Korp
 # MySQL database user and password are specified in a MySQL option
 # file
@@ -436,9 +437,16 @@ adjust_registry () {
 }
 
 install_file_sql () {
+    local sqlfile db
     sqlfile=$1
+    db=$korpdb
+    case $sqlfile in
+	*_auth_* )
+	    db=$korpdb_auth
+	    ;;
+    esac
     comprcat $sqlfile \
-	| mysql $mysql_opts $korpdb
+	| mysql $mysql_opts $db
     return $?
 }
 

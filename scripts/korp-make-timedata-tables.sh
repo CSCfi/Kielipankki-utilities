@@ -29,7 +29,8 @@ Usage: $progname [options] corpus ...
 Generate Korp timedata database tables based on text attributes datefrom,
 dateto, timefrom and timeto, and import them into the Korp MySQL database.
 
-Corpus names are specified in lower case. Shell wildcards may be used in them.
+Corpus names are specified in lower case, and they may contain shell
+wildcards.
 
 Options:
   -h, --help      show this help

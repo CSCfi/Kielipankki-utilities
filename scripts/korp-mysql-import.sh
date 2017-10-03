@@ -156,6 +156,15 @@ table_columns_relations_new_CORPNAME_sentences='
 	`end` int NOT NULL,
 	KEY `id` (`id`)
 '
+table_columns_auth_license='
+	`corpus` varchar(80) NOT NULL,
+        `license` varchar(6) NOT NULL,
+        PRIMARY KEY (`corpus`)
+'
+table_columns_auth_lbr_map='
+	`lbr_id` varchar(255) DEFAULT NULL,
+	`corpus` varchar(255) DEFAULT NULL
+'
 
 # The number of columns in the old and new formats for the head_rel
 # table is the same, so we try to infer the format by the content of
@@ -168,22 +177,19 @@ relations_table_types="CORPNAME CORPNAME_strings CORPNAME_rel CORPNAME_head_rel 
 
 # Filename base parts, only files for tables containing data for
 # multiple corpora
-filename_bases="lemgrams timedata timedata_date timespans"
+filename_bases="lemgrams timedata timedata_date timespans auth_license auth_lbr_map"
 filename_bases_commas="$(echo $filename_bases | sed 's/ /, /g')"
 filename_bases_sed_re="$(echo $filename_bases | sed 's/ /\\|/g')"
 
-# The table name corresponding to each multi-corpus filename base
+# The table name corresponding to a multi-corpus filename base; if not
+# defined, default to the filename base
 tablename_lemgrams=lemgram_index
-tablename_timedata=timedata
-tablename_timedata_date=timedata_date
-tablename_timespans=timespans
 
-# All multi-corpus table names
-multicorpus_tablenames=$(
-    for fname_base in $filename_bases; do
-	eval echo "\$tablename_$fname_base"
-    done
-)
+# Multicorpus tables to with other tables refer via foreign key
+# constraints, so that rows in them cannot be deleted. In practice,
+# this does not help, since trying to update the data without deleting
+# it results in a violation of the primary key constraint.
+# tables_no_delete_rows="auth_license"
 
 shortopts="htI:v"
 longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:,hide-warnings,mysql-program:,mysql-binary:mysql-options:,verbose,show-progress,progress-interval:"
@@ -335,13 +341,24 @@ fill_tablename_template () {
     sed -e "s/@/$1/"
 }
 
+get_tablename_for_filename_base () {
+    local fname_base tablename_base
+    fname_base=$1
+    tablename_base=$(eval echo "\$tablename_$fname_base")
+    if [ "x$tablename_base" = "x" ]; then
+	tablename_base=$fname_base
+    fi
+    echo $tablename_base
+}
+
 # Get the table name base based on the filename argument.
 get_file_tablename_base () {
+    local _fname fname_base
     _fname=$1
     for fname_base in $filename_bases; do
 	case "$_fname" in
 	    *_$fname_base.* )
-		eval echo "\$tablename_$fname_base"
+		echo $(get_tablename_for_filename_base $fname_base)
 		break
 		;;
 	esac
@@ -459,15 +476,17 @@ get_colspec () {
 }
 
 run_mysql_report_errors () {
+    local tablename _errorfile
+    tablename=$1
     # Return the error information via a file, since setting the value
     # of a variable does not seem to propagate to the caller.
-    _errorfile=$1
-    shift
+    _errorfile=$2
+    shift 2
     # $$ is the pid of the parent shell (script) even in subshells, so
     # use a md5sum of the arguments to make the name of the teefile
     # unique
     teefile=$_errorfile.tee
-    run_mysql "$@" 2>&1 |
+    run_mysql --table $tablename "$@" 2>&1 |
     tee $teefile
     grep '^ERROR ' $teefile |
     head -1 |
@@ -478,7 +497,7 @@ run_mysql_report_errors () {
 create_table() {
     _tablename=$1
     _colspec=$2
-    run_mysql "
+    run_mysql --table $_tablename "
 CREATE TABLE IF NOT EXISTS \`$_tablename\` (
     $_colspec
     ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8 DEFAULT COLLATE=utf8_bin
@@ -489,24 +508,34 @@ CREATE TABLE IF NOT EXISTS \`$_tablename\` (
 delete_table_corpus_info() {
     _tablename=$1
     _corpname=$2
-    run_mysql "DELETE FROM \`$_tablename\` WHERE corpus='$_corpname';"
+    run_mysql --table $_tablename \
+	"DELETE FROM \`$_tablename\` WHERE corpus='$_corpname';"
 }
 
 create_new_table() {
     _tablename=$1
     _colspec=$2
-    run_mysql "DROP TABLE IF EXISTS \`$_tablename\`;"
+    run_mysql --table $_tablename "DROP TABLE IF EXISTS \`$_tablename\`;"
     create_table $_tablename "$_colspec"
+}
+
+get_multicorpus_tablenames () {
+    local tablename
+    for fname_base in $filename_bases; do
+	echo $(get_tablename_for_filename_base $fname_base)
+    done
 }
 
 prepare_tables () {
     _tablename=$1
     _corpname=$2
     _colspec=$3
-    for tblname in $multicorpus_tablenames; do
+    for tblname in $(get_multicorpus_tablenames); do
 	if [ $tblname = $_tablename ]; then
 	    create_table $_tablename "$_colspec"
+	    # if ! word_in $_tablename "$tables_no_delete_rows"; then
 	    delete_table_corpus_info $_tablename $_corpname
+	    # fi
 	    return
 	fi
     done
@@ -535,7 +564,7 @@ show_mysql_datafile_size () {
 
 get_mysql_table_rowcount () {
     # The row count is only an approximation for InnoDB tables.
-    run_mysql_report_errors $progress_errorfile "SELECT table_rows FROM information_schema.tables WHERE table_name='$1' \G ; " |
+    run_mysql_report_errors $1 $progress_errorfile "SELECT table_rows FROM information_schema.tables WHERE table_name='$1' \G ; " |
     grep rows |
     cut -d':' -f2 |
     tr -d ' '
@@ -636,7 +665,7 @@ mysql_import_main () {
 	report_progress $tablename $total_rows &
 	progress_pid=$!
     fi
-    run_mysql_report_errors $import_errorfile "$mysql_cmds" |
+    run_mysql_report_errors $tablename $import_errorfile "$mysql_cmds" |
     awk '{print "    " $0}'
     if [ "x$show_progress" != x ]; then
 	kill $progress_pid
