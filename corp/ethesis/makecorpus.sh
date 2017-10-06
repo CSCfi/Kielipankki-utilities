@@ -1,0 +1,1 @@
+/usr/local/cwb/bin/cwb-encode -xsB -c utf8 -d /v/corpora/data/ethesis_ma_far -R /v/corpora/registry/ethesis_ma_far -S text:0+datefrom+dateto+author+date+title+url+pdfurl+type+subject+faculty+keywords+lang -S paragraph:0+id -S sentence:0+id -f all.fix

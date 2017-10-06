@@ -1,0 +1,10 @@
+#https://helda.helsinki.fi/
+https://helda.helsinki.fi/handle/10138/18063/browse?order=DESC&rpp=100&sort_by=3&etal=-1&offset=0&type=dateissued
+https://helda.helsinki.fi/handle/10138/18063/browse?order=DESC&rpp=100&sort_by=3&etal=-1&offset=100&type=dateissued
+https://helda.helsinki.fi/handle/10138/18063/browse?order=DESC&rpp=100&sort_by=3&etal=-1&offset=200&type=dateissued
+https://helda.helsinki.fi/handle/10138/18063/browse?order=DESC&rpp=100&sort_by=3&etal=-1&offset=300&type=dateissued
+https://helda.helsinki.fi/handle/10138/18063/browse?order=DESC&rpp=100&sort_by=3&etal=-1&offset=400&type=dateissued
+https://helda.helsinki.fi/handle/10138/18063/browse?order=DESC&rpp=100&sort_by=3&etal=-1&offset=500&type=dateissued
+https://helda.helsinki.fi/handle/10138/18063/browse?order=DESC&rpp=100&sort_by=3&etal=-1&offset=600&type=dateissued
+https://helda.helsinki.fi/handle/10138/18063/browse?order=DESC&rpp=100&sort_by=3&etal=-1&offset=700&type=dateissued
+https://helda.helsinki.fi/handle/10138/18063/browse?order=DESC&rpp=100&sort_by=3&etal=-1&offset=800&type=dateissued
