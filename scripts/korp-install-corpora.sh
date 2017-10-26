@@ -360,10 +360,15 @@ install_corpus () {
 	| tee $filelistfile \
 	| sed -e 's/^/    /'
     # Allow missing directory sql
-    if grep '^tar:' $filelistfile |
-	grep -E -v '^tar: (\*/sql: Not found|Exiting with failure)';
-    then
-	error "Errors in extracting $corpus_pkg"
+    if grep '^tar:' $filelistfile > $tmp_prefix.tar_errors; then
+	if grep -E -q -v \
+	    '(\*/sql: Not found|Cannot (utime|change mode)|Exiting with failure)' \
+	    $tmp_prefix.tar_errors;
+	then
+	    error "Errors in extracting $corpus_pkg"
+	else
+	    warn "Ignoring non-fatal extraction errors"
+	fi
     fi
     (
 	cd $corpus_root
