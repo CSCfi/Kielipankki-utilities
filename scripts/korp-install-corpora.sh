@@ -10,120 +10,13 @@
 #   installed version
 # - Verbosity control
 # - Ignore tar errors of missing sql directory
-# - Convert to using korp-lib.sh
 
 
 progname=`basename $0`
 progdir=`dirname $0`
 
 
-# TODO: Replace much of the following initialization code with
-# sourcing korp-lib.sh
-
-# Korp MySQL database
-korpdb=korp
-korpdb_auth=korp_auth
-# Unless specified via environment variables, assume that the Korp
-# MySQL database user and password are specified in a MySQL option
-# file
-mysql_opts=
-if [ "x$KORP_MYSQL_USER" != "x" ]; then
-    mysql_opts=--user=$KORP_MYSQL_USER
-fi
-if [ "x$KORP_MYSQL_PASSWORD" != "x" ]; then
-    mysql_opts="$mysql_opts --password=$KORP_MYSQL_PASSWORD"
-fi
-if [ "x$KORP_MYSQL_BIN" != "x" ]; then
-    mysql_bin=$KORP_MYSQL_BIN
-elif [ -x /opt/mariadb/bin/mysql ]; then
-    # MariaDB on the Korp server
-    mysql_bin="/opt/mariadb/bin/mysql --defaults-extra-file=/var/lib/mariadb/my.cnf"
-else
-    mysql_bin=mysql
-fi
-
-default_corpus_roots="/v/corpora /proj/clarin/korp/corpora $WRKDIR/corpora /wrk/jyniemi/corpora"
-
-find_existing_dir () {
-    _test=$1
-    _file=$2
-    shift 2
-    for dir in "$@"; do
-	if [ $_test $dir/$_file ]; then
-	    echo $dir
-	    break
-	fi
-    done
-}
-
-# Root directory, relative to which the corpus directory resides
-corpus_root=${CORPUS_ROOT:-$(find_existing_dir -d "" $default_corpus_roots)}
-
-pkgsubdir=pkgs
-
-# This will be set later based on $corpus_root, which may be modified
-# by options
-pkgdir=$CORPUS_PKGDIR
-
-backups=1
-backup_suffix=.bak
-
-# This is only for compatibility with older corpus packages
-pkg_prefix=korpdata_
-
-tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
-tmp_prefix=$tmpdir/$progname
-
-filelistfile=$tmp_prefix.files.$$
-pkglistfile=$tmp_prefix.pkgs.$$
-
-timestamp_format="+%Y-%m-%dT%H:%M:%S"
-
-filegroup=
-for grp in korp clarin; do
-    if groups | grep -qw $grp; then
-	filegroup=$grp
-	break
-    fi
-done
-if [ "x$filegroup" = x ]; then
-    filegroup=`groups | cut -d' ' -f1`
-fi
-
-
-ensure_perms () {
-    chgrp -R $filegroup "$@" 2> /dev/null
-    chmod -R g=u "$@" 2> /dev/null
-}
-
-warn () {
-    echo "$progname: Warning: $1" >&2
-}
-
-error () {
-    echo "$progname: $1" >&2
-    exit 1
-}
-
-cleanup () {
-    if [ "x$tmp_prefix" != "x" ]; then
-	rm -rf $tmp_prefix.*
-    fi
-}
-
-cleanup_abort () {
-    cleanup
-    exit 1
-}
-
-
-trap cleanup 0
-trap cleanup_abort 1 2 13 15
-
-
-usage () {
-    cat <<EOF
-Usage: $progname [options] corpus|package ...
+usage_header="Usage: $progname [options] corpus|package ...
 
 Install or update the specified corpora from corpus packages to Corpus
 Workbench and Korp database.
@@ -132,82 +25,51 @@ The arguments may be either corpus package file names, possibly with a full
 path name, or corpus names, in which case packages for the corpus are searched
 for in the package directory. A full path name may be preceded by a remote
 host name and a colon, in which case the package is retrieved from the remote
-host without a need to make a local copy of the package file.
+host without a need to make a local copy of the package file."
 
-Options:
-  -h, --help      show this help
-  -c, --corpus-root DIR
-                  use DIR as the root directory of corpus files (default:
-                  $corpus_root)
-  -p, --package-dir DIR
-                  DIR is the default directory in which to search for corpus
-                  packages to be installed; may be a remote directory
-                  specified as HOST:DIR (default: CORPUS_ROOT/$pkgsubdir)
-  --no-backups    do not make backup copies of existing corpus files
-  --backup-suffix SUFFIX
-                  use SUFFIX as the backup file suffix (default: $backup_suffix)
+optspecs='
+c|corpus-root=DIR "$corpus_root"
+    use DIR as the root directory of corpus files (CORPUS_ROOT)
+p|package-dir=DIR "CORPUS_ROOT/$pkgsubdir" pkgdir
+    DIR is the default directory in which to search for corpus
+    packages to be installed; may be a remote directory specified as
+    HOST:DIR
+no-backups !backups
+    do not make backup copies of existing corpus files
+backup-suffix=SUFFIX ".bak"
+    use SUFFIX as the backup file suffix
+'
 
-Note: The backup copy of a corpus is overwritten by subsequent updates of the
-corpus.
-EOF
-    exit 0
-}
+usage_footer="Note: The backup copy of a corpus is overwritten by subsequent updates of the
+corpus."
 
 
-# Test if GNU getopt
-getopt -T > /dev/null
-if [ $? -eq 4 ]; then
-    # This requires GNU getopt
-    args=`getopt -o "hcp:r:" -l "help,corpus-root:,package-dir:,no-backups,backup-suffix:" -n "$progname" -- "$@"`
-    if [ $? -ne 0 ]; then
-	exit 1
-    fi
-    eval set -- "$args"
-fi
-# If not GNU getopt, arguments of long options must be separated from
-# the option string by a space; getopt allows an equals sign.
+pkgsubdir=pkgs
+
+
+. $progdir/korp-lib.sh
 
 # Process options
-while [ "x$1" != "x" ] ; do
-    case "$1" in
-	-h | --help )
-	    usage
-	    ;;
-	-c | --corpus-root )
-	    corpus_root=$2
-	    shift
-	    ;;
-	-p | --package-dir )
-	    pkgdir=$2
-	    shift
-	    ;;
-	--no-backups )
-	    backups=
-	    ;;
-	--backup-suffix )
-	    backup_suffix=$2
-	    shift
-	    ;;
-	-- )
-	    shift
-	    break
-	    ;;
-	--* )
-	    warn "Unrecognized option: $1"
-	    ;;
-	* )
-	    break
-	    ;;
-    esac
-    shift
-done
+eval "$optinfo_opt_handler"
+
+
+# This is only for compatibility with older corpus packages
+pkg_prefix=korpdata_
+
+filelistfile=$tmp_prefix.files
+pkglistfile=$tmp_prefix.pkgs
+
+timestamp_format="+%Y-%m-%dT%H:%M:%S"
+
 
 if [ "x$1" = x ]; then
     error "Please specify the names of corpus packages or corpora to install.
 For more information, run '$0 --help'."
 fi
 
-pkgdir=${pkgdir:-$corpus_root/$pkgsubdir}
+if [ "x$pkgdir" = "xCORPUS_ROOT/$pkgsubdir" ]; then
+    pkgdir=${CORPUS_PKGDIR:-$corpus_root/$pkgsubdir}
+fi
 
 localhost=LOCALHOST
 default_pkghost=$localhost
@@ -382,24 +244,6 @@ backup_corpus () {
 	    ensure_perms $corpus_root/$fname$backup_suffix
 	fi
     done
-}
-
-# Cat possibly compressed file(s) based on the file name extension
-comprcat () {
-    case $1 in
-	*.bz2 )
-	    bzcat "$@"
-	    ;;
-	*.gz )
-	    zcat "$@"
-	    ;;
-	*.xz )
-	    xzcat "$@"
-	    ;;
-	* )
-	    cat "$@"
-	    ;;
-    esac
 }
 
 human_readable_size () {
