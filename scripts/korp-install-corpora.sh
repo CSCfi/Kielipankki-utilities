@@ -109,7 +109,9 @@ get_package_corpus_name () {
 
 run_command () {
     if host_is_remote "$1"; then
-	ssh "$1" "$2"
+	# ssh may not read anything from stdin, so that higher-level
+	# read works; see https://unix.stackexchange.com/a/107801
+	ssh "$1" "$2" < /dev/null
     else
 	eval "$2"
     fi
