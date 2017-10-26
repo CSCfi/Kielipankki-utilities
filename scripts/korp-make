@@ -90,6 +90,11 @@ input-attrs|input-attributes|input-fields=ATTRS \
   "ref lemma pos msd dephead deprel nertag" initial_input_attrs
     specify the names of the positional attributes in the input,
     excluding the first one ("word" or token), separated by spaces
+augment-data|augment-existing-data
+    augment existing corpus data with the data in the input, for
+    example, to add parse annotations to a corpus already encoded; if
+    the input contains values for exsiting attributes, they override
+    existing values
 
 @ Annotation mappings
 
@@ -284,6 +289,11 @@ if [ "x$corpus" = "x" ]; then
     shift
 fi
 
+if [ "x$augment_data" != x ] &&
+    [ "$(list_corpora --on-error : "$corpus")" != "$corpus" ]; then
+    error "Corpus $corpus not found; cannot augment corpus data"
+fi
+
 if [ "x$logging" != x ]; then
     if [ "x$logfile" = x ]; then
 	if [ ! -e "$corpus_root/log" ]; then
@@ -417,6 +427,7 @@ stages=(
 
 
 combine_input () {
+    local input_token_count existing_token_count
     # Skip empty lines in the input VRT, in order to avoid a differing
     # number of tokens from the already encoded attributes (assuming
     # that cwb-encode was told to skip empty lines).
@@ -424,6 +435,12 @@ combine_input () {
     grep -v '^$' > $vrt_file
     input_token_count=$(get_vrt_token_count "$vrt_file")
     echo_verb "  $input_token_count tokens in the input VRT"
+    if [ "x$augment_data" != x ]; then
+	existing_token_count=$(get_corpus_token_count $corpus)
+	if [ "$input_token_count" != "$existing_token_count" ]; then
+	    error "The number of tokens in the input ($input_token_count) differs from that in the existing corpus data ($existing_token_count)"
+	fi
+    fi
 }
 
 test_skip_combine_input () {
@@ -634,8 +651,23 @@ filter_new_attrs () {
     fi
 }
 
+add_attrs_to_registry () {
+    local structspecs structspec
+    structspecs=$1
+    # cwb_registry_add_posattr adds only non-existing attributes, so
+    # it does not matter if $input_attrs contains attributes already
+    # existing in the corpus.
+    cwb_registry_add_posattr $corpus ${input_attrs///}
+    for structspec in $structspecs; do
+	# Remove the nesting depth
+	structspec=${structspec/:[0-9]/}
+	# Arguments: struct name followed by attr names
+	cwb_registry_add_structattr $corpus ${structspec//+/ }
+    done
+}
+
 cwb_encode () {
-    local featset_attrnums convert_chars_opts structnames
+    local featset_attrnums convert_chars_opts structnames reg_opt
     featset_attrnums=$(
 	printf "word\n"${input_attrs// /\\n} |
 	grep -n '/$' |
@@ -650,18 +682,30 @@ cwb_encode () {
     echo_verb "  Inferring structural attributes from the VRT file"
     structnames=$(grep '^<' $vrt_file | run_cmd $vrt_list_struct_attrs)
     mkdir_perms $datadir
+    reg_opt=
+    # For new corpora, let cwb-encode generate the registry file
+    if [ "x$augment_data" = x ]; then
+	reg_opt="-R $cwb_regdir/$corpus"
+    fi
     run_cmd $vrt_convert_chars $convert_chars_opts \
 	--feature-set-struct-attributes "$structnames" < $vrt_file |
-    run_cmd $cwb_encode -d $datadir -R $cwb_regdir/$corpus \
+    run_cmd $cwb_encode -d $datadir $reg_opt \
 	-xsB -c utf8 $(add_prefix "-P " $input_attrs) \
 	$(add_prefix "-S " $structnames)
+    # For existing corpora, add the new new attributes to the registry
+    if [ "x$augment_data" != x ]; then
+	add_attrs_to_registry "$structnames"
+    fi
 }
 
 test_skip_cwb_encode () {
     # new_attrs is global, but it is initialized here for practical
     # reasons.
     new_attrs=$(filter_new_attrs "${input_attrs///}")
-    [ -s $cwb_regdir/$corpus ] && [ "x$new_attrs" = x ] && echo "already present"
+    [ "x$augment_data" = x ] &&
+    [ "x$new_attrs" = x ] &&
+    [ -s $cwb_regdir/$corpus ] &&
+    echo "already encoded"
 }
 
 cwb_make () {
@@ -669,7 +713,10 @@ cwb_make () {
 }
 
 test_skip_cwb_make () {
-    [ -s $datadir/word.crx ] && echo "already done"
+    [ "x$augment_data" = x ] &&
+    [ "x$new_attrs" = x ] &&
+    [ -s $datadir/word.crx ] &&
+    echo "already done"
 }
 
 convert_timedata () {
@@ -742,7 +789,7 @@ test_skip_add_name_attrs () {
 }
 
 make_corpus_package () {
-    local extra_opts
+    local extra_opts vrt_opt
     [ "x$korp_frontend_dir" != x ] &&
     extra_opts="$extra_opts --korp-frontend-dir=$korp_frontend_dir"
     [ "x$package_readme_file" != x ] &&
@@ -760,10 +807,15 @@ make_corpus_package () {
     [ "x$package_extra_file" != x ] &&
     extra_opts="$extra_opts --extra-file=$package_extra_file"
     run_cmd gzip --no-name $vrt_file
+    if [ "x$augment_data" = x ]; then
+	vrt_opt="--vrt-file $vrt_file.gz"
+    else
+	vrt_opt="--update-vrt"
+    fi
     run_cmd $korp_make_corpus_package --target-corpus-root /v/corpora \
 	--corpus-root "$corpus_root" \
 	--tsv-dir "$tsvdir" --database-format tsv --compress gzip \
-	--vrt-file $vrt_file.gz $auth_opts $extra_opts $corpus
+	$vrt_opt $auth_opts $extra_opts $corpus
 }
 
 test_skip_make_corpus_package () {
