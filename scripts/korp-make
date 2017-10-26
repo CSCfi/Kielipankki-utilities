@@ -325,35 +325,6 @@ if [ "x$verbose" != x ]; then
 fi
 
 
-filter_new_attrs () {
-    $cwb_describe_corpus -s $corpus > $tmp_prefix.corpusattrs 2> /dev/null
-    if [ $? != 0 ]; then
-	echo "$@"
-    else
-	awk '
-	    BEGIN {
-		for (i = 1; i < ARGC; i++) { attrs[i] = ARGV[i] }
-		delete ARGV
-	    }
-	    /^p-ATT/ { old_attrs[$2] = 1 }
-	    END {
-		for (i in attrs) {
-		    attrname_bare = gensub (/\//, "", "g", attrs[i])
-		    # Lemma needs to be recoded as lemmacomp if lemmacomp is
-		    # not already present
-		    if (! (attrname_bare in old_attrs) \
-			|| (attrname_bare == "lemma" \
-			    && ! ("lemmacomp" in old_attrs))) {
-			print attrs[i]
-		    }
-		}
-	    }' $@ < $tmp_prefix.corpusattrs
-    fi
-}
-
-new_attrs=$(filter_new_attrs "$input_attrs")
-
-
 run_cmd () {
     verbose printf "  Running: " >&$top_stdout
     verbose echo_quoted "$@" >&$top_stdout
@@ -634,6 +605,35 @@ test_skip_add_struct_ids () {
     echo "requested not to add"
 }
 
+filter_new_attrs () {
+    $cwb_describe_corpus -s $corpus > $tmp_prefix.corpusattrs 2> /dev/null
+    if [ $? != 0 ]; then
+	echo "$@"
+    else
+	# FIXME: Why does this put lemma and lemmacomp at the end,
+	# whereas the other attributes are in the order in which they
+	# are in the input?
+	awk '
+	    BEGIN {
+		for (i = 1; i < ARGC; i++) { attrs[i] = ARGV[i] }
+		delete ARGV
+	    }
+	    /^p-ATT/ { old_attrs[$2] = 1 }
+	    END {
+		for (i in attrs) {
+		    attrname_bare = gensub (/\//, "", "g", attrs[i])
+		    # Lemma needs to be recoded as lemmacomp if lemmacomp is
+		    # not already present
+		    if (! (attrname_bare in old_attrs) \
+			|| (attrname_bare == "lemma" \
+			    && ! ("lemmacomp" in old_attrs))) {
+			print attrs[i]
+		    }
+		}
+	    }' $@ < $tmp_prefix.corpusattrs
+    fi
+}
+
 cwb_encode () {
     local featset_attrnums convert_chars_opts structnames
     featset_attrnums=$(
@@ -658,6 +658,9 @@ cwb_encode () {
 }
 
 test_skip_cwb_encode () {
+    # new_attrs is global, but it is initialized here for practical
+    # reasons.
+    new_attrs=$(filter_new_attrs "${input_attrs///}")
     [ -s $cwb_regdir/$corpus ] && [ "x$new_attrs" = x ] && echo "already present"
 }
 
