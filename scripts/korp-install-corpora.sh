@@ -6,8 +6,6 @@
 # TODO:
 # - Multiple or timestamped backups
 # - Backup to a different backup directory
-# - Option to force installing a package file older than the currently
-#   installed version
 # - Verbosity control
 # - Ignore tar errors of missing sql directory
 
@@ -38,6 +36,9 @@ no-backups !backups
     do not make backup copies of existing corpus files
 backup-suffix=SUFFIX ".bak"
     use SUFFIX as the backup file suffix
+f|force
+    force installing a corpus package that is older than or as old as
+    the currently installed package
 '
 
 usage_footer="Note: The backup copy of a corpus is overwritten by subsequent updates of the
@@ -197,14 +198,18 @@ filter_corpora () {
 		| cut -d'	' -f4 \
 		| sort -r \
 		| head -1)
-	    if expr "$timestamp" "<=" "$installed_date" > /dev/null; then
-		echo "  $corpname: skipping $(format_package_name_host $pkgfile $pkghost) as not newer than the installed package ($timestamp <= $installed_date)" >> /dev/stderr
-	    else
-		printf "%s\t%s\t%s\t%s\t%s\n" $corpname $pkghost "$pkgfile" \
-		    $timestamp $pkgsize
-		corpora_to_install="$corpora_to_install $corpname"
-	    fi
 	    corpname_prev=$corpname
+	    if expr "$timestamp" "<=" "$installed_date" > /dev/null; then
+		if [ "x$force" != x ]; then
+		    echo "  $corpname: installing $(format_package_name_host $pkgfile $pkghost) because of --force, even though not newer than the installed package ($timestamp <= $installed_date)" >> /dev/stderr
+		else
+		    echo "  $corpname: skipping $(format_package_name_host $pkgfile $pkghost) as not newer than the installed package ($timestamp <= $installed_date)" >> /dev/stderr
+		    continue
+		fi
+	    fi
+	    printf "%s\t%s\t%s\t%s\t%s\n" $corpname $pkghost "$pkgfile" \
+		$timestamp $pkgsize
+	    corpora_to_install="$corpora_to_install $corpname"
 	    corp_pkgfile=$pkgfile
 	fi
     done < $listfile.srt
