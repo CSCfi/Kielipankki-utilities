@@ -112,6 +112,24 @@ error () {
     exit $exitcode
 }
 
+# lib_error [exitcode] msg
+#
+# Library error: Print msg (prefixed with korp-lib.sh) to stderr and
+# exit with exitcode (default: 1).
+#
+# TODO: Allow choosing (via a variable) whether library errors are
+# fatal (exit) or, output a warning but continue or are ignored.
+lib_error () {
+    local exitcode
+    exitcode=1
+    if [ $# -gt 1 ]; then
+	exitcode=$1
+	shift
+    fi
+    safe_echo "korp-lib.sh: $1" >&2
+    exit $exitcode
+}
+
 # exit_on_error [--message msg] cmd [args ...]
 #
 # If cmd returns a non-zero, propagate the error and exit with the
