@@ -664,6 +664,11 @@ add_attrs_to_registry () {
 	# Arguments: struct name followed by attr names
 	cwb_registry_add_structattr $corpus ${structspec//+/ }
     done
+    # If needed, move lemmacomp to immediately after lemma. This is
+    # relevant when augmenting existing data: if the data has other
+    # positional attributes after lemma, lemmacomp would come after
+    # them all without this.
+    cwb_registry_reorder_posattrs $corpus lemma lemmacomp
 }
 
 cwb_encode () {

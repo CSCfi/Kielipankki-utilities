@@ -696,6 +696,43 @@ _cwb_registry_make_attrdecls () {
     awk '{printf "'"$_format"'\\n", $0}'
 }
 
+# cwb_registry_reorder_posattrs corpus attrname1 attrname2
+#
+# Reorded the positional attributes in the registry file for corpus so
+# that attrname2 follows immediately attrname1. If one or both of the
+# attributes do not exist, do nothing.
+cwb_registry_reorder_posattrs () {
+    local corpus regfile
+    if [ "x$1" = x ] || [ "x$2" = x ] || [ "x$3" = x ]; then
+	lib_error "Invalid arguments to cwb_registry_reorder_posattrs: requires corpus, attrname1, attrname2"
+    fi
+    corpus=$1
+    attrname1=$2
+    attrname2=$3
+    if ! corpus_exists $corpus; then
+	lib_error "cwb_registry_reorder_posattrs: corpus $corpus does not exist"
+    fi
+    regfile="$cwb_regdir/$corpus"
+    # Do nothing if the corpus does not have both the first and the
+    # second attribute
+    if ! grep -qs "^ATTRIBUTE $attrname1\$" "$regfile" ||
+	! grep -qs "^ATTRIBUTE $attrname2\$" "$regfile";
+    then
+	return
+    fi
+    awk '
+        /^ATTRIBUTE '"$attrname1"'$/ {
+            print
+            print "ATTRIBUTE '"$attrname2"'"
+            next
+        }
+        /^ATTRIBUTE '"$attrname2"'$/ { next }
+        { print }
+    ' "$regfile" > "$regfile.new"
+    ensure_perms "$regfile.new"
+    replace_file "$regfile" "$regfile.new"
+}
+
 # cwb_registry_add_posattr corpus attrname ...
 #
 # Add positional attributes to the CWB registry file for corpus at the
