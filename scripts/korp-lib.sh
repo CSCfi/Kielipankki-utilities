@@ -771,16 +771,18 @@ cwb_index_posattr () {
     done
 }
 
-# corpus_has_attr corpus attrtype attrname
+# corpus_list_attrs corpus attrtype
 #
-# Return true if corpus has attribute attrname of type attrtype (p =
-# positional, s = structural, a = alignment).
-corpus_has_attr () {
-    local corpus attrtype attrname
+# List the names of attributes of type attrtype (p = positional, s =
+# structural, a = alignment) in corpus. Each attribute name is on its
+# own line.
+corpus_list_attrs () {
+    local corpus attrtype
     corpus=$1
     attrtype=$2
-    attrname=$3
-    shift 3
+    if [ ! -e $cwb_regdir/$corpus ]; then
+	return 1
+    fi
     case $attrtype in
 	[pP]* )
 	    attrtype="ATTRIBUTE"
@@ -795,7 +797,21 @@ corpus_has_attr () {
 	    return 1
 	    ;;
     esac
-    grep -E -q -s "^$attrtype +$attrname\b" $cwb_regdir/$corpus
+    awk "/^$attrtype / {print \$2}" $cwb_regdir/$corpus
+}
+
+
+# corpus_has_attr corpus attrtype attrname
+#
+# Return true if corpus has attribute attrname of type attrtype (p =
+# positional, s = structural, a = alignment).
+corpus_has_attr () {
+    local corpus attrtype attrname
+    corpus=$1
+    attrtype=$2
+    attrname=$3
+    corpus_list_attrs $corpus $attrtype |
+    grep -E -q -s "^$attrname$"
 }
 
 # corpus_exists corpus
