@@ -95,6 +95,13 @@ augment-data|augment-existing-data
     example, to add parse annotations to a corpus already encoded; if
     the input contains values for exsiting attributes, they override
     existing values
+generate-input-from-data generate_input
+    use the existing (CWB) corpus data as the input, which is to be
+    augmented if needed with lemgrams, lemmas without compound
+    boundaries and the appropriate database data (implies
+    --augment-data); the list of input attribute names is read from
+    the data (overrides --input-attrs); you cannot use this option
+    with --force
 
 @ Annotation mappings
 
@@ -248,6 +255,7 @@ run_extract_rels=$progdir/run-extract-rels.sh
 vrt_add_name_attrs=$progdir/vrt-add-name-attrs.sh
 korp_make_corpus_package=$progdir/korp-make-corpus-package.sh
 korp_mysql_import=$progdir/korp-mysql-import.sh
+cwbdata2vrt=$progdir/cwbdata2vrt.py
 
 cwb_encode=$cwb_bindir/cwb-encode
 cwb_describe_corpus=$cwb_bindir/cwb-describe-corpus
@@ -287,6 +295,18 @@ if [ "x$corpus" = "x" ]; then
     fi
     corpus=$1
     shift
+fi
+
+if [ "x$generate_input" != x ]; then
+    if [ "x$force" != x ]; then
+	error "You cannot specify both --force and --generate-input-from-data"
+    fi
+    augment_data=1
+    stage1_fn=generate_input
+    stage1_descr="Generating input VRT file from CWB data"
+else
+    stage1_fn=combine_input
+    stage1_descr="Combining input files"
 fi
 
 if [ "x$augment_data" != x ] &&
@@ -406,7 +426,7 @@ run_stages () {
 
 # Stage functions and their descriptions
 stages=(
-    combine_input "Combining input files"
+    $stage1_fn "$stage1_descr"
     add_lemmas_without_boundaries "Adding lemmas without compound boundaries"
     add_lemgrams "Adding lemgrams"
     add_datefromto "Adding datefrom and dateto"
@@ -450,6 +470,17 @@ test_skip_combine_input () {
     if [ -r $vrt_file ] && [ -s $vrt_file ]; then
 	echo "using existing VRT file $vrt_file"
     fi
+}
+
+generate_input () {
+    existing_token_count=$(get_corpus_token_count $corpus)
+    echo_verb "  $existing_token_count tokens in the existing data"
+    run_cmd $cwbdata2vrt --cwbdir $cwb_bindir --registry $cwb_regdir $corpus |
+    decode_special_chars --xml-entities > $vrt_file
+    # Use echo to convert newlines in corpus_list_attrs to spaces
+    initial_input_attrs=$(echo $(corpus_list_attrs $corpus POS))
+    initial_input_attrs=${initial_input_attrs#word }
+    input_attrs=$initial_input_attrs
 }
 
 add_lemmas_without_boundaries () {
