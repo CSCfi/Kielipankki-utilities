@@ -850,7 +850,7 @@ make_corpus_package () {
     extra_opts="$extra_opts --extra-dir=$package_extra_dir"
     [ "x$package_extra_file" != x ] &&
     extra_opts="$extra_opts --extra-file=$package_extra_file"
-    run_cmd gzip --no-name $vrt_file
+    run_cmd gzip --no-name --force $vrt_file
     if [ "x$augment_data" = x ]; then
 	vrt_opt="--vrt-file $vrt_file.gz"
     else
