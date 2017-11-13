@@ -478,9 +478,14 @@ generate_input () {
     run_cmd $cwbdata2vrt --cwbdir $cwb_bindir --registry $cwb_regdir $corpus |
     decode_special_chars --xml-entities > $vrt_file
     # Use echo to convert newlines in corpus_list_attrs to spaces
-    initial_input_attrs=$(echo $(corpus_list_attrs $corpus POS))
-    initial_input_attrs=${initial_input_attrs#word }
-    input_attrs=$initial_input_attrs
+    input_attrs=$(echo $(corpus_list_attrs $corpus POS))
+    # Remove "word"
+    input_attrs=${input_attrs#word }
+    # Replace lex with lex/ (lemgram has feature-set values)
+    input_attrs="$input_attrs "
+    input_attrs=${input_attrs/ lex / lex/ }
+    input_attrs=${input_attrs% }
+    initial_input_attrs=$input_attrs
 }
 
 add_lemmas_without_boundaries () {
