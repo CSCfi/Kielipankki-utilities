@@ -778,7 +778,10 @@ extract_info () {
 }
 
 extract_lemgrams () {
-    run_cmd $vrt_extract_lemgrams --corpus-id $corpus < $vrt_file |
+    # +1 because $input_attrs does not contain "word"
+    local lemgram_attrnum=$(($(word_index lex/ $input_attrs) + 1))
+    run_cmd $vrt_extract_lemgrams --corpus-id $corpus --lemgram-field $lemgram_attrnum \
+	$vrt_file |
     gzip > $tsvdir/${corpus}_lemgrams.tsv.gz
 }
 
