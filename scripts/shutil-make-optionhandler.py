@@ -23,6 +23,13 @@
 # - Options without a value in the configuration file. This would be
 #   simple with ConfigParser for Python 2.7 (allow_no_value=True), but
 #   how about with Python 2.6?
+# - A marker in the option specification to allow non-option arguments
+#   interspersed with options. This cannot be a script option, since
+#   interspersed arguments would need to be enabled before parsing
+#   script arguments.
+# - More generally, a method of passing script options via the option
+#   specification input. That would make sense in particular for
+#   specifying the option name for configuration file.
 
 
 """
@@ -281,6 +288,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
 
     def _parse_opts(self):
         optparser = OptionParser(usage='', add_help_option=False)
+        optparser.disable_interspersed_args()
         script_opts = [
             [['config-file'], dict()],
             [['config-file-option-name'], dict()],
@@ -475,7 +483,10 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                              for name in optspec['names'] if len(name) == 2)
             longopts.extend(name.strip('-') + argmarker
                             for name in optspec['names'] if len(name) > 2)
-        return ('shortopts="' + ''.join(shortopts) + '"\n'
+        # Prepending a + to the short option string makes GNU getopt
+        # stop parsing options as soon as it encounters the first
+        # non-option argument.
+        return ('shortopts="+' + ''.join(shortopts) + '"\n'
                 'longopts="' + ','.join(longopts) + '"')
 
     def _make_output_set_defaults(self):
