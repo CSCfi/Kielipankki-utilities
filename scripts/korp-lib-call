@@ -1,0 +1,52 @@
+#! /bin/bash
+# -*- coding: utf-8 -*-
+
+# Call a function in korp-lib.sh with given arguments.
+#
+# For usage, see below or run 'korp-lib-call --help'
+
+# TODO:
+# - An option to read multiple functions and their arguments from
+#   stdin, to be called in sequence.
+
+
+progname=$(basename $0)
+progdir=$(dirname $0)
+
+
+usage_header="Usage: $progname [options] function_name [arguments ...]
+       $progname -l | --list-functions
+
+Call function function_name in the korp-lib.sh library with the given
+arguments.
+
+The exit code is the return value of the function."
+
+optspecs='
+v|verbose
+    Show verbose information: the called function and its return
+    value (unless the function exits with the exit command).
+l|list-functions
+    List the available functions. Please note that some functions are
+    not designed to be run in isolation.'
+
+
+. $progdir/korp-lib.sh
+
+# Process options
+eval "$optinfo_opt_handler"
+
+
+if [ "x$list_functions" != x ]; then
+    grep '^[^ ]* () {' $progdir/korp-lib.sh |
+    sed -e 's/ ().*//' |
+    sort
+    exit
+fi
+
+echo_verb "Calling korp-lib.sh function: $(echo_quoted "$@")"
+echo_verb "Output:"
+"$@"
+return_value=$?
+echo_verb "Return value: $return_value"
+exit $return_value
