@@ -530,10 +530,11 @@ add_prefix () {
     fi
 }
 
-# list_corpora [--registry registry_dir] [--on-error error_cmd] corpus_id ...
+# list_corpora [--registry registry_dir] [--on-error error_cmd] [corpus_id ...]
 #
 # List the corpora in the parameters as found in registry_dir
 # (default: $cwb_regdir), expanding shell wildcards (but not braces).
+# If no corpus_ids are specified, list all corpora found.
 # If some listed corpora are not found, call error_cmd (default:
 # error) with an error message.
 list_corpora () {
@@ -549,15 +550,19 @@ list_corpora () {
 	fi
 	shift 2
     done
+    if [ "$#" = 0 ]; then
+	set -- '*'
+    fi
     ls $(add_prefix $registry/ "$@") \
 	2> $tmp_prefix.corpid_errors |
     sed -e 's,.*/,,' |
     grep '^[a-z_][a-z0-9_-]*$' > $tmp_prefix.corpids
     if [ -s $tmp_prefix.corpid_errors ]; then
-	error_files=$(
+	# Use echo to convert newlines to spaces
+	error_files=$(echo $(
 	    sed -e 's,^.*cannot access .*/\([^:/]*\):.*$,\1,' \
 		< $tmp_prefix.corpid_errors
-	)
+	))
 	$error_func \
 	    "Corpora not found in the CWB corpus registry $registry: $error_files"
     fi
