@@ -8,14 +8,26 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 
-usage_header='$progname [options] [input.vrt ...]'
+usage_header='$progname [options] [input.vrt ...]
+
+Extract lemgram frequency information from VRT input and output the
+data in a TSV format suitable for importing to the lemgram_index
+table of the Korp MySQL database.'
 
 optspecs='
 corpus-id|corpus-name=CORPUS
+    Korp corpus identifier is CORPUS (required).
 lemgram-field=FIELD_NUM "-1" lemgram_fieldnr
+    Extract lemgrams from the positional attribute number FIELD_NUM.
 prefix-field=FIELD_NUM prefix_fieldnr
+    Extract prefixes from the positional attribute number FIELD_NUM.
 suffix-field=FIELD_NUM suffix_fieldnr
+    Extract suffixes from the positional attribute number FIELD_NUM.
 '
+
+usage_footer='If FIELD_NUM is empty or not specified, do not extract the information
+in question. If FIELD_NUM is negative, count from the end (the last
+attribute is -1).'
 
 . $progdir/korp-lib.sh
 
