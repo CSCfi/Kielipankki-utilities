@@ -5,130 +5,29 @@
 export LC_ALL=C
 
 progname=`basename $0`
-
-tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-${TEMP:-/tmp}}}}
-tmp_prefix=$tmpdir/$progname.$$
-
-special_chars=" /<>|"
-encoded_special_char_offset=0x7F
-encoded_special_char_prefix=
-
-corpus_id=
-lemgram_fieldnr=-1
-prefix_fieldnr=
-suffix_fieldnr=
+progdir=`dirname $0`
 
 
-warn () {
-    echo "$progname: Warning: $1" >&2
-}
+usage_header='$progname [options] [input.vrt ...]'
 
-error () {
-    echo "$progname: $1" >&2
-    exit 1
-}
+optspecs='
+corpus-id|corpus-name=CORPUS
+lemgram-field=FIELD_NUM "-1" lemgram_fieldnr
+prefix-field=FIELD_NUM prefix_fieldnr
+suffix-field=FIELD_NUM suffix_fieldnr
+'
 
-usage () {
-    cat <<EOF
-Usage: $progname [options] [file ...]
-EOF
-    exit 0
-}
+. $progdir/korp-lib.sh
 
-cleanup () {
-    if [ "x$tmp_prefix" != "x" ]; then
-	: # rm -f "$tmp_prefix.*"
-    fi
-}
-
-cleanup_abort () {
-    cleanup
-    exit 1
-}
-
-
-trap cleanup 0
-trap cleanup_abort 1 2 13 15
-
-
-# Test if GNU getopt
-getopt -T > /dev/null
-if [ $? -eq 4 ]; then
-    # This requires GNU getopt
-    args=`getopt -o "h" -l "help,corpus-id:,corpus-name:,lemgram-field:,prefix-field:,suffix-field:" -- "$@"`
-    if [ $? -ne 0 ]; then
-	exit 1
-    fi
-    eval set -- "$args"
-fi
-# If not GNU getopt, arguments of long options must be separated from
-# the option string by a space; getopt allows an equals sign.
 
 # Process options
-while [ "x$1" != "x" ] ; do
-    case "$1" in
-	-h | --help )
-	    usage
-	    ;;
-	--corpus-id | --corpus-name)
-	    shift
-	    corpus_id=$1
-	    ;;
-	--lemgram-field )
-	    shift
-	    lemgram_fieldnr=$1
-	    ;;
-	--prefix-field )
-	    shift
-	    prefix_fieldnr=$1
-	    ;;
-	--suffix-field )
-	    shift
-	    suffix_fieldnr=$1
-	    ;;
-	-- )
-	    shift
-	    break
-	    ;;
-	--* )
-	    warn "Unrecognized option: $1"
-	    ;;
-	* )
-	    break
-	    ;;
-    esac
-    shift
-done
+eval "$optinfo_opt_handler"
+
 
 if [ "x$corpus_id" = x ]; then
     error "Please specify a corpus id with --corpus-name"
 fi
 
-decode_special_chars () {
-    # Removed 'use feature "unicode_strings";' from the Perl code
-    # below to be compatible with Perl 5.10 in Taito. Reading the
-    # "Unicode Bug" section in perlunicode man page, that probably
-    # does not affect the result. Is that right?
-    perl -CSD -e '
-	$sp_chars = "'"$special_chars"'";
-	%sp_char_map = map {("'$encoded_special_char_prefix'"
-	                     . chr ('$encoded_special_char_offset' + $_))
-			    => substr ($sp_chars, $_, 1)}
-			   (0 .. length ($sp_chars));
-	while (<>)
-	{
-	    for $c (keys (%sp_char_map))
-	    {
-		s/$c/$sp_char_map{$c}/g;
-	    }
-            s/&quot;/"/g;
-            s/&amp;/&/g;
-            s/&apos;/'"'"'/g;
-            s/&lt;/</g;
-            s/&gt;/>/g;
-	    print;
-	}'
-}
 
 extract_lemgrams () {
     fieldnr=$1
@@ -157,7 +56,7 @@ combine_lemgrams () {
     corpname_u=`echo $corpus_id | sed 's/.*/\U&\E/'`
     sort |
     uniq -c |
-    decode_special_chars |
+    decode_special_chars --xml-entities |
     perl -e '
 	$token = $prev_token = "";
 	@freqs = ("0", "0", "0");
