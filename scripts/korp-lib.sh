@@ -683,7 +683,7 @@ _cwb_registry_find_nonexistent_attrs () {
     shift 2
     _new_attrs=
     for _attrname in $*; do
-	if ! grep -E -q "^$_prefix$_attrname( |\$)" "$_regfile"; then
+	if ! grep -E -q "^$_prefix$_attrname([ $tab]|\$)" "$_regfile"; then
 	    _new_attrs="$_new_attrs $_attrname"
 	fi
     done
@@ -779,10 +779,21 @@ cwb_registry_add_structattr () {
     _regfile="$cwb_regdir/$_corpus"
     if ! grep -q "STRUCTURE $_struct\$" "$_regfile"; then
 	cp -p "$_regfile" "$_regfile.old"
-	awk '/^$/ { empty = empty "\n"; next }
-             /^# Yours sincerely/ { printf "\n# <'$_struct'> ... </'$_struct'>\n# (no recursive embedding allowed)\nSTRUCTURE '$_struct'\n" }
-             /./ { printf empty; print; empty = "" }' \
-		 "$_regfile.old" > "$_regfile"
+	awk '
+            function output () {
+                printf "\n# <'$_struct'> ... </'$_struct'>\n# (no recursive embedding allowed)\nSTRUCTURE '$_struct'\n"
+                printed = 1
+            }
+            /^$/ { empty = empty "\n"; next }
+            /^(# Yours sincerely|ALIGNED)/ {
+                output()
+                if (empty == "") { empty = "\n" }
+            }
+            /./ { printf empty; print; empty = "" }
+            END {
+                if (! printed) { output() }
+            }
+        ' "$_regfile.old" > "$_regfile"
     fi
     _new_attrs=$(
 	_cwb_registry_find_nonexistent_attrs "$_regfile" \
@@ -802,13 +813,22 @@ cwb_registry_add_structattr () {
 	)"
 	cp -p "$_regfile" "$_regfile.old"
 	awk '
-	    /^# <'$_struct'[ >]/ { sub(/>/, "'"$_xml_attrs"'>") }
-	    /^STRUCTURE '$_struct'(_|$)/ { prev_struct = 1 }
-	    /^$/ && prev_struct {
-                printf "'"$_new_attrdecls"'";
-                prev_struct = 0;
+            /^# <'$_struct'[ >]/ { sub(/>/, "'"$_xml_attrs"'>") }
+            /^STRUCTURE '$_struct'(_|$)/ {
+                prev_struct = 1
+                print
+                next
             }
-	    { print }' "$_regfile.old" > "$_regfile"
+            prev_struct {
+                printf "'"$_new_attrdecls"'"
+                printed = 1
+                prev_struct = 0
+            }
+            { print }
+            END {
+                if (! printed) { printf "'"$_new_attrdecls"'" }
+            }
+        ' "$_regfile.old" > "$_regfile"
     fi
     ensure_perms "$_regfile" "$_regfile.old"
 }
