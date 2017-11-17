@@ -71,7 +71,8 @@ class NameAttrConverter(korpimport.util.InputProcessor):
     def _get_ner_tag(self, fields, name_type):
         try:
             nertag = fields[self._opts.nertag_field]
-            if nertag == '' or nertag == '_':
+            # Empty attributes show as __UNDEF__ in cwb-decode output
+            if nertag == '' or nertag == '_' or nertag == '__UNDEF__':
                 return None
             if '&gt;&lt;' in nertag:
                 # Multiple tags
