@@ -268,8 +268,8 @@ filesize () {
 }
 
 adjust_registry () {
-    # FIXME: This probably does not work correctly if datadir is other
-    # than $corpus_root/data/$corpus_id
+    # This assumes that the target datadir is
+    # $corpus_root/data/$corpus_id
     filelistfile=$1
     grep registry/ $filelistfile |
     while read regfile_base; do
@@ -278,7 +278,8 @@ adjust_registry () {
 	datadir=$(echo "$regfile" | sed -e 's,/registry/,/data/,')
 	if ! grep -E -ql $corpus_root $regfile 2> /dev/null; then
 	    mv $regfile $regfile.orig
-	    sed -e "s,^\(HOME\|INFO\) .*/$corpus_id\(/[^/]*\)\?,\1 $datadir\2," \
+	    sed -e "s,^HOME .*,HOME $datadir," \
+                -e "s,^INFO .*/\.info,INFO $datadir/.info," \
 		$regfile.orig > $regfile
 	    touch --reference=$regfile.orig $regfile
 	    ensure_perms $regfile
