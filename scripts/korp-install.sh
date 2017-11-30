@@ -294,7 +294,8 @@ install_news () {
     git_get frontend news/master
     commit_sha1_full_news=$(git rev-parse HEAD)
     mkdir -p $root_frontend/$target/news/json
-    run_rsync ${local_git_prefix}news/json/ $root_frontend/$target/news/json/ \
+    run_rsync ${local_git_prefix}frontend/json/ \
+	$root_frontend/$target/news/json/ \
 	--filter 'protect /*' \
 	--exclude '.git*'
     log INFO "Installed: news to $targetdir/news from frontend:news/master ($commit_sha1_full_news)"
