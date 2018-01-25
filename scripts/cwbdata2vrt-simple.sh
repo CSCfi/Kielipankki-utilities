@@ -160,7 +160,7 @@ extract_vrt () {
 	return
     fi
     echo_verb "Writing VRT output of corpus $corp to file $outfile"
-    if [ "x$overwrite" != x ]; then
+    if [ "x$overwrite" != x ] && [ -e "$outfile" ]; then
 	verbose warn "Overwriting existing file $outfile as requested"
     fi
     $cwb_bindir/cwb-decode -Cx $corp $attr_opts |
