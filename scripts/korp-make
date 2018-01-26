@@ -89,7 +89,11 @@ lbr-id=URN { add_auth_opts lbr_id $optname $1 }
 input-attrs|input-attributes|input-fields=ATTRS \
   "ref lemma pos msd dephead deprel nertag" initial_input_attrs
     specify the names of the positional attributes in the input,
-    excluding the first one ("word" or token), separated by spaces
+    excluding the first one ("word" or token; unless
+    --no-word-attribute is specified), separated by spaces
+no-word-attribute no_word_attr
+    the input does not contain a "word" attribute; useful in
+    particular with --augment-data
 augment-data|augment-existing-data
     augment existing corpus data with the data in the input, for
     example, to add parse annotations to a corpus already encoded; if
@@ -355,6 +359,9 @@ if [ "x$vrt_file" = "x" ]; then
     fi
 fi
 
+if [ "x$no_word_attr" = x ]; then
+    initial_input_attrs="word $initial_input_attrs"
+fi
 input_attrs=$initial_input_attrs
 
 verbose_opt=
@@ -487,8 +494,6 @@ generate_input () {
     decode_special_chars --xml-entities > $vrt_file
     # Use echo to convert newlines in corpus_list_attrs to spaces
     input_attrs=$(echo $(corpus_list_attrs $corpus POS))
-    # Remove "word"
-    input_attrs=${input_attrs#word }
     # Replace lex with lex/ (lemgram has feature-set values)
     input_attrs="$input_attrs "
     input_attrs=${input_attrs/ lex / lex/ }
@@ -497,8 +502,8 @@ generate_input () {
 }
 
 add_lemmas_without_boundaries () {
-    process_vrt $vrt_fix_attrs --input-fields "word $input_attrs" \
-	--output-fields "word ${input_attrs/lemma /lemma:noboundaries lemma }" \
+    process_vrt $vrt_fix_attrs --input-fields "$input_attrs" \
+	--output-fields "${input_attrs/lemma /lemma:noboundaries lemma }" \
 	--compound-boundary-marker='|' --compound-boundary-can-replace-hyphen
     input_attrs=${input_attrs/lemma /lemma lemmacomp }
 }
@@ -518,8 +523,8 @@ test_skip_add_lemmas_without_boundaries () {
 
 add_lemgrams () {
     process_vrt $vrt_add_lemgrams --pos-map-file "$lemgram_posmap" \
-	--lemma-field=$(($(get_attr_num lemma "$input_attrs") + 1)) \
-	--pos-field=$(($(get_attr_num pos "$input_attrs") + 1))
+	--lemma-field=$(get_attr_num lemma "$input_attrs") \
+	--pos-field=$(get_attr_num pos "$input_attrs")
     if [ $? != 0 ]; then
 	exit_on_error false
     fi
@@ -718,7 +723,7 @@ add_attrs_to_registry () {
 cwb_encode () {
     local featset_attrnums convert_chars_opts structnames reg_opt
     featset_attrnums=$(
-	printf "word\n"${input_attrs// /\\n} |
+	printf ${input_attrs// /\\n} |
 	grep -n '/$' |
 	cut -d: -f1 |
 	tr '\n' ',' |
@@ -736,9 +741,12 @@ cwb_encode () {
     if [ "x$augment_data" = x ]; then
 	reg_opt="-R $cwb_regdir/$corpus"
     fi
+    # $input_attrs contains "word" (unless --no-word-attribute), so
+    # use "cwb-encode -p -" to avoid adding "word" twice
     run_cmd $vrt_convert_chars $convert_chars_opts \
 	--feature-set-struct-attributes "$structnames" < $vrt_file |
-    run_cmd $cwb_encode -d $datadir $reg_opt \
+    tee $tmp_prefix.tee |
+    run_cmd $cwb_encode -d $datadir $reg_opt -p - \
 	-xsB -c utf8 $(add_prefix "-P " $input_attrs) \
 	$(add_prefix "-S " $structnames)
     # For existing corpora, add the new new attributes to the registry
@@ -786,8 +794,7 @@ extract_info () {
 }
 
 extract_lemgrams () {
-    # +1 because $input_attrs does not contain "word"
-    local lemgram_attrnum=$(($(word_index lex/ $input_attrs) + 1))
+    local lemgram_attrnum=$(word_index lex/ $input_attrs)
     run_cmd $vrt_extract_lemgrams --corpus-id $corpus --lemgram-field $lemgram_attrnum \
 	$vrt_file |
     gzip > $tsvdir/${corpus}_lemgrams.tsv.gz
@@ -803,7 +810,7 @@ test_skip_extract_lemgrams () {
 
 extract_wordpict_rels () {
     run_cmd $run_extract_rels --corpus-name $corpus \
-	--input-fields "word ${input_attrs%/}" \
+	--input-fields "${input_attrs%/}" \
 	--output-dir "$tsvdir" --relation-map "$wordpict_relmap" \
 	--optimize-memory --no-tar \
 	< $vrt_file
