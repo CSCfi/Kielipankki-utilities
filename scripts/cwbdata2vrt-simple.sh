@@ -31,14 +31,16 @@ include-corpus-element
 omit-attribute-comment
     omit the comment listing the positional attributes shown at the top of
     the output VRT
-vrt-file-name-template=FILE "{corpid}.vrt" outfile_templ
+vrt-file-name-template|output-file=FILE "{corpid}.vrt" outfile_templ
     write the output VRT to file named FILE, where {corpid} is replaced
-    with the corpus id; FILE may contain a directory part as well
+    with the corpus id; FILE may contain a directory part as well; use - to
+    write to standard output
 overwrite|force
     overwrite output VRT file if it already exists; by default, do not
     overwrite
 v|verbose
-    output progress information
+    output progress information to standard output (standard error if the
+    VRT output is written to standard output)
 '
 
 . $progdir/korp-lib.sh
@@ -152,16 +154,22 @@ add_attribute_comment () {
 }
 
 extract_vrt () {
-    local corp
+    local corp verbose_msg outfile
     corp=$1
-    outfile=$(echo "$outfile_templ" | sed -e "s/{corpid}/$corp/g")
-    if [ -e "$outfile" ] && [ "x$overwrite" = x ]; then
-	warn "Skipping corpus $corp: output file $outfile already exists"
-	return
-    fi
-    echo_verb "Writing VRT output of corpus $corp to file $outfile"
-    if [ "x$overwrite" != x ] && [ -e "$outfile" ]; then
-	verbose warn "Overwriting existing file $outfile as requested"
+    verbose_msg="Writing VRT output of corpus $corp to"
+    if [ "x$outfile_templ" != "x-" ]; then
+	outfile=$(echo "$outfile_templ" | sed -e "s/{corpid}/$corp/g")
+	if [ -e "$outfile" ] && [ "x$overwrite" = x ]; then
+	    warn "Skipping corpus $corp: output file $outfile already exists"
+	    return
+	fi
+	echo_verb "$verbose_msg file $outfile"
+	if [ "x$overwrite" != x ] && [ -e "$outfile" ]; then
+	    verbose warn "Overwriting existing file $outfile as requested"
+	fi
+    else
+	outfile=/dev/stdout
+	echo_verb "$verbose_msg standard output" >&2
     fi
     $cwb_bindir/cwb-decode -Cx $corp $attr_opts |
     # This is faster than calling vrt-convert-chars.py --decode
