@@ -344,7 +344,15 @@ datadir=$corpus_root/data/$corpus
 mkdir_perms $vrtdir $tsvdir 2> /dev/null
 
 if [ "x$vrt_file" = "x" ]; then
-    vrt_file=$vrtdir/$corpus.vrt
+    # If augmenting data and not generating input from VRT, do not use
+    # possible existing VRT file. Another option might be to have an
+    # option for ignoring an existing VRT file and to write the
+    # augmented VRT file to $corpus.augm.vrt, for example.
+    if [ "x$augment_data" != x ] && [ "x$generate_input" = x ]; then
+	vrt_file=$tmp_prefix.$corpus.vrt
+    else
+	vrt_file=$vrtdir/$corpus.vrt
+    fi
 fi
 
 input_attrs=$initial_input_attrs
