@@ -209,19 +209,32 @@ verbose () {
     fi
 }
 
-# echo_verb [level] [args ...]
+# echo_verb [--stderr] [level] [args ...]
 #
 # Echo args (using safe_echo) if $verbose is level (0...9) or greater,
-# or if level is not defined, if $verbose is set and non-zero.
+# or if level is not defined, if $verbose is set and non-zero. If
+# --stderr is specified, write to stderr.
 echo_verb () {
+    local stderr _echo_verb_level
+    stderr=
     _echo_verb_level=
+    if [ "x$1" = "x--stderr" ]; then
+	stderr=1
+	shift
+    fi
     case $1 in
 	[0-9] )
 	    _echo_verb_level=$1
 	    shift
 	    ;;
     esac
-    verbose $_echo_verb_level safe_echo "$@"
+    # Could we maybe use exec to duplicate the appropriate output file
+    # descriptor to avoid the if here?
+    if [ "x$stderr" = x ]; then
+	verbose $_echo_verb_level safe_echo "$@"
+    else
+	verbose $_echo_verb_level safe_echo "$@" >&2
+    fi
 }
 
 # cat_verb [level]
