@@ -25,7 +25,7 @@ class CoarserPosGenerator:
     def _read_pos_map_file(self, fname):
 
         def xml_escape(val):
-            return escape(val, {'"': '&quot;'})
+            return escape(val, {'"': '&quot;', '\'': '&apos;'})
 
         pos_map = {}
         with open(fname, 'r', encoding='utf8', errors='replace') as f:
@@ -75,6 +75,8 @@ class CoarserPosGenerator:
                     mapped_poses[('X', '_')] = ''
                 else:
                     mapped_poses[self._pos_map[byu_pos]] = ''
+            if self._opts.output_stripped_pos:
+                sys.stdout.write(make_featset_value(byu_poses) + '\t')
             sys.stdout.write(
                 '\t'.join(make_featset_value(
                     [pos_morph[idx] for pos_morph in mapped_poses.keys()])
@@ -95,6 +97,10 @@ def getargs():
         help=('Input files containing the cleaned-up BYU PoS attribute with'
               ' feature set values, typically extracted from the CWB-data with'
               ' cwb-decode'))
+    argparser.add_argument(
+        '--output-stripped-pos', action='store_true',
+        help=('Output the original PoS attribute with trailing spaces removed'
+              ' as the first column'))
     return argparser.parse_args()
 
 

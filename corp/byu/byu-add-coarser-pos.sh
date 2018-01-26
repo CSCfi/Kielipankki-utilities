@@ -27,8 +27,10 @@ corpora=$(list_corpora "$@")
 add_coarser_pos () {
     local corp
     corp=$1
-    $cwbdata_add_attrs --input-attrs "pos" --new-attrs "pos_major/ msd_ambig" \
-	--generator "$make_coarser_pos $mapping_file" --verbose $corp
+    $cwbdata_add_attrs --input-attrs "pos" \
+	--new-attrs "pos/ pos_major/ msd_ambig" \
+	--generator "$make_coarser_pos --output-stripped-pos $mapping_file" \
+	--verbose $corp
 }
 
 
