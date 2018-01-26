@@ -1,0 +1,176 @@
+BYU PoS	BYU freq	UD2 PoS	UD2 features	CLAWS7 description
+!	1168280	PUNCT	PunctType=Peri	# Not in CLAWS7
+"	10189025	PUNCT	PunctType=Quot	# Not in CLAWS7
+"@	2502365	PUNCT	PunctType=Quot	# Not in CLAWS7
+(	362282	PUNCT	PunctSide=Ini PunctType=Brck	# Not in CLAWS7
+)	408631	PUNCT	PunctSide=Fin PunctType=Brck	# Not in CLAWS7
+,	4243303	PUNCT	PunctType=Comm	# Not in CLAWS7
+-	2868918	PUNCT	PunctType=Dash	# Not in CLAWS7
+.	3742450	PUNCT	PunctType=Peri	# Not in CLAWS7
+...	1621631	PUNCT	_	# Not in CLAWS7
+:	258715	PUNCT	_	# Not in CLAWS7
+;	146782	PUNCT	_	# Not in CLAWS7
+?	293352	PUNCT	PunctType=Peri	# Not in CLAWS7
+GAP	151824124	X	Omitted=Yes	# Not in CLAWS7
+UNKNOWN	1122	X	Unknown=Yes	# Not in CLAWS7
+a	270	DET	PronType=Art	# Not in CLAWS7; always word form "ze"
+appge	44663759	PRON	Poss=Yes PronType=Prs	possessive pronoun, pre-nominal (e.g. my, your, our)
+at	155264056	DET	PronType=Art	article (e.g. the, no)
+at1	68251398	DET	Number=Sing PronType=Art	singular article (e.g. a, an, every)
+bcl	812938	X	_	before-clause marker (e.g. in order (that),in order (to))
+c	104	X	_	# Not in CLAWS7; always word form "cept"
+cc	84468419	CCONJ	_	coordinating conjunction (e.g. and, or)
+ccb	12044071	CCONJ	_	adversative coordinating conjunction ( but)
+cs	35746974	SCONJ	_	subordinating conjunction (e.g. if, because, unless, so, for)
+csa	10954081	SCONJ	_	as (as conjunction)
+csn	3572478	SCONJ	_	than (as conjunction)
+cst	25613600	SCONJ	_	that (as conjunction)
+csw	2539311	SCONJ	_	whether (as conjunction)
+d	28	DET	Number=Sing	# Not in CLAWS7; always word form "an-other" (with a hyphen)
+da	5936357	DET/ADJ	Degree=Pos	after-determiner or post-determiner capable of pronominal function (e.g. such, former, same)
+da1	2602292	DET/ADJ	Degree=Pos	singular after-determiner (e.g. little, much)
+da2	5067579	DET/ADJ	Degree=Pos	plural after-determiner (e.g. few, several, many)
+dar	4846284	DET/ADJ	Degree=Cmp	comparative after-determiner (e.g. more, less, fewer)
+dat	1557113	DET/ADJ	Degree=Sup	superlative after-determiner (e.g. most, least, fewest)
+db	8199685	DET	AdjType=Pdt	before determiner or pre-determiner capable of pronominal function (all, half)
+db2	1140119	DET	AdjType=Pdt	plural before-determiner ( both)
+dd	8697409	DET	_	determiner (capable of pronominal function) (e.g any, some)
+dd1	33578445	DET	Number=Sing PronType=Dem2	singular determiner (e.g. this, that, another)
+dd2	6067726	DET	Number=Plur PronType=Dem2	plural determiner ( these,those)
+ddq	13651935	DET/PRON	PronType=Int	wh-determiner (which, what)
+ddqge	439415	DET/PRON	PronType=Int	wh-determiner, genitive (whose)
+ddqv	575882	DET/PRON	PronType=Int	wh-ever determiner, (whichever, whatever)
+ex	5889457	PRON	AdvType=Ex	existential there
+f	42208	X	Foreign=Yes	# Not in CLAWS7; word forms "de", "las" or "dos"
+fo	5466835	X	_	formula
+fu	1512347	X	_	unclassified word
+fw	983017	X	Foreign=Yes	foreign word
+ge	18660799	PART	Poss=Yes	germanic genitive marker - (' or's)
+i	4947	ADP	_	# Not in CLAWS7; word form "uv"
+if	23532963	ADP	_	for (as preposition)
+ii	191881901	ADP	_	general preposition
+io	69313212	ADP	_	of (as preposition)
+iw	19302976	ADP	_	with, without (as prepositions)
+j	68725	ADJ	_	# Not in CLAWS7; various word forms
+jj	212215921	ADJ	Degree=Pos	general adjective
+jjr	6104098	ADJ	Degree=Cmp	general comparative adjective (e.g. older, better, stronger)
+jjt	3525006	ADJ	Degree=Sup	general superlative adjective (e.g. oldest, best, strongest)
+jk	1039610	ADJ	Degree=Pos	catenative adjective (able in be able to, willing in be willing to)
+m	711736	NUM	NumType=Card	# Not in CLAWS7; various numeral words
+m#	37807	NUM	_	# Not in CLAWS7; e.g. "5%", "9mm", "8-ounce", "1960s.", "20-"
+m$	56988	NUM	_	# Not in CLAWS7; currency expressions beginning with a "$"
+m1	63588	NUM	NumType=Card	# Not in CLAWS7; e.g. "million", "billion", "hundred", "thousand"
+mc	34085958	NUM	NumType=Card	cardinal number,neutral for number (two, three..)
+mc1	8130168	NUM	NumType=Card	singular cardinal number (one)
+mc2	707311	NUM	NumType=Card	plural cardinal number (e.g. sixes, sevens)
+mcge	0	NUM	NumType=Card	genitive cardinal number, neutral for number (two's, 100's)
+mcmc	1249337	NUM	NumType=Card	hyphenated number (40-50, 1770-1827)
+md	8831775	NUM	NumType=Ord	ordinal number (e.g. first, second, next, last)
+mf	552140	NUM	NumType=Card	fraction,neutral for number (e.g. quarters, two-thirds)
+n	1588	NOUN	_	# Not in CLAWS7; word forms "ars", "know-it-all", "post-it", "tell-all", "vistas"
+nd1	1610080	NOUN	Number=Sing	singular noun of direction (e.g. north, southeast)
+nn	9963144	NOUN	Number=Unsp	common noun, neutral for number (e.g. sheep, cod, headquarters)
+nn1	452650267	NOUN	Number=Sing	singular common noun (e.g. book, girl)
+nn2	140577090	NOUN	Number=Plur	plural common noun (e.g. books, girls)
+nna	176476	NOUN/PROPN	Number=Sing	following noun of title (e.g. M.A.)
+nnb	4041308	NOUN/PROPN	Number=Sing	preceding noun of title (e.g. Mr., Prof.)
+nnl1	857694	NOUN/PROPN	Number=Sing	singular locative noun (e.g. Island, Street)
+nnl2	65130	NOUN/PROPN	Number=Plur	plural locative noun (e.g. Islands, Streets)
+nno	974599	NOUN/NUM	NumType=Card	numeral noun, neutral for number (e.g. dozen, hundred)
+nno2	454875	NOUN	Number=Plur	numeral noun, plural (e.g. hundreds, thousands)
+nnt1	16089594	NOUN	Number=Sing	temporal noun, singular (e.g. day, week, year)
+nnt2	7624770	NOUN	Number=Plur	temporal noun, plural (e.g. days, weeks, years)
+nnu	7113805	NOUN	Number=Unsp	unit of measurement, neutral for number (e.g. in, cc)
+nnu1	527211	NOUN	Number=Sing	singular unit of measurement (e.g. inch, centimetre)
+nnu2	1101915	NOUN	Number=Plur	plural unit of measurement (e.g. ins., feet)
+np	241829	PROPN	Number=Unsp	proper noun, neutral for number (e.g. IBM, Andes)
+np1	115791802	PROPN	Number=Sing	singular proper noun (e.g. London, Jane, Frederick)
+np2	1695750	PROPN	Number=Plur	plural proper noun (e.g. Browns, Reagans, Koreas)
+npd1	1310151	PROPN	Number=Sing	singular weekday noun (e.g. Sunday)
+npd2	52771	PROPN	Number=Plur	plural weekday noun (e.g. Sundays)
+npm1	3412061	PROPN	Number=Sing	singular month noun (e.g. October)
+npm2	1185	PROPN	Number=Plur	plural month noun (e.g. Octobers)
+npx	65782	PROPN	_	# Not in CLAWS7; various word forms
+null	1391323	SYM	_	# Not in CLAWS7; word forms typically beginning with & or *, and some other symbols
+p	1388	PRON	_	# Not in CLAWS7; word forms "them.", "thems", "y'all", "what-all"
+pn	618597	PRON	_	indefinite pronoun, neutral for number (none)
+pn1	9761584	PRON	Number=Sing	indefinite pronoun, singular (e.g. anyone, everything, nobody, one)
+pnqo	319464	PRON	PronType=Int	objective wh-pronoun (whom)
+pnqs	6682232	PRON	PronType=Int	subjective wh-pronoun (who)
+pnqv	63034	PRON	_	wh-ever pronoun (whoever)
+pnx1	21959	PRON	Reflex=Yes	reflexive indefinite pronoun (oneself)
+ppge	529589	PRON	Poss=Yes PronType=Prs	nominal possessive personal pronoun (e.g. mine, yours)
+pph1	27358656	PRON	Gender=Neut Number=Sing Person=3 PronType=Prs	3rd person sing. neuter personal pronoun (it)
+ppho1	6472780	PRON	Case=Acc Number=Sing Person=3 PronType=Prs	3rd person sing. objective personal pronoun (him, her)
+ppho2	4851313	PRON	Case=Acc Number=Plur Person=3 PronType=Prs	3rd person plural objective personal pronoun (them)
+pphs1	21697264	PRON	Case=Nom Number=Sing Person=3 PronType=Prs	3rd person sing. subjective personal pronoun (he, she)
+pphs2	11535762	PRON	Case=Nom Number=Plur Person=3 PronType=Prs	3rd person plural subjective personal pronoun (they)
+ppio1	4847724	PRON	Case=Acc Number=Sing Person=1 PronType=Prs	1st person sing. objective personal pronoun (me)
+ppio2	2560117	PRON	Case=Acc Number=Plur Person=1 PronType=Prs	1st person plural objective personal pronoun (us)
+ppis1	27816166	PRON	Case=Nom Number=Sing Person=1 PronType=Prs	1st person sing. subjective personal pronoun (I)
+ppis2	11714474	PRON	Case=Nom Number=Plur Person=1 PronType=Prs	1st person plural subjective personal pronoun (we)
+ppx1	2588498	PRON	Number=Sing PronType=Prs Reflex=Yes	singular reflexive personal pronoun (e.g. yourself, itself)
+ppx2	1477863	PRON	Number=Plur PronType=Prs Reflex=Yes	plural reflexive personal pronoun (e.g. yourselves, themselves)
+ppy	22083017	PRON	Person=2 PronType=Prs	2nd person personal pronoun (you)
+ra	2438615	ADV	_	adverb, after nominal head (e.g. else, galore)
+rex	1765811	ADV	_	adverb introducing appositional constructions (namely, e.g.)
+rg	14074526	ADV	_	degree adverb (very, so, too)
+rgq	1194264	ADV	PronType=Int	wh- degree adverb (how)
+rgqv	216816	ADV	AdvType=Deg	wh-ever degree adverb (however)
+rgr	3048992	ADV	AdvType=Deg	comparative degree adverb (more, less)
+rgt	1820157	ADV	AdvType=Deg	superlative degree adverb (most, least)
+rl	11413730	ADV	_	locative adverb (e.g. alongside, forward)
+rp	27001083	ADV	_	prep. adverb, particle (e.g about, in)
+rpk	125140	ADV	_	prep. adv., catenative (about in be about to)
+rr	98744513	ADV	_	general adverb
+rrq	12884015	ADV	_	wh- general adverb (where, when, why, how)
+rrqv	410574	ADV	_	wh-ever general adverb (wherever, whenever)
+rrr	5606439	ADV	_	comparative general adverb (e.g. better, longer)
+rrt	930805	ADV	_	superlative general adverb (e.g. best, longest)
+rt	11661872	ADV	_	quasi-nominal adverb of time (e.g. now, tomorrow)
+to	47283023	PART	PartType=Inf	infinitive marker (to)
+uh	3958313	INTJ	_	interjection (e.g. oh, yes, um)
+v	937	VERB	_	# Not in CLAWS7; word form "shortz"
+vb0	133486	VERB/AUX	VerbForm=Fin	be, base form (finite i.e. imperative, subjunctive)
+vbdr	6238793	VERB/AUX	Mood=Ind Tense=Past VerbForm=Fin	were
+vbdz	18321706	VERB/AUX	Mood=Ind Number=Sing Person=3 Tense=Past VerbForm=Fin	was
+vbg	2359492	VERB/AUX	Tense=Pres VerbForm=Part	being
+vbi	15941773	VERB/AUX	VerbForm=Inf	be, infinitive (To be or not... It will be ..)
+vbm	3508118	VERB/AUX	Mood=Ind Number=Sing Person=1 Tense=Pres VerbForm=Fin	am
+vbn	5500619	VERB/AUX	Tense=Past VerbForm=Part	been
+vbr	17062797	VERB/AUX	Mood=Ind Tense=Pres VerbForm=Fin	are
+vbz	39917962	VERB/AUX	Mood=Ind Number=Sing Person=3 Tense=Pres VerbForm=Fin	is
+vd	1763	VERB	_	# Not in CLAWS7; word forms "don", "dons"
+vd0	6293518	VERB	VerbForm=Fin 	do, base form (finite)
+vdd	3528111	VERB	Mood=Ind Tense=Past VerbForm=Fin	did
+vdg	932982	VERB	Tense=Pres VerbForm=Part	doing
+vdi	2542350	VERB	VerbForm=Inf	do, infinitive (I may do... To do...)
+vdn	983709	VERB	Tense=Past VerbForm=Part	done
+vdz	2344616	VERB	Mood=Ind Number=Sing Person=3 Tense=Pres VerbForm=Fin	does
+vh0	10690135	VERB	Mood=Ind Tense=Pres VerbForm=Fin	have, base form (finite)
+vhd	7585135	VERB	Mood=Ind Tense=Past VerbForm=Fin	had (past tense)
+vhg	1049387	VERB	Tense=Pres VerbForm=Part	having
+vhi	5164861	VERB	VerbForm=Inf	have, infinitive
+vhn	864128	VERB	Tense=Past VerbForm=Part	had (past participle)
+vhz	8507586	VERB	Mood=Ind Number=Sing Person=3 Tense=Pres VerbForm=Fin	has
+vm	39074000	VERB/AUX	VerbForm=Fin VerbType=Mod	modal auxiliary (can, will, would, etc.)
+vmk	409367	VERB/AUX	VerbForm=Fin VerbType=Mod	modal catenative (ought, used)
+vv0	68557792	VERB	Mood=Ind Tense=Pres VerbForm=Fin	base form of lexical verb (e.g. give, work)
+vvd	61226375	VERB	Mood=Ind Tense=Past VerbForm=Fin	past tense of lexical verb (e.g. gave, worked)
+vvg	48681559	VERB	Tense=Pres VerbForm=Part	-ing participle of lexical verb (e.g. giving, working)
+vvgk	1296275	VERB	Tense=Pres VerbForm=Part	-ing participle catenative (going in be going to)
+vvi	74312852	VERB	VerbForm=Inf	infinitive (e.g. to give... It will work...)
+vvn	69095038	VERB	Tense=Past VerbForm=Part	past participle of lexical verb (e.g. given, worked)
+vvnk	30004	VERB/ADJ	Tense=Past VerbForm=Part	past participle catenative (e.g. bound in be bound to)
+vvz	30976862	VERB	Mood=Ind Number=Sing Person=3 Tense=Pres VerbForm=Fin	-s form of lexical verb (e.g. gives, works)
+x	918116	X/SYM	_	# Not in CLAWS7; "--", various word forms often beginning with & or #, or ending in a full stop, but also "como", "no-do"
+xx	23232657	PART	PartType=Neg	not, n't
+xxy	186	PART	PartType=Neg	# Not in CLAWS7; word forms containing "no" or "not" and a hyphen; e.g. "no-", "no-can"
+y	332242740	PUNCT	_	# Not in CLAWS7; most punctuation has PoS "y", but some have the punctuation mark
+z	1295930	X	_	# Not in CLAWS7; "--" and multi-token units containing "--" or "- -", but also pronouns, determiners, prepositions
+z'	774150	X	_	# Not in CLAWS7; word forms like "its", "ones", "shell", "shed", which might be interpreted as missing an apostrophe
+zz	4458111	X	_	# Not in CLAWS7; "--", "nt", "nae", "something-not"; tokens containing full stops
+zz1	6536837	X/NOUN	Number=Sing	singular letter of the alphabet (e.g. A,b)
+zz2	60288	X/NOUN	Number=Plur	plural letter of the alphabet (e.g. A's, b's)
+zzc	506821	X	_	# Not in CLAWS7; tokens of the form "@(...)", probably meta-information in TV transcripts
+zzq	1736733	X	_	# Not in CLAWS7; tokens of the form "@!...", probably meta-information in TV transcripts
