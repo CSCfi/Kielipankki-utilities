@@ -29,21 +29,21 @@ attrs=
 
 find_prog_cwb () {
     if ! find_prog cwb-$1 $CWB_BINDIR $default_cwb_bindirs; then
-	error "Program cwb-$1 not found on PATH or in directories $(echo $CWB_BINDIR $default_cwb_bindirs | sed -e 's/ \+/, /g')"
+	$2 "Program cwb-$1 not found on PATH or in directories $(echo $CWB_BINDIR $default_cwb_bindirs | sed -e 's/ \+/, /g')"
     fi
 }
 
 # Use set -e to propagate the possible error exit from $(find_prog_cwb ...)
 set -e
-cwb_make=$(find_prog_cwb make)
-cwb_describe_corpus=$(find_prog_cwb describe-corpus)
-cwb_makeall=$(find_prog_cwb makeall)
+cwb_describe_corpus=$(find_prog_cwb describe-corpus error)
+cwb_makeall=$(find_prog_cwb makeall error)
 set +e
+cwb_make=$(find_prog_cwb make warn)
 
 
 usage () {
     cat <<EOF
-Usage: $progname [options] CORPUS [attributes]
+Usage: $progname [options] corpus [attributes]
 
 Index and compress the attributes of an encoded CWB corpus.
 
@@ -53,8 +53,12 @@ positional attribute has only a single value in the corpus.
 
 The options are the same as for cwb-make:
 EOF
-    $cwb_make -h 2&>1 |
-    awk '/^Options:/ {p = 1; next} p {print}'
+    if [ "x$cwb_make" = x ]; then
+	echo "cwb-make not found; cannot list options"
+    else
+	$cwb_make -h 2>&1 |
+	awk '/^Options:/ {p = 1; next} p && /./ {print}'
+    fi
 cat <<EOF
 
 However, please note that the registry directory name may not contain
@@ -111,7 +115,7 @@ done
 if [ "x$1" = x ]; then
     error "No corpus specified"
 fi
-corpus=$(toupper $1)
+corpus=$1
 shift
 attrs=$@
 
@@ -143,7 +147,7 @@ get_corpus_data_dir () {
     sed -e 's/home directory: *//'
 }
 
-cwb_make_single_valued_attrs () {
+cwb_make_manual () {
     datadir=$(get_corpus_data_dir $corpus)
     datafiles_patt=
     make_attrs=
@@ -174,12 +178,20 @@ cwb_make_single_valued_attrs () {
     fi
 }
 
-single_valued_attrs=$(get_single_valued_pos_attrs $attrs)
 
-if [ "x$single_valued_attrs" = x ]; then
-    $cwb_make $cwb_make_opts $corpus $attrs
+if [ "x$cwb_make" != x ]; then
+    single_valued_attrs=$(get_single_valued_pos_attrs $attrs)
+    if [ "x$single_valued_attrs" = x ]; then
+	$cwb_make $cwb_make_opts $corpus $attrs
+    else
+	non_single_valued_attrs=$(get_single_valued_pos_attrs -v $attrs)
+	$cwb_make $cwb_make_opts $corpus $non_single_valued_attrs
+	cwb_make_manual $single_valued_attrs
+    fi
 else
-    non_single_valued_attrs=$(get_single_valued_pos_attrs -v $attrs)
-    $cwb_make $cwb_make_opts $corpus $non_single_valued_attrs
-    cwb_make_single_valued_attrs $single_valued_attrs
+    warn "cwb-make not found: using cwb-makeall for all attributes"
+    if [ "x$attrs" = x ]; then
+	attrs=$(corpus_list_attrs $corpus pos)
+    fi
+    cwb_make_manual $attrs
 fi
