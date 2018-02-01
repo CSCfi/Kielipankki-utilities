@@ -37,6 +37,8 @@ find_prog_cwb () {
 set -e
 cwb_describe_corpus=$(find_prog_cwb describe-corpus error)
 cwb_makeall=$(find_prog_cwb makeall error)
+cwb_huffcode=$(find_prog_cwb huffcode error)
+cwb_compress_rdx=$(find_prog_cwb compress-rdx error)
 set +e
 cwb_make=$(find_prog_cwb make warn)
 
@@ -154,20 +156,40 @@ cwb_make_manual () {
     for attr in "$@"; do
 	if [ ! -e $datadir/$attr.corpus.cnt ] ||
 	    [ ! -e $datadir/$attr.lexicon.srt ] ||
+	    [ ! -e $datadir/$attr.huf ] ||
+	    [ ! -e $datadir/$attr.crx ] ||
 	    [ $datadir/$attr.corpus -nt $datadir/$attr.corpus.cnt ] ||
-	    [ $datadir/$attr.lexicon -nt $datadir/$attr.lexicon.srt ];
+	    [ $datadir/$attr.lexicon -nt $datadir/$attr.lexicon.srt ] ||
+	    [ $datadir/$attr.corpus -nt $datadir/$attr.huf ] ||
+	    [ $datadir/$attr.corpus.rev -nt $datadir/$attr.crx ];
 	then
 	    make_attrs="$make_attrs $attr"
 	    rm_files=
-	    for suf in corpus.cnt corpus.rdx corpus.rev lexicon.srt; do
+	    for suf in corpus.cnt corpus.rdx corpus.rev lexicon.srt \
+		hcd huf syn crc crx;
+	    do
 		rm_files="$rm_files $datadir/$attr.$suf"
 	    done
-	    rm $rm_files
+	    rm -f $rm_files
 	    datafiles_patt="$datafiles $datadir/$attr.*"
 	fi
     done
     if [ "x$make_attrs" != x ]; then
 	$cwb_makeall $cwb_makeall_opts $corpus $make_attrs
+	# echo to convert newlines to spaces
+	single_valued=$(echo $single_valued_attrs)
+	for attr in $make_attrs; do
+	    if ! word_in $attr $single_valued_attrs; then
+		$cwb_huffcode -P $attr $corpus
+		if [ $? = 0 ]; then
+		    rm $datadir/$attr.corpus
+		fi
+		$cwb_compress_rdx -P $attr $corpus
+		if [ $? = 0 ]; then
+		    rm $datadir/$attr.corpus.rev $datadir/$attr.corpus.rdx
+		fi
+	    fi
+	done
 	datafiles=$(ls $datafiles_patt)
 	if [ "x$perms" != x ]; then
 	    chmod $perms $datafiles
@@ -179,13 +201,16 @@ cwb_make_manual () {
 }
 
 
+single_valued_attrs=$(get_single_valued_pos_attrs $attrs)
+
 if [ "x$cwb_make" != x ]; then
-    single_valued_attrs=$(get_single_valued_pos_attrs $attrs)
     if [ "x$single_valued_attrs" = x ]; then
 	$cwb_make $cwb_make_opts $corpus $attrs
     else
 	non_single_valued_attrs=$(get_single_valued_pos_attrs -v $attrs)
-	$cwb_make $cwb_make_opts $corpus $non_single_valued_attrs
+	if [ "x$non_single_valued_attrs" != x ]; then
+	    $cwb_make $cwb_make_opts $corpus $non_single_valued_attrs
+	fi
 	cwb_make_manual $single_valued_attrs
     fi
 else
