@@ -738,7 +738,7 @@ for corpus_id in $corpus_ids; do
     $cwbdata_extract_info --update --registry "$regdir" \
 	--data-root-dir "$datadir" \
 	--tsv-dir $(fill_dirtempl "$tsvdir" $corpus_id) \
-	--info-from-file "$extra_info_file" $corpus_ids
+	--info-from-file "$extra_info_file" $corpus_id
 done
 
 corpus_date=`get_corpus_date $corpus_ids`
