@@ -1,0 +1,58 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+# This script inserts paragraph tags into plaintext within VRT markup
+# using lines of all whitespace as boundary indicators within blocks
+# of plaintext. The input plaintext itself is not yet in the VRT form,
+# only the markup is assumed to be. An important structural assumption
+# is that tag lines start with < and other lines do not start with <.
+# The intended mechanism to achieve that is to have < as &lt; in
+# content lines.
+
+# Original markup of a particular corpus might support smarter
+# detection of paragraph boundaries.
+
+import argparse, os, sys
+from itertools import chain, groupby
+
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+def paragraize(source, target):
+    for ismeta, part in groupby(source, lambda line:
+                                line.startswith('<')):
+        if ismeta:
+            print(*part, sep = '', end = '', file = target)
+        else:
+            for isspace, para in groupby(part, str.isspace):
+                if isspace: continue
+                print(*chain(['<paragraph>\n'], para, ['</paragraph>\n']),
+                      sep = '', end = '', file = target)
+
+def main():
+   parser = argparse.ArgumentParser(description = '''
+   Segments plaintext within VRT markup into paragraph
+   elements, using runs of all-whitespace lines as the
+   indication of an intended boundary.''')
+   parser.add_argument('arg', metavar = 'FILE', nargs = '?',
+                       type = argparse.FileType('r', encoding = 'UTF-8'),
+                       default = sys.stdin,
+                       help = 'input file (default stdin)')
+   parser.add_argument('--out', '-o', metavar = 'outfile',
+                       type = argparse.FileType('w', encoding = 'UTF-8'),
+                       default = sys.stdout,
+                       help = 'output file (default stdout)')
+   parser.add_argument('--version', action = 'store_true',
+                       help = 'print a  version indicator and exit')
+   args = parser.parse_args()
+
+   if args.version:
+       print('vrt-paragraize 0.1a (FIN-CLARIN 2018)')
+       exit(0)
+
+   with args.arg as source, args.out as target:
+       paragraize(source, target)
+
+if __name__ == '__main__':
+    main()

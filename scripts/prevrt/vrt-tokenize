@@ -1,0 +1,121 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+# This script tokenizes plaintext within VRT markup. The input
+# plaintext itself is not yet in the VRT form, only the markup is
+# assumed to be. An important structural assumption is that tag
+# lines start with < and other lines do not start with <. The
+# intended mechanism to achieve that is to have < as &lt; in
+# content lines.
+
+# Todo: accommodate hfst-tokenize in this same script.
+
+import argparse, os, random, sys
+from html import escape, unescape
+from io import TextIOWrapper
+from itertools import chain, groupby
+from string import ascii_letters as letters
+from subprocess import Popen, PIPE
+from tempfile import mkstemp
+
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+# external UDPipe program pathname
+UDPIPE = '/proj/kieli/udpipe/bin/udpipe'
+
+# UDPipe model pathname format pattern
+MODEL = ('/proj/kieli/udpipe/share/{}-2.0-170801.udpipe')
+
+def tokenize(processor, source, target):
+    mark = ''.join(chain((random.choice(letters) for k in range(16)), '\n'))
+    _, temp1 = mkstemp(prefix = 'tok', suffix = 'meta')
+    _, temp2 = mkstemp(prefix = 'tok', suffix = 'data')
+
+    with open(temp1, 'w', encoding = 'UTF-8') as meta, \
+         open(temp2, 'w', encoding = 'UTF-8') as data:
+        for ismeta, part in groupby(source, lambda line:
+                                    line.startswith('<')):
+            if ismeta:
+                print(*part, sep = '', end = '', file = meta)
+            else:
+                print(*map(unescape, part), sep = '', file = data)
+                print(mark, file = data)
+                print(mark, end = '', file = meta)
+
+    with open(temp1, 'r', encoding = 'UTF-8') as meta, \
+         Popen(processor,
+               stdin = open(temp2, 'br'),
+               stdout = PIPE) as proc:
+        data = groupby(TextIOWrapper(proc.stdout, encoding = 'UTF-8'),
+                       lambda line: line == mark)
+        
+        dataismark = True # watch out for empty content blocks
+        for ismeta, part in groupby(meta, lambda line:
+                                    line.startswith('<')):
+            if ismeta:
+                print(*part, sep = '', end = '', file = target)
+                continue
+            
+            if dataismark:
+                dataismark, tokens = next(data)
+
+            if not dataismark:
+                print(*wrap(tokens), sep = '', end = '', file = target)
+                dataismark, tokens = next(data) # necessarily mark
+
+    os.remove(temp1)
+    os.remove(temp2)
+
+def wrap(tokens):
+    for isspace, lines in groupby(tokens, str.isspace):
+        if isspace:
+            pass # consume group
+        else:
+            yield '<sentence>\n'
+            for line in lines:
+                yield escape(line, quote = False)
+            yield '</sentence>\n'
+
+def main():
+   parser = argparse.ArgumentParser(description = '''
+   Segments plaintext within VRT markup into tokenized sentence
+   elements, using external UDPipe as the actual tokenizer.
+   Unescapes character entities and re-escapes <, &, and >.''',
+                                    epilog = '''
+   This version of the script separates meta and data into two
+   temporary files before running the external program.''')
+   parser.add_argument('arg', metavar = 'FILE', nargs = '?',
+                       type = argparse.FileType('r', encoding = 'UTF-8'),
+                       default = sys.stdin,
+                       help = 'input file (default stdin)')
+   parser.add_argument('--out', '-o', metavar = 'outfile',
+                       type = argparse.FileType('w', encoding = 'UTF-8'),
+                       default = sys.stdout,
+                       help = 'output file (default stdout)')
+   parser.add_argument('--model',
+                       choices = [
+                           'finnish-ud',
+                           'finnish-ftb-ud',
+                           'swedish-ud',
+                           'english-ud'
+                       ],
+                       default = 'finnish-ud',
+                       help = 'UDPipe language model')
+   parser.add_argument('--version', action = 'store_true',
+                       help = 'print a  version indicator and exit')
+   args = parser.parse_args()
+
+   if args.version:
+       print('vrt-tokenize 0.1a (FIN-CLARIN 2018)')
+       exit(0)
+
+   processor = [ UDPIPE, '--immediate', '--tokenize', '--output=vertical',
+                 MODEL.format(args.model) ]
+   # processor = [ 'tr', ' ', '\n' ]
+   with args.arg as source, args.out as target:
+       tokenize(processor, source, target)
+
+if __name__ == '__main__':
+    main()
