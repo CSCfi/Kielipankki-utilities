@@ -1,0 +1,310 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+# This script checks a surprisingly many number of things in a
+# purported VRT file and reports on issues.
+
+import argparse, os, re, sys
+from collections import Counter
+from html import unescape, escape
+from operator import itemgetter
+from unicodedata import category
+
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+class GiveUp(Exception):
+    pass
+
+class State():
+    issues = Counter() # (kind, level, issue) -> how many
+    firsts = dict() # (kind, level, issue) -> first line
+    number = 0 # total number of issues for optional stopping
+    
+    # element name -> attribute names
+    # list seen on the first occurrence of the element
+    attributes = dict()
+
+    current = dict() # element name -> whether open or not
+
+# this makes "if __name__ == '__main__'" silly
+STATE = State()
+
+def responder(args):
+    def respond(k, kind, level, legend):
+        '''Called for each issue; k is the 1-based line number.'''
+        this = (kind, level, legend)
+        STATE.number += 1
+        STATE.issues[this] += 1
+        if STATE.issues[this] == 1: STATE.firsts[this] = k
+        if ((args.verbose or STATE.issues[this] == 1)
+            and not args.summary):
+            print(k, *this, sep = '\t', file = args.out)
+    return respond
+
+def validate(k, byteline, respond):
+    try:
+        line = byteline.decode('UTF-8')
+    except UnicodeDecodeError:
+        respond(k, 'encoding', 'error', 'not UTF-8')
+        return
+
+    (( validatespace if line.isspace()
+       else validatecomment if line.startswith('<!')
+       else validatemeta if line.startswith('<')
+       else validatedata )
+     (k, line, respond))
+
+def validatespace(k, line, respond):
+    # TODO
+    pass
+
+def validatecomment(k, line, respond):
+    # TODO
+    pass
+
+# match spurious whitespace in and after tags
+# but not between < or </ and element name;
+# allow _ - . in element and attribute names;
+# require doublequoted attribute values
+
+opening = re.compile(R'''
+    < ([a-z_\-.]+) # element name as .group(1)
+    (?: \s+ [a-z_\-.]+ \s* = \s* "[^"]*" )*
+    \s* > \s*
+''', re.IGNORECASE | re.VERBOSE)
+
+openingspace = re.compile(R'<\S+(?: \S+="[^"]*")*>\n?')
+
+closing = re.compile(R'''
+    </ ([a-z_\-.]+) # element name as .group(1)
+    \s* > \s*
+''', re.IGNORECASE | re.VERBOSE)
+
+closingspace = re.compile(R'</\S+>\n?')
+
+attribute = re.compile(R'''
+    ([a-z_\-.]+) # attribute name as .group(1)
+    \s* = \s*
+    " (.*?) " # attribute value as .group(2)
+''', re.IGNORECASE | re.VERBOSE)
+
+def validatemeta(k, line, respond):
+    m = opening.fullmatch(line)
+    if m:
+        element = m.group(1)
+        ( openingspace.fullmatch(line) or
+          respond(k, 'syntax', 'warning',
+                  'spurious spacing in opening: {}'
+                  .format(element))
+        )
+        if STATE.current.get(element, False):
+            respond(k, 'nest', 'error',
+                    'already in element: {}'
+                    .format(element))
+        else:
+            STATE.current[element] = True
+            
+        attributes = attribute.findall(line)
+        validateattributes(k, element, attributes, respond)
+        return
+
+    m = closing.fullmatch(line)
+    if m:
+        element = m.group(1)
+        ( closingspace.fullmatch(line) or
+          respond(k, 'syntax', 'warning',
+                  'spurious spacing in closing: {}'
+                  .format(element))
+        )
+        if STATE.current.get(element, False):
+            STATE.current[element] = False
+        else:
+            respond(k, 'nest', 'error',
+                    'not in element: {}'
+                    .format(element))
+
+        return
+
+    respond(k, 'syntax', 'error', 'malformed tag')
+
+def validateattributes(k, element, attributes, respond):
+
+    names = list(map(itemgetter(0), attributes))
+    values = list(map(itemgetter(1), attributes))
+
+    if element not in STATE.attributes:
+        STATE.attributes[element] = names
+
+    if names != sorted(names):
+        respond(k, 'names', 'info',
+                'attribute names out of order in element: {}'
+                .format(element))
+
+    if len(names) != len(set(names)):
+        respond(k, 'names', 'error',
+                'duplicate attribute names in element: {}'
+                .format(element))
+
+    if names != STATE.attributes[element]:
+        if set(names) != set(STATE.attributes[element]):
+            respond(k, 'names', 'warning',
+                    'different attribute names in element: {}'
+                    .format(element))
+        else:
+            respond(k, 'names', 'warning',
+                    'attribute names in different order in element: {}'
+                    .format(element))
+
+    for name in names:
+        validateattribute(k, element, name, respond)
+    
+    pass
+
+def validateattribute(k, element, name, respond):
+    ( name.isidentifier() or
+      respond(k, 'names', 'warning',
+              'attribute name not an identifier: {} of {}'
+              .format(name, element)) )
+                 
+# html.unescape does funny things (makes references like &#26; vanish,
+# ignores missing semicolons, interprets prefixes like "&ampersand;"
+# is taken to "&ersand;")- one could live with unrecognized references
+# left intact but not with all of this - check every valid-looking
+# reference that also has the semicolon and complain of others and of
+# those that fail with html.unescape
+
+reference = re.compile(R'''
+    & [a-z]+ ; |
+    & \# [0-9]+ ; |
+    & \# x [0-9a-f] + ; ''',
+                       re.VERBOSE |
+                       re.IGNORECASE)
+
+def validatedata(k, line, respond):
+
+    if not any(STATE.current[element] for element in STATE.current):
+        respond(k, 'data', 'error', 'content outside any element')
+    elif not STATE.current.get('sentence', False):
+        respond(k, 'data', 'warning',
+                'content outside sentence')
+
+    if any(ch in line for ch in '<>'):
+        respond(k, 'data', 'error',
+                'bare angle bracket in content')
+
+    if '&' in line:
+        refs = reference.findall(line)
+        if line.count('&') > len(refs):
+            respond(k, 'data', 'error',
+                    'bare ampersand in content')
+
+        for ref in refs:
+            validatereference(k, ref, respond)
+
+def validatereference(k, ref, respond):
+    bare = unescape(ref)
+    if not bare:
+        # html.unescape produced nothing
+        respond(k, 'data', 'error', 'vanishing reference')
+    elif bare.endswith(';'):
+        # html.unescape has interpreted a proper prefix
+        respond(k, 'data', 'error', 'unknown reference')
+    elif bare == '\N{character tabulation}':
+
+        # not allowing insertion of spurious field terminators even in
+        # attribute values - the cost is potentially high whereas any
+        # gain would be pretty close to nothing whatsoever
+
+        respond(k, 'data', 'error', 'field separator reference')
+    elif bare in ( '\N{line feed}'
+                   '\N{line tabulation}'
+                   '\N{form feed}'
+                   '\N{carriage return}'
+                   '\N{next line}'
+                   '\N{line separator}'
+                   '\N{paragraph separator}' ):
+
+        # not allowing any potential line terminator in any field or
+        # in any attribute - these are likely to be left unescaped
+        # even in further forms of the VRT, or the unescaped form of
+        # the data may be passed to external tools that may actually
+        # interpret the rarer line terminators as such
+
+        # not sure whether html.unescape can produce all of these
+
+        respond(k, 'data', 'error', 'line terminator reference')
+    elif category(bare) == 'Cc':
+        # at least &#x90; produces one of these; many Unicode control
+        # codes produce something else!
+        respond(k, 'data', 'warning', 'control character reference')
+    elif category(bare) == 'Cn':
+        # not known if any reference produces any Cn
+        respond(k, 'data', 'warning', 'unassigned character reference')
+    elif category(bare) == 'Co':
+        # &#xe000; and others do produce these
+        respond(k, 'data', 'warning', 'private character references')
+    elif category(bare) == 'Cs':
+        # but &xdb800; and others seem to produce U+fffd replacement
+        # character in So; not known if any reference produces any Cs
+        respond(k, 'data', 'warning', 'surrogate character reference')
+    else:
+        # TODO bidi references, ...
+        pass
+    
+    pass
+
+def main():
+    parser = argparse.ArgumentParser(description = '''
+    Reports on issues in an intended VRT file.''')
+    parser.add_argument('arg', metavar = 'FILE', nargs = '?',
+                        type = argparse.FileType('br'),
+                        default = sys.stdin.buffer,
+                        help = 'input (stdin)')
+    parser.add_argument('--out', '-o', metavar = 'outfile',
+                        type = argparse.FileType('w', encoding = 'UTF-8'),
+                        default = sys.stdout,
+                        help = 'report (stdout)')
+    parser.add_argument('--verbose', action = 'store_true',
+                        help = 'report each issue'
+                        ' (first occurrences)')
+    parser.add_argument('--summary', action = 'store_true',
+                        help = 'report at end (with counts)')
+    parser.add_argument('--version', action = 'store_true',
+                        help = 'print a  version indicator and exit')
+    args = parser.parse_args()
+    
+    if args.version:
+        print('vrt-validate 0.1a (FIN-CLARIN 2018)')
+        exit(0)
+    
+    respond = responder(args)
+    
+    with args.arg as source, args.out as target:
+        if not args.summary:
+            print('line', 'kind', 'level', 'issue',
+                  sep = '\t', file = target)
+        
+        try:
+            for k, line in enumerate(source, start = 1):
+                validate(k, line, respond)
+                
+            for element, state in STATE.current.items():
+                if state:
+                    respond(k + 1, 'nest', 'error',
+                            'element not closed: {}'
+                            .format(element))
+        except GiveUp:
+            pass
+
+        if args.summary:
+            print('count', 'line', 'kind', 'level', 'issue',
+                  sep = '\t', file = target)
+            for issue, line in sorted(STATE.firsts.items(),
+                                      key = itemgetter(1)):
+                print(STATE.issues[issue], line, *issue,
+                      sep = '\t', file = target)
+
+if __name__ == '__main__':
+    main()
