@@ -38,7 +38,11 @@ def responder(args):
         STATE.number += 1
         STATE.issues[this] += 1
         if STATE.issues[this] == 1: STATE.firsts[this] = k
-        if ((args.verbose or STATE.issues[this] == 1)
+        if ((level == 'error'
+             or args.info
+             or (level == 'warning'
+                 and not args.error))
+            and (args.verbose or STATE.issues[this] == 1)
             and not args.summary):
             print(k, *this, sep = '\t', file = args.out)
     return respond
@@ -47,14 +51,54 @@ def validate(k, byteline, respond):
     try:
         line = byteline.decode('UTF-8')
     except UnicodeDecodeError:
-        respond(k, 'encoding', 'error', 'not UTF-8')
+        respond(k, 'code', 'error', 'not even UTF-8')
         return
+
+    if line.endswith('\r\n'):
+        respond(k, 'code', 'info', 'CR LF line terminator')
+        line = line[:-2]
+    elif line.endswith('\r'):
+        respond(k, 'code', 'info', 'CR line terminator')
+        line = line[:-1]
+    elif line.endswith('\n'):
+        line = line[:-1]
+    else:
+        respond(k, 'code', 'info', 'no line terminator')
+
+    validateline(k, line, respond)
 
     (( validatespace if line.isspace()
        else validatecomment if line.startswith('<!')
        else validatemeta if line.startswith('<')
        else validatedata )
      (k, line, respond))
+
+def validateline(k, line, respond):
+    '''Characters that are problematic anywhere, regardless'''
+
+    if any(ch in line
+           for ch in ('\N{line feed}' # cannot happen
+                      '\N{line tabulation}'
+                      '\N{form feed}'
+                      '\N{carriage return}'
+                      '\N{next line}'
+                      '\N{line separator}'
+                      '\N{paragraph separator}')):
+        respond(k, 'code', 'error', 'line terminator in line')
+
+    for cat in set(map(category, line.replace('\t', ' '))):
+        if cat == 'Cc':
+            # \t is Cc but fine in data - to check separately in meta
+            respond(k, 'code', 'warning', 'control character in line')
+        elif cat == 'Cn':
+            respond(k, 'code', 'warning', 'unassigned character in line')
+        elif cat == 'Co':
+            respond(k, 'code', 'warning', 'private character in line')
+        elif cat == 'Cs':
+            respond(k, 'code', 'warning', 'surrogate character in line')
+        else:
+            # TODO bidi, ...
+            pass
 
 def validatespace(k, line, respond):
     # TODO
@@ -75,14 +119,14 @@ opening = re.compile(R'''
     \s* > \s*
 ''', re.IGNORECASE | re.VERBOSE)
 
-openingspace = re.compile(R'<\S+(?: \S+="[^"]*")*>\n?')
+openingspace = re.compile(R'<\S+(?: \S+="[^"]*")*>')
 
 closing = re.compile(R'''
     </ ([a-z_\-.]+) # element name as .group(1)
     \s* > \s*
 ''', re.IGNORECASE | re.VERBOSE)
 
-closingspace = re.compile(R'</\S+>\n?')
+closingspace = re.compile(R'</\S+>')
 
 attribute = re.compile(R'''
     ([a-z_\-.]+) # attribute name as .group(1)
@@ -213,7 +257,7 @@ def validatedata(k, line, respond):
 
     validatereferences(k, line, 'data', respond)
 
-    record = unescape(line).rstrip('\n').split('\t')
+    record = unescape(line).split('\t')
 
     # TODO: track number of fields
     # TODO: track field names
@@ -294,7 +338,7 @@ def validatereference(k, ref, kind, respond):
         respond(k, kind, 'warning', 'unassigned character reference')
     elif category(bare) == 'Co':
         # &#xe000; and others do produce these
-        respond(k, kind, 'warning', 'private character references')
+        respond(k, kind, 'warning', 'private character reference')
     elif category(bare) == 'Cs':
         # but &xdb800; and others seem to produce U+fffd replacement
         # character in So; not known if any reference produces any Cs
@@ -318,15 +362,26 @@ def main():
                         help = 'report (stdout)')
     parser.add_argument('--verbose', action = 'store_true',
                         help = 'report each issue'
-                        ' (first occurrences)')
+                        ' (default first occurrences)')
     parser.add_argument('--summary', action = 'store_true',
-                        help = 'report at end (with counts)')
+                        help = 'only report at end'
+                        ' (with count and first occurrence)')
+    parser.add_argument('--info', action = 'store_true',
+                        help = 'also report information'
+                        ' (default warnings and errors)')
+    parser.add_argument('--error', action = 'store_true',
+                        help = 'only report errors'
+                        ' (default also warnings)')
     parser.add_argument('--version', action = 'store_true',
                         help = 'print a  version indicator and exit')
+
+    # TODO also allow to limit number of observations (probably
+    # subject to --info and --error)
+
     args = parser.parse_args()
     
     if args.version:
-        print('vrt-validate 0.2a (FIN-CLARIN 2018)')
+        print('vrt-validate 0.3a (FIN-CLARIN 2018)')
         exit(0)
     
     respond = responder(args)
@@ -353,8 +408,12 @@ def main():
                   sep = '\t', file = target)
             for issue, line in sorted(STATE.firsts.items(),
                                       key = itemgetter(1)):
-                print(STATE.issues[issue], line, *issue,
-                      sep = '\t', file = target)
+                kind, level, _ = issue
+                if (level == 'error'
+                    or args.info
+                    or (level == 'warning' and not args.error)):
+                    print(STATE.issues[issue], line, *issue,
+                          sep = '\t', file = target)
 
 if __name__ == '__main__':
     main()
