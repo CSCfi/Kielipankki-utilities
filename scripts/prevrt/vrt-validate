@@ -67,7 +67,8 @@ def validate(k, byteline, respond):
 
     validateline(k, line, respond)
 
-    (( validatespace if line.isspace()
+    (( validateemptyline if not line
+       else validatespaceline if line.isspace()
        else validatecomment if line.startswith('<!')
        else validatemeta if line.startswith('<')
        else validatedata )
@@ -86,6 +87,8 @@ def validateline(k, line, respond):
                       '\N{paragraph separator}')):
         respond(k, 'code', 'error', 'line terminator in line')
 
+    # yes line terminators may be reported again in the following
+
     for cat in set(map(category, line.replace('\t', ' '))):
         if cat == 'Cc':
             # \t is Cc but fine in data - to check separately in meta
@@ -100,7 +103,11 @@ def validateline(k, line, respond):
             # TODO bidi, ...
             pass
 
-def validatespace(k, line, respond):
+def validateemptyline(k, line, respond):
+    # TODO
+    pass
+
+def validatespaceline(k, line, respond):
     # TODO
     pass
 
@@ -278,7 +285,7 @@ def validatevalue(k, label, value, respond):
 
     if value.isspace():
         respond(k, 'data', 'warning',
-                'all-whitespace value: {}'.format(label))
+                'value is all space: {}'.format(label))
     elif value.startswith(' ') or value.startswith(' '):
         respond(k, 'data', 'warning',
                 'value starts or ends in space: {}'
@@ -286,6 +293,11 @@ def validatevalue(k, label, value, respond):
     elif '  ' in value:
         respond(k, 'data', 'warning',
                 'double space in value: {}'
+                .format(label))
+
+    if '\t' in value:
+        respond(k, 'data', 'error',
+                'tab in value: {}'
                 .format(label))
 
 def validatereferences(k, line, kind, respond):
@@ -303,7 +315,8 @@ def validatereference(k, ref, kind, respond):
         # html.unescape produced nothing
         respond(k, kind, 'error', 'vanishing reference')
     elif bare.endswith(';'):
-        # html.unescape has interpreted a proper prefix
+        # html.unescape has interpreted at most a proper prefix
+        # - this case covers both &ampersand; and &nerror;
         respond(k, kind, 'error', 'unknown reference')
     elif bare == '\N{character tabulation}':
 
@@ -381,7 +394,7 @@ def main():
     args = parser.parse_args()
     
     if args.version:
-        print('vrt-validate 0.3a (FIN-CLARIN 2018)')
+        print('vrt-validate 0.31a (FIN-CLARIN 2018)')
         exit(0)
     
     respond = responder(args)

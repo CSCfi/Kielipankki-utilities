@@ -1,0 +1,239 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+# Validates the validator (when run in the same directory)
+
+import argparse, os, re, sys
+from itertools import chain
+from subprocess import Popen, PIPE
+
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+passed = 0
+failed = 0
+def test(*, document, expected, command = ['./vrt-validate']):
+    global passed, failed
+    with Popen(command,
+               stdin = PIPE,
+               stdout = PIPE,
+               stderr = PIPE) as proc:
+        observed, error = proc.communicate(document)
+        if observed == expected:
+            passed += 1
+        else:
+            failed += 1
+            print('! expected:\n', expected.decode('UTF-8'),
+                  '! observed:\n', observed.decode('UTF-8'),
+                  sep = '', end = '\n')
+
+VERBOSE_HEAD = '\t'.join(('line', 'kind', 'level', 'issue'))
+SUMMARY_HEAD = '\t'.join(('count', 'line', 'kind', 'level', 'issue'))
+
+INFO_COMMAND = ['./vrt-validate', '--info']
+ERROR_COMMAND = ['./vrt-validate', '--error']
+VERBOSE_COMMAND = ['./vrt-validate', '--verbose']
+
+def report(*lines, head = VERBOSE_HEAD):
+    return ( ''.join(line + '\n'
+                     for line
+                     in chain([head], map('\t'.join, lines)))
+    ).encode('UTF-8')
+
+# The order of the messages that concern each particular input line is
+# a somewhat arbitrary characteristic of ./vrt-validate (except in
+# --summary). Edit the *expected order* to match the observed order
+# when ./vrt-validate changes.
+
+test(document =
+     b'<foo>',
+
+     expected =
+     report(('2', 'nest', 'error', 'element not closed: foo')))
+
+test(document =
+     ( b'<foo>\r\n'
+       b'</foo>' ),
+
+     expected =
+     report())
+
+test(document =
+     ( b'<foo>\r\n'
+       b'</foo>' ),
+
+     expected =
+     report(('1', 'code', 'info', 'CR LF line terminator'),
+            ('1', 'name', 'info', 'opened element: foo'),
+            ('2', 'code', 'info', 'no line terminator')),
+     command = INFO_COMMAND)
+
+test(document =
+     b'foo\r\n',
+
+     expected =
+     report(('1', 'data', 'error', 'data outside any element')))
+
+test(document =
+     b'foo\r\n',
+
+     expected =
+     report(('1', 'code', 'info', 'CR LF line terminator'),
+            ('1', 'data', 'error', 'data outside any element')),
+     command = INFO_COMMAND)
+
+test(document =
+     b'foo\rbar\n',
+
+     expected =
+     report(('1', 'code', 'error', 'line terminator in line'),
+            ('1', 'data', 'error', 'data outside any element')),
+     command = ERROR_COMMAND)
+
+test(document =
+     ( b'<foo bar="<o>">\n'
+       b'</foo>' ),
+
+     # would be nice to have also the name: bar of foo
+     expected =
+     report(('1', 'meta', 'error', 'bare angle bracket')))
+
+test(document =
+     ( b'<foo bar=" " baz=" x">\n'
+       b'</foo>' ),
+
+     expected =
+     report(('1', 'data', 'warning', 'value is all space: bar of foo'),
+            ('1', 'data', 'warning', 'value starts or ends in space: baz of foo')))
+
+test(document =
+     ( b'<foo bar="n\t">\n'
+       b'</foo>' ),
+
+     expected =
+     report(('1', 'data', 'error', 'tab in value: bar of foo')))
+
+test(document =
+     ( b'<foo bar="n\'">\n'
+       b'</foo>' ),
+
+     expected =
+     report(('1', 'meta', 'error', 'bare apostrophe in value: bar of foo')))
+
+test(document =
+     ( b'<foo baz="" bar="">\n'
+       b'</foo>\n' ),
+
+     expected =
+     report(('1', 'name', 'info', 'opened element: foo'),
+            ('1', 'names', 'info', 'attribute names out of order in element: foo')),
+     command = INFO_COMMAND)
+
+test(document =
+     ( b'<text with="some&#xa;thing">\n'
+
+       # incidentally, html.unescape does *not* interpret &#x85; as
+       # U+0085 (NEXT LINE); it does interpret &#x2028; as U+2028
+       # (LINE SEPARATOR)
+
+       b'<sentence with="more&#x2028;of &#xa;it">\n'
+
+       b'and &#x2028; more,\tand&#xa; more\n'
+
+       b'</sentence>\n'
+       b'</text>\n'),
+
+     expected =
+     report(('1', 'meta', 'error', 'line terminator reference'),
+            ('2', 'meta', 'error', 'line terminator reference'),
+            ('2', 'meta', 'error', 'line terminator reference'),
+            ('3', 'data', 'error', 'line terminator reference'),
+            ('3', 'data', 'error', 'line terminator reference')),
+     command = VERBOSE_COMMAND)
+
+test(document =
+     ( b'<text>\n'
+
+       # U+e000 is a "private use character"
+       b'<sentence with="&#xe000;">\n'
+
+       # html.unescape does consider &x90; a control character, unlike
+       # many other codes in the Latin-1 control block
+       b'&#x90;\n'
+
+       b'&#xe000;\n'
+
+       b'</sentence>\n'
+       b'</text>\n'),
+
+     expected =
+     report(('2', 'meta', 'warning', 'private character reference'),
+            ('3', 'data', 'warning', 'control character reference'),
+            ('4', 'data', 'warning', 'private character reference')),
+     command = VERBOSE_COMMAND)
+
+test(document =
+     ( b'<text with="&#x09;">\n'
+       b'<sentence>\n'
+       b'something&#9;something\n'
+       b'</sentence>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('1', 'meta', 'error', 'field separator reference'),
+            ('3', 'data', 'error', 'field separator reference')))
+
+test(document =
+
+     # html.unescape produces nothing for &#xb;
+     # (and leaves &nerror; as &nerror;)
+
+     ( b'<text with="&nerror; &#xb;">\n'
+       b'<sentence>\n'
+       b'&nerror;\n'
+       b'(&#xb;)\n'
+       b'</sentence>\n'
+       b'</text>\n'),
+
+     expected =
+     report(('1', 'meta', 'error', 'unknown reference'),
+            ('1', 'meta', 'error', 'vanishing reference'),
+            ('3', 'data', 'error', 'unknown reference'),
+            ('4', 'data', 'error', 'vanishing reference')),
+     command = VERBOSE_COMMAND)
+
+test(document =
+     ( b'<text with="\x07">\n'
+       b'<sentence with="\xee\x80\x80">\n' # U+e000 in UTF-8
+       b'\x07\n'
+       b'\xee\x80\x80\n'
+       b'</sentence>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('1', 'code', 'warning', 'control character in line'),
+            ('2', 'code', 'warning', 'private character in line'),
+            ('3', 'code', 'warning', 'control character in line'),
+            ('4', 'code', 'warning', 'private character in line')),
+     command = VERBOSE_COMMAND)
+
+test(document =
+     ( b'<text>\n'
+       b'<sentence with="(\xc2\x85)">\n' # U+0085 NEXT LINE in UTF-8
+       b'(\xc2\x85)\n'
+       b'</sentence>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('2', 'code', 'error', 'line terminator in line'),
+            ('2', 'code', 'warning', 'control character in line'),
+            ('3', 'code', 'error', 'line terminator in line'),
+            ('3', 'code', 'warning', 'control character in line')),
+     command = VERBOSE_COMMAND)
+
+print('passed: {}'.format(passed),
+      'failed: {}'.format(failed),
+      sep = '\n')
+
+failed or print('', 'all tests pass', sep = '\n')
