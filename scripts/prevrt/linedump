@@ -1,0 +1,138 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+# Tool to dump a line, given a line number, when there is reason to
+# think that something might be "off" on that line (presumably because
+# the line was flagged by vrt-validate - the mechanism of counting
+# "lines" is the same, so the numbers should match).
+
+import argparse, sys, unicodedata
+
+def dump(byteline, *, form = 'repr', prefix = None):
+    if form == 'byte':
+        ship(prefix, byteline)
+        return
+
+    try:
+        line = byteline.decode('UTF-8')
+    except UnicodeDecodeError:
+        ship(prefix, byteline)
+        return
+
+    if form == 'repr':
+        ship(prefix, repr(line))
+        return
+
+    if form == 'name':
+        for ch in line:
+            ship(prefix, description(ch))
+
+        return
+
+    raise Exception()
+
+def ship(prefix, whatever):
+    if prefix is None:
+        print(whatever)
+    else:
+        print(prefix, whatever, sep = '\t')
+
+def description(ch):
+    try:
+        name = unicodedata.name(ch)
+    except ValueError:
+        # https://bugs.python.org/issue27496
+        name = fall.get(ch, '(name not found)')
+
+    code = ord(ch)
+    category = unicodedata.category(ch)
+
+    return 'U+{:04x}\t{}\t{}'.format(code, category, name)
+
+fall = { '\x0a' : 'Line Feed (LF)',
+         '\x0b' : 'Line Tabulation (VT Vertical Tab)',
+         '\x0c' : 'Form Feed (FF)',
+         '\x0d' : 'Carriage Return (CR)',
+         '\x85' : 'Next Line (NEL)',
+         # '\u2028' : 'Line Separator (LS)',
+         # '\u2029' : 'Paragraph Separator (PS)',
+}
+
+def main():
+    parser = argparse.ArgumentParser(description = '''
+
+    Dumps to standard output the contents of a specific line,
+    identified by 1-based line number, in a safe and informative
+    format. This tool is a companion to vrt-validate, which provides
+    the line numbers that may be of interest but does not provide the
+    actual contents.
+
+    The default is to dump context lines as Python "repr" strings and
+    to name each Unicode code point on the target line, falling back
+    to "bytes" objects whenever a line cannot be decoded as UTF-8.''')
+    
+    parser.add_argument('arg', metavar = 'FILE', nargs = '?',
+                        type = argparse.FileType('br'),
+                        default = sys.stdin.buffer,
+                        help = 'input (stdin)')
+    # is there a type that is required to be a positive integer?
+    parser.add_argument('--line', '-k', metavar = 'K', type = int,
+                        required = True,
+                        help = 'dump line K (1-based)')
+    parser.add_argument('--bytes', dest = 'byte',
+                        action = 'store_const', const = 'byte',
+                        help = 'dump line and context as "bytes"')
+    parser.add_argument('--repr',
+                        action = 'store_const', const = 'repr',
+                        help = 'dump line and context as "repr"')
+    parser.add_argument('--names', dest = 'name',
+                        action = 'store_const', const = 'name',
+                        help = 'name line and context code points')
+    parser.add_argument('--before', '-B', metavar = 'N', type = int,
+                        default = 0,
+                        help = 'dump N lines of leading context')
+    parser.add_argument('--after', '-A', metavar = 'N', type = int,
+                        default = 0,
+                        help = 'dump N lines of trailing context')
+    parser.add_argument('--context', '-C', metavar = 'N', type = int,
+                        default = 0,
+                        help = 'dump N lines of context before and after')
+    parser.add_argument('--version', action = 'store_true',
+                        help = 'print a  version indicator and exit')
+
+    args = parser.parse_args()
+    
+    if args.version:
+        print('linedump 0.1a (FIN-CLARIN 2018)')
+        exit(0)
+
+    K = args.line
+    B = args.before or args.context
+    A = args.after or args.context
+
+    outer = args.name or args.byte or 'repr'
+    inner = args.byte or args.repr or 'name'
+
+    with args.arg as source:
+        try:
+            for _ in range(K - 1 - B):
+                next(source)
+            
+            for k in range(min(K - 1, B), 0, -1):
+                dump(next(source),
+                     form = outer,
+                     prefix = '-{}'.format(k))
+            
+            dump(next(source),
+                 form = inner,
+                 prefix = '=0' if B or A else None)
+
+            for k in range(1, A + 1):
+                dump(next(source),
+                     form = outer,
+                     prefix = '+{}'.format(k))
+        except StopIteration:
+            pass
+
+if __name__ == '__main__':
+    main()
