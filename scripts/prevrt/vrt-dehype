@@ -7,7 +7,9 @@
 
 # An important structural assumption is that tag lines start with < and
 # other lines do not start with <. The intended mechanism to achieve that
-# is to have < as &lt; in # content lines.
+# is to have < as &lt; in content lines.
+
+# Do not use re.IGNORECASE while we have Python 3 at 3.4 in Taito.
 
 import argparse, os, re, sys
 from html import unescape, escape
@@ -21,10 +23,9 @@ signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 # the hyphen-newline combination was between them;
 # it is then passed to hyper or debug_hyper
 hyphen = re.compile(R'''
-    ([a-zäö]{2})  -\n
-    ([a-zäö]{2})  ''',
-                    re.VERBOSE |
-                    re.IGNORECASE)
+    ([a-zäöA-ZÄÖ]{2})  -\n
+    ([a-zäöA-ZÄÖ]{2})
+''', re.VERBOSE)
 
 # match object has three groups: two letters
 # and an optional sentence-internal punctuation
@@ -32,12 +33,10 @@ hyphen = re.compile(R'''
 # on its own line, and another two letters;
 # it is then passed to number or debug_number
 page = re.compile(R'''
-    ([a-zäö]{2} [,\-]?)  \n+
+    ([a-zäöA-ZÄÖ]{2} [,\-]?)  \n+
     (\d+)  \n+
-    ([a-zäö]{2})
-''',
-                  re.VERBOSE |
-                  re.IGNORECASE)
+    ([a-zäöA-ZÄÖ]{2})
+''', re.VERBOSE)
 
 vowels = 'aeiouyäöAEIOUYÄÖ'
 
