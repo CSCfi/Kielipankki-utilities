@@ -4,6 +4,13 @@
 # This script checks a surprisingly many number of things in a
 # purported VRT file and reports on issues.
 
+# Warning re re: IGNORECASE used to be broken with fullmatch or
+# more generally before Python 3.5 or so; Taito/kieli is at 3.4.
+# Do *not* use re.IGNORECASE in this script!
+# https://bugs.python.org/issue20998 (IGNORECASE, fullmatch)
+# https://bugs.python.org/issue17381 (IGNORECASE, Unicode)
+# https://bugs.python.org/issue12728 (IGNORECASE, Unicode)
+
 import argparse, os, re, sys
 from collections import Counter
 from html import unescape, escape
@@ -121,25 +128,25 @@ def validatecomment(k, line, respond):
 # require doublequoted attribute values
 
 opening = re.compile(R'''
-    < ([a-z_\-.]+) # element name as .group(1)
-    (?: \s+ [a-z_\-.]+ \s* = \s* "[^"]*" )*
+    < ([a-zA-Z_\-.]+) # element name as .group(1)
+    (?: \s+ [a-zA-Z_\-.]+ \s* = \s* "[^"]*" )*
     \s* > \s*
-''', re.IGNORECASE | re.VERBOSE)
+''', re.VERBOSE)
 
 openingspace = re.compile(R'<\S+(?: \S+="[^"]*")*>')
 
 closing = re.compile(R'''
-    </ ([a-z_\-.]+) # element name as .group(1)
+    </ ([a-zA-Z_\-.]+) # element name as .group(1)
     \s* > \s*
-''', re.IGNORECASE | re.VERBOSE)
+''', re.VERBOSE)
 
 closingspace = re.compile(R'</\S+>')
 
 attribute = re.compile(R'''
-    ([a-z_\-.]+) # attribute name as .group(1)
+    ([a-zA-Z_\-.]+) # attribute name as .group(1)
     \s* = \s*
     " (.*?) " # attribute value as .group(2)
-''', re.IGNORECASE | re.VERBOSE)
+''', re.VERBOSE)
 
 def validatemeta(k, line, respond):
     m = opening.fullmatch(line)
@@ -245,10 +252,10 @@ def validateattribute(k, element, name, respond):
 # those that fail with html.unescape
 
 reference = re.compile(R'''
-    & [a-z]+ ; |
+    & [a-zA-Z]+ ; |
     & \# [0-9]+ ; |
-    & \# x [0-9a-f] + ;
-''', re.IGNORECASE | re.VERBOSE)
+    & \# x [0-9a-fA-F] + ;
+''', re.VERBOSE)
 
 def validatedata(k, line, respond):
 
