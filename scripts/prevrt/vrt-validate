@@ -281,11 +281,16 @@ def validatedata(k, line, respond):
         validatefield(k, label, value, respond)
 
 def validatefield(k, label, value, respond):
-    '''Bare value'''
-    if not value:
+    '''Bare value (with unescaped references) in a position in a field,
+    where empty values are discouraged (unlike in attributes).
+
+    '''
+
+    if value:
+        validatevalue(k, label, value, respond)
+    else:
         respond(k, 'data', 'warning',
                 'empty value: {}'.format(label))
-    validatevalue(k, label, value, respond)
 
 def validatevalue(k, label, value, respond):
     '''Bare value, common validator for attributes and fields'''
@@ -293,9 +298,9 @@ def validatevalue(k, label, value, respond):
     if value.isspace():
         respond(k, 'data', 'warning',
                 'value is all space: {}'.format(label))
-    elif value.startswith(' ') or value.startswith(' '):
+    elif value.startswith(' ') or value.endswith(' '):
         respond(k, 'data', 'warning',
-                'value starts or ends in space: {}'
+                'outer space in value: {}'
                 .format(label))
     elif '  ' in value:
         respond(k, 'data', 'warning',

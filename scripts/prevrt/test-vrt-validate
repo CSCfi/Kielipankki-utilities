@@ -105,7 +105,7 @@ test(document =
 
      expected =
      report(('1', 'data', 'warning', 'value is all space: bar of foo'),
-            ('1', 'data', 'warning', 'value starts or ends in space: baz of foo')))
+            ('1', 'data', 'warning', 'outer space in value: baz of foo')))
 
 test(document =
      ( b'<foo bar="n\t">\n'
@@ -231,6 +231,45 @@ test(document =
             ('3', 'code', 'error', 'line terminator in line'),
             ('3', 'code', 'warning', 'control character in line')),
      command = VERBOSE_COMMAND)
+
+test(document =
+     ( b'<text>\n'
+       b'<sentence>\n'
+       b'i\t\n'
+       b'\ti\n'
+       b'</sentence>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('3', 'data', 'warning', 'empty value: field 2'),
+            ('4', 'data', 'warning', 'empty value: field 1')),
+     command = VERBOSE_COMMAND)
+
+test(document =
+     ( b'<text one=" what" two="what ">\n'
+       b'<sentence one="say  what">\n'
+       b'x\n'
+       b'</sentence>\n'
+       b'</text>\n' ),
+
+     expected =
+     # surely these should be meta, not data
+     report(('1', 'data', 'warning', 'outer space in value: one of text'),
+            ('1', 'data', 'warning', 'outer space in value: two of text'),
+            ('2', 'data', 'warning', 'double space in value: one of sentence')))
+
+test(document =
+     ( b'<text>\n'
+       b'<sentence>\n'
+       b' x\tx  x\tx \t \n'
+       b'</sentence>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('3', 'data', 'warning', 'outer space in value: field 1'),
+            ('3', 'data', 'warning', 'double space in value: field 2'),
+            ('3', 'data', 'warning', 'outer space in value: field 3'),
+            ('3', 'data', 'warning', 'value is all space: field 4')))
 
 print('passed: {}'.format(passed),
       'failed: {}'.format(failed),
