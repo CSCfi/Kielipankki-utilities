@@ -169,7 +169,7 @@ def validatemeta(k, line, respond):
         )
         if STATE.current.get(element, False):
             respond(k, 'nest', 'error',
-                    'already in element: {}'
+                    'element already open: {}'
                     .format(element))
         else:
             STATE.current[element] = True
@@ -190,7 +190,7 @@ def validatemeta(k, line, respond):
             STATE.current[element] = False
         else:
             respond(k, 'nest', 'error',
-                    'not in element: {}'
+                    'element not open: {}'
                     .format(element))
 
         return

@@ -271,6 +271,29 @@ test(document =
             ('3', 'data', 'warning', 'outer space in value: field 3'),
             ('3', 'data', 'warning', 'value is all space: field 4')))
 
+test(document =
+     b'<text>\n',
+
+     expected =
+     report(('2', 'nest', 'error', 'element not closed: text')))
+
+test(document =
+     ( b'</text>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('1', 'nest', 'error', 'element not open: text'),
+            ('2', 'nest', 'error', 'element not open: text')),
+     command = VERBOSE_COMMAND)
+
+test(document =
+     ( b'<text>\n'
+       b'<text>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('2', 'nest', 'error', 'element already open: text')))
+
 print('passed: {}'.format(passed),
       'failed: {}'.format(failed),
       sep = '\n')
