@@ -11,7 +11,7 @@
 # https://bugs.python.org/issue17381 (IGNORECASE, Unicode)
 # https://bugs.python.org/issue12728 (IGNORECASE, Unicode)
 
-import argparse, os, re, sys
+import argparse, os, re, string, sys
 from collections import Counter
 from html import unescape, escape
 from operator import itemgetter
@@ -131,9 +131,57 @@ def validatespaceline(k, line, respond):
 
     respond(k, 'form', 'error', 'non-empty space line')
 
+comment = re.compile(R'''
+    # ignore XML prohibition of --
+    < ! -- (.*) -- > (\s*)
+''', re.VERBOSE)
+
+# matched against the contens of a comment;
+# names validated separately after matching
+fieldnamespec = re.compile(R'''
+    \s* Positional \s+ attributes \s* :
+    (.*)
+''', re.VERBOSE)
+
 def validatecomment(k, line, respond):
-    # TODO
-    pass
+    m = comment.fullmatch(line)
+    if not m:
+        respond(k, 'form', 'error', 'malformed comment')
+        return
+
+    if STATE.current.get('sentence', False):
+        respond(k, 'form', 'warning', 'comment in sentence')
+    else:
+        respond(k, 'form', 'info', 'comment')
+
+    if m.group(2):
+        respond(k, 'form', 'warning', 'comment has trailing space')
+
+    m = fieldnamespec.fullmatch(m.group(1))
+    if not m: return
+
+    names = m.group(1).strip().split()
+
+    if not names:
+        respond(k, 'form', 'error', 'empty field name comment')
+        return
+
+    if any(not (name.isidentifier() and
+                all(ch in string.ascii_letters for ch in name
+                    if ch.isalpha()))
+            for name in names):
+        respond(k, 'form', 'error', 'bad field name')
+        return
+
+    if not len(set(names)) == len(names):
+        respond(k, 'form', 'error', 'duplicate field name: {}'
+                .format(' '.join(sorted(name for name in set(names)
+                                        if names.count(name) > 1))))
+        return
+
+    respond(k, 'name', 'info', 'field names: {}'.format(' '.join(names)))
+
+    # TODO: track field names
 
 # match spurious whitespace in and after tags
 # but not between < or </ and element name;

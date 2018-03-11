@@ -28,6 +28,16 @@ def test(*, document, expected, command = ['./vrt-validate']):
                   '! observed:\n', observed.decode('UTF-8'),
                   sep = '', end = '\n')
 
+        if proc.returncode is None:
+            print('error: validator did not terminate',
+                  file = sys.stderr)
+            exit(2)
+
+        if proc.returncode:
+            print('error: validator terminated with non-zero status',
+                  file = sys.stderr)
+            exit(2)
+
 VERBOSE_HEAD = '\t'.join(('line', 'kind', 'level', 'issue'))
 SUMMARY_HEAD = '\t'.join(('count', 'line', 'kind', 'level', 'issue'))
 
@@ -319,6 +329,58 @@ test(document =
 
      expected =
      report(('2', 'form', 'error', 'non-empty space line')))
+
+test(document =
+     ( b'<!--\n'
+       b'<text>\n'
+       b'<!-- ho hum >\n'
+       b'<!-- --> \n'
+       b'</text>\n' ),
+
+     expected =
+     report(('1', 'form', 'error', 'malformed comment'),
+            ('3', 'form', 'error', 'malformed comment'),
+            ('4', 'form', 'warning', 'comment has trailing space')),
+     command = VERBOSE_COMMAND)
+
+test(document =
+     ( b'<text>\n'
+       b'<!-- ... -->\n'
+       b'<sentence>\n'
+       b'<!-- ... -->\n'
+       b'x\n'
+       b'</sentence>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('4', 'form', 'warning', 'comment in sentence')))
+
+test(document =
+     ( b'<text>\n'
+       b'<!-- Positional attributes: foo bar -->\n'
+       b'<sentence>\n'
+       b'-\t-\n'
+       b'</sentence>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('1', 'name', 'info', 'opened element: text'),
+            ('2', 'form', 'info', 'comment'),
+            ('2', 'name', 'info', 'field names: foo bar'),
+            ('3', 'name', 'info', 'opened element: sentence')),
+     command = INFO_COMMAND)
+
+test(document =
+     ( b'<!-- Positional attributes: -->\n'
+       b'<!-- Positional attributes: 31 -->\n'
+       b'<!-- Positional attributes: o o -->\n'
+       b'<text>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('1', 'form', 'error', 'empty field name comment'),
+            ('2', 'form', 'error', 'bad field name'),
+            ('3', 'form', 'error', 'duplicate field name: o')))
 
 print('passed: {}'.format(passed),
       'failed: {}'.format(failed),
