@@ -294,6 +294,32 @@ test(document =
      expected =
      report(('2', 'nest', 'error', 'element already open: text')))
 
+test(document =
+     ( b'\n'
+       b'<text>\n'
+       b'\n'
+       b'<tail>\n'
+       b'\n'
+       b'</text>\n'
+       b'\n'
+       b'</tail>\n' ),
+
+     expected =
+     report(('1', 'form', 'warning', 'empty line outside elements'),
+            ('3', 'form', 'warning', 'empty line in element: text'),
+            ('5', 'form', 'warning', 'empty line in element: tail'),
+            ('5', 'form', 'warning', 'empty line in element: text'),
+            ('7', 'form', 'warning', 'empty line in element: tail')),
+     command = VERBOSE_COMMAND)
+
+test(document =
+     ( b'<text>\n'
+       b' \n'
+       b'</text>\n' ),
+
+     expected =
+     report(('2', 'form', 'error', 'non-empty space line')))
+
 print('passed: {}'.format(passed),
       'failed: {}'.format(failed),
       sep = '\n')

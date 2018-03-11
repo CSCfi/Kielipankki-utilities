@@ -111,12 +111,25 @@ def validateline(k, line, respond):
             pass
 
 def validateemptyline(k, line, respond):
-    # TODO
-    pass
+    # warn of empty lines because they affect further processing but
+    # are, apparently, allowed in VRT; identify all open elements
+    # because there is no sure sense of which is innermost, nor can
+    # there be when elements may overlap instead of properly nest
+
+    inside = sorted(name for name, state in STATE.current.items()
+                    if state)
+
+    if inside:
+        for name in inside:
+            respond(k, 'form', 'warning',
+                    'empty line in element: {}'.format(name))
+    else:
+        respond(k, 'form', 'warning', 'empty line outside elements')
 
 def validatespaceline(k, line, respond):
-    # TODO
-    pass
+    # hard to tell what it should be or why it should be allowed
+
+    respond(k, 'form', 'error', 'non-empty space line')
 
 def validatecomment(k, line, respond):
     # TODO
