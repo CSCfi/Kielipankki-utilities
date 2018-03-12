@@ -332,15 +332,38 @@ def validateattributes(k, element, attributes, respond):
                     .format(label))
 
         validatevalue(k, label, value, respond)
-    
-    pass
+
+        # some attributes may have particular validators
+        attributevalidator.get(name, ignore)(k, value, label, respond)
 
 def validateattribute(k, element, name, respond):
     ( name.isidentifier() or
       respond(k, 'names', 'warning',
               'attribute name not an identifier: {} of {}'
               .format(name, element)) )
-                 
+
+def date8(k, value, label, respond):
+    if not (len(value) == 8 and value.isdigit()):
+        respond(k, 'meta', 'warning', 'suspect date: {}'.format(label))
+
+def time6(k, value, label, respond):
+    if not (len(value) == 6 and value.isdigit()):
+        respond(k, 'meta', 'warning', 'suspect time: {}'.format(label))
+
+def year4(k, value, label, respond):
+    if not (len(value) == 4 and value.isdigit()):
+        respond(k, 'meta', 'warning', 'suspect year: {}'.format(label))
+
+def ignore(k, value, label, respond):
+    pass
+
+# these take k, value, label, respond
+attributevalidator = dict(datefrom = date8,
+                          dateto = date8,
+                          timefrom = time6,
+                          timeto = time6,
+                          year = year4)
+
 # html.unescape does funny things (makes references like &#26; vanish,
 # ignores missing semicolons, interprets prefixes like "&ampersand;"
 # is taken to "&ersand;")- one could live with unrecognized references

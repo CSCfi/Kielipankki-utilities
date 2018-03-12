@@ -285,6 +285,17 @@ test(document =
             ('3', 'data', 'warning', 'outer space in value: field 3'),
             ('3', 'data', 'warning', 'value is all space: field 4')))
 
+test(tag = 'suspect-dates',
+
+     document =
+     ( b'<text datefrom="31.5." timefrom="4 pm." year="100">\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('1', 'meta', 'warning', 'suspect date: datefrom of text'),
+            ('1', 'meta', 'warning', 'suspect time: timefrom of text'),
+            ('1', 'meta', 'warning', 'suspect year: year of text')))
+
 test(document =
      b'<text>\n',
 
