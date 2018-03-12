@@ -13,7 +13,8 @@ signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 passed = 0
 failed = 0
-def test(*, document, expected, command = ['./vrt-validate']):
+def test(*, tag = 'untagged-test',
+         document, expected, command = ['./vrt-validate']):
     global passed, failed
     with Popen(command,
                stdin = PIPE,
@@ -24,6 +25,7 @@ def test(*, document, expected, command = ['./vrt-validate']):
             passed += 1
         else:
             failed += 1
+            print('! FAIL\t{}'.format(tag))
             print('! expected:\n', expected.decode('UTF-8'),
                   '! observed:\n', observed.decode('UTF-8'),
                   sep = '', end = '\n')
@@ -80,7 +82,8 @@ test(document =
      command = INFO_COMMAND)
 
 test(document =
-     b'foo\r\n',
+     ( b'foo\r\n'
+       b'bar\r\n' ),
 
      expected =
      report(('1', 'data', 'error', 'data outside any element')))
@@ -90,7 +93,8 @@ test(document =
 
      expected =
      report(('1', 'code', 'info', 'CR LF line terminator'),
-            ('1', 'data', 'error', 'data outside any element')),
+            ('1', 'data', 'error', 'data outside any element'),
+            ('1', 'data', 'info', 'number of fields: 1')),
      command = INFO_COMMAND)
 
 test(document =
@@ -355,7 +359,9 @@ test(document =
      expected =
      report(('4', 'form', 'warning', 'comment in sentence')))
 
-test(document =
+test(tag = 'good-field-comment',
+
+     document =
      ( b'<text>\n'
        b'<!-- Positional attributes: foo bar -->\n'
        b'<sentence>\n'
@@ -367,10 +373,13 @@ test(document =
      report(('1', 'name', 'info', 'opened element: text'),
             ('2', 'form', 'info', 'comment'),
             ('2', 'name', 'info', 'field names: foo bar'),
+            ('2', 'data', 'info', 'number of fields: 2'),
             ('3', 'name', 'info', 'opened element: sentence')),
      command = INFO_COMMAND)
 
-test(document =
+test(tag = 'bad-field-comment',
+
+     document =
      ( b'<!-- Positional attributes: -->\n'
        b'<!-- Positional attributes: 31 -->\n'
        b'<!-- Positional attributes: o o -->\n'
@@ -381,6 +390,51 @@ test(document =
      report(('1', 'form', 'error', 'empty field name comment'),
             ('2', 'form', 'error', 'bad field name'),
             ('3', 'form', 'error', 'duplicate field name: o')))
+
+test(tag = 'names-match-record',
+
+     document =
+     ( b'<!-- Positional attributes: foo bar -->\n'
+       b'<text>\n'
+       b'<sentence>\n'
+       b'-\t-\n'
+       b'</sentence>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('1', 'form', 'info', 'comment'),
+            ('1', 'name', 'info', 'field names: foo bar'),
+            ('1', 'data', 'info', 'number of fields: 2'),
+            ('2', 'name', 'info', 'opened element: text'),
+            ('3', 'name', 'info', 'opened element: sentence')),
+     command = INFO_COMMAND)
+
+test(tag = 'late-names',
+
+     document =
+     ( b'<text>\n'
+       b'<sentence>\n'
+       b'-\n'
+       b'</sentence>\n'
+       b'<!-- Positional attributes: foo -->\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('5', 'name', 'warning', 'late field names: foo')))
+
+test(tag = 'names-mismatch-record',
+
+     document =
+     ( b'<text>\n'
+       b'<sentence>\n'
+       b'-\n'
+       b'</sentence>\n'
+       b'<!-- Positional attributes: foo bar -->\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('5', 'name', 'error', 'original number of fields: 1'),
+            ('5', 'name', 'error', 'different number of names: 2')))
 
 print('passed: {}'.format(passed),
       'failed: {}'.format(failed),

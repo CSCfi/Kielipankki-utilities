@@ -33,6 +33,12 @@ class State():
     # list seen on the first occurrence of the element
     attributes = dict()
 
+    # First encountered field names
+    fields = None
+
+    # First encountered field count, from names or a record
+    length = None
+
     current = dict() # element name -> whether open or not
 
 # this makes "if __name__ == '__main__'" silly
@@ -181,7 +187,37 @@ def validatecomment(k, line, respond):
 
     respond(k, 'name', 'info', 'field names: {}'.format(' '.join(names)))
 
-    # TODO: track field names
+    # track field names
+
+    if STATE.fields is not None:
+        # then STATE.length == len(STATE.fields)
+        if STATE.fields == names:
+            pass
+        else:
+            respond(k, 'name', 'error', 'original field names: {}'
+                    .format(' '.join(STATE.fields)))
+            respond(k, 'name', 'error', 'different field names: {}'
+                    .format(' '.join(names)))
+
+    elif STATE.fields is None is STATE.length:
+        STATE.fields = names
+        STATE.length = len(names)
+        respond(k, 'data', 'info', 'number of fields: {}'
+                .format(len(names)))
+
+    elif STATE.fields is None is not STATE.length:
+        if len(names) == STATE.length:
+            STATE.fields = names
+            respond(k, 'name', 'warning', 'late field names: {}'
+                    .format(' '.join(names)))
+        else:
+            respond(k, 'name', 'error',
+                    'original number of fields: {}'.format(STATE.length))
+            respond(k, 'name', 'error',
+                    'different number of names: {}'.format(len(names)))
+
+    else:
+        raise Exception('this cannot happen (please report)')
 
 # match spurious whitespace in and after tags
 # but not between < or </ and element name;
@@ -334,8 +370,18 @@ def validatedata(k, line, respond):
 
     record = unescape(line).split('\t')
 
-    # TODO: track number of fields
-    # TODO: track field names
+    # track number of records
+    if STATE.length is None:
+        STATE.length = len(record)
+        respond(k, 'data', 'info', 'number of fields: {}'
+                .format(len(record)))
+    elif STATE.length == len(record):
+        pass
+    else:
+        respond(k, 'data', 'error', 'original number of fields: {}'
+                .format(STATE.length))
+        respond(k, 'data', 'error', 'different number of fields: {}'
+                .format(len(record)))
 
     for pos, value in enumerate(record, start = 1):
         label = 'field {}'.format(pos)
