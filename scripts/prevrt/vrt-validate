@@ -536,7 +536,7 @@ def main():
     args = parser.parse_args()
     
     if args.version:
-        print('vrt-validate 0.31a (FIN-CLARIN 2018)')
+        print('vrt-validate 0.4b (FIN-CLARIN 2018)')
         exit(0)
     
     respond = responder(args)
