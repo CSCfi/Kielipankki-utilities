@@ -23,6 +23,7 @@ BEGIN {
     }
     @cl_attrs = ();
     @cl_partnum = ();
+    @cl_partwords = ();
     $cl_words = 0;
     $cl_just_opened = 0;
 }
@@ -31,16 +32,17 @@ if (/^<cl (.*)>/) {
     $depth = $#cl_attrs + 1;
     push (@cl_attrs, "$1 depth=\"$depth\"");
     push (@cl_partnum, 1);
+    push (@cl_partwords, 0);
     if ($cl_words) {
 	print "</clause>\n";
 	$cl_words = 0;
     }
     print if ($print_cl);
-    print "<clause $cl_attrs[-1] partnum=\"$cl_partnum[-1]\">\n";
     $cl_just_opened = 1;
 } elsif (/^<\/cl>/) {
     pop (@cl_attrs);
     pop (@cl_partnum);
+    pop (@cl_partwords);
     if ($cl_words) {
 	print "</clause>\n";
 	$cl_words = 0;
@@ -50,11 +52,14 @@ if (/^<cl (.*)>/) {
 } else {
     if (/^[^<]/) {
 	if ($#cl_partnum >= 0) {
-	    if ((! $cl_just_opened) && ! $cl_words) {
-		$cl_partnum[-1]++;
+	    if (! $cl_words) {
+		if ((! $cl_just_opened) && $cl_partwords[-1]) {
+		    $cl_partnum[-1]++;
+		}
 		print "<clause $cl_attrs[-1] partnum=\"$cl_partnum[-1]\">\n";
 	    }
 	    $cl_words = 1;
+	    $cl_partwords[-1] = 1;
 	}
     }
     print;
