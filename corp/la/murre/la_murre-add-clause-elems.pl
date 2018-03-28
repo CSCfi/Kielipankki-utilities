@@ -41,8 +41,10 @@ if (/^<cl (.*)>/) {
 } elsif (/^<\/cl>/) {
     pop (@cl_attrs);
     pop (@cl_partnum);
-    $cl_words = 0;
-    print "</clause>\n";
+    if ($cl_words) {
+	print "</clause>\n";
+	$cl_words = 0;
+    }
     print if ($print_cl);
     $cl_just_opened = 0;
 } else {
