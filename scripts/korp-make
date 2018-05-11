@@ -143,7 +143,7 @@ text-sort-transform=TRANSFORM '"'"' * { add_text_sort_opt --transform "$1" }
     be used for sorting; this option may be specified multiple times,
     in which case the substitutions are applied in the specified
     order; if read from a configuration file, TRANSFORM is treated as
-    enclosed in single quotes, so you need not protect \$ nor \\
+    enclosed in single quotes, so you need not protect \\ nor \$
 
 @ Scrambling structures
 
