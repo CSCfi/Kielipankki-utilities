@@ -212,6 +212,10 @@ git_get () {
     remote_git_repo=$(printf "$remote_git_repo_pattern" $_comp)
     local_git_repo="$local_git_prefix$_comp"
 
+    # Ensure file permissions in the local working copy even when an
+    # error occurs
+    add_cleanup_funcs ensure_perms_cwd
+
     if [ ! -d $local_git_repo ]; then
 	cd $local_git_root
 	echo "Cloning Git repository for Korp $comp"
@@ -220,12 +224,31 @@ git_get () {
 
     echo "Updating the Korp $_comp repository working copy"
     cd $local_git_repo
-    git remote update
+    git remote update ||
+    error "Could not update the repository from $remote_git_repo"
     git checkout $_branch || error "Could not checkout $_branch"
-    git pull --force origin $_branch || error "Could not pull origin/$_branch"
+    git pull --force origin $_branch || {
+	# If the pull failed because the local branch had diverged
+	# from the remote, reset and force-fetch the remote to the
+	# local. This apparently cannot be done with git pull alone.
+	warn "Local branch $_branch was outdated; updating from the repository"
+	git reset --hard HEAD &&
+	    # You cannot fetch to the current branch, so change to
+	    # another branch.
+	    # FIXME: Do not assume any other branch is available.
+	    git checkout $(git branch | grep -v '^\*' | head -1) &&
+	    git fetch --force origin $_branch:$_branch &&
+	    git checkout $_branch ||
+		error "Could not pull origin/$_branch"
+    }
     if [ "x$_refspec" != "x$_branch" ]; then
 	git checkout $_refspec || error "Could not checkout $_refspec"
     fi
+    rm_cleanup_funcs ensure_perms_cwd
+    ensure_perms .
+}
+
+ensure_perms_cwd () {
     ensure_perms .
 }
 
