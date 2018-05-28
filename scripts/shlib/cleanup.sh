@@ -49,6 +49,7 @@ kill_descendants () {
 }
 
 cleanup () {
+    call_cleanup_funcs
     if [ "x$tmp_prefix" != "x" ] && [ "x$cleanup_on_exit" != x ]; then
 	rm -rf $tmp_prefix.*
     fi
@@ -67,11 +68,50 @@ cleanup_abort () {
 }
 
 
+# add_cleanup_funcs function ...
+#
+# Add function(s) to (the end of) the list of functions be called at
+# clean-up (before other clean-up actions).
+add_cleanup_funcs () {
+    _cleanup_funcs="$_cleanup_funcs $@ "
+}
+
+# rm_cleanup_funcs function ...
+#
+# Remove function(s) from the list of functions to be called at
+# cleanup.
+rm_cleanup_funcs () {
+    local fn
+    for fn in "$@"; do
+	_cleanup_funcs="${_cleanup_funcs% $fn *}${_cleanup_funcs#* $fn }"
+    done
+}
+
+# Call_cleanup_funcs
+#
+# Call the functions whose names are listed in $_cleanup_funcs.
+call_cleanup_funcs () {
+    local fn
+    # Use the case statement instead of testing with ${//} to work in
+    # (d)ash.
+    case "$_cleanup_funcs" in
+	*[!" "]* )
+	    for fn in $_cleanup_funcs; do
+		$fn
+	    done
+	    ;;
+    esac
+}
+
+
 if [ "x$debug" != x ]; then
     cleanup_on_exit=
 else
     cleanup_on_exit=1
 fi
+
+
+_cleanup_funcs=
 
 
 trap cleanup 0
