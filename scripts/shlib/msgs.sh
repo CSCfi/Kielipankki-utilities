@@ -9,7 +9,17 @@
 # is not POSIX but supported by dash, ash.
 
 
+# warn msg
+#
+# Print msg (prefixed with progname and "Warning") to stderr.
+#
+# If $warn_hook is non-empty, evaluate it with the message as $msg.
 warn () {
+    local msg
+    if [ "x$warn_hook" != x ]; then
+	msg=$1
+	eval "$warn_hook"
+    fi
     echo "$progname: Warning: $1" >&2
 }
 
@@ -17,12 +27,19 @@ warn () {
 #
 # Print msg (prefixed with progname) to stderr and exit with exitcode
 # (default: 1).
+#
+# If $error_hook is non-empty, evaluate it with the message in $msg
+# and exit code in $exitcode.
 error () {
-    local exitcode
+    local exitcode msg
     exitcode=1
     if [ $# -gt 1 ]; then
 	exitcode=$1
 	shift
+    fi
+    if [ "x$error_hook" != x ]; then
+	msg=$1
+	eval "$error_hook"
     fi
     safe_echo "$progname: $1" >&2
     exit $exitcode
@@ -244,3 +261,10 @@ echo_quoted () {
     quote_args "$@"
     printf "\n"
 }
+
+
+# Initialize variables
+
+# Code to be evaluated at warn and error
+warn_hook=
+error_hook=
