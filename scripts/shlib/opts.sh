@@ -39,7 +39,9 @@ optinfo_init () {
     if [ "x$config_file_optname" != "x" ]; then
 	make_opthandler_opts="$make_opthandler_opts --_config-file-option-name $config_file_optname"
     fi
-    $scriptdir/shutil-make-optionhandler.py $make_opthandler_opts "$@" \
+    # Should shutil-make-optionhandler.py be moved to the shlib
+    # directory?
+    $_shlibdir/../shutil-make-optionhandler.py $make_opthandler_opts "$@" \
 	> $optinfo_file 2> $tmp_prefix.optparse-errors
     if [ -s $tmp_prefix.optparse-errors ]; then
 	error "Error: $(sed -e 's/.* error: //' $tmp_prefix.optparse-errors)"
