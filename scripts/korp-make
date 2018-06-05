@@ -97,7 +97,7 @@ no-word-attribute no_word_attr
 augment-data|augment-existing-data
     augment existing corpus data with the data in the input, for
     example, to add parse annotations to a corpus already encoded; if
-    the input contains values for exsiting attributes, they override
+    the input contains values for existing attributes, they override
     existing values
 generate-input-from-data generate_input
     use the existing (CWB) corpus data as the input, which is to be
@@ -171,12 +171,14 @@ corpus-date-pattern=PATTERN
     attribute) or they may contain several attribute or element names
     separated with vertical bars. REGEX may contain named groups
     (subpatterns) in Python'"'"'s regular expressions Y, M and D,
-    which extract year, month and day; for example, "(?:P<Y>[0-9]{4})"
-    would recognize a year. REGEX may also cover both the start and
-    end date, in which case the subpatterns for the start date are Y1,
-    M1 and D1, and those for the end date, Y2, M2 and D2. If REGEX
-    does not contain named subpatterns, recognize the first group as
-    the start date and the possible second group as the end date.
+    which extract year, month and day; for example, "(?P<Y>[0-9]{4})"
+    (without the quotation marks) would recognize a year (although
+    this particular case is also covered by the default pattern).
+    REGEX may also cover both the start and end date, in which case
+    the subpatterns for the start date are Y1, M1 and D1, and those
+    for the end date, Y2, M2 and D2. If REGEX does not contain named
+    subpatterns, recognize the first group as the start date and the
+    possible second group as the end date.
 corpus-date-full-order=ORDER
     recognize full dates in the order ORDER (one of "ymd", "dmy",
     "mdy")
