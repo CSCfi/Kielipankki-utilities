@@ -1,0 +1,266 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from argparse import ArgumentParser
+from itertools import groupby, count
+from subprocess import Popen, PIPE
+from tempfile import mkstemp
+from threading import Thread
+import enum, os, re, sys
+
+MODEL = 'hunpos.suc3.suc-tags.default-setting.utf8.model'
+HUNPOS = [ '/proj/kieli/sparv/hunpos/hunpos-tag',
+           # a morphtable here?
+           os.path.join('/proj/kieli/malt/sparv-models', MODEL)]
+
+VERSION = '0.1 (2018-06-06)'
+
+parser = ArgumentParser(description = '''
+
+Pass the word field in a flat vrt document through hunpos using a
+Swedish SUC (Stockholm-Umeå Corpus) model from Sparv, compatible with
+Swemalt. Insert the tags in a new field after the word field. The vrt
+document must have position names in a comment before any content. (A
+"flat" vrt document has no markup or comment lines inside sentence
+elements.)
+
+''')
+
+parser.add_argument('infile', nargs = '?', metavar = 'file',
+                    help = 'input file (default stdin)')
+parser.add_argument('--out', '-o',
+                    dest = 'outfile', metavar = 'file',
+                    help = 'output file (default stdout)')
+parser.add_argument('--in-place', '-i',
+                    dest = 'inplace', action = 'store_true',
+                    help = 'overwrite input file with output')
+parser.add_argument('--backup', '-b', metavar = 'bak',
+                    help = 'keep input file with suffix bak')
+parser.add_argument('--tag', '-t', metavar = 'name',
+                    type = bytes, default = b'msd',
+                    help = 'output field name (default msd)')
+parser.add_argument('--word', '-w', metavar = 'name',
+                    type = bytes, default = b'word',
+                    help = 'input field name (default word)')
+parser.add_argument('--version', action = 'store_true',
+                    help = 'print {} and exit'.format(VERSION))
+
+# old values are passed unescaped to the underlying process,
+# new values are inserted escaped to the output stream
+bare, code = (b'&', b'<', b'>'), (b'&amp;', b'&lt;', b'&gt;')
+def encm(m, d = dict(zip(bare, code))): return d[m.group()]
+def decm(m, d = dict(zip(code, bare))): return d[m.group()]
+def escape(value): return re.sub(b'[&<>]', encm, value)
+def unescape(value): return re.sub(b'&(amp|lt|gt);', decm, value)
+
+class Kind(enum.Enum):
+    # kind of line (group of them)
+    meta = 1
+    data = 2
+    begin = 3
+    names = 4
+    comment = 5
+
+def identify(line):
+    # used by groupby to identify the kind of a line group
+    if line.startswith(b'<!-- Positional attributes:'): return Kind.names
+    if line.startswith(b'<!--'): return Kind.comment
+    if line.startswith(b'<sentence'): return Kind.begin
+    if line.startswith(b'<'): return Kind.meta
+    return Kind.data
+
+def combine(hunpos, copy, out):
+    '''Read hunpos output (word TAB msd TAB NL / NL) and flat vrt from the
+    copy process. Insert msd from hunpos to the vrt at the named
+    position.
+
+    This is run as a thread that consumes the two processes.
+
+    '''
+
+    response = (tokens
+                for isempty, tokens
+                in groupby(hunpos.stdout, bytes.isspace)
+                if not isempty)
+    
+    pos = None
+    found = False
+    for kind, group in groupby(copy.stdout, identify):
+
+        if kind is not Kind.data: found = False
+        if kind is Kind.begin: found = True
+
+        if (kind is Kind.data) and found:
+            for new, old in zip(next(response), group):
+                form, msd, nl = new.split(b'\t')
+                values = old.rstrip(b'\n').split(b'\t')
+                values.insert(pos, escape(msd))
+                out.write(b'\t'.join(values))
+                out.write(b'\n')
+            else:
+                continue
+
+        if kind is Kind.names:
+            for line in group:
+                pos = getpos(line, args.tag)
+                out.write(line)
+            else:
+                continue
+
+        for line in group:
+            out.write(line)
+        else:
+            continue
+
+def getpos(names, name):
+    return re.findall(br'[\w+]+', names)[2:].index(name)
+
+def addtag(names, word, tag):
+    new = re.findall(br'[\w+]+', names)[2:]
+    if word not in new: raise ValueError('word name must be old')
+    if tag in new: raise ValueError('tag name must be new')
+    new.insert(new.index(word) + 1, tag)
+    return b' '.join([b'<!-- Positional attributes:'] + new + [b'-->\n'])
+
+def getword(line, pos):
+    return line.rstrip(b'\n').split(b'\t')[pos]
+
+def premain():
+    # what should this be called?
+    
+    if (args.backup is not None) and '/' in args.backup:
+        print('usage: --backup suffix cannot contain /', file = sys.stderr)
+        exit(1)
+
+    if (args.backup is not None) and not args.backup:
+        print('usage: --backup suffix cannot be empty', file = sys.stderr)
+        exit(1)
+
+    if (args.backup is not None) and not args.inplace:
+        print('usage: --backup requires --in-place', file = sys.stderr)
+        exit(1)
+
+    if args.inplace and (args.infile is None):
+        print('usage: --in-place requires input file', file = sys.stderr)
+        exit(1)
+
+    if args.inplace and (args.outfile is not None):
+        print('usage: --in-place not allowed with --out', file = sys.stderr)
+        exit(1)
+
+    if (args.outfile is not None) and os.path.exists(args.outfile):
+        # easier to check this than that output file is different than
+        # input file, though it be annoying when overwrite is wanted
+        print('usage: --out file must not exist', file = sys.stderr)
+        exit(1)
+
+    try:
+        if args.inplace or (args.outfile is not None):
+            head, tail = os.path.split(args.infile
+                                       if args.inplace
+                                       else args.outfile)
+            fd, temp = mkstemp(dir = head, prefix = tail)
+            os.close(fd)
+        else:
+            temp = None
+
+        print('args.infile = ', args.infile, file = sys.stderr)
+        print('args.outfile = ', args.outfile, file = sys.stderr)
+        with ((args.infile and open(args.infile, mode = 'br'))
+              or sys.stdin.buffer) as inf:
+            with ((temp and open(temp, mode = 'bw'))
+                  or sys.stdout.buffer) as ouf:
+                print('inf = ', inf, file = sys.stderr)
+                print('ouf = ', ouf, file = sys.stderr)
+                main(inf, ouf)
+
+        args.backup and os.rename(args.infile, args.infile + args.backup)
+        args.inplace and os.rename(temp, args.infile)
+        args.outfile and os.rename(temp, args.outfile)
+    except IOError as exn:
+        print(exn, file = sys.stderr)
+        exit(1)
+
+def main(inf, ouf):
+    with Popen(HUNPOS,
+               stdin = PIPE,
+               stdout = PIPE,
+               stderr = sys.stderr) as hunpos:
+        with Popen(['cat'],
+                   stdin = PIPE,
+                   stdout = PIPE,
+                   stderr = sys.stderr) as copy:
+
+            # is this a "useless use of cat"?
+
+            t = Thread(target = combine, args = (hunpos, copy, ouf))
+            t.start()
+
+            xxx(inf, hunpos, copy)
+
+            hunpos.stdin.close()
+            copy.stdin.close()
+            t.join()
+
+def xxx(inf, hunpos, copy):
+
+    # each "word" goes to hunpos, with empty line after sentence;
+    # everything but empty goes to copy, with new "msd" in names
+
+    pos = None
+    found = False
+    def isnotspace(line): return not line.isspace()
+    for kind, group in groupby(filter(isnotspace, inf), identify):
+
+        if kind is not Kind.data: found = False
+        if kind is Kind.begin: found = True
+
+        if kind is Kind.data and found:
+            for line in group:
+                hunpos.stdin.write(unescape(getword(line, pos)))
+                hunpos.stdin.write(b'\n')
+                copy.stdin.write(line)
+            else:
+                hunpos.stdin.write(b'\n')
+                hunpos.stdin.flush()
+                copy.stdin.flush()
+                continue
+
+        if kind is Kind.begin:
+            for line in group: copy.stdin.write(line)
+            continue
+
+        if kind is Kind.meta:
+            for line in group: copy.stdin.write(line)
+            continue
+
+        if kind is Kind.data:
+            for line in group: copy.stdin.write(line)
+            continue
+
+        if kind is Kind.names:
+            for line in group:
+                pos = getpos(line, args.word)
+                copy.stdin.write(addtag(line, args.word, args.tag))
+            else:
+                continue
+
+        if kind is Kind.comment:
+            for line in group: copy.stdin.write(line)
+            continue
+
+        # program hung without these closes when case analysis
+        # was incomplete and control reached this exit - an
+        # unexpected exit is still not a good exit, this needs
+        # fixed and the fix needs tested
+
+        hunpos.stdin.close()
+        copy.stdin.close()
+        sys.stderr.buffer.write(b'this cannot happen\n')
+        exit(1)
+
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+    if args.version: print(VERSION) ; exit(0)
+    premain()

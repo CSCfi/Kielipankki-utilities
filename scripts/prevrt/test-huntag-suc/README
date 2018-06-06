@@ -1,0 +1,27 @@
+The script ./test.sh that exercises ../vrt-huntag-suc is runnable in
+Taito, assuming the underlying hunpos-tag and its model files are
+still in the same locations and accessible by the user. The idea is
+that they will be in some permanent location eventually.
+
+The expected output is something like the following, where the
+executable script is ../vrt-huntag-suc but the paths are expanded.
+
+Test data (in ./text.vrt) was copied from Svenska YLE.
+
+The subdirectories are re-created on every run.
+
+$ bash test.sh
+2018-06-06 17:26:30 Run tests on [...]/CSCfi/konversio/scripts/prevrt/vrt-huntag-suc
+2018-06-06 17:26:30 Run tests in [...]/CSCfi/konversio/scripts/prevrt/test-huntag-suc
+2018-06-06 17:26:31 Test 1: std/ (standard input to standard output)
+2018-06-06 17:26:32 PASS 1
+2018-06-06 17:26:32 Test 2: ouf/ (standard input to output file)
+2018-06-06 17:26:33 PASS 2
+2018-06-06 17:26:33 Test 3: inf/ (input file to standard output)
+2018-06-06 17:26:36 PASS 3
+2018-06-06 17:26:36 Test 4: fif/ (input file to output file)
+2018-06-06 17:26:38 PASS 4
+2018-06-06 17:26:38 Test 5: imp/ (in place)
+2018-06-06 17:26:42 PASS 5
+2018-06-06 17:26:42 Original FINE
+$
