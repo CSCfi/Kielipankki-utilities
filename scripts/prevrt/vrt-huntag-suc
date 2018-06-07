@@ -6,7 +6,7 @@ from itertools import groupby, count
 from subprocess import Popen, PIPE
 from tempfile import mkstemp
 from threading import Thread
-import enum, os, re, sys
+import enum, os, re, sys, traceback
 
 MODEL = 'hunpos.suc3.suc-tags.default-setting.utf8.model'
 HUNPOS = [ '/proj/kieli/sparv/hunpos/hunpos-tag',
@@ -52,6 +52,9 @@ def encm(m, d = dict(zip(bare, code))): return d[m.group()]
 def decm(m, d = dict(zip(code, bare))): return d[m.group()]
 def escape(value): return re.sub(b'[&<>]', encm, value)
 def unescape(value): return re.sub(b'&(amp|lt|gt);', decm, value)
+
+class BadData(Exception): pass # stack trace is just noise
+class BadCode(Exception): pass # this cannot happen
 
 class Kind(enum.Enum):
     # kind of line (group of them)
@@ -113,20 +116,23 @@ def combine(hunpos, copy, out):
             continue
 
 def getpos(names, name):
-    return re.findall(br'[\w+]+', names)[2:].index(name)
+    namelist = re.findall(br'[\w+]+', names)[2:]
+    try:
+        return namelist.index(name)
+    except ValueError:
+        raise ValueError('name "{}" not in list'.format(name))
 
 def addtag(names, word, tag):
     new = re.findall(br'[\w+]+', names)[2:]
-    if word not in new: raise ValueError('word name must be old')
-    if tag in new: raise ValueError('tag name must be new')
+    if word not in new: raise ValueError('word-name must be old')
+    if tag in new: raise ValueError('tag-name must be new')
     new.insert(new.index(word) + 1, tag)
     return b' '.join([b'<!-- Positional attributes:'] + new + [b'-->\n'])
 
 def getword(line, pos):
     return line.rstrip(b'\n').split(b'\t')[pos]
 
-def premain():
-    # what should this be called?
+def wrap_main():
     
     if (args.backup is not None) and '/' in args.backup:
         print('usage: --backup suffix cannot contain /', file = sys.stderr)
@@ -164,19 +170,16 @@ def premain():
         else:
             temp = None
 
-        print('args.infile = ', args.infile, file = sys.stderr)
-        print('args.outfile = ', args.outfile, file = sys.stderr)
         with ((args.infile and open(args.infile, mode = 'br'))
               or sys.stdin.buffer) as inf:
             with ((temp and open(temp, mode = 'bw'))
                   or sys.stdout.buffer) as ouf:
-                print('inf = ', inf, file = sys.stderr)
-                print('ouf = ', ouf, file = sys.stderr)
-                main(inf, ouf)
+                status = main(inf, ouf)
 
         args.backup and os.rename(args.infile, args.infile + args.backup)
         args.inplace and os.rename(temp, args.infile)
         args.outfile and os.rename(temp, args.outfile)
+        exit(status)
     except IOError as exn:
         print(exn, file = sys.stderr)
         exit(1)
@@ -196,13 +199,21 @@ def main(inf, ouf):
             t = Thread(target = combine, args = (hunpos, copy, ouf))
             t.start()
 
-            xxx(inf, hunpos, copy)
+            status = 1
+            try:
+                implement_main(inf, hunpos, copy)
+                status = 0
+            except BadData as exn:
+                print(exn, file = sys.stderr)
+            except Exception as exn:
+                print(traceback.format_exc(), file = sys.stderr)
 
             hunpos.stdin.close()
             copy.stdin.close()
             t.join()
+            return status
 
-def xxx(inf, hunpos, copy):
+def implement_main(inf, hunpos, copy):
 
     # each "word" goes to hunpos, with empty line after sentence;
     # everything but empty goes to copy, with new "msd" in names
@@ -216,6 +227,9 @@ def xxx(inf, hunpos, copy):
         if kind is Kind.begin: found = True
 
         if kind is Kind.data and found:
+            if pos is None:
+                raise BadData('error: unexpected data: '
+                              'token line before field names')
             for line in group:
                 hunpos.stdin.write(unescape(getword(line, pos)))
                 hunpos.stdin.write(b'\n')
@@ -249,18 +263,9 @@ def xxx(inf, hunpos, copy):
             for line in group: copy.stdin.write(line)
             continue
 
-        # program hung without these closes when case analysis
-        # was incomplete and control reached this exit - an
-        # unexpected exit is still not a good exit, this needs
-        # fixed and the fix needs tested
-
-        hunpos.stdin.close()
-        copy.stdin.close()
-        sys.stderr.buffer.write(b'this cannot happen\n')
-        exit(1)
-
+        raise BadCode('this cannot happen')
 
 if __name__ == '__main__':
     args = parser.parse_args()
     if args.version: print(VERSION) ; exit(0)
-    premain()
+    wrap_main()
