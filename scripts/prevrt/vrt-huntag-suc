@@ -11,15 +11,15 @@ import enum, os, re, sys
 MODEL = 'hunpos.suc3.suc-tags.default-setting.utf8.model'
 HUNPOS = [ '/proj/kieli/sparv/hunpos/hunpos-tag',
            # a morphtable here?
-           os.path.join('/proj/kieli/malt/sparv-models', MODEL)]
+           os.path.join('/proj/kieli/sparv/models', MODEL)]
 
 VERSION = '0.1 (2018-06-06)'
 
 parser = ArgumentParser(description = '''
 
 Pass the word field in a flat vrt document through hunpos using a
-Swedish SUC (Stockholm-Umeå Corpus) model from Sparv, compatible with
-Swemalt. Insert the tags in a new field after the word field. The vrt
+Swedish SUC (Stockholm-Umeå Corpus) model from Sparv (compatible with
+Swemalt). Insert the tags in a new field after the word field. The vrt
 document must have position names in a comment before any content. (A
 "flat" vrt document has no markup or comment lines inside sentence
 elements.)
