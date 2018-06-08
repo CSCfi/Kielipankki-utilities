@@ -109,3 +109,32 @@ nth_arg () {
 is_int () {
     [ "$1" -eq "$1" 2> /dev/null ]
 }
+
+
+# foreach_filter filter_code foreach_code item ...
+#
+# Eval foreach_code for each item for which eval'ed filter_code
+# returns true. For both filter_code and foreach_code, $item is set to
+# the item and $itemnum to its index (one-based). If filter_code is an
+# empty string, use the default 'true'. If foreach_code is an empty
+# string, use the default 'safe_echo "$item"'.
+foreach_filter () {
+    local filter_code foreach_code item itemnum
+    filter_code=$1
+    foreach_code=$2
+    shift
+    shift
+    if [ "x$filter_code" = x ]; then
+	filter_code=true
+    fi
+    if [ "x$foreach_code" = x ]; then
+	foreach_code='safe_echo "$item"'
+    fi
+    itemnum=1
+    for item in "$@"; do
+	if eval "$filter_code"; then
+	    eval "$foreach_code"
+	fi
+	itemnum=$(($itemnum + 1))
+    done
+}
