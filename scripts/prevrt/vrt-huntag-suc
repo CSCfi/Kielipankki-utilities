@@ -81,6 +81,22 @@ def combine(hunpos, copy, out):
 
     '''
 
+    try:
+        # wonder if just setting the signal thing would work here
+        implement_combine(hunpos, copy, out)
+    except BrokenPipeError:
+        print(parser.prog + ':', 'broken pipe in combine thread',
+              file = sys.stderr)
+        # closing their stdouts should send hunpos and copy the signal
+        # to shut down, right? and then the main thread should get
+        # broken pipe to indicate that it can no longer write to them?
+        hunpos.stdout.close() # and wait for it? no need?
+        copy.stdout.close() # and wait for it? no need?
+        pass
+
+def implement_combine(hunpos, copy, out):
+    '''Thread may find pipe closed.'''
+
     response = (tokens
                 for isempty, tokens
                 in groupby(hunpos.stdout, bytes.isspace)
@@ -120,12 +136,14 @@ def getpos(names, name):
     try:
         return namelist.index(name)
     except ValueError:
-        raise ValueError('name "{}" not in list'.format(name))
+        raise BadData('no such name: {}'.format(name.decode('UTF-8')))
 
 def addtag(names, word, tag):
     new = re.findall(br'[\w+]+', names)[2:]
-    if word not in new: raise ValueError('word-name must be old')
-    if tag in new: raise ValueError('tag-name must be new')
+    if word not in new: raise BadData('no such name: {}'
+                                      .format(word.decode('UTF-8')))
+    if tag in new: raise BadData('name already in use: {}'
+                                 .format(tag.decode('UTF-8')))
     new.insert(new.index(word) + 1, tag)
     return b' '.join([b'<!-- Positional attributes:'] + new + [b'-->\n'])
 
@@ -204,7 +222,13 @@ def main(inf, ouf):
                 implement_main(inf, hunpos, copy)
                 status = 0
             except BadData as exn:
-                print(exn, file = sys.stderr)
+                print(parser.prog + ':', exn, file = sys.stderr)
+            except BrokenPipeError as exn:
+                # when combine thread gets broken pipe, it closes the
+                # output side of hunpos and copy, then they close and
+                # this thread gets broken pipe - right?
+                print(parser.prog + ':', 'broken pipe in main thread',
+                      file = sys.stderr)
             except Exception as exn:
                 print(traceback.format_exc(), file = sys.stderr)
 
