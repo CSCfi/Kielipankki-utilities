@@ -13,7 +13,7 @@ HUNPOS = [ '/proj/kieli/sparv/hunpos/hunpos-tag',
            # a morphtable here?
            os.path.join('/proj/kieli/sparv/models', MODEL)]
 
-VERSION = '0.1 (2018-06-06)'
+VERSION = '0.2 (2018-06-08)'
 
 parser = ArgumentParser(description = '''
 
@@ -85,14 +85,23 @@ def combine(hunpos, copy, out):
         # wonder if just setting the signal thing would work here
         implement_combine(hunpos, copy, out)
     except BrokenPipeError:
-        print(parser.prog + ':', 'broken pipe in combine thread',
+        print(parser.prog + ':', 'in combine thread: Broken Pipe',
               file = sys.stderr)
+    except StopIteration:
+        # from next(response) when main thread got keyboard interruption
+        print(parser.prog + ':', 'in combine thread: Stop Iteration',
+              file = sys.stderr)
+    except ValueError as exn:
+        # sometimes keyboard interruption in main thread produces here
+        # a readline of closed file
+        print(parser.prog + ':', 'in combine thread: Value Error:', exn,
+              file = sys.stderr)
+    finally:
         # closing their stdouts should send hunpos and copy the signal
         # to shut down, right? and then the main thread should get
         # broken pipe to indicate that it can no longer write to them?
-        hunpos.stdout.close() # and wait for it? no need?
-        copy.stdout.close() # and wait for it? no need?
-        pass
+        hunpos.stdout.close() # no need to wait for it?
+        copy.stdout.close() # no need to wait for it or something?
 
 def implement_combine(hunpos, copy, out):
     '''Thread may find pipe closed.'''
@@ -227,7 +236,10 @@ def main(inf, ouf):
                 # when combine thread gets broken pipe, it closes the
                 # output side of hunpos and copy, then they close and
                 # this thread gets broken pipe - right?
-                print(parser.prog + ':', 'broken pipe in main thread',
+                print(parser.prog + ':', 'in main thread: Broken Pipe',
+                      file = sys.stderr)
+            except KeyboardInterrupt as exn:
+                print(parser.prog + ':', 'in main thread: Keyboard Interrupt',
                       file = sys.stderr)
             except Exception as exn:
                 print(traceback.format_exc(), file = sys.stderr)
