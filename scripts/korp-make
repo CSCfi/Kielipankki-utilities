@@ -98,7 +98,7 @@ augment-data|augment-existing-data
     augment existing corpus data with the data in the input, for
     example, to add parse annotations to a corpus already encoded; if
     the input contains values for existing attributes, they override
-    existing values
+    existing values; you cannot use this option with --force
 generate-input-from-data generate_input
     use the existing (CWB) corpus data as the input, which is to be
     augmented if needed with lemgrams, lemmas without compound
@@ -315,9 +315,13 @@ else
     stage1_descr="Combining input files"
 fi
 
-if [ "x$augment_data" != x ] &&
-    [ "$(list_corpora --on-error : "$corpus")" != "$corpus" ]; then
-    error "Corpus $corpus not found; cannot augment corpus data"
+if [ "x$augment_data" != x ]; then
+    if [ "$(list_corpora --on-error : "$corpus")" != "$corpus" ]; then
+	error "Corpus $corpus not found; cannot augment corpus data"
+    fi
+    if [ "x$force" != x ]; then
+	error "You cannot specify both --force and --augment-data"
+    fi
 fi
 
 if [ "x$logging" != x ]; then
