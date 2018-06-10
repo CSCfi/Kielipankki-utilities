@@ -1,0 +1,62 @@
+#! /usr/bin/env python3
+
+# - Mitä on erä?
+# - Riistaa kuten te.
+
+from argparse import ArgumentParser, REMAINDER
+from itertools import chain
+from shlex import quote
+from subprocess import Popen, PIPE
+import os
+
+parser = ArgumentParser(description = '''
+
+Send to the batch system in Taito a single command, with all manner of
+defaults, in the current working directory, and without waiting.
+
+''')
+parser.add_argument('command', help = "an executable command")
+parser.add_argument('argument', metavar = '...', nargs = REMAINDER,
+                    help = "its options and arguments")
+parser.add_argument('--log', default = 'log',
+                    help = "log dir (log/game-%%j.{out,err})")
+parser.add_argument('--out', '-o',
+                    help = "command standard output file")
+parser.add_argument('--cat', action = 'store_true',
+                    help = ("write the job desciption to stdout "
+                            "(instead of sending it to sbatch)"))
+
+# add options
+
+args = parser.parse_args()
+
+# Make sure the log directory exists. An alternative would be to fail
+# with an error message if the log directory does not exist. Sending
+# the job to the batch system without the log directory existing is
+# not an alternative.
+os.path.isdir(args.log) or os.mkdir(args.log)
+
+command = ' '.join(chain([quote(args.command)],
+                         map(quote, args.argument),
+                         ['>', quote(args.out)] if args.out else []))
+
+script = '''\
+#! /bin/bash -e
+#SBATCH --time={minutes}
+#SBATCH --out={out}
+#SBATCH --error={err}
+#SBATCH --workdir={workdir}
+
+date "+%F %T START"
+
+{command}
+
+date "+%F %T FINISH"
+'''.format(minutes = 60,
+           out = quote(os.path.join(args.log, 'game-%j.out')),
+           err = quote(os.path.join(args.log, 'game-%j.err')),
+           workdir = quote(os.getcwd()),
+           command = command)
+
+with Popen(['cat' if args.cat else 'sbatch'], stdin = PIPE) as process:
+    process.stdin.write(script.encode('UTF-8'))
