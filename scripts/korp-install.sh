@@ -29,8 +29,7 @@
 
 
 progname=$(basename $0)
-
-revert=
+progdir=$(dirname $0)
 
 remote_git_repo_pattern=git@github.com:CSCfi/korp-%s.git
 local_git_root=/v/korp/git
@@ -50,22 +49,42 @@ rsync_opts="-uacR --omit-dir-times"
 excludes_frontend='/*test*/ /*beta*/ /*download*/ /tmp*/ /old*/ /secure/ /fulltext/ /dma/'
 excludes_backend='/korp-*/ /annlab/ /log/'
 
-filegroup=
-for grp in korp clarin; do
-    if groups | grep -qw $grp; then
-	filegroup=$grp
-	break
-    fi
-done
-if [ "x$filegroup" = x ]; then
-    filegroup=`groups | cut -d' ' -f1`
-fi
+
+usage_header="Usage: $progname [options] component[:refspec] [target]
+
+Install or update Korp components from Kielipankki's Korp Git repositories
+
+Arguments:
+  component       the Korp component to install: either \"frontend\" or
+                  \"backend\"
+  refspec         the refspec in Git repository to install; typically a
+                  branch or tag name, but may also be relative to one, e.g.,
+                  \"master~2\" for the commit two commits before \"master\"
+                  (default: \"$default_refspec\")
+  target          the target (subdirectory) of the component to which to
+                  install the new version: if \"/\", install to the top
+                  directory (main production version) (default: \"$default_target\")"
+
+optspecs='
+revert
+  restore the backup copy of the component in target saved when the
+  script was run last time
+'
+
+usage_footer="The script makes a backup copy of the current installation of component in
+target. It can be restored later with the option --revert. Each target has
+a backup copy of its own, but subsequent runs of the script overwrite the
+backup copy.
+
+Note: The script does not delete existing files in the target directory
+even if they do not exist in the new version, to avoid deleting files added
+bypassing the version control. If the new version omits some files in the
+previous version, they will nevertheless be present in the installation
+unless manually removed, which may cause problems in some cases."
 
 
-ensure_perms () {
-    chgrp -R $filegroup "$@" 2> /dev/null
-    chmod -R g=u "$@" 2> /dev/null
-}
+. $progdir/korp-lib.sh
+
 
 if [ ! -e $log_file ]; then
     touch $log_file
@@ -79,101 +98,21 @@ log () {
 	>> $log_file
 }
 
-warn () {
-    echo "$progname: Warning: $1" >&2
-    log WARN "$1"
-}
-
-error () {
-    echo "$progname: $1" >&2
-    log ERROR "$1"
-    exit 1
-}
-
-usage () {
-cat <<EOF
-Usage: $progname [options] component[:refspec] [target]
-
-Install or update Korp components from Kielipankki's Korp Git repositories
-
-Arguments:
-  component       the Korp component to install: either "frontend" or
-                  "backend"
-  refspec         the refspec in Git repository to install; typically a
-                  branch or tag name, but may also be relative to one, e.g.,
-                  "master~2" for the commit two commits before "master"
-                  (default: "$default_refspec")
-  target          the target (subdirectory) of the component to which to
-                  install the new version: if "/", install to the top
-                  directory (main production version) (default: "$default_target")
-
-Options:
-  -h, --help      show this help
-  --revert        restore the backup copy of the component in target saved
-                  when the script was run last time
-
-The script makes a backup copy of the current installation of component in
-target. It can be restored later with the option --revert. Each target has
-a backup copy of its own, but subsequent runs of the script overwrite the
-backup copy.
-
-Note: The script does not delete existing files in the target directory
-even if they do not exist in the new version, to avoid deleting files added
-bypassing the version control. If the new version omits some files in the
-previous version, they will nevertheless be present in the installation
-unless manually removed, which may cause problems in some cases.
-EOF
-}
+# Log warnings and errors
+warn_hook='log WARN "$msg"'
+error_hook='log ERROR "$msg"'
 
 
 log INFO Run: $0 "$@"
 
-case $HOSTNAME in
-    korp.csc.fi | korp-test.csc.fi )
-	:
-	;;
-    * )
-	error "This script currently only works on korp.csc.fi and korp-test.csc.fi"
-	;;
-esac
-
-
-# Test if GNU getopt
-getopt -T > /dev/null
-if [ $? -eq 4 ]; then
-    # This requires GNU getopt
-    args=`getopt -o "h" -l "help,revert" -- "$@"`
-    if [ $? -ne 0 ]; then
-	exit 1
-    fi
-    eval set -- "$args"
+if [ $(get_host_env) != "korp" ]; then
+    error "This script currently only works on korp.csc.fi and korp-test.csc.fi"
 fi
-# If not GNU getopt, arguments of long options must be separated from
-# the option string by a space; getopt allows an equals sign.
+
 
 # Process options
-while [ "x$1" != "x" ] ; do
-    case "$1" in
-	-h | --help )
-	    usage
-	    exit
-	    ;;
-	--revert )
-	    revert=1
-	    ;;
-	-- )
-	    shift
-	    break
-	    ;;
-	--* )
-	    warn "Unrecognized option: $1"
-	    ;;
-	* )
-	    break
-	    ;;
-    esac
-    shift
-done
+eval "$optinfo_opt_handler"
+
 
 compspec=$1
 target=$2
@@ -273,6 +212,10 @@ git_get () {
     remote_git_repo=$(printf "$remote_git_repo_pattern" $_comp)
     local_git_repo="$local_git_prefix$_comp"
 
+    # Ensure file permissions in the local working copy even when an
+    # error occurs
+    add_cleanup_funcs ensure_perms_cwd
+
     if [ ! -d $local_git_repo ]; then
 	cd $local_git_root
 	echo "Cloning Git repository for Korp $comp"
@@ -281,12 +224,31 @@ git_get () {
 
     echo "Updating the Korp $_comp repository working copy"
     cd $local_git_repo
-    git remote update
+    git remote update ||
+    error "Could not update the repository from $remote_git_repo"
     git checkout $_branch || error "Could not checkout $_branch"
-    git pull --force origin $_branch || error "Could not pull origin/$_branch"
+    git pull --force origin $_branch || {
+	# If the pull failed because the local branch had diverged
+	# from the remote, reset and force-fetch the remote to the
+	# local. This apparently cannot be done with git pull alone.
+	warn "Local branch $_branch was outdated; updating from the repository"
+	git reset --hard HEAD &&
+	    # You cannot fetch to the current branch, so change to
+	    # another branch.
+	    # FIXME: Do not assume any other branch is available.
+	    git checkout $(git branch | grep -v '^\*' | head -1) &&
+	    git fetch --force origin $_branch:$_branch &&
+	    git checkout $_branch ||
+		error "Could not pull origin/$_branch"
+    }
     if [ "x$_refspec" != "x$_branch" ]; then
 	git checkout $_refspec || error "Could not checkout $_refspec"
     fi
+    rm_cleanup_funcs ensure_perms_cwd
+    ensure_perms .
+}
+
+ensure_perms_cwd () {
     ensure_perms .
 }
 

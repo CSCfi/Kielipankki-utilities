@@ -41,7 +41,7 @@ eval "$optinfo_opt_handler"
 
 
 if [ "x$list_functions" != x ]; then
-    grep '^[^ ]* () {' $progdir/korp-lib.sh |
+    grep -h '^[^ ]* () {' $_shlibdir/*.sh |
     sed -e 's/ ().*//' |
     sort
     exit
