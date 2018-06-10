@@ -1,0 +1,235 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from argparse import ArgumentParser, ArgumentTypeError
+from itertools import groupby, chain
+from tempfile import mkstemp
+import enum, os, re, sys, traceback
+
+VERSION = '0.1 (2018-06-09)'
+
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+class BadData(Exception): pass # stack trace is just noise
+class BadCode(Exception): pass # this cannot happen
+
+parser = ArgumentParser(description = '''
+
+Put ordinary named vrt into a "flat" form where structural markup
+lines and comments inside sentence elements are stored on the side
+instead of between tokens. This may involve some reordering and even
+removal of markup that does not contain any tokens.
+
+''')
+
+parser.add_argument('infile', nargs = '?', metavar = 'file',
+                    help = 'input file (default stdin)')
+parser.add_argument('--out', '-o',
+                    dest = 'outfile', metavar = 'file',
+                    help = 'output file (default stdout)')
+parser.add_argument('--in-place', '-i',
+                    dest = 'inplace', action = 'store_true',
+                    help = 'overwrite input file with output')
+parser.add_argument('--backup', '-b', metavar = 'bak',
+                    help = 'keep input file with suffix bak')
+parser.add_argument('--second', '-2', action = 'store_true',
+                    help = ( 'markup field in second position'
+                             ' (default last)' ))
+parser.add_argument('--version', action = 'store_true',
+                    help = 'print {} and exit'.format(VERSION))
+
+class Kind(enum.Enum):
+    # kind of line (group of them)
+    meta = 1
+    data = 2
+    begin = 3
+    end = 4
+
+def identify(line):
+    # used to tag lines with their kind
+    if line.startswith(b'<!-- Positional attributes:'): return Kind.meta, line
+    if line.startswith(b'<!--'): return Kind.meta, line
+    if line.startswith(b'<sentence'): return Kind.begin, line
+    if line.startswith(b'</sentence'): return Kind.end, line
+    if line.startswith(b'<'): return Kind.meta, line
+    return Kind.data, line
+
+def makenames(line):
+    names = re.findall(br'[\w+.]+', line)[2:]
+    if any(name == b'+' for name in names):
+        raise BadData('error: document is already flat')
+
+    names.insert(1 if args.second else len(names), b'+')
+    return b' '.join(chain([ b'<!--', b'Positional attributes:' ],
+                           names,
+                           [ b'-->\n' ]))
+
+def wrap_main():
+
+    if (args.backup is not None) and '/' in args.backup:
+        print('usage: --backup suffix cannot contain /', file = sys.stderr)
+        exit(1)
+
+    if (args.backup is not None) and not args.backup:
+        print('usage: --backup suffix cannot be empty', file = sys.stderr)
+        exit(1)
+
+    if (args.backup is not None) and not args.inplace:
+        print('usage: --backup requires --in-place', file = sys.stderr)
+        exit(1)
+
+    if args.inplace and (args.infile is None):
+        print('usage: --in-place requires input file', file = sys.stderr)
+        exit(1)
+
+    if args.inplace and (args.outfile is not None):
+        print('usage: --in-place not allowed with --out', file = sys.stderr)
+        exit(1)
+
+    if (args.outfile is not None) and os.path.exists(args.outfile):
+        # easier to check this than that output file is different than
+        # input file, though it be annoying when overwrite is wanted
+        print('usage: --out file must not exist', file = sys.stderr)
+        exit(1)
+
+    try:
+        if args.inplace or (args.outfile is not None):
+            head, tail = os.path.split(args.infile
+                                       if args.inplace
+                                       else args.outfile)
+            fd, temp = mkstemp(dir = head, prefix = tail)
+            os.close(fd)
+        else:
+            temp = None
+
+        with ((args.infile and open(args.infile, mode = 'br'))
+              or sys.stdin.buffer) as inf:
+            with ((temp and open(temp, mode = 'bw'))
+                  or sys.stdout.buffer) as ouf:
+                status = main(inf, ouf)
+
+        args.backup and os.rename(args.infile, args.infile + args.backup)
+        args.inplace and os.rename(temp, args.infile)
+        args.outfile and os.rename(temp, args.outfile)
+        exit(status)
+    except IOError as exn:
+        print(exn, file = sys.stderr)
+        exit(1)
+
+def main(inf, ouf):
+    status = 1
+    try:
+        implement_main(inf, ouf)
+        status = 0
+    except BadData as exn:
+        print(parser.prog + ':', exn, file = sys.stderr)
+    except Exception as exn:
+        print(traceback.format_exc(), file = sys.stderr)
+
+    return status
+
+def implement_main(inf, ouf):
+
+    def isnotspace(line): return not line.isspace()
+    document = map(identify, filter(isnotspace, inf))
+    begin, seen = None, False
+    while True:
+        try:
+            kind, line = next(document)
+        except StopIteration:
+            # should check nothing pending
+            break
+
+        if kind is Kind.begin and not seen:
+            raise BadData('error: no names before sentence')
+
+        if kind is Kind.data: # not in sentence?
+            ouf.write(line)
+            continue
+
+        if kind is Kind.begin and begin:
+            raise BadData('error: repeat sentence begin')
+
+        if kind is Kind.begin:
+            begin = line
+            before, token, after = [], None, []
+            for kind, line in document:
+                if kind is Kind.data and begin:
+                    ouf.write(begin)
+                    begin = None
+                    token = line
+                elif kind is Kind.data and token:
+                    ship(ouf, before, token, after)
+                    token = line
+                elif kind is Kind.data:
+                    raise BadCode('this cannot happen (data)')
+                elif kind is Kind.meta and begin:
+                    if line.startswith(b'<!-- Positional attributes:'):
+                        ouf.write(makenames(line))
+                    elif line.startswith(b'</'):
+                        ouf.write(line)
+                    else:
+                        before.append(line.rstrip(b'\n'))
+                elif kind is Kind.meta and token:
+                    if line.startswith(b'<!-- Positional attributes:'):
+                        print(parser.prog + ': warning:',
+                              'dropping names in sentence',
+                              file = sys.stderr)
+                    else:
+                        after.append(line.rstrip(b'\n'))
+                elif kind is Kind.meta:
+                    raise BadCode('this cannot happen (meta)')
+                elif kind is Kind.begin:
+                    raise BadData('error: sentence begin before token')
+                elif kind is Kind.end and begin:
+                    raise BadData('error: sentence end before token')
+                elif kind is Kind.end and token:
+                    ship(ouf, before, token, after, end = True)
+                    ouf.write(line)
+                    for line in before:
+                        # move out opener without following token
+                        ouf.write(line)
+                        ouf.write(b'\n')
+                    break
+                else:
+                    raise BadCode('error: this cannot happen')
+            else:
+                pass
+            continue
+
+        if kind is Kind.meta:
+            if line.startswith(b'<!-- Positional attributes:'):
+                seen = True
+                ouf.write(makenames(line))
+            else:
+                ouf.write(line)
+            continue
+
+        if kind is Kind.end:
+            raise BadData('error: sentence end before begin')
+
+        raise BadCode('this cannot happen')
+
+def ship(ouf, before, token, after, *, end = False):
+    record = token.rstrip(b'\n').split(b'\t')
+    meta = chain(before, [b'+'],
+                 (line for line in after
+                  if ( line.startswith(b'</') or
+                       (end and line.startswith(b'<!')))))
+    record.insert(2 if args.second else len(record), b''.join(meta))
+    ouf.write(b'\t'.join(record))
+    ouf.write(b'\n')
+    before.clear()
+    before.extend(line for line in after
+                  if not line.startswith(b'</')
+                  if not (end and line.startswith(b'<!')))
+    after.clear()
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+    if args.version:
+        print(VERSION)
+    else:
+        wrap_main()
