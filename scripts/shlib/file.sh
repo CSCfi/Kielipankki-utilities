@@ -140,6 +140,29 @@ comprcat () {
     fi
 }
 
+
+# test_compr_file [-test] file_basename
+#
+# Return the result of [ -test file ] for the file_basename, or if
+# that is false, try file_basename suffixed with .gz, .bz2 and .xz. If
+# they all return false, return false. The default test is -e.
+test_compr_file () {
+    local test basename compr_exts ext
+    compr_exts='.gz .bz2 .xz'
+    test=-e
+    if [ "x$2" != x ]; then
+	test=$1
+	shift
+    fi
+    basename=$1
+    [ $test "$basename" ] && return 0
+    for ext in $compr_exts; do
+	[ $test "$basename$ext" ] && return 0
+    done
+    return 1
+}
+
+
 calc_gib () {
     awk 'BEGIN { printf "%0.3f", '$1' / 1024 / 1024 / 1024 }'
 }
