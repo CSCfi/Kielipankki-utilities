@@ -106,4 +106,7 @@ elif [ -x /opt/mariadb/bin/mysql ]; then
     mysql_bin="/opt/mariadb/bin/mysql --defaults-extra-file=/var/lib/mariadb/my.cnf"
 else
     mysql_bin=$(find_prog mysql)
+    if [ "x$(run_mysql "" 2>&1)" != x ]; then
+	mysql_bin=
+    fi
 fi
