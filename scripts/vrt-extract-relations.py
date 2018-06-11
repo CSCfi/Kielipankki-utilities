@@ -312,8 +312,9 @@ class RelationExtractor(object):
             relmap = self._read_relmap(opts.relation_map)
         self._temp_fnames = {}
         if self._opts.input_fields:
-            self._input_fieldnames = re.split(r'\s*[,\s]\s*',
-                                              self._opts.input_fields)
+            # Strip slashes to allow "lex/"
+            self._input_fieldnames = re.split(
+                r'\s*[,\s]\s*', self._opts.input_fields.replace('/', ''))
             if 'lex' in self._input_fieldnames:
                 lex_index = self._input_fieldnames.index('lex')
                 self._input_fieldnames[lex_index] = 'lemgram';
