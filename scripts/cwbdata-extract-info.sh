@@ -246,7 +246,7 @@ get_date_tsv () {
     fi
     comprcat $tsvdir/${corpus}_timedata.tsv* |
     cut -d"$tab" -f$fieldnr |
-    grep -v '^$' |
+    grep -v '^0*$' |
     sort $sort_opts |
     head -1 |
     sed -e 's/\([0-9][0-9][0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)/\1-\2-\3 \4:\5:\6/'
