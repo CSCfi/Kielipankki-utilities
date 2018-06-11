@@ -254,9 +254,14 @@ get_date_tsv () {
 
 get_date () {
     corpname=$2
-    if [ "x$tsvdir" != x ] && [ -s "$tsvdir/${corpname}_timedata.tsv.gz" ];
-    then
-	get_date_tsv "$@"
+    if [ "x$tsvdir" != x ]; then
+	 if test_compr_file -s "$tsvdir/${corpname}_timedata.tsv"; then
+	     get_date_tsv "$@"
+	 else
+	     # FIXME: The message is inexact, as test_compr_file and
+	     # comprcat also recognize .bz2 and .xz files.
+	     warn "File $tsvdir/${corpname}_timedata.tsv(.gz) not found or empty: cannot get FirstDate and LastDate information"
+	 fi
     elif [ "x$mysql_bin" != x ]; then
 	get_date_mysql "$@"
     else
