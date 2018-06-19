@@ -1,0 +1,42 @@
+<!-- Positional attributes: word -->
+<text file="three/one/three.vrt">
+<sentence>
+Praesent
+feugiat
+est
+in
+sapien
+scelerisque
+consequat
+.
+</sentence>
+<sentence>
+Maecenas
+magna
+nisi
+,
+dignissim
+mollis
+ligula
+in
+,
+bibendum
+dapibus
+quam
+.
+</sentence>
+<sentence>
+Vivamus
+a
+leo
+eu
+erat
+luctus
+convallis
+ut
+eget
+eros
+.
+</sentence>
+</text>
+<!-- no newline -->

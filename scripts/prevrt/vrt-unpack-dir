@@ -1,0 +1,172 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from argparse import ArgumentParser, ArgumentTypeError
+from itertools import groupby, chain, count # using chain?
+from tempfile import mkstemp
+import enum, os, re, sys, traceback # using enum?
+import io, os, string, sys
+
+VERSION = '0.1 (2018-06-19)'
+
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+class BadData(Exception): pass # stack trace is just noise
+class BadCode(Exception): pass # this cannot happen
+
+parser = ArgumentParser(description = '''
+
+Unpack a directory tree of packed vrt fragments (named *.vrf) to the
+original names under a new directory tree of vrt documents.
+
+''')
+
+parser.add_argument('indir', help = 'input directory')
+
+outgrp = parser.add_mutually_exclusive_group(required = True)
+outgrp.add_argument('--out', '-o', dest = 'outdir', metavar = 'outdir',
+                    help = 'output directory')
+outgrp.add_argument('--suffix', '-s', metavar = '.fix',
+                    help = 'output in sibling directory indir.fix')
+
+parser.add_argument('--version', action = 'store_true',
+                    help = 'print {} and exit'.format(VERSION))
+
+# A dirsource produces all *.vrt files found under a given directory,
+# recursively, in a lexicographic order of their pathnames.
+
+def dirsource(path):
+    '''Yield a fragment producer for each *.vrt file under path in some
+    sort of lexicographic order of their path names.
+
+    '''
+
+    if os.path.isdir(path):
+        for name in sorted(os.listdir(path)):
+            yield from dirsource(os.path.join(path, name))
+    elif os.path.isfile(path) and os.path.splitext(path)[1] == '.vrf':
+        inf = open(path, mode = 'br')
+        yield makesource(properlines(inf))
+        inf.close()
+    else:
+        pass
+
+def properlines(lines):
+    for line in lines:
+        if line.isspace(): continue
+        yield (line if line.endswith(b'\n') else line + b'\n')
+
+def makesource(inf):
+    '''Return a source of the fragments packed in the given file.
+
+    '''
+
+    frak = 1
+    def identify(line):
+        nonlocal frak
+
+        if line.startswith(b'</...>'):
+            frak += 1
+            return frak - 1
+
+        return frak
+
+    return (group for kind, group in groupby(inf, identify))
+
+# A dirsink creates a directory where the documents are unpacked under
+# their original pathnames relative to their original directory.
+
+def dirsink(dirobj):
+    os.mkdir(dirobj)
+    return makesink(dirobj, dirobj, dirmember)
+
+def dirmember(dirobj, pathname):
+
+    subdirname = os.path.dirname(pathname)
+    os.makedirs(subdirname, exist_ok = True)
+    fd, temp = mkstemp(dir = subdirname,
+                       prefix = os.path.basename(pathname),
+                       suffix = '.tmp')
+    os.close(fd)
+    out = open(temp, mode = 'bw')
+
+    def end():
+        out.close()
+        os.rename(temp, pathname)
+
+    return out, end
+
+def makesink(target, targetname, member):
+    out, end = None, None
+    def consumer(fragment):
+        nonlocal out, end
+
+        if fragment is sentinel_fragment:
+            end is None or end()
+            return
+
+        first = next(fragment)
+        if not first.startswith(b'<... '):
+            raise BadData('not a fragment start tag')
+        # print('got fragment:', first)
+        attributes = dict(re.findall(br'(\w+)="([^"]*)"', first))
+        # print('got attributes:', attributes)
+        relative = attributes[b'source'].decode('UTF-8')
+        pathname = os.path.join(targetname, relative)
+        # print('got pathname:', pathname)
+
+        if attributes[b'fragment'] == b'1':
+            end is None or end()
+            out, end = None, None
+
+        if out is None:
+            out, end = member(target, pathname)
+
+        for line in fragment:
+            if line.startswith(b'</...>'): continue
+            out.write(line)
+
+    return consumer
+
+def wrap_main():
+    indir = os.path.realpath(args.indir)
+    outdir = ( os.path.realpath(args.outdir)
+               if args.outdir
+               else os.path.join(os.path.dirname(indir),
+                                 os.path.basename(indir) + args.suffix) )
+
+
+    if os.path.isdir(indir):
+        source = dirsource(indir)
+    else:
+        print('{}: error: not a directory: {}'
+              .format(parser.prog, args.indir),
+              file = sys.stderr)
+        exit(1)
+        
+    try:
+        sink = dirsink(outdir)
+    except Exception as exn:
+        print('{}: error: could not make output directory'
+              .format(parser.prog),
+              '{}: {}'.format(parser.prog, exn),
+              sep = '\n', file = sys.stderr)
+        exit(1)
+
+    main(source, sink)
+
+def main(source, sink):
+    for producer in source:
+        for fragment in producer:
+            sink(fragment)
+    sink(sentinel_fragment)
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+    sentinel_fragment = [ b'*** sentinel line ***\n' ]
+    if args.version:
+        print(VERSION)
+    else:
+        wrap_main()

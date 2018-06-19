@@ -1,0 +1,33 @@
+<!-- Positional attributes: word -->
+<text file="three/one/two.vrt">
+<sentence>
+Praesent
+efficitur
+,
+justo
+in
+aliquam
+ullamcorper
+,
+purus
+risus
+semper
+magna
+,
+ut
+ullamcorper
+ex
+sem
+scelerisque
+tellus
+.
+</sentence>
+<sentence>
+Maecenas
+vel
+egestas
+felis
+.
+</sentence>
+</text>
+<!-- no newline -->

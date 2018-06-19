@@ -1,0 +1,42 @@
+<text file="four.vrt">
+<!-- extract from one.vrt -->
+<paragraph n="1">
+<sentence>
+Lorem
+ipsum
+dolor
+sit
+amet
+,
+consectetur
+adipiscing
+elit
+.
+</sentence>
+<sentence>
+Praesent
+feugiat
+est
+in
+sapien
+scelerisque
+consequat
+.
+</sentence>
+<sentence>
+Maecenas
+magna
+nisi
+,
+dignissim
+mollis
+ligula
+in
+,
+bibendum
+dapibus
+quam
+.
+</sentence>
+</paragraph>
+</text>
