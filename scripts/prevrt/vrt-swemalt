@@ -159,7 +159,7 @@ def implement_combine(swemalt, copy, out):
             continue
 
 def getpos(names, name):
-    namelist = re.findall(br'[\w+]+', names)[2:]
+    namelist = re.findall(br'[\w.+]+', names)[2:]
     try:
         return namelist.index(name)
     except ValueError:
@@ -167,7 +167,7 @@ def getpos(names, name):
 
 def addnames(names, atname, *afternames):
     '''Build new name-line with afternames inserted after atname.'''
-    new = re.findall(br'[\w+]+', names)[2:]
+    new = re.findall(br'[\w.+]+', names)[2:]
     if atname not in new:
         raise BadData('no such positional attribute: {}'
                       .format(atname.decode('UTF-8')))
