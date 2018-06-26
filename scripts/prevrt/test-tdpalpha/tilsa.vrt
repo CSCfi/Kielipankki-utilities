@@ -1,15 +1,17 @@
 <!-- Positional attributes: word -->
-<sentence>
+<sentence source="Zoppaa ja zärvintä: Remonttia Venetsijärvellä">
+<edit original="Paalin">
 Heinäpaalin
+</edit>
 kierittäminen
 turvaköyttä
 pitkin
 on
 ältsin
 vaikeeta
-.
+!
 </sentence>
-<sentence>
+<sentence source="Neron-leimauxia: Pizza-pohja">
 Ripottele
 päälle
 3
@@ -22,19 +24,19 @@ mustaa
 pippuria
 .
 </sentence>
-<sentence>
+<sentence source="Neron-leimauxia: Pizza-pohja">
 Muistan
 aina
 että
 kappale
 olisi
 "
-<beeze>
+<name class="piece">
 On
 the
 road
 again
-</beeze>
+</name>
 "
 mutta
 ei
