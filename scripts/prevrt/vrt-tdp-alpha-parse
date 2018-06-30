@@ -59,11 +59,11 @@ parser.add_argument('--word', '-w', metavar = 'name',
                     type = nametype, default = b'word',
                     help = 'input word-field name (default word)')
 parser.add_argument('--tag', '-t', metavar = 'name',
-                    type = nametype, default = b'marmot.pos',
-                    help = 'input pos-tag-field name (default marmot.pos)')
+                    type = nametype, default = b'pos',
+                    help = 'input pos-tag-field name (default pos)')
 parser.add_argument('--feat', '-f', metavar = 'name',
-                    type = nametype, default = b'marmot.feat',
-                    help = 'input feature-field name (default marmot.feat)')
+                    type = nametype, default = b'feat',
+                    help = 'input feature-field name (default feat)')
 parser.add_argument('--prefix', '-p', metavar = 'fix',
                     type = nametype, default = b'',
                     help = 'prefix to output-field names')

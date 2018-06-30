@@ -1,0 +1,21 @@
+Tests on Turku dependency parser alpha version, currently only run in
+various ways but results not otherwise checked - better than nothing.
+
+TODO: implement checks.
+
+The pipeline consists of four components:
+
+vrt-tdp-alpha-lookup |
+vrt-tdp-alpha-marmot |
+vrt-tdp-alpha-fillup |
+vrt-tdp-alpha-parse
+
+Two of the components - marmot and parse - require flat input but may
+not detect violations of the requirement properly yet. These two also
+load statistical models; marmot feels a bit slow to start.
+
+The underlying parser is noisy. There are options for three different
+noise levels. The quiet option hides even error diagnostics. Not good.
+
+Lookup and fillup use a transducer through Python hfst library. They
+have options to produce debug output instead of VRT.

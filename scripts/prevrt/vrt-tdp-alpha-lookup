@@ -1,0 +1,462 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from argparse import ArgumentParser
+from tempfile import mkstemp
+import os, re, sys, traceback
+import hfst
+
+MODELDIR = '/proj/kieli/varpunen/models'
+MODEL = 'morphology.finntreebank.hfstol'
+
+VERSION = '0.2 (2018-06-24)'
+
+parser = ArgumentParser(description = '''
+
+Look up the words in a vrt document in the "particular version of
+Omorfi" that came with the alpha version of the Turku dependency
+parser. Build suitable feature sets (possible word class tags) to use
+with the MarMoT model of the parser, not entirely unlike the parser
+itself does. Insert the feature sets after the words. - The vrt
+document must have position names before any token.
+
+''')
+
+parser.add_argument('infile', nargs = '?', metavar = 'file',
+                    help = 'input file (default stdin)')
+parser.add_argument('--out', '-o',
+                    dest = 'outfile', metavar = 'file',
+                    help = 'output file (default stdout)')
+parser.add_argument('--in-place', '-i',
+                    dest = 'inplace', action = 'store_true',
+                    help = 'overwrite input file with output')
+parser.add_argument('--backup', '-b', metavar = 'bak',
+                    help = 'keep input file with suffix bak')
+parser.add_argument('--feats', '-f', metavar = 'name',
+                    default = 'marmot.in',
+                    help = 'output field name (default marmot.in)')
+parser.add_argument('--word', '-w', metavar = 'name',
+                    default = 'word',
+                    help = 'input field name (default word)')
+parser.add_argument('--debug', dest = 'debug',
+                    choices = ['raw', 'bare', 'basic', 'edited', 'extended'],
+                    help = 'show various stages (not VRT)')
+parser.add_argument('--version', action = 'store_true',
+                    help = 'print {} and exit'.format(VERSION))
+
+# old values are passed unescaped to the underlying transducer,
+# new values are inserted escaped to the output stream (N/A)
+bare, code = (b'&', b'<', b'>'), (b'&amp;', b'&lt;', b'&gt;')
+def encm(m, d = dict(zip(bare, code))): return d[m.group()]
+def decm(m, d = dict(zip(code, bare))): return d[m.group()]
+def escape(value): return re.sub('[&<>]', encm, value)
+def unescape(value): return re.sub('&(amp|lt|gt);', decm, value)
+
+class BadData(Exception): pass # stack trace is just noise
+class BadCode(Exception): pass # this cannot happen
+
+## TODO PROPERLY
+# extracted from omorfi_pos.py to work out analyze_reading, assuming
+# current hfst-optimized-lookup be suitable looker-up (instead of the
+# Java they used) Nupdate! current Python looker-up is perfect!
+
+# import omorfi_pos as omor
+
+### TODO comments are from omorfi_pos.py by the Turku NLP group
+'''
+lemma,tags=analyze_reading(reading)
+returns the lemma and the list of tags of the last compound member's
+last full derivation (i.e. derivation which produces POS)
+'''
+
+#Returns the lemma and list of readings which you can then feed into analyze_tagset
+#Raises ValueError if something goes haywire [[DOES NOT]]
+
+re_tag = re.compile('<([^<>]+)>')
+
+def raw_analyses(form):
+    '''(a debug level)'''
+    return [ ('_', [analysis])
+             for analysis, weight in FTB.lookup(unescape(form)) ]
+
+def bare_analyses(form):
+    '''(a debug level)'''
+    return [ ('_', [re.sub('@[^@]+@', '', analysis)])
+             for analysis, weight in FTB.lookup(unescape(form)) ]
+
+def basic_analyses(form):
+    return [ basic_analysis(analysis)
+             for analysis, weight in FTB.lookup(unescape(form)) ]
+
+def basic_analysis(analysis):
+    '''From omor.analyze_reading. Extract the more or less useful content
+    of a reading.
+
+    Work on an analysis line, and there is no such thing as an
+    analysis for unrecognized input.
+
+    reading => lemma, tags
+
+    '''
+
+    # could be more precise but meh
+    analysis = re.sub('@[^@]+@', '', analysis)
+
+    if analysis.startswith('+<'):
+        # +	+<Punct>
+        parts = [analysis]
+    else:
+        # NOTE form not included in analysis!
+        # Heinäpaalin	heinä<N><Sg><Nom><Cmpnd>+paali<N><Sg><Gen><Cap>
+        # Heinäpaalin	heinä+#paali<N><Sg><Gen><Cap>
+        # !! looks like + is never a character in another recognized token
+        # !! and so does not occur in analyses - not sure, though
+        parts = analysis.split('+')
+
+    lemmaparts = []
+    for part in parts:
+        if part.startswith('#') and part not in ('#', '#<Punct>'):
+            # #paali<N><Sg><Gen><Cap>
+            part = part[1:]
+        m = re_tag.search(part)
+        lemmaparts.append(part if m is None else part[:m.start()])
+    lemma = '|'.join(lemmaparts)
+
+    # from the last part: [N, Sg, Gen, Cap]
+    tags = re_tag.findall(parts[-1])
+
+    # "actual" tags down to derivation
+    # NOTE form not included in analysis
+    # kierittäminen	kieriä<V><Der_ttaa><V><Der_minen><N><Sg><Nom><cap>
+    # kierittäminen	kierittää<V><Der_minen><N><Sg><Nom><cap>
+
+    pos = 0
+    for k, tag in enumerate(reversed(tags), start = 1 - len(tags)):
+        if TAGCAT[tag] == 'POS':
+            if pos == 0:
+                pos = -k
+            else:
+                # unknown whether this ever happens - was an assertion
+                # ALERT broken now that not working in bytes any more
+                sys.stderr.buffer(b'testing:warning:another pos\n')
+                sys.stderr.buffer(b'testing:warning:' + reading + b'\n')
+                return lemma, tags[pos:]
+        elif pos > 0 and TAGCAT[tag] == 'DRV':
+            return lemma, tags[-k:]
+        else:
+            # they would also log some issues but let them be:
+            # - anything other than DRV before POS
+            # - other DRV than Der_u, Der_minen after POS
+            pass
+    else:
+        return lemma, tags
+
+def edited_analyses(form):
+    return tuple((lemma, edited_tags(form, tags))
+                 for lemma, tags in basic_analyses(form))
+
+def edited_tags(form, tags):
+    '''From omorfi_postprocess. Then remains to add additional readings to
+    the cohort for CC/CS and for some particular tokens.
+
+    '''
+    tags = [ ('Adv' if tag == 'Pcle' else
+              'Px3' if tag in ('PxSg3', 'PxPl3') else tag)
+             for tag in tags ]
+
+    # fix this here so it will not cause any more problems when there
+    # need be a POS later (CC, CS are SUBCAT so there is no POS, and
+    # Para is whatever - some two-dot thing? seen it now anyway) -
+    # they would map these only at the point where they need a POS
+    tags and tags[0] in ('CC', 'CS') and tags.insert(0, 'C')
+    tags and tags[0] == 'Para' and tags.insert(0, 'Punct')
+
+    if tags and tags[-1] in ('Cap', 'cap', 'CAP'): tags.pop()
+    if form[:1].isupper(): tags.append('Up')
+    return tuple(tags)
+
+def extended_analyses(form):
+    return extended_cohort(form, set(edited_analyses(form)))
+
+def extended_cohort(form, analyses):
+    extCC = { (lemma, tuple(('CC' if tag == 'CS' else tag) for tag in tags))
+              for lemma, tags in analyses if 'CS' in tags }
+    extCS = { (lemma, tuple(('CS' if tag == 'CC' else tag) for tag in tags))
+              for lemma, tags in analyses if 'CC' in tags }
+    ext = additions.get(form, set())
+
+    # not happy with no POS so throw such out if good ones remain
+    # (there are bad readings in "sun" / "sunkin" / "sunkaan") wait no
+    # that is not right must introduce C as POS for CC, CS first, as
+    # is done now in the edited stage
+    bad = {
+        (lemma, tags)
+        for lemma, tags in analyses
+        if not any(TAGCAT[tag] == 'POS' for tag in tags)
+    }
+
+    return (analyses | extCC | extCS | ext) - bad or analyses
+
+additions = {
+    # form : (lemma, tags)
+    'esimerkiksi' : { ('esimerkiksi', ('Adv',))
+    },
+    'Esimerkiksi' : { ('Esimerkiksi', ('Adv', 'Up'))
+    },
+    'mm.' : { ('mm', ('Adv',))
+    },
+    'Mm.' : { ('mm', ('Adv', 'Up'))
+    },
+}
+
+def marmot_feats(form):
+    '''All else is overkill, actually.'''
+
+    analyses = extended_analyses(form)
+
+    poses = (next((tag for tag in tags if TAGCAT[tag] == 'POS'), None)
+             for lemma, tags in analyses)
+    feats = sorted(set(filter(None, poses)))
+
+    return'#'.join('POS_' + feat for feat in feats) or '_'
+
+TAGCAT = {
+    'Abe' : 'CASE',
+    'Abl' : 'CASE',
+    'Acc' : 'CASE',
+    'Ade' : 'CASE',
+    'All' : 'CASE',
+    'cap' : 'CASECHANGE',
+    'Cap' : 'CASECHANGE',
+    'CAP' : 'CASECHANGE',
+    'Up' : 'CASECHANGE',
+    'Com' : 'CASE',
+    'Dis' : 'CASE',
+    'Ela' : 'CASE',
+    'Ess' : 'CASE',
+    'Gen' : 'CASE',
+    'Ill' : 'CASE',
+    'Ine' : 'CASE',
+    'Ins' : 'CASE',
+    'Lat' : 'CASE',
+    'Nom' : 'CASE',
+    'Par' : 'CASE',
+    'Prl' : 'CASE',
+    'Sti' : 'CASE',
+    'Tra' : 'CASE',
+    'Foc_han' : 'CLIT',
+    'Foc_ka' : 'CLIT',
+    'Foc_kaan' : 'CLIT',
+    'Foc_kin' : 'CLIT',
+    'Foc_pa' : 'CLIT',
+    'Foc_s' : 'CLIT',
+    'Qst' : 'CLIT',
+    'Comp' : 'CMP',
+    'Pos' : 'CMP',
+    'Superl' : 'CMP',
+    'Der_inen' : 'DRV',
+    'Der_ja' : 'DRV',
+    'Der_lainen' : 'DRV',
+    'Der_llinen' : 'DRV',
+    'Der_maisilla' : 'DRV',
+    'Der_minen' : 'DRV',
+    'Der_oi' : 'DRV',
+    'Der_sti' : 'DRV',
+    'Der_tar' : 'DRV',
+    'Der_tattaa' : 'DRV',
+    'Der_tatuttaa' : 'DRV',
+    'Der_ton' : 'DRV',
+    'Der_tse' : 'DRV',
+    'Der_ttaa' : 'DRV',
+    'Der_ttain' : 'DRV',
+    'Der_u' : 'DRV',
+    'Der_vs' : 'DRV',
+    'Inf1' : 'INF',
+    'Inf2' : 'INF',
+    'Inf3' : 'INF',
+    'Inf5' : 'INF',
+    'Cond' : 'MOOD',
+    'Eve' : 'MOOD',
+    'Imprt' : 'MOOD',
+    'Ind' : 'MOOD',
+    'Opt' : 'MOOD',
+    'Pot' : 'MOOD',
+    'ConNeg' : 'NEG',
+    'Pl' : 'NUM',
+    'Sg' : 'NUM',
+    'AgPcp' : 'PCP',
+    'Pcp' : 'PCP',
+    'PrfPrc' : 'PCP',
+    'PrsPrc' : 'PCP',
+    'A' : 'POS',
+    'Adp' : 'POS',
+    'Adv' : 'POS',
+    'C' : 'POS',
+    'Interj' : 'POS',
+    'N' : 'POS',
+    'Null' : 'POS',
+    'Num' : 'POS',
+    'Pcle' : 'POS',
+    'Pron' : 'POS',
+    'Punct' : 'POS',
+    'PxPl1' : 'POSS',
+    'PxPl2' : 'POSS',
+    'PxPl3' : 'POSS',
+    'PxSg1' : 'POSS',
+    'PxSg2' : 'POSS',
+    'PxSg3' : 'POSS',
+    'Px3' : 'POSS',
+    'V' : 'POS',
+    'Pe4' : 'PRS',
+    'Pl1' : 'PRS',
+    'Pl2' : 'PRS',
+    'Pl3' : 'PRS',
+    'Sg1' : 'PRS',
+    'Sg2' : 'PRS',
+    'Sg3' : 'PRS',
+    'Abbr' : 'SUBCAT',
+    'Acro' : 'SUBCAT',
+    'Approx' : 'SUBCAT',
+    'Card' : 'SUBCAT',
+    'CC' : 'SUBCAT',
+    'CS' : 'SUBCAT',
+    'Dem' : 'SUBCAT',
+    'Indef' : 'SUBCAT',
+    'Interr' : 'SUBCAT',
+    'Neg' : 'SUBCAT',
+    'Ord' : 'SUBCAT',
+    'Para' : 'SUBCAT',
+    'Pers' : 'SUBCAT',
+    'Pfx' : 'SUBCAT',
+    'Po' : 'SUBCAT',
+    'Pr' : 'SUBCAT',
+    'Prop' : 'SUBCAT',
+    'Qnt' : 'SUBCAT',
+    'Real' : 'SUBCAT',
+    'Recipr' : 'SUBCAT',
+    'Refl' : 'SUBCAT',
+    'Rel' : 'SUBCAT',
+    'Sent' : 'SUBCAT',
+    'Sfx' : 'SUBCAT',
+    'Prs' : 'TENSE',
+    'Prt' : 'TENSE',
+    'Act' : 'VOICE',
+    'Pass' : 'VOICE',
+    'Typo' : 'OTHER',
+    'Cllq' : 'OTHER',
+    'Trash' : 'POS',
+    'Symb' : 'POS',
+    'Foreign' : 'POS',
+    'UNK' : 'OTHER',
+}
+
+def wrap_main():
+    
+    if (args.backup is not None) and '/' in args.backup:
+        print('usage: --backup suffix cannot contain /', file = sys.stderr)
+        exit(1)
+
+    if (args.backup is not None) and not args.backup:
+        print('usage: --backup suffix cannot be empty', file = sys.stderr)
+        exit(1)
+
+    if (args.backup is not None) and not args.inplace:
+        print('usage: --backup requires --in-place', file = sys.stderr)
+        exit(1)
+
+    if args.inplace and (args.infile is None):
+        print('usage: --in-place requires input file', file = sys.stderr)
+        exit(1)
+
+    if args.inplace and (args.outfile is not None):
+        print('usage: --in-place not allowed with --out', file = sys.stderr)
+        exit(1)
+
+    if (args.outfile is not None) and os.path.exists(args.outfile):
+        # easier to check this than that output file is different than
+        # input file, though it be annoying when overwrite is wanted
+        print('usage: --out file must not exist', file = sys.stderr)
+        exit(1)
+
+    try:
+        if args.inplace or (args.outfile is not None):
+            head, tail = os.path.split(args.infile
+                                       if args.inplace
+                                       else args.outfile)
+            fd, temp = mkstemp(dir = head, prefix = tail)
+            os.close(fd)
+        else:
+            temp = None
+
+        with ((args.infile and open(args.infile, mode = 'r',
+                                    encoding = 'UTF-8'))
+              or sys.stdin) as inf:
+            with ((temp and open(temp, mode = 'w',
+                                 encoding = 'UTF-8'))
+                  or sys.stdout) as ouf:
+                # arrange stdin/stdout be UTF-8 for sure how or should even
+                main(inf, ouf)
+
+        args.backup and os.rename(args.infile, args.infile + args.backup)
+        args.inplace and os.rename(temp, args.infile)
+        args.outfile and os.rename(temp, args.outfile)
+
+    except IOError as exn:
+        print(exn, file = sys.stderr)
+        exit(1)
+
+def main(ins, ous):
+    # no reason to stay in binary here that ftb.lookup uses unicode
+    # but should ensure that stdin/stdout are UTF-8 and how does one
+    # do that again?
+
+    global FTB
+    # that be optimized-lookup form transducer (specific transducer!)
+    tin = hfst.HfstInputStream(os.path.join(MODELDIR, MODEL))
+    FTB = next(tin)
+    tin.close() # it *should* be made a context manager TOREPORT
+
+    # act on names and tokens, pass other lines on as they are
+    names, pos = None, None
+    for line in ins:
+        if line.startswith('<!-- Positional attributes:'):
+            names = re.findall(r'[\w.+]+', line)[2:]
+            if args.word not in names:
+                raise BadData('no such name: {}'.format(args.word))
+            if args.feats in names:
+                raise BadData('name already in use: {}'.format(args.feats))
+            pos = names.index(args.word)
+            names.insert(pos + 1, args.feats)
+            print('<!-- Positional attributes:', ' '.join(names), '-->',
+                  file = ous)
+        elif line.isspace() or line.startswith('<'):
+            print(line, end = '', file = ous)
+        elif names is None:
+            raise BadData('no names')
+        elif args.debug is None:
+            record = line.rstrip('\n\r').split('\t')
+            record.insert(pos + 1, escape(marmot_feats(record[pos])))
+            print(*record, sep = '\t', file = ous)
+        else:
+            record = line.rstrip('\n\r').split('\t')
+            form = record[pos]
+            analyses = (raw_analyses if args.debug == 'raw' else
+                        bare_analyses if args.debug == 'bare' else
+                        basic_analyses if args.debug == 'basic' else
+                        edited_analyses if args.debug == 'edited' else
+                        extended_analyses)(form)
+            if not analyses:
+                print(form, form, '_', sep = '\t', file = ous)
+                print(file = ous)
+            else:
+                for lemma, tags in analyses:
+                    print(form, lemma, '|'.join(tags), sep = '\t', file = ous)
+                else:
+                    print(file = ous)
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+    if args.version:
+        print(VERSION)
+    else:
+        wrap_main()

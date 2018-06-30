@@ -12,12 +12,15 @@ else
     cd "$(dirname ${BASH_SOURCE[0]})"
     FLATTEN=$(readlink -e ../vrt-flat)
     DEEPEN=$(readlink -e ../vrt-deep)
-    MARMOTIN=$(readlink -e ../vrt-tdpalpha-marmot-in)
-    MARMOT=$(readlink -e ../vrt-tdpalpha-marmot)
-    PARSE=$(readlink -e ../vrt-tdpalpha-parse)
+    LOOKUP=$(readlink -e ../vrt-tdp-alpha-lookup)
+    MARMOT=$(readlink -e ../vrt-tdp-alpha-marmot)
+    FILLUP=$(readlink -e ../vrt-tdp-alpha-fillup)
+    PARSE=$(readlink -e ../vrt-tdp-alpha-parse)
     
-    date "+%F %T Run tests on ${MARMOTIN}"
+    date "+%F %T Run tests on ${LOOKUP}"
     date "+%F %T Run tests on ${MARMOT}"
+    date "+%F %T Run tests on ${FILLUP}"
+    date "+%F %T Run tests on ${PARSE}"
     date "+%F %T Run tests with ${FLATTEN}"
     date "+%F %T Run tests with ${DEEPEN}"
     date "+%F %T Run tests in $(pwd)"
@@ -96,37 +99,37 @@ mkdir marmot.in
 
 date "+%F %T Test 1.1: pre-MarMoT lookup at raw stage"
 
-${MARMOTIN} --debug raw --out marmot.in/lookup.raw tilsa.vrt
+${LOOKUP} --debug raw --out marmot.in/lookup.raw tilsa.vrt
 
 date "+%F %T Test 1.1: PASS without checks"
 
 date "+%F %T Test 1.2: pre-MarMoT lookup at bare stage"
 
-${MARMOTIN} --debug bare --out marmot.in/lookup.bare tilsa.vrt
+${LOOKUP} --debug bare --out marmot.in/lookup.bare tilsa.vrt
 
 date "+%F %T Test 1.2: PASS without checks"
 
 date "+%F %T Test 1.3: pre-MarMoT lookup at basic stage"
 
-${MARMOTIN} --debug basic --out marmot.in/lookup.basic tilsa.vrt
+${LOOKUP} --debug basic --out marmot.in/lookup.basic tilsa.vrt
 
 date "+%F %T Test 1.3: PASS without checks"
 
 date "+%F %T Test 1.4: pre-MarMoT lookup at edited stage"
 
-${MARMOTIN} --debug edited --out marmot.in/lookup.edited tilsa.vrt
+${LOOKUP} --debug edited --out marmot.in/lookup.edited tilsa.vrt
 
 date "+%F %T Test 1.4: PASS without checks"
 
 date "+%F %T Test 1.5: pre-MarMoT lookup at extended stage"
 
-${MARMOTIN} --debug extended --out marmot.in/lookup.extended tilsa.vrt
+${LOOKUP} --debug extended --out marmot.in/lookup.extended tilsa.vrt
 
 date "+%F %T Test 1.5: PASS without checks"
 
 date "+%F %T Test 1.6: pre-MarMoT actual lookup"
 
-${MARMOTIN} tilsa.vrt > marmot.in/lookedup.vrt
+${LOOKUP} tilsa.vrt > marmot.in/lookedup.vrt
 
 if echo -n # what should this test?
 then
@@ -154,7 +157,23 @@ fi
 
 ### Test 3 ###
 
-date "+%F %T Test 3: parse quietly /flatten /deepen"
+mkdir marmot.out
+
+date "+%F %T Test 3.1: post-MarMoT fillup /debug"
+
+${FILLUP} --debug --out marmot.out/tagged.debug marmot/tagged.vrt
+
+date "+%F %T Test 3.1: PASS without checks"
+
+date "+%F %T Test 3.2: post-MarMoT fillup"
+
+${FILLUP} --out marmot.out/tagged.vrt marmot/tagged.vrt
+
+date "+%F %T Test 3.2: PASS without checks"
+
+### Test 4 ###
+
+date "+%F %T Test 4.1: parse quietly /flatten /deepen"
 
 mkdir parse-q
 
@@ -164,14 +183,12 @@ ${FLATTEN} marmot/tagged.vrt |
 
 if echo -n # and this?
 then
-    date "+%F %T Test 3: PASS without checks"
+    date "+%F %T Test 4.1: PASS without checks"
 else
-    date "+%F %T Test 3: FAIL"
+    date "+%F %T Test 4.1: FAIL"
 fi
 
-### Test 4 ###
-
-date "+%F %T Test 4: parse with default noise level /flatten /deepen"
+date "+%F %T Test 4.2: parse with default noise level /flatten /deepen"
 
 mkdir parse
 
@@ -181,14 +198,12 @@ ${FLATTEN} marmot/tagged.vrt |
 
 if echo -n # and this?
 then
-    date "+%F %T Test 4: PASS without checks"
+    date "+%F %T Test 4.2: PASS without checks"
 else
-    date "+%F %T Test 4: FAIL"
+    date "+%F %T Test 4.2: FAIL"
 fi
 
-### Test 5 ###
-
-date "+%F %T Test 5: parse with high verbosity /flatten /deepen"
+date "+%F %T Test 4.3: parse with high verbosity /flatten /deepen"
 
 mkdir parse-v
 
@@ -198,7 +213,7 @@ ${FLATTEN} marmot/tagged.vrt |
 
 if echo -n # and this?
 then
-    date "+%F %T Test 5: PASS without checks"
+    date "+%F %T Test 4.3: PASS without checks"
 else
-    date "+%F %T Test 5: FAIL"
+    date "+%F %T Test 4.3: FAIL"
 fi
