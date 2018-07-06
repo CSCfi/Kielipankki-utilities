@@ -46,7 +46,7 @@ root_backend=/v/korp/cgi-bin
 
 rsync_opts="-uacR --omit-dir-times"
 
-excludes_frontend='/*test*/ /*beta*/ /*download*/ /tmp*/ /old*/ /secure/ /fulltext/ /dma/'
+excludes_frontend='/*test*/ /*beta*/ /*download*/ /tmp*/ /old*/ /secure/ /fulltext/ /dma/ /eduskunta/'
 excludes_backend='/korp-*/ /annlab/ /log/'
 
 
