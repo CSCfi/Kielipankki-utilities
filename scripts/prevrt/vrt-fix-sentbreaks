@@ -1,75 +1,147 @@
-from itertools import chain, groupby
-import re, sys
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
 
-# Omit spurious sentence breaks that were made by udpipe --tokenize.
-# Checked that "sentence" occurs only in "<sentence" and "</sentence",
-# so, for this material, it is safe to detect the proposed boundaries
-# by just that, though not it would not be safe in general.
 
-# Result contains #-comments at omitted breaks that contain NOBREAK
-# and may contain an ALARM when not as sure about the omitting - grep
-# out all these to use the resulting result -- the comments indicate a
-# sentence boundary with ## -- also BREAK-ALARM comments now, grep out
+"""
+vrt-fix-sentbreaks
 
-def isbreak(line):
-    return 'sentence' in line
+Fix in VRT input spurious sentence breaks added by the UDPipe Finnish
+tokenizer.
 
-def isword(line):
-    # mainly all-alphabetic but also alphabetic-alphabetic and
-    # alphabetic's that both occurred (also alpha-alpha's if any)
-    return re.fullmatch(R"\w+(-\w+)?('s)?\n", line)
+The logic of the code is taken from Jussi Piitulainen's unbreak.py for
+the CEAL corpus, either directly or slightly modified.
+"""
 
-def isdash(line):
-    return re.fullmatch(R"[-–]\n", line)
 
-def isquote(line):
-    return re.fullmatch(R'["”]\n', line)
+import re
+import sys
 
-def log(before, kind, after):
-    print('#', *chain((w.rstrip('\n') for w in (['##'] + before)[-4:]),
-                      [kind],
-                      (w.rstrip('\n') for w in (this + ['##'])[:6])),
-          file = sys.stderr)
+from itertools import groupby, chain
 
-before = ['<outside>']
-broken = []
-for kind, group in groupby(sys.stdin, isbreak):
-    if kind:
-        broken = list(group)
-        continue
+from scriptutil import InputProcessor
 
-    this = list(group)
-    if len(broken) == 0:
-        # before first sentence
-        pass
-    elif len(broken) == 1:
-        # either just '<sentence ...>' or just '</sentence>' at a
-        # larger boundary so not relevant so ship the break
-        print(*broken, sep = '', end = '')
-    elif (isword(before[-1]) and isword(this[0])):
-        # omit the sentence break for sure - grep out the (NO)BREAK
-        # comments to get the final valid output
-        log(before, 'NOBREAK', this)
-    elif any((c in w) for w in before[-2:] for c in '.!?:;'):
-        # appropriate punctuation before the break so ship the break
-        # without logging (no there is no certainty of anything ever
-        # but one has to draw the line somewhere - nothing to grep)
-        print(*broken, sep = '', end = '')
-    elif ((len(before) > 2 and
-           isdash(before[-2]) and isquote(before[-1]) and
-           this[0].istitle())
-          or
-          (len(this) > 2 and
-           isdash(this[0]) and isquote(this[1]) and
-           this[2].istitle())):
-        # one side is dash quote and something more and what follows
-        # the dash quote is capitalized - keep the break with ALARM
-        print(*broken, sep = '', end = '')
-        log(before, 'BREAK-ALARM', this)
-    else:
-        # omit the sentence break with ALARM - grep out the
-        # (NO)BREAK comments to get the final valid output
-        log(before, 'NOBREAK-ALARM', this)
-        
-    print(*this, sep = '', end = '')
-    before = this
+
+class SentenceBreakFixer(InputProcessor):
+
+    """Fix spurious sentence breaks added by the UDPipe Finnish tokenizer."""
+
+    VERSION = '0.1 (2018-08-23)'
+    DESCRIPTION = """
+    Fix spurious sentence breaks in VRT input added by the UDPipe
+    Finnish tokenizer.
+    """
+    ARGSPECS = [
+        ('--comments',
+         dict(action='store_true',
+              help='output XML comments for removed breaks')),
+        ('--verbose',
+         dict(action='store_true', help='log output to stderr')),
+    ]
+
+    _endpunct = '.!?:;'
+    """End-of-sentence punctuation marks"""
+    _dashes = '-–'
+    _quotes = '"”\'’'
+
+    def __init__(self):
+        super().__init__()
+
+    def implement_main(self, inf, ouf):
+
+        LESS_THAN = '<'.encode()[0]
+
+        def isbreak(line):
+            return (line[0] == LESS_THAN
+                    and (line.startswith(b'<sentence')
+                         or line.startswith(b'</sentence')))
+
+        def get_wordform(line):
+            # TODO: Take into account the positional attributes
+            # comment to allow the word form be other than the first
+            # positional attribute.
+            return line[:-1].decode().partition('\t')[0]
+
+        def isword(line):
+            # mainly all-alphabetic but also alphabetic-alphabetic and
+            # alphabetic's that both occurred (also alpha-alpha's if any)
+            return re.fullmatch(R"\w+(-\w+)?('s)?", get_wordform(line))
+
+        def isdash(line):
+            return get_wordform(line) in self._dashes
+
+        def isquote(line):
+            return get_wordform(line) in self._quotes
+
+        def isendpunct(line):
+            wf = get_wordform(line)
+            return (any((c in wf) for c in self._endpunct))
+
+        def istitle(line):
+            return get_wordform(line).istitle()
+
+        def log(before, kind, after):
+            if self._args.verbose:
+                print('#',
+                      *chain((w.decode().rstrip('\n')
+                              for w in ([b'##'] + before)[-4:]),
+                             [kind],
+                             (w.decode().rstrip('\n')
+                              for w in (after + [b'##'])[:6])),
+                      file=sys.stderr)
+
+        def comment(text):
+            if self._args.comments:
+                ouf.write(b'<!-- ' + text.encode() + b' -->\n')
+
+        def output_lines(lines):
+            for line in lines:
+                ouf.write(line)
+
+        before = ['<outside>']
+        broken = []
+        for kind, group in groupby(inf, isbreak):
+            if kind:
+                broken = list(group)
+                continue
+            this = list(group)
+            if len(broken) == 0:
+                # before first sentence
+                pass
+            elif len(broken) == 1:
+                # either just '<sentence ...>' or just '</sentence>' at a
+                # larger boundary so not relevant so ship the break
+                output_lines(broken)
+            elif isword(before[-1]) and isword(this[0]):
+                # omit the sentence break for sure - grep out the (NO)BREAK
+                # comments to get the final valid output
+                comment('NOBREAK: Removed sentence break')
+                log(before, 'NOBREAK', this)
+            elif any(isendpunct(w) for w in before[-2:]):
+                # appropriate punctuation before the break so ship the break
+                # without logging (no there is no certainty of anything ever
+                # but one has to draw the line somewhere - nothing to grep)
+                output_lines(broken)
+            elif ((len(before) > 2 and
+                   isdash(before[-2]) and isquote(before[-1]) and
+                   istitle(this[0]))
+                  or
+                  (len(this) > 2 and
+                   isdash(this[0]) and isquote(this[1]) and
+                   istitle(this[2]))):
+                # one side is dash quote and something more and what follows
+                # the dash quote is capitalized - keep the break with ALARM
+                comment(
+                    'BREAK-ALARM: Kept sentence break near a dash and quote')
+                output_lines(broken)
+                log(before, 'BREAK-ALARM', this)
+            else:
+                # omit the sentence break with ALARM - grep out the
+                # (NO)BREAK comments to get the final valid output
+                comment('NOBREAK-ALARM: Removed sentence break (unsure)')
+                log(before, 'NOBREAK-ALARM', this)
+            output_lines(this)
+            before = this
+
+
+if __name__ == '__main__':
+    SentenceBreakFixer().run()
