@@ -74,7 +74,11 @@ class SentenceBreakFixer(InputProcessor):
 
         def isendpunct(line):
             wf = get_wordform(line)
-            return (any((c in wf) for c in self._endpunct))
+            # The word form contains an end-of-sentence punctuation
+            # mark and it is _not_ an upper-case letter followed by a
+            # full stop, since "A." typically does not end a sentence.
+            return (any((c in wf) for c in self._endpunct)
+                    and not (len(wf) == 2 and wf[1] == '.' and wf[0].isupper()))
 
         def istitle(line):
             return get_wordform(line).istitle()
