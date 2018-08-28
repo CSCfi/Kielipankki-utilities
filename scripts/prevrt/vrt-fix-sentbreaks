@@ -1,0 +1,75 @@
+from itertools import chain, groupby
+import re, sys
+
+# Omit spurious sentence breaks that were made by udpipe --tokenize.
+# Checked that "sentence" occurs only in "<sentence" and "</sentence",
+# so, for this material, it is safe to detect the proposed boundaries
+# by just that, though not it would not be safe in general.
+
+# Result contains #-comments at omitted breaks that contain NOBREAK
+# and may contain an ALARM when not as sure about the omitting - grep
+# out all these to use the resulting result -- the comments indicate a
+# sentence boundary with ## -- also BREAK-ALARM comments now, grep out
+
+def isbreak(line):
+    return 'sentence' in line
+
+def isword(line):
+    # mainly all-alphabetic but also alphabetic-alphabetic and
+    # alphabetic's that both occurred (also alpha-alpha's if any)
+    return re.fullmatch(R"\w+(-\w+)?('s)?\n", line)
+
+def isdash(line):
+    return re.fullmatch(R"[-–]\n", line)
+
+def isquote(line):
+    return re.fullmatch(R'["”]\n', line)
+
+def log(before, kind, after):
+    print('#', *chain((w.rstrip('\n') for w in (['##'] + before)[-4:]),
+                      [kind],
+                      (w.rstrip('\n') for w in (this + ['##'])[:6])),
+          file = sys.stderr)
+
+before = ['<outside>']
+broken = []
+for kind, group in groupby(sys.stdin, isbreak):
+    if kind:
+        broken = list(group)
+        continue
+
+    this = list(group)
+    if len(broken) == 0:
+        # before first sentence
+        pass
+    elif len(broken) == 1:
+        # either just '<sentence ...>' or just '</sentence>' at a
+        # larger boundary so not relevant so ship the break
+        print(*broken, sep = '', end = '')
+    elif (isword(before[-1]) and isword(this[0])):
+        # omit the sentence break for sure - grep out the (NO)BREAK
+        # comments to get the final valid output
+        log(before, 'NOBREAK', this)
+    elif any((c in w) for w in before[-2:] for c in '.!?:;'):
+        # appropriate punctuation before the break so ship the break
+        # without logging (no there is no certainty of anything ever
+        # but one has to draw the line somewhere - nothing to grep)
+        print(*broken, sep = '', end = '')
+    elif ((len(before) > 2 and
+           isdash(before[-2]) and isquote(before[-1]) and
+           this[0].istitle())
+          or
+          (len(this) > 2 and
+           isdash(this[0]) and isquote(this[1]) and
+           this[2].istitle())):
+        # one side is dash quote and something more and what follows
+        # the dash quote is capitalized - keep the break with ALARM
+        print(*broken, sep = '', end = '')
+        log(before, 'BREAK-ALARM', this)
+    else:
+        # omit the sentence break with ALARM - grep out the
+        # (NO)BREAK comments to get the final valid output
+        log(before, 'NOBREAK-ALARM', this)
+        
+    print(*this, sep = '', end = '')
+    before = this
