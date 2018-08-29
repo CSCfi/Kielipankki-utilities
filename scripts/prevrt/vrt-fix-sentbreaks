@@ -32,10 +32,9 @@ class SentenceBreakFixer(InputProcessor):
     """
     ARGSPECS = [
         ('--comments',
-         dict(action='store_true',
-              help='output XML comments for removed breaks')),
+         'output XML comments for removed breaks'),
         ('--verbose',
-         dict(action='store_true', help='log output to stderr')),
+         'log output to stderr'),
     ]
 
     _endpunct = '.!?:;'
