@@ -163,14 +163,18 @@ def print_error(*msg):
     print(*msg, file=sys.stderr)
 
 
-def get_args(argparser, argcheck_fn=None, version=None):
+def get_args(argparser, unparsed_args=None, namespace=None,
+             argcheck_fn=None, version=None):
     """Return the command-line arguments parsed with argparser.
 
+    `unparsed_args` is a list of unparsed (command-line) arguments;
+    the default is to use sys.argv. Parsed arguments are added to
+    `namespace`; by default, they are added to a new empty Namespace.
     `argcheck_fn` is a function to check (and possibly modify) the
     parsed arguments, and `version` is the version to be printed when
     using the option --version.
     """
-    args = argparser.parse_args()
+    args = argparser.parse_args(unparsed_args, namespace)
     if args.version:
         print(version)
         exit(0)
@@ -195,14 +199,14 @@ def get_args(argparser, argcheck_fn=None, version=None):
     return args
 
 
-def wrap_main(main_fn, argparser, argcheck_fn=None, version=None):
+def wrap_main(main_fn, argparser, **getargs_kwargs):
     """Process arguments and call main with appropriate input and output.
 
-    Process arguments with `argparser`, passing `argcheck_fn` and
-    `version` to `get_args`, and then call `main_fn` with binary input
-    and output, as specified in the arguments.
+    Process arguments with `argparser`, passing `**getargs_kwargs`
+    to `get_args`, and then call `main_fn` with binary input and
+    output, as specified in the arguments.
     """
-    args = get_args(argparser, argcheck_fn, version)
+    args = get_args(argparser, **getargs_kwargs)
     try:
         if args.inplace or (args.outfile is not None):
             head, tail = os.path.split(args.infile
@@ -283,17 +287,19 @@ class InputProcessor:
 
     def __init__(self):
         """Initialize the class."""
-        self.argparser = get_argparser(argspecs=self.ARGSPECS,
-                                       version=self.VERSION,
-                                       description=self.DESCRIPTION)
+        self.argparser = None
         """Argument parser"""
         self._args = None
         """Parsed command-line arguments"""
 
-    def run(self):
+    def run(self, unparsed_args=None):
         """Process command-line arguments and run the main method."""
-        wrap_main(self.main, self.argparser, self.check_args,
-                  version=self.VERSION)
+        if self.argparser is None:
+            self.argparser = get_argparser(argspecs=self.ARGSPECS,
+                                           version=self.VERSION,
+                                           description=self.DESCRIPTION)
+        wrap_main(self.main, self.argparser, unparsed_args=unparsed_args,
+                  argcheck_fn=self.check_args, version=self.VERSION)
 
     def check_args(self, args):
         """Check command-line arguments and assign them to self._args."""
