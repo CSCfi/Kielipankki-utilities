@@ -1,0 +1,125 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+
+"""
+vrt-rm-duplstruct
+
+Output the VRT input with structures (elements) with equal content
+removed.
+"""
+
+
+import hashlib
+import re
+import sys
+
+from enum import Enum
+from itertools import groupby
+
+from scriptutil import InputProcessor
+
+
+class DuplicateStructureRemover(InputProcessor):
+
+    """Remove VRT structures with duplicated content."""
+
+    VERSION = '0.1 (2018-09-06)'
+    DESCRIPTION = """
+    Output the input VRT with structures with duplicated content removed.
+    """
+    ARGSPECS = [
+        ('--structure-name = STRUCT -> struct_name',
+         'check structures STRUCT for duplicate content',
+         dict(default='text')),
+    ]
+
+    def __init__(self):
+        super().__init__()
+
+    def implement_main(self, inf, ouf):
+
+        class LineType(Enum):
+            struct_begin = 1
+            struct_end = 2
+            other = 3
+
+        LESS_THAN = b'<'[0]
+        linenum = 1
+        content = None
+        structs_info = {}
+        struct_name = self._args.struct_name
+        struct_begins = [b'<' + struct_name.encode() + ch
+                         for ch in [b' ', b'>']]
+        struct_end = b'</' + struct_name.encode() + b'>\n'
+        in_struct = False
+        struct_num = 0
+        struct_begin_line = ''
+
+        def is_struct_begin(line):
+            return 
+
+        def identify_line(line):
+            if line[0] == LESS_THAN:
+                if line == struct_end:
+                    return LineType.struct_end
+                if any(line.startswith(begin) for begin in struct_begins):
+                    return LineType.struct_begin
+            return LineType.other
+
+        def comment(text):
+            ouf.write(b'<!-- ' + text.encode() + b' -->\n')
+
+        def extract_attrs(struct_line):
+            # print(struct_line)
+            attr_end = struct_line.find(b'>')
+            attr_begin = (struct_line.find(b' ') + 1) or attr_end
+            return struct_line[attr_begin:attr_end].decode()
+
+        def check_if_duplicate(lines):
+            nonlocal linenum
+            linecount = len(lines)
+            lines = b''.join(lines)
+            hash = hashlib.md5(lines).digest()
+            this_attrs = extract_attrs(struct_begin_line)
+            this_begin = linenum - 1
+            this_end = linenum + linecount
+            if hash in structs_info:
+                other_attrs, other_begin, other_end = structs_info[hash]
+                comment(
+                    'DUPLICATE: Omitted structure "{name}" on lines'
+                    ' {this_begin}...{this_end} (attributes: {this_attrs})'
+                    ' with content equal to "{name}" on lines '
+                    ' {other_begin}...{other_end} (attributes: {other_attrs}).'
+                    .format(name=struct_name, **locals()))
+            else:
+                structs_info[hash] = (
+                    this_attrs,
+                    this_begin,
+                    this_end,
+                )
+                ouf.write(struct_begin_line)
+                ouf.write(lines)
+                ouf.write(struct_end)
+            linenum += linecount
+        
+        for linetype, group in groupby(inf, identify_line):
+            if linetype == LineType.struct_begin:
+                struct_begin_line = next(group)
+                in_struct = True
+                struct_num += 1
+                linenum += 1
+            elif linetype == LineType.struct_end:
+                check_if_duplicate(content)
+                in_struct = False
+                linenum += 1
+            elif in_struct:
+                content = list(group)
+            else:
+                for line in group:
+                    ouf.write(line)
+                    linenum += 1
+
+
+if __name__ == '__main__':
+    DuplicateStructureRemover().run()
