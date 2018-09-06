@@ -25,7 +25,12 @@ class SentenceBreakFixer(InputProcessor):
 
     """Fix spurious sentence breaks added by the UDPipe Finnish tokenizer."""
 
-    VERSION = '0.1 (2018-08-23)'
+    _default_endpunct = '.!?:;'
+    """End-of-sentence punctuation marks"""
+    _default_dashes = '-–—'
+    _default_quotes = '"”“\'’‘«»'
+
+    VERSION = '0.2 (2018-09-06)'
     DESCRIPTION = """
     Fix spurious sentence breaks in VRT input added by the UDPipe
     Finnish tokenizer.
@@ -35,12 +40,16 @@ class SentenceBreakFixer(InputProcessor):
          'output XML comments for removed breaks'),
         ('--verbose',
          'log output to stderr'),
+        ('--end-punctuation = CHARS -> endpunct',
+         'consider CHARS as possible sentence-ending punctuation marks',
+         dict(default=_default_endpunct)),
+        ('--dashes = CHARS',
+         'consider CHARS as dashes',
+         dict(default=_default_dashes)),
+        ('--quotes = CHARS',
+         'consider CHARS as quotation marks',
+         dict(default=_default_quotes)),
     ]
-
-    _endpunct = '.!?:;'
-    """End-of-sentence punctuation marks"""
-    _dashes = '-–'
-    _quotes = '"”\'’'
 
     def __init__(self):
         super().__init__()
@@ -48,6 +57,9 @@ class SentenceBreakFixer(InputProcessor):
     def implement_main(self, inf, ouf):
 
         LESS_THAN = '<'.encode()[0]
+        endpunct = self._args.endpunct
+        dashes = self._args.dashes
+        quotes = self._args.quotes
 
         def isbreak(line):
             return (line[0] == LESS_THAN
@@ -66,17 +78,17 @@ class SentenceBreakFixer(InputProcessor):
             return re.fullmatch(R"\w+(-\w+)?('s)?", get_wordform(line))
 
         def isdash(line):
-            return get_wordform(line) in self._dashes
+            return get_wordform(line) in dashes
 
         def isquote(line):
-            return get_wordform(line) in self._quotes
+            return get_wordform(line) in quotes
 
         def isendpunct(line):
             wf = get_wordform(line)
             # The word form contains an end-of-sentence punctuation
             # mark and it is _not_ an upper-case letter followed by a
             # full stop, since "A." typically does not end a sentence.
-            return (any((c in wf) for c in self._endpunct)
+            return (any((c in wf) for c in endpunct)
                     and not (len(wf) == 2 and wf[1] == '.' and wf[0].isupper()))
 
         def istitle(line):
