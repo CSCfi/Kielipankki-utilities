@@ -32,6 +32,10 @@ class DuplicateStructureRemover(InputProcessor):
         ('--structure-name = STRUCT -> struct_name',
          'check structures STRUCT for duplicate content',
          dict(default='text')),
+        ('--comments',
+         'add an XML comment for each omitted duplicate'),
+        ('--verbose',
+         'write log output to stderr'),
     ]
 
     def __init__(self):
@@ -55,6 +59,8 @@ class DuplicateStructureRemover(InputProcessor):
         in_struct = False
         struct_num = 0
         struct_begin_line = ''
+        comments = self._args.comments
+        verbose = self._args.verbose
 
         def is_struct_begin(line):
             return 
@@ -67,8 +73,11 @@ class DuplicateStructureRemover(InputProcessor):
                     return LineType.struct_begin
             return LineType.other
 
-        def comment(text):
-            ouf.write(b'<!-- ' + text.encode() + b' -->\n')
+        def log_duplicate(text):
+            if comments:
+                ouf.write(b'<!-- ' + text.encode() + b' -->\n')
+            if verbose:
+                sys.stderr.write(self.argparser.prog + ': ' + text + '\n')
 
         def extract_attrs(struct_line):
             # print(struct_line)
@@ -86,7 +95,7 @@ class DuplicateStructureRemover(InputProcessor):
             this_end = linenum + linecount
             if hash in structs_info:
                 other_attrs, other_begin, other_end = structs_info[hash]
-                comment(
+                log_duplicate(
                     'DUPLICATE: Omitted structure "{name}" on lines'
                     ' {this_begin}...{this_end} (attributes: {this_attrs})'
                     ' with content equal to "{name}" on lines '
