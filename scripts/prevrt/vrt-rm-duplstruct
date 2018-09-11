@@ -32,6 +32,9 @@ class DuplicateStructureRemover(InputProcessor):
         ('--structure-name = STRUCT -> struct_name',
          'check structures STRUCT for duplicate content',
          dict(default='text')),
+        ('--within-structure = STRUCT -> within_struct',
+         'remove duplicates separately within each structure STRUCT, not'
+         ' across them (default: remove duplicates within the whole input)'),
         ('--comments',
          'add an XML comment for each omitted duplicate'),
         ('--verbose',
@@ -46,17 +49,30 @@ class DuplicateStructureRemover(InputProcessor):
         class LineType(Enum):
             struct_begin = 1
             struct_end = 2
-            other = 3
+            within_begin = 3
+            within_end = 4
+            other = 5
+
+        def make_begins_end(struct_name):
+            if struct_name is None:
+                return [], None
+            else:
+                return ([b'<' + struct_name.encode() + ch
+                         for ch in [b' ', b'>']],
+                        b'</' + struct_name.encode() + b'>\n')
 
         LESS_THAN = b'<'[0]
         linenum = 1
         content = None
         structs_info = {}
         struct_name = self._args.struct_name
-        struct_begins = [b'<' + struct_name.encode() + ch
-                         for ch in [b' ', b'>']]
-        struct_end = b'</' + struct_name.encode() + b'>\n'
+        struct_begins, struct_end = make_begins_end(struct_name)
+        within_struct = self._args.within_struct
+        within_begins, within_end = make_begins_end(within_struct)
         in_struct = False
+        # in_within is always True if no --within-structure was
+        # specified
+        in_within = (within_struct is None)
         struct_num = 0
         struct_begin_line = ''
         comments = self._args.comments
@@ -67,10 +83,15 @@ class DuplicateStructureRemover(InputProcessor):
 
         def identify_line(line):
             if line[0] == LESS_THAN:
-                if line == struct_end:
-                    return LineType.struct_end
-                if any(line.startswith(begin) for begin in struct_begins):
-                    return LineType.struct_begin
+                if in_within:
+                    if line == struct_end:
+                        return LineType.struct_end
+                    elif line == within_end:
+                        return LineType.within_end
+                    elif any(line.startswith(begin) for begin in struct_begins):
+                        return LineType.struct_begin
+                elif any(line.startswith(begin) for begin in within_begins):
+                    return LineType.within_begin
             return LineType.other
 
         def log_duplicate(text):
@@ -111,23 +132,36 @@ class DuplicateStructureRemover(InputProcessor):
                 ouf.write(lines)
                 ouf.write(struct_end)
             linenum += linecount
-        
+
+        def output_lines(lines):
+            nonlocal linenum
+            for line in lines:
+                ouf.write(line)
+                linenum += 1
+
         for linetype, group in groupby(inf, identify_line):
-            if linetype == LineType.struct_begin:
-                struct_begin_line = next(group)
-                in_struct = True
-                struct_num += 1
-                linenum += 1
-            elif linetype == LineType.struct_end:
-                check_if_duplicate(content)
-                in_struct = False
-                linenum += 1
-            elif in_struct:
-                content = list(group)
-            else:
-                for line in group:
-                    ouf.write(line)
+            if in_within:
+                if linetype == LineType.struct_begin:
+                    struct_begin_line = next(group)
+                    in_struct = True
+                    struct_num += 1
                     linenum += 1
+                elif linetype == LineType.struct_end:
+                    check_if_duplicate(content)
+                    in_struct = False
+                    linenum += 1
+                elif linetype == LineType.within_end:
+                    output_lines(group)
+                    in_within = False
+                    structs_info = {}
+                elif in_struct:
+                    content = list(group)
+                else:
+                    output_lines(group)
+            else:
+                if linetype == LineType.within_begin:
+                    in_within = True
+                output_lines(group)
 
 
 if __name__ == '__main__':
