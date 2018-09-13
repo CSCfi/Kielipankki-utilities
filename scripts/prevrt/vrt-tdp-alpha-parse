@@ -243,7 +243,9 @@ def wrap_main():
             head, tail = os.path.split(args.infile
                                        if args.inplace
                                        else args.outfile)
-            fd, temp = mkstemp(dir = head, prefix = tail)
+            # 2018-09-13 mkstemp failed - apparently this path
+            # had not been tested TODO
+            fd, temp = tempfile.mkstemp(dir = head, prefix = tail)
             os.close(fd)
         else:
             temp = None
