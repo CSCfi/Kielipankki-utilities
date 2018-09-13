@@ -3,28 +3,41 @@
 
 from argparse import ArgumentParser
 from itertools import groupby, count
-from subprocess import Popen, PIPE
-from tempfile import mkstemp
+from subprocess import Popen, PIPE, DEVNULL
 from threading import Thread
-import enum, os, re, sys, traceback
+import enum, os, re, sys, tempfile, traceback
 
+# this thing is known variously as "mate tools" (though mate tools
+# consist of other things, too), "anna" (for whatever motivation,
+# nowhere to be found), apparently "is2", and "the parser" and certain
+# locutions that describe or praise the parser.
 
-SWEMALT = [ 'java', '-jar',            
-            '/proj/kieli/sparv/maltparser-1.7.2/maltparser-1.7.2.jar',
-            '-v', 'warn',
-            '-w', '/proj/kieli/sparv/models/swemalt-1.7.2-wd',
-            '-c', 'swemalt-1.7.2' ]
+WHATEVER = [ 'java', '-cp',
+             '/proj/kieli/varpunen/mate-tools/anna-3-1.jar',
+             'is2.parser.Parser',
+             '-model', '/proj/kieli/varpunen/models/parser.model',
+             '-test', '/dev/stdin'
 
-VERSION = '0.1 (2018-06-08)'
+             # extend with [ '-out', pipename ] at the point of Popen,
+             # when a named-pipe name is at hand, because this version
+             # of this thing writes its diagnostics in its stdout
+]
+
+# Let slip the first "Processing Sentence: 1 (32 ms/instance)".
+# Quash the hundred thousand "2 (113 ms/instance)" that follow.
+BREAKER = [ '/usr/bin/tr', '-s', r'\b', r'\n' ] # sigh
+QUASHER = [ '/bin/grep', '-P', '-x', '-v', r'\d+ \(\d+ ms/instance\)' ]
+
+VERSION = '0.2 (2018-06-25)'
 
 parser = ArgumentParser(description = '''
 
 Pass morphologically tagged word forms in a flat vrt document through
-MALT parser using the Swemalt 1.7.2 model (compatible with hunpos
-tagging from Sparv). Insert the syntactic dependency analysis in new
-fields after the tag field. The vrt document must have position names
-in a comment before any content. (A "flat" vrt document has no markup
-or comment lines inside sentence elements.)
+the parser of Mate-Tools using the model from Turku. Insert the
+syntactic dependency analysis in new fields after the tag field. The
+vrt document must have position names in a comment before any
+content. (A "flat" vrt document has no markup or comment lines inside
+sentence elements.)
 
 ''')
 
@@ -44,16 +57,26 @@ parser.add_argument('--backup', '-b', metavar = 'bak',
                     help = 'keep input file with suffix bak')
 parser.add_argument('--word', '-w', metavar = 'name',
                     type = nametype, default = b'word',
-                    help = 'input word field name (default word)')
+                    help = 'input word-field name (default word)')
 parser.add_argument('--tag', '-t', metavar = 'name',
-                    type = nametype, default = b'msd',
-                    help = 'input tag field name (default msd)')
+                    type = nametype, default = b'pos',
+                    help = 'input pos-tag-field name (default pos)')
+parser.add_argument('--feat', '-f', metavar = 'name',
+                    type = nametype, default = b'feat',
+                    help = 'input feature-field name (default feat)')
 parser.add_argument('--prefix', '-p', metavar = 'fix',
                     type = nametype, default = b'',
-                    help = 'prefix to output field names')
+                    help = 'prefix to output-field names')
 parser.add_argument('--suffix', '-s', metavar = 'fix',
                     type = suffixtype, default = b'',
-                    help = 'suffix to output field names')
+                    help = 'suffix to output-field names')
+
+noise_level = parser.add_mutually_exclusive_group()
+noise_level.add_argument('--quiet', '-q', action = 'store_true',
+                         help = 'quash all diagnostics from the parser')
+noise_level.add_argument('--verbose', '-v', action = 'store_true',
+                         help = 'watch parser report on every sentence')
+
 parser.add_argument('--version', action = 'store_true',
                     help = 'print {} and exit'.format(VERSION))
 
@@ -84,17 +107,20 @@ def identify(line):
     if line.startswith(b'<'): return Kind.meta
     return Kind.data
 
-def combine(swemalt, copy, out):
-    '''Read swemalt output (id TAB word TAB _ TAB pos ... msd TAB NL / NL)
+def combine(pipename, copy, out):
+    '''Read whatever output (id TAB word TAB _ TAB pos ... msd TAB NL / NL)
     and flat vrt from the copy process. Insert dependency analysis
-    from swemalt to the vrt at the named position.
+    from whatever to the vrt at the named position.
 
     This is run as a thread that consumes the two processes.
 
     '''
 
     try:
-        implement_combine(swemalt, copy, out)
+        # this blocks until the subprocess in main thread has opened
+        # the named pipe for writing - what if it fails to do that?
+        pipe = open(pipename, mode = 'br')
+        implement_combine(pipe, copy, out)
     except BrokenPipeError:
         print(parser.prog + ':', 'in combine thread: Broken Pipe',
               file = sys.stderr)
@@ -108,18 +134,19 @@ def combine(swemalt, copy, out):
         print(parser.prog + ':', 'in combine thread: Value Error:', exn,
               file = sys.stderr)
     finally:
-        # closing their stdouts should send swemalt and copy the signal
-        # to shut down, right? and then the main thread should get
-        # broken pipe to indicate that it can no longer write to them?
-        swemalt.stdout.close() # no need to wait for it?
+        # closing their stdouts should send whatever (behind pipe) and
+        # copy the signal to shut down, right? and then the main
+        # thread should get broken pipe to indicate that it can no
+        # longer write to them?
+        pipe.close() # no need to wait for it?
         copy.stdout.close() # no need to wait for it or something?
 
-def implement_combine(swemalt, copy, out):
-    '''Thread may find pipe closed.'''
+def implement_combine(pipe, copy, out):
+    '''Thread may find pipe closed. (What now that it is a named pipe?)'''
 
     response = (tokens
                 for isempty, tokens
-                in groupby(swemalt.stdout, bytes.isspace)
+                in groupby(pipe, bytes.isspace)
                 if not isempty)
     
     mf = None # msd field index, after which insert new
@@ -132,14 +159,14 @@ def implement_combine(swemalt, copy, out):
         if (kind is Kind.data) and found:
             for new, old in zip(next(response), group):
                 [
-                    ID, form, base,
-                    pos, xpos, feats,
-                    dephead, deprel,
-                    _, _
+                    ID, form, lemma, plemma,
+                    pos, ppos, feat, pfeat,
+                    dephead, pdephead, deprel, pdeprel,
+                    fillpred, pred
                 ] = new.rstrip(b'\n').split(b'\t')
                 values = old.rstrip(b'\n').split(b'\t')
-                values.insert(mf + 1, escape(deprel))
-                values.insert(mf + 1, escape(dephead))
+                values.insert(mf + 1, escape(pdeprel))
+                values.insert(mf + 1, escape(pdephead))
                 values.insert(mf + 1, escape(ID))
                 out.write(b'\t'.join(values))
                 out.write(b'\n')
@@ -154,6 +181,7 @@ def implement_combine(swemalt, copy, out):
                 continue
 
         for line in group:
+            # print('DEBUG: catchall write')
             out.write(line)
         else:
             continue
@@ -235,23 +263,45 @@ def wrap_main():
         exit(1)
 
 def main(inf, ouf):
-    with Popen(SWEMALT,
+    temp = tempfile.mkdtemp(prefix = 'vrt.')
+    pipename = os.path.join(temp, 'tdpalpha')
+    os.mkfifo(pipename)
+    print(parser.prog + ': creating {}'
+          .format(pipename), file = sys.stderr)
+
+    breaker = ( None
+                if args.quiet else
+                Popen(BREAKER, stdin = PIPE, stdout = sys.stderr.buffer)
+                if args.verbose else
+                Popen(BREAKER, stdin = PIPE, stdout = PIPE) )
+
+    quasher = ( None
+                if (args.quiet or args.verbose) else
+                Popen(QUASHER,
+                      stdin = breaker.stdout,
+                      stdout = sys.stderr.buffer) )
+
+    # somewhere here should close some standard streams to have
+    # eventual broken pipes have the intended effect, right? no?
+    # breaker.stdout when it is the PIPE to quasher, presumably
+
+    with Popen(WHATEVER + [ '-out', pipename ],
                stdin = PIPE,
-               stdout = PIPE,
-               stderr = sys.stderr.buffer) as swemalt:
+               stdout = (breaker.stdin if breaker else DEVNULL),
+               stderr = sys.stderr.buffer) as whatever:
         with Popen(['cat'],
                    stdin = PIPE,
                    stdout = PIPE,
-                   stderr = sys.stderr) as copy:
+                   stderr = sys.stderr.buffer) as copy:
 
             # is this a "useless use of cat"?
 
-            t = Thread(target = combine, args = (swemalt, copy, ouf))
+            t = Thread(target = combine, args = (pipename, copy, ouf))
             t.start()
 
             status = 1
             try:
-                implement_main(inf, swemalt, copy)
+                implement_main(inf, whatever, copy)
                 status = 0
             except BadData as exn:
                 print(parser.prog + ':', exn, file = sys.stderr)
@@ -267,18 +317,25 @@ def main(inf, ouf):
             except Exception as exn:
                 print(traceback.format_exc(), file = sys.stderr)
 
-            swemalt.stdin.close()
+            whatever.stdin.close()
             copy.stdin.close()
             t.join()
+            print(parser.prog + ': removing {}'
+                  .format(pipename), file = sys.stderr)
+            os.remove(pipename)
+            os.rmdir(temp)
+
+            # what about breaker and quasher, if any?
+
             return status
 
-def implement_main(inf, swemalt, copy):
+def implement_main(inf, whatever, copy):
 
-    # each "word" and "tag" go to swemalt, with empty line after
+    # each "word" and "tag" go to whatever, with empty line after
     # sentence; everything but empty goes to copy, with new "id",
     # "dephead", "deprel" (or such) in names
 
-    wf, pf = None, None
+    wf, tf, ff = None, None, None # word, tag, feat positions
     found = False
     def isnotspace(line): return not line.isspace()
     for kind, group in groupby(filter(isnotspace, inf), identify):
@@ -290,23 +347,34 @@ def implement_main(inf, swemalt, copy):
             if wf is None:
                 raise BadData('error: token before field names')
             for k, line in enumerate(group, start = 1):
-                
-                swemalt.stdin.write(str(k).encode('UTF-8'))
-                swemalt.stdin.write(b'\t')
-                swemalt.stdin.write(unescape(getword(line, wf))) # rename getword
-                swemalt.stdin.write(b'\t_\t')
-                msd = unescape(getword(line, pf))
-                pos, *rest = msd.split(b'.')
-                swemalt.stdin.write(pos)
-                swemalt.stdin.write(b'\t')
-                swemalt.stdin.write(pos)
-                swemalt.stdin.write(b'\t')
-                swemalt.stdin.write(b'|'.join(rest) or b'_')
-                swemalt.stdin.write(b'\n')
+                # print('DEBUG: sending token')
+                # format for the whatever parser is CoNLL'09:
+                # ID FORM LEMMA PLEMMA POS PPOS FEAT PFEAT
+                # HEAD PHEAD DEPREL PDEPREL FILLPRED PRED APREDs
+                # (er, any number of APRED1, APRED2, ...)
+                # to guess where the input should be - ID, FORM,
+                # POS, FEAT, right? but does the parser conform?
+
+                # ID tab
+                whatever.stdin.write(str(k).encode('UTF-8'))
+                whatever.stdin.write(b'\t')
+                # FORM tab LEMMA tab PLEMMA tab
+                whatever.stdin.write(unescape(getword(line, wf))) # rename getword
+                whatever.stdin.write(b'\t_\t_\t')
+                # POS tab PPOS tab
+                whatever.stdin.write(unescape(getword(line, tf)))
+                whatever.stdin.write(b'\t_\t')
+                # FEAT tab PFEAT tab
+                whatever.stdin.write(unescape(getword(line, ff)))
+                whatever.stdin.write(b'\t_\t')
+                # HEAD tab PHEAD tab DEPREL tab PDEPREL tab
+                whatever.stdin.write(b'_\t_\t_\t_\t')
+                # FILLPRED tab PRED nl
+                whatever.stdin.write(b'_\t_\n')
                 copy.stdin.write(line)
             else:
-                swemalt.stdin.write(b'\n')
-                swemalt.stdin.flush()
+                whatever.stdin.write(b'\n')
+                whatever.stdin.flush()
                 copy.stdin.flush()
                 continue
 
@@ -325,7 +393,8 @@ def implement_main(inf, swemalt, copy):
         if kind is Kind.names:
             for line in group:
                 wf = getpos(line, args.word)
-                pf = getpos(line, args.tag)
+                tf = getpos(line, args.tag)
+                ff = getpos(line, args.feat)
                 copy.stdin.write(addnames(line, args.tag,
                                           args.prefix + b'id' + args.suffix,
                                           args.prefix + b'head' + args.suffix,
