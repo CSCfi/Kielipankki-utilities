@@ -58,12 +58,12 @@ def get_argparser(argspecs=None, version='undefined', **kwargs):
         [
             # Before arguments in argspecs
             ('infiles = FILE /*',
-             'input FILE (default stdin)'),
+             'input FILE (default: stdin)'),
         ],
         [
             # After arguments in argspecs
             ('--out -o = FILE -> outfile',
-             'output FILE (default stdout)'),
+             'output FILE (default: stdout)'),
             ('--in-place -i -> inplace',
              'overwrite input file with output'),
             ('--backup -b = BAK',
