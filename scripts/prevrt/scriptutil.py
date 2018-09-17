@@ -63,7 +63,13 @@ def get_argparser(argspecs=None, version='undefined', **kwargs):
         [
             # After arguments in argspecs
             ('--out -o = FILE -> outfile',
-             'output FILE (default: stdout)'),
+             'output FILE (default: stdout). FILE may be a template in which'
+             ' the following strings are replaced with the corresponding'
+             ' components of the input file name: {file} (file name), {dir}'
+             ' (directory name) and {path} (directory and file name). With'
+             ' a file name template, a separate output file is produced for'
+             ' each input file; otherwise, the output for all input files is'
+             ' combined into a single output file.'),
             ('--in-place -i -> inplace',
              'overwrite input file with output'),
             ('--backup -b = BAK',
@@ -221,29 +227,42 @@ def wrap_main(main_fn, argparser, **getargs_kwargs):
     to `get_args`, and then call `main_fn` with binary input and
     output, as specified in the arguments.
     """
-    # TODO: Support a filename template (or at least an extension) for
-    # output file name for use with multiple input files.
+    # TODO: Possibly support string or regex substitutions in file
+    # name templates, e.g. {file:/foo/bar}.
     args = get_args(argparser, **getargs_kwargs)
     infile_count = len(args.infiles) if args.infiles else 0
     # Use StdOutBuffer() instead of sys.stdout.buffer directly, to
     # avoid closing stdout at the end of each with and so to avoid
     # having to make stdout a special case.
     stdout_buffer = StdOutBuffer()
+    outfile_is_templ = args.outfile and '{' in args.outfile
+    outfile = None if outfile_is_templ else args.outfile
     temp = None
     try:
         for infile_num, infile in enumerate(args.infiles or [None]):
             # infile is None if input from stdin
-            # Use a single temp for output even for multiple input
-            # files
-            if args.inplace or (args.outfile is not None and infile_num == 0):
+            # If the output is not a filename template, use a single
+            # temp for output even for multiple input files
+            if (args.inplace or (args.outfile is not None
+                                 and (outfile_is_templ or infile_num == 0))):
                 head, tail = os.path.split(infile
-                                           if args.inplace
-                                           else args.outfile)
+                                           if args.inplace or outfile_is_templ
+                                           else outfile)
+                if outfile_is_templ:
+                    outfile = args.outfile.format(
+                        path=infile, dir=head, file=tail, filename=tail)
+                    if os.path.exists(outfile):
+                        error_exit('usage: --out file must not exist: {}'
+                                   .format(outfile))
+                    head, tail = os.path.split(outfile)
                 fd, temp = mkstemp(dir=head, prefix=tail)
                 os.close(fd)
-            # For the first input file, overwrite the output file; for
-            # the rest, append to it.
-            outfile_mode = 'bw' if infile_num == 0 else 'ba'
+            # If the output file is a single file (and not a filename
+            # template), for the first input file, overwrite the
+            # output file; for the rest, append to it.
+            outfile_mode = ('bw'
+                            if not outfile_is_templ or infile_num == 0
+                            else 'ba')
             with ((infile and open(infile, mode='br'))
                   or sys.stdin.buffer) as inf:
                 with ((temp and open(temp, mode=outfile_mode))
@@ -253,10 +272,11 @@ def wrap_main(main_fn, argparser, **getargs_kwargs):
                 os.rename(infile, infile + args.backup)
             if args.inplace:
                 os.rename(temp, infile)
-            # Rename the output file only if this was the last input
-            # file
-            if args.outfile and infile_num >= infile_count - 1:
-                os.rename(temp, args.outfile)
+            # For a non-template output filename, rename the output
+            # file only if this was the last input file
+            if outfile and (outfile_is_templ
+                            or infile_num >= infile_count - 1):
+                os.rename(temp, outfile)
             if status != 0:
                 exit(status)
         exit(status)
