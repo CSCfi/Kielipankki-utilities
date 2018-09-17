@@ -307,7 +307,7 @@ class InputProcessor:
 
     def main(self, inf, ouf):
         """Call the implementation of main and handle exceptions."""
-        wrap_implement_main(
+        return wrap_implement_main(
             self.implement_main, inf, ouf, progname=self.argparser.prog)
 
     def implement_main(self, *args, **kwargs):
