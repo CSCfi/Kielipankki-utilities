@@ -57,7 +57,7 @@ def get_argparser(argspecs=None, version='undefined', **kwargs):
     common_argspecs = [
         [
             # Before arguments in argspecs
-            ('infile = FILE /?',
+            ('infiles = FILE /*',
              'input FILE (default stdin)'),
         ],
         [
@@ -186,8 +186,8 @@ def get_args(argparser, unparsed_args=None, namespace=None,
         if not args.inplace:
             error_exit('usage: --backup requires --in-place')
     if args.inplace:
-        if args.infile is None:
-            error_exit('usage: --in-place requires input file')
+        if args.infiles is None:
+            error_exit('usage: --in-place requires input file(s)')
         if args.outfile is not None:
             error_exit('usage: --in-place not allowed with --out')
     if (args.outfile is not None) and os.path.exists(args.outfile):
@@ -199,6 +199,21 @@ def get_args(argparser, unparsed_args=None, namespace=None,
     return args
 
 
+class StdOutBuffer:
+
+    """
+    A context manager for sys.stdout.buffer, which does not close it at exit.
+
+    Source: https://stackoverflow.com/a/40826961
+    """
+
+    def __enter__(self):
+        return sys.stdout.buffer
+
+    def __exit__(self, *args):
+        pass
+
+
 def wrap_main(main_fn, argparser, **getargs_kwargs):
     """Process arguments and call main with appropriate input and output.
 
@@ -206,27 +221,44 @@ def wrap_main(main_fn, argparser, **getargs_kwargs):
     to `get_args`, and then call `main_fn` with binary input and
     output, as specified in the arguments.
     """
+    # TODO: Support a filename template (or at least an extension) for
+    # output file name for use with multiple input files.
     args = get_args(argparser, **getargs_kwargs)
+    infile_count = len(args.infiles) if args.infiles else 0
+    # Use StdOutBuffer() instead of sys.stdout.buffer directly, to
+    # avoid closing stdout at the end of each with and so to avoid
+    # having to make stdout a special case.
+    stdout_buffer = StdOutBuffer()
+    temp = None
     try:
-        if args.inplace or (args.outfile is not None):
-            head, tail = os.path.split(args.infile
-                                       if args.inplace
-                                       else args.outfile)
-            fd, temp = mkstemp(dir=head, prefix=tail)
-            os.close(fd)
-        else:
-            temp = None
-        with ((args.infile and open(args.infile, mode='br'))
-              or sys.stdin.buffer) as inf:
-            with ((temp and open(temp, mode='bw'))
-                  or sys.stdout.buffer) as ouf:
-                status = main_fn(inf, ouf)
-        if args.backup:
-            os.rename(args.infile, args.infile + args.backup)
-        if args.inplace:
-            os.rename(temp, args.infile)
-        if args.outfile:
-            os.rename(temp, args.outfile)
+        for infile_num, infile in enumerate(args.infiles or [None]):
+            # infile is None if input from stdin
+            # Use a single temp for output even for multiple input
+            # files
+            if args.inplace or (args.outfile is not None and infile_num == 0):
+                head, tail = os.path.split(infile
+                                           if args.inplace
+                                           else args.outfile)
+                fd, temp = mkstemp(dir=head, prefix=tail)
+                os.close(fd)
+            # For the first input file, overwrite the output file; for
+            # the rest, append to it.
+            outfile_mode = 'bw' if infile_num == 0 else 'ba'
+            with ((infile and open(infile, mode='br'))
+                  or sys.stdin.buffer) as inf:
+                with ((temp and open(temp, mode=outfile_mode))
+                      or stdout_buffer) as ouf:
+                    status = main_fn(inf, ouf)
+            if args.backup:
+                os.rename(infile, infile + args.backup)
+            if args.inplace:
+                os.rename(temp, infile)
+            # Rename the output file only if this was the last input
+            # file
+            if args.outfile and infile_num >= infile_count - 1:
+                os.rename(temp, args.outfile)
+            if status != 0:
+                exit(status)
         exit(status)
     except IOError as exn:
         error_exit(exn)
@@ -283,7 +315,6 @@ class InputProcessor:
     strings representing argument names and argdict is a dictionary of
     the keyword arguments to be passed to
     `ArgumentParser.add_argument`."""
-
 
     def __init__(self):
         """Initialize the class."""
