@@ -158,14 +158,22 @@ def _argparser_add_arg(argparser, argspec):
     argparser.add_argument(*argnames, **argdict)
 
 
-def error_exit(*msg):
-    """Print message msg to standard error and exit with code 1."""
-    print_error(*msg)
+def error_exit(*msg, progname=None):
+    """Print message msg to standard error and exit with code 1.
+
+    If progname is not None, prepend it to the error message.
+    """
+    print_error(*msg, progname=progname)
     exit(1)
 
 
-def print_error(*msg):
-    """Print message msg to standard error."""
+def print_error(*msg, progname=None):
+    """Print message msg to standard error.
+
+    If progname is not None, prepend it to the error message.
+    """
+    if progname is not None:
+        msg = (progname + ':',) + msg
     print(*msg, file=sys.stderr)
 
 
@@ -293,18 +301,17 @@ def wrap_implement_main(implement_main_fn, *main_args, progname=None,
     messages.
     """
     status = 1
-    msg_prefix = str(progname) + ':'
     try:
         implement_main_fn(*main_args, **main_kwargs)
         status = 0
     except BadData as exn:
-        print_error(msg_prefix, exn)
+        print_error(exn, progname=progname)
     except BrokenPipeError as exn:
-        print_error(msg_prefix, 'in main thread: Broken Pipe')
+        print_error('in main thread: Broken Pipe', progname=progname)
     except KeyboardInterrupt as exn:
-        print_error(msg_prefix, 'in main thread: Keyboard Interrupt')
+        print_error('in main thread: Keyboard Interrupt', progname=progname)
     except Exception as exn:
-        print_error(traceback.format_exc())
+        print_error(traceback.format_exc(), progname=progname)
     return status
 
 
@@ -342,6 +349,8 @@ class InputProcessor:
         """Argument parser"""
         self._args = None
         """Parsed command-line arguments"""
+        self._progname = None
+        """Program name"""
 
     def run(self, unparsed_args=None):
         """Process command-line arguments and run the main method."""
@@ -349,6 +358,7 @@ class InputProcessor:
             self.argparser = get_argparser(argspecs=self.ARGSPECS,
                                            version=self.VERSION,
                                            description=self.DESCRIPTION)
+        self._progname = self.argparser.prog
         wrap_main(self.main, self.argparser, unparsed_args=unparsed_args,
                   argcheck_fn=self.check_args, version=self.VERSION)
 
@@ -359,8 +369,14 @@ class InputProcessor:
     def main(self, inf, ouf):
         """Call the implementation of main and handle exceptions."""
         return wrap_implement_main(
-            self.implement_main, inf, ouf, progname=self.argparser.prog)
+            self.implement_main, inf, ouf, progname=self._progname)
 
     def implement_main(self, *args, **kwargs):
         """The actual main method, to be implemented in a subclass."""
         pass
+
+    def print_error(self, *msg):
+        print_error(*msg, progname=self._progname)
+
+    def error_exit(self, *msg):
+        error_exit(*msg, progname=self._progname)
