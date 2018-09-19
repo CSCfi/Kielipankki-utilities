@@ -315,6 +315,32 @@ def wrap_implement_main(implement_main_fn, *main_args, progname=None,
     return status
 
 
+def contains_python_attr_refs(python_code, ignore=None):
+    """Check if python_code contains attribute references name.attr
+
+    ignore is a list of primary names (such as modules) to ignore
+    when checking attribute references. Note that in practice, the
+    names are ignored only if they appear at the beginning of
+    python_code.
+
+    This function is useful for trying to ensure the safety of Python
+    code to be evaluated.
+    """
+    ignore = ignore or []
+    # Remove string literal contents, which may contain full stops
+    python_code = re.sub(r'(["' + '\'' + r'])(?:[^\\]|\\.)*\1', '\1\1',
+                         python_code)
+    # This tries to be as safe as possible by excluding almost all
+    # expressions containing full stops, except if followed by a
+    # number, since for example, "( ( os ) ) . system" would be valid
+    # Python expression, which we wish to avoid. That is also why the
+    # names in ignore are ignored only at the beginning of
+    # python_code.
+    return [primary for primary
+            in re.findall(r'(\S.*)\.[^0-9]', python_code)
+            if primary.strip() not in ignore] != []
+
+
 class InputProcessor:
 
     """
