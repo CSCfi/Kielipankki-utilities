@@ -2,61 +2,228 @@
 
 # - Mitä on erä?
 # - Riistaa kuten te.
+# (Seen in a Tenavat cartoon that has not be found again.)
 
 from argparse import ArgumentParser, REMAINDER
 from itertools import chain
 from shlex import quote
 from subprocess import Popen, PIPE
+from tempfile import mkstemp
 import os
 
 parser = ArgumentParser(description = '''
 
-Send to the batch system in Taito a single command, with all manner of
-defaults, in the current working directory, and without waiting.
+Send a single command to the batch system in Taito, with all manner of
+defaults, to be run in the current working directory, without waiting.
 
 ''')
 parser.add_argument('command', help = "an executable command")
 parser.add_argument('argument', metavar = '...', nargs = REMAINDER,
                     help = "its options and arguments")
-parser.add_argument('--log', default = 'log',
-                    help = "log dir (log/game-%%j.{out,err})")
-parser.add_argument('--out', '-o',
-                    help = "command standard output file")
+parser.add_argument('--log', default = 'gamelog', metavar = 'dir',
+                    help = '''
+                    directory [./gamelog] where the standard input
+                    and standard output of the batch job are written in
+                    files named %%j-<job>.{out,err} where %%j is the
+                    job number (log directory is created as needed)''')
+parser.add_argument('--job', default = 'game', metavar = 'name',
+                    help = '''a short name [game] for the job''')
+
+group = parser.add_mutually_exclusive_group()
+group.add_argument('--out', '-o', metavar = 'file',
+                   help = '''
+                   standard output from command on zero exit status;
+                   on non-zero status leave standard output in a
+                   sibling temporary file named file.<random>
+                   ''')
+group.add_argument('--accept', '-a', metavar = 'file',
+                   help = '''
+                   standard output from command regardless of
+                   exit status
+                   ''')
+
+# time group - either specify hours or specify minutes (default one
+# hour is probably good for the purpose)
+group = parser.add_mutually_exclusive_group()
+group.add_argument('--minutes', '-M', metavar = 'num',
+                   help = 'minutes [60] to reserve')
+group.add_argument('--hours', '-H', metavar = 'num',
+                   help = 'hours [1] to reserve')
+
+# memory group - man pages refer to megabytes and gigabytes but
+# example at CSC says 4GB = 4096MB so they must mean 2^20 and 2^30
+# rather than 10^6 and 10^9 https://en.wikipedia.org/wiki/Gibibyte
+# https://research.csc.fi/taito-constructing-a-batch-job-file#3.1.2
+# (defaults are tentative - less might do for the purpose?)
+group = parser.add_mutually_exclusive_group()
+group.add_argument('--MiB', metavar = 'num',
+                   help = 'mebibytes [8192] to reserve')
+group.add_argument('--GiB', metavar = 'num',
+                   help = 'gibibytes [8] to reserve')
+
 parser.add_argument('--cat', action = 'store_true',
-                    help = ("write the job desciption to stdout "
-                            "(instead of sending it to sbatch)"))
+                    help = '''
+                    write the job desciption to standard output
+                    instead of sending it to the batch queue
+                    (for information only when using temp file)
+                    ''')
+
+parser.add_argument('--test', action = 'store_const', const = 'test',
+                    help = '''
+                    run in test partition instead of serial
+                    ''')
 
 # add options
 
 args = parser.parse_args()
 
-# Make sure the log directory exists. An alternative would be to fail
-# with an error message if the log directory does not exist. Sending
-# the job to the batch system without the log directory existing is
-# not an alternative.
-os.path.isdir(args.log) or os.mkdir(args.log)
+def simplepath(path):
+    '''Normalize path as relative to current directory if under the
+    current directory and not starting with a component that starts
+    with dots, else absolute.
 
+    '''
+    absolute = os.path.abspath(path)
+    relative = os.path.relpath(path)
+    return absolute if relative.startswith('..') else relative
+
+def ensuredir(path):
+    '''Attempt to establish that the directory path exists, by creating it
+    if not. Do not bother to attempt to check whether anyone in
+    particular can write in the directory.
+
+    '''
+    path = simplepath(path)
+    try:
+        os.makedirs(path, exist_ok = True)
+    except OSError as exn:
+        # in Python 3.4.0 (and earlier), a mode mismatch may lead here
+        # even if path is all right
+        if os.path.isdir(path): return
+        raise exn
+
+def ensuretempfile(outdir, outfile):
+    handle, tmppath = mkstemp(prefix = outfile + '.', dir = outdir)
+    os.close(handle)
+    return tmppath
+
+def setup(args):
+    '''Make sure the relevant directories exist. Return suitable pathnames
+    for the log dir, outfile (or None), and tempfile (or None). If
+    there is to be a tempfile, create the tempfile in advance to claim
+    the name. Except with the --cat option only output pathnames (a
+    placeholder name for a tempfile) without creating any filesystem
+    entries.
+
+    '''
+
+    args.cat or ensuredir(args.log)
+
+    if args.out or args.accept:
+        outfile = simplepath(args.out or args.accept)
+        head, tail = os.path.split(outfile)
+        if not tail:
+            raise ArgumentError('game: not a filename: {}'
+                                .format(args.out or
+                                        args.accept))
+    else:
+        outfile = None
+
+    if args.out and args.cat:
+        # no good way out
+        tempfile = os.path.join(head, tail + '.[random]')
+    elif args.out:
+        tempfile = ensuretempfile(head, tail)
+    elif args.accept:
+        tempfile = None
+    else:
+        tempfile = None
+
+    return simplepath(args.log), outfile, tempfile
+
+logdir, outfile, tempfile = setup(args)
+
+# Depending on the output options, one of:
+# cmd arg ...
+# cmd arg ... > outfile
+# cmd arg ... > tempfile
+# with appropriate quotation for the shell.
 command = ' '.join(chain([quote(args.command)],
                          map(quote, args.argument),
-                         ['>', quote(args.out)] if args.out else []))
+                         ( []
+                           if outfile is None else
+                           ['>', quote(outfile)]
+                           if tempfile is None else
+                           ['>', quote(tempfile)] )))
+
+logcommand = ' '.join(chain([quote(args.command)],
+                            map(quote, args.argument)))
+
+if tempfile is None:
+    # also no outfile, or accept outfile as is
+    finish = ''
+else:
+    # on success status, move output to outfile;
+    # on error status, leave output in tempfile
+    finish = '''\
+test $status -eq 0 &&
+mv {temp} {out}'''.format(temp = quote(tempfile),
+                          out = quote(outfile))
+
+# default a nour - and this could be done wholly in argparse? can an
+# exclusive group have a common default?
+time = ( '{:d}:{:02d}:00'
+         .format(*(divmod(int(args.minutes), 60)
+                   if args.minutes
+                   else (int(args.hours), 0)
+                   if args.hours else (1, 0))) )
+
+# setting memory default here, not checking that argument is even a
+# number let alone a natural number and not something outrageous,
+# feeling bad about not checking TODO check and the whole processing
+# could be moved to argparse machinery
+memory = ( '{}M'.format(args.MiB) if args.MiB else
+           '{}G'.format(args.GiB) if args.GiB else
+           '8G' )
 
 script = '''\
-#! /bin/bash -e
-#SBATCH --time={minutes}
+#! /bin/bash
+#SBATCH --job-name={job}
+#SBATCH --partition={partition}
+#SBATCH --time={time}
+#SBATCH --mem={memory}
 #SBATCH --out={out}
 #SBATCH --error={err}
 #SBATCH --workdir={workdir}
 
+echo command: {logcommand}
+echo outfile: {outfile}
+echo workdir: {workdir}
+echo partition: {partition}
+echo time: {time}
+echo memory: {memory}
+echo
 date "+%F %T START"
 
 {command}
 
-date "+%F %T FINISH"
-'''.format(minutes = 60,
-           out = quote(os.path.join(args.log, 'game-%j.out')),
-           err = quote(os.path.join(args.log, 'game-%j.err')),
+status=$?
+{finish}
+
+T=$SECONDS
+printf -v time %d:%02d:%02d $((T/3600)) $((T%3600/60)) $((T%60))
+date "+%F %T FINISH IN $time WITH STATUS $status"
+'''.format(job = args.job,
+           partition = args.test or 'serial',
+           time = time,
+           memory = memory,
+           out = quote(os.path.join(args.log, '%j-{}.out'.format(args.job))),
+           err = quote(os.path.join(args.log, '%j-{}.err'.format(args.job))),
            workdir = quote(os.getcwd()),
-           command = command)
+           logcommand = quote(logcommand),
+           outfile = quote(outfile or '(stdout)'),
+           command = command,
+           finish = finish)
 
 with Popen(['cat' if args.cat else 'sbatch'], stdin = PIPE) as process:
     process.stdin.write(script.encode('UTF-8'))
