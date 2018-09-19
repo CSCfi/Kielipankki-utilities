@@ -24,7 +24,7 @@ class DuplicateStructureRemover(InputProcessor):
 
     """Remove VRT structures with duplicated content."""
 
-    VERSION = '0.2 (2018-09-17)'
+    VERSION = '0.3 (2018-09-19)'
     DESCRIPTION = """
     Output the input VRT with structures with duplicated content removed.
     """
@@ -35,6 +35,10 @@ class DuplicateStructureRemover(InputProcessor):
         ('--within-structure = STRUCT -> within_struct',
          'remove duplicates separately within each structure STRUCT, not'
          ' across them (default: remove duplicates within the whole input)'),
+        ('--attribute-condition = COND -> attr_cond',
+         'remove duplicates only within structures for which the attribute'
+         ' condition COND is true. COND is a Python expression referring to'
+         ' attribute names as @attrname.'),
         ('--check = TARGET -> check_target',
          'check TARGET to determine if a structure is a duplicate of another,'
          ' where TARGET is one of "attributes" (or "attrs"), "content" and'
@@ -53,6 +57,18 @@ class DuplicateStructureRemover(InputProcessor):
     def check_args(self, args):
         if args.check_target == 'attributes':
             args.check_target = 'attrs'
+        # Try to stay safe with the attribute condition to be
+        # evaluated by forbidding other Python attribute references
+        # than "re." (for accessing regexp functions).
+        attr_cond = re.sub('(["\']).*?\\1', '', args.attr_cond)
+        attr_cond_refs = [
+            primary for primary
+            in re.findall(r'([a-zA-Z_]\w+)\.', args.attr_cond)
+            if primary != 're']
+        if attr_cond_refs:
+            self.error_exit(
+                'Attribute condition may not use the Python attribute reference'
+                ' syntax "primary.identifier" except for "re.".')
         super().check_args(args)
 
     def implement_main(self, inf, ouf):
@@ -94,6 +110,9 @@ class DuplicateStructureRemover(InputProcessor):
                          'attrs': 'attributes',
                          'all': 'content and attributes'}
         target_descr = target_descrs[self._args.check_target]
+        attr_cond = (None if self._args.attr_cond is None
+                     else re.sub(r'@(\w+)', r'attrs.get("\1")',
+                                 self._args.attr_cond))
 
         def is_struct_begin(line):
             return 
@@ -107,9 +126,25 @@ class DuplicateStructureRemover(InputProcessor):
                         return LineType.within_end
                     elif any(line.startswith(begin) for begin in struct_begins):
                         return LineType.struct_begin
-                elif any(line.startswith(begin) for begin in within_begins):
+                elif (any(line.startswith(begin) for begin in within_begins)
+                      and check_attrcond(line)):
                     return LineType.within_begin
             return LineType.other
+
+        def check_attrcond(line):
+            if attr_cond is None:
+                return True
+            attrs = make_attrdict(extract_attrs(line))
+            try:
+                return eval(attr_cond)
+            except Exception as e:
+                self.error_exit('Error in attribute condition ({}):'
+                                .format(self._args.attr_cond),
+                                e)
+
+        def make_attrdict(attrstr):
+            return dict((name, val) for name, _, val
+                        in re.findall('(\\w+?)=(["\'])(.*?)\\2', attrstr))
 
         def log_duplicate(text):
             if comments:
