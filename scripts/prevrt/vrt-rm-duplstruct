@@ -24,7 +24,7 @@ class DuplicateStructureRemover(InputProcessor):
 
     """Remove VRT structures with duplicated content."""
 
-    VERSION = '0.1 (2018-09-06)'
+    VERSION = '0.2 (2018-09-17)'
     DESCRIPTION = """
     Output the input VRT with structures with duplicated content removed.
     """
@@ -35,6 +35,12 @@ class DuplicateStructureRemover(InputProcessor):
         ('--within-structure = STRUCT -> within_struct',
          'remove duplicates separately within each structure STRUCT, not'
          ' across them (default: remove duplicates within the whole input)'),
+        ('--check = TARGET -> check_target',
+         'check TARGET to determine if a structure is a duplicate of another,'
+         ' where TARGET is one of "attributes" (or "attrs"), "content" and'
+         ' "all" (both attributes and content)',
+         dict(choices=['attributes', 'attrs', 'content', 'all'],
+              default='content')),
         ('--comments',
          'add an XML comment for each omitted duplicate'),
         ('--verbose',
@@ -43,6 +49,11 @@ class DuplicateStructureRemover(InputProcessor):
 
     def __init__(self):
         super().__init__()
+
+    def check_args(self, args):
+        if args.check_target == 'attributes':
+            args.check_target = 'attrs'
+        super().check_args(args)
 
     def implement_main(self, inf, ouf):
 
@@ -77,6 +88,12 @@ class DuplicateStructureRemover(InputProcessor):
         struct_begin_line = ''
         comments = self._args.comments
         verbose = self._args.verbose
+        check_attrs = self._args.check_target in ['attrs', 'all']
+        check_content = self._args.check_target in ['content', 'all']
+        target_descrs = {'content': 'content',
+                         'attrs': 'attributes',
+                         'all': 'content and attributes'}
+        target_descr = target_descrs[self._args.check_target]
 
         def is_struct_begin(line):
             return 
@@ -107,23 +124,31 @@ class DuplicateStructureRemover(InputProcessor):
             return struct_line[attr_begin:attr_end].decode()
 
         def check_if_duplicate(lines):
-            nonlocal linenum
+
+            def calc_key(lines, attrs):
+                # NOTE: Attributes are considered equal only if they
+                # occur in the same order. Should that be made more
+                # flexible?
+                hash = hashlib.md5(lines).digest() if check_content else None
+                return (attrs if check_attrs else None, hash)
+
+            nonlocal linenum, target_descr
             linecount = len(lines)
             lines = b''.join(lines)
-            hash = hashlib.md5(lines).digest()
             this_attrs = extract_attrs(struct_begin_line)
             this_begin = linenum - 1
             this_end = linenum + linecount
-            if hash in structs_info:
-                other_attrs, other_begin, other_end = structs_info[hash]
+            key = calc_key(lines, this_attrs)
+            if key in structs_info:
+                other_attrs, other_begin, other_end = structs_info[key]
                 log_duplicate(
                     'DUPLICATE: Omitted structure "{name}" on lines'
                     ' {this_begin}...{this_end} (attributes: {this_attrs})'
-                    ' with content equal to "{name}" on lines '
+                    ' with {target_descr} equal to "{name}" on lines '
                     ' {other_begin}...{other_end} (attributes: {other_attrs}).'
                     .format(name=struct_name, **locals()))
             else:
-                structs_info[hash] = (
+                structs_info[key] = (
                     this_attrs,
                     this_begin,
                     this_end,
