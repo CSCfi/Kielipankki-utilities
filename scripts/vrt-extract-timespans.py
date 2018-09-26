@@ -28,14 +28,16 @@ def get_current_century():
 class TimespanExtractor(object):
 
     DEFAULT_PATTERN_PARTS = {
-        'Y': ur'(?P<Y>(?:1[0-9]|20)[0-9][0-9])',
-        'Y2': ur'(?P<Y>(?:1[0-9]|20)?[0-9][0-9])',
+        'Y': ur'(?P<Y>(?:0?[0-9]?[0-9]?[0-9]|(?:1[0-9]|20)[0-9][0-9]))',
+        # FIXME: Can we support simultaneously two-digit years and
+        # years before 1000?
+        'Y2': ur'(?P<Y>(?:[01][0-9]|20)?[0-9][0-9])',
         'M': ur'(?P<M>0?[1-9]|1[0-2])',
         'D': ur'(?P<D>0?[1-9]|[12][0-9]|3[01])'
         }
     PART_SEP_PATTERN = ur'[-./]'
     RANGE_SEP_PATTERN = ur'\s*[-/–]\s*'
-    DATE_GRAN_RANGES = [(1000, get_current_year()), (1, 12), (1, 31),
+    DATE_GRAN_RANGES = [(0, get_current_year()), (1, 12), (1, 31),
                         (0, 24), (0, 59), (0, 59)]
     MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
@@ -103,8 +105,11 @@ class TimespanExtractor(object):
         if self._opts.full_dates:
             if self._opts.full_date_order == 'ymd':
                 # YMD pattern has optional component separators but
-                # obligatory leading zeros in month and day.
-                patt = (self.DEFAULT_PATTERN_PARTS['Y']
+                # obligatory leading zeros in year, month and day. If
+                # two-digit years are allowed, the year may have 2 or
+                # 4 digits.
+                patt = (self.DEFAULT_PATTERN_PARTS['Y'].replace('0?', '0')
+                        .replace(']?', ']')
                         + '(?:(?:' + self.PART_SEP_PATTERN + ')?'
                         + self.DEFAULT_PATTERN_PARTS['M'].replace('0?', '0')
                         + '(?:(?:' + self.PART_SEP_PATTERN + ')?'
