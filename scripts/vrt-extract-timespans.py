@@ -286,7 +286,10 @@ class TimespanExtractor(object):
                 gran_range = self.DATE_GRAN_RANGES[partnr]
                 if not gran_range[0] <= int(part) <= gran_range[1]:
                     return ''
-                if len(part) == 1:
+                partlen = len(part)
+                if partnr == 0 and partlen < 4:
+                    date_parts[partnr] = ('0' * (4 - partlen)) + part
+                elif len(part) == 1:
                     date_parts[partnr] = '0' + part
             return ''.join(date_parts)
         elif self._opts.two_digit_years:
