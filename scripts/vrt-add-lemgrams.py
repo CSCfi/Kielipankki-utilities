@@ -7,8 +7,14 @@ import codecs
 import errno
 
 from optparse import OptionParser
+from os.path import basename
 
 from korpimport.util import unique
+
+
+def warn(msg, kwdict):
+    sys.stderr.write(('{progname}: Warning: ' + msg + '\n')
+                     .format(progname=basename(sys.argv[0]), **kwdict))
 
 
 def process_input(f, posmap, opts):
@@ -70,16 +76,51 @@ def make_lemgram(posmap, lemma, pos):
 
 
 def read_posmap(fname, opts):
+
+    def warn_posmap(msg, kwdict):
+        warn('PoS map file {fname}, line {linenum}: ' + msg, kwdict)
+
     posmap = {}
+    pos_types = {(False, True): 'source',
+                 (True, False): 'target',
+                 (False, False): 'source and target'}
     with codecs.open(fname, 'r', encoding='utf-8') as f:
+        linenum = 0
         for line in f:
+            linenum += 1
             if line.strip() == '' or line.startswith('#'):
                 continue
-            (src_poses, trg_pos) = line[:-1].split('\t', 1)
+            fields = line[:-1].split('\t')
+            fieldcount = len(fields)
+            if fieldcount != 2:
+                warn_msg_base = (
+                    '{fieldcount} tab-separated fields instead of 2; skipping')
+                if fieldcount < 2:
+                    warn_posmap(warn_msg_base + '.', locals())
+                    continue
+                else:
+                    warn_posmap(warn_msg_base + ' extra fields.', locals())
+            (src_poses, trg_pos) = (fields[0].strip(), fields[1].strip())
+            if not src_poses or not trg_pos:
+                pos_type = pos_types[(bool(src_poses), bool(trg_pos))]
+                warn_posmap('empty {pos_type}; skipping.', locals())
+                continue
             if opts.inverse_pos_map:
                 (src_poses, trg_pos) = (trg_pos, src_poses)
-            posmap.update(dict([(src_pos, trg_pos)
-                                for src_pos in src_poses.split()]))
+            src_pos_list = src_poses.split()
+            for src_pos in src_pos_list:
+                if src_pos in posmap:
+                    if posmap[src_pos] != trg_pos:
+                        prev_src_pos = posmap[src_pos]
+                        warn_posmap(
+                            ('mapping "{src_pos}" to "{trg_pos}" overrides'
+                             ' previous mapping to "{prev_src_pos}"'),
+                            locals())
+                    else:
+                        warn_posmap(
+                            'duplicate mapping "{src_pos}" to "{trg_pos}"',
+                            locals())
+                posmap[src_pos] = trg_pos
     return posmap
 
 
