@@ -5,6 +5,9 @@ from argparse import ArgumentParser, ArgumentTypeError
 from tempfile import mkstemp
 import os, sys, traceback
 
+class BadData(Exception): pass # stack trace is just noise
+class BadCode(Exception): pass # this cannot happen
+
 def trans_args(*, description, version):
     '''Return an initial argument parser for a command line tool that
     transforms a single input stream to a single output stream.
@@ -80,23 +83,36 @@ def trans_main(args, main, *, in_as_text = True, out_as_text = True):
         print('usage: --out file must not exist', file = sys.stderr)
         exit(1)
 
-    status = 1
-    try:
-        if args.inplace or (args.outfile is not None):
-            head, tail = os.path.split(args.infile
-                                       if args.inplace
-                                       else args.outfile)
-            fd, temp = mkstemp(dir = head, prefix = tail)
-            os.close(fd)
-        else:
-            temp = None
+    if args.inplace or (args.outfile is not None):
+        head, tail = os.path.split(args.infile
+                                   if args.inplace
+                                   else args.outfile)
+        fd, temp = mkstemp(dir = head, prefix = tail)
+        os.close(fd)
+    else:
+        temp = None
 
+    def do():
+        status = 1
+        try:
+            status = main(args, inf, ouf)
+        except BadData as exn:
+            print(args.prog + ':', exn, file = sys.stderr)
+        except BrokenPipeError:
+            print(args.prog + ':', 'broken pipe from main',
+                  file = sys.stderr)
+        except Exception as exn:
+            print(traceback.format_exc(), file = sys.stderr)
+
+        return status
+
+    try:
         with inputstream(args.infile, in_as_text) as inf, \
              outputstream(temp, out_as_text) as ouf:
-            status = main(args, inf, ouf)
-
-    except BadData as exn:
-        print(parser.prog + ':', exn, file = sys.stderr)
+            status = do()
+    except BrokenPipeError:
+        print(args.prog + ':', 'broken pipe outside main',
+              file = sys.stderr)
     except Exception as exn:
         print(traceback.format_exc(), file = sys.stderr)
 

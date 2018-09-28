@@ -1,13 +1,15 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
-from argparse import ArgumentParser
 from itertools import groupby, count
 from subprocess import Popen, PIPE
-from tempfile import mkstemp
 from threading import Thread
 import enum, os, re, sys, traceback
 
+from vrtargslib import trans_args, trans_main
+from vrtargslib import BadData, BadCode
+
+VERSION = '0.2 (2018-09-27)'
 
 MARMOT = [
     'java',
@@ -18,47 +20,152 @@ MARMOT = [
     '--pred-file', '/dev/stdout'
 ]
 
-VERSION = '0.1 (2018-06-24)'
-
-parser = ArgumentParser(description = '''
-
-Pass word forms and specially prepared features in a flat vrt document
-through MarMoT tagger using the model from the alpha version of the
-Turku dependency parser. Insert the new tags and features in new
-fields after the input feature field. The vrt document must have
-position names before any content. (A "flat" vrt document has no
-markup or comment lines inside sentence elements.)
-
-''')
-
 # TODO should make checks - cannot have spaces or < & > + and so.
+# TODO should have these types in vrtargslib
+# TODO maybe these should not encode?
 def nametype(name): return name.encode('UTF-8')
 def suffixtype(fix): return fix.encode('UTF-8')
 
-parser.add_argument('infile', nargs = '?', metavar = 'file',
-                    help = 'input file (default stdin)')
-parser.add_argument('--out', '-o',
-                    dest = 'outfile', metavar = 'file',
-                    help = 'output file (default stdout)')
-parser.add_argument('--in-place', '-i',
-                    dest = 'inplace', action = 'store_true',
-                    help = 'overwrite input file with output')
-parser.add_argument('--backup', '-b', metavar = 'bak',
-                    help = 'keep input file with suffix bak')
-parser.add_argument('--word', '-w', metavar = 'name',
-                    type = nametype, default = b'word',
-                    help = 'input word field name (default word)')
-parser.add_argument('--tag', '-t', metavar = 'name',
-                    type = nametype, default = b'marmot.in',
-                    help = 'input tag field name (default marmot.in)')
-parser.add_argument('--prefix', '-p', metavar = 'fix',
-                    type = nametype, default = b'',
-                    help = 'prefix to output field names')
-parser.add_argument('--suffix', '-s', metavar = 'fix',
-                    type = suffixtype, default = b'',
-                    help = 'suffix to output field names')
-parser.add_argument('--version', action = 'store_true',
-                    help = 'print {} and exit'.format(VERSION))
+def parsearguments():
+    description = '''
+
+    Pass word forms and specially prepared features in a flat vrt
+    document through MarMoT tagger using the model from the alpha
+    version of the Turku dependency parser. Insert the new tags and
+    features in new fields after the input feature field. The vrt
+    document must have position names before any content. (A "flat"
+    vrt document has no markup or comment lines inside sentence
+    elements.)
+
+'''
+    parser = trans_args(version = VERSION, description = description)
+    parser.add_argument('--word', '-w', metavar = 'name',
+                        type = nametype, default = b'word',
+                        help = 'input word field name (default word)')
+    parser.add_argument('--tag', '-t', metavar = 'name',
+                        type = nametype, default = b'marmot.in',
+                        help = 'input tag field name (default marmot.in)')
+    parser.add_argument('--prefix', '-p', metavar = 'fix',
+                        type = nametype, default = b'',
+                        help = 'prefix to output field names')
+    parser.add_argument('--suffix', '-s', metavar = 'fix',
+                        type = suffixtype, default = b'',
+                        help = 'suffix to output field names')
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
+
+def message(args, mess):
+    print(args.prog + ':', mess, file = sys.stderr)
+
+def terminate(proc):
+    try:
+        proc.terminate()
+    except ProcessLookupError:
+        pass
+
+def main(args, inf, ouf):
+    with Popen(MARMOT,
+               stdin = PIPE,
+               stdout = PIPE,
+               stderr = sys.stderr.buffer) as marmot:
+        with Popen(['cat'],
+                   stdin = PIPE,
+                   stdout = PIPE,
+                   stderr = sys.stderr) as copy:
+
+            # is this a "useless use of cat"?
+
+            t = Thread(target = combine, args = (args, marmot, copy, ouf))
+            t.start()
+
+            status = 1
+            try:
+                implement_main(args, inf, marmot, copy)
+                status = 0
+            except BadData as exn:
+                message(args, exn)
+            except BrokenPipeError as exn:
+                message(args, 'broken pipe in main thread')
+            except KeyboardInterrupt as exn:
+                message(args, 'keyboard interrupt in main thread')
+            except Exception as exn:
+                print(traceback.format_exc(), file = sys.stderr)
+
+            if status:
+                terminate(marmot)
+                terminate(copy)
+            else:
+                marmot.stdin.close()
+                copy.stdin.close()
+
+            try:
+                t.join()
+            except KeyboardInterrupt:
+                message(args, 'keyboard interrupt in main thread')
+                status = 1
+
+            return status
+
+def implement_main(args, inf, marmot, copy):
+
+    # each "word" and "tag" go to marmot, with empty line after
+    # sentence; everything but empty goes to copy, with new
+    # "marmot.pos", "marmot.feat" (or such) in names
+
+    wf, pf = None, None
+    found = False
+    def isnotspace(line): return not line.isspace()
+    for kind, group in groupby(filter(isnotspace, inf), identify):
+
+        if kind is not Kind.data: found = False
+        if kind is Kind.begin: found = True
+
+        if kind is Kind.data and found:
+            if wf is None:
+                raise BadData('error: token before field names')
+            for k, line in enumerate(group, start = 1):
+                
+                marmot.stdin.write(unescape(getword(line, wf))) # rename getword
+                marmot.stdin.write(b'\t')
+                poses = unescape(getword(line, pf))
+                marmot.stdin.write(poses)
+                marmot.stdin.write(b'\n')
+                copy.stdin.write(line)
+            else:
+                marmot.stdin.write(b'\n')
+                marmot.stdin.flush()
+                copy.stdin.flush()
+                continue
+
+        if kind is Kind.begin:
+            for line in group: copy.stdin.write(line)
+            continue
+
+        if kind is Kind.meta:
+            for line in group: copy.stdin.write(line)
+            continue
+
+        if kind is Kind.data:
+            for line in group: copy.stdin.write(line)
+            continue
+
+        if kind is Kind.names:
+            for line in group:
+                wf = getpos(line, args.word)
+                pf = getpos(line, args.tag)
+                posname = args.prefix + b'marmot.pos' + args.suffix
+                featname = args.prefix + b'marmot.feat' + args.suffix
+                copy.stdin.write(addnames(line, args.tag, posname, featname))
+            else:
+                continue
+
+        if kind is Kind.comment:
+            for line in group: copy.stdin.write(line)
+            continue
+
+        raise BadCode('this cannot happen')
 
 # old values are passed unescaped to the underlying process,
 # new values are inserted escaped to the output stream
@@ -67,9 +174,6 @@ def encm(m, d = dict(zip(bare, code))): return d[m.group()]
 def decm(m, d = dict(zip(code, bare))): return d[m.group()]
 def escape(value): return re.sub(b'[&<>]', encm, value)
 def unescape(value): return re.sub(b'&(amp|lt|gt);', decm, value)
-
-class BadData(Exception): pass # stack trace is just noise
-class BadCode(Exception): pass # this cannot happen
 
 class Kind(enum.Enum):
     # kind of line (group of them)
@@ -87,8 +191,8 @@ def identify(line):
     if line.startswith(b'<'): return Kind.meta
     return Kind.data
 
-def combine(marmot, copy, out):
-    '''TODO! Read marmot output (id TAB word TAB _ TAB pos ... msd TAB NL / NL)
+def combine(args, marmot, copy, out):
+    '''Read marmot output (id TAB word TAB _ TAB pos ... msd TAB NL / NL)
     and flat vrt from the copy process. Insert tags from marmot to the
     vrt at the named position.
 
@@ -96,28 +200,26 @@ def combine(marmot, copy, out):
 
     '''
 
+    fail = True
     try:
-        implement_combine(marmot, copy, out)
+        implement_combine(args, marmot, copy, out)
+        fail = False
     except BrokenPipeError:
-        print(parser.prog + ':', 'in combine thread: Broken Pipe',
-              file = sys.stderr)
+        message(args, 'broken pipe in combine thread')
     except StopIteration:
         # from next(response) when main thread got keyboard interruption
-        print(parser.prog + ':', 'in combine thread: Stop Iteration',
-              file = sys.stderr)
+        message(args, 'stop iteration in combine thread')
     except ValueError as exn:
         # sometimes keyboard interruption in main thread produces here
-        # a readline of closed file
-        print(parser.prog + ':', 'in combine thread: Value Error:', exn,
-              file = sys.stderr)
+        # a readline of closed file (or at least it did in one stage
+        # in development)
+        message(args, 'value error in combine thread ' + str(exn))
     finally:
-        # closing their stdouts should send marmot and copy the signal
-        # to shut down, right? and then the main thread should get
-        # broken pipe to indicate that it can no longer write to them?
-        marmot.stdout.close() # no need to wait for it?
-        copy.stdout.close() # no need to wait for it or something?
+        if fail:
+            terminate(marmot)
+            terminate(copy)
 
-def implement_combine(marmot, copy, out):
+def implement_combine(args, marmot, copy, out):
     '''Thread may find pipe closed.'''
 
     response = (tokens
@@ -189,158 +291,8 @@ def addnames(names, atname, *afternames):
 def getword(line, pos): # needs to be renamed
     return line.rstrip(b'\n').split(b'\t')[pos]
 
-def wrap_main():
-    
-    if (args.backup is not None) and '/' in args.backup:
-        print('usage: --backup suffix cannot contain /', file = sys.stderr)
-        exit(1)
-
-    if (args.backup is not None) and not args.backup:
-        print('usage: --backup suffix cannot be empty', file = sys.stderr)
-        exit(1)
-
-    if (args.backup is not None) and not args.inplace:
-        print('usage: --backup requires --in-place', file = sys.stderr)
-        exit(1)
-
-    if args.inplace and (args.infile is None):
-        print('usage: --in-place requires input file', file = sys.stderr)
-        exit(1)
-
-    if args.inplace and (args.outfile is not None):
-        print('usage: --in-place not allowed with --out', file = sys.stderr)
-        exit(1)
-
-    if (args.outfile is not None) and os.path.exists(args.outfile):
-        # easier to check this than that output file is different than
-        # input file, though it be annoying when overwrite is wanted
-        print('usage: --out file must not exist', file = sys.stderr)
-        exit(1)
-
-    try:
-        if args.inplace or (args.outfile is not None):
-            head, tail = os.path.split(args.infile
-                                       if args.inplace
-                                       else args.outfile)
-            fd, temp = mkstemp(dir = head, prefix = tail)
-            os.close(fd)
-        else:
-            temp = None
-
-        with ((args.infile and open(args.infile, mode = 'br'))
-              or sys.stdin.buffer) as inf:
-            with ((temp and open(temp, mode = 'bw'))
-                  or sys.stdout.buffer) as ouf:
-                status = main(inf, ouf)
-
-        args.backup and os.rename(args.infile, args.infile + args.backup)
-        args.inplace and os.rename(temp, args.infile)
-        args.outfile and os.rename(temp, args.outfile)
-        exit(status)
-    except IOError as exn:
-        print(exn, file = sys.stderr)
-        exit(1)
-
-def main(inf, ouf):
-    with Popen(MARMOT,
-               stdin = PIPE,
-               stdout = PIPE,
-               stderr = sys.stderr.buffer) as marmot:
-        with Popen(['cat'],
-                   stdin = PIPE,
-                   stdout = PIPE,
-                   stderr = sys.stderr) as copy:
-
-            # is this a "useless use of cat"?
-
-            t = Thread(target = combine, args = (marmot, copy, ouf))
-            t.start()
-
-            status = 1
-            try:
-                implement_main(inf, marmot, copy)
-                status = 0
-            except BadData as exn:
-                print(parser.prog + ':', exn, file = sys.stderr)
-            except BrokenPipeError as exn:
-                # when combine thread gets broken pipe, it closes the
-                # output side of hunpos and copy, then they close and
-                # this thread gets broken pipe - right?
-                print(parser.prog + ':', 'in main thread: Broken Pipe',
-                      file = sys.stderr)
-            except KeyboardInterrupt as exn:
-                print(parser.prog + ':', 'in main thread: Keyboard Interrupt',
-                      file = sys.stderr)
-            except Exception as exn:
-                print(traceback.format_exc(), file = sys.stderr)
-
-            marmot.stdin.close()
-            copy.stdin.close()
-            t.join()
-            return status
-
-def implement_main(inf, marmot, copy):
-
-    # each "word" and "tag" go to marmot, with empty line after
-    # sentence; everything but empty goes to copy, with new
-    # "marmot.pos", "marmot.feat" (or such) in names
-
-    wf, pf = None, None
-    found = False
-    def isnotspace(line): return not line.isspace()
-    for kind, group in groupby(filter(isnotspace, inf), identify):
-
-        if kind is not Kind.data: found = False
-        if kind is Kind.begin: found = True
-
-        if kind is Kind.data and found:
-            if wf is None:
-                raise BadData('error: token before field names')
-            for k, line in enumerate(group, start = 1):
-                
-                marmot.stdin.write(unescape(getword(line, wf))) # rename getword
-                marmot.stdin.write(b'\t')
-                poses = unescape(getword(line, pf))
-                marmot.stdin.write(poses)
-                marmot.stdin.write(b'\n')
-                copy.stdin.write(line)
-            else:
-                marmot.stdin.write(b'\n')
-                marmot.stdin.flush()
-                copy.stdin.flush()
-                continue
-
-        if kind is Kind.begin:
-            for line in group: copy.stdin.write(line)
-            continue
-
-        if kind is Kind.meta:
-            for line in group: copy.stdin.write(line)
-            continue
-
-        if kind is Kind.data:
-            for line in group: copy.stdin.write(line)
-            continue
-
-        if kind is Kind.names:
-            for line in group:
-                wf = getpos(line, args.word)
-                pf = getpos(line, args.tag)
-                posname = args.prefix + b'marmot.pos' + args.suffix
-                featname = args.prefix + b'marmot.feat' + args.suffix
-                copy.stdin.write(addnames(line, args.tag, posname, featname))
-            else:
-                continue
-
-        if kind is Kind.comment:
-            for line in group: copy.stdin.write(line)
-            continue
-
-        raise BadCode('this cannot happen')
 
 if __name__ == '__main__':
-    args = parser.parse_args()
-    if args.version:
-        print(VERSION)
-    else:
-        wrap_main()
+    trans_main(parsearguments(), main,
+               in_as_text = False,
+               out_as_text = False)
