@@ -6,10 +6,12 @@ from tempfile import mkstemp
 import os, re, sys, traceback
 import hfst
 
+from vrtdatalib import escape, unescape
+
 MODELDIR = '/proj/kieli/varpunen/models'
 MODEL = 'morphology.finntreebank.hfstol'
 
-VERSION = '0.2 (2018-06-24)'
+VERSION = '0.2.1 (2018-09-30)'
 
 parser = ArgumentParser(description = '''
 
@@ -43,14 +45,6 @@ parser.add_argument('--debug', dest = 'debug',
                     help = 'show various stages (not VRT)')
 parser.add_argument('--version', action = 'store_true',
                     help = 'print {} and exit'.format(VERSION))
-
-# old values are passed unescaped to the underlying transducer,
-# new values are inserted escaped to the output stream (N/A)
-bare, code = (b'&', b'<', b'>'), (b'&amp;', b'&lt;', b'&gt;')
-def encm(m, d = dict(zip(bare, code))): return d[m.group()]
-def decm(m, d = dict(zip(code, bare))): return d[m.group()]
-def escape(value): return re.sub('[&<>]', encm, value)
-def unescape(value): return re.sub('&(amp|lt|gt);', decm, value)
 
 class BadData(Exception): pass # stack trace is just noise
 class BadCode(Exception): pass # this cannot happen
