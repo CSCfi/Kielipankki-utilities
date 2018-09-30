@@ -11,9 +11,12 @@ from vrtargslib import BadData, BadCode
 
 from vrtnamelib import binxname, binxrest
 from vrtnamelib import binnamelist, nameindex, nameindices
-from vrtnamelib import bininsertnames
+from vrtnamelib import bininsertnames as insertnames
 
-VERSION = '0.3 (2018-09-28)'
+from vrtdatalib import binlineref as lineref
+from vrtdatalib import binescape as escape, binunescape as unescape
+
+VERSION = '0.3.1 (2018-09-30)'
 
 MARMOT = [
     'java',
@@ -126,11 +129,9 @@ def implement_main(args, inf, marmot, copy):
             if wf is None:
                 raise BadData('error: token before field names')
             for k, line in enumerate(group, start = 1):
-                
-                marmot.stdin.write(unescape(getword(line, wf))) # rename getword
+                marmot.stdin.write(unescape(lineref(line, wf)))
                 marmot.stdin.write(b'\t')
-                poses = unescape(getword(line, pf))
-                marmot.stdin.write(poses)
+                marmot.stdin.write(unescape(lineref(line, pf)))
                 marmot.stdin.write(b'\n')
                 copy.stdin.write(line)
             else:
@@ -155,11 +156,11 @@ def implement_main(args, inf, marmot, copy):
             for line in group:
                 fieldnames = binnamelist(line)
                 wf, pf = nameindices(fieldnames, args.word, args.tag)
-                newline = bininsertnames(line, args.tag,
-                                         args.prefix + b'marmot.pos' +
-                                         args.suffix,
-                                         args.prefix + b'marmot.feat' +
-                                         args.suffix)
+                newline = insertnames(line, args.tag,
+                                      args.prefix + b'marmot.pos' +
+                                      args.suffix,
+                                      args.prefix + b'marmot.feat' +
+                                      args.suffix)
                 copy.stdin.write(newline)
             else:
                 continue
@@ -169,14 +170,6 @@ def implement_main(args, inf, marmot, copy):
             continue
 
         raise BadCode('this cannot happen')
-
-# old values are passed unescaped to the underlying process,
-# new values are inserted escaped to the output stream
-bare, code = (b'&', b'<', b'>'), (b'&amp;', b'&lt;', b'&gt;')
-def encm(m, d = dict(zip(bare, code))): return d[m.group()]
-def decm(m, d = dict(zip(code, bare))): return d[m.group()]
-def escape(value): return re.sub(b'[&<>]', encm, value)
-def unescape(value): return re.sub(b'&(amp|lt|gt);', decm, value)
 
 class Kind(enum.Enum):
     # kind of line (group of them)
@@ -269,9 +262,6 @@ def implement_combine(args, marmot, copy, out):
             out.write(line)
         else:
             continue
-
-def getword(line, pos): # needs to be renamed
-    return line.rstrip(b'\n').split(b'\t')[pos]
 
 if __name__ == '__main__':
     trans_main(parsearguments(), main,
