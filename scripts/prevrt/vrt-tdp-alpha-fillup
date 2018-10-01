@@ -9,6 +9,8 @@ import hfst
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 
+from vrtnamelib import xname
+
 from vrtdatalib import unescape, escape
 
 MODELDIR = '/proj/kieli/varpunen/models'
@@ -27,28 +29,28 @@ def parsearguments():
     parser = trans_args(version = VERSION, description = description)
 
     parser.add_argument('--word', '-w', metavar = 'name',
-                        default = 'word',
+                        type = xname, default = 'word',
                         help = 'input word-field name (default word)')
     parser.add_argument('--in-tag', '-t', dest = 'inpos', metavar = 'name',
-                        default = 'marmot.pos',
+                        type = xname, default = 'marmot.pos',
                         help = 'input pos-field name (default marmot.pos)')
     parser.add_argument('--in-feat', '-f', dest = 'infeat', metavar = 'name',
-                        default = 'marmot.feat',
+                        type = xname, default = 'marmot.feat',
                         help = 'input feature-field name (default marmot.feat)')
     parser.add_argument('--lemma', '-l', metavar = 'name',
-                        default = 'lemma',
+                        type = xname, default = 'lemma',
                         help = 'output lemma-field name (default lemma)')
     parser.add_argument('--out-tag', '-p', dest = 'outpos', metavar = 'name',
-                        default = 'pos',
+                        type = xname, default = 'pos',
                         help = 'output pos-field name (default pos)')
     parser.add_argument('--out-feat', '-F', dest = 'outfeat', metavar = 'name',
-                        default = 'feat',
+                        type = xname, default = 'feat',
                         help = 'output feature-field name (default feat)')
     parser.add_argument('--debug', action = 'store_true',
                         help = 'show various stages (not VRT)')
 
     args = parser.parse_args()
-    args.prop = parser.prog
+    args.prog = parser.prog
     return args
 
 ## TODO PROPERLY
