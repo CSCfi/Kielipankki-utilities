@@ -5,7 +5,7 @@ def asrecord(line):
     string.
 
     '''
-    return line.rstrip('\n').split('\t')
+    return line.rstrip('\r\n').split('\t')
 
 def lineref(line, k):
     '''Return the literal string value, at a 0-based field index, from a
@@ -27,7 +27,7 @@ def binasrecord(line):
     object in UTF-8.
 
     '''
-    return line.rstrip(b'\n').split(b'\t')
+    return line.rstrip(b'\r\n').split(b'\t')
 
 def binlineref(line, k):
     '''Return the literal string values, at a 0-based field index, from a
