@@ -106,6 +106,7 @@ def trans_main(args, main, *, in_as_text = True, out_as_text = True):
 
         return status
 
+    status = 1
     try:
         with inputstream(args.infile, in_as_text) as inf, \
              outputstream(temp, out_as_text) as ouf:
