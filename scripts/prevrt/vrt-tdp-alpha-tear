@@ -5,23 +5,34 @@ from itertools import groupby, chain
 import re
 
 from vrtargslib import trans_args, trans_main
+from vrtargslib import BadData
 
-VERSION = '0.1 (2018-09-19)'
+from vrtnamelib import xname
+from vrtnamelib import namelist, nameindex
 
-import signal
-signal.signal(signal.SIGINT, signal.SIG_DFL)
-signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+from vrtdatalib import asrecord
 
-def argumentparser():
+VERSION = '0.2 (2018-10-01)'
+
+# import signal
+# signal.signal(signal.SIGINT, signal.SIG_DFL)
+# signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+def parsearguments():
     description = '''
+
     Tear long sentences into short shreds
     that a certain parser can cope with.
+
     '''
     parser = trans_args(version = VERSION, description = description)
     parser.add_argument('--word', '-w', metavar = 'name',
-                        default = 'word',
+                        type = xname, default = 'word',
                         help = 'word field name [word]')
-    return parser
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
 
 def main(args, inf, ouf):
     try:
@@ -37,7 +48,7 @@ def main(args, inf, ouf):
             print(line, end = '', file = ouf)
             if line.startswith('<!-- Positional attributes:'):
                 # grab word position
-                wp = re.findall(R'[\w.+]+', line).index(args.word) - 2
+                wp = nameindex(namelist(line), args.word)
     except StopIteration:
         pass
 
@@ -46,7 +57,7 @@ def readsentence(inf):
         yield line
         if line.startswith('</sentence>'): return
         if line.startswith('<'):
-            raise BadData('markup within sentence')
+            raise BadData('meta within sentence')
 
 def tearsentence(sentence, wp, ouf):
     if len(sentence) < 102:
@@ -65,8 +76,7 @@ def tearsentence(sentence, wp, ouf):
     # words could be used heuristically to break at
     # a point that does not look maximally bad; not
     # actually used
-    words = [ line.rstrip('\r\n').split('\t')[wp]
-              for line in sentence ]
+    words = [ asrecord(line)[wp] for line in sentence ]
 
     print('<sen.ten.ce>', file = ouf)
     while sentence:
@@ -94,5 +104,4 @@ def breakpoint(words, b, e):
     return b + (e - b) // 2
 
 if __name__ == '__main__':
-    args = argumentparser().parse_args()
-    trans_main(args, main)
+    trans_main(parsearguments(), main)
