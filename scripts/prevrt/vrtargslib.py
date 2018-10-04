@@ -97,7 +97,9 @@ def trans_main(args, main, *, in_as_text = True, out_as_text = True):
         try:
             status = main(args, inf, ouf)
         except BadData as exn:
-            print(args.prog + ': error:', exn, file = sys.stderr)
+            print(args.prog + ': error in data:', exn, file = sys.stderr)
+        except BadCode as exn:
+            print(args.prog + ': error in code:', exn, file = sys.stderr)
         except BrokenPipeError:
             print(args.prog + ':', 'broken pipe from main',
                   file = sys.stderr)

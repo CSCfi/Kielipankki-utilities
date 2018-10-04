@@ -1,8 +1,6 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
-from argparse import ArgumentParser
-from tempfile import mkstemp
 import os, re, sys, traceback
 import hfst
 
@@ -16,7 +14,7 @@ from vrtdatalib import unescape, escape
 MODELDIR = '/proj/kieli/varpunen/models'
 MODEL = 'morphology.finntreebank.hfstol'
 
-VERSION = '0.1.1 (2018-09-30)'
+VERSION = '0.2.0 (2018-10-03)'
 
 def parsearguments():
     description = '''
@@ -48,6 +46,8 @@ def parsearguments():
                         help = 'output feature-field name (default feat)')
     parser.add_argument('--debug', action = 'store_true',
                         help = 'show various stages (not VRT)')
+    parser.add_argument('--log-fail', dest = 'logfail', action = 'store_true',
+                        help = 'log last-resort random choice in stderr')
 
     args = parser.parse_args()
     args.prog = parser.prog
@@ -215,6 +215,9 @@ def marmot_undone(inpos, infeat):
     not even generated in this marmot-out, so it will not prevent a
     perfect match.
 
+    Some clitics occur grouped as CLIT_Qst+Foc_s or CLIT_Qst+Foc_han
+    which are meant to be split into Qst and Foc_s or Foc_han.
+
     '''
     # or may it be a tuple?
     
@@ -222,9 +225,11 @@ def marmot_undone(inpos, infeat):
     try:
         (
             infeat == '_' or
-            intags.extend(tag for cat, tag
-                          in (cattag.split('_', 1) for cattag
-                              in infeat.split('|')))
+            intags.extend(tag
+                          for cat, tags
+                          in (cattags.split('_', 1)
+                              for cattags in infeat.split('|'))
+                          for tag in tags.split('+'))
         )
     except ValueError as exn:
         raise BadCode('could not handle {!r}, {!r}'
@@ -349,9 +354,21 @@ def best(args, analyses, form, intags):
     # can get here if there are only different last derivations left -
     # when does that even happen? should one just pick one then?
 
-    # lemma, outfeat = most compatible with omorfi TODO
-    lemma, outpos, outfeat = 'TODO', 'TODO', ['TODO']
-    return lemma, outpos, outfeat, 'fall through'
+    lemma, tagset, der = next(iter(matches))
+    pos, outs = order(form, tagset, der = der)
+
+    if args.logfail:
+        print('# FAIL Different last derivations left', file = sys.stderr)
+        print('# Form and tags from marmot:', file = sys.stderr)
+        print(form, intagset, file = sys.stderr)
+        print('# Remaining (lemma, tags, der) from omorfi:', file = sys.stderr)
+        for k, match in enumerate(matches, start = 1):
+            print(k, match, file = sys.stderr)
+        print('# Arbitrary choice:', file = sys.stderr)
+        print(lemma, pos, outs, file = sys.stderr)
+        print(file = sys.stderr)
+
+    return lemma, pos, outs, because('random') # meaning arbitrary
 
 def finish(taglist):
     return ('|'.join('{}_{}'.format(TAGCAT[tag], tag)
@@ -422,6 +439,14 @@ TAGCAT = {
     'Foc_pa' : 'CLIT',
     'Foc_s' : 'CLIT',
     'Qst' : 'CLIT',
+
+    # Q. Is Qst+Foc_s one tag or two?
+    # A. Two. It comes from marmot.
+    # Q. Do we have Qst+Foc_s in Korp?
+    # A. Doubt it.
+    # Q. Does + appear in other tags?
+    # A. At least in Qst+Foc_han.
+
     'Comp' : 'CMP',
     'Pos' : 'CMP',
     'Superl' : 'CMP',
