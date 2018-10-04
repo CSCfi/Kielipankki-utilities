@@ -119,8 +119,16 @@ def trans_main(args, main, *, in_as_text = True, out_as_text = True):
     except Exception as exn:
         print(traceback.format_exc(), file = sys.stderr)
 
+    if status:
+        print(args.prog + ': non-zero status', status, file = sys.stderr)
+        (
+            temp is None
+            or print(args.prog + ': leaving output in', temp,
+                     file = sys.stderr)
+        )
+        exit(status)
+
     try:
-        # TODO not rename temp if error status
         args.backup and os.rename(args.infile, args.infile + args.backup)
         args.inplace and os.rename(temp, args.infile)
         args.outfile and os.rename(temp, args.outfile)
