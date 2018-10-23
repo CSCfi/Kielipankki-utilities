@@ -129,22 +129,32 @@ fi
 
 
 run_mysql_export () {
+    local tablename outfname sql_cmd pid rowcnt
     tablename=$1
     outfname=$2
-    shift
-    shift
+    sql_cmd=$3
+    shift 3
+    # SET SQL_BIG_SELECTS=1 is needed for exporting large tables
+    sql_cmd="SET SQL_BIG_SELECTS=1; $sql_cmd"
     if [ ! -e $tmp_prefix.fifo ]; then
 	mkfifo $tmp_prefix.fifo
     fi
     wc -l < $tmp_prefix.fifo > $tmp_prefix.wc &
     pid=$!
-    run_mysql --table $tablename "$@" 2> /dev/null |
+    run_mysql --table $tablename "$sql_cmd" "$@" 2> $tmp_prefix.err |
     tail -n+2 |
     tee $tmp_prefix.fifo |
     $compress > $outfname
     wait $pid
     rowcnt=$(cat $tmp_prefix.wc)
     if [ $rowcnt = 0 ]; then
+	if [ -s $tmp_prefix.err ] &&
+	       # Silently ignore "Table doesn't exist" errors
+	       grep -vq '^ERROR 1146' $tmp_prefix.err;
+	then
+	    warn "Table $tablename not exported due to a MySQL error:"
+	    cat $tmp_prefix.err | sed -e 's/^/  /'
+	fi
 	rm $outfname
     else
 	verbose 2 echo "  $tablename ($rowcnt rows): $outfname"
