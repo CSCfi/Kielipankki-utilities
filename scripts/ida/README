@@ -1,0 +1,10 @@
+Not sure if konversio repo is the right place,
+but the ./idals script needs some home to stay
+safe. The script is also (currently) wired for
+FIN-CLARIN data. (In a bit more ideal world it
+would read the host and project from the user's
+~/.ida-config but this world is not that world.)
+
+Comment in script links to relevant IDA pages.
+
+2018-11-06 jpiitula

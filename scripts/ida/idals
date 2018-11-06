@@ -1,0 +1,405 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+# Command line file listing for IDA by jpiitula of FIN-CLARIN, 2018,
+# based on received information:
+# https://www.fairdata.fi/en/ida/user-guide/
+# https://www.fairdata.fi/en/ida/user-guide/#command-line-tools
+# https://github.com/CSCfi/ida2-command-line-tools
+
+# https://research.csc.fi/csc-guide-archiving-data-to-the-archive-servers#3.2.2
+# "File listing is not yet available."
+
+# TODO Lists resource names in their url-code form
+# like Lakeja%20ja%20direktiiveja/
+# like L%c3%b6nnrot/
+# might be good to have options here.
+
+from argparse import ArgumentParser
+from io import BytesIO
+from itertools import count
+from urllib.parse import quote as urlencode
+from urllib.parse import unquote as urldecode
+
+from lxml import etree
+
+import requests
+import os, sys
+
+def parsearguments():
+    description = '''
+
+    List contents of a resource in IDA (may or may not work with any
+    other credentials than the default; only tested with credentials
+    in ~/.netrc; host and project specified in the script, not read
+    from ~/.ida-config that the new ida command uses; the meaning of
+    server responses reported by educated guesswork based on ocular
+    inspection without reference to any written specification).
+
+'''
+    parser = ArgumentParser(description = description)
+    parser.add_argument('path', nargs = '?', default = '.',
+                        help = 'resource pathname (relative to project)')
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--columns', '-n', type = positiveint,
+                       help = 'number of columns in the default output format')
+    group.add_argument('--width', '-w', type = positiveint, default = 80,
+                       help = '''width in characters of the default
+                       output format when number of columns not
+                       specified''')
+    group.add_argument('--long', '-l', action = 'store_true',
+                        help = 'print information on each entry')
+    group.add_argument('--xml', '-x', action = 'store_true',
+                        help = 'print actual XML response from server')
+    group.add_argument('--raw-body', dest = 'rawbody', action = 'store_true',
+                       help = 'print response body as is')
+    group.add_argument('--raw-url', dest = 'rawurl', action = 'store_true',
+                       help = 'print request URL and exit')
+
+    parser.add_argument('--bytes', '-b', action = 'store_true',
+                        help = '''in long format, display sizes
+                        exactly in bytes instead of conveniently
+                        in approximate multiples of the usual
+                        powers of two (K, M, G, T, ...)
+                        ''')
+
+    parser.add_argument('--recursive', '-r', action = 'store_true',
+                        help = 'show collection recursively')
+
+    parser.add_argument('--host', '-t',
+                        default = 'https://ida.fairdata.fi',
+                        help = 'target host')
+    parser.add_argument('--project', '-p',
+                        default = 'tlp0063',
+                        help = 'project name')
+    parser.add_argument('--frozen', '-f', action = 'store_true',
+                        help = 'access the frozen part of the repository')
+
+    args = parser.parse_args()
+    return args
+
+def positiveint(s):
+    '''A positive integer. It would be convenient to have such available
+    for an ArgumentParser but it is not, is it? Sheer tedium.
+
+    '''
+    n = int(s)
+    if n > 0: return n
+    raise ValueError('number must be positive')
+
+
+# namespace prefixes to use in xpath expressions
+_ns = dict(d = 'DAV:')
+    
+def parsexml(text):
+    # an error message has an encoding declaration;
+    # etree.fromstring would not accept an encoding declaration in a string;
+    # give up on etree.fromstring altogether;
+    # sigh
+    return etree.parse(BytesIO(text.encode('UTF-8')))
+
+def writexml(doc):
+    doc.write(sys.stdout.buffer, pretty_print = True)
+
+def getinfo(path, args):
+    # path is like /remote.php/webdav/tlp0063%2b/corpora/'
+    # what the API also returns as href in its responses
+    # to facilitate recursion in writelong and writecolumns
+    # http://docs.python-requests.org/en/master/user/authentication/
+    r = propfind(makeurl(path, args))
+    return r.status_code, parsexml(r.text)
+
+def makeurl(path, args):
+    return '{}{}'.format(args.host, path)
+
+def propfind(url):
+    return requests.request('PROPFIND', url)
+
+def writelong(doc, args):
+    first, *rest = doc.xpath('//d:response', namespaces = _ns)
+
+    used = getsize(first)
+    available = getavailable(first)
+    name = getpathname(first)
+    print('{} +{} {}:'
+          .format(used if args.bytes else humansize(used),
+                  available if args.bytes else humansize(available),
+                  name))
+
+    names = list(map(getname, rest))
+    marks = list(map(getmark, rest))
+    if rest:
+        dates, times = map(list, zip(*map(getdatetime, rest)))
+    else:
+        dates, times = [], []
+    sizes = [ formatsize(getsize(response), args) for response in rest ]
+    wsize = max(map(len, sizes), default = 0)
+    for name, mark, date, time, size in zip(names, marks,
+                                            dates, times, sizes):
+        print(date, time, '{:>{}}'.format(size, wsize), name + mark)
+
+    if args.recursive:
+        for response in filter(iscollection, rest):
+            print()
+            path = getpath(response)
+            status, doc = getinfo(path, args)
+            # TODO status (or if doc be error)
+            writelong(doc, args)
+
+def formatsize(size, args):
+    if args.bytes: return str(size)
+    return humansize(size)
+
+def humansize(size):
+    if size < 1000:
+        return str(size)
+
+    size = float(size)
+    for m in range(1, 8):
+        size /= 1024.0
+        if size < 999.95:
+            return '{:.1f}{}'.format(size, 'KMGTPEZ'[m - 1])
+    else:
+        return '{:.1f}Y'.format(size)
+
+def testhumansize():
+    print('Show 3+1 decimal digits times binary powers.')
+    print('Something has to give.')
+    print()
+    U, K, M, G, T, P, E, Z, Y = (2 ** (k * 10) for k in range(9))
+    data = (
+        # given, unit, show, expected
+        #(999 * K, '999.0K', ''),
+        #(1000 * K, '1.0M', ''),
+        #(999.94 * M, '999.9M', '999.94 M/M'),
+        (0 * U, U, '0', '0'),
+        (1 * U, U, '1', '1'),
+        (999 * U, U, '999', '999'),
+        (1000 * U, K, '1000 U/K', '1.0K'),
+        (999.94 * K, K, '999.94 K/K', '999.9K'),
+        (999.95 * K, M, '999.95 K/M', '1.0M'),
+        (999.94 * M, M, '999.94 M/M', '999.9M'),
+        (999.95 * M, G, '999.95 M/G', '1.0G'),
+        (1000 * M, G, '1000 M/G', '1.0G'),
+        (1500 * M, G, '1500 M/G', '1.5G'),
+        (1587 * M, G, '1587 M/G', '1.5G'),
+        (1588 * M, G, '1588 M/G', '1.6G'),
+        (1590 * M, G, '1590 M/G', '1.6G'),
+        (999.94 * G, G, '999.94 G/G', '999.9G'),
+        (999.95 * G, T, '999.95 G/G', '1.0T'),
+        (999.94 * T, T, '999.94 T/T', '999.9T'),
+        (999.95 * T, P, '999.95 T/P', '1.0P'),
+    )
+    print('observed = expected | analysis')
+    print('------------------------------')
+    for given, unit, show, expected in data:
+        observed = humansize(given)
+        print('{:>8} {} {:8} | {} ≈ {:.1f}'
+              .format(observed, '≈='[observed == expected], expected,
+                      show, given / unit))
+
+# testhumansize()
+# exit(1)
+
+def getpath(response):
+    # used for recursion as is
+    path = response.xpath('d:href/text()', namespaces = _ns)
+    [path] = path
+    return path
+
+def getpathname(response):
+    # used as a heading in recursion
+    path = getpath(response)
+    path = path[len('/remote.php/webdav/'):]
+    path = path[1 + path.index('/'):]
+    return path
+    
+def getname(response):
+    return os.path.basename(getpath(response).rstrip('/'))
+
+def getmark(response):
+    '''Return a string to print after actual name'''
+
+    return '/' if iscollection(response) else ''
+
+def iscollection(response):
+    path = response.xpath('d:href/text()', namespaces = _ns)
+    [name] = path
+    return name.endswith('/')
+
+_month = dict(# sigh
+    Jan = '01',
+    Feb = '02',
+    Mar = '03',
+    Apr = '04',
+    May = '05',
+    Jun = '06',
+    Jul = '07',
+    Aug = '08',
+    Sep = '09',
+    Oct = '10',
+    Nov = '11',
+    Dec = '12')
+
+def getdatetime(response):
+    text = response.xpath('d:propstat/d:prop/d:getlastmodified/text()',
+                          namespaces = _ns)
+    [text] = text
+
+    # Sun, 21 Oct 2018 18:36:20 GMT
+    day, dd, mon, year, time, gmt = text.split()
+
+    # nonsense to use datetime.strptime locale-specific format codes,
+    # so not bothering with datetime (but what of the timezone?)
+
+    return ( '{y}-{m}-{d}'.format(y = year, m = _month[mon], d = dd),
+             time )
+
+def getsize(response):
+    if iscollection(response):
+        text = response.xpath('d:propstat/d:prop/d:quota-used-bytes/text()',
+                              namespaces = _ns)
+        text or print('no quota-used-bytes')
+        # there should not be any d:getcontentlength
+    else:
+        text = response.xpath('d:propstat/d:prop/d:getcontentlength/text()',
+                              namespaces = _ns)
+        text or print('no getcontentlength')
+        # any d:quota-used-bytes should be empty
+
+    [text] = text
+    return int(text)
+
+def getavailable(response):
+    if iscollection(response):
+        text = response.xpath('d:propstat/d:prop/d:quota-available-bytes/text()',
+                              namespaces = _ns)
+        text or print('no quota-available-bytes')
+    else:
+        print('not a collection, no available, should not happen')
+        return 0
+
+    [text] = text
+    return int(text)
+
+def writecolumns(doc, args):
+    
+    first, *rest = doc.xpath('//d:response', namespaces = _ns)
+
+    if not iscollection(first):
+        # first d:response is resource itself
+        print(getname(first) + getmark(first))
+        return
+    
+    if args.recursive:
+        print(getpathname(first) + ':')
+        
+    names = [
+        getname(response) + getmark(response)
+        for response in rest
+    ]
+    formatcolumns(names, args)
+
+    if args.recursive:
+        for response in filter(iscollection, rest):
+            print()
+            path = getpath(response)
+            status, doc = getinfo(path, args)
+            # TODO status (or if doc be error)
+            writecolumns(doc, args)
+
+def formatcolumns(names, args):
+    '''Format given names in a desired number of columns in standard
+    output.
+
+    '''
+    if args.columns is not None:
+        cols, wids = fillcolumns(names, args.columns)    
+    else:
+        for number in count(start = 1):
+            cols, wids = fillcolumns(names, number)
+            width = sum(wids) + 2 * (len(wids) - 1)
+            if width < args.width:
+                if len(cols[0]) < 2:
+                    # names fit in one row
+                    break
+                else:
+                    # more columns might fit
+                    continue
+            elif len(cols) < 2:
+                # names do not fit in one column,
+                # cannot have fewer than one
+                break
+            else:
+                # names *do* fit in one fewer columns
+                cols, wids = fillcolumns(names, number - 1)
+                break
+
+    # do not pad last column
+    wids[-1] = 1
+
+    for k in range(len(cols[0])):
+        print(*('{:{}}'.format(g[k], w)
+                for g, w in zip(cols, wids)
+                if k < len(g)),
+              sep = '  ')
+
+def fillcolumns(names, number):
+    '''Fill given number of columns with given names, return a list of
+    columns (each a list of names) and a list of column widths (number
+    of characters in each column).
+
+    '''
+    cols = []
+    rest = names
+    for ncol in reversed(range(1, number + 1)):
+        ht = -((-len(rest)) // ncol)
+        cols.append(rest[:ht])
+        rest = rest[ht:]
+
+    # rest must be []
+
+    # column widths
+    wids = [ max(map(len, col), default = 0) for col in cols ]
+
+    return cols, wids
+
+def main(args):
+    path = ( '/remote.php/webdav/{p}{f}/{r}'
+             .format(p = args.project,
+                     f = urlencode('' if args.frozen else '+'),
+                     r = urlencode(args.path)) )
+
+    if args.rawbody:
+        r = propfind(makeurl(path, args))
+        print(r.text)
+        return
+
+    if args.rawurl:
+        print(makeurl(path, args))
+        return
+
+    status, doc = getinfo(path, args)
+    # doc = parsexml(text)
+
+    if status != 207:
+        print('status:', status)
+        writexml(doc)
+    elif args.xml:
+        writexml(doc)
+    elif args.long:
+        writelong(doc, args)
+    else:
+        writecolumns(doc, args)
+
+if __name__ == '__main__':
+    try:
+        main(parsearguments())
+    except KeyboardInterrupt:
+        print('interrupt')
+        exit(1)
+    except BrokenPipeError:
+        # not working as expected?
+        print('broken pipe')
+        exit(1)
