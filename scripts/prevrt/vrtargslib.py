@@ -91,7 +91,7 @@ def trans_main(args, main, *, in_as_text = True, out_as_text = True):
         head, tail = os.path.split(args.infile
                                    if args.inplace or args.backup
                                    else args.outfile)
-        fd, temp = mkstemp(dir = head, prefix = tail)
+        fd, temp = mkstemp(dir = head, prefix = tail + '.tmp.')
         os.close(fd)
     else:
         temp = None
