@@ -65,17 +65,21 @@ def trans_main(args, main, *, in_as_text = True, out_as_text = True):
         print('usage: --backup suffix cannot be empty', file = sys.stderr)
         exit(1)
 
-    if (args.backup is not None) and not args.inplace:
-        print('usage: --backup requires --in-place', file = sys.stderr)
-        exit(1)
+    # if (args.backup is not None) and not args.inplace:
+    #     print('usage: --backup requires --in-place', file = sys.stderr)
+    #     exit(1)
 
     if args.inplace and (args.infile is None):
         print('usage: --in-place requires input file', file = sys.stderr)
         exit(1)
 
-    if args.inplace and (args.outfile is not None):
-        print('usage: --in-place not allowed with --out', file = sys.stderr)
+    if args.backup and (args.infile is None):
+        print('usage: --backup requires input file', file = sys.stderr)
         exit(1)
+
+    # if args.inplace and (args.outfile is not None):
+    #     print('usage: --in-place not allowed with --out', file = sys.stderr)
+    #     exit(1)
 
     if (args.outfile is not None) and os.path.exists(args.outfile):
         # easier to check this than that output file is different than
@@ -83,9 +87,9 @@ def trans_main(args, main, *, in_as_text = True, out_as_text = True):
         print('usage: --out file must not exist', file = sys.stderr)
         exit(1)
 
-    if args.inplace or (args.outfile is not None):
+    if args.inplace or args.backup or (args.outfile is not None):
         head, tail = os.path.split(args.infile
-                                   if args.inplace
+                                   if args.inplace or args.backup
                                    else args.outfile)
         fd, temp = mkstemp(dir = head, prefix = tail)
         os.close(fd)
@@ -130,7 +134,7 @@ def trans_main(args, main, *, in_as_text = True, out_as_text = True):
 
     try:
         args.backup and os.rename(args.infile, args.infile + args.backup)
-        args.inplace and os.rename(temp, args.infile)
+        (args.inplace or args.backup) and os.rename(temp, args.infile)
         args.outfile and os.rename(temp, args.outfile)
         exit(status)
     except IOError as exn:
