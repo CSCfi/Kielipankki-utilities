@@ -7,7 +7,7 @@ from tempfile import mkstemp
 import enum, os, re, sys, traceback # using enum?
 import io, os, string, sys
 
-VERSION = '0.1 (2018-06-19)'
+VERSION = '0.2 (2018-11-08)'
 
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -100,14 +100,19 @@ def dirmember(dirobj, pathname):
 
 def makesink(target, targetname, member):
     out, end = None, None
+    names = None
     def consumer(fragment):
-        nonlocal out, end
+        nonlocal out, end, names
 
         if fragment is sentinel_fragment:
             end is None or end()
             return
 
         first = next(fragment)
+        while first.startswith(b'<!-- Positional attributes:'):
+            names = first
+            first = next(fragment)
+
         if not first.startswith(b'<... '):
             raise BadData('not a fragment start tag')
         # print('got fragment:', first)
@@ -123,9 +128,12 @@ def makesink(target, targetname, member):
 
         if out is None:
             out, end = member(target, pathname)
+            names is None or out.write(names)
 
         for line in fragment:
             if line.startswith(b'</...>'): continue
+            if line.startswith(b'<!-- Positional attributes:'):
+                names = line
             out.write(line)
 
     return consumer
@@ -155,7 +163,11 @@ def wrap_main():
               sep = '\n', file = sys.stderr)
         exit(1)
 
-    main(source, sink)
+    try:
+        main(source, sink)
+    except BadData as exn:
+        print('error:', exn, file = sys.stderr)
+        exit(1)
 
 def main(source, sink):
     for producer in source:
