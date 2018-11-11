@@ -33,8 +33,6 @@ PARSER = [ 'java', '-cp',
            # of this thing writes its *diagnostics* in its stdout
 ]
 
-VERSION = '0.3 (2018-10-05)'
-
 # Let slip the first "Processing Sentence: 1 (32 ms/instance)".
 # Quash the hundred thousand "2 (113 ms/instance)" that follow.
 BREAKER = [ '/usr/bin/tr', '-s', r'\b', r'\n' ] # sigh
@@ -52,7 +50,7 @@ def parsearguments():
 
 '''
 
-    parser = trans_args(version = VERSION, description = description)
+    parser = trans_args(description = description)
 
     parser.add_argument('--word', '-w', metavar = 'name',
                         type = binxname, default = b'word',

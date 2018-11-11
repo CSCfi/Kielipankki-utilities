@@ -12,12 +12,6 @@ from vrtnamelib import namelist, nameindex
 
 from vrtdatalib import asrecord
 
-VERSION = '0.2 (2018-10-01)'
-
-# import signal
-# signal.signal(signal.SIGINT, signal.SIG_DFL)
-# signal.signal(signal.SIGPIPE, signal.SIG_DFL)
-
 def parsearguments():
     description = '''
 
@@ -25,7 +19,7 @@ def parsearguments():
     that a certain parser can cope with.
 
     '''
-    parser = trans_args(version = VERSION, description = description)
+    parser = trans_args(description = description)
     parser.add_argument('--word', '-w', metavar = 'name',
                         type = xname, default = 'word',
                         help = 'word field name [word]')

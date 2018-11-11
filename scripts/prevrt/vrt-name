@@ -7,8 +7,6 @@ import enum, os, re, sys, traceback
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 
-VERSION = '0.2 (2018-10-03)'
-
 def spectype(text):
     # TODO: name spec is too permissive
     # TODO: should reject digit in front
@@ -33,7 +31,7 @@ def parsearguments():
 
 '''
 
-    parser = trans_args(version = VERSION, description = description)
+    parser = trans_args(description = description)
 
     parser.add_argument('--number', '-n', metavar = 'num',
                         type = numtype, default = 1,

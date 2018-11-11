@@ -18,8 +18,6 @@ from vrtdatalib import escape, unescape
 MODELDIR = '/proj/kieli/varpunen/models'
 MODEL = 'morphology.finntreebank.hfstol'
 
-VERSION = '0.3 (2018-10-01)'
-
 def parsearguments():
     description = '''
 
@@ -32,7 +30,7 @@ def parsearguments():
 
 '''
 
-    parser = trans_args(version = VERSION, description = description)
+    parser = trans_args(description = description)
 
     parser.add_argument('--feats', '-f', metavar = 'name',
                         type = xname, default = 'marmot.in',

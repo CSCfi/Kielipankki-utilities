@@ -14,8 +14,6 @@ from vrtdatalib import unescape, escape
 MODELDIR = '/proj/kieli/varpunen/models'
 MODEL = 'morphology.finntreebank.hfstol'
 
-VERSION = '0.2.0 (2018-10-03)'
-
 def parsearguments():
     description = '''
 
@@ -24,7 +22,7 @@ def parsearguments():
 
 '''
 
-    parser = trans_args(version = VERSION, description = description)
+    parser = trans_args(description = description)
 
     parser.add_argument('--word', '-w', metavar = 'name',
                         type = xname, default = 'word',

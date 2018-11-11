@@ -2,11 +2,9 @@
 # -*- mode: Python; -*-
 
 from argparse import ArgumentParser, ArgumentTypeError
-
 import fnmatch, os, sys
 
-# TODO add version! to use vrtargslib just for version? but then
-# version is not yet in vrtargslib.
+from vrtargslib import version_args
 
 def parsearguments():
     description = '''
@@ -18,7 +16,7 @@ def parsearguments():
 
     '''
 
-    parser = ArgumentParser(description = description)
+    parser = version_args(description = description)
 
     parser.add_argument('root', help = 'directory to search')
 

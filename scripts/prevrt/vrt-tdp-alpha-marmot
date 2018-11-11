@@ -16,8 +16,6 @@ from vrtnamelib import bininsertnames as insertnames
 from vrtdatalib import binlineref as lineref
 from vrtdatalib import binescape as escape, binunescape as unescape
 
-VERSION = '0.3.1 (2018-09-30)'
-
 MARMOT = [
     'java',
     '-cp', '/proj/kieli/varpunen/marmot-2014-10-22.jar',
@@ -39,7 +37,7 @@ def parsearguments():
     elements.)
 
 '''
-    parser = trans_args(version = VERSION, description = description)
+    parser = trans_args(description = description)
     parser.add_argument('--word', '-w', metavar = 'name',
                         type = binxname, default = b'word',
                         help = 'input word field name (default word)')

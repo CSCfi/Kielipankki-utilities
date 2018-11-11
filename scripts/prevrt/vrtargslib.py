@@ -5,10 +5,26 @@ from argparse import ArgumentParser, ArgumentTypeError
 from tempfile import mkstemp
 import os, sys, traceback
 
+VERSION = '0.5 (2018-11-11)'
+
 class BadData(Exception): pass # stack trace is just noise
 class BadCode(Exception): pass # this cannot happen
 
-def trans_args(*, description, version):
+def version_args(*, description):
+    '''Return an initial argument parser for a command line tool that
+    specifies its own options but identifies itself as part of the vrt
+    tools.
+
+    '''
+    parser = ArgumentParser(description = description)
+
+    parser.add_argument('--version',
+                        action = 'version',
+                        version = '%(prog)s: vrt tools {}'.format(VERSION))
+
+    return parser
+
+def trans_args(*, description):
     '''Return an initial argument parser for a command line tool that
     transforms a single input stream to a single output stream.
 
@@ -33,7 +49,7 @@ def trans_args(*, description, version):
 
     parser.add_argument('--version',
                         action = 'version',
-                        version = '%(prog)s {}'.format(version))
+                        version = '%(prog)s: vrt tools {}'.format(VERSION))
 
     return parser
 

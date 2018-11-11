@@ -12,8 +12,6 @@ from vrtnamelib import namelist, nameindices
 
 from vrtdatalib import asrecord, nextof, next1of
 
-VERSION = '0.2 (2018-11-08)'
-
 def parsearguments():
     description = '''
 
@@ -22,7 +20,7 @@ def parsearguments():
     of shreds accordingly.
 
     '''
-    parser = trans_args(version = VERSION, description = description)
+    parser = trans_args(description = description)
     parser.add_argument('--id', metavar = 'name',
                         type = xname, default = 'id',
                         help = 'token id field name [id]')
