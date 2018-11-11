@@ -84,7 +84,11 @@ def main(args, inf, ouf):
         implement_main(inf, ouf, newnames, n)
         status = 0
     except BadData as exn:
-        print(exn, file = sys.stderr)
+        print(args.prog + ': ' + str(exn), file = sys.stderr)
+    except BadCode as exn:
+        print(args.prog + ': ' + str(exn), file = sys.stderr)
+    except BrokenPipeError:
+        print(args.prog + ': broken pipe in main', file = sys.stderr)
     except Exception as exn:
         print(traceback.format_exc(), file = sys.stderr)
 
