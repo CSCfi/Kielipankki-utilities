@@ -88,3 +88,75 @@ def unescape(value):
 
 def binunescape(value):
     return re.sub(b'&(amp|lt|gt);', _binunescape, value)
+
+def nextof(groups, expected0, expected = None):
+    '''Return the next group from the groups source if it is of the
+    expected kind, or the next two groups if the second kind is not
+    None and the next group is of the optional first kind but not of
+    the required second kind.
+
+    Raise BadData exception if there are no more groups or the next
+    groups are not of the expected kinds.
+
+    When an optional first group is requested, it is reified as a
+    list. The list is empty if the next group is of the second kind.
+
+    '''
+
+    if expected is None:
+        expected0, expected = None, expected0
+
+    observed, group = next(groups, (None, None))
+    if group is None:
+        raise BadData('no group available')
+
+    if observed == expected:
+        return group if expected0 is None else ([], group)
+
+    if expected0 is None:
+        raise BadData('unexpected group')
+
+    if  observed != expected0:
+        raise BadData('unexpected first group')
+
+    observed0, group0 = observed, list(group)
+    observed, group = next(groups, (None, None))
+    if group is None:
+        raise BadData('no second group available')
+
+    if observed == expected:
+        return group0, group
+
+    raise BadData('unexpected second group')
+
+def next1of(groups, expected0, expected = None):
+    '''Return the sole element of the next group from the groups source if
+    it is of the expected kind, or the optional first group and the
+    sole element of second group if the second expected kind is not
+    None and the next group is of the optional first expected kind but
+    not of the required second kind.
+
+    Raise BadData exception if there are no more groups or the next
+    groups are not of the expected kinds or there are more than one
+    elements in the required group.
+
+    When an optional first group is requested, it is reified as a
+    list. The list is empty if the next group is of the second kind.
+
+    '''
+    if expected is None:
+        group = nextof(groups, expected0)
+    else:
+        list0, group = nextof(groups, expected0, expected)
+
+    element = next(group)
+    try:
+        next(group)
+        raise BadData('more than one element')
+    except StopIteration:
+        pass
+
+    if expected is None:
+        return element
+    else:
+        return list0, element
