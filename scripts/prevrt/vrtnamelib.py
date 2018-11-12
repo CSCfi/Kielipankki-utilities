@@ -57,6 +57,24 @@ def binxrest(s):
     '''
     return xrest(s).encode('UTF-8')
 
+def xnames(s):
+    '''Comma-separated extended field names. Usable as a type in an
+    ArgumentParser.
+
+    '''
+    names = s.split(',')
+    if all(map(isxname, names)):
+        return s
+
+    raise ArgumentTypeError('invalid extended names: ' + s)
+
+def binxnames(s):
+    '''Comma-separated extended field names in UTF-8. Usable as a type in
+    an ArgumentParser.
+
+    '''
+    return xnames(s).encode('UTF-8')
+
 _names_exp = R'''
 # matches valid extended field name comments
 # allowing . in special (temporary) names
