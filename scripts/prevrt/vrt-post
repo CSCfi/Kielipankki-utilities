@@ -1,0 +1,62 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from argparse import ArgumentParser, ArgumentTypeError
+import fnmatch, os, sys
+
+from vrtargslib import version_args
+
+def parsearguments():
+    description = '''
+
+    Find in the given system of directories the pathnames of the input
+    files that need post-mortem processing, identified by the presence
+    of a sibling with a suffix in '.tmp.*' added. Write the pathnames
+    in an output file and remove the '.tmp.*' siblings.
+
+    '''
+
+    parser = version_args(description = description)
+
+    parser.add_argument('root', help = 'directory to search')
+
+    parser.add_argument('--out', '-o', metavar = 'file',
+                        required = True,
+                        help = 'output file pathname (required)')
+
+    args = parser.parse_args()
+    return args
+
+def find(root):
+    def raiser(exn): raise exn
+    for dirpath, dirnames, filenames in os.walk(root, onerror = raiser):
+        temps = fnmatch.filter(filenames, '?*.tmp.*')
+        for temp in temps:
+            base = temp[:temp.index('.tmp.')]
+            if base in filenames:
+                yield (os.path.join(dirpath, base),
+                       os.path.join(dirpath, temp))
+            else:
+                print('warning: stray temp file:',
+                      os.path.join(dirpath, base),
+                      file = sys.stderr)
+
+def main(args):
+    temps = []
+    # TODO: list filenames in binary just in case?
+    with open(args.out, mode = 'x', encoding = 'UTF-8') as out:
+        for base, temp in sorted(find(args.root)):
+            temps.append(temp)
+            print('found:', base, sep = '\t')
+            print(base, file = out)
+    for temp in temps:
+        print('removing:', temp, sep = '\t')
+        os.remove(temp)
+    pass
+
+if __name__ == '__main__':
+    try:
+        main(parsearguments())
+    except Exception as exn:
+        print('error:', exn, file = sys.stderr)
+        exit(1)

@@ -1,0 +1,174 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from itertools import groupby, chain
+import enum, os, re, sys, traceback
+from operator import itemgetter
+
+from vrtargslib import trans_args, trans_main
+from vrtargslib import BadData, BadCode
+
+from vrtnamelib import binxnames, binnamelist
+
+def parsearguments():
+    description = '''
+
+    Keep the given fields (positional attributes) in the given
+    order.
+
+    '''
+
+    parser = trans_args(description = description)
+
+    parser.add_argument('--names', '-n', metavar = 'name(s)',
+                        dest = 'names', action = 'append',
+                        type = binxnames, default = [],
+                        help = 'keep the named fields (comma-separated names)')
+
+    # TODO can argparse enforce --rest be used at most once?
+    parser.add_argument('--rest', action = 'append_const', const = b'[...]',
+                        dest = 'names',
+                        help = 'insert the remaining names')
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+
+    # print(args.names) ; exit(23)
+    return args
+
+class Kind(enum.Enum):
+    # kind of line (group of them)
+    meta = 1
+    data = 2
+    begin = 3
+    names = 4
+    comment = 5
+
+def identify(line):
+    # used by groupby to identify the kind of a line group
+    if line.startswith(b'<!-- Positional attributes:'): return Kind.names
+    if line.startswith(b'<!--'): return Kind.comment
+    if line.startswith(b'<sentence'): return Kind.begin
+    if line.startswith(b'<'): return Kind.meta
+    return Kind.data
+
+def getget(args, source):
+    '''From args.names from the command line and field names given in
+    data, return a getter of the desired fields. (Always also include
+    the pseudo-name '+' if the document is made "flat" and contains
+    it, but never in the first position because that field may contain
+    bare angles.)
+
+    '''
+
+    index = { name : k for k, name in enumerate(source) }
+
+    # hit https://bugs.python.org/issue4806 (totally confusing error
+    # message) when --rest stored a string (should have appended a
+    # bytes object, so a double bug but anyway) to args.names; second
+    # time hitting a bug in Python 3.4 that is fixed in Python 3.5
+    target = list(chain(*(names.split(b',') for names in args.names)))
+
+    what = [ name for name in target
+             if name != b'[...]'
+             if name not in index ]
+    if what:
+        raise BadData('no such name: ' + what[0].decode('UTF-8'))
+
+    unique = set(target)
+    if len(unique) < len(target):
+        raise BadData('duplicates')
+
+    if b'[...]' in unique:
+        rest = target.index(b'[...]')
+        target[rest:rest + 1] = (name for name in source
+                                 if name not in unique)
+
+    if not target:
+        raise BadData('empty target')
+
+    # target can contain '+' but cannot start with '+' (assuming input
+    # is valid) because '+' is not valid in options, so either a
+    # proper first field name is given, or --rest picks an actual
+    # first field which again cannot be '+' field
+
+    # include any '+' even without --rest option
+    if b'+' in index and b'+' not in target: target.append(b'+')
+
+    positions = (index[name] for name in target)
+    if len(target) == 1:
+        getone = itemgetter(*positions)
+        getter = lambda record: (getone(record),)
+    else:
+        getter = itemgetter(*positions)
+
+    return getter
+
+def makenew(target):
+    return b' '.join(chain([b'<!-- Positional attributes:'],
+                           target, [b'-->\n']))
+
+def main(args, inf, ouf):
+    status = 1
+    try:
+        implement_main(inf, ouf, args)
+        status = 0
+    except BadData as exn:
+        print(args.prog + ':', exn, file = sys.stderr)
+    except BadCode as exn:
+        print(args.prog + ':', exn, file = sys.stderr)
+    except BrokenPipeError:
+        print(args.prog + ': broken pipe in main', file = sys.stderr)
+    except KeyboardInterrupt:
+        print(args.prog + ': keyboard interrupt', file = sys.stderr)
+    except Exception as exn:
+        print(traceback.format_exc(), file = sys.stderr)
+
+    return status
+
+def implement_main(inf, ouf, args):
+
+    seen = False
+    def isnotspace(line): return not line.isspace()
+    for kind, group in groupby(filter(isnotspace, inf), identify):
+
+        if kind is Kind.data:
+            if not seen:
+                raise BadData('no names before data')
+            for line in group:
+                ouf.write(b'\t'.join(get(line.split(b'\t'))))
+                ouf.write(b'\n')
+            continue
+
+        if kind is Kind.begin:
+            if not seen:
+                raise BadData('error: no names before sentence')
+            for line in group: ouf.write(line)
+            continue
+
+        if kind is Kind.meta:
+            for line in group: ouf.write(line)
+            continue
+
+        if kind is Kind.data:
+            for line in group: ouf.write(line)
+            continue
+
+        if kind is Kind.names:
+            seen = True
+            for line in group:
+                names = binnamelist(line)
+                get = getget(args, names)
+                ouf.write(makenew(get(names)))
+            continue
+
+        if kind is Kind.comment:
+            for line in group: ouf.write(line)
+            continue
+
+        raise BadCode('this cannot happen')
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main,
+               in_as_text = False,
+               out_as_text = False)

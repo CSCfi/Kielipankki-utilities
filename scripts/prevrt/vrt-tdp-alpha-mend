@@ -1,0 +1,172 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from itertools import groupby, chain
+import enum, re
+
+from vrtargslib import trans_args, trans_main
+from vrtargslib import BadData
+
+from vrtnamelib import xname
+from vrtnamelib import namelist, nameindices
+
+from vrtdatalib import asrecord, nextof, next1of
+
+def parsearguments():
+    description = '''
+
+    Mend torn sentences after parsing.
+    Adjusts token numbers and root links
+    of shreds accordingly.
+
+    '''
+    parser = trans_args(description = description)
+    parser.add_argument('--id', metavar = 'name',
+                        type = xname, default = 'id',
+                        help = 'token id field name [id]')
+    parser.add_argument('--head', metavar = 'name',
+                        type = xname, default = 'head',
+                        help = 'token head field name [head]')
+    parser.add_argument('--rel', metavar = 'name',
+                        type = xname, default = 'rel',
+                        help = 'dependency relation field name [rel]')
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
+
+class Outer(enum.Enum):
+    # kind of lines (group of them)
+    start = 1
+    end = 2
+    names = 3
+    other = 4
+
+def outer(line):
+    '''Classify lines outside sen.ten.ce element.'''
+    if line.startswith('<!-- Positional attributes: '):
+        return Outer.names
+    elif line.startswith('<sen.ten.ce>'):
+        return Outer.start
+    elif line.startswith('</sen.ten.ce>'):
+        return Outer.end
+    else:
+        return Outer.other
+
+class Inner(enum.Enum):
+    # kind of lines (group of them)
+    start = 1
+    end = 2
+    token = 3
+    names = 4
+    other = 5
+
+def inner(line):
+    '''Classify lines inside sen.ten.ce element.'''
+    if line.startswith('<!-- Positional attributes:'):
+        return Inner.names
+    elif line.startswith('<sentence'):
+        return Inner.start
+    elif line.startswith('</sentence>'):
+        return Inner.end
+    elif line.startswith('<'):
+        return Inner.other
+    else:
+        return Inner.token
+
+def getpositions(line, args):
+    return nameindices(namelist(line), args.id, args.head, args.rel)
+
+def main(args, inf, ouf):
+    data = groupby(inf, outer)
+    try:
+        while True:
+            kind, group = next(data)
+            if kind == Outer.names:
+                for line in group:
+                    print(line, end = '', file = ouf)
+                    idpos, headpos, relpos = getpositions(line, args)
+            elif kind == Outer.other:
+                for line in group:
+                    print(line, end = '', file = ouf)
+            elif kind == Outer.start:
+                try:
+                    # reassignment of positions is redundant
+                    idpos, headpos, relpos = mend(nextof(data, Outer.other),
+                                                  idpos, headpos, relpos,
+                                                  args,
+                                                  ouf)
+                    end = next1of(data, Outer.end)
+                except NameError as exn:
+                    raise BadCode(str(exn))
+            else:
+                raise BadData('unexpected kind: + kind')
+    except StopIteration:
+        pass
+
+def mend(shreds, idpos, headpos, relpos, args, ouf):
+
+    # scary notice: program exited silently with zero status when args
+    # was accidentally missing in argument list - something masked the
+    # error so that nothing was reported!
+
+    def checkroot(flag):
+        if flag: return
+        raise BadData('no root in shred')
+
+    data = groupby(shreds, inner)
+    try:
+        first = True
+        while True:
+            kind, group = next(data)
+            if kind == Inner.start:
+                [line] = group
+                tokens = nextof(data, Inner.token)
+                done = False
+                if first:
+                    first = False
+                    print(line, end = '', file = ouf)
+                    found = False
+                    for line in tokens:
+                        record = asrecord(line)
+                        id = int(record[idpos])
+                        print(*record, sep = '\t', file = ouf)
+                        if record[headpos] == '0':
+                            found = True
+                            root = record[idpos]
+                    m = id
+                    checkroot(found)
+                else:
+                    found = False
+                    for line in tokens:
+                        record = asrecord(line)
+                        id = int(record[idpos])
+                        head = int(record[headpos])
+                        rel = record[relpos]
+                        record[idpos] = str(id + m)
+                        if head == 0:
+                            found = True
+                            record[headpos] = root
+                            record[relpos] = 'dep' # or what?
+                        else:
+                            record[headpos] = str(head + m)
+                        print(*record, sep = '\t', file = ouf)
+                    m += id
+                    checkroot(found)
+                next1of(data, Inner.end)
+                done = True
+            elif kind == Inner.names:
+                # names after first shred are redundant;
+                # re-assignment of positions is redundant
+                first and print(line, end = '', file = ouf)
+                idpos, headpos, relpos = getpositions(line, args)
+            else:
+                raise BadCode('unexpected kind in torn: ' + kind)
+    except StopIteration:
+        if done:
+            print('</sentence>', file = ouf)
+            return idpos, headpos, relpos
+        raise BadData('incomplete torn sentence')
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main)

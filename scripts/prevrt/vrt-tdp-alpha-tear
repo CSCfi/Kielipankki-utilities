@@ -1,0 +1,101 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from itertools import groupby, chain
+import re
+
+from vrtargslib import trans_args, trans_main
+from vrtargslib import BadData
+
+from vrtnamelib import xname
+from vrtnamelib import namelist, nameindex
+
+from vrtdatalib import asrecord
+
+def parsearguments():
+    description = '''
+
+    Tear long sentences into short shreds
+    that a certain parser can cope with.
+
+    '''
+    parser = trans_args(description = description)
+    parser.add_argument('--word', '-w', metavar = 'name',
+                        type = xname, default = 'word',
+                        help = 'word field name [word]')
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
+
+def main(args, inf, ouf):
+    try:
+        while True:
+            line = next(inf)
+            if line.startswith('<sentence'):
+                sentence = [line]
+                sentence.extend(readsentence(inf))
+                tearsentence(sentence, wp, ouf) # crash if no wp
+                # sentence == []
+                continue
+
+            print(line, end = '', file = ouf)
+            if line.startswith('<!-- Positional attributes:'):
+                # grab word position
+                wp = nameindex(namelist(line), args.word)
+    except StopIteration:
+        pass
+
+def readsentence(inf):
+    for line in inf:
+        yield line
+        if line.startswith('</sentence>'): return
+        if line.startswith('<'):
+            raise BadData('meta within sentence')
+
+def tearsentence(sentence, wp, ouf):
+    if len(sentence) < 102:
+        # "not long" at fewer than 100 tokens
+        print(*sentence, sep = '', end = '', file = ouf)
+        return
+
+    # tear off shreds of about 60 words while "long"
+
+    # first shred carries original sentence tags
+    # further shreds just <sentence>, </sentence>
+    
+    begin = sentence.pop(0)
+    end = sentence.pop()
+
+    # words could be used heuristically to break at
+    # a point that does not look maximally bad; not
+    # actually used
+    words = [ asrecord(line)[wp] for line in sentence ]
+
+    print('<sen.ten.ce>', file = ouf)
+    while sentence:
+        bp = breakpoint(words, 50, 70)
+        # either 50 <= bp < 70
+        # or bp = len(sentence) < 100
+        print(begin, end = '', file = ouf)
+        print(*sentence[:bp], sep = '', end = '', file = ouf)
+        print(end, end = '', file = ouf)
+        begin = '<sentence>\n'
+        end = '</sentence>\n'
+        sentence[:bp] = []
+        words[:bp] = []
+    else:
+        print('</sen.ten.ce>', file = ouf)
+
+def breakpoint(words, b, e):
+    '''Could return a defensible breakpoint index between b and e,
+    based on something like a suitable punctuation mark at that
+    point in words. Maybe later. For now, break in the middle of
+    the range regardless what the "words" be. But "break" at end
+    when the sentence is already "not long" any more.
+    '''
+    if len(words) < 100: return len(words)
+    return b + (e - b) // 2
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main)

@@ -51,6 +51,10 @@ def tokenize(processor, source, target):
         data = groupby(TextIOWrapper(proc.stdout, encoding = 'UTF-8'),
                        lambda line: line == mark)
         
+        # field name should be an option but probably not going to fix
+        # this version of the program any further
+        print('<!-- Positional attributes: word -->', file = target)
+
         dataismark = True # watch out for empty content blocks
         for ismeta, part in groupby(meta, lambda line:
                                     line.startswith('<')):
@@ -108,7 +112,7 @@ def main():
    args = parser.parse_args()
 
    if args.version:
-       print('vrt-tokenize 0.1a (FIN-CLARIN 2018)')
+       print('vrt-tokenize 0.1 (FIN-CLARIN 2018)')
        exit(0)
 
    processor = [ UDPIPE, '--immediate', '--tokenize', '--output=vertical',

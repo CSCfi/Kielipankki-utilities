@@ -1,31 +1,14 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
-from argparse import ArgumentParser, ArgumentTypeError
-from itertools import groupby, chain, count # using chain?
+from argparse import ArgumentTypeError
+from itertools import groupby, count
 from tempfile import mkstemp
 import enum, os, re, sys, traceback # using enum?
 import io, os, string, sys
 
-VERSION = '0.2 (2018-06-19)'
-
-import signal
-signal.signal(signal.SIGINT, signal.SIG_DFL)
-signal.signal(signal.SIGPIPE, signal.SIG_DFL)
-
-class BadData(Exception): pass # stack trace is just noise
-class BadCode(Exception): pass # this cannot happen
-
-parser = ArgumentParser(description = '''
-
-Pack a directory tree of vrt documents (named *.vrt) to predictably
-sized files (named *.vrf) in a new directory tree of fragments
-sequences for processing, respecting the integrity of sentence
-elements and field-name comments. The intention is that eventual
-unpacking reproduces the original hierarchy with any new annotations
-added to the tokens in the packed fragments.
-
-''')
+from vrtargslib import version_args
+from vrtargslib import BadData, BadCode
 
 def sizetype(text):
     m = re.fullmatch(r'([1-9][0-9]*)(k|M|)', text)
@@ -36,31 +19,46 @@ def sizetype(text):
     else:
         raise ArgumentTypeError('bad size')
 
-parser.add_argument('indir', help = 'input directory')
+def parsearguments():
+    description = '''
 
-outgrp = parser.add_mutually_exclusive_group(required = True)
-outgrp.add_argument('--out', '-o', dest = 'outdir', metavar = 'outdir',
-                    help = 'output directory')
-outgrp.add_argument('--suffix', '-s', metavar = '.fix',
-                    help = 'output in indir.fix/')
+    Pack a directory tree of vrt documents (named *.vrt) to
+    predictably sized files (named *.vrf) in a new directory tree of
+    fragments sequences for processing, respecting the integrity of
+    sentence elements and field-name comments. The intention is that
+    eventual unpacking reproduces the original hierarchy with any new
+    annotations added to the tokens in the packed fragments.
 
-# not sure if this belongs to this tool or another tool
-# parser.add_argument('--element', '-e', metavar = 'name',
-#                     help = 'element to keep whole (default sentence)')
+    '''
 
-szegrp = parser.add_mutually_exclusive_group()
-szegrp.add_argument('--lines', '-l', metavar = 'number',
-                    type = sizetype,
-                    help = 'number of lines to reach in each output file')
-szegrp.add_argument('--tokens', '-t', metavar = 'number',
-                    type = sizetype,
-                    help = 'number of token lines to reach in each output file')
-szegrp.add_argument('--bytes', '-b', metavar = 'number',
-                    type = sizetype,
-                    help = 'number of bytes to reach in each output file')
+    parser = version_args(description = description)
 
-parser.add_argument('--version', action = 'store_true',
-                    help = 'print {} and exit'.format(VERSION))
+    parser.add_argument('indir', help = 'input directory')
+
+    outgrp = parser.add_mutually_exclusive_group(required = True)
+    outgrp.add_argument('--out', '-o', dest = 'outdir', metavar = 'outdir',
+                        help = 'output directory')
+    outgrp.add_argument('--suffix', '-s', metavar = '.fix',
+                        help = 'output in indir.fix/')
+
+    # not sure if this belongs to this tool or another tool
+    # parser.add_argument('--element', '-e', metavar = 'name',
+    #                     help = 'element to keep whole (default sentence)')
+
+    szegrp = parser.add_mutually_exclusive_group()
+    szegrp.add_argument('--lines', '-l', metavar = 'number',
+                        type = sizetype,
+                        help = 'number of lines to reach in each output file')
+    szegrp.add_argument('--tokens', '-t', metavar = 'number',
+                        type = sizetype,
+                        help = 'number of token lines to reach in each output file')
+    szegrp.add_argument('--bytes', '-b', metavar = 'number',
+                        type = sizetype,
+                        help = 'number of bytes to reach in each output file')
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
 
 # A dirsource produces all *.vrt files found under a given directory,
 # recursively, in a lexicographic order of their pathnames.
@@ -155,14 +153,15 @@ def membergen():
             for eee in range(1000):
                 yield '{}{:03}/m{:03}.vrf'.format(a, ddd, eee)
 
+# TODO this should not be global
 membernames = membergen()
 
 # A dirsink creates a directory where the packed fragments go in
 # actual files in subdirectories.
 
-def dirsink(dirobj):
+def dirsink(args, dirobj, sentinel):
     os.mkdir(dirobj)
-    return makesink(dirobj, dirobj, dirmember)
+    return makesink(args, dirobj, dirobj, dirmember, sentinel)
 
 def dirmember(dirobj, dirname, fieldnames):
     membername = next(membernames)
@@ -185,18 +184,27 @@ def dirmember(dirobj, dirname, fieldnames):
     # fieldnames is None or out.write(fieldnames)
     return out, end
 
-def makesink(target, targetname, member):
+def makesink(args, target, targetname, member, sentinel):
+    size_in_units = ( len if args.bytes else
+                      (lambda line: 1) if args.lines else
+                      (lambda line: 1 - line.startswith(b'<')) )
+
+    size_limit = ( args.bytes or
+                   args.lines or
+                   args.tokens or
+                   100000 )
+
     out, end, size = None, None, None
     def consumer(fieldnames, fragment):
         nonlocal out, end, size
-        
-        if out is None and fragment is sentinel_fragment:
+
+        if out is None and fragment is sentinel:
             return
 
-        if fragment is sentinel_fragment:
+        if fragment is sentinel:
             end()
             return
-        
+
         if out is None:
             out, end = member(target, targetname, fieldnames)
             size = 0
@@ -219,13 +227,20 @@ def makesink(target, targetname, member):
 
     return consumer
 
-def wrap_main():
+def main(args):
+    try:
+        implement_main(args)
+    except KeyboardInterrupt:
+        print(args.prog + ': keyboard interrupt',
+              file = sys.stderr)
+        exit(1)
+
+def implement_main(args):
     indir = os.path.realpath(args.indir)
     outdir = ( os.path.realpath(args.outdir)
                if args.outdir
                else os.path.join(os.path.dirname(indir),
                                  os.path.basename(indir) + args.suffix) )
-
 
     if os.path.isdir(indir):
         source = dirsource(indir)
@@ -234,35 +249,22 @@ def wrap_main():
               .format(parser.prog, args.indir),
               file = sys.stderr)
         exit(1)
-        
+
+    sentinel = [ b'*** sentinel line ***\n' ]
     try:
-        sink = dirsink(outdir)
+        sink = dirsink(args, outdir, sentinel)
     except Exception as exn:
         print('{}: error: could not make output directory'
-              .format(parser.prog),
-              '{}: {}'.format(parser.prog, exn),
+              .format(args.prog),
+              '{}: {}'.format(args.prog, exn),
               sep = '\n', file = sys.stderr)
         exit(1)
 
-    main(source, sink)
-
-def main(source, sink):
     for producer in source:
         for names, fragment in producer:
             sink(names, fragment)
-    sink(None, sentinel_fragment)
+
+    sink(None, sentinel)
 
 if __name__ == '__main__':
-    args = parser.parse_args()
-    sentinel_fragment = [ b'*** sentinel line ***\n' ]
-    if args.version:
-        print(VERSION)
-    else:
-        size_in_units = ( len if args.bytes else
-                          (lambda line: 1) if args.lines else
-                          (lambda line: 1 - line.startswith(b'<')) )
-        size_limit = ( args.bytes or
-                       args.lines or
-                       args.tokens or
-                       100000 )
-        wrap_main()
+    main(parsearguments())

@@ -1,69 +1,55 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
-from argparse import ArgumentParser
-from tempfile import mkstemp
-import os, re, sys, traceback
+import os, re, sys, traceback, unicodedata
 import hfst
+
+from vrtargslib import trans_args, trans_main
+from vrtargslib import BadData, BadCode
+
+from vrtnamelib import xname
+
+from vrtdatalib import unescape, escape
 
 MODELDIR = '/proj/kieli/varpunen/models'
 MODEL = 'morphology.finntreebank.hfstol'
 
-VERSION = '0.1 (2018-06-26)'
+def parsearguments():
+    description = '''
 
-parser = ArgumentParser(description = '''
+    Fill in the lemma and features that best approximate the marmot
+    prediction. This is a post-processor to marmot.
 
-Fill in the lemma and features that best match the MarMoT prediction.
-Or something much like that. - WAS marmot-in: Look up the words in a
-vrt document in the "particular version of Omorfi" that came with the
-alpha version of the Turku dependency parser. Build suitable feature
-sets (possible word class tags) to use with the MarMoT model of the
-parser, not entirely unlike the parser itself does. Insert the feature
-sets after the words. - The vrt document must have position names
-before any token.
+'''
 
-''')
+    parser = trans_args(description = description)
 
-parser.add_argument('infile', nargs = '?', metavar = 'file',
-                    help = 'input file (default stdin)')
-parser.add_argument('--out', '-o',
-                    dest = 'outfile', metavar = 'file',
-                    help = 'output file (default stdout)')
-parser.add_argument('--in-place', '-i',
-                    dest = 'inplace', action = 'store_true',
-                    help = 'overwrite input file with output')
-parser.add_argument('--backup', '-b', metavar = 'bak',
-                    help = 'keep input file with suffix bak')
-parser.add_argument('--word', '-w', metavar = 'name',
-                    default = 'word',
-                    help = 'input word-field name (default word)')
-parser.add_argument('--in-tag', '-t', dest = 'inpos', metavar = 'name',
-                    default = 'marmot.pos',
-                    help = 'input pos-field name (default marmot.pos)')
-parser.add_argument('--in-feat', '-f', dest = 'infeat', metavar = 'name',
-                    default = 'marmot.feat',
-                    help = 'input feature-field name (default marmot.feat)')
-parser.add_argument('--lemma', '-l', metavar = 'name',
-                    default = 'lemma',
-                    help = 'output lemma-field name (default lemma)')
-parser.add_argument('--out-tag', '-p', dest = 'outpos', metavar = 'name',
-                    default = 'pos',
-                    help = 'output pos-field name (default pos)')
-parser.add_argument('--out-feat', '-F', dest = 'outfeat', metavar = 'name',
-                    default = 'feat',
-                    help = 'output feature-field name (default feat)')
-parser.add_argument('--debug', action = 'store_true',
-                    help = 'show various stages (not VRT)')
-parser.add_argument('--version', action = 'store_true',
-                    help = 'print {} and exit'.format(VERSION))
+    parser.add_argument('--word', '-w', metavar = 'name',
+                        type = xname, default = 'word',
+                        help = 'input word-field name (default word)')
+    parser.add_argument('--in-tag', '-t', dest = 'inpos', metavar = 'name',
+                        type = xname, default = 'marmot.pos',
+                        help = 'input pos-field name (default marmot.pos)')
+    parser.add_argument('--in-feat', '-f', dest = 'infeat', metavar = 'name',
+                        type = xname, default = 'marmot.feat',
+                        help = 'input feature-field name (default marmot.feat)')
+    parser.add_argument('--lemma', '-l', metavar = 'name',
+                        type = xname, default = 'lemma',
+                        help = 'output lemma-field name (default lemma)')
+    parser.add_argument('--out-tag', '-p', dest = 'outpos', metavar = 'name',
+                        type = xname, default = 'pos',
+                        help = 'output pos-field name (default pos)')
+    parser.add_argument('--out-feat', '-F', dest = 'outfeat', metavar = 'name',
+                        type = xname, default = 'feat',
+                        help = 'output feature-field name (default feat)')
+    parser.add_argument('--debug', action = 'store_true',
+                        help = 'show various stages (not VRT)')
+    parser.add_argument('--log-fail', dest = 'logfail', action = 'store_true',
+                        help = 'log last-resort random choice in stderr')
 
-# old values are passed unescaped to the underlying transducer,
-# new values are inserted escaped to the output stream (N/A)
-bare, code = (b'&', b'<', b'>'), (b'&amp;', b'&lt;', b'&gt;')
-def encm(m, d = dict(zip(bare, code))): return d[m.group()]
-def decm(m, d = dict(zip(code, bare))): return d[m.group()]
-def escape(value): return re.sub('[&<>]', encm, value)
-def unescape(value): return re.sub('&(amp|lt|gt);', decm, value)
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
 
 ## TODO PROPERLY
 # extracted from omorfi_pos.py to work out analyze_reading, assuming
@@ -227,19 +213,29 @@ def marmot_undone(inpos, infeat):
     not even generated in this marmot-out, so it will not prevent a
     perfect match.
 
+    Some clitics occur grouped as CLIT_Qst+Foc_s or CLIT_Qst+Foc_han
+    which are meant to be split into Qst and Foc_s or Foc_han.
+
     '''
     # or may it be a tuple?
     
     intags = [ inpos ]
-    (
-        infeat == '_' or
-        intags.extend(tag for cat, tag
-                      in (cattag.split('_') for cattag
-                          in infeat.split('|')))
-    )
+    try:
+        (
+            infeat == '_' or
+            intags.extend(tag
+                          for cat, tags
+                          in (cattags.split('_', 1)
+                              for cattags in infeat.split('|'))
+                          for tag in tags.split('+'))
+        )
+    except ValueError as exn:
+        raise BadCode('could not handle {!r}, {!r}'
+                      .format(inpos, infeat))
+
     return intags
 
-def best(analyses, form, intags):
+def best(args, analyses, form, intags):
     '''Return lemma, pos, feat, reason, where reason indicates the
     reasoning behind the choice (when --debug).
 
@@ -260,9 +256,20 @@ def best(analyses, form, intags):
     # Up there again - that be what their fill_ortho does! and
     # nothing more
 
-    # TODO check punctuation and numbers here FIRST
-    # return form, Punct, _ / form, Num, _ for them
-    # as in omorfi_pos.omorfi_lookup
+    # all punctuation characters as in omorfi_pos.omorfi_lookup
+    # where the check is made before any actual omorfi lookup
+    # (punctuation, mathematical symbols, modifier symbols)
+
+    if all(cat.startswith('P') or cat in ('Sm', 'Sk')
+           for cat in map(unicodedata.category, form)):
+        return form, 'Punct', [], because('character categories')
+
+    # number-pattern match as in omorfi_pos.omorfi_lookup
+    # where check is made before any actual omorfi lookup
+    # (codes are for various dashes)
+
+    if re.fullmatch('[0-9.,:\u2012\u2013\u2014\u2015\u2053~-]+', form):
+        return form, 'Num', [], because('regex')
 
     if not analyses:
         pos, outs = order(form, set(intags) | {'UNK'})
@@ -304,7 +311,21 @@ def best(analyses, form, intags):
         trace.append('mod Prop')
 
     if not matches:
-        return 'TODO', 'TODO', ['TODO'], because('no match')
+        # take the readings with the most overlapping tags
+        # (observed cases seem to indicate that this may
+        # override errors in marmot output - "isääsi",
+        # "Tulisitko", "henkiin" were *corrected* by this.)
+        overlap = max(len(intagset & tags)
+                      for lemma, tags, der in analyset)
+        matches = tuple((lemma, tags, der)
+                        for lemma, tags, der in analyset
+                        if len(intagset & tags) == overlap)
+        trace.append('mod overlap')
+
+    if not matches:
+        raise BadCode('no match even mod overlap')
+
+    # on to pick a lemma among the matches
 
     def solo():
         [match] = matches
@@ -342,9 +363,21 @@ def best(analyses, form, intags):
     # can get here if there are only different last derivations left -
     # when does that even happen? should one just pick one then?
 
-    # lemma, outfeat = most compatible with omorfi TODO
-    lemma, outpos, outfeat = 'TODO', 'TODO', ['TODO']
-    return lemma, outpos, outfeat, 'fall through'
+    lemma, tagset, der = next(iter(matches))
+    pos, outs = order(form, tagset, der = der)
+
+    if args.logfail:
+        print('# FAIL Different last derivations left', file = sys.stderr)
+        print('# Form and tags from marmot:', file = sys.stderr)
+        print(form, intagset, file = sys.stderr)
+        print('# Remaining (lemma, tags, der) from omorfi:', file = sys.stderr)
+        for k, match in enumerate(matches, start = 1):
+            print(k, match, file = sys.stderr)
+        print('# Arbitrary choice:', file = sys.stderr)
+        print(lemma, pos, outs, file = sys.stderr)
+        print(file = sys.stderr)
+
+    return lemma, pos, outs, because('random') # meaning arbitrary
 
 def finish(taglist):
     return ('|'.join('{}_{}'.format(TAGCAT[tag], tag)
@@ -415,6 +448,14 @@ TAGCAT = {
     'Foc_pa' : 'CLIT',
     'Foc_s' : 'CLIT',
     'Qst' : 'CLIT',
+
+    # Q. Is Qst+Foc_s one tag or two?
+    # A. Two. It comes from marmot.
+    # Q. Do we have Qst+Foc_s in Korp?
+    # A. Doubt it.
+    # Q. Does + appear in other tags?
+    # A. At least in Qst+Foc_han.
+
     'Comp' : 'CMP',
     'Pos' : 'CMP',
     'Superl' : 'CMP',
@@ -514,62 +555,7 @@ TAGCAT = {
     'UNK' : 'OTHER',
 }
 
-def wrap_main():
-    
-    if (args.backup is not None) and '/' in args.backup:
-        print('usage: --backup suffix cannot contain /', file = sys.stderr)
-        exit(1)
-
-    if (args.backup is not None) and not args.backup:
-        print('usage: --backup suffix cannot be empty', file = sys.stderr)
-        exit(1)
-
-    if (args.backup is not None) and not args.inplace:
-        print('usage: --backup requires --in-place', file = sys.stderr)
-        exit(1)
-
-    if args.inplace and (args.infile is None):
-        print('usage: --in-place requires input file', file = sys.stderr)
-        exit(1)
-
-    if args.inplace and (args.outfile is not None):
-        print('usage: --in-place not allowed with --out', file = sys.stderr)
-        exit(1)
-
-    if (args.outfile is not None) and os.path.exists(args.outfile):
-        # easier to check this than that output file is different than
-        # input file, though it be annoying when overwrite is wanted
-        print('usage: --out file must not exist', file = sys.stderr)
-        exit(1)
-
-    try:
-        if args.inplace or (args.outfile is not None):
-            head, tail = os.path.split(args.infile
-                                       if args.inplace
-                                       else args.outfile)
-            fd, temp = mkstemp(dir = head, prefix = tail)
-            os.close(fd)
-        else:
-            temp = None
-
-        with ((args.infile and open(args.infile, mode = 'r',
-                                    encoding = 'UTF-8'))
-              or sys.stdin) as inf:
-            with ((temp and open(temp, mode = 'w',
-                                 encoding = 'UTF-8'))
-                  or sys.stdout) as ouf:
-                # arrange stdin/stdout be UTF-8 for sure how or should even
-                main(inf, ouf)
-
-        args.backup and os.rename(args.infile, args.infile + args.backup)
-        args.inplace and os.rename(temp, args.infile)
-        args.outfile and os.rename(temp, args.outfile)
-
-    except IOError as exn:
-        print(exn, file = sys.stderr)
-        exit(1)
-
-def main(ins, ous):
+def main(args, ins, ous):
     # no reason to stay in binary here that ftb.lookup uses unicode
     # but should ensure that stdin/stdout are UTF-8 and how does one
     # do that again?
@@ -608,7 +594,8 @@ def main(ins, ous):
             [ lemma,
               outpos,
               outfeat,
-              reason ] = best(extended_analyses(record[pos]),
+              reason ] = best(args,
+                              extended_analyses(record[pos]),
                               record[pos],
                               marmot_undone(record[inpos],
                                             record[infeat]))
@@ -631,7 +618,7 @@ def main(ins, ous):
             [ lemma,
               outpos,
               outfeat,
-              reason ] = best(analyses, record[pos], intags)
+              reason ] = best(args, analyses, record[pos], intags)
             print('choose>', record[pos], lemma, outpos, '|'.join(outfeat),
                   reason,
                   sep = '\t', file = ous)
@@ -640,8 +627,4 @@ def main(ins, ous):
             print(file = ous)
 
 if __name__ == '__main__':
-    args = parser.parse_args()
-    if args.version:
-        print(VERSION)
-    else:
-        wrap_main()
+    trans_main(parsearguments(), main)

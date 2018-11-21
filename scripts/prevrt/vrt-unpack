@@ -1,38 +1,34 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
-from argparse import ArgumentParser, ArgumentTypeError
-from itertools import groupby, chain, count # using chain?
+from argparse import ArgumentTypeError
+from itertools import groupby
 from tempfile import mkstemp
-import enum, os, re, sys, traceback # using enum?
-import io, os, string, sys
+import os, re, sys
 
-VERSION = '0.1 (2018-06-19)'
+from vrtargslib import version_args
+from vrtargslib import BadData, BadCode
 
-import signal
-signal.signal(signal.SIGINT, signal.SIG_DFL)
-signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+def parsearguments():
+    description = '''
 
-class BadData(Exception): pass # stack trace is just noise
-class BadCode(Exception): pass # this cannot happen
+    Unpack a directory tree of packed vrt fragments (named *.vrf) to
+    the original names under a new directory tree of vrt documents.
 
-parser = ArgumentParser(description = '''
+    '''
+    parser = version_args(description = description)
 
-Unpack a directory tree of packed vrt fragments (named *.vrf) to the
-original names under a new directory tree of vrt documents.
+    parser.add_argument('indir', help = 'input directory')
 
-''')
+    outgrp = parser.add_mutually_exclusive_group(required = True)
+    outgrp.add_argument('--out', '-o', dest = 'outdir', metavar = 'outdir',
+                        help = 'output directory')
+    outgrp.add_argument('--suffix', '-s', metavar = '.fix',
+                        help = 'output in sibling directory indir.fix')
 
-parser.add_argument('indir', help = 'input directory')
-
-outgrp = parser.add_mutually_exclusive_group(required = True)
-outgrp.add_argument('--out', '-o', dest = 'outdir', metavar = 'outdir',
-                    help = 'output directory')
-outgrp.add_argument('--suffix', '-s', metavar = '.fix',
-                    help = 'output in sibling directory indir.fix')
-
-parser.add_argument('--version', action = 'store_true',
-                    help = 'print {} and exit'.format(VERSION))
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
 
 # A dirsource produces all *.vrt files found under a given directory,
 # recursively, in a lexicographic order of their pathnames.
@@ -78,9 +74,9 @@ def makesource(inf):
 # A dirsink creates a directory where the documents are unpacked under
 # their original pathnames relative to their original directory.
 
-def dirsink(dirobj):
+def dirsink(dirobj, sentinel):
     os.mkdir(dirobj)
-    return makesink(dirobj, dirobj, dirmember)
+    return makesink(dirobj, dirobj, dirmember, sentinel)
 
 def dirmember(dirobj, pathname):
 
@@ -98,16 +94,21 @@ def dirmember(dirobj, pathname):
 
     return out, end
 
-def makesink(target, targetname, member):
+def makesink(target, targetname, member, sentinel):
     out, end = None, None
+    names = None
     def consumer(fragment):
-        nonlocal out, end
+        nonlocal out, end, names
 
-        if fragment is sentinel_fragment:
+        if fragment is sentinel:
             end is None or end()
             return
 
         first = next(fragment)
+        while first.startswith(b'<!-- Positional attributes:'):
+            names = first
+            first = next(fragment)
+
         if not first.startswith(b'<... '):
             raise BadData('not a fragment start tag')
         # print('got fragment:', first)
@@ -123,50 +124,54 @@ def makesink(target, targetname, member):
 
         if out is None:
             out, end = member(target, pathname)
+            names is None or out.write(names)
 
         for line in fragment:
             if line.startswith(b'</...>'): continue
+            if line.startswith(b'<!-- Positional attributes:'):
+                names = line
             out.write(line)
 
     return consumer
 
-def wrap_main():
+def main(args):
+    try:
+        implement_main(args)
+    except KeyboardInterrupt:
+        print(args.prog + ': keyboard interrupt',
+              file = sys.stderr)
+        sys.exit(1)
+
+def implement_main(args):
     indir = os.path.realpath(args.indir)
     outdir = ( os.path.realpath(args.outdir)
                if args.outdir
                else os.path.join(os.path.dirname(indir),
                                  os.path.basename(indir) + args.suffix) )
 
-
     if os.path.isdir(indir):
         source = dirsource(indir)
     else:
         print('{}: error: not a directory: {}'
-              .format(parser.prog, args.indir),
+              .format(args.prog, args.indir),
               file = sys.stderr)
         exit(1)
-        
+
+    sentinel = [ b'*** sentinel line ***\n' ]
     try:
-        sink = dirsink(outdir)
+        sink = dirsink(outdir, sentinel)
     except Exception as exn:
         print('{}: error: could not make output directory'
-              .format(parser.prog),
-              '{}: {}'.format(parser.prog, exn),
+              .format(args.prog),
+              '{}: {}'.format(args.prog, exn),
               sep = '\n', file = sys.stderr)
         exit(1)
 
-    main(source, sink)
-
-def main(source, sink):
     for producer in source:
         for fragment in producer:
             sink(fragment)
-    sink(sentinel_fragment)
+
+    sink(sentinel)
 
 if __name__ == '__main__':
-    args = parser.parse_args()
-    sentinel_fragment = [ b'*** sentinel line ***\n' ]
-    if args.version:
-        print(VERSION)
-    else:
-        wrap_main()
+    main(parsearguments())

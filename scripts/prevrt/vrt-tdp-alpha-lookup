@@ -1,59 +1,49 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
-from argparse import ArgumentParser
-from tempfile import mkstemp
-import os, re, sys, traceback
+import os, re, sys, traceback, unicodedata
 import hfst
+
+from vrtargslib import trans_args, trans_main
+from vrtargslib import BadData, BadCode
+
+from vrtnamelib import xname
+from vrtnamelib import namelist, nameindex, insertnames
+
+from vrtdatalib import asrecord
+from vrtdatalib import escape, unescape
 
 MODELDIR = '/proj/kieli/varpunen/models'
 MODEL = 'morphology.finntreebank.hfstol'
 
-VERSION = '0.2 (2018-06-24)'
+def parsearguments():
+    description = '''
 
-parser = ArgumentParser(description = '''
+    Look up the words in a vrt document in the "particular version of
+    Omorfi" that came with the alpha version of the Turku dependency
+    parser. Build suitable feature sets (possible word class tags) to
+    use with the MarMoT model of the parser, not entirely unlike the
+    parser itself does. Insert the feature sets after the words. - The
+    vrt document must have position names before any token.
 
-Look up the words in a vrt document in the "particular version of
-Omorfi" that came with the alpha version of the Turku dependency
-parser. Build suitable feature sets (possible word class tags) to use
-with the MarMoT model of the parser, not entirely unlike the parser
-itself does. Insert the feature sets after the words. - The vrt
-document must have position names before any token.
+'''
 
-''')
+    parser = trans_args(description = description)
 
-parser.add_argument('infile', nargs = '?', metavar = 'file',
-                    help = 'input file (default stdin)')
-parser.add_argument('--out', '-o',
-                    dest = 'outfile', metavar = 'file',
-                    help = 'output file (default stdout)')
-parser.add_argument('--in-place', '-i',
-                    dest = 'inplace', action = 'store_true',
-                    help = 'overwrite input file with output')
-parser.add_argument('--backup', '-b', metavar = 'bak',
-                    help = 'keep input file with suffix bak')
-parser.add_argument('--feats', '-f', metavar = 'name',
-                    default = 'marmot.in',
-                    help = 'output field name (default marmot.in)')
-parser.add_argument('--word', '-w', metavar = 'name',
-                    default = 'word',
-                    help = 'input field name (default word)')
-parser.add_argument('--debug', dest = 'debug',
-                    choices = ['raw', 'bare', 'basic', 'edited', 'extended'],
-                    help = 'show various stages (not VRT)')
-parser.add_argument('--version', action = 'store_true',
-                    help = 'print {} and exit'.format(VERSION))
+    parser.add_argument('--feats', '-f', metavar = 'name',
+                        type = xname, default = 'marmot.in',
+                        help = 'output field name (default marmot.in)')
+    parser.add_argument('--word', '-w', metavar = 'name',
+                        type = xname, default = 'word',
+                        help = 'input field name (default word)')
+    parser.add_argument('--debug', dest = 'debug',
+                        choices = ['raw', 'bare', 'basic',
+                                   'edited', 'extended'],
+                        help = 'show various stages (not VRT)')
 
-# old values are passed unescaped to the underlying transducer,
-# new values are inserted escaped to the output stream (N/A)
-bare, code = (b'&', b'<', b'>'), (b'&amp;', b'&lt;', b'&gt;')
-def encm(m, d = dict(zip(bare, code))): return d[m.group()]
-def decm(m, d = dict(zip(code, bare))): return d[m.group()]
-def escape(value): return re.sub('[&<>]', encm, value)
-def unescape(value): return re.sub('&(amp|lt|gt);', decm, value)
-
-class BadData(Exception): pass # stack trace is just noise
-class BadCode(Exception): pass # this cannot happen
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
 
 ## TODO PROPERLY
 # extracted from omorfi_pos.py to work out analyze_reading, assuming
@@ -85,6 +75,22 @@ def bare_analyses(form):
              for analysis, weight in FTB.lookup(unescape(form)) ]
 
 def basic_analyses(form):
+
+    # punctuation and number checks are both in omorfi_lookup
+    # (relevant before marmot) and then separately after calling
+    # marmot in marmot_wrapper
+
+    # all punctuation characters (following omorfi_pos.omorfi_lookup)
+    # (categories are punctuation, mathematical/modifier symbol)
+    if all(cat.startswith('P') or cat in ('Sm', 'Sk')
+           for cat in map(unicodedata.category, form)):
+        return [ (form, ['Punct']) ]
+
+    # number-pattern match (following omorfi_pos.omorfi_lookup)
+    # (codes are various dashes)
+    if re.fullmatch('[0-9.,:\u2012\u2013\u2014\u2015\u2053~-]+', form):
+        return [ (form, ['Num']) ]
+
     return [ basic_analysis(analysis)
              for analysis, weight in FTB.lookup(unescape(form)) ]
 
@@ -350,62 +356,7 @@ TAGCAT = {
     'UNK' : 'OTHER',
 }
 
-def wrap_main():
-    
-    if (args.backup is not None) and '/' in args.backup:
-        print('usage: --backup suffix cannot contain /', file = sys.stderr)
-        exit(1)
-
-    if (args.backup is not None) and not args.backup:
-        print('usage: --backup suffix cannot be empty', file = sys.stderr)
-        exit(1)
-
-    if (args.backup is not None) and not args.inplace:
-        print('usage: --backup requires --in-place', file = sys.stderr)
-        exit(1)
-
-    if args.inplace and (args.infile is None):
-        print('usage: --in-place requires input file', file = sys.stderr)
-        exit(1)
-
-    if args.inplace and (args.outfile is not None):
-        print('usage: --in-place not allowed with --out', file = sys.stderr)
-        exit(1)
-
-    if (args.outfile is not None) and os.path.exists(args.outfile):
-        # easier to check this than that output file is different than
-        # input file, though it be annoying when overwrite is wanted
-        print('usage: --out file must not exist', file = sys.stderr)
-        exit(1)
-
-    try:
-        if args.inplace or (args.outfile is not None):
-            head, tail = os.path.split(args.infile
-                                       if args.inplace
-                                       else args.outfile)
-            fd, temp = mkstemp(dir = head, prefix = tail)
-            os.close(fd)
-        else:
-            temp = None
-
-        with ((args.infile and open(args.infile, mode = 'r',
-                                    encoding = 'UTF-8'))
-              or sys.stdin) as inf:
-            with ((temp and open(temp, mode = 'w',
-                                 encoding = 'UTF-8'))
-                  or sys.stdout) as ouf:
-                # arrange stdin/stdout be UTF-8 for sure how or should even
-                main(inf, ouf)
-
-        args.backup and os.rename(args.infile, args.infile + args.backup)
-        args.inplace and os.rename(temp, args.infile)
-        args.outfile and os.rename(temp, args.outfile)
-
-    except IOError as exn:
-        print(exn, file = sys.stderr)
-        exit(1)
-
-def main(ins, ous):
+def main(args, ins, ous):
     # no reason to stay in binary here that ftb.lookup uses unicode
     # but should ensure that stdin/stdout are UTF-8 and how does one
     # do that again?
@@ -417,28 +368,22 @@ def main(ins, ous):
     tin.close() # it *should* be made a context manager TOREPORT
 
     # act on names and tokens, pass other lines on as they are
-    names, pos = None, None
+    pos = None
     for line in ins:
         if line.startswith('<!-- Positional attributes:'):
-            names = re.findall(r'[\w.+]+', line)[2:]
-            if args.word not in names:
-                raise BadData('no such name: {}'.format(args.word))
-            if args.feats in names:
-                raise BadData('name already in use: {}'.format(args.feats))
-            pos = names.index(args.word)
-            names.insert(pos + 1, args.feats)
-            print('<!-- Positional attributes:', ' '.join(names), '-->',
-                  file = ous)
+            pos = nameindex(namelist(line), args.word)
+            print(insertnames(line, args.word, args.feats),
+                  end = '', file = ous)
         elif line.isspace() or line.startswith('<'):
             print(line, end = '', file = ous)
-        elif names is None:
-            raise BadData('no names')
+        elif pos is None:
+            raise BadData('no names before data')
         elif args.debug is None:
-            record = line.rstrip('\n\r').split('\t')
-            record.insert(pos + 1, escape(marmot_feats(record[pos])))
+            record = asrecord(line)
+            record.insert(pos + 1, escape(marmot_feats(unescape(record[pos]))))
             print(*record, sep = '\t', file = ous)
         else:
-            record = line.rstrip('\n\r').split('\t')
+            record = asrecord(line)
             form = record[pos]
             analyses = (raw_analyses if args.debug == 'raw' else
                         bare_analyses if args.debug == 'bare' else
@@ -455,8 +400,4 @@ def main(ins, ous):
                     print(file = ous)
 
 if __name__ == '__main__':
-    args = parser.parse_args()
-    if args.version:
-        print(VERSION)
-    else:
-        wrap_main()
+    trans_main(parsearguments(), main)
