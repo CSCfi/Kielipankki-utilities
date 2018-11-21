@@ -1,9 +1,7 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
-from argparse import ArgumentParser
-from tempfile import mkstemp
-import os, re, sys, traceback
+import os, re, sys, traceback, unicodedata
 import hfst
 
 from vrtargslib import trans_args, trans_main
@@ -77,6 +75,22 @@ def bare_analyses(form):
              for analysis, weight in FTB.lookup(unescape(form)) ]
 
 def basic_analyses(form):
+
+    # punctuation and number checks are both in omorfi_lookup
+    # (relevant before marmot) and then separately after calling
+    # marmot in marmot_wrapper
+
+    # all punctuation characters (following omorfi_pos.omorfi_lookup)
+    # (categories are punctuation, mathematical/modifier symbol)
+    if all(cat.startswith('P') or cat in ('Sm', 'Sk')
+           for cat in map(unicodedata.category, form)):
+        return [ (form, ['Punct']) ]
+
+    # number-pattern match (following omorfi_pos.omorfi_lookup)
+    # (codes are various dashes)
+    if re.fullmatch('[0-9.,:\u2012\u2013\u2014\u2015\u2053~-]+', form):
+        return [ (form, ['Num']) ]
+
     return [ basic_analysis(analysis)
              for analysis, weight in FTB.lookup(unescape(form)) ]
 

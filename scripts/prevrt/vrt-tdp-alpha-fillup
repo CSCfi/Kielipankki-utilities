@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
-import os, re, sys, traceback
+import os, re, sys, traceback, unicodedata
 import hfst
 
 from vrtargslib import trans_args, trans_main
@@ -256,9 +256,20 @@ def best(args, analyses, form, intags):
     # Up there again - that be what their fill_ortho does! and
     # nothing more
 
-    # TODO check punctuation and numbers here FIRST
-    # return form, Punct, _ / form, Num, _ for them
-    # as in omorfi_pos.omorfi_lookup
+    # all punctuation characters as in omorfi_pos.omorfi_lookup
+    # where the check is made before any actual omorfi lookup
+    # (punctuation, mathematical symbols, modifier symbols)
+
+    if all(cat.startswith('P') or cat in ('Sm', 'Sk')
+           for cat in map(unicodedata.category, form)):
+        return form, 'Punct', [], because('character categories')
+
+    # number-pattern match as in omorfi_pos.omorfi_lookup
+    # where check is made before any actual omorfi lookup
+    # (codes are for various dashes)
+
+    if re.fullmatch('[0-9.,:\u2012\u2013\u2014\u2015\u2053~-]+', form):
+        return form, 'Num', [], because('regex')
 
     if not analyses:
         pos, outs = order(form, set(intags) | {'UNK'})
