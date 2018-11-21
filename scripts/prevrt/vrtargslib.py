@@ -5,7 +5,7 @@ from argparse import ArgumentParser, ArgumentTypeError
 from tempfile import mkstemp
 import os, sys, traceback
 
-VERSION = '0.5 (2018-11-11)'
+VERSION = '0.5.1 (2018-11-21)'
 
 class BadData(Exception): pass # stack trace is just noise
 class BadCode(Exception): pass # this cannot happen
