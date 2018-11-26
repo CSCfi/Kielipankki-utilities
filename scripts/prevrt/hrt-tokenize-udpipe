@@ -13,7 +13,7 @@ from subprocess import Popen, PIPE
 from threading import Thread
 
 from vrtargslib import trans_args, trans_main
-from vrtdatalib import binescape
+from vrtdatalib import binescape, binasrecord
 from hrtlib import tokenize
 
 # external UDPipe program pathname
@@ -56,7 +56,13 @@ def parsearguments():
 
 def main(args, inf, ouf):
 
-    proc = Popen([ UDPIPE, '--immediate', '--tokenize', '--output=vertical',
+    proc = Popen([ UDPIPE, '--immediate', '--tokenize', '--output=conllu',
+                   # --output formats (among others):
+                   # conllu: id, word, ..., misc (SpacesAfter, SpaceAfter)
+                   # vertical: word only
+                   # horizontal: input with normalized spacing
+                   # plaintext: reconstructed input with original spacing
+                   # matxin: whatever it is, it _hangs_ (TO INVESTIGATE)
                    MODEL.format(args.model) ],
                  stdin = PIPE,
                  stdout = PIPE,
@@ -92,7 +98,7 @@ def combiner(args):
 
 def implement_combine(args, proc, meta, sent, ouf):
 
-    ouf.write(b'<!-- Positional attributes: word spaceafter -->\n')
+    ouf.write(b'<!-- Positional attributes: id word spaces -->\n')
 
     for group in (tuple(group)
                   # must reify group to recognize sentinel group
@@ -117,9 +123,32 @@ def shipmeta(lines, ouf):
             
 def shipdata(lines, ouf):
     ouf.write(b'<sentence>\n')
+    end = b'0' # aka none
     for line in lines:
-        ouf.write(b'TODO: ')
-        ouf.write(binescape(line))
+        if line.startswith(b'#'): continue
+        record = binasrecord(line)
+        jd, word, spaces = record[0], record[1], record[9]
+        if b'-' in jd:
+            # 1-2  Ellei  _
+            # 1  Ell  _
+            # 2  ei  _
+            # ...
+            # 6-7  miksei  _
+            # ...
+            # (with finnish-ftb-ud)
+            for part in (b'<multitoken id="', jd,
+                         b'" spaces="', spaces,
+                         b'" word="', binescape(word),
+                         b'">\n'):
+                ouf.write(part)
+            # TODO also escape any quotes in word!
+            _, end = jd.split(b'-')
+        else:
+            for part in (jd, b'\t',
+                         binescape(word), b'\t',
+                         spaces, b'\n'):
+                ouf.write(part)
+            if jd == end: ouf.write(b'</multitoken>\n')                
     else:
         ouf.write(b'</sentence>\n')
 
