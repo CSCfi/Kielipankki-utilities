@@ -1,0 +1,117 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+'''With consummate naivete, use tr to tokenize within markup above
+sentence. This is quite the ultimate baseline and reference tokenizer.
+See the corresponding udpipe and hfst tools for a real thing, but they
+depend on external programs that are not available on every platform.
+
+'''
+
+import sys
+
+from itertools import groupby
+from queue import Empty as EmptyQueue
+from subprocess import Popen, PIPE
+from threading import Thread
+
+from vrtargslib import trans_args, trans_main
+from vrtdatalib import binescape
+from hrtlib import tokenize
+
+def parsearguments():
+    description = '''
+
+    Segment text data between any (non-sentence) meta into sentences
+    and tokens using tr in more or less the simplest possible way.
+    Do not use this tokenizer for real work.
+
+    '''
+
+    parser = trans_args(description = description, inplace = False)
+
+    # should have options to set field names but meh
+
+    args = parser.parse_args()
+    args.inplace = False
+    args.backup = None
+    args.prog = parser.prog
+    return args
+
+def main(args, inf, ouf):
+
+    proc = Popen(['tr', ' \t\r', '\n'],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+
+    # start a watcherr here since proc.stderr in PIPE
+    # (rather redundant for this particular tool)
+    Thread(target=watcherr, args=[args, proc]).start()
+
+    try:
+        tokenize(inf, proc, combiner(args), ouf)
+    finally:
+        proc.stdin.close()
+
+def combiner(args):
+    def combine(proc, meta, sent, ouf):
+
+        '''Reads the proc and meta in synch; writes to output stream; on
+        exception - should this close proc.stdout? in the hope that
+        proc responds appropriately to a broken pipe. What if proc is
+        already not there any more?
+
+        '''
+        try:
+            implement_combine(args, proc, meta, sent, ouf)
+        except EmptyQueue:
+            print('{}: combine thread: empty queue'.format(args.prog),
+                  file = sys.stderr)
+        except Exception as exn:
+            print('{}: combine thread:'.format(args.prog), exn,
+                  file = sys.stderr)
+
+    return combine
+
+def implement_combine(args, proc, meta, sent, ouf):
+
+    ouf.write(b'<!-- Positional attributes: word -->\n')
+
+    for group in (tuple(group)
+                  # must reify group to recognize sentinel group
+                  for isspace, group in groupby(proc.stdout,
+                                                bytes.isspace)
+                  if not isspace):
+        if all((line.startswith(b'#') or sent in line)
+               for line in group):
+            # Hope that UDPipe considers sentinel a sentence
+            # of its own but it may still come with comments
+            shipmeta(meta.get_nowait(), ouf)
+            meta.task_done()
+        else:
+            shipdata(group, ouf)
+    else:
+        # the final meta but is this a bit racy?
+        shipmeta(meta.get_nowait(), ouf)
+        meta.task_done()
+
+def shipmeta(lines, ouf):
+    for line in lines: ouf.write(line)
+            
+def shipdata(lines, ouf):
+    ouf.write(b'<sentence>\n')
+    for line in lines:
+        ouf.write(binescape(line))
+    else:
+        ouf.write(b'</sentence>\n')
+
+def watcherr(args, proc):
+    for line in proc.stderr:
+        sys.stderr.buffer.write(b'err: ')
+        sys.stderr.buffer.write(line)
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main,
+               in_as_text = False,
+               out_as_text = False)

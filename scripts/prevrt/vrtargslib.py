@@ -1,11 +1,11 @@
-# Hm - nothing about VRT here? Yet?
-# Might rename to something general.
+'''Common interface to vrt tools, including a common version number.'''
 
 from argparse import ArgumentParser, ArgumentTypeError
+from string import ascii_letters
 from tempfile import mkstemp
 import os, sys, traceback
 
-VERSION = '0.5.1 (2018-11-21)'
+VERSION = '0.5.2 (2018-11-25)'
 
 class BadData(Exception): pass # stack trace is just noise
 class BadCode(Exception): pass # this cannot happen
@@ -24,7 +24,7 @@ def version_args(*, description):
 
     return parser
 
-def trans_args(*, description):
+def trans_args(*, description, inplace = True):
     '''Return an initial argument parser for a command line tool that
     transforms a single input stream to a single output stream.
 
@@ -39,19 +39,85 @@ def trans_args(*, description):
     group.add_argument('--out', '-o',
                        dest = 'outfile', metavar = 'file',
                        help = 'output file (default stdout)')
-    group.add_argument('--in-place', '-i',
-                       dest = 'inplace', action = 'store_true',
-                       help = '''replace input file with final output''')
-    group.add_argument('--backup', '-b', metavar = 'bak', help =
-                       '''
-                       replace input file with final output,
-                       keep input file with the added suffix bak''')
+    if inplace:
+        group.add_argument('--in-place', '-i',
+                           dest = 'inplace', action = 'store_true',
+                           help = '''
+
+                           replace input file with final output
+
+                           ''')
+        group.add_argument('--backup', '-b', metavar = 'bak',
+                           type = bakfix,
+                           help =
+                           '''
+
+                           replace input file with final output, keep
+                           input file with the added suffix bak
+
+                           ''')
+    else: pass
+
+    group.add_argument('--in-sibling', '-I',
+                       dest = 'sibling', metavar = 'ext',
+                       type = sibext,
+                       help = '''
+
+                       write output to a sibling file, replacing (if
+                       ext is given as old/new) or adding an extension
+                       to the input file name; both extensions must
+                       consist of ASCII letters
+
+                       ''')
 
     parser.add_argument('--version',
                         action = 'version',
                         version = '%(prog)s: vrt tools {}'.format(VERSION))
 
     return parser
+
+def bakfix(arg):
+    '''Argument type for --backup: argument must be a valid and proper and
+    safe suffix to a filename.
+
+    '''
+    if not arg:
+        raise ArgumentTypeError('empty suffix')
+
+    if all(c in ascii_letters or
+           c in ascii_digits or
+           c in '%+,-.=@^_~'
+           for c in arg):
+        return arg
+
+    raise ArgumentTypeError('scary character in suffix')
+
+def sibext(arg):
+    '''Argument type for sibling extension: must be old/new where new must
+    not be empty and otherwise both old and new must be sensible
+    filename suffix. Consider sensible only ASCII letters.
+
+    '''
+    if '/' not in arg:
+        if not arg:
+            raise ArgumentTypeException('empty extension')
+        if all(c in ascii_letters for c in arg):
+            return arg
+        raise ArgumentTypeException('bad character in extension')
+    
+    extensions = arg.split('/')
+    if len(extensions) != 2:
+        raise ArgumentTypeError('old/new must have one slash')
+
+    old, new = extensions
+    if not old or not new:
+        raise ArgumentTypeError('empty extension')
+
+    if (all(c in ascii_letters for c in old) and
+        all(c in ascii_letters for c in new)):
+        return arg
+
+    raise ArgumentTypeExtension('bad character in extension')
 
 def inputstream(infile, as_text):
     if infile is None:
@@ -71,43 +137,65 @@ def outputstream(outfile, as_text):
 
 def trans_main(args, main, *, in_as_text = True, out_as_text = True):
 
-    # TODO exclusion makes some of these tests redundant
+    infile = args.infile
 
-    if (args.backup is not None) and '/' in args.backup:
-        print('usage: --backup suffix cannot contain /', file = sys.stderr)
-        exit(1)
-
-    if (args.backup is not None) and not args.backup:
-        print('usage: --backup suffix cannot be empty', file = sys.stderr)
-        exit(1)
-
-    # if (args.backup is not None) and not args.inplace:
-    #     print('usage: --backup requires --in-place', file = sys.stderr)
+    # if (args.backup is not None) and '/' in args.backup:
+    #     print('usage: --backup suffix cannot contain /', file = sys.stderr)
     #     exit(1)
 
-    if args.inplace and (args.infile is None):
+    # if (args.backup is not None) and not args.backup:
+    #     print('usage: --backup suffix cannot be empty', file = sys.stderr)
+    #     exit(1)
+
+    if args.inplace and (infile is None):
         print('usage: --in-place requires input file', file = sys.stderr)
         exit(1)
 
-    if args.backup and (args.infile is None):
+    if args.backup and (infile is None):
         print('usage: --backup requires input file', file = sys.stderr)
         exit(1)
 
-    # if args.inplace and (args.outfile is not None):
-    #     print('usage: --in-place not allowed with --out', file = sys.stderr)
-    #     exit(1)
+    if args.sibling and (infile is None):
+        print('usage: --in-sibling requires input file', file = sys.stderr)
+        exit(1)
 
-    if (args.outfile is not None) and os.path.exists(args.outfile):
-        # easier to check this than that output file is different than
-        # input file, though it be annoying when overwrite is wanted
+    if args.backup is not None:
+        backfile = infile + args.backup
+    else:
+        backfile = None
+
+    if args.outfile is not None:
+        outfile = args.outfile
+    elif args.inplace or args.backup:
+        outfile = infile
+    elif args.sibling is not None:
+        old, new = args.sibling.split('/')
+        new = '.' + new
+        if old:
+            # replace input extension
+            old = '.' + old
+            infilesansext, ext = os.path.splitext(infile)
+            if ext == old:
+                outfile = infilesansext + new
+            else:
+                raise BadData('input extension does not match')
+        else:
+            # add a further extension
+            outfile = infile + new
+    else:
+        outfile = None
+
+    if (args.outfile is not None) and os.path.exists(outfile):
         print('usage: --out file must not exist', file = sys.stderr)
         exit(1)
 
-    if args.inplace or args.backup or (args.outfile is not None):
-        head, tail = os.path.split(args.infile
-                                   if args.inplace or args.backup
-                                   else args.outfile)
-        fd, temp = mkstemp(dir = head, prefix = tail + '.tmp.')
+    if (args.sibling is not None) and os.path.exists(outfile):
+        print('usage: --in-sibling file must not exist', file = sys.stderr)
+        exit(1)
+
+    if outfile is not None:
+        head, tail = os.path.split(outfile)
+        fd, temp = mkstemp(dir = head, prefix = tail + '.', suffix = '.tmp')
         os.close(fd)
     else:
         temp = None
@@ -130,7 +218,7 @@ def trans_main(args, main, *, in_as_text = True, out_as_text = True):
 
     status = 1
     try:
-        with inputstream(args.infile, in_as_text) as inf, \
+        with inputstream(infile, in_as_text) as inf, \
              outputstream(temp, out_as_text) as ouf:
             status = do()
     except BrokenPipeError:
@@ -149,9 +237,8 @@ def trans_main(args, main, *, in_as_text = True, out_as_text = True):
         exit(status)
 
     try:
-        args.backup and os.rename(args.infile, args.infile + args.backup)
-        (args.inplace or args.backup) and os.rename(temp, args.infile)
-        args.outfile and os.rename(temp, args.outfile)
+        backfile is None or os.rename(infile, backfile)
+        outfile is None or os.rename(temp, outfile)
         exit(status)
     except IOError as exn:
         print(exn, file = sys.stderr)

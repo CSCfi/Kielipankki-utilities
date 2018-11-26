@@ -9,6 +9,7 @@ from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 
 from vrtnamelib import binxnames, binnamelist
+from vrtdatalib import binasrecord
 
 def parsearguments():
     description = '''
@@ -136,7 +137,7 @@ def implement_main(inf, ouf, args):
             if not seen:
                 raise BadData('no names before data')
             for line in group:
-                ouf.write(b'\t'.join(get(line.split(b'\t'))))
+                ouf.write(b'\t'.join(get(binasrecord(line))))
                 ouf.write(b'\n')
             continue
 
