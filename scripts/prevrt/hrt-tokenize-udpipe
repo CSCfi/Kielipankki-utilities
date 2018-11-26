@@ -1,0 +1,163 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+'''Use UDPipe to tokenize within markup above sentence.
+
+'''
+
+import sys
+
+from itertools import groupby
+from queue import Empty as EmptyQueue
+from subprocess import Popen, PIPE
+from threading import Thread
+
+from vrtargslib import trans_args, trans_main
+from vrtdatalib import binescape, binasrecord
+from hrtlib import tokenize
+
+# external UDPipe program pathname
+UDPIPE = '/proj/kieli/udpipe/bin/udpipe'
+
+# UDPipe model pathname format pattern
+MODEL = ('/proj/kieli/udpipe/share/{}-2.0-170801.udpipe')
+
+def parsearguments():
+    description = '''
+
+    Segment text data between any (non-sentence) meta into sentences
+    and tokens using UDPipe with one of the UD2 models.
+
+    '''
+
+    parser = trans_args(description = description, inplace = False)
+
+    parser.add_argument('--model',
+                        choices = [
+                            'finnish-ud',
+                            'finnish-ftb-ud',
+                            'swedish-ud',
+                            'english-ud'
+                        ],
+                        default = 'finnish-ud',
+                        help = '''
+
+                        UDPipe language model (default finnish-ud)
+
+                        ''')
+
+   # should have options to set field names but meh
+
+    args = parser.parse_args()
+    args.inplace = False
+    args.backup = None
+    args.prog = parser.prog
+    return args
+
+def main(args, inf, ouf):
+
+    proc = Popen([ UDPIPE, '--immediate', '--tokenize', '--output=conllu',
+                   # --output formats (among others):
+                   # conllu: id, word, ..., misc (SpacesAfter, SpaceAfter)
+                   # vertical: word only
+                   # horizontal: input with normalized spacing
+                   # plaintext: reconstructed input with original spacing
+                   # matxin: whatever it is, it _hangs_ (TO INVESTIGATE)
+                   MODEL.format(args.model) ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+
+    # start a watcherr here since proc.stderr in PIPE
+    # (rather redundant for this particular tool)
+    Thread(target=watcherr, args=[args, proc]).start()
+
+    try:
+        tokenize(inf, proc, combiner(args), ouf)
+    finally:
+        proc.stdin.close()
+
+def combiner(args):
+    def combine(proc, meta, sent, ouf):
+
+        '''Reads the proc and meta in synch; writes to output stream; on
+        exception, should this close proc.stdout? when proc might also
+        not be there any more?
+
+        '''
+        try:
+            implement_combine(args, proc, meta, sent, ouf)
+        except EmptyQueue:
+            print('{}: combine thread: empty queue'.format(args.prog),
+                  file = sys.stderr)
+        except Exception as exn:
+            print('{}: combine thread:'.format(args.prog), exn,
+                  file = sys.stderr)
+
+    return combine
+
+def implement_combine(args, proc, meta, sent, ouf):
+
+    ouf.write(b'<!-- Positional attributes: id word spaces -->\n')
+
+    for group in (tuple(group)
+                  # must reify group to recognize sentinel group
+                  for isspace, group in groupby(proc.stdout,
+                                                bytes.isspace)
+                  if not isspace):
+        if all((line.startswith(b'#') or sent in line)
+               for line in group):
+            # Hope that UDPipe considers sentinel a sentence
+            # of its own but it may still come with comments
+            shipmeta(meta.get_nowait(), ouf)
+            meta.task_done()
+        else:
+            shipdata(group, ouf)
+    else:
+        # the final meta but is this a bit racy?
+        shipmeta(meta.get_nowait(), ouf)
+        meta.task_done()
+
+def shipmeta(lines, ouf):
+    for line in lines: ouf.write(line)
+            
+def shipdata(lines, ouf):
+    ouf.write(b'<sentence>\n')
+    end = b'0' # aka none
+    for line in lines:
+        if line.startswith(b'#'): continue
+        record = binasrecord(line)
+        jd, word, spaces = record[0], record[1], record[9]
+        if b'-' in jd:
+            # 1-2  Ellei  _
+            # 1  Ell  _
+            # 2  ei  _
+            # ...
+            # 6-7  miksei  _
+            # ...
+            # (with finnish-ftb-ud)
+            for part in (b'<multitoken id="', jd,
+                         b'" spaces="', spaces,
+                         b'" word="', binescape(word),
+                         b'">\n'):
+                ouf.write(part)
+            # TODO also escape any quotes in word!
+            _, end = jd.split(b'-')
+        else:
+            for part in (jd, b'\t',
+                         binescape(word), b'\t',
+                         spaces, b'\n'):
+                ouf.write(part)
+            if jd == end: ouf.write(b'</multitoken>\n')                
+    else:
+        ouf.write(b'</sentence>\n')
+
+def watcherr(args, proc):
+    for line in proc.stderr:
+        sys.stderr.buffer.write(b'err: ')
+        sys.stderr.buffer.write(line)
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main,
+               in_as_text = False,
+               out_as_text = False)
