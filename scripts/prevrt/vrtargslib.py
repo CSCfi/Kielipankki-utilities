@@ -5,7 +5,7 @@ from string import ascii_letters
 from tempfile import mkstemp
 import os, sys, traceback
 
-VERSION = '0.5.2 (2018-11-25)'
+VERSION = '0.6 (2018-11-26)'
 
 class BadData(Exception): pass # stack trace is just noise
 class BadCode(Exception): pass # this cannot happen
