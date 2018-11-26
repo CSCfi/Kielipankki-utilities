@@ -50,7 +50,10 @@ def main(args, ins, ous):
 
 def ship(para, ous):
     print('<paragraph>', file = ous)
-    for line in para: print(line, end = '', file = ous)
+    for line in para:
+        print(line,
+              end = '' if line.endswith('\n') else '\n',
+              file = ous)
     print('</paragraph>', file = ous)
 
 if __name__ == '__main__':

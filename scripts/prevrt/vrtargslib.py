@@ -100,10 +100,10 @@ def sibext(arg):
     '''
     if '/' not in arg:
         if not arg:
-            raise ArgumentTypeException('empty extension')
+            raise ArgumentTypeError('empty extension')
         if all(c in ascii_letters for c in arg):
             return arg
-        raise ArgumentTypeException('bad character in extension')
+        raise ArgumentTypeError('bad character in extension')
     
     extensions = arg.split('/')
     if len(extensions) != 2:
@@ -117,7 +117,7 @@ def sibext(arg):
         all(c in ascii_letters for c in new)):
         return arg
 
-    raise ArgumentTypeExtension('bad character in extension')
+    raise ArgumentTypeError('bad character in extension')
 
 def inputstream(infile, as_text):
     if infile is None:
@@ -139,24 +139,19 @@ def trans_main(args, main, *, in_as_text = True, out_as_text = True):
 
     infile = args.infile
 
-    # if (args.backup is not None) and '/' in args.backup:
-    #     print('usage: --backup suffix cannot contain /', file = sys.stderr)
-    #     exit(1)
-
-    # if (args.backup is not None) and not args.backup:
-    #     print('usage: --backup suffix cannot be empty', file = sys.stderr)
-    #     exit(1)
-
     if args.inplace and (infile is None):
-        print('usage: --in-place requires input file', file = sys.stderr)
+        print(args.prog + ': --in-place requires input filename',
+              file = sys.stderr)
         exit(1)
 
     if args.backup and (infile is None):
-        print('usage: --backup requires input file', file = sys.stderr)
+        print(args.prog + ': --backup requires input filename',
+              file = sys.stderr)
         exit(1)
 
     if args.sibling and (infile is None):
-        print('usage: --in-sibling requires input file', file = sys.stderr)
+        print(args.prog + ': --in-sibling requires input filename',
+              file = sys.stderr)
         exit(1)
 
     if args.backup is not None:
@@ -169,28 +164,33 @@ def trans_main(args, main, *, in_as_text = True, out_as_text = True):
     elif args.inplace or args.backup:
         outfile = infile
     elif args.sibling is not None:
-        old, new = args.sibling.split('/')
-        new = '.' + new
-        if old:
+        if '/' in args.sibling:
             # replace input extension
+            old, new = args.sibling.split('/')
             old = '.' + old
+            new = '.' + new
             infilesansext, ext = os.path.splitext(infile)
             if ext == old:
                 outfile = infilesansext + new
             else:
-                raise BadData('input extension does not match')
+                print(args.prog + ':', 'input extension does not match',
+                      file = sys.stderr)
+                exit(1)
         else:
             # add a further extension
+            new = '.' + args.sibling
             outfile = infile + new
     else:
         outfile = None
 
     if (args.outfile is not None) and os.path.exists(outfile):
-        print('usage: --out file must not exist', file = sys.stderr)
+        print(args.prog + ': --out file must not exist',
+              file = sys.stderr)
         exit(1)
 
     if (args.sibling is not None) and os.path.exists(outfile):
-        print('usage: --in-sibling file must not exist', file = sys.stderr)
+        print(args.prog + ': --in-sibling file must not exist',
+              file = sys.stderr)
         exit(1)
 
     if outfile is not None:
