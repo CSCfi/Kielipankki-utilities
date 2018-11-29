@@ -1,0 +1,132 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from vrtargslib import trans_args, trans_main
+
+from vrtnamelib import xname, namelist, nameindex
+from vrtdatalib import unescape, asrecord
+
+def parsearguments():
+    description = '''
+
+    Attempt to combine successive token forms (words) if they seem
+    intended to be a single "smiley" symbol.
+
+    '''
+
+    parser = trans_args(description = description)
+
+    parser.add_argument('--word', '-w',
+                        type = xname, default = 'word',
+                        help = 'name of the word field [word]')
+    parser.add_argument('--spaces', '-s',
+                        type = xname, default = 'spaces',
+                        help = '''
+
+                        name of the spaces field [spaces] that may
+                        indicate that there was no space between the
+                        tokens before tokenization; ignored if there
+                        is no such field
+
+                        ''')
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+
+    return args
+
+# only consider binary splits, and no undesired fuses with further
+# material, so this remains quite approximate; suspect these will miss
+# any :-) and such! ah, maybe run it twice? glue even the partial ':-'
+# and fix again to glue with any following ')', so that might work?
+# the real solution, of course, is to have the tokenizer handle these,
+# and others like these - incidentally, UDPipe Finnish model seems to
+# keep ':-' together already so that a ':-)' got fixed in one go (and
+# some of the basic smileys need no fixing! and some are more harder)
+
+splits = {
+    ('<', '3'),
+    (':', ')'), (':', '))'), (':', ')))'),
+    (':)', ')'), (':)', '))'),
+    (':))', ')'),
+    (':', '-'), (';', '-'),
+    (':-', ')'), (':-', '))'),
+    (':-)', ')'),
+    (';', ')'), (';', '))'),
+    (';)', ')'),
+    (':', '-)'),
+    (';', '-)'),
+    ('=', ')'), ('=)', ')'),
+    (':', '('), (':-', '('),
+    (':', 'D'), (':', 'DD'),
+    (';', 'D'), (';', 'DD'),
+    ('=', 'D'),
+    ('=', 'E'),
+    ('=', 'f'),
+    ('=', 'O'),
+    (':', 'o'), (':', 'O'),
+    (':', 'P'), (';', 'P'), ('=', 'P'),
+}
+
+initials = { prefix for prefix, rest in splits }
+
+def main(args, ins, ous):
+    lines = filter(lambda line: not line.isspace(), ins)
+    while True:
+        line = next(lines, None)
+        if line is None:
+            return
+        if line.startswith('<!-- Positional attributes:'):
+            wp = nameindex(namelist(line), args.word)
+            sp = ( None if args.spaces not in namelist(line)
+                   else nameindex(namelist(line), args.spaces) )
+            print(line, end = '', file = ous)
+            continue
+        if line.startswith('<'):
+            print(line, end = '', file = ous)
+            continue
+
+        # line is a data line (a token)
+
+        record = asrecord(line)
+
+        if sp is not None and 'SpaceAfter=No' not in record[sp]:
+            print(line, end = '', file = ous)
+            continue
+
+        if unescape(record[wp]) not in initials:
+            # word is not the starting character of a smiley
+            print(line, end = '', file = ous)
+            continue
+
+        # line may start a smiley
+
+        line2 = next(lines, None)
+
+        if line2 is None:
+            # this cannot happen! unless last line is a token!
+            print(line, end = '', file = ous)
+            continue
+
+        if line2.startswith('<'):
+            # line2 may be a positional-attributes comment but that is
+            # merely redundant and need not be examined again
+            print(line, line2, sep = '', end = '', file = ous)
+            continue
+
+        record2 = asrecord(line2)
+
+        if (unescape(record[wp]), unescape(record2[wp])) in splits:
+            record[wp] = record[wp] + record2[wp]
+            record[sp] = record2[sp]
+            print(*record, sep = '\t', file = ous)
+            continue
+
+        # was not a split smiley
+
+        print(line, end = '', file = ous)
+        print(line2, end = '', file = ous)
+        continue
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main)
