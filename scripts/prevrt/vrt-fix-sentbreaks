@@ -18,7 +18,7 @@ import sys
 
 from itertools import groupby, chain
 
-from scriptutil import InputProcessor
+from vrtargsoolib import InputProcessor
 
 
 class SentenceBreakFixer(InputProcessor):
@@ -30,7 +30,6 @@ class SentenceBreakFixer(InputProcessor):
     _default_dashes = '-–—'
     _default_quotes = '"”“\'’‘«»'
 
-    VERSION = '0.2 (2018-09-06)'
     DESCRIPTION = """
     Fix spurious sentence breaks in VRT input added by the UDPipe
     Finnish tokenizer.
@@ -40,26 +39,26 @@ class SentenceBreakFixer(InputProcessor):
          'output XML comments for removed breaks'),
         ('--verbose',
          'log output to stderr'),
-        ('--end-punctuation = CHARS -> endpunct',
-         'consider CHARS as possible sentence-ending punctuation marks',
+        ('--end-punctuation = chars -> endpunct',
+         'consider chars as possible sentence-ending punctuation marks',
          dict(default=_default_endpunct)),
-        ('--dashes = CHARS',
-         'consider CHARS as dashes',
+        ('--dashes = chars',
+         'consider chars as dashes',
          dict(default=_default_dashes)),
-        ('--quotes = CHARS',
-         'consider CHARS as quotation marks',
+        ('--quotes = chars',
+         'consider chars as quotation marks',
          dict(default=_default_quotes)),
     ]
 
     def __init__(self):
         super().__init__()
 
-    def implement_main(self, inf, ouf):
+    def main(self, args, inf, ouf):
 
         LESS_THAN = '<'.encode()[0]
-        endpunct = self._args.endpunct
-        dashes = self._args.dashes
-        quotes = self._args.quotes
+        endpunct = args.endpunct
+        dashes = args.dashes
+        quotes = args.quotes
 
         def isbreak(line):
             return (line[0] == LESS_THAN
@@ -95,7 +94,7 @@ class SentenceBreakFixer(InputProcessor):
             return get_wordform(line).istitle()
 
         def log(before, kind, after):
-            if self._args.verbose:
+            if args.verbose:
                 print('#',
                       *chain((w.decode().rstrip('\n')
                               for w in ([b'##'] + before)[-4:]),
@@ -105,7 +104,7 @@ class SentenceBreakFixer(InputProcessor):
                       file=sys.stderr)
 
         def comment(text):
-            if self._args.comments:
+            if args.comments:
                 ouf.write(b'<!-- ' + text.encode() + b' -->\n')
 
         def output_lines(lines):
