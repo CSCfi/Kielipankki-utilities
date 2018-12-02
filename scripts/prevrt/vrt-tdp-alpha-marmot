@@ -2,6 +2,7 @@
 # -*- mode: Python; -*-
 
 from itertools import groupby, count
+from queue import Queue
 from subprocess import Popen, PIPE
 from threading import Thread
 import enum, os, re, sys, traceback
@@ -10,10 +11,11 @@ from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 
 from vrtnamelib import binxname, binxrest
-from vrtnamelib import binnamelist, nameindex, nameindices
+from vrtnamelib import isbinnames as isnames
+from vrtnamelib import binnamelist as namelist, nameindex, nameindices
 from vrtnamelib import bininsertnames as insertnames
 
-from vrtdatalib import binlineref as lineref
+from vrtdatalib import binasrecord as asrecord
 from vrtdatalib import binescape as escape, binunescape as unescape
 
 MARMOT = [
@@ -67,130 +69,108 @@ def terminate(proc):
         pass
 
 def main(args, inf, ouf):
+
     with Popen(MARMOT,
                stdin = PIPE,
                stdout = PIPE,
                stderr = sys.stderr.buffer) as marmot:
-        with Popen(['cat'],
-                   stdin = PIPE,
-                   stdout = PIPE,
-                   stderr = sys.stderr) as copy:
 
-            # is this a "useless use of cat"?
+        copy = Queue()
+        Thread(target = combine, args = (args, marmot, copy, ouf)).start()
 
-            t = Thread(target = combine, args = (args, marmot, copy, ouf))
-            t.start()
+        status = 1
+        try:
+            implement_main(args, inf, marmot, copy)
+            status = 0
+        except BadData as exn:
+            message(args, exn)
+        except BrokenPipeError as exn:
+            message(args, 'broken pipe in main thread')
+        except KeyboardInterrupt as exn:
+            message(args, 'keyboard interrupt in main thread')
+        except Exception as exn:
+            print(traceback.format_exc(), file = sys.stderr)
 
+        if status:
+            terminate(marmot)
+        else:
+            marmot.stdin.close()
+
+        try:
+            copy.join()
+        except KeyboardInterrupt:
+            message(args, 'keyboard interrupt in main thread')
             status = 1
-            try:
-                implement_main(args, inf, marmot, copy)
-                status = 0
-            except BadData as exn:
-                message(args, exn)
-            except BrokenPipeError as exn:
-                message(args, 'broken pipe in main thread')
-            except KeyboardInterrupt as exn:
-                message(args, 'keyboard interrupt in main thread')
-            except Exception as exn:
-                print(traceback.format_exc(), file = sys.stderr)
 
-            if status:
-                terminate(marmot)
-                terminate(copy)
-            else:
-                marmot.stdin.close()
-                copy.stdin.close()
-
-            try:
-                t.join()
-            except KeyboardInterrupt:
-                message(args, 'keyboard interrupt in main thread')
-                status = 1
-
-            return status
+        return status
 
 def implement_main(args, inf, marmot, copy):
 
-    # each "word" and "tag" go to marmot, with empty line after
-    # sentence; everything but empty goes to copy, with new
-    # "marmot.pos", "marmot.feat" (or such) in names
+    # each "word" and "tag" go to marmot, with an empty line after
+    # each sentence; everything goes to copy alternative groups of
+    # meta and data, with new "marmot.pos", "marmot.feat" (or such) in
+    # names
 
-    wf, pf = None, None
-    found = False
-    def isnotspace(line): return not line.isspace()
-    for kind, group in groupby(filter(isnotspace, inf), identify):
+    wordix, posix = None, None
 
-        if kind is not Kind.data: found = False
-        if kind is Kind.begin: found = True
+    def send(sentence):
+        for record in sentence:
+            marmot.stdin.write(unescape(record[wordix]))
+            marmot.stdin.write(b'\t')
+            marmot.stdin.write(unescape(record[posix]))
+            marmot.stdin.write(b'\n')
+        else:
+            marmot.stdin.write(b'\n')
+            marmot.stdin.flush()
 
-        if kind is Kind.data and found:
-            if wf is None:
-                raise BadData('error: token before field names')
-            for k, line in enumerate(group, start = 1):
-                marmot.stdin.write(unescape(lineref(line, wf)))
-                marmot.stdin.write(b'\t')
-                marmot.stdin.write(unescape(lineref(line, pf)))
-                marmot.stdin.write(b'\n')
-                copy.stdin.write(line)
-            else:
-                marmot.stdin.write(b'\n')
-                marmot.stdin.flush()
-                copy.stdin.flush()
-                continue
+    def setnames(line):
+        nonlocal wordix, posix
+        if isnames(line):
+            wordix, posix = nameindices(namelist(line), args.word, args.tag)
+            return insertnames(line, args.tag,
+                               args.prefix + b'marmot.pos' + args.suffix,
+                               args.prefix + b'marmot.feat' + args.suffix)
+        return line
 
-        if kind is Kind.begin:
-            for line in group: copy.stdin.write(line)
+    def issome(line): return not line.isspace()
+    def ismeta(line): return line.startswith(b'<')
+
+    first = True
+    for groupismeta, group in groupby(filter(issome, inf), ismeta):
+
+        if groupismeta:
+            meta = tuple(map(setnames, group))
+            copy.put(meta)
+            first = False
             continue
 
-        if kind is Kind.meta:
-            for line in group: copy.stdin.write(line)
-            continue
+        # groupisdata
 
-        if kind is Kind.data:
-            for line in group: copy.stdin.write(line)
-            continue
+        if first:
+            # there shall always be previous meta
+            copy.put(())
+            first = False
 
-        if kind is Kind.names:
-            for line in group:
-                fieldnames = binnamelist(line)
-                wf, pf = nameindices(fieldnames, args.word, args.tag)
-                newline = insertnames(line, args.tag,
-                                      args.prefix + b'marmot.pos' +
-                                      args.suffix,
-                                      args.prefix + b'marmot.feat' +
-                                      args.suffix)
-                copy.stdin.write(newline)
-            else:
-                continue
+        if wordix is None:
+            raise BadData('error: token before field names')
 
-        if kind is Kind.comment:
-            for line in group: copy.stdin.write(line)
-            continue
+        sentence = tuple(map(asrecord, group))
+        copy.put(sentence)
+        send(sentence)
 
-        raise BadCode('this cannot happen')
-
-class Kind(enum.Enum):
-    # kind of line (group of them)
-    meta = 1
-    data = 2
-    begin = 3
-    names = 4
-    comment = 5
-
-def identify(line):
-    # used by groupby to identify the kind of a line group
-    if line.startswith(b'<!-- Positional attributes:'): return Kind.names
-    if line.startswith(b'<!--'): return Kind.comment
-    if line.startswith(b'<sentence'): return Kind.begin
-    if line.startswith(b'<'): return Kind.meta
-    return Kind.data
+    if not groupismeta:
+        # there shall always be final meta
+        copy.put(())
 
 def combine(args, marmot, copy, out):
     '''Read marmot output (id TAB word TAB _ TAB pos ... msd TAB NL / NL)
     and flat vrt from the copy process. Insert tags from marmot to the
     vrt at the named position.
 
-    This is run as a thread that consumes the two processes.
+    This is run as a thread that consumes the marmot process and syncs
+    it with the copy queue. Preceding meta and corresponding data were
+    put in the queue before the data was sent to marmot, so they will
+    always be there when a sentence is read out of marmot.
 
     '''
 
@@ -201,7 +181,7 @@ def combine(args, marmot, copy, out):
     except BrokenPipeError:
         message(args, 'broken pipe in combine thread')
     except StopIteration:
-        # from next(response) when main thread got keyboard interruption
+        # not sure when this can happen now
         message(args, 'stop iteration in combine thread')
     except ValueError as exn:
         # sometimes keyboard interruption in main thread produces here
@@ -209,9 +189,7 @@ def combine(args, marmot, copy, out):
         # in development)
         message(args, 'value error in combine thread ' + str(exn))
     finally:
-        if fail:
-            terminate(marmot)
-            terminate(copy)
+        if fail: terminate(marmot)
 
 def implement_combine(args, marmot, copy, out):
     '''Thread may find pipe closed.'''
@@ -220,46 +198,51 @@ def implement_combine(args, marmot, copy, out):
                 for isempty, tokens
                 in groupby(marmot.stdout, bytes.isspace)
                 if not isempty)
-    
-    mf = None # marmot.in field index, after which insert new
-    found = False
-    for kind, group in groupby(copy.stdout, identify):
 
-        if kind is not Kind.data: found = False
-        if kind is Kind.begin: found = True
+    at = None # marmot.in field index, after which insert new
+    for analyses in response:
 
-        if (kind is Kind.data) and found:
-            for new, old in zip(next(response), group):
-                [
-                    # http://ufal.mff.cuni.cz/
-                    # conll2009-st/task-description.html
-                    # ID FORM LEMMA PLEMMA POS PPOS FEAT PFEAT
-                    # HEAD PHEAD DEPREL PDEPREL FILLPRED PRED APREDs
-                    # but MarMoT truncates at eight fields
-                    # https://github.com/muelletm/cistern/blob/wiki/marmot.md
-                    # (actual produced ID is 1-based as it should)
-                    ID, form, lemma, plemma,
-                    pos, ppos, feat, pfeat
-                ] = new.rstrip(b'\n').split(b'\t')
-                values = old.rstrip(b'\n').split(b'\t')
-                values.insert(mf + 1, escape(pfeat))
-                values.insert(mf + 1, escape(ppos))
-                out.write(b'\t'.join(values))
-                out.write(b'\n')
-            else:
-                continue
+        meta = copy.get_nowait()
+        data = copy.get_nowait()
+        copy.task_done()
+        copy.task_done()
 
-        if kind is Kind.names:
-            for line in group:
-                mf = nameindex(binnamelist(line), args.tag)
-                out.write(line)
-            else:
-                continue
+        for line in meta:
+            if isnames(line):
+                at = nameindex(namelist(line), args.tag)
 
-        for line in group:
-            out.write(line)
+        if at is None:
+            raise BadData('combine thread: data before names')
+
+        shipmeta(meta, out)
+        for new, old in zip(analyses, data):
+            [
+                # http://ufal.mff.cuni.cz/
+                # conll2009-st/task-description.html
+                # ID FORM LEMMA PLEMMA POS PPOS FEAT PFEAT
+                # HEAD PHEAD DEPREL PDEPREL FILLPRED PRED APREDs
+                # but MarMoT truncates at eight fields
+                # https://github.com/muelletm/cistern/blob/wiki/marmot.md
+                # (actual produced ID is 1-based as it should)
+                ID, form, lemma, plemma,
+                pos, ppos, feat, pfeat
+            ] = asrecord(new)
+            old.insert(at + 1, escape(pfeat))
+            old.insert(at + 1, escape(ppos))
         else:
-            continue
+            shipdata(data, out)
+
+    # should this have a timeout? or could it be .get_nowait()?
+    shipmeta(copy.get(), out)
+    copy.task_done()
+
+def shipmeta(meta, out):
+    for line in meta: out.write(line)
+
+def shipdata(data, out):
+    for record in data:
+        out.write(b'\t'.join(record))
+        out.write(b'\n')
 
 if __name__ == '__main__':
     trans_main(parsearguments(), main,
