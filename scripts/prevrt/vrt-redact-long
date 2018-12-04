@@ -1,0 +1,175 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from itertools import groupby, chain
+import os, re, sys, traceback
+
+from vrtargslib import trans_args, trans_main
+from vrtargslib import BadData, BadCode
+
+from vrtnamelib import xname, isnames, namelist, nameindex
+from vrtdatalib import asrecord, unescape, escape
+
+def parsearguments():
+    description = '''
+
+    Redact the value in the specified field if it is "long" and looks
+    like a word or link or something else, or regardless of what it
+    looks like. The redaction text replaces all text in the field
+    after and before the specified number of original characters.
+    This process is remarkably irreversible.
+
+    '''
+
+    parser = trans_args(description = description)
+
+    parser.add_argument('--word', '-w',
+                        metavar = 'name',
+                        type = xname, default = 'word',
+                        help = 'the field to redact (default: word)')
+
+    parser.add_argument('--long', type = int, default = 70,
+                        metavar = 'N',
+                        # number should be *positive*
+                        help = '''
+
+                        how many characters (or more) is long
+                        (default: 70)
+
+                        ''')
+
+    parser.add_argument('--after', '-A', type = int, default = 20,
+                        metavar = 'N',
+                        # number should be *a number*
+                        help = '''
+
+                        the number of initial characters to keep
+                        (default: 20)
+
+                        ''')
+
+    parser.add_argument('--before', '-B', type = int, default = 12,
+                        metavar = 'N',
+                        # number should be *a number*
+                        help = '''
+
+                        the number of final characters to keep
+                        (default: 12)
+
+                        ''')
+
+    parser.add_argument('--like', choices = [ 'word',
+                                              'link',
+                                              'other',
+                                              'any' ],
+                        default = 'any',
+                        help = '''
+
+                        redact only values that look like they might
+                        be of the specified type: a "word" consists of
+                        letters, digits, and hyphens (and
+                        underscores); a "link" is meant to look like a
+                        URI but is recognized only approximately
+                        (default: any)
+
+                        ''')
+
+    parser.add_argument('--text', '-t', default = '/REDACTED/',
+                        help = '''
+
+                        the text with which to replace the long text
+                        (default: /REDACTED/)
+
+                        ''')
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
+
+def main(args, inf, ouf):
+
+    if args.after < 0 or args.before < 0 or args.long < 1:
+        raise BadData('numbers make no sense')
+
+    if args.after + args.before > args.long:
+        raise BadData('after and before are already long')
+
+    # *all* these exceptions should probably go to trans_main, q.v.
+
+    status = 1
+    try:
+        implement_main(args, inf, ouf)
+        status = 0
+    except BadData as exn:
+        print(args.prog + ':', exn, file = sys.stderr)
+    except BadCode as exn:
+        print(args.prog + ':', exn, file = sys.stderr)
+    except BrokenPipeError:
+        print(args.prog + ': broken pipe in main', file = sys.stderr)
+    except KeyboardInterrupt:
+        print(args.prog + ': keyboard interrupt', file = sys.stderr)
+    except Exception as exn:
+        print(traceback.format_exc(), file = sys.stderr)
+
+    return status
+
+def implement_main(args, ins, ous):
+
+    def issome(line): return not line.isspace()
+    def ismeta(line): return line.startswith('<')
+
+    islike = dict(word = islikeword,
+                  link = islikelink,
+                  other = isother,
+                  any = isany) [args.like]
+
+    wordix = None
+    for groupismeta, group in groupby(filter(issome, ins), ismeta):
+
+        if groupismeta:
+            for line in group:
+                print(line, end = '', file = ous)
+                if isnames(line):
+                    wordix = nameindex(namelist(line), args.word)
+            continue
+
+        # groupisdata aka token lines
+
+        if wordix is None:
+            raise BadData('no names before tokens')
+
+        for line in group:
+            record = asrecord(line)
+            word = unescape(record[wordix])
+
+            if len(word) >= args.long and islike(word):
+                record[wordix] = escape(redact(args, word))
+
+            print(*record, sep = '\t', file = ous)
+
+def redact(args, word):
+    return '{}{}{}'.format(word[:args.after],
+                           args.text,
+                           word[-args.before:] if args.before else '')
+
+def islikeword(word):
+    return re.fullmatch(R'[\w\-]+', word)
+
+def islikelink(word):
+    # embarrassingly approximate - improve eventually? though ocular
+    # inspection of a corpus indicates that "any" is a good choice
+    if word.startswith(('http:', 'https:', 'ftp:')):
+        return True
+    return False
+
+def isother(word):
+    return not (
+        islikeword(word) or
+        islikelink(word)
+    )
+
+def isany(word):
+    return True
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main)
