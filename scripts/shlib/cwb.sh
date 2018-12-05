@@ -315,12 +315,33 @@ get_corpus_token_count () {
     awk '$1 ~ /^size/ {print $3}'
 }
 
-# get_corpus_struct_count struct corpus
+# get_corpus_struct_count corpus struct
 #
 # Print the number of structures struct in corpus.
 get_corpus_struct_count () {
-    $cwb_bindir/cwb-describe-corpus -s $2 |
-    awk "/^s-ATT $1"' / {print $3}'
+    $cwb_bindir/cwb-describe-corpus -s $1 |
+    awk "/^s-ATT $2"' / {print $3}'
+}
+
+
+# get_corpus_posattr_type_count corpus attrname
+#
+# Print the number of distinct values ("types") for the positional
+# attribute attrname in corpus.
+get_corpus_posattr_type_count () {
+    $cwb_bindir/cwb-describe-corpus -s $1 |
+    awk "/^p-ATT $2 "' / {print $5}'
+}
+
+
+# get_corpus_struct_type_count corpus attrname
+#
+# Print the number of distinct values ("types") for the structural
+# attribute attrname in corpus.
+get_corpus_struct_type_count () {
+    $cwb_bindir/cwb-s-decode -n $1 -S $2 |
+	sort -u |
+	wc -l
 }
 
 
