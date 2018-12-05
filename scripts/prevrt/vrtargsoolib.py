@@ -58,12 +58,33 @@ def argparser_add_args(argparser, argspecs):
     unless the usage string already contains the word "default".
 
     argnames (or its first element) is of the following form:
-      argname (("|"|" ") argname)* ("=" metavar)? ("/" nargs)? ("->" dest)?.
+        argname ('|' | ' ' | ',') argname)* ('=' metavar)? (':' type)?
+        ('=' default_or_choices
+         | '='? ('(' default_or_choices ')' | '"' default_or_choices '"'))?
+        ('/'? nargs)? (('->' | ' ') '!'? dest)?
+    where default_or_choices is of the form
+        default | ('*'? choice ("|" '*'? choice)+)
+
     Each argname is an alternative name for the argument, and metavar,
-    nargs and dest correspond to the keyword arguments of
-    `ArgumentParser.add_argument` with the same names. The components
-    may have spaces between them. If no metavar is specified and
-    argdict has no action, add action='store_true'.
+    type, default, nargs and dest correspond to the keyword arguments
+    of `ArgumentParser.add_argument` with the same names. Choices can
+    be specified in place of the default value; the default choice is
+    prefixed with an asterisk. The components may have spaces between
+    them. The "=" preceding default and the "->" preceding dest may be
+    left out, but the interpretation may change, depending on the
+    other components present.
+
+    If no metavar is specified and argdict has none of action,
+    choices, default, metavar, nargs or type, add action='store_true',
+    or action='store_false' if dest is preceded by an exclamation mark
+    (which is allowed only if none of choices, default, metavar, nargs
+    or type is present).
+
+    Note that many of the argspec components are meaningful only for
+    optional arguments, with names beginning with a hyphen. Also note
+    that nargs currently supports only ?, * and +, not integer values.
+    In general, keyword argument values that cannot be expressed in
+    the above format, need to be passed via argdict.
     """
     if argspecs:
         for argspec in argspecs:
@@ -75,6 +96,94 @@ def _argparser_add_arg(argparser, argspec):
 
     See `argparser_add_args` for the format of `argspec`.
     """
+
+    # TODO: Support integer-valued nargs. That may require changes to
+    # handling metavar and default, since the value of metavar should
+    # then be a tuple and default a list.
+
+    def del_keys(dict_, keys):
+        for key in keys:
+            if key in dict_:
+                del dict_[key]
+
+    def parse_argspec(argspec):
+        # Parse argspec and return a dictionary of the components.
+        mo = re.match(
+            r"""(?P<names> [^=:"\(/>!]+)
+                (?: \s* = \s* (?P<metavar> \S+?) )?
+                (?: \s* : \s* (?P<type> \S+?) )?
+                (?: \s* = \s* (?P<default1> [^\s"\(] \S*?)
+                 |  (?: \s* =? \s* (?: " (?P<default2> .*?) "
+                                    |  \( (?P<default3> .*?) \) ) ) )?
+                (?: \s* (/ \s*)? (?P<nargs> [?*+]) )?
+                (?: (?: \s+ | \s* -> \s*) (?P<neg> !)?
+                    \s* (?P<dest> (?! \d) \w+?) )?
+                $ """,
+            argspec, re.VERBOSE)
+        if not mo:
+            raise vrtargslib.BadCode(
+                'Invalid argument specification string: ' + argspec)
+        argdict0 = dict((key, val) for key, val in mo.groupdict().items()
+                        if val is not None)
+        default = (argdict0.get('default1')
+                   or argdict0.get('default2')
+                   or argdict0.get('default3'))
+        if default is not None:
+            argdict0['default'] = default
+            del_keys(argdict0, ['default1', 'default2', 'default3'])
+        # FIXME: This does not take into account the parameters passed
+        # via the explicit argdict.
+        if ('neg' in argdict0
+            and any(key in argdict0 for key in ['metavar', 'type', 'default',
+                                                'nargs'])):
+            raise vrtargslib.BadCode(
+                'Invalid argument specification string: "!" cannot be used'
+                ' with metavar, type, default nor nargs: ' + argspec)
+        return argdict0
+
+    def get_type_by_name(typename):
+        # Get the type (class) named typename or raise an exception if
+        # it is not in built-ins or globals.
+        realtype = (globals().get(typename)
+                    or globals()['__builtins__'].get(typename))
+        if realtype is None:
+            raise vrtargslib.BadCode(
+                'Unsupported type in argument specification string: '
+                + typename)
+        return realtype
+
+    def process_default_or_choices(argdict0, value_type):
+        # Process the possible default or value choices in the
+        # argument dictionary.
+        if 'default' in argdict0:
+            default = argdict0['default']
+            if '|' in default:
+                choices = re.split(r'\s*\|\s*', default.strip())
+                default = (list(filter(lambda s: s and s[0] == '*', choices))
+                           or None)
+                if default:
+                    default = default[0][1:]
+                    choices = [choice.lstrip('*') for choice in choices]
+                if value_type:
+                    choices = [value_type(choice) for choice in choices]
+                argdict0['choices'] = choices
+            if default is not None:
+                if value_type:
+                    default = value_type(default)
+                argdict0['default'] = default
+            else:
+                del argdict0['default']
+
+    def process_argnames(argnames):
+        # If alternative option argument names omit the leading
+        # hyphens, add them.
+        isoptarg = (argnames[0][0] == '-')
+        if isoptarg:
+            for i in range(1, len(argnames)):
+                if argnames[i][0] != '-':
+                    prefix = ('-' if len(argnames[i]) == 1 else '--')
+                    argnames[i] = prefix + argnames[i]
+
     if len(argspec) < 2:
         raise vrtargslib.BadCode(
             'Argument specification needs at least name and help text')
@@ -85,37 +194,31 @@ def _argparser_add_arg(argparser, argspec):
     elif isinstance(argnames, tuple):
         argnames = list(argnames)
     argdict = (argspec[2] or {}) if len(argspec) > 2 else {}
-    # Add information on the possible default value to the usage
-    # message, unless it already contains the string "default".
-    if 'default' in argdict and 'default' not in arghelp:
-        arghelp += ' (default: %(default)s)'
     argdict['help'] = arghelp
     # Parse (the first element of) argnames
-    mo = re.match(r"""(?P<names> [^=/>]+?)
-                      (?: \s* = \s* (?P<metavar> \S+?)) ?
-                      (?: \s* / \s* (?P<nargs> \S+?)) ?
-                      (?: \s* -> \s* (?P<dest> \S+?)) ? $ """,
-                  argnames[0], re.VERBOSE)
-    if not mo:
-        raise vrtargslib.BadCode('Invalid argument specification string')
-    argdict0 = dict((key, val) for key, val in mo.groupdict().items()
-                    if val is not None)
-    argnames[0:1] = re.split(r'\s*(?:\s+|\|)\s*', argdict0['names'].strip())
-    del argdict0['names']
+    argdict0 = parse_argspec(argnames[0])
+    # print(repr(argdict0))
+    if 'type' in argdict0:
+        argdict0['type'] = get_type_by_name(argdict0['type'])
+    process_default_or_choices(
+        argdict0, argdict.get('type', argdict0.get('type')))
+    # Split argument name by spaces, vertical bars and commas
+    argnames[0:1] = re.split(r'\s*[\s|,]\s*', argdict0['names'].strip())
+    # Values from the explicit dictionary override those from the
+    # argspec
     argdict0.update(argdict)
     argdict = argdict0
-    if 'metavar' not in argdict and 'action' not in argdict:
-        argdict['action'] = 'store_true'
-    # Split argument name by spaces and/or vertical bars
-    argnames[0:1] = re.split(r'\s*(?:\s+|\|)\s*', argnames[0].strip())
-    # If alternative option argument names omit the leading hyphens,
-    # add them.
-    isoptarg = (argnames[0][0] == '-')
-    if isoptarg:
-        for i in range(1, len(argnames)):
-            if argnames[i][0] != '-':
-                prefix = ('-' if len(argnames[i]) == 1 else '--')
-                argnames[i] = prefix + argnames[i]
+    if (not any(key in argdict for key in ['action', 'choices', 'default',
+                                           'metavar', 'nargs', 'type'])
+        and argnames[0][0] == '-'):
+        argdict['action'] = 'store_false' if 'neg' in argdict else 'store_true'
+    del_keys(argdict, ['names', 'neg'])
+    process_argnames(argnames)
+    # Add information on the possible default value to the usage
+    # message, unless it already contains the string "default".
+    if 'default' in argdict and 'default' not in argdict['help']:
+        argdict['help'] += ' (default: %(default)s)'
+    # print(repr(argnames), repr(argdict))
     argparser.add_argument(*argnames, **argdict)
 
 
