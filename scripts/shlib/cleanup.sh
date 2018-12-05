@@ -48,9 +48,16 @@ kill_descendants () {
     fi
 }
 
+# cleanup
+#
+# Call call_cleanup_funcs, remove temporary files unless
+# $cleanup_on_exit is empty or $SHLIB_KEEP_TEMPFILES is non-empty, and
+# kill descendant processes.
 cleanup () {
     call_cleanup_funcs
-    if [ "x$tmp_prefix" != "x" ] && [ "x$cleanup_on_exit" != x ]; then
+    if [ "x$tmp_prefix" != "x" ] && [ "x$cleanup_on_exit" != x ] &&
+	   [ "x$SHLIB_KEEP_TEMPFILES" = x ];
+    then
 	rm -rf $tmp_prefix.*
     fi
     # Register a no-op handler for SIGTERM, so that kill does not
@@ -87,7 +94,7 @@ rm_cleanup_funcs () {
     done
 }
 
-# Call_cleanup_funcs
+# call_cleanup_funcs
 #
 # Call the functions whose names are listed in $_cleanup_funcs.
 call_cleanup_funcs () {
