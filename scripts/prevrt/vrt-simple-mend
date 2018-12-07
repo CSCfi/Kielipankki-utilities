@@ -1,0 +1,56 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from vrtargslib import trans_args, trans_main
+
+def parsearguments():
+    description = '''
+
+    Mend torn sentences by simply removing sen.ten.ce tags and
+    sentence-tag pairs within sen.ten.ce, with no adjustment to
+    tokens.
+
+    '''
+    parser = trans_args(description = description)
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
+
+def main(args, ins, ous):
+    
+    def issome(line): return not line.isspace()
+
+    keep = True
+    look = False
+    for line in filter(issome, ins):
+
+        # outside <sen.ten.ce>, keep everything;
+        # inside <sen.ten.ce>, drop sentence tags
+        # but look for a first sentence start tag;
+        # at </sen.ten.ce> close the <sentence>
+        # (unless still looking for it to start)
+
+        if line.startswith(('<sen.ten.ce>', '<sen.ten.ce ')):
+            keep = False
+            look = True
+            continue
+
+        if line.startswith('</sen.ten.ce>'):
+            look or print('</sentence>', file = ous)
+            keep = True 
+            look = False
+            continue
+
+        if line.startswith(('<sentence>', '<sentence ')):
+            (keep or look) and print(line, end = '', file = ous)
+            if look: look = False
+            continue
+
+        if line.startswith('</sentence>'):
+            keep and print(line, end = '', file = ous)
+            continue
+
+        print(line, end = '', file = ous)
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main)
