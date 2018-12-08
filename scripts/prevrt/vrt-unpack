@@ -12,10 +12,12 @@ from vrtargslib import BadData, BadCode
 def parsearguments():
     description = '''
 
-    Unpack a directory tree of packed vrt fragments (named *.vrf) to
-    the original names under a new directory tree of vrt documents.
+    Unpack a directory tree of packed vrt fragments (identified by
+    their file extension, in lexicographic order of their pathnames)
+    to the original names under a new directory tree of vrt documents.
 
     '''
+
     parser = version_args(description = description)
 
     parser.add_argument('indir', help = 'input directory')
@@ -26,6 +28,15 @@ def parsearguments():
     outgrp.add_argument('--suffix', '-s', metavar = '.fix',
                         help = 'output in sibling directory indir.fix')
 
+    parser.add_argument('--vrf', metavar = 'ext', default = 'vrf',
+                        help = '''
+
+                        fragment extension (default: vrf), possibly
+                        composed of more than one extension (for
+                        example: vrf.parsed)
+
+                        ''')
+
     args = parser.parse_args()
     args.prog = parser.prog
     return args
@@ -33,7 +44,7 @@ def parsearguments():
 # A dirsource produces all *.vrt files found under a given directory,
 # recursively, in a lexicographic order of their pathnames.
 
-def dirsource(path):
+def dirsource(args, path):
     '''Yield a fragment producer for each *.vrt file under path in some
     sort of lexicographic order of their path names.
 
@@ -41,13 +52,24 @@ def dirsource(path):
 
     if os.path.isdir(path):
         for name in sorted(os.listdir(path)):
-            yield from dirsource(os.path.join(path, name))
-    elif os.path.isfile(path) and os.path.splitext(path)[1] == '.vrf':
+            yield from dirsource(args, os.path.join(path, name))
+    elif ( os.path.isfile(path) and
+           hasextension(path, args.vrf) ):
         inf = open(path, mode = 'br')
         yield makesource(properlines(inf))
         inf.close()
     else:
         pass
+
+def hasextension(path, ext):
+    '''Return true if the basename ends properly with a period and the
+    extension ext, which can contain periods but is not supposed to
+    start with one.
+
+    '''
+    dirname, basename = os.path.split(path)
+    return ( basename.endswith('.' + ext) and
+             len(basename) > 1 + len(ext) )
 
 def properlines(lines):
     for line in lines:
@@ -150,7 +172,7 @@ def implement_main(args):
                                  os.path.basename(indir) + args.suffix) )
 
     if os.path.isdir(indir):
-        source = dirsource(indir)
+        source = dirsource(args, indir)
     else:
         print('{}: error: not a directory: {}'
               .format(args.prog, args.indir),
