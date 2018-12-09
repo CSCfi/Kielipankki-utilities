@@ -20,16 +20,17 @@ software, available for installation elsewhere.
 
 ## Highlights
 
-The basic function of the VRT tools is to **preserve** previous
-annotations, including structural markuo that may contain valuable
+The basic function of the VRT tools is to **preserve previous
+annotations**, including structural markup that may contain valuable
 information about the text units, without the underlying tools even
 knowing that their input sentences are extracted from such context.
-New annotations from an underlying tool are **added** to their proper
-place in the input document.
+New annotations from an underlying tool are **added to their proper
+place in the input document**.
 
 The major innovation in FIN-CLARIN VRT is the use of **names** for the
 fields that are only positional in basic format. In the basic format
-the declaration of names is only a **comment**.
+the declaration of names is only a **comment** but these VRT tools use
+it extensively.
 
     <!-- Positional attributes: word lemma pos -->
 
@@ -49,7 +50,8 @@ flexibly in different ways:
 - write to a sibling to the input file, or
 - replace the input file with the output,
 - with optional backup of the input file.
-In case of any failure, any partial output is left in a transparently
+
+In case of failure, any partial output is left in a transparently
 named temporary file.
 
 ## To be continued
