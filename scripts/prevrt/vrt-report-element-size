@@ -14,11 +14,11 @@ from vrtnamelib import isnames, namelist, nameindex
 def parsearguments():
     description = '''
 
-    Report on the distribution of length of a chosen type of element
-    in chosen units. Element can be text, paragraph, or sentence. Unit
-    can be tokens, "words", paragraphs, sentences, any meta, comments;
-    "word" is defined as a token that contains at least one letter or
-    digit in the word field.
+    Report on the distribution of size of a chosen type of element in
+    chosen units. Element can be text, paragraph, or sentence. Unit
+    can be number of tokens, "words", paragraphs, sentences, any meta,
+    comments; "word" is defined as a token that contains at least one
+    letter or digit in the word field.
 
     '''
 
@@ -150,7 +150,7 @@ def lengthcounts(args, ins):
         else: n += isword(line)
     else: return D
 
-def quantilepoints(counts, total, proportions):
+def quantilepoints(counts, number, proportions):
     '''Yield the observed values that are cumulatively at or just above
     the specified proportions. Something like that anyway. The
     proportions being specified in strictly increasing order of
@@ -163,30 +163,30 @@ def quantilepoints(counts, total, proportions):
     sofar = 0
     for length, count in sorted(counts.items()):
         sofar += count
-        while sofar * den >= num * total:
+        while sofar * den >= num * number:
             yield length
             num, den = next(proportions, (None, None))
             if num is None: return
 
 def shipfull(counts, ous, *, name = None):
     name and print('label', end = '\t', file = ous)
-    print('length', 'count', sep = '\t', file = ous)
+    print('Size', 'Count', sep = '\t', file = ous)
     for length, count in sorted(counts.items()):
         name and print(name, end = '\t', file = ous)
         print(length, count, sep = '\t', file = ous)
 
 def shipcol(labels, aliases, points, ous, *, name = None):
-    name and print('label', end = '\t', file = ous)
-    print('Pt', 'Aka', 'Length', sep = '\t', file = ous)
+    name and print('Label', end = '\t', file = ous)
+    print('Pt', 'Aka', 'Size', sep = '\t', file = ous)
     for row in zip(labels, aliases, points):
         name and print(name, end = '\t', file = ous)
         print(*row, sep = '\t', file = ous)
 
-def shiprow(labels, points, nobs, mean, ous, name = None):
-    name and print('label', end = '\t', file = ous)
-    print('Nobs', 'Mean', *labels, sep = '\t', file = ous)
+def shiprow(labels, points, total, number, ous, name = None):
+    name and print('Label', end = '\t', file = ous)
+    print('Total', 'Nobs', 'Mean', *labels, sep = '\t', file = ous)
     name and print(name, end = '\t', file = ous)
-    print(nobs, mean, *points, sep = '\t', file = ous)
+    print(total, number, total / number, *points, sep = '\t', file = ous)
 
 def main(args, ins, ous):
 
@@ -196,7 +196,8 @@ def main(args, ins, ous):
     rowlabel = args.label or (args.filename and args.infile)
 
     counts =  lengthcounts(args, ins)
-    total = sum(counts.values())
+    total = sum(length * count for length, count in counts.items())
+    number = sum(counts.values())
 
     if args.summary is None:
         shipfull(counts, ous)
@@ -229,7 +230,7 @@ def main(args, ins, ous):
                     (5,10),
                     (6,10), (7,10), (3,4), (8,10), (9,10), (10,10))),
         ) [args.summary]
-        points = quantilepoints(counts, total, proportions)
+        points = quantilepoints(counts, number, proportions)
         shipcol(labels, aliases, points, ous,
                 name = rowlabel)
         return
@@ -249,8 +250,8 @@ def main(args, ins, ous):
                 (5,10), (6,10), (7,10), (3,4), (8,10), (9,10),
                 (10,10))),
     ) [args.summary]
-    points = quantilepoints(counts, total, proportions)
-    shiprow(labels, points, total, sum(counts.keys()) / total, ous,
+    points = quantilepoints(counts, number, proportions)
+    shiprow(labels, points, total, number, ous,
             name = rowlabel)
     return
 
