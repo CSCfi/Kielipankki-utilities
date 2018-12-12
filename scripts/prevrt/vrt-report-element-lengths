@@ -1,0 +1,258 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from collections import Counter
+import sys
+
+from vrtargslib import trans_args, trans_main
+from vrtargslib import BadData, BadCode
+
+from vrtdatalib import lineref
+from vrtnamelib import xname
+from vrtnamelib import isnames, namelist, nameindex
+
+def parsearguments():
+    description = '''
+
+    Report on the distribution of length of a chosen type of element
+    in chosen units. Element can be text, paragraph, or sentence. Unit
+    can be tokens, "words", paragraphs, sentences, any meta, comments;
+    "word" is defined as a token that contains at least one letter or
+    digit in the word field.
+
+    '''
+
+    parser = trans_args(description = description, inplace = False)
+
+    parser.add_argument('--element', default = 'sentence',
+                        choices = [ 'sentence', 'paragraph', 'text' ],
+                        help = '''
+
+                        type of element to report the length of
+                        (default: sentence)
+
+                        ''')
+
+    parser.add_argument('--unit', default = 'token',
+                        choices = [ 'token', 'word',
+                                    'paragraph', 'sentence',
+                                    'meta', 'comment' ],
+                        help = '''
+
+                        type of unit to count within segment
+                        (default: token)
+
+                        ''')
+
+    parser.add_argument('--word', default = 'word',
+                        type = xname,
+                        help = '''
+
+                        field to use as word when unit is word
+
+                        ''')
+
+    parser.add_argument('--summary', # default: full distribution
+                        choices = [ 'H5', 'V5', 'H11', 'V11', 'H13', 'V13' ],
+                        help = '''
+
+                        report the lengths at or just above the
+                        quantile points, horizontally or vertically,
+                        in TSV format: 5-number summaries consist of
+                        quartile points, 11-number summaries of decile
+                        points; 13-number summaries of decile points
+                        with low and high quartile points; horizontal
+                        summaries include also number of observations
+                        and mean length
+
+                        ''')
+
+    labeling = parser.add_mutually_exclusive_group()
+    labeling.add_argument('--label',
+                          help = '''
+
+                          start each row of the report with the label
+
+                          ''')
+    labeling.add_argument('--filename', action = 'store_true',
+                          help = '''
+
+                          start each row with the name of the input
+                          file (requires explicit input file)
+
+                          ''')
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+    args.inplace = False
+    args.backup = None
+    return args
+
+def lengthcounts(args, ins):
+    '''Return a Counter that maps each observed segment length in the
+    specified units to the observed number of occurrences of that
+    length in the input VRT stream. Ignore other lines within segment.
+
+    '''
+
+    begin, end = dict(sentence = (('<sentence>',
+                                   '<sentence '),
+                                  '</sentence>'),
+                      paragraph = (('<paragraph>',
+                                    '<paragraph '),
+                                   '</paragraph>'),
+                      text = (('<text>',
+                               '<text '),
+                              '</text>')) [args.element]
+
+    needword, wordix = False, None
+    if args.unit == 'token':
+        def isword(line):
+            'Count every token inside sentence element'
+            return not line.startswith('<')
+    elif args.unit == 'word':
+        needword = True
+        def isword(line):
+            if wordix is None:
+                raise BadData('data before names')
+            return (not line.startswith('<') and
+                    any(c.isalpha() or c.isdigit()
+                        for c in lineref(line, wordix)))
+    elif args.unit == 'paragraph':
+        def isword(line):
+            return line.startswith(('<paragraph>',
+                                    '<paragraph '))
+    elif args.unit == 'sentence':
+        def isword(line):
+            return line.startswith(('<sentence>',
+                                    '<sentence '))
+    elif args.unit == 'meta':
+        def isword(line):
+            return line.startswith('<')
+    elif args.unit == 'comment':
+        def isword(line):
+            return line.startswith('<!--')
+    else:
+        print(args.prog + ': this cannot happen:',
+              'unit ==', repr(args.unit),
+              file = sys.stderr)
+        exit(2)
+
+    def issome(line): return not line.isspace()
+
+    D = Counter()
+    n = 0
+    for line in filter(issome, ins):
+        if needword and isnames(line):
+            wordix = nameindex(namelist(line), args.word)
+        if line.startswith(begin): n = 0
+        elif line.startswith(end): D[n] += 1
+        else: n += isword(line)
+    else: return D
+
+def quantilepoints(counts, total, proportions):
+    '''Yield the observed values that are cumulatively at or just above
+    the specified proportions. Something like that anyway. The
+    proportions being specified in strictly increasing order of
+    numerator/denominator as a sequence of (numerator, denominator).
+
+    '''
+    proportions = iter(proportions)
+    num, den = next(proportions, (None, None))
+    if num is None: return
+    sofar = 0
+    for length, count in sorted(counts.items()):
+        sofar += count
+        while sofar * den >= num * total:
+            yield length
+            num, den = next(proportions, (None, None))
+            if num is None: return
+
+def shipfull(counts, ous, *, name = None):
+    name and print('label', end = '\t', file = ous)
+    print('length', 'count', sep = '\t', file = ous)
+    for length, count in sorted(counts.items()):
+        name and print(name, end = '\t', file = ous)
+        print(length, count, sep = '\t', file = ous)
+
+def shipcol(labels, aliases, points, ous, *, name = None):
+    name and print('label', end = '\t', file = ous)
+    print('Pt', 'Aka', 'Length', sep = '\t', file = ous)
+    for row in zip(labels, aliases, points):
+        name and print(name, end = '\t', file = ous)
+        print(*row, sep = '\t', file = ous)
+
+def shiprow(labels, points, nobs, mean, ous, name = None):
+    name and print('label', end = '\t', file = ous)
+    print('Nobs', 'Mean', *labels, sep = '\t', file = ous)
+    name and print(name, end = '\t', file = ous)
+    print(nobs, mean, *points, sep = '\t', file = ous)
+
+def main(args, ins, ous):
+
+    if args.infile is None and args.filename is not None:
+        raise BadData('need input file to use filename as label')
+
+    rowlabel = args.label or (args.filename and args.infile)
+
+    counts =  lengthcounts(args, ins)
+    total = sum(counts.values())
+
+    if args.summary is None:
+        shipfull(counts, ous)
+        return
+
+    if args.summary.startswith('V'):
+        labels, aliases, proportions = dict(
+            V5 = (# quartile points
+                  ('Q0', 'Q1', 'Q2', 'Q3', 'Q4'),
+                  ('Min', 'LoQ', 'Med', 'HiQ', 'Max'),
+                  ((0,4), (1,4), (2,4), (3,4), (4,4))),
+            V11 = (# decile points
+                   ('D0', 'D1', 'D2', 'D3', 'D4',
+                    'D5',
+                    'D6', 'D7', 'D8', 'D9', 'D10'),
+                   ('Min', '_', '_', '_', '_',
+                    'Med',
+                    '_', '_', '_', '_', 'Max'),
+                   ((0,10), (1,10), (2,10), (3,10), (4,10),
+                    (5,10),
+                    (6,10), (7,10), (8,10), (9,10), (10,10))),
+            V13 = (# quantile points: deciles with two quartiles
+                   ('D0', 'D1', 'D2', 'Q1', 'D3', 'D4',
+                    'D5',
+                    'D6', 'D7', 'Q3', 'D8', 'D9', 'D10'),
+                   ('Min', '_', '_', 'LoQ', '_', '_',
+                    'Med',
+                    '_', '_', 'HiQ', '_', '_', 'Max'),
+                   ((0,10), (1,10), (2,10), (1,4), (3,10), (4,10),
+                    (5,10),
+                    (6,10), (7,10), (3,4), (8,10), (9,10), (10,10))),
+        ) [args.summary]
+        points = quantilepoints(counts, total, proportions)
+        shipcol(labels, aliases, points, ous,
+                name = rowlabel)
+        return
+
+    labels, proportions = dict(
+        H5 = (('Min', 'Q1', 'Med', 'Q2', 'Max'),
+              ((0,4), (1,4), (2,4), (3,4), (4,4))),
+        H11 = (('Min', 'D1', 'D2', 'D3', 'D4',
+                'Med', 'D6', 'D7', 'D8', 'D9',
+                'Max'),
+               ((0,10), (1,10), (2,10), (3,10), (4,10),
+                (5,10), (6,10), (7,10), (8,10), (9,10), (10,10))),
+        H13 = (('Min', 'D1', 'D2', 'LoQ', 'D3', 'D4',
+                'Med', 'D6', 'D7', 'HiQ', 'D8', 'D9',
+                'Max'),
+               ((0,10), (1,10), (2,10), (1,4), (3,10), (4,10),
+                (5,10), (6,10), (7,10), (3,4), (8,10), (9,10),
+                (10,10))),
+    ) [args.summary]
+    points = quantilepoints(counts, total, proportions)
+    shiprow(labels, points, total, sum(counts.keys()) / total, ous,
+            name = rowlabel)
+    return
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main)
