@@ -14,10 +14,12 @@ def parsearguments():
     form of token id and head id (as in CoNLL formats) have the shape
     of a rooted tree: token numbers are 1, 2, 3, ..., n, one token
     depends on 0, every other token depends immediately on one of 1,
-    2, ..., n, ultimately on 0. Issues in tree shapes are reported
-    briefly in TSV format, with the 1-based line number (ignoring any
-    empty lines) and the <sentence> tag number in the input stream.
-    Success is indicated by not reporting any issue.
+    2, ..., n, ultimately on 0. Issues are reported briefly in TSV
+    format: sentence and line identified by the 1-based line number
+    (ignoring any empty lines) of the <sentence> tag and the line
+    where the issue is reported in the input stream, with the length
+    of the line span for convenience, and a short message. Success is
+    indicated by not reporting any issue.
 
     '''
     parser = trans_args(description = description, inplace = False)
@@ -38,20 +40,31 @@ def parsearguments():
 
                         ''')
 
+    parser.add_argument('--multi', action = 'store_true',
+                        help = '''
+
+                        do not report more than one root (head 0) as
+                        an issue
+
+                        ''')
+
     args = parser.parse_args()
     args.prog = parser.prog
     args.inplace = None
     args.backup = None
     return args
 
+def mess(sno, lno, text, ous):
+    print(sno, lno - sno + 1, lno, text, sep = '\t', file = ous)
+
 def main(args, ins, ous):
 
     # TSV header
-    print('Line', 'Sentence', 'Issue', sep = '\t', file = ous)
+    print('Sentence', 'Span', 'Line', 'Issue', sep = '\t', file = ous)
 
     def issome(line): return not line.isspace()
 
-    sno, number = 0, count(start = 1)
+    sno = 0
     idix, headix = None, None
     tree = []
     for lno, line in enumerate(filter(issome, ins), start = 1):
@@ -64,7 +77,7 @@ def main(args, ins, ous):
 
         if line.startswith(('<sentence>',
                             '<sentence ')):
-            sno = next(number)
+            sno = lno
             # at this point, either tree is empty or markup is off;
             tree.append(0)
             continue
@@ -72,28 +85,39 @@ def main(args, ins, ous):
         if line.startswith('</sentence>'):
 
             # fail on any head out of range (cannot test further)
-            if not all(0 <= h <= n for n in [len(tree)] for h in tree):
-                print(lno, sno, 'head out of range', sep = '\t', file = ous)
+            if not all(0 <= h < n for n in [len(tree)] for h in tree):
+                mess(sno, lno, 'head out of range', ous)
                 tree.clear()
                 continue
 
             # report if root not unique (but can test further)
-            if tree.count(0) > 2:
-                print(lno, sno, 'more than one root', sep = '\t', file = ous)
+            # - tree[0] == 0 is a structural property of this program
+            # - a *second* 0 should be a property of valid data
+            # - or it may be ok with more than one root? (args.multi)
+            (
+                args.multi or
+                (
+                    tree.count(0) > 2 and
+                    mess(sno, lno, 'more than one root', ous)
+                )
+            )
 
             # in a few iterations of tree[k] = tree[h], either all
             # nodes should depend on root (success), or some should
             # become otherwise stationary (failure) and of those, some
             # should be fixed points (test for such is easy to write)
 
+            print(tree, file = ous)
             for iterations in range(10):
                 for k, h in enumerate(tree): tree[k] = tree[h]
                 if not any(tree): break
                 if any(0 < k == h for k, h in enumerate(tree)):
-                    print(lno, sno, 'cycle', sep = '\t', file = ous)
+                    mess(sno, lno, 'cycle', ous)
                     break
             else:
-                print(lno, sno, 'failed to determine', sep = '\t', file = ous)
+                # this would be a failure in this program;
+                # not known what it takes to trigger this
+                mess(sno, lno, 'failed to determine', ous)
     
             tree.clear()
             continue
@@ -105,9 +129,10 @@ def main(args, ins, ous):
 
         record = asrecord(line)
 
+        # report off-sequence id (but can continue testing)
         (
             int(record[idix]) == len(tree) or
-            print(lno, sno, 'id out of sequence', sep = '\t', file = ous)
+            mess(sno, lno, 'id out of sequence', ous)
         )
 
         tree.append(int(record[headix]))
