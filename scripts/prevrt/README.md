@@ -46,10 +46,10 @@ Such tools have a common set of options that allow them to compose
 flexibly in different ways:
 - read from a named file or from standard input;
 - write to standard output, or
-- write to a explicitly named file, or
+- write to an explicitly named file, or
 - write to a sibling to the input file, or
 - replace the input file with the output,
-- with optional backup of the input file.
+- with an optional backup file.
 
 In case of failure, any partial output is left in a transparently
 named temporary file.
