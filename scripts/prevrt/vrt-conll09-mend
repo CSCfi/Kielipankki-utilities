@@ -12,9 +12,10 @@ def parsearguments():
 
     Mend sentences that were torn and then annotated with dependency
     syntax in CoNLL'09 format. Remove sen.ten.ce tags and sentence-tag
-    pairs within sen.ten.ce, adjust numbering of tokens and heads in
-    further shreds, pointing roots (relation ROOT and head 0) of
-    further shreds to the root of the first shred (as its dep).
+    pairs within sen.ten.ce, adjust numbering of tokens and non-0
+    heads in further shreds. Optionally make each further root (0
+    head) that is also ROOT (relation ROOT) a dep of the first root
+    that is also ROOT.
 
     '''
     parser = trans_args(description = description)
@@ -22,23 +23,59 @@ def parsearguments():
     parser.add_argument('--id', default = 'id',
                         help = '''
 
-                        token id, a 1-based counter within sentence
-                        (default: id)
+                        token id field name - 1-based counter within
+                        sentence (default: id)
 
                         ''')
 
     parser.add_argument('--rel', default = 'rel',
                         help = '''
 
-                        dependency relation (default: rel)
+                        dependency relation field name, used only if
+                        linking further roots to a previous root
+                        (default: rel)
 
                         ''')
 
     parser.add_argument('--head', default = 'head',
                         help = '''
 
-                        dependency head, either id of another token
-                        or 0 (default: head)
+                        dependency head field name - either the id of
+                        another token or, in a root token, 0 (default:
+                        head)
+
+                        ''')
+
+    linking = parser.add_mutually_exclusive_group()
+    linking.add_argument('--bush', action = 'store_true',
+                         help = '''
+
+                         point each further ROOT root to the first
+                         ROOT root (as dep)
+
+                         ''')
+    linking.add_argument('--chain', action = 'store_true',
+                         help = '''
+
+                         point each further ROOT root to the previous
+                         ROOT root (as dep)
+
+                         ''')
+
+    parser.add_argument('--limit', default = 1000, type = int,
+                        help = '''
+
+                        only combine shreds until they reach or exceed
+                        this number of tokens, then start another
+                        sentence at the next shred (default: 1000)
+
+                        ''')
+
+    parser.add_argument('--debug', action = 'store_true',
+                        help = '''
+
+                        leave comments in place of sen.ten.ce tags and
+                        the sentence tag pairs that were removed
 
                         ''')
 
@@ -53,6 +90,7 @@ def main(args, ins, ous):
     idix, relix, headix = None, None, None
     keep = True
     look = False
+    size = 0
     for line in filter(issome, ins):
 
         # outside <sen.ten.ce>, keep everything;
@@ -69,31 +107,61 @@ def main(args, ins, ous):
                                               args.head)
             continue
 
-        if line.startswith(('<sen.ten.ce>', '<sen.ten.ce ')):
+        if line.startswith(('<sen.ten.ce>',
+                            '<sen.ten.ce ')):
             keep = False
             look = True
-            step, root, record = 0, None, None
+            root, record = None, None
+            args.debug and print('<! -- sen.ten.ce -->', file = ous)
             continue
 
         if line.startswith('</sen.ten.ce>'):
-            look or print('</sentence>', file = ous)
+            if look:
+                # wait what
+                pass
+            else:
+                # the shred that ended was the last shred
+                print('</sentence>', file = ous)
             keep = True 
             look = False
-            step, root, record = 0, None, None
+            root, record = None, None
+            args.debug and print('<!-- /sen.ten.ce -->', file = ous)
             continue
 
-        if line.startswith(('<sentence>', '<sentence ')):
-            (keep or look) and print(line, end = '', file = ous)
-            if look: look = False
+        if line.startswith(('<sentence>',
+                            '<sentence ')):
+            if keep:
+                print(line, end = '', file = ous)
+                continue
+
+            if look:
+                # enter first shred
+                print(line, end = '', file = ous)
+                look = False
+                step = 0
+                size = 0
+                continue
+            
+            if args.debug:
+                print('<!-- sentence -->', file = ous)
+                continue
+
             continue
 
         if line.startswith('</sentence>'):
             if keep:
                 print(line, end = '', file = ous)
-            else:
-                # record is last token in a shred in a sentence being
-                # mended, already adjusted to have its final id
-                step = int(record[idix])
+                continue
+
+            if size >= args.limit:
+                print(line, end = '', file = ous)
+                look = True
+                continue
+
+            # record is last token in a shred in a sentence being
+            # mended and already adjusted to have its final id; next
+            # shred is to be stepped that much
+            step = int(record[idix])
             continue
 
         if line.startswith('<'):
@@ -109,25 +177,49 @@ def main(args, ins, ous):
         # line is a token in a sentence being mended
 
         record = asrecord(line)
+        size += 1
 
-        if record[headix] == '0':
-            # record[relix] == 'ROOT'
-            if step == 0:
-                # root of first shred
-                root = record[idix]
-            else:
-                # root of subsequent shred
-                record[idix] = str(int(record[idix]) + step)
-                record[relix] = 'dep'
-                record[headix] = root
-        elif step == 0:
-            # in first shred
-            pass
-        else:
-            # in subsequent shred
-            record[idix] = str(int(record[idix]) + step)
+        record[idix] = str(int(record[idix]) + step)
+
+        if not record[headix] == '0':
             record[headix] = str(int(record[headix]) + step)
+            print(*record, sep = '\t', file = ous)
+            continue
 
+        # Innovation: only adjust ROOT roots, and then only if --bush
+        # or --chain is specified (link further roots to first root or
+        # to the previous root), leave non-ROOT roots as they are! So
+        # this would _also_ adjust multiple ROOT roots within a shred,
+        # and may still leave trees multirooted with non-ROOT roots.
+
+        # record[headix] == '0'
+
+        if ( (not args.bush and
+              not args.chain) or
+             record[relix] != 'ROOT' ):
+            # leaving all roots alone, or
+            # leaving this root alone
+            print(*record, sep = '\t', file = ous)
+            continue
+
+        # args.bush or args.chain - adjusting ROOT-roots
+        # record[headix] == '0'
+        # record[relix] == 'ROOT'
+        
+        if root is None:
+            # first ROOT root remains a ROOT root,
+            # adjustment strategy does not matter yet,
+            root = record[idix]
+            print(*record, sep = '\t', file = ous)
+            continue
+
+        # have previous ROOT root,
+        # point current ROOT root to the previous ROOT root
+        
+        record[relix] = 'dep'
+        record[headix] = root
+
+        if args.chain: root = record[idix]
         print(*record, sep = '\t', file = ous)
 
 if __name__ == '__main__':
