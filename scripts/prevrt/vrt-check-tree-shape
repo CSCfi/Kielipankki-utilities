@@ -51,7 +51,7 @@ def main(args, ins, ous):
 
     def issome(line): return not line.isspace()
 
-    sid, number = 0, count(start = 1)
+    sno, number = 0, count(start = 1)
     idix, headix = None, None
     tree = []
     for lno, line in enumerate(filter(issome, ins), start = 1):
@@ -64,7 +64,7 @@ def main(args, ins, ous):
 
         if line.startswith(('<sentence>',
                             '<sentence ')):
-            sid = next(number)
+            sno = next(number)
             # at this point, either tree is empty or markup is off;
             tree.append(0)
             continue
