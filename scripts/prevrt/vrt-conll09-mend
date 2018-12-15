@@ -75,7 +75,8 @@ def parsearguments():
                         help = '''
 
                         leave comments in place of sen.ten.ce tags and
-                        the sentence tag pairs that were removed
+                        those sentence end/start tags within that were
+                        removed
 
                         ''')
 
@@ -112,7 +113,7 @@ def main(args, ins, ous):
             keep = False
             look = True
             root, record = None, None
-            args.debug and print('<! -- sen.ten.ce -->', file = ous)
+            args.debug and print('<!-- sen.ten.ce -->', file = ous)
             continue
 
         if line.startswith('</sen.ten.ce>'):
@@ -143,6 +144,7 @@ def main(args, ins, ous):
                 continue
             
             if args.debug:
+                print('<!-- /sentence -->', file = ous)
                 print('<!-- sentence -->', file = ous)
                 continue
 
