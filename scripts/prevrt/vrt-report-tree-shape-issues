@@ -107,7 +107,6 @@ def main(args, ins, ous):
             # become otherwise stationary (failure) and of those, some
             # should be fixed points (test for such is easy to write)
 
-            print(tree, file = ous)
             for iterations in range(10):
                 for k, h in enumerate(tree): tree[k] = tree[h]
                 if not any(tree): break
