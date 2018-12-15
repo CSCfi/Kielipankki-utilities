@@ -1,0 +1,141 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from itertools import count
+
+from vrtargslib import trans_args, trans_main
+from vrtnamelib import isnames, namelist, nameindices
+from vrtdatalib import asrecord
+
+def parsearguments():
+    description = '''
+
+    Check that the sentences annotated with dependency syntax in the
+    form of token id and head id (as in CoNLL formats) have the shape
+    of a rooted tree: token numbers are 1, 2, 3, ..., n, one token
+    depends on 0, every other token depends immediately on one of 1,
+    2, ..., n, ultimately on 0. Issues are reported briefly in TSV
+    format: sentence and line identified by the 1-based line number
+    (ignoring any empty lines) of the <sentence> tag and the line
+    where the issue is reported in the input stream, with the length
+    of the line span for convenience, and a short message. Success is
+    indicated by not reporting any issue.
+
+    '''
+    parser = trans_args(description = description, inplace = False)
+
+    parser.add_argument('--id', default = 'id',
+                        help = '''
+
+                        token id, a 1-based counter within sentence
+                        (default: id)
+
+                        ''')
+
+    parser.add_argument('--head', default = 'head',
+                        help = '''
+
+                        dependency head, either id of another token
+                        or 0 (default: head)
+
+                        ''')
+
+    parser.add_argument('--multi', action = 'store_true',
+                        help = '''
+
+                        do not report more than one root (head 0) as
+                        an issue
+
+                        ''')
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+    args.inplace = None
+    args.backup = None
+    return args
+
+def mess(sno, lno, text, ous):
+    print(sno, lno - sno + 1, lno, text, sep = '\t', file = ous)
+
+def main(args, ins, ous):
+
+    # TSV header
+    print('Sentence', 'Span', 'Line', 'Issue', sep = '\t', file = ous)
+
+    def issome(line): return not line.isspace()
+
+    sno = 0
+    idix, headix = None, None
+    tree = []
+    for lno, line in enumerate(filter(issome, ins), start = 1):
+
+        if isnames(line):
+            idix, headix = nameindices(namelist(line),
+                                       args.id,
+                                       args.head)
+            continue
+
+        if line.startswith(('<sentence>',
+                            '<sentence ')):
+            sno = lno
+            # at this point, either tree is empty or markup is off;
+            tree.append(0)
+            continue
+
+        if line.startswith('</sentence>'):
+
+            # fail on any head out of range (cannot test further)
+            if not all(0 <= h < n for n in [len(tree)] for h in tree):
+                mess(sno, lno, 'head out of range', ous)
+                tree.clear()
+                continue
+
+            # report if root not unique (but can test further)
+            # - tree[0] == 0 is a structural property of this program
+            # - a *second* 0 should be a property of valid data
+            # - or it may be ok with more than one root? (args.multi)
+            (
+                args.multi or
+                (
+                    tree.count(0) > 2 and
+                    mess(sno, lno, 'more than one root', ous)
+                )
+            )
+
+            # in a few iterations of tree[k] = tree[h], either all
+            # nodes should depend on root (success), or some should
+            # become otherwise stationary (failure) and of those, some
+            # should be fixed points (test for such is easy to write)
+
+            print(tree, file = ous)
+            for iterations in range(10):
+                for k, h in enumerate(tree): tree[k] = tree[h]
+                if not any(tree): break
+                if any(0 < k == h for k, h in enumerate(tree)):
+                    mess(sno, lno, 'cycle', ous)
+                    break
+            else:
+                # this would be a failure in this program;
+                # not known what it takes to trigger this
+                mess(sno, lno, 'failed to determine', ous)
+    
+            tree.clear()
+            continue
+
+        if line.startswith('<'):
+            continue
+
+        # line is a token
+
+        record = asrecord(line)
+
+        # report off-sequence id (but can continue testing)
+        (
+            int(record[idix]) == len(tree) or
+            mess(sno, lno, 'id out of sequence', ous)
+        )
+
+        tree.append(int(record[headix]))
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main)
