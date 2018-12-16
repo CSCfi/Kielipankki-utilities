@@ -2,6 +2,7 @@
 # -*- mode: Python; -*-
 
 from itertools import groupby, count
+from queue import Queue
 from subprocess import Popen, PIPE, DEVNULL
 from threading import Thread
 import enum, os, re, sys, tempfile, traceback
@@ -11,7 +12,7 @@ from vrtargslib import BadData, BadCode
 
 from vrtnamelib import binxname, binxrest
 from vrtnamelib import binnamelist, nameindex, nameindices
-from vrtnamelib import bininsertnames
+from vrtnamelib import isbinnames as isnames, bininsertnames
 
 from vrtdatalib import binasrecord
 from vrtdatalib import binunescape as unescape
@@ -100,22 +101,6 @@ def terminate(proc):
     except ProcessLookupError:
         pass
 
-class Kind(enum.Enum):
-    # kind of line (group of them)
-    meta = 1
-    data = 2
-    begin = 3
-    names = 4
-    comment = 5
-
-def identify(line):
-    # used by groupby to identify the kind of a line group
-    if line.startswith(b'<!-- Positional attributes:'): return Kind.names
-    if line.startswith(b'<!--'): return Kind.comment
-    if line.startswith(b'<sentence'): return Kind.begin
-    if line.startswith(b'<'): return Kind.meta
-    return Kind.data
-
 def main(args, inf, ouf):
     message(args, 'entered main', track = True)
     
@@ -141,7 +126,7 @@ def main(args, inf, ouf):
                       stdin = breaker.stdout,
                       stdout = sys.stderr.buffer) )
 
-    # an attempt to open the named for pipe reading *here* stalled
+    # an attempt to open the named pipe for reading *here* stalled
 
     # somewhere here should close some standard streams to have
     # eventual broken pipes have the intended effect, right? no?
@@ -154,178 +139,161 @@ def main(args, inf, ouf):
                stdin = PIPE,
                stdout = (breaker.stdin if breaker else DEVNULL),
                stderr = sys.stderr.buffer) as parser:
-        with Popen(['cat'],
-                   stdin = PIPE,
-                   stdout = PIPE,
-                   stderr = sys.stderr.buffer) as copy:
 
-            # is this a "useless use of cat"?
 
-            # opening the named pipe *here* seems to succeed
 
-            message(args, 'opening pipe for reading', track = True)
-            pipe = open(pipename, mode = 'rb')
-            message(args, 'opened pipe for reading', track = True)
+        # opening the named pipe *here* seems to succeed
 
-            # combine reads pipe but on exception terminates parser
-            # because merely closing pipe seemed to stall parser and
-            # then stall write/flush attempts in main, requiring
-            # keyboard interrupt (or other external signal) to
-            # terminate the program
+        message(args, 'opening pipe for reading', track = True)
+        pipe = open(pipename, mode = 'rb')
+        message(args, 'opened pipe for reading', track = True)
 
-            t = Thread(target = combine,
-                       args = (args, pipe, parser, copy, ouf))
-            t.start()
+        # combine reads pipe but on exception terminates parser
+        # because merely closing pipe seemed to stall parser and
+        # then stall write/flush attempts in main, requiring
+        # keyboard interrupt (or other external signal) to
+        # terminate the program
 
-            status = 1
-            try:
-                # raise Exception('testing termination')
-                implement_main(args, inf, parser, copy)
-                status = 0
-            except BadData as exn:
-                message(args, str(exn))
-            except BrokenPipeError as exn:
-                # when combine thread gets broken pipe, it closes the
-                # output side of pipe and copy, then they close and
-                # this thread gets broken pipe - right?
-                message(args, 'broken pipe in main thread')
-            except KeyboardInterrupt as exn:
-                message(args, 'keyboard interrupt in main thread')
-                message(args, traceback.format_exc(), track = True)
-            except Exception as exn:
-                message(args, traceback.format_exc())
+        copy = Queue()
+        ( Thread(target = combine, args = (args, pipe, parser, copy, ouf))
+          .start() )
 
-            # these two closures may be
-            # crucial for graceful
-            # termination
-            try:
-                # so it was getting broken pipe *here* and then never
-                # getting to terminate and join - did not expect this
-                message(args, 'closing parser stdin in main', track = True)
-                parser.stdin.close()
-                message(args, 'closing copy stdin in main', track = True)
-                copy.stdin.close()
-            except Exception as exn:
-                message(args, 'while closing in main: ' + str(exn))
+        status = 1
+        try:
+            # raise Exception('testing termination')
+            implement_main(args, inf, parser, copy)
+            status = 0
+        except BadData as exn:
+            message(args, str(exn))
+        except BrokenPipeError as exn:
+            # when combine thread gets broken pipe, it closes the
+            # output side of pipe and copy, then they close and
+            # this thread gets broken pipe - right?
+            message(args, 'broken pipe in main thread')
+        except KeyboardInterrupt as exn:
+            message(args, 'keyboard interrupt in main thread')
+            message(args, traceback.format_exc(), track = True)
+        except Exception as exn:
+            message(args, traceback.format_exc())
 
-            if status:
-                message(args, 'non-zero status: terminating subprocesses',
-                        track = True)
-                terminate(parser)
-                terminate(copy)
-                breaker is None or terminate(breaker)
-                quasher is None or terminate(quasher)
+        # this one closure may be
+        # crucial for graceful
+        # termination
+        try:
+            # so it was getting broken pipe *here* and then never
+            # getting to terminate and join - did not expect this
+            message(args, 'closing parser stdin in main', track = True)
+            parser.stdin.close()
+        except Exception as exn:
+            message(args, 'while closing in main: ' + str(exn))
 
-            message(args, 'joining combine thread', track = True)
-            t.join()
-            message(args, 'joined combine thread', track = True)
+        if status:
+            message(args, 'non-zero status: terminating subprocesses',
+                    track = True)
+            terminate(parser)
+            # terminate(copy)
+            breaker is None or terminate(breaker)
+            quasher is None or terminate(quasher)
 
-            message(args, 'removing {}'.format(pipename), track = True)
-            os.remove(pipename)
-            os.rmdir(temp)
+        message(args, 'joining copy', track = True)
+        copy.join()
+        message(args, 'joined copy', track = True)
 
-            message(args, 'returning from main', track = True)
+        message(args, 'removing {}'.format(pipename), track = True)
+        os.remove(pipename)
+        os.rmdir(temp)
 
-            return status
+        message(args, 'returning from main', track = True)
+
+        return status
 
 def implement_main(args, inf, parser, copy):
 
     # each "word" and "tag" go to parser, with empty line after
-    # sentence; everything but empty goes to copy, with new "id",
-    # "dephead", "deprel" (or such) in names
+    # sentence; everything goes to copy in reified groups of meta and
+    # data, with new "id", "dephead", "deprel" (or such) in names
+
+    idname = args.prefix + b'id' + args.suffix
+    headname = args.prefix + b'head' + args.suffix
+    relname = args.prefix + b'rel' + args.suffix
 
     wf, tf, ff = None, None, None # word, tag, feat positions
-    found = False
-    def isnotspace(line): return not line.isspace()
-    for kind, group in groupby(filter(isnotspace, inf), identify):
+    # found = False
+    def issome(line): return not line.isspace()
+    def ismeta(line): return line.startswith(b'<')
 
-        if kind is not Kind.data: found = False
-        if kind is Kind.begin: found = True
+    meta = None
+    for groupismeta, group in groupby(filter(issome, inf), ismeta):
 
-        if kind is Kind.data and found:
-            if wf is None:
-                raise BadData('error: token before field names')
-            for k, line in enumerate(group, start = 1):
-                # print('DEBUG: sending token')
-                # format for the whatever parser is CoNLL'09:
-                # ID FORM LEMMA PLEMMA POS PPOS FEAT PFEAT
-                # HEAD PHEAD DEPREL PDEPREL FILLPRED PRED APREDs
-                # (er, any number of APRED1, APRED2, ...)
-                # to guess where the input should be - ID, FORM,
-                # POS, FEAT, right? but does the parser conform?
+        if groupismeta:
+            meta = list(group)
+            for k, line in enumerate(meta):
+                if isnames(line):
+                    wf, tf, ff = nameindices(binnamelist(line),
+                                             args.word,
+                                             args.tag,
+                                             args.feat)
+                    meta[k] = bininsertnames(line, args.feat,
+                                             idname,
+                                             headname,
+                                             relname)
 
-                record = binasrecord(line)
-
-                # ID tab
-                parser.stdin.write(str(k).encode('UTF-8'))
-                parser.stdin.write(b'\t')
-                # FORM tab LEMMA tab PLEMMA tab
-                parser.stdin.write(unescape(record[wf]))
-                parser.stdin.write(b'\t_\t_\t')
-                # POS tab PPOS tab
-                parser.stdin.write(unescape(record[tf]))
-                parser.stdin.write(b'\t_\t')
-                # FEAT tab PFEAT tab
-                parser.stdin.write(unescape(record[ff]))
-                parser.stdin.write(b'\t_\t')
-                # HEAD tab PHEAD tab DEPREL tab PDEPREL tab
-                parser.stdin.write(b'_\t_\t_\t_\t')
-                # FILLPRED tab PRED nl
-                parser.stdin.write(b'_\t_\n')
-                copy.stdin.write(line)
-            else:
-                parser.stdin.write(b'\n')
-
-                # stalled here when parser reports broken pipe but
-                # then turned out to stall in writes when this was
-                # commented out - but only sometimes - be a race - no
-                # more closing parser output, terminating parser
-                # instead
-
-                # (flushing because these should be read in synch)
-
-                parser.stdin.flush()
-                copy.stdin.flush()
-                continue
-
-        if kind is Kind.begin:
-            for line in group: copy.stdin.write(line)
+            copy.put(meta)
             continue
 
-        if kind is Kind.meta:
-            for line in group: copy.stdin.write(line)
-            continue
+        # groupisdata aka token lines
 
-        if kind is Kind.data:
-            for line in group: copy.stdin.write(line)
-            continue
+        if wf is None:
+            raise BadData('no field names before positional data')
 
-        if kind is Kind.names:
-            for line in group:
-                wf, tf, ff = nameindices(binnamelist(line),
-                                         args.word,
-                                         args.tag,
-                                         args.feat)
-                new = bininsertnames(line, args.tag,
-                                     args.prefix + b'id' + args.suffix,
-                                     args.prefix + b'head' + args.suffix,
-                                     args.prefix + b'rel' + args.suffix)
-                copy.stdin.write(new)
-            else:
-                continue
+        # always have previous meta
+        if meta is None: copy.put(())
 
-        if kind is Kind.comment:
-            for line in group: copy.stdin.write(line)
-            continue
+        sentence = tuple(map(binasrecord, group))
+        copy.put(sentence)
 
-        raise BadCode('this cannot happen')
+        for k, record in enumerate(sentence, start = 1):
+            
+            # print('DEBUG: sending token')
+            # format for the whatever parser is CoNLL'09:
+            # ID FORM LEMMA PLEMMA POS PPOS FEAT PFEAT
+            # HEAD PHEAD DEPREL PDEPREL FILLPRED PRED APREDs
+            # (er, any number of APRED1, APRED2, ...)
+            # to guess where the input should be - ID, FORM,
+            # POS, FEAT, right? but does the parser conform?
+
+            # ID tab
+            parser.stdin.write(str(k).encode('UTF-8'))
+            parser.stdin.write(b'\t')
+            # FORM tab LEMMA tab PLEMMA tab
+            parser.stdin.write(unescape(record[wf]))
+            parser.stdin.write(b'\t_\t_\t')
+            # POS tab PPOS tab
+            parser.stdin.write(unescape(record[tf]))
+            parser.stdin.write(b'\t_\t')
+            # FEAT tab PFEAT tab
+            parser.stdin.write(unescape(record[ff]))
+            parser.stdin.write(b'\t_\t')
+            # HEAD tab PHEAD tab DEPREL tab PDEPREL tab
+            parser.stdin.write(b'_\t_\t_\t_\t')
+            # FILLPRED tab PRED nl
+            parser.stdin.write(b'_\t_\n')
+        else:
+            parser.stdin.write(b'\n')
+            parser.stdin.flush()
+
+    else:
+        # always have final meta
+        groupismeta or copy.put(())
 
 def combine(args, pipe, parser, copy, out):
-    '''Read whatever output (id TAB word TAB _ TAB pos ... msd TAB NL /
-    NL) and flat vrt from the copy process. Insert dependency analysis
-    from parser to the vrt at the named position.
+    '''Read line-separated output groups from the named pipe where the
+    parser process writes it. Read the corresponding input from the
+    copy queue. Insert dependency analysis from parser to the input at
+    the named position. Write the result out.
 
-    This is run as a thread that consumes the two processes.
+    This is run as a thread that consumes the parsing process through
+    its named pipe, and the copy queue in step with it.
 
     '''
 
@@ -360,58 +328,51 @@ def combine(args, pipe, parser, copy, out):
             # terminate parser instead: combine does need access!
         except Exception as exn:
             message(args, 'terminating parser in combine: ' + str(exn))
-        try:
-            message(args, 'terminating copy in combine', track = True)
-            terminate(copy) # .stdout.close() # no need to wait?
-        except Exception as exn:
-            message(args, 'terminating copy in combine: ' + str(exn))
-
         finally:
             message(args, 'returning from combine', track = True)
 
 def implement_combine(args, pipe, copy, out):
 
-    response = (tokens
-                for isempty, tokens
+    analyses = (group
+                for groupisspace, group
                 in groupby(pipe, bytes.isspace)
-                if not isempty)
+                if not groupisspace)
 
     mf = None # msd field index, after which insert new
-    found = False
-    for kind, group in groupby(copy.stdout, identify):
 
-        if kind is not Kind.data: found = False
-        if kind is Kind.begin: found = True
+    for analysis in analyses:
 
-        if (kind is Kind.data) and found:
-            for new, old in zip(next(response), group):
-                [
-                    ID, form, lemma, plemma,
-                    pos, ppos, feat, pfeat,
-                    dephead, pdephead, deprel, pdeprel,
-                    fillpred, pred
-                ] = binasrecord(new)
-                values = binasrecord(old)
-                values.insert(mf + 1, escape(pdeprel))
-                values.insert(mf + 1, escape(pdephead))
-                values.insert(mf + 1, escape(ID))
-                out.write(b'\t'.join(values))
-                out.write(b'\n')
-            else:
-                continue
+        meta = copy.get_nowait()
+        copy.task_done()
 
-        if kind is Kind.names:
-            for line in group:
-                mf = nameindex(binnamelist(line), args.tag)
-                out.write(line)
-            else:
-                continue
-
-        for line in group:
-            # print('DEBUG: catchall write')
+        for line in meta:
             out.write(line)
-        else:
-            continue
+            if isnames(line):
+                mf = nameindex(binnamelist(line), args.feat)
+
+        if mf is None:
+            raise BadData('no field names before positional data')
+
+        data = copy.get_nowait()
+        copy.task_done()
+
+        for new, old in zip(analysis, data):
+            [
+                ID, form, lemma, plemma,
+                pos, ppos, feat, pfeat,
+                dephead, pdephead, deprel, pdeprel,
+                fillpred, pred
+            ] = binasrecord(new)
+            old.insert(mf + 1, escape(pdeprel))
+            old.insert(mf + 1, escape(pdephead))
+            old.insert(mf + 1, escape(ID))
+            out.write(b'\t'.join(old))
+            out.write(b'\n')
+
+    meta = copy.get()
+    copy.task_done()
+    for line in meta:
+        out.write(line)
 
 if __name__ == '__main__':
     trans_main(parsearguments(), main,
