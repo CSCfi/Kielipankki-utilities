@@ -136,11 +136,13 @@ def main(args, ins, ous):
                 continue
 
             if look:
-                # enter first shred
+                # enter first shred,
+                # possibly first shred after reaching size limit
                 print(line, end = '', file = ous)
                 look = False
                 step = 0
                 size = 0
+                root, record = None, None
                 continue
             
             if args.debug:
