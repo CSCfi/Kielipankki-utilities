@@ -233,13 +233,29 @@ def implement_combine(args, marmot, copy, out):
             shipdata(data, out)
 
     # should this have a timeout? or could it be .get_nowait()?
-    shipmeta(copy.get(), out)
+    # added flush and made get get_nowait because a few processes
+    # seemed to make no progress till they timed out - were they
+    # stalled here?
+    out.flush()
+    shipmeta(copy.get_nowait(), out)
     copy.task_done()
 
 def shipmeta(meta, out):
     for line in meta: out.write(line)
 
+from datetime import datetime
 def shipdata(data, out):
+    if len(data) > 2000:
+        # even marmot appeared to behave badly with long "sentences"
+        # (though only much longer than the parser - present limit of
+        # 2000 is taken out of thin air and could probably have been
+        # much larger but then it only controls a warning in stderr)
+        sys.stderr.buffer.write(b'shipping data at ')
+        sys.stderr.buffer.write(datetime.now().isoformat().encode())
+        sys.stderr.buffer.write(b' of len ')
+        sys.stderr.buffer.write(str(len(data)).encode())
+        sys.stderr.buffer.write(b'\n')
+        sys.stderr.buffer.flush()
     for record in data:
         out.write(b'\t'.join(record))
         out.write(b'\n')
