@@ -40,7 +40,7 @@ tick () {
 }
 
 case "$1" in
-    data/m???/a???.vrf)
+    data/a???/m???.vrf)
 
 	# The A, B, C, D extensions are so that the lexicographic
 	# order of the names is also their temporal order (and the
@@ -76,7 +76,7 @@ case "$1" in
 	;;
 
     *)
-	>&2 echo "$0: want argument in data/m???/a???.vrf"
+	>&2 echo "$0: want argument in data/a???/m???.vrf"
 	>&2 echo "$0: got argument: $1"
 	exit 2
 	;;
