@@ -20,13 +20,16 @@ if [ "x$1" = x ]; then
     exit 1
 fi
 
+logfile=$TMPDIR/$$.wget.log
+
 topic_num=$1
 shift
 
 topic_title=DUMMY
-try_threads=10
+try_threads=${TRY_THREADS:-10}
 
 round=1
+try_thread_num=1
 
 topic_title=
 while [ $round -le $try_threads ] && [ "x$topic_title" = x ]; do
@@ -35,7 +38,7 @@ while [ $round -le $try_threads ] && [ "x$topic_title" = x ]; do
 	perl -ne '
 	    if (/^<text.*topics="((?:[0-9]+,)*'$topic_num'(?:,[0-9]+)*)"/) {
 	        $count++;
-		if ($count < '$round') {
+		if ($count < '$try_thread_num') {
 		    next;
 		}
 		@topics = split (",", $1);
@@ -53,14 +56,15 @@ while [ $round -le $try_threads ] && [ "x$topic_title" = x ]; do
     )
 
     if [ "x$thread_topic_level" = x ]; then
-	echo "Threads with topic $topic_num not found" > /dev/stderr
-	exit 1
+	if [ $try_thread_num = 1 ]; then
+	    echo "Threads with topic $topic_num not found" > /dev/stderr
+	    exit 1
+	fi
+	break
     fi
 
     thread=${thread_topic_level% *}
     topic_level=${thread_topic_level#* }
-
-    logfile=$TMPDIR/$$.wget.log
 
     topic_title=$(
 	wget -O - -o $logfile 'https://keskustelu.suomi24.fi/t/'$thread'/' |
@@ -72,10 +76,12 @@ while [ $round -le $try_threads ] && [ "x$topic_title" = x ]; do
     )
     # echo $round $thread $topic_level $topic_title
     round=$(($round + 1))
+    # Try threads in steps of power of two.
+    try_thread_num=$(($try_thread_num * 2))
 done
 
 if [ "x$topic_title" = x ]; then
-    echo "Error retrieving threads topic $topic_num (tried $try_threads threads):" \
+    echo "Error retrieving threads for topic $topic_num (tried $try_threads threads):" \
 	 > /dev/stderr
     echo "Wget log output for the last thread $thread:" > /dev/stderr
     cat $logfile > /dev/stderr
