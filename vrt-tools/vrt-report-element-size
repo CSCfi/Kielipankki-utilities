@@ -190,7 +190,7 @@ def shiprow(labels, points, total, number, ous, name = None):
 
 def main(args, ins, ous):
 
-    if args.infile is None and args.filename is not None:
+    if args.infile is None and args.filename:
         raise BadData('need input file to use filename as label')
 
     rowlabel = args.label or (args.filename and args.infile)
