@@ -273,7 +273,7 @@ def best(args, analyses, form, intags):
 
     if not analyses:
         pos, outs = order(form, set(intags) | {'UNK'})
-        return form, pos, outs, because('no analyses')
+        return unescape(form), pos, outs, because('no analyses')
 
     if len(analyses) == 1:
         lemma, outtags = next(iter(analyses))
