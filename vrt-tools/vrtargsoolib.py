@@ -178,7 +178,7 @@ def _argparser_add_arg(argparser, argspec):
         # argument dictionary.
         if 'default' in argdict0:
             default = argdict0['default']
-            if '|' in default:
+            if '|' in default and len(default) > 1:
                 choices = re.split(r'\s*\|\s*', default.strip())
                 default = (list(filter(lambda s: s and s[0] == '*', choices))
                            or None)
@@ -238,7 +238,8 @@ def _argparser_add_arg(argparser, argspec):
     # Add information on the possible default value to the usage
     # message, unless it already contains the string "default".
     if 'default' in argdict and 'default' not in argdict['help']:
-        argdict['help'] += ' (default: %(default)s)'
+        default_fmt = ('%(default)s' if 'type' in argdict else '"%(default)s"')
+        argdict['help'] += ' (default: ' + default_fmt + ')'
     # print(repr(argnames), repr(argdict))
     argparser.add_argument(*argnames, **argdict)
 
