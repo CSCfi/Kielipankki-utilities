@@ -1,0 +1,98 @@
+#+COMMENT: -*- coding: utf-8 -*-
+
+#+CATEGORY: Work
+
+#+TITLE: Miscellaneous ideas and other notes related to the development of VRT Tools
+#+AUTHOR: Jyrki Niemi
+
+* Special (XML) comments in VRT files [2019-02-05 Tue] :vrt_comments:
+- Currently, the VRT Tools recognize and produce the positional attributes comment:
+  : <!-- Positional attributes: word -->
+- However, as the tools might make use of other special comments, it might make sense to use some common marker in the comments having special meaning to some VRT Tools.
+  - Possible formats:
+    : <!-- # keyword: value -->
+    : <!-- @ keyword: value -->
+    - Some other marker could be used as well, perhaps ~!~ or ~%~.
+    - A space could be omitted after the marker, but it would incur a small overhead to check both a spaced and spaceless variant. (I think a spaced variant looks better with a multi-word keyword.)
+- A shorter alias for “Positional attributes” could be “P-attrs” (or “p-attrs”):
+  : <!-- # P-attrs: word -->
+  : <!-- # Positional attributes: word -->
+  - Likewise, other keywords could have a shorter and a longer form, but supporting multiple variants would incur a small overhead.
+
+* Make VRT Tools log processing stages to comments in VRT files [2019-02-05 Tue] :vrt_comments:logging:
+- To preserve a kind of a processing trace of what has been done to produce a VRT file, each VRT tool could add information on its invocation (timestamp, tool name, version and command-line arguments) to the beginning of a VRT file as a special comment:
+  : <!-- # Process log: 2019-02-05 11:10:09 +0200: vrt-add-lemma-nobound [0.6.5] --omorfi s24_2001_01.vrt -->
+  - A problem with this is that ~--~ may not occur within an XML comment.
+  - Maybe we could insert a word joiner (WJ) U+2060 (effectively, a zero-width non-break space) between the hyphens.
+    - That would make it impossible to copy and paste the command directly from the comment, but as a ~--~ may not occur literally anyway, no other encoding of it would be any better in that respect.
+- Logging could be the default, but it could be suppressed with an option ~--no-logging~.
+- Tools should preserve the logging comments in their input and output them to the output.
+  - Tools producing multiple VRT output files should copy the logging comments to all the output files.
+
+* Partial VRT files and VRT extracting and merging tools [2019-02-05 Tue] :vrt_comments:vrt_extract:vrt_merge:
+** Partial VRT files
+- In general, a VRT file with only positional attributes is a valid VRT file, whereas a file with only structural attributes is not.
+- To allow for a file with only structural attributes, we could use special comments that would either
+  1. indicate the next corpus (token) position:
+     : <!-- # Corpus position: 123456 -->
+     or
+  2. indicate the number of tokens that the comment covers:
+     : <!-- # Omitted tokens: 123 -->
+- Both comment types could be supported.
+- Should a file without positional attributes be called something else than VRT?
+  - Perhaps partial VRT (~.vrtp~, ~.vrtpart~) or extended VRT (~.xvrt~, ~.vrtx~)?
+- Even structure end tags might be omitted from containing only structural attributes.
+  - However, merging such a file would require that the information for the end positions of structures comes from elsewhere (another (partial) VRT file).
+  - It might nevertheless be better to have the end tags.
+** VRT extracting and merging tools
+- A VRT extracting tool (maybe ~vrt-extract~ or ~vrt-select~) could extract from VRT the specified structural or positional attributes or both.
+- A merging tool (maybe ~vrt-merge~ or ~vrt-combine~) could then combine extracted VRT files into a single file.
+  - If several files have the same attributes, options could be used to specify what to do:
+    1. the values from one file override those from others (or the values from a file specified later on the command line override those from an earlier one),
+    2. the duplicate attributes are are renamed, or
+    3. the script should check that the values agree and halt with an error if they do not.
+  - The tool should read the files to be merged synchronized by the corpus position, so that the structural attributes are placed correctly.
+  - The start and end tags for structural attributes should be in the order they would be in XML, whenever possible.
+  - It might also be possible to describe adding or removing tokens completely with the special comments.
+** Possible use cases for partial VRT files
+1. Extracted partial VRT files could be used for augmenting the annotation of an earlier file version.
+   - They could contain, for example:
+     - another set of parse attributes for tokens,
+     - positional and structural attributes produced by the named-entity recognizer, or
+     - other additional structural or positional attributes.
+   - To get the full content, all the additional annotations would be merged with the base VRT file.
+   - It would take less space to store a base VRT file and additional annotation as separate files than multiple versions of the whole data.
+     - However, from the user’s point of view, it would require more work and time to combine the separate VRT files.
+     - An alternative could be to provide the latest (fullest) version of the VRT data and some kind of (reverse) diffs or patches that could be used to produce earlier versions of the data.
+       - It might be better to have a separate tool to handle the patches, instead of integrating that functionality to the merging tool; see [[vrt-patch]].
+2. Tools might work with extracted partial VRT files.
+   - For example:
+     - Attributes for individual date components could be added to a file containing only the ~text_(date|time)(from|to)~ structural attributes.
+     - The input for parsing could contain only word forms and sentences.
+   - Even though working with partial files would probably be faster for a specific tool as its input would be smaller, merging the partial VRT files would take time.
+3. An extracted partial VRT file could contain corrections to a base VRT file.
+   - If the base VRT file is large and the number of corrections is relatively small, it would be significantly more compact than a full corrected version.
+4. A corpus could be split into a set of partial VRT files, each of which could represent a single attribute.
+   - This would resemble the intermediate format that Språkbanken’s corpus pipeline uses.
+5. Users might be offered partial VRT files containing only certain attributes.
+   - For example, a user might only require word forms and lemmas in sentences.
+   - It would make processing faster.
+   - Would this also be useful in Mylly?
+6. Partial VRT files might be used to represent a vertically split VRT file.
+   - Each slice would have a comment at the beginning (except the for first file) and end (except for the last file) indicating the corpus position.
+   - A joining tool could verify that the corpus positions match.
+   - Additionally (or alternatively), the split files might have UUIDs or similar to allow ensuring that the files are concatenated in the correct order to get the whole original file.
+7. Input for ~cwb-encode~ and ~cwb-s-encode~ could be generated based on (partial) VRT files.
+   - This might make it easier to add new attributes to CWB data in Korp.
+   - We should have separate tools for this.
+
+* VRT patching tool and patch file format <<vrt-patch>> :vrt_patch:vrt_comments:
+- It might be better to have a separate tool (perhaps ~vrt-patch~) to handle the patches, instead of integrating that functionality to the merging tool.
+  - The patch tool would need to be able to remove and rename attributes as well as to add them.
+  - It might also need to be able to add or remove complete tokens.
+- Another tool could be used to generate a patch as a kind of a diff of two VRT files.
+  - It might require more guidance than the regular diff to generate a patch, to take into account added and removed positional attributes.
+- Could all the required information be incorporated in VRT file comments so that the user would only need to run the patch tool on the base file and the patch file to get the result?
+  - Perhaps yes, but the file would not necessarily be valid VRT.
+  - If the same file should be able to specify adding positional attributes and adding tokens with all the attributes, token lines in the file might not have the same number of attributes, so it would not be valid VRT.
+  - These files could be called VRT patch files, perhaps with an extension ~.vrtpatch~ or ~.vrtp~.
