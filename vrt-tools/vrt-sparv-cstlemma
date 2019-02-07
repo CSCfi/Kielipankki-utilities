@@ -86,6 +86,14 @@ def parsearguments():
                         a huge list, suc on a short list)
 
                         ''')
+    parser.add_argument('--strict', action = 'store_true',
+                        help = '''
+
+                        highlight all invalid bytes in lemmas as
+                        "[UTF-8?xx]" (default is to interpret hex
+                        a0-ff as Latin-1)
+
+                        ''')
 
     args = parser.parse_args()
     args.prog = parser.prog
@@ -113,12 +121,32 @@ def highlight_errors(exn):
     )
     return '[UTF-8?{}]'.format(bad), exn.end
 
+def interpret_errors(exn):
+    '''Handles UnicodeDecodeError. Because some but not all occurrences of
+    the usual letters are mal-encoded in the output of cstlemma.
+    Interpret them in Latin-1.
+
+    '''
+
+    bad = exn.object[exn.start:exn.end]
+
+    # only handle graphic characters
+    if all(b > 0xa0 for b in bad):
+        return bad.decode('iso-8859-1'), exn.end
+
+    return highlight_errors(exn)
+
 codecs.register_error('highlight', highlight_errors)
+codecs.register_error('interpret', interpret_errors)
 
 def utf8(args, word):
     '''Bring the word to this millennium.'''
 
-    word = word.decode('UTF-8', errors = 'highlight')
+    if args.strict:
+        word = word.decode('UTF-8', errors = 'highlight')
+    else:
+        word = word.decode('UTF-8', errors = 'interpret')
+
     return word.encode('UTF-8')
 
 def main(args, inf, ouf):
