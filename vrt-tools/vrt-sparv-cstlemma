@@ -28,10 +28,11 @@ CSTLEMMA = [
     '-t',
     '-I', r'$w\t$t\n',
 
-    # output is word TAB dictionary lemma TAB rule-based lemma NL
-    # and turned out to be *sometimes* not UTF-8 (but Latin-1?)
-    # NEEDS INVESTIGATED BUT WORKAROUNDIT FOR NOW
-    '-c', '$w\t$b\t$B\n',
+    # output is word TAB info TAB dictionary lemma TAB rule-based lemma NL
+    # and lemmas turned out to be *sometimes* not UTF-8 (but Latin-1?)
+    # NEEDS INVESTIGATED BUT WORKAROUNDIT FOR NOW;
+    # info (+/-/blank) indicates whether full form was in the dictionary
+    '-c', '$w\t$i\t$b\t$B\n',
     '-b', '$w',
     '-B', '$w',
 ]
@@ -51,11 +52,12 @@ def parsearguments():
     description = '''
 
     Pass word forms and specially prepared features in a flat vrt
-    document through cstlemma using models based on the saldo list in
-    the sparv distribution. Insert after each word a dictionary-match
-    indicator (lemma.match: full, form, none), a dictionary lemma
-    (lemma.dict), and a rule-derived lemma (lemma.flex). (TODO: pick
-    one as lemma, and those may be multivalued?)
+    document through cstlemma using models based on the tagged saldo
+    and suc word lists in the sparv distribution. Insert after each
+    word a dictionary-match indicator (lemma.match: full, form, none),
+    a dictionary lemma (lemma.dict), and a rule-derived lemma
+    (lemma.flex). (TODO: pick one as lemma, and those may be
+    multivalued?)
 
     '''
 
@@ -248,6 +250,16 @@ def implement_combine(args, cstlemma, copy, out):
     '''Thread may find pipe closed.'''
 
     def issentinel(line): return line.startswith(b'<< >>\t')
+    it = {
+        b'+' : b'full',
+        b'-' : b'form',
+
+        # cstlemma documentation says "(blank)" but whether that means
+        # the empty string or a string containing just some "blank"
+        # character, or even something else, try it and see?
+        b' ' : b'none', # update: "(blank)" seems to be this one!
+        b'' : b'nope',  # so this should not happen, nor any other
+    }
 
     response = (tokens
                 for isempty, tokens
@@ -273,13 +285,14 @@ def implement_combine(args, cstlemma, copy, out):
         for new, old in zip(analyses, data):
             [
                 word,
+                info,
                 dilemma,
                 rulemma
             ] = asrecord(new)
 
             old.insert(at + 1, escape(utf8(args, rulemma)) or b'_')
             old.insert(at + 1, escape(utf8(args, dilemma)) or b'_')
-            old.insert(at + 1, b'todo')
+            old.insert(at + 1, it.get(info, info)) # b'todo')
             
         else:
             shipdata(data, out)
