@@ -7,7 +7,10 @@
 # - Multiple or timestamped backups
 # - Backup to a different backup directory
 # - Verbosity control
-# - Ignore tar errors of missing sql directory
+# - Resume a partial installation, e.g., no or only some database
+#   files installed
+# - Possibly write to the log also partial installations (when CWB
+#   files have been installed but database files not)
 
 
 progname=`basename $0`
@@ -39,6 +42,9 @@ backup-suffix=SUFFIX ".bak"
 f|force
     force installing a corpus package that is older than or as old as
     the currently installed package
+delay-database-import delay_db
+    begin importing database data only after all corpus packages have
+    been extracted
 '
 
 usage_footer="Note: The backup copy of a corpus is overwritten by subsequent updates of the
@@ -389,6 +395,20 @@ install_corpus () {
 	ensure_perms $(cat $filelistfile)
     )
     adjust_registry $filelistfile
+    if [ "x$delay_db" != x ]; then
+	echo "  (Delaying installing database files)"
+	cp -p $filelistfile $filelistfile.$corp
+    else
+	install_corpus_step2 $filelistfile $corp "$corpus_pkg" $pkgtime
+    fi
+}
+
+install_corpus_step2 () {
+    local filelistfile corp corpus_pkg pkgtime
+    filelistfile=$1
+    corp=$2
+    corpus_pkg=$3
+    pkgtime=$4
     install_db $filelistfile
     convert_timedata $filelistfile
     # Log to the list of installed corpora: current time, corpus name,
@@ -401,6 +421,7 @@ install_corpus () {
 
 install_corpora () {
     local pkglistfile corpname pkghost pkgfile pkgtime pkgsize
+    pkglistfile=$1
     echo
     echo Installing Korp corpora:
     for corp in $corpora_to_install; do
@@ -408,7 +429,15 @@ install_corpora () {
     done
     while read corpname pkghost pkgfile pkgtime pkgsize; do
 	install_corpus $corpname "$pkgfile" $pkgtime $pkgsize $pkghost
-    done
+    done < $pkglistfile
+    if [ "x$delay_db" != x ]; then
+	echo
+	echo Installing database files
+	while read corpname pkghost pkgfile pkgtime pkgsize; do
+	    install_corpus_step2 \
+		$filelistfile.$corpname $corpname "$pkgfile" $pkgtime
+	done < $pkglistfile
+    fi
     echo
     echo Installation complete
 }
@@ -427,4 +456,4 @@ filter_corpora $pkglistfile.base > $pkglistfile
 if [ "x$corpora_to_install" = x ]; then
     error "No corpora to install"
 fi
-install_corpora < $pkglistfile
+install_corpora $pkglistfile
