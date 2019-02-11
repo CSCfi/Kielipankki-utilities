@@ -94,6 +94,7 @@ host_is_remote () {
 }
 
 get_package_corpus_name () {
+    local corpname
     corpname=${1##*/}
     corpname=${corpname%.t?z}
     corpname=${corpname%.tar.*}
@@ -119,6 +120,8 @@ run_command () {
 }
 
 find_corpus_packages () {
+    local pkgspec pkghost use_find current_pkgdir pkgname_cond ls_cmd cmd \
+	  mode links owner group size timestamp pkgname
     pkgspec=$1
     pkghost=$default_pkghost
     use_find=1
@@ -160,6 +163,7 @@ find_corpus_packages () {
 }
 
 find_package_candidates () {
+    local listfile
     listfile=$1
     shift
     touch $listfile
@@ -181,6 +185,7 @@ format_package_name_host () {
 }
 
 filter_corpora () {
+    local listfile corpname_prev corp_pkgfile
     listfile=$1
     corpname_prev=
     corp_pkgfile=
@@ -230,6 +235,7 @@ get_tar_compress_opt () {
 }
 
 backup_corpus () {
+    local pkgname pkghost tar_cmd backup_msg_shown
     pkgname=$1
     pkghost=$2
     echo "  Checking for existing corpus files"
@@ -254,6 +260,7 @@ backup_corpus () {
 }
 
 human_readable_size () {
+    local kb
     kb=$(($1 / 1024))
     if [ "$kb" -lt 10240 ]; then
 	echo "$kb KiB"
@@ -268,6 +275,7 @@ filesize () {
 }
 
 adjust_registry () {
+    local filelistfile regfile corpus_id datadir
     # This assumes that the target datadir is
     # $corpus_root/data/$corpus_id
     filelistfile=$1
@@ -303,12 +311,14 @@ install_file_sql () {
 }
 
 install_file_tsv () {
+    local tsvfile
     tsvfile=$1
     $progdir/korp-mysql-import.sh --prepare-tables $tsvfile
     return $?
 }
 
 install_dbfiles () {
+    local type filelistfile msg files
     type=$1
     filelistfile=$2
     msg=$3
@@ -326,12 +336,14 @@ install_dbfiles () {
 }
 
 install_db () {
+    local filelistfile
     filelistfile=$1
     install_dbfiles sql $filelistfile Loading
     install_dbfiles tsv $filelistfile Importing
 }
 
 convert_timedata () {
+    local filelistfile
     filelistfile=$1
     echo "Converting time data"
     # Find the physical (CWB) corpora in the corpus package
@@ -342,6 +354,7 @@ convert_timedata () {
 }
 
 install_corpus () {
+    local corp corpus_pkg pkgtime pkgsize pkghost
     corp=$1
     corpus_pkg=$2
     pkgtime=$3
@@ -354,7 +367,7 @@ install_corpus () {
     fi
     echo "  Copying CWB files"
     run_command "$pkghost" "cat '$corpus_pkg'" |
-    tar xvp -C $corpus_root -f- $(get_tar_compress_opt $pkgname) \
+    tar xvp -C $corpus_root -f- $(get_tar_compress_opt $corpus_pkg) \
 	--wildcards --wildcards-match-slash \
 	--transform 's,.*/\(data\|registry\|sql\)/,\1/,' \
 	--show-transformed-names '*/data' '*/registry' '*/sql' 2>&1 \
@@ -387,6 +400,7 @@ install_corpus () {
 }
 
 install_corpora () {
+    local pkglistfile corpname pkghost pkgfile pkgtime pkgsize
     echo
     echo Installing Korp corpora:
     for corp in $corpora_to_install; do
