@@ -130,7 +130,7 @@ def implement_main(args, ins, udpipe, copy):
     def setnames(line):
         nonlocal wordix
         if isnames(line):
-            wordix = nameindices(namelist(line), args.word)
+            [wordix] = nameindices(namelist(line), args.word)
             return insertnames(line, args.word,
                                args.prefix + b'id' + args.suffix,
                                args.prefix + b'lemma' + args.suffix,
