@@ -18,36 +18,31 @@ from vrtnamelib import bininsertnames as insertnames
 from vrtdatalib import binasrecord as asrecord
 from vrtdatalib import binescape as escape, binunescape as unescape
 
-from outsidelib import MARMOTJAR, MARMOTMODEL
-
-MARMOT = [
-    'java',
-    '-cp', MARMOTJAR,
-    'marmot.morph.cmd.Annotator',
-    '--model-file', MARMOTMODEL,
-    '--test-file', 'form-index=0,token-feature-index=1,/dev/stdin',
-    '--pred-file', '/dev/stdout'
-]
+from outsidelib import UDPIPE, UDPIPEMODEL
 
 def parsearguments():
     description = '''
 
-    Pass word forms and specially prepared features in a flat vrt
-    document through MarMoT tagger using the model from the alpha
-    version of the Turku dependency parser. Insert the new tags and
-    features in new fields after the input feature field. The vrt
-    document must have position names before any content. (A "flat"
-    vrt document has no markup or comment lines inside sentence
-    elements.)
+    Pass word forms of sentences in the input VRT document through
+    UDPipe, annotate the sentences with the resulting analysis in the
+    output VRT document. (WIP! Only handles flat VRT and does not yet
+    cope with special m-n, m.n lines in UD output. ALSO not #-lines,
+    so is actually totally broken and TO DO.)
 
 '''
     parser = trans_args(description = description)
     parser.add_argument('--word', '-w', metavar = 'name',
                         type = binxname, default = b'word',
                         help = 'input word field name (default word)')
-    parser.add_argument('--tag', '-t', metavar = 'name',
-                        type = binxname, default = b'marmot.in',
-                        help = 'input tag field name (default marmot.in)')
+
+    parser.add_argument('--model', '-m',
+                        choices = [
+                            'finnish-tdt-ud',
+                            'finnish-ftb-ud',
+                            # TODO add models (get rid of -ud?)
+                        ],
+                        default = 'finnish-tdt-ud',
+                        help = 'UDPipe model (default finnish-tdt-ud)')
 
     # so the defaults are not valid values of the type?
     parser.add_argument('--prefix', '-p', metavar = 'fix',
@@ -70,19 +65,23 @@ def terminate(proc):
     except ProcessLookupError:
         pass
 
-def main(args, inf, ouf):
+def main(args, ins, ous):
 
-    with Popen(MARMOT,
+    with Popen([ UDPIPE, '--immediate',
+                 '--tag', '--parse',
+                 '--output=conllu',
+                 # conllu: id, word, ..., misc
+                 MODEL.format(args.model) ],
                stdin = PIPE,
                stdout = PIPE,
-               stderr = sys.stderr.buffer) as marmot:
+               stderr = sys.stderr.buffer) as udpipe:
 
         copy = Queue()
-        Thread(target = combine, args = (args, marmot, copy, ouf)).start()
+        Thread(target = combine, args = (args, udpipe, copy, ous)).start()
 
         status = 1
         try:
-            implement_main(args, inf, marmot, copy)
+            implement_main(args, ins, udpipe, copy)
             status = 0
         except BadData as exn:
             message(args, exn)
@@ -94,9 +93,9 @@ def main(args, inf, ouf):
             print(traceback.format_exc(), file = sys.stderr)
 
         if status:
-            terminate(marmot)
+            terminate(udpipe)
         else:
-            marmot.stdin.close()
+            udpipe.stdin.close()
 
         try:
             copy.join()
@@ -106,32 +105,40 @@ def main(args, inf, ouf):
 
         return status
 
-def implement_main(args, inf, marmot, copy):
+def implement_main(args, ins, udpipe, copy):
 
-    # each "word" and "tag" go to marmot, with an empty line after
-    # each sentence; everything goes to copy alternative groups of
-    # meta and data, with new "marmot.pos", "marmot.feat" (or such) in
-    # names
+    # each "word" goes to udpipe, with an empty line after each
+    # sentence; everything goes to copy alternative groups of meta and
+    # data, with new "lemma", "upos", "xpos", "feat", "head", "rel"
+    # (or such) in names
 
-    wordix, posix = None, None
+    # TODO: eventually should handle some VRT representation of UD m-n
+    # and m.n tokensies, input and output
+
+    wordix = None
 
     def send(sentence):
-        for record in sentence:
-            marmot.stdin.write(unescape(record[wordix]))
-            marmot.stdin.write(b'\t')
-            marmot.stdin.write(unescape(record[posix]))
-            marmot.stdin.write(b'\n')
+        for k, record in enumerate(sentence, start = 1):
+            udpipe.stdin.write(str(k).encode('UTF-8'))
+            udpipe.stdin.write(b'\t')
+            udpipe.stdin.write(unescape(record[wordix]))
+            udpipe.stdin.write(b'\t_\t_\t_\t_\t\_\t_\t_\t_\n')
         else:
-            marmot.stdin.write(b'\n')
-            marmot.stdin.flush()
+            udpipe.stdin.write(b'\n')
+            udpipe.stdin.flush()
 
     def setnames(line):
-        nonlocal wordix, posix
+        nonlocal wordix
         if isnames(line):
-            wordix, posix = nameindices(namelist(line), args.word, args.tag)
-            return insertnames(line, args.tag,
-                               args.prefix + b'marmot.pos' + args.suffix,
-                               args.prefix + b'marmot.feat' + args.suffix)
+            wordix = nameindices(namelist(line), args.word)
+            return insertnames(line, args.word,
+                               args.prefix + b'id' + args.suffix,
+                               args.prefix + b'lemma' + args.suffix,
+                               args.prefix + b'upos' + args.suffix,
+                               args.prefix + b'xpos' + args.suffix,
+                               args.prefix + b'feat' + args.suffix,
+                               args.prefix + b'head' + args.suffix,
+                               args.prefix + b'rel' + args.suffix)
         return line
 
     def issome(line): return not line.isspace()
@@ -164,21 +171,21 @@ def implement_main(args, inf, marmot, copy):
         # there shall always be final meta
         copy.put(())
 
-def combine(args, marmot, copy, out):
-    '''Read marmot output (id TAB word TAB _ TAB pos ... msd TAB NL / NL)
-    and flat vrt from the copy process. Insert tags from marmot to the
-    vrt at the named position.
+def combine(args, udpipe, copy, out):
+    '''Read udpipe output (id TAB word TAB lemma TAB upos ... misc NL /
+    NL) and flat vrt from the copy process. Insert analysis from
+    udpipe to the vrt at the named position.
 
-    This is run as a thread that consumes the marmot process and syncs
+    This is run as a thread that consumes the udpipe process and syncs
     it with the copy queue. Preceding meta and corresponding data were
-    put in the queue before the data was sent to marmot, so they will
-    always be there when a sentence is read out of marmot.
+    put in the queue before the data was sent to udpipe, so they will
+    always be there when a sentence is read out of udpipe.
 
     '''
 
     fail = True
     try:
-        implement_combine(args, marmot, copy, out)
+        implement_combine(args, udpipe, copy, out)
         fail = False
     except BrokenPipeError:
         message(args, 'broken pipe in combine thread')
@@ -191,17 +198,17 @@ def combine(args, marmot, copy, out):
         # in development)
         message(args, 'value error in combine thread ' + str(exn))
     finally:
-        if fail: terminate(marmot)
+        if fail: terminate(udpipe)
 
-def implement_combine(args, marmot, copy, out):
+def implement_combine(args, udpipe, copy, out):
     '''Thread may find pipe closed.'''
 
     response = (tokens
                 for isempty, tokens
-                in groupby(marmot.stdout, bytes.isspace)
+                in groupby(udpipe.stdout, bytes.isspace)
                 if not isempty)
 
-    at = None # marmot.in field index, after which insert new
+    at = None # word field index, after which insert new
     for analyses in response:
 
         meta = copy.get_nowait()
@@ -211,7 +218,7 @@ def implement_combine(args, marmot, copy, out):
 
         for line in meta:
             if isnames(line):
-                at = nameindex(namelist(line), args.tag)
+                at = nameindex(namelist(line), args.word)
 
         if at is None:
             raise BadData('combine thread: data before names')
@@ -219,18 +226,16 @@ def implement_combine(args, marmot, copy, out):
         shipmeta(meta, out)
         for new, old in zip(analyses, data):
             [
-                # http://ufal.mff.cuni.cz/
-                # conll2009-st/task-description.html
-                # ID FORM LEMMA PLEMMA POS PPOS FEAT PFEAT
-                # HEAD PHEAD DEPREL PDEPREL FILLPRED PRED APREDs
-                # but MarMoT truncates at eight fields
-                # https://github.com/muelletm/cistern/blob/wiki/marmot.md
-                # (actual produced ID is 1-based as it should)
-                ID, form, lemma, plemma,
-                pos, ppos, feat, pfeat
+                ID, form, lemma, upos, xpos, feats,
+                head, rel, aux, misc
             ] = asrecord(new)
-            old.insert(at + 1, escape(pfeat))
-            old.insert(at + 1, escape(ppos))
+            old.insert(at + 1, escape(rel))
+            old.insert(at + 1, escape(head))
+            old.insert(at + 1, escape(feats))
+            old.insert(at + 1, escape(xpos))
+            old.insert(at + 1, escape(upos))
+            old.insert(at + 1, escape(lemma))
+            old.insert(at + 1, escape(ID))
         else:
             shipdata(data, out)
 
@@ -252,6 +257,7 @@ def shipdata(data, out):
         # (though only much longer than the parser - present limit of
         # 2000 is taken out of thin air and could probably have been
         # much larger but then it only controls a warning in stderr)
+        # [so this check is inherited from a marmot tool]
         sys.stderr.buffer.write(b'shipping data at ')
         sys.stderr.buffer.write(datetime.now().isoformat().encode())
         sys.stderr.buffer.write(b' of len ')
