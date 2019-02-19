@@ -257,6 +257,64 @@ cwb_index_posattr () {
     done
 }
 
+
+# corpus_remove_attrs corpus attrname ...
+#
+# Remove the listed attribute names from corpus: both data files and
+# information in the registry file.
+corpus_remove_attrs () {
+    local corpus attrname attrtype
+    corpus=$1
+    shift
+    for attrname in $*; do
+	attrtype=$(corpus_get_attr_type $corpus $attrname)
+	if [ "x$attrtype" != x ]; then
+	    cwb_registry_remove_attr $corpus $attrname $attrtype
+	    rm "$corpus_root/data/$corpus/$attrname."*
+	    if [ $attrtype = "s" ] && ! in_str _ $attrname; then
+		rm "$corpus_root/data/$corpus/$attrname"_*.*
+	    fi
+	fi
+    done
+}
+
+# cwb_registry_remove_attr corpus attrname [attrtype]
+#
+# Remove attribute attrname of type attrypte from the registry file of
+# corpus. If attrtype is omitted, it is found out.
+cwb_registry_remove_attr () {
+    local corpus attrname attrtype regfile struct attrname0
+    corpus=$1
+    attrname=$2
+    if [ "x$3" != x ]; then
+	attrtype=$3
+    else
+	attrtype=$(corpus_get_attr_type $corpus $attrname)
+    fi
+    regfile="$cwb_regdir/$corpus"
+    cp -p "$regfile" "$regfile.old" ||
+	error "Could not copy $regfile to $regfile.old"
+    if [ $attrtype = "s" ]; then
+	if in_str _ $attrname; then
+	    struct=${attrname%%_*}
+	    attrname0=${attrname#*_}
+	    grep -v "^STRUCTURE $attrname" "$regfile.old" |
+		awk "/^# <$struct / {
+		         sub(/ $attrname0=\"\.\.\"/, \"\"); print; next
+		     }
+		     { print }
+		" > "$regfile"
+	else
+	    awk "/^# <$attrname[ >]/,/^ *$/ {next}
+                 {print}" "$regfile.old" > "$regfile"
+	fi
+    else
+	grep -v -E "^(ATTRIBUTE|ALIGNED) $attrname" "$regfile.old" > "$regfile"
+    fi
+    ensure_perms "$regfile" "$regfile.old"
+}
+
+
 # corpus_list_attrs [--show-type] corpus attrtypes [attr_regex]
 #
 # List the names of attributes in corpus, of the types listed in
