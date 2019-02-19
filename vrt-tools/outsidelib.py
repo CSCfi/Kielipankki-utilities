@@ -17,3 +17,7 @@ OMORFITOKENIZE = (
 FINER = (
     '/appl/ling/finnish-tagtools/1.3.2/bin/finnish-nertag'
 )
+
+FINPOS =  (
+    '/appl/ling/finnish-tagtools/1.3.2/bin/finnish-postag'
+)
