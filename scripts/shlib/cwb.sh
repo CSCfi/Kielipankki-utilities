@@ -257,47 +257,91 @@ cwb_index_posattr () {
     done
 }
 
-# corpus_list_attrs corpus attrtype
+# corpus_list_attrs [--show-type] corpus attrtypes [attr_regex]
 #
-# List the names of attributes of type attrtype (p = positional, s =
-# structural, a = alignment) in corpus. Each attribute name is on its
-# own line.
+# List the names of attributes in corpus, of the types listed in
+# attrtypes, a space-separated list of attribute types that are words
+# beginning with p (positional), s (structural), a (alignment) or "*"
+# (any type). If attr_regex is specified, list only the attributes
+# matching it (an extended regular expression as recognized by AWK).
+#
+# In the output, each attribute name is on its own line. If
+# --show-type is specified, each attribute name is preceded by its
+# type (p, s, a) and a space. Returns 1 if the registry file for
+# corpus is not found or attrtypes contains an invalid attribute type.
 corpus_list_attrs () {
-    local corpus attrtype
+    local corpus attrtypes attrtype attrtypes_re show_type attr_re
+    show_type=
+    if [ "x$1" = "x--show-type" ]; then
+	show_type=1
+	shift
+    fi
     corpus=$1
-    attrtype=$2
+    attrtypes=$2
+    attr_re=".*"
+    if [ "x$3" != x ]; then
+	attr_re=$3
+    fi
     if [ ! -e $cwb_regdir/$corpus ]; then
 	return 1
     fi
-    case $attrtype in
-	[pP]* )
-	    attrtype="ATTRIBUTE"
-	    ;;
-	[sS]* )
-	    attrtype="STRUCTURE"
-	    ;;
-	[aA]* )
-	    attrtype="ALIGNED"
-	    ;;
-	* )
-	    return 1
-	    ;;
-    esac
-    awk "/^$attrtype / {print \$2}" $cwb_regdir/$corpus
+    if [ "$attrtypes" = "*" ]; then
+	attrtypes="p s a"
+    fi
+    attrtypes_re=
+    for attrtype in $attrtypes; do
+	case $attrtype in
+	    [pP]* )
+		attrtype="ATTRIBUTE"
+		;;
+	    [sS]* )
+		attrtype="STRUCTURE"
+		;;
+	    [aA]* )
+		attrtype="ALIGNED"
+		;;
+	    * )
+		return 1
+		;;
+	esac
+	attrtypes_re="$attrtypes_re|$attrtype"
+    done
+    attrtypes_re=${attrtypes_re#|}
+    if [ "x$show_type" != x ]; then
+	awk "BEGIN {
+	         map[\"ATTRIBUTE\"] = \"p\"
+		 map[\"STRUCTURE\"] = \"s\"
+		 map[\"ALIGNED\"] = \"a\"
+	     }
+	     /^($attrtypes_re) (\\<$attr_re\\>)/ {print map[\$1] \" \" \$2}
+        " $cwb_regdir/$corpus
+    else
+	awk "/^($attrtypes_re) (\\<$attr_re\\>)/ {print \$2}" \
+	    $cwb_regdir/$corpus
+    fi
 }
 
 
-# corpus_has_attr corpus attrtype attrname
+# corpus_has_attr corpus attrtypes attrname
 #
-# Return true if corpus has attribute attrname of type attrtype (p =
-# positional, s = structural, a = alignment).
+# Return true if corpus has attribute attrname of any of the types in
+# attrtype, a space separated list of p (positional), s (structural),
+# a (alignment) or "*" (any).
 corpus_has_attr () {
-    local corpus attrtype attrname
+    local corpus attrtypes attrname
     corpus=$1
-    attrtype=$2
+    attrtypes=$2
     attrname=$3
-    corpus_list_attrs $corpus $attrtype |
+    corpus_list_attrs $corpus "$attrtypes" |
     grep -E -q -s "^$attrname$"
+}
+
+# corpus_get_attrtype corpus attrname
+#
+# Output the type of attribute attrname in corpus: p (positional), s
+# (structural) or a (alignment).
+corpus_get_attr_type () {
+    nth_arg 1 $(corpus_list_attrs --show-type $1 '*' $2)
 }
 
 # corpus_exists corpus
