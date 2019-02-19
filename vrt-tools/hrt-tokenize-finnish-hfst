@@ -1,10 +1,7 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
-'''With consummate naivete, use tr to tokenize within markup above
-sentence. This is quite the ultimate baseline and reference tokenizer.
-See the corresponding udpipe and hfst tools for a real thing, but they
-depend on external programs that are not available on every platform.
+'''Use hfst-tokenize with the model from finnish-tagtools.
 
 '''
 
@@ -19,12 +16,14 @@ from vrtargslib import trans_args, trans_main
 from vrtdatalib import binescape
 from hrtlib import tokenize
 
+from outsidelib import HFSTTOKENIZE, OMORFITOKENIZE
+
 def parsearguments():
     description = '''
 
     Segment text data between any (non-sentence) meta into sentences
-    and tokens using tr in more or less the simplest possible way.
-    Do not use this tokenizer for real work.
+    using hfst-tokenize with the omorfi-based tokenizer from
+    finnish-tagtools.
 
     '''
 
@@ -40,7 +39,7 @@ def parsearguments():
 
 def main(args, inf, ouf):
 
-    proc = Popen(['tr', ' \t\r', '\n'],
+    proc = Popen([ HFSTTOKENIZE, OMORFITOKENIZE ],
                  stdin = PIPE,
                  stdout = PIPE,
                  stderr = PIPE)
@@ -84,6 +83,7 @@ def implement_combine(args, proc, meta, sent, ouf):
                                                 bytes.isspace)
                   if not isspace):
         if all(sent in line for line in group):
+            # hope that the tokenizer considers sentinel a sentence
             shipmeta(meta.get_nowait(), ouf)
             meta.task_done()
         else:
