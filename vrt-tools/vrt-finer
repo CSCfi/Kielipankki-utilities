@@ -100,11 +100,11 @@ def implement_main(args, ins, fine, copy):
 
     def send(sentence):
         for k, record in enumerate(sentence, start = 1):
-            udpipe.stdin.write(unescape(record[wordix]))
-            udpipe.stdin.write(b'\n')
+            fine.stdin.write(unescape(record[wordix]))
+            fine.stdin.write(b'\n')
         else:
-            udpipe.stdin.write(b'\n')
-            udpipe.stdin.flush()
+            fine.stdin.write(b'\n')
+            fine.stdin.flush()
 
     def setnames(line):
         nonlocal wordix
@@ -204,10 +204,10 @@ def implement_combine(args, fine, copy, out):
             [
                 form, lemma, msd, aux, nertag
             ] = asrecord(new)
-            old.insert(at + 1, escape(nertag))
-            old.insert(at + 1, escape(aux))
-            old.insert(at + 1, escape(msd))
-            old.insert(at + 1, escape(lemma))
+            old.insert(at + 1, escape(nertag) or b'_')
+            old.insert(at + 1, escape(aux) or b'_')
+            old.insert(at + 1, escape(msd) or b'_')
+            old.insert(at + 1, escape(lemma) or b'_')
         else:
             shipdata(data, out)
 
