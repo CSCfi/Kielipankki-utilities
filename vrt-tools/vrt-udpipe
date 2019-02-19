@@ -71,7 +71,7 @@ def main(args, ins, ous):
                  '--tag', '--parse',
                  '--output=conllu',
                  # conllu: id, word, ..., misc
-                 MODEL.format(args.model) ],
+                 UDPIPEMODEL.format(args.model) ],
                stdin = PIPE,
                stdout = PIPE,
                stderr = sys.stderr.buffer) as udpipe:
