@@ -145,7 +145,7 @@ def implement_main(args, ins, udpipe, copy):
     def ismeta(line): return line.startswith(b'<')
 
     first = True
-    for groupismeta, group in groupby(filter(issome, inf), ismeta):
+    for groupismeta, group in groupby(filter(issome, ins), ismeta):
 
         if groupismeta:
             meta = tuple(map(setnames, group))
