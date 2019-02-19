@@ -13,3 +13,7 @@ OMORFITOKENIZE = (
     '/appl/ling/finnish-tagtools/1.3.2/share/finnish-tagtools'
     '/omorfi_tokenize.pmatch'
 )
+
+FINER = (
+    '/appl/ling/finnish-tagtools/1.3.2/bin/finnish-nertag'
+)

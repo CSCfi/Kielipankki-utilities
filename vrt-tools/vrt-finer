@@ -1,0 +1,246 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from itertools import groupby, count
+from queue import Queue
+from subprocess import Popen, PIPE
+from threading import Thread
+import enum, os, re, sys, traceback
+
+from vrtargslib import trans_args, trans_main
+from vrtargslib import BadData, BadCode
+
+from vrtnamelib import binxname, binxrest
+from vrtnamelib import isbinnames as isnames
+from vrtnamelib import binnamelist as namelist, nameindex, nameindices
+from vrtnamelib import bininsertnames as insertnames
+
+from vrtdatalib import binasrecord as asrecord
+from vrtdatalib import binescape as escape, binunescape as unescape
+
+from outsidelib import FINER
+
+def parsearguments():
+    description = '''
+
+    Pass word forms of sentences in the input VRT document through the
+    Finnish name-recognition tool FiNER.
+
+'''
+    parser = trans_args(description = description)
+    parser.add_argument('--word', '-w', metavar = 'name',
+                        type = binxname, default = b'word',
+                        help = 'input word field name (default word)')
+
+    # so the defaults are not valid values of the type?
+    parser.add_argument('--prefix', '-p', metavar = 'fix',
+                        type = binxname, default = b'',
+                        help = 'prefix to output field names')
+    parser.add_argument('--suffix', '-s', metavar = 'fix',
+                        type = binxrest, default = b'',
+                        help = 'suffix to output field names')
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
+
+def message(args, mess):
+    print(args.prog + ':', mess, file = sys.stderr)
+
+def terminate(proc):
+    try:
+        proc.terminate()
+    except ProcessLookupError:
+        pass
+
+def main(args, ins, ous):
+
+    with Popen([ FINER, '--no-tokenize', '--show-analyses' ],
+               stdin = PIPE,
+               stdout = PIPE,
+               stderr = sys.stderr.buffer) as fine:
+
+        copy = Queue()
+        Thread(target = combine, args = (args, fine, copy, ous)).start()
+
+        status = 1
+        try:
+            implement_main(args, ins, fine, copy)
+            status = 0
+        except BadData as exn:
+            message(args, exn)
+        except BrokenPipeError as exn:
+            message(args, 'broken pipe in main thread')
+        except KeyboardInterrupt as exn:
+            message(args, 'keyboard interrupt in main thread')
+        except Exception as exn:
+            print(traceback.format_exc(), file = sys.stderr)
+
+        if status:
+            terminate(fine)
+        else:
+            fine.stdin.close()
+
+        try:
+            copy.join()
+        except KeyboardInterrupt:
+            message(args, 'keyboard interrupt in main thread')
+            status = 1
+
+        return status
+
+def implement_main(args, ins, fine, copy):
+
+    # each "word" goes to fine, with an empty line after each
+    # sentence; everything goes to copy alternative groups of meta and
+    # data, with new "lemma", "msd", "aux", "nertag" (or such) in
+    # names
+
+    wordix = None
+
+    def send(sentence):
+        for k, record in enumerate(sentence, start = 1):
+            udpipe.stdin.write(unescape(record[wordix]))
+            udpipe.stdin.write(b'\n')
+        else:
+            udpipe.stdin.write(b'\n')
+            udpipe.stdin.flush()
+
+    def setnames(line):
+        nonlocal wordix
+        if isnames(line):
+            [wordix] = nameindices(namelist(line), args.word)
+            return insertnames(line, args.word,
+                               args.prefix + b'lemma' + args.suffix,
+                               args.prefix + b'msd' + args.suffix,
+                               args.prefix + b'aux' + args.suffix,
+                               args.prefix + b'nertag' + args.suffix)
+        return line
+
+    def issome(line): return not line.isspace()
+    def ismeta(line): return line.startswith(b'<')
+
+    first = True
+    for groupismeta, group in groupby(filter(issome, ins), ismeta):
+
+        if groupismeta:
+            meta = tuple(map(setnames, group))
+            copy.put(meta)
+            first = False
+            continue
+
+        # groupisdata
+
+        if first:
+            # there shall always be previous meta
+            copy.put(())
+            first = False
+
+        if wordix is None:
+            raise BadData('error: token before field names')
+
+        sentence = tuple(map(asrecord, group))
+        copy.put(sentence)
+        send(sentence)
+
+    if not groupismeta:
+        # there shall always be final meta
+        copy.put(())
+
+def combine(args, fine, copy, out):
+    '''Read finer output (word TAB lemma TAB msd TAB aux TAB nergag NL /
+    NL) and flat vrt from the copy process. Insert analysis from finer
+    to the vrt at the named position.
+
+    This is run as a thread that consumes the finer process and syncs
+    it with the copy queue. Preceding meta and corresponding data were
+    put in the queue before the data was sent to finer, so they will
+    always be there when a sentence is read out of finer.
+
+    '''
+
+    fail = True
+    try:
+        implement_combine(args, fine, copy, out)
+        fail = False
+    except BrokenPipeError:
+        message(args, 'broken pipe in combine thread')
+    except StopIteration:
+        # not sure when this can happen now
+        message(args, 'stop iteration in combine thread')
+    except ValueError as exn:
+        # sometimes keyboard interruption in main thread produces here
+        # a readline of closed file (or at least it did in one stage
+        # in development)
+        message(args, 'value error in combine thread ' + str(exn))
+    finally:
+        if fail: terminate(fine)
+
+def implement_combine(args, fine, copy, out):
+    '''Thread may find pipe closed.'''
+
+    response = (tokens
+                for isempty, tokens
+                in groupby(fine.stdout, bytes.isspace)
+                if not isempty)
+
+    at = None # word field index, after which insert new
+    for analyses in response:
+
+        meta = copy.get_nowait()
+        data = copy.get_nowait()
+        copy.task_done()
+        copy.task_done()
+
+        for line in meta:
+            if isnames(line):
+                at = nameindex(namelist(line), args.word)
+
+        if at is None:
+            raise BadData('combine thread: data before names')
+
+        shipmeta(meta, out)
+        for new, old in zip(analyses, data):
+            [
+                form, lemma, msd, aux, nertag
+            ] = asrecord(new)
+            old.insert(at + 1, escape(nertag))
+            old.insert(at + 1, escape(aux))
+            old.insert(at + 1, escape(msd))
+            old.insert(at + 1, escape(lemma))
+        else:
+            shipdata(data, out)
+
+    # should this have a timeout? or could it be .get_nowait()?
+    # added flush and made get get_nowait because a few processes
+    # seemed to make no progress till they timed out - were they
+    # stalled here?
+    out.flush()
+    shipmeta(copy.get_nowait(), out)
+    copy.task_done()
+
+def shipmeta(meta, out):
+    for line in meta: out.write(line)
+
+from datetime import datetime
+def shipdata(data, out):
+    if len(data) > 2000:
+        # even marmot appeared to behave badly with long "sentences"
+        # (though only much longer than the parser - present limit of
+        # 2000 is taken out of thin air and could probably have been
+        # much larger but then it only controls a warning in stderr)
+        # [so this check is inherited from a marmot tool]
+        sys.stderr.buffer.write(b'shipping data at ')
+        sys.stderr.buffer.write(datetime.now().isoformat().encode())
+        sys.stderr.buffer.write(b' of len ')
+        sys.stderr.buffer.write(str(len(data)).encode())
+        sys.stderr.buffer.write(b'\n')
+        sys.stderr.buffer.flush()
+    for record in data:
+        out.write(b'\t'.join(record))
+        out.write(b'\n')
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main,
+               in_as_text = False,
+               out_as_text = False)
