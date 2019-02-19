@@ -122,7 +122,7 @@ def implement_main(args, ins, udpipe, copy):
             udpipe.stdin.write(str(k).encode('UTF-8'))
             udpipe.stdin.write(b'\t')
             udpipe.stdin.write(unescape(record[wordix]))
-            udpipe.stdin.write(b'\t_\t_\t_\t_\t\_\t_\t_\t_\n')
+            udpipe.stdin.write(b'\t_\t_\t_\t_\t_\t_\t_\t_\n')
         else:
             udpipe.stdin.write(b'\n')
             udpipe.stdin.flush()
