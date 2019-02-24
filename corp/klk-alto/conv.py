@@ -21,42 +21,113 @@ def get_namespaces(xml_file):
     ns = dict([ x[1] for x in ET.iterparse(xml_file, events=['start-ns']) ])
     return ns
 
+
 # Retrieve DD.MM.YYYY date from mets, return YYYYMMDD
 def get_date(mets_dict={}):
     if mets_dict == {}:
         return date
     return ''.join([ s.zfill(2) for s in mets['issue_date'].split('.')[::-1] ])
 
-def get_text(block_elem):
+
+def align_data(element):
+
+    string_data = get_string_data(element)
+
+    text = ' '.join([ s for ( s, atts ) in string_data ])
+    sents = tokenize(text)
     
-    strings = []
+    aligned_para = []
+    
+    for sent in sents:
+        aligned_sent = []
+        for token in sent:
+            ( string, atts ) = string_data.pop(0)
+            string = string.strip()
+            while string == '':
+                ( string, atts ) = string_data.pop(0)
+                string = string.strip()
+            if len(token) > len(string):
+                stderr.write('WARNING: mismatch between token "%s" and original string(s)!\n' % token)
+                stderr.write('%s vs. "%s"\n' % ( sent, string))
+                while token.startswith(string):
+                    stderr.write('Using %s as token instead...\n' % string) 
+                    token = token[len(string):].strip()
+                    aligned_sent.append((string, atts))
+                    ( string, atts ) = string_data.pop(0)
+                    string = string.strip()
+            if string.startswith(token):
+                aligned_sent.append((token, atts))
+                string = string[len(token):].strip()
+                if string != '':
+                    string_data = [ ( string, atts ) ] + string_data
+            else:
+                stderr.write('ERROR: unable to find token "%s" in text string "%s"!\n' % (token, string))
+                exit(0)
+        aligned_para.append(aligned_sent)
+
+    return aligned_para
+
+
+def get_string_data(block_elem):
+    
+    pairs = []
     for string_elem in block_elem.findall('.//'+string_tag, ns):
         atts = string_elem.attrib
         if 'SUBS_CONTENT' in atts:
             if atts['SUBS_TYPE'] == 'HypPart1':
-                strings.append(atts['SUBS_CONTENT'])
+                pairs.append(( atts['SUBS_CONTENT'], atts ))
         else:
-            strings.append(atts['CONTENT'])
-    return ' '.join(strings)
+            pairs.append(( atts['CONTENT'], atts))
+    return pairs
 
 
 def sentence(sent):
 
     global sentence_id
-    
-    string = '\n'.join([ token for token in sent ]) + '\n'
+
+    string = ''
+    for (token, atts) in sent:
+        s_id = atts['ID']
+        cont = atts['CONTENT']
+        vpos = atts['VPOS']
+        hpos = atts['HPOS']
+        string += '%s\t%s\t%s\t%s\n' % (token, s_id, cont, vpos)
     sentence_atts = { 'id' : sentence_id, }
     sentence_id += 1
 
     return enclose(string, 'sentence', sentence_atts)
+
+"""
+def sentence(sent):
+    
+    global sentence_id
+
+    string = '\n'.join([ token for token in sent ]) + '\n'
+    sentence_atts = { 'id' : sentence_id, }
+    sentence_id += 1
+    
+    return enclose(string, 'sentence', sentence_atts)
+
+
+def paragraph(element):
+    
+    global paragraph_id
+
+    text   = ' '.join([ s for (s, atts) in get_string_data(element) ])
+    string = ''.join([ sentence(sent) for sent in tokenize(text) ])
+
+    paragraph_atts = { 'id' : paragraph_id, }
+    paragraph_id += 1
+
+    return enclose(string, 'paragraph', paragraph_atts)"""
 
 
 def paragraph(element):
 
     global paragraph_id
     
-    text  = get_text(element)
-    string    = ''.join([ sentence(sent) for sent in tokenize(text) ])    
+    string = ''.join([ sentence(sent) for sent in align_data(element) ])
+    
     paragraph_atts = { 'id' : paragraph_id, }
     paragraph_id += 1
 
@@ -96,7 +167,7 @@ def main(page_file, mets={}, date=''):
     pfx = ''
 
     # NOTE: ElementTree sucks at handling default namespaces;
-    # If a default namespace are found, a non-empty prefix is required
+    # If a default namespace (empty string) is found, use a non-empty prefix instead.
     if '' in ns:
         ns['default'] = ns.pop('')
         pfx = 'default:'
