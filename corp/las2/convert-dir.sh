@@ -3,7 +3,7 @@
 FIX_NESTED="perl bin/la_murre-add-clause-elems.pl --remove-cl"
 XML_DIR=$1
 
-mkdir vrt
+mkdir -p vrt
 
 for XML in $( ls $XML_DIR/*.xml | sed '/tausta/d' ) ; do
     CNAME=$( echo $XML | cut -f 2 -d '/' )
