@@ -45,6 +45,15 @@ CSTLEMMA = [
     '-b', '$w',
     '-B', '$w',
 
+    # separate alternative lemmas with unit separator, U+001F, rather
+    # than the default vertical pipe, because cannot prevent vertical
+    # pipes from occurring in the input (it must be one argument: -s
+    # alone is another option); will split cstlemma output at U+001F
+    # and then replace any vertical bars, U+007C, in base forms with
+    # broken vertical bars, U+00A6, and join alternative lemmas with
+    # vertical bars (iso-8859-2 does not contain broken bar at all)
+    R'-s\x1f',
+
     # encoding and models are appended according to options
 ]
 
@@ -133,7 +142,7 @@ def parsearguments():
                         where not possible, surface form is used as
                         base form; the available encodings are
                         ISO-8859-1,2,7,9 as indicated in the help text
-                        of cstlemma 7.36 (default is to use UTF-8)
+                        of cstlemma 7.36 (default is to use UTF-8?)
 
                         ''')
 
@@ -351,21 +360,53 @@ def combine(args, cstlemma, copy, out):
 def implement_combine(args, cstlemma, copy, out):
     '''Thread may find pipe closed.'''
 
+    # separator of alternative base forms becomes vertical bar; any
+    # vertical bars in base forms become broken bars
+    repipe = str.maketrans({ '|' : '¦', '\x1f' : '|' })
+
     if args.encoding is None:
-        # UTF-8 as is
-        def recode(word): return word
+        # UTF-8 as is ... except those pipes,
+        # and with error handling according to
+        # args.strict or not args.strict :/
+        # because cstlemma seems broken with -eU
+        # (possibly it is losing bytes rather
+        # than characters and sometimes just
+        # happens to lose the first byte of
+        # a double-byte UTF-8 character)
+        def recode(word):
+            return ( utf8(args, word)
+                     .decode('UTF-8')
+                     .translate(repipe)
+                     .encode('UTF-8')
+            )
     elif args.encoding == 'Latin-1':
         def recode(word):
-            return word.decode('iso-8859-1').encode('UTF-8')
+            return ( word
+                     .decode('iso-8859-1')
+                     .translate(repipe)
+                     .encode('UTF-8')
+            )
     elif args.encoding == 'Latin-2':
         def recode(word):
-            return word.decode('iso-8859-2').encode('UTF-8')
+            return ( word
+                     .decode('iso-8859-2')
+                     .translate(repipe)
+                     .encode('UTF-8')
+            )
     elif args.encoding == 'Latin/Greek':
         def recode(word):
-            return word.decode('iso-8859-7').encode('UTF-8')
+            return ( word
+                     .decode('iso-8859-7')
+                     .translate(repipe)
+                     .encode('UTF-8')
+            )
     elif args.encoding == 'Latin/Turkish':
         def recode(word):
-            return word.decode('iso-8859-9').encode('UTF-8')
+            return ( word
+                     .decode('iso-8859-9')
+                     .translate(repipe)
+                     .encode('UTF-8')
+            )
     else:
         raise BadCode('unrecognized --encoding in combine')
 
@@ -409,7 +450,6 @@ def implement_combine(args, cstlemma, copy, out):
             old.insert(at + 1, escape(utf8(args, recode(rulemma))) or b'_')
             old.insert(at + 1, escape(utf8(args, recode(dilemma))) or b'_')
             old.insert(at + 1, it.get(info, info)) # b'todo')
-            
         else:
             shipdata(data, out)
 
