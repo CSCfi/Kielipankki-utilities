@@ -23,15 +23,18 @@ from vrtdatalib import binescape as escape, binunescape as unescape
 CSTLEMMA = [
     '/proj/kieli/sparv/cstlemma',
     
-    # input is UTF-8-encoded, tagged, word TAB tag NL
-    '-eU',
+    # input is tagged, word TAB tag NL
     '-t',
     '-I', r'$w\t$t\n',
 
-    # output is word TAB info TAB dictionary lemma TAB rule-based lemma NL
-    # and lemmas turned out to be *sometimes* not UTF-8 (but Latin-1?)
-    # NEEDS INVESTIGATED BUT WORKAROUNDIT FOR NOW;
-    #
+    # output is word TAB info TAB dictionary lemma TAB rule-based
+    # lemma NL and lemmas turned out to be *sometimes* not UTF-8 (but
+    # Latin-1?)  NEEDS INVESTIGATED BUT WORKAROUNDIT FOR NOW; note
+    # that that was observed and workarounded for UTF-8 input/output
+    # (-eU) to cstlemma before attempting to use the other encodings
+    # because there were missing letters in UTF-8 output from it -
+    # maybe it does not quite work?
+
     # From cstlemma -h for the option -c:
     #    $i info:  -    full form not in dictionary.
     #              +    full form has more than one lemma in the dictionary.
@@ -41,7 +44,19 @@ CSTLEMMA = [
     '-c', '$w\t$i\t$b\t$B\n',
     '-b', '$w',
     '-B', '$w',
+
+    # encoding and models are appended according to options
 ]
+
+ENCODING = {
+    # $ cstlemma -h
+    # -e<n> ISO8859 Character encoding. 'n' is one of 1,2,7 and 9 (ISO8859-1,2, etc).
+    'Latin-1' : [ '-e1' ],
+    'Latin-2' : [ '-e2' ],
+    'Latin/Greek' : [ '-e7' ],
+    'Latin/Turkish' : [ '-e9' ],
+    'UTF-8' : [ '-eU' ]
+}
 
 MODELS = dict(
     saldo = [
@@ -106,6 +121,22 @@ def parsearguments():
 
                         ''')
 
+    parser.add_argument('--encoding',
+                        choices = [
+                            'Latin-1', 'Latin-2',
+                            'Latin/Greek',  # iso-8859-7
+                            'Latin/Turkish' # iso-8859-9
+                        ],
+                        help = '''
+
+                        internal re-encoding of input for cstlemma;
+                        where not possible, surface form is used as
+                        base form; the available encodings are
+                        ISO-8859-1,2,7,9 as indicated in the help text
+                        of cstlemma 7.36 (default is to use UTF-8)
+
+                        ''')
+
     args = parser.parse_args()
     args.prog = parser.prog
     return args
@@ -162,7 +193,9 @@ def utf8(args, word):
 
 def main(args, inf, ouf):
 
-    with Popen(CSTLEMMA + MODELS[args.model],
+    with Popen(CSTLEMMA
+               + ENCODING[args.encoding or 'UTF-8']
+               + MODELS[args.model],
                stdin = PIPE,
                stdout = PIPE,
                stderr = sys.stderr.buffer) as cstlemma:
@@ -205,9 +238,39 @@ def implement_main(args, inf, cstlemma, copy):
 
     wordix, posix = None, None
 
+    if args.encoding is None:
+        # UTF-8 as is
+        def recode(word): return word
+    elif args.encoding == 'Latin-1':
+        def recode(word):
+            return ( word
+                     .decode('UTF-8', errors = 'strict')
+                     .encode('iso-8859-1', errors = 'replace')
+            )
+    elif args.encoding == 'Latin-2':
+        def recode(word):
+            return ( word
+                     .decode('UTF-8', errors = 'strict')
+                     .encode('iso-8859-2', errors = 'replace')
+            )
+    elif args.encoding == 'Latin/Greek':
+        def recode(word):
+            return ( word
+                     .decode('UTF-8', errors = 'strict')
+                     .encode('iso-8859-7', errors = 'replace')
+            )
+    elif args.encoding == 'Latin/Turkish':
+        def recode(word):
+            return ( word
+                     .decode('UTF-8', errors = 'strict')
+                     .encode('iso-8859-9', errors = 'replace')
+                     )
+    else:
+        raise BadCode('unrecognized --encoding in main')
+
     def send(sentence):
         for record in sentence:
-            cstlemma.stdin.write(unescape(record[wordix]))
+            cstlemma.stdin.write(recode(unescape(record[wordix])))
             cstlemma.stdin.write(b'\t')
             cstlemma.stdin.write(unescape(record[posix]))
             cstlemma.stdin.write(b'\n')
@@ -288,6 +351,24 @@ def combine(args, cstlemma, copy, out):
 def implement_combine(args, cstlemma, copy, out):
     '''Thread may find pipe closed.'''
 
+    if args.encoding is None:
+        # UTF-8 as is
+        def recode(word): return word
+    elif args.encoding == 'Latin-1':
+        def recode(word):
+            return word.decode('iso-8859-1').encode('UTF-8')
+    elif args.encoding == 'Latin-2':
+        def recode(word):
+            return word.decode('iso-8859-2').encode('UTF-8')
+    elif args.encoding == 'Latin/Greek':
+        def recode(word):
+            return word.decode('iso-8859-7').encode('UTF-8')
+    elif args.encoding == 'Latin/Turkish':
+        def recode(word):
+            return word.decode('iso-8859-9').encode('UTF-8')
+    else:
+        raise BadCode('unrecognized --encoding in combine')
+
     def issentinel(line): return line.startswith(b'<< >>\t')
     it = {
         b'-' : b'none', # full form not in dictionary
@@ -325,8 +406,8 @@ def implement_combine(args, cstlemma, copy, out):
                 rulemma
             ] = asrecord(new)
 
-            old.insert(at + 1, escape(utf8(args, rulemma)) or b'_')
-            old.insert(at + 1, escape(utf8(args, dilemma)) or b'_')
+            old.insert(at + 1, escape(utf8(args, recode(rulemma))) or b'_')
+            old.insert(at + 1, escape(utf8(args, recode(dilemma))) or b'_')
             old.insert(at + 1, it.get(info, info)) # b'todo')
             
         else:
