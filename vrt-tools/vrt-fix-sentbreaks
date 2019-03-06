@@ -18,6 +18,9 @@ import sys
 
 from itertools import groupby, chain
 
+import vrtdatalib
+import vrtnamelib
+
 from vrtargsoolib import InputProcessor
 
 
@@ -39,6 +42,14 @@ class SentenceBreakFixer(InputProcessor):
          'output XML comments for removed breaks'),
         ('--verbose',
          'log output to stderr'),
+        ('--word|w = name -> word_attr',
+         'use positional attribute name as the word-form attribute;'
+         ' alternatively, name may be a one-based integer denoting the index'
+         ' of the word-form attribute, or a combination of the two, separated'
+         ' by a "|" (the latter is used if the former is not found)',
+         # The default contains a literal "|", so it cannot be specified on the
+         # argspec line itself.
+         dict(default="word|1")),
         ('--end-punctuation = chars -> endpunct',
          'consider chars as possible sentence-ending punctuation marks',
          dict(default=_default_endpunct)),
@@ -59,6 +70,7 @@ class SentenceBreakFixer(InputProcessor):
         endpunct = args.endpunct
         dashes = args.dashes
         quotes = args.quotes
+        word_attrnum = 0
 
         def isbreak(line):
             return (line[0] == LESS_THAN
@@ -66,10 +78,7 @@ class SentenceBreakFixer(InputProcessor):
                          or line.startswith(b'</sentence')))
 
         def get_wordform(line):
-            # TODO: Take into account the positional attributes
-            # comment to allow the word form be other than the first
-            # positional attribute.
-            return line[:-1].decode().partition('\t')[0]
+            return vrtdatalib.binlineref(line, word_attrnum).decode()
 
         def isword(line):
             # mainly all-alphabetic but also alphabetic-alphabetic and
@@ -113,11 +122,19 @@ class SentenceBreakFixer(InputProcessor):
 
         before = ['<outside>']
         broken = []
+        before_first_sent = True
         for kind, group in groupby(inf, isbreak):
             if kind:
                 broken = list(group)
                 continue
             this = list(group)
+            if before_first_sent:
+                # Find out which positional attribute is the word form, based
+                # on args.word_attr and the possible Positional attributes
+                # comment before the first sentence
+                word_attrnum = vrtnamelib.extract_numnameindex(
+                    this, args.word_attr)
+                before_first_sent = False
             if len(broken) == 0:
                 # before first sentence
                 pass
