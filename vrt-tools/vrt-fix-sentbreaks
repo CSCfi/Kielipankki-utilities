@@ -28,7 +28,7 @@ class SentenceBreakFixer(InputProcessor):
 
     """Fix spurious sentence breaks added by the UDPipe Finnish tokenizer."""
 
-    _default_endpunct = '.!?:;'
+    _default_endpunct = '.!?:'
     """End-of-sentence punctuation marks"""
     _default_dashes = '-–—'
     _default_quotes = '"”“\'’‘«»'
