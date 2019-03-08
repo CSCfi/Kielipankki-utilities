@@ -139,6 +139,101 @@ def nameindex(names, name):
     [index] = nameindices(names, name)
     return index
 
+def numnameindices(names, *numname, numbase=1):
+    '''Return a tuple of the 0-based indices of each numname in names, where
+    either names is a list of names as strings and each numname is a string,
+    or names is a list of bytes objects and each numname is a bytes object
+    (encoded in UTF-8). Alternatively, if a numname is an integer or a numeric
+    string or bytes object representing a numbase-based index to names, return
+    it as an integer, converted to a 0-based index. numname may also contain
+    two numnames separated by a "|": if the first one is not found (raises an
+    exception), the second one is tried. Raise an exception if any numname is
+    not in the list or, if numeric and names is non-empty, not in range(0,
+    len(names)) (taking numbase into account).
+
+    '''
+
+    def getindex_base(names, numname):
+        index = -1
+        if isinstance(numname, int):
+            index = numname - numbase
+        elif numname.isdigit():
+            index = int(numname) - numbase
+        else:
+            return names.index(numname)
+        if index < 0 or (names and index >= len(names)):
+            raise BadData(
+                'name index {} out of range {}...{}'
+                .format(index + numbase, numbase, len(names) - 1 + numbase))
+        return index
+
+    def getindex(names, numname):
+        numname_alts = numname.split(
+            (b'|' if isinstance(numname, bytes) else '|'), 1)
+        for altnum, numname_alt in enumerate(numname_alts):
+            try:
+                return getindex_base(names, numname_alt)
+            except (ValueError, BadData):
+                if len(numname_alts) == 1 or altnum > 0:
+                    raise
+                else:
+                    pass
+
+    try:
+        return tuple(getindex(names, nm) for nm in numname)
+    except ValueError:
+        raise BadData('some name of {} is not in list {}'
+                      .format(numname, names))
+
+def numnameindex(names, numname, numbase=1):
+    '''Return the 0-based index of a numname in a list of names, or if numname
+    is an integer or a numeric string (or bytes object), the number converted
+    to a 0-based index.
+    Raise an exception if the name is not in the list or the numeric index is
+    out of range for an index to names.
+
+    '''
+    [index] = numnameindices(names, numname, numbase=numbase)
+    return index
+
+def extract_numnameindices(lines, *numname, numbase=1):
+    '''Return a tuple of the 0-based indices of each numname based on the
+    names in the first "Positional attributes" comment found in lines. lines
+    and numname may be strings or bytes objects; the types need not be the
+    same. Alternatively, if a numname is an integer or a numeric string or
+    bytes object representing a numbase-based index to names, return it as an
+    integer, converted to a 0-based index. A numname may also contain two
+    numnames separated by a "|": if the first one is not found (raises an
+    exception), the second one is tried. Raise an exception if any numname is
+    not in the list or, if numeric and names is non-empty, not in range(0,
+    len(names)) (taking numbase into account).
+
+    '''
+    indices = []
+    for line in lines:
+        bin_line = isinstance(line, bytes)
+        if (isbinnames(line) if bin_line else isnames(line)):
+            if bin_line:
+                line = line.decode()
+            names = namelist(line)
+            for nm in numname:
+                if isinstance(nm, bytes):
+                    nm = nm.decode()
+                indices.append(numnameindex(names, nm))
+            return indices
+    return numnameindices([], *numname)
+
+def extract_numnameindex(lines, numname, numbase=1):
+    '''Return the 0-based index of a numname based on the names in the first
+    "Positional attributes" comment found in lines, or if numname is an
+    integer or a numeric string (or bytes object), the number converted to a
+    0-based index. Raise an exception if the name is not in the list or the
+    numeric index is out of range for an index to names.
+
+    '''
+    [index] = extract_numnameindices(lines, numname, numbase=numbase)
+    return index
+
 def insertnames(nameline, atname, *afternames):
     '''Return the field-name comment (a string) with afternames inserted
     after atname. Or raise an exception if some aftername is not new.

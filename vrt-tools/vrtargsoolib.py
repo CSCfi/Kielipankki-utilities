@@ -15,10 +15,23 @@ The code wraps functions in vrtargslib.
 import re
 import sys
 
+from argparse import ArgumentParser
+from enum import Enum
+
 import vrtargslib
 
 
-def get_argparser(argspecs=None, *, common_trans_args=True, **kwargs):
+class CommonArgs(Enum):
+    """Which arguments common to VRT tools to use"""
+    none = 0
+    """None (allows code to be reused more easily in other scripts)"""
+    version = 1
+    """Only --version"""
+    trans = 2
+    """Common arguments for text transforming scripts"""
+
+
+def get_argparser(argspecs=None, *, common_args=CommonArgs.trans, **kwargs):
     """Return an ArgumentParser with common and possibly other arguments.
 
     Return an `ArgumentParser` with common arguments by calling
@@ -28,17 +41,25 @@ def get_argparser(argspecs=None, *, common_trans_args=True, **kwargs):
       `argspecs`: a list of command-line argument specifications in
           addition to the common ones; see `argparser_add_args` for
           the format
-      `common_trans_args`: add the common arguments for transforming
-          scripts; if `False`, only add --version
-      `**kwargs` is passed to `vrtargslib.trans_args` (or
-          `vrtargslib.version_args`) and should contain at least a
+      `common_args`: which common arguments to add (a value in
+          CommonArgs)
+      `**kwargs` is passed to `vrtargslib.trans_args`,
+          `vrtargslib.version_args` or `argparse.ArgumentParser`,
+          depending on `common_args`, and should contain at least a
           `description` and possibly `inplace=False`, if the
           --in-place argument is not requested.
     """
-    argparser = (vrtargslib.trans_args(**kwargs)
-                 if common_trans_args else
-                 vrtargslib.version_args(
-                     description=kwargs.get('description')))
+
+    if common_args == CommonArgs.trans:
+        argparser = vrtargslib.trans_args(**kwargs)
+    else:
+        if 'inplace' in kwargs:
+            del kwargs['inplace']
+        if common_args == CommonArgs.version:
+            argparser = vrtargslib.version_args(
+                description=kwargs.get('description'))
+        else:
+            argparser = ArgumentParser(**kwargs)
     if argspecs:
         argparser_add_args(argparser, argspecs)
     return argparser
@@ -157,7 +178,7 @@ def _argparser_add_arg(argparser, argspec):
         # argument dictionary.
         if 'default' in argdict0:
             default = argdict0['default']
-            if '|' in default:
+            if '|' in default and len(default) > 1:
                 choices = re.split(r'\s*\|\s*', default.strip())
                 default = (list(filter(lambda s: s and s[0] == '*', choices))
                            or None)
@@ -217,7 +238,8 @@ def _argparser_add_arg(argparser, argspec):
     # Add information on the possible default value to the usage
     # message, unless it already contains the string "default".
     if 'default' in argdict and 'default' not in argdict['help']:
-        argdict['help'] += ' (default: %(default)s)'
+        default_fmt = ('%(default)s' if 'type' in argdict else '"%(default)s"')
+        argdict['help'] += ' (default: ' + default_fmt + ')'
     # print(repr(argnames), repr(argdict))
     argparser.add_argument(*argnames, **argdict)
 
@@ -257,6 +279,9 @@ def get_args(argparser, unparsed_args=None, namespace=None,
     arg_defaults = [
         ('inplace', False),
         ('backup', None),
+        ('sibling', None),
+        ('infile', None),
+        ('outfile', None),
     ]
     args = argparser.parse_args(unparsed_args, namespace)
     args.prog = argparser.prog
@@ -283,19 +308,13 @@ def wrap_main(main_fn, argparser, **kwargs):
     return
 
 
-class InputProcessor:
+class BasicProcessor:
 
     """
-    An abstract class for a script processing input and writing output.
+    An abstract class for a script taking arguments.
 
-    A subclass must define at least the method `main` and should
-    re-define the class attribute `DESCRIPTION`. The resulting script
-    has the common arguments (as specified in the class attribute
-    `OPTIONS`) and it reads input and writes output in `main . In the
-    simplest case, the code for running the script can be as follows:
-
-      if __name__ == '__main__':
-          InputProcessorSubclass().run()
+    A concrete subclass should re-define the class attribute
+    `DESCRIPTION`.
 
     This class uses the functions defined above.
     """
@@ -311,12 +330,72 @@ class InputProcessor:
 
     class OPTIONS:
         """Input processor option settings. Subclass this class in a
+        subclass of BasicProcessor to override the defaults; for
+        example:
+            class OPTIONS(BasicProcessor.OPTIONS):
+                common_args = CommonArgs.trans
+        """
+        common_args = CommonArgs.version
+        """The script has the common arguments for transformation scripts"""
+
+    def __init__(self):
+        """Initialize the class."""
+        # Call super to allow use in multiple inheritance
+        super().__init__()
+        self._argparser = None
+        """Argument parser"""
+        self._args = None
+        """Parsed command-line arguments"""
+        self._progname = None
+        """Program name"""
+
+    def _get_argparser(self, **extra_kwargs):
+        """Create a parser for command-line arguments."""
+        if self._argparser is None:
+            self._argparser = get_argparser(
+                argspecs=self.ARGSPECS,
+                common_args=self.OPTIONS.common_args,
+                description=self.DESCRIPTION,
+                **extra_kwargs
+            )
+        self._progname = self._argparser.prog
+
+    def check_args(self, args):
+        """Check command-line arguments and assign them to self._args."""
+        self._args = args
+
+    def print_error(self, *msg):
+        """Print message msg to standard error."""
+        print_error(*msg, progname=self._progname)
+
+    def error_exit(self, *msg):
+        """Print message msg to standard error and exit with code 1."""
+        error_exit(*msg, progname=self._progname)
+
+
+class InputProcessor(BasicProcessor):
+
+    """
+    An abstract class for a script processing input and writing output.
+
+    A subclass must define at least the method `main` and should
+    re-define the class attribute `DESCRIPTION`. The resulting script
+    has the common arguments (as specified in the class attribute
+    `OPTIONS`) and it reads input and writes output in `main . In the
+    simplest case, the code for running the script can be as follows:
+
+      if __name__ == '__main__':
+          InputProcessorSubclass().run()
+    """
+
+    class OPTIONS(BasicProcessor.OPTIONS):
+        """Input processor option settings. Subclass this class in a
         subclass of InputProcessor to override the defaults; for
         example:
             class OPTIONS(InputProcessor.OPTIONS):
-                common_trans_args = False
+                arg_inplace = False
         """
-        common_trans_args = True
+        common_args = CommonArgs.trans
         """The script has the common arguments for transformation scripts"""
         arg_inplace = True
         """The script has the --in-place option"""
@@ -327,31 +406,15 @@ class InputProcessor:
 
     def __init__(self):
         """Initialize the class."""
-        self._argparser = None
-        """Argument parser"""
-        self._args = None
-        """Parsed command-line arguments"""
-        self._progname = None
-        """Program name"""
+        super().__init__()
 
     def run(self, unparsed_args=None):
         """Process command-line arguments and run the main method."""
-        if self._argparser is None:
-            self._argparser = get_argparser(
-                argspecs=self.ARGSPECS,
-                common_trans_args=self.OPTIONS.common_trans_args,
-                description=self.DESCRIPTION,
-                inplace=self.OPTIONS.arg_inplace
-            )
-        self._progname = self._argparser.prog
+        self._get_argparser(inplace=self.OPTIONS.arg_inplace)
         wrap_main(self.main, self._argparser, unparsed_args=unparsed_args,
                   argcheck_fn=self.check_args,
                   in_as_text=self.OPTIONS.in_as_text,
                   out_as_text=self.OPTIONS.out_as_text)
-
-    def check_args(self, args):
-        """Check command-line arguments and assign them to self._args."""
-        self._args = args
 
     def main(self, args, inf, ouf):
         """The actual main method, to be implemented in a subclass.
@@ -360,11 +423,3 @@ class InputProcessor:
         stream and ouf the output stream.
         """
         pass
-
-    def print_error(self, *msg):
-        """Print message msg to standard error."""
-        print_error(*msg, progname=self._progname)
-
-    def error_exit(self, *msg):
-        """Print message msg to standard error and exit with code 1."""
-        error_exit(*msg, progname=self._progname)

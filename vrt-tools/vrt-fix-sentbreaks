@@ -18,6 +18,9 @@ import sys
 
 from itertools import groupby, chain
 
+import vrtdatalib
+import vrtnamelib
+
 from vrtargsoolib import InputProcessor
 
 
@@ -25,7 +28,7 @@ class SentenceBreakFixer(InputProcessor):
 
     """Fix spurious sentence breaks added by the UDPipe Finnish tokenizer."""
 
-    _default_endpunct = '.!?:;'
+    _default_endpunct = '.!?:'
     """End-of-sentence punctuation marks"""
     _default_dashes = '-–—'
     _default_quotes = '"”“\'’‘«»'
@@ -39,6 +42,17 @@ class SentenceBreakFixer(InputProcessor):
          'output XML comments for removed breaks'),
         ('--verbose',
          'log output to stderr'),
+        ('--word|w = name -> word_attr',
+         'use positional attribute name as the word-form attribute;'
+         ' alternatively, name may be a one-based integer denoting the index'
+         ' of the word-form attribute, or a combination of the two, separated'
+         ' by a "|" (the latter is used if the former is not found)',
+         # The default contains a literal "|", so it cannot be specified on the
+         # argspec line itself.
+         dict(default="word|1")),
+        ('--max-tokens=num :int =200',
+         'do not remove a sentence break if the combined sentence would have'
+         ' more than num tokens (0 = unlimited)'),
         ('--end-punctuation = chars -> endpunct',
          'consider chars as possible sentence-ending punctuation marks',
          dict(default=_default_endpunct)),
@@ -59,6 +73,31 @@ class SentenceBreakFixer(InputProcessor):
         endpunct = args.endpunct
         dashes = args.dashes
         quotes = args.quotes
+        max_token_count = args.max_tokens
+        word_attrnum = 0
+        sent_token_count = 0
+        this_token_count = 0
+        # Parts for different types of nobreak labels and comments
+        comment_parts = {
+            # (label prefix, label suffix, comment prefix, comment suffix)
+            'noskip': ('', '', 'Removed ', ''),
+            'skip': ('SKIP-', '', 'Skipped removing ', ' (long sentence)'),
+            'sure': ('', '', '', ''),
+            'unsure': ('', '-ALARM', '', ' (unsure)')
+        }
+        nobreak_labels = {}
+        nobreak_comments = {}
+        for skip in ['noskip', 'skip']:
+            for sure in ['sure', 'unsure']:
+                nobreak_labels[(skip, sure)] = (
+                    comment_parts[skip][0] + comment_parts[sure][0]
+                    + 'NOBREAK'
+                    + comment_parts[sure][1] + comment_parts[skip][1])
+                nobreak_comments[(skip, sure)] = (
+                    nobreak_labels[(skip, sure)] + ': '
+                    + comment_parts[skip][2] + comment_parts[sure][2]
+                    + 'sentence break'
+                    + comment_parts[sure][3] + comment_parts[skip][3])
 
         def isbreak(line):
             return (line[0] == LESS_THAN
@@ -66,10 +105,7 @@ class SentenceBreakFixer(InputProcessor):
                          or line.startswith(b'</sentence')))
 
         def get_wordform(line):
-            # TODO: Take into account the positional attributes
-            # comment to allow the word form be other than the first
-            # positional attribute.
-            return line[:-1].decode().partition('\t')[0]
+            return vrtdatalib.binlineref(line, word_attrnum).decode()
 
         def isword(line):
             # mainly all-alphabetic but also alphabetic-alphabetic and
@@ -107,17 +143,46 @@ class SentenceBreakFixer(InputProcessor):
             if args.comments:
                 ouf.write(b'<!-- ' + text.encode() + b' -->\n')
 
+        def count_tokens(lines):
+            return sum(int(line[0] != LESS_THAN) for line in lines)
+
+        def output_removed_break(broken, before, this, sure='sure'):
+            # Output information for a removed break (possible comment and log
+            # lines), or if the combined sentence would be longer than the
+            # maximum length, output the break.
+            nonlocal sent_token_count
+            # comment('token count: ' + str(sent_token_count))
+            if (max_token_count > 0
+                    and sent_token_count + this_token_count > max_token_count):
+                comment(nobreak_comments[('skip', sure)])
+                output_lines(broken)
+                log(before, nobreak_labels[('skip', sure)], this)
+                sent_token_count = 0
+            else:
+                comment(nobreak_comments[('noskip', sure)])
+                log(before, nobreak_labels[('noskip', sure)], this)
+
         def output_lines(lines):
             for line in lines:
                 ouf.write(line)
 
         before = ['<outside>']
         broken = []
+        before_first_sent = True
         for kind, group in groupby(inf, isbreak):
             if kind:
                 broken = list(group)
                 continue
             this = list(group)
+            this_token_count = count_tokens(this)
+            # comment('this token count: ' + str(this_token_count))
+            if before_first_sent:
+                # Find out which positional attribute is the word form, based
+                # on args.word_attr and the possible Positional attributes
+                # comment before the first sentence
+                word_attrnum = vrtnamelib.extract_numnameindex(
+                    this, args.word_attr)
+                before_first_sent = False
             if len(broken) == 0:
                 # before first sentence
                 pass
@@ -125,16 +190,17 @@ class SentenceBreakFixer(InputProcessor):
                 # either just '<sentence ...>' or just '</sentence>' at a
                 # larger boundary so not relevant so ship the break
                 output_lines(broken)
+                sent_token_count = 0
             elif isword(before[-1]) and isword(this[0]):
                 # omit the sentence break for sure - grep out the (NO)BREAK
                 # comments to get the final valid output
-                comment('NOBREAK: Removed sentence break')
-                log(before, 'NOBREAK', this)
+                output_removed_break(broken, before, this, 'sure')
             elif any(isendpunct(w) for w in before[-2:]):
                 # appropriate punctuation before the break so ship the break
                 # without logging (no there is no certainty of anything ever
                 # but one has to draw the line somewhere - nothing to grep)
                 output_lines(broken)
+                sent_token_count = 0
             elif ((len(before) > 2 and
                    isdash(before[-2]) and isquote(before[-1]) and
                    istitle(this[0]))
@@ -148,12 +214,14 @@ class SentenceBreakFixer(InputProcessor):
                     'BREAK-ALARM: Kept sentence break near a dash and quote')
                 output_lines(broken)
                 log(before, 'BREAK-ALARM', this)
+                sent_token_count = 0
             else:
                 # omit the sentence break with ALARM - grep out the
                 # (NO)BREAK comments to get the final valid output
-                comment('NOBREAK-ALARM: Removed sentence break (unsure)')
-                log(before, 'NOBREAK-ALARM', this)
+                output_removed_break(broken, before, this, 'unsure')
             output_lines(this)
+            sent_token_count += this_token_count
+            # comment('token count: ' + str(sent_token_count))
             before = this
 
 
