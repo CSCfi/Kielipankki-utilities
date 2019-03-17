@@ -3,7 +3,7 @@
 
 import codecs
 
-from itertools import groupby, count
+from itertools import groupby, count, chain
 from queue import Queue
 from subprocess import Popen, PIPE
 from threading import Thread
@@ -103,6 +103,11 @@ def parsearguments():
     parser.add_argument('--tag', '-t', metavar = 'name',
                         type = binxname, default = b'msd',
                         help = 'input tag field name (default msd)')
+
+
+    parser.add_argument('--lemma', metavar = 'name',
+                        type = binxname, default = b'lemma',
+                        help = 'output field name (default lemma)')
 
     # so the defaults are not valid values of the type?
     parser.add_argument('--prefix', '-p', metavar = 'fix',
@@ -292,6 +297,7 @@ def implement_main(args, inf, cstlemma, copy):
         if isnames(line):
             wordix, posix = nameindices(namelist(line), args.word, args.tag)
             return insertnames(line, args.word,
+                               args.prefix + b'lemma' + args.suffix,
                                args.prefix + b'lemma.match' + args.suffix,
                                args.prefix + b'lemma.dict' + args.suffix,
                                args.prefix + b'lemma.flex' + args.suffix)
@@ -447,9 +453,18 @@ def implement_combine(args, cstlemma, copy, out):
                 rulemma
             ] = asrecord(new)
 
-            old.insert(at + 1, escape(utf8(args, recode(rulemma))) or b'_')
-            old.insert(at + 1, escape(utf8(args, recode(dilemma))) or b'_')
-            old.insert(at + 1, it.get(info, info)) # b'todo')
+            dilemma8 = utf8(args, recode(dilemma))
+            rulemma8 = utf8(args, recode(rulemma))
+
+            # presumably dilemma8 or rulemma8 is always non-empty so
+            # that the last choice of '_' is never used; not using
+            # word for that because word can contain the separator
+            lemma = (dilemma8 or rulemma8 or '_').split(b'|')[0]
+
+            old.insert(at + 1, escape(rulemma8) or b'_')
+            old.insert(at + 1, escape(dilemma8) or b'_')
+            old.insert(at + 1, it.get(info, info))
+            old.insert(at + 1, escape(lemma))
         else:
             shipdata(data, out)
 
