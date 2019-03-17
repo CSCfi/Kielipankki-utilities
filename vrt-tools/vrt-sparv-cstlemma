@@ -60,6 +60,7 @@ CSTLEMMA = [
 ENCODING = {
     # $ cstlemma -h
     # -e<n> ISO8859 Character encoding. 'n' is one of 1,2,7 and 9 (ISO8859-1,2, etc).
+    # -eU turns out to produce garbage (missing and malcoded letters)
     'Latin-1' : [ '-e1' ],
     'Latin-2' : [ '-e2' ],
     'Latin/Greek' : [ '-e7' ],
@@ -145,16 +146,19 @@ def parsearguments():
     parser.add_argument('--encoding',
                         choices = [
                             'Latin-1', 'Latin-2',
-                            'Latin/Greek',  # iso-8859-7
-                            'Latin/Turkish' # iso-8859-9
+                            'Latin/Greek',   # iso-8859-7
+                            'Latin/Turkish', # iso-8859-9
+                            'UTF-8'
                         ],
+                        default = 'Latin-1',
                         help = '''
 
                         internal re-encoding of input for cstlemma;
                         where not possible, surface form is used as
                         base form; the available encodings are
                         ISO-8859-1,2,7,9 as indicated in the help text
-                        of cstlemma 7.36 (default is to use UTF-8?)
+                        of cstlemma 7.36 (default is Latin-1, since
+                        UTF-8 does not seem to work for all lemmas)
 
                         ''')
 
@@ -259,8 +263,8 @@ def implement_main(args, inf, cstlemma, copy):
 
     wordix, posix = None, None
 
-    if args.encoding is None:
-        # UTF-8 as is
+    if args.encoding == 'UTF-8':
+        # UTF-8 as is - does not work right
         def recode(word): return word
     elif args.encoding == 'Latin-1':
         def recode(word):
@@ -379,7 +383,7 @@ def implement_combine(args, cstlemma, copy, out):
     # vertical bars in base forms become broken bars
     repipe = str.maketrans({ '|' : '¦', '\x1f' : '|' })
 
-    if args.encoding is None:
+    if args.encoding == 'UTF-8':
         # UTF-8 as is ... except those pipes,
         # and with error handling according to
         # args.strict or not args.strict :/
