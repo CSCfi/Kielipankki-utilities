@@ -3,7 +3,7 @@
 
 import codecs
 
-from itertools import groupby, count, chain
+from itertools import groupby, count
 from queue import Queue
 from subprocess import Popen, PIPE
 from threading import Thread
@@ -89,10 +89,9 @@ def parsearguments():
     Pass word forms and specially prepared features in a flat vrt
     document through cstlemma using models based on the tagged saldo
     and suc word lists in the sparv distribution. Insert after each
-    word a dictionary-match indicator (lemma.match: full, form, none),
-    a dictionary lemma (lemma.dict), and a rule-derived lemma
-    (lemma.flex). (TODO: pick one as lemma, and those may be
-    multivalued?)
+    word a lemma, and when verbose also a dictionary-match indicator
+    (lemma.match: full, form, none), dictionary lemmas (lemma.dict),
+    and rule-derived lemmas (lemma.flex).
 
     '''
 
@@ -108,6 +107,14 @@ def parsearguments():
     parser.add_argument('--lemma', metavar = 'name',
                         type = binxname, default = b'lemma',
                         help = 'output field name (default lemma)')
+
+    parser.add_argument('--verbose', action = 'store_true',
+                        help = '''
+
+                        in addition to the chosen lemma, produce also
+                        the output fields from cstlemma
+
+                        ''')
 
     # so the defaults are not valid values of the type?
     parser.add_argument('--prefix', '-p', metavar = 'fix',
@@ -298,9 +305,11 @@ def implement_main(args, inf, cstlemma, copy):
             wordix, posix = nameindices(namelist(line), args.word, args.tag)
             return insertnames(line, args.word,
                                args.prefix + b'lemma' + args.suffix,
-                               args.prefix + b'lemma.match' + args.suffix,
-                               args.prefix + b'lemma.dict' + args.suffix,
-                               args.prefix + b'lemma.flex' + args.suffix)
+                               *((args.prefix + b'lemma.match' + args.suffix,
+                                  args.prefix + b'lemma.dict' + args.suffix,
+                                  args.prefix + b'lemma.flex' + args.suffix)
+                                 if args.verbose
+                                 else ()))
         return line
 
     def issome(line): return not line.isspace()
@@ -461,9 +470,9 @@ def implement_combine(args, cstlemma, copy, out):
             # word for that because word can contain the separator
             lemma = (dilemma8 or rulemma8 or '_').split(b'|')[0]
 
-            old.insert(at + 1, escape(rulemma8) or b'_')
-            old.insert(at + 1, escape(dilemma8) or b'_')
-            old.insert(at + 1, it.get(info, info))
+            args.verbose and old.insert(at + 1, escape(rulemma8) or b'_')
+            args.verbose and old.insert(at + 1, escape(dilemma8) or b'_')
+            args.verbose and old.insert(at + 1, it.get(info, info))
             old.insert(at + 1, escape(lemma))
         else:
             shipdata(data, out)
