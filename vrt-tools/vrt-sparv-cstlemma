@@ -127,11 +127,12 @@ def parsearguments():
 
     parser.add_argument('--model',
                         choices = [ 'saldo', 'suc', 'sucsaldo' ],
-                        default = 'suc',
+                        default = 'sucsaldo',
                         help = '''
 
                         lemmatisation models to use (saldo is based on
-                        a huge list, suc on a short list)
+                        a huge list, suc on a short list; default is
+                        to use sucsaldo that combines both lists)
 
                         ''')
     parser.add_argument('--strict', action = 'store_true',
