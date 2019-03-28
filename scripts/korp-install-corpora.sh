@@ -7,7 +7,10 @@
 # - Multiple or timestamped backups
 # - Backup to a different backup directory
 # - Verbosity control
-# - Ignore tar errors of missing sql directory
+# - Resume a partial installation, e.g., no or only some database
+#   files installed
+# - Possibly write to the log also partial installations (when CWB
+#   files have been installed but database files not)
 
 
 progname=`basename $0`
@@ -39,6 +42,9 @@ backup-suffix=SUFFIX ".bak"
 f|force
     force installing a corpus package that is older than or as old as
     the currently installed package
+delay-database-import delay_db
+    begin importing database data only after all corpus packages have
+    been extracted
 '
 
 usage_footer="Note: The backup copy of a corpus is overwritten by subsequent updates of the
@@ -94,6 +100,7 @@ host_is_remote () {
 }
 
 get_package_corpus_name () {
+    local corpname
     corpname=${1##*/}
     corpname=${corpname%.t?z}
     corpname=${corpname%.tar.*}
@@ -119,6 +126,8 @@ run_command () {
 }
 
 find_corpus_packages () {
+    local pkgspec pkghost use_find current_pkgdir pkgname_cond ls_cmd cmd \
+	  mode links owner group size timestamp pkgname
     pkgspec=$1
     pkghost=$default_pkghost
     use_find=1
@@ -160,6 +169,7 @@ find_corpus_packages () {
 }
 
 find_package_candidates () {
+    local listfile
     listfile=$1
     shift
     touch $listfile
@@ -181,6 +191,7 @@ format_package_name_host () {
 }
 
 filter_corpora () {
+    local listfile corpname_prev corp_pkgfile
     listfile=$1
     corpname_prev=
     corp_pkgfile=
@@ -230,6 +241,7 @@ get_tar_compress_opt () {
 }
 
 backup_corpus () {
+    local pkgname pkghost tar_cmd backup_msg_shown
     pkgname=$1
     pkghost=$2
     echo "  Checking for existing corpus files"
@@ -254,6 +266,7 @@ backup_corpus () {
 }
 
 human_readable_size () {
+    local kb
     kb=$(($1 / 1024))
     if [ "$kb" -lt 10240 ]; then
 	echo "$kb KiB"
@@ -268,6 +281,7 @@ filesize () {
 }
 
 adjust_registry () {
+    local filelistfile regfile corpus_id datadir
     # This assumes that the target datadir is
     # $corpus_root/data/$corpus_id
     filelistfile=$1
@@ -303,12 +317,14 @@ install_file_sql () {
 }
 
 install_file_tsv () {
+    local tsvfile
     tsvfile=$1
     $progdir/korp-mysql-import.sh --prepare-tables $tsvfile
     return $?
 }
 
 install_dbfiles () {
+    local type filelistfile msg files
     type=$1
     filelistfile=$2
     msg=$3
@@ -326,12 +342,14 @@ install_dbfiles () {
 }
 
 install_db () {
+    local filelistfile
     filelistfile=$1
     install_dbfiles sql $filelistfile Loading
     install_dbfiles tsv $filelistfile Importing
 }
 
 convert_timedata () {
+    local filelistfile
     filelistfile=$1
     echo "Converting time data"
     # Find the physical (CWB) corpora in the corpus package
@@ -342,6 +360,7 @@ convert_timedata () {
 }
 
 install_corpus () {
+    local corp corpus_pkg pkgtime pkgsize pkghost
     corp=$1
     corpus_pkg=$2
     pkgtime=$3
@@ -354,7 +373,7 @@ install_corpus () {
     fi
     echo "  Copying CWB files"
     run_command "$pkghost" "cat '$corpus_pkg'" |
-    tar xvp -C $corpus_root -f- $(get_tar_compress_opt $pkgname) \
+    tar xvp -C $corpus_root -f- $(get_tar_compress_opt $corpus_pkg) \
 	--wildcards --wildcards-match-slash \
 	--transform 's,.*/\(data\|registry\|sql\)/,\1/,' \
 	--show-transformed-names '*/data' '*/registry' '*/sql' 2>&1 \
@@ -376,6 +395,20 @@ install_corpus () {
 	ensure_perms $(cat $filelistfile)
     )
     adjust_registry $filelistfile
+    if [ "x$delay_db" != x ]; then
+	echo "  (Delaying installing database files)"
+	cp -p $filelistfile $filelistfile.$corp
+    else
+	install_corpus_step2 $filelistfile $corp "$corpus_pkg" $pkgtime
+    fi
+}
+
+install_corpus_step2 () {
+    local filelistfile corp corpus_pkg pkgtime
+    filelistfile=$1
+    corp=$2
+    corpus_pkg=$3
+    pkgtime=$4
     install_db $filelistfile
     convert_timedata $filelistfile
     # Log to the list of installed corpora: current time, corpus name,
@@ -387,6 +420,8 @@ install_corpus () {
 }
 
 install_corpora () {
+    local pkglistfile corpname pkghost pkgfile pkgtime pkgsize
+    pkglistfile=$1
     echo
     echo Installing Korp corpora:
     for corp in $corpora_to_install; do
@@ -394,7 +429,15 @@ install_corpora () {
     done
     while read corpname pkghost pkgfile pkgtime pkgsize; do
 	install_corpus $corpname "$pkgfile" $pkgtime $pkgsize $pkghost
-    done
+    done < $pkglistfile
+    if [ "x$delay_db" != x ]; then
+	echo
+	echo Installing database files
+	while read corpname pkghost pkgfile pkgtime pkgsize; do
+	    install_corpus_step2 \
+		$filelistfile.$corpname $corpname "$pkgfile" $pkgtime
+	done < $pkglistfile
+    fi
     echo
     echo Installation complete
 }
@@ -413,4 +456,4 @@ filter_corpora $pkglistfile.base > $pkglistfile
 if [ "x$corpora_to_install" = x ]; then
     error "No corpora to install"
 fi
-install_corpora < $pkglistfile
+install_corpora $pkglistfile

@@ -5,7 +5,7 @@
 
 '''
 
-import sys
+import os, sys
 
 from itertools import groupby
 from queue import Empty as EmptyQueue
@@ -16,7 +16,7 @@ from vrtargslib import trans_args, trans_main
 from vrtdatalib import binescape
 from hrtlib import tokenize
 
-from outsidelib import HFSTTOKENIZE, OMORFITOKENIZE
+from outsidelib import HFSTBIN, HFSTLIB, OMORFITOKENIZE, prebins, prelibs, utf8ish
 
 def parsearguments():
     description = '''
@@ -39,10 +39,15 @@ def parsearguments():
 
 def main(args, inf, ouf):
 
-    proc = Popen([ HFSTTOKENIZE, OMORFITOKENIZE ],
+    proc = Popen([ 'hfst-tokenize', OMORFITOKENIZE ],
+                 env = dict(os.environ,
+                            PATH = prebins(HFSTBIN),
+                            LD_LIBRARY_PATH = prelibs(HFSTLIB),
+                            LC_ALL = utf8ish(),
+                            PYTHONIOENCODING = 'UTF-8'),
                  stdin = PIPE,
                  stdout = PIPE,
-                 stderr = PIPE)
+                 stderr = sys.stderr.buffer)
 
     # start a watcherr here since proc.stderr in PIPE
     # (rather redundant for this particular tool)

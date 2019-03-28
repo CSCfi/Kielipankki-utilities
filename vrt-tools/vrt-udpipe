@@ -26,8 +26,7 @@ def parsearguments():
     Pass word forms of sentences in the input VRT document through
     UDPipe, annotate the sentences with the resulting analysis in the
     output VRT document. (WIP! Only handles flat VRT and does not yet
-    cope with special m-n, m.n lines in UD output. ALSO not #-lines,
-    so is actually totally broken and TO DO.)
+    cope with special m-n, m.n lines in UD output.)
 
 '''
     parser = trans_args(description = description)
@@ -37,12 +36,12 @@ def parsearguments():
 
     parser.add_argument('--model', '-m',
                         choices = [
-                            'finnish-tdt-ud',
-                            'finnish-ftb-ud',
-                            # TODO add models (get rid of -ud?)
+                            'finnish-tdt',
+                            'finnish-ftb', # not coping! has m-n lines
+                            # TODO add models
                         ],
-                        default = 'finnish-tdt-ud',
-                        help = 'UDPipe model (default finnish-tdt-ud)')
+                        default = 'finnish-tdt',
+                        help = 'UDPipe model (default finnish-tdt)')
 
     # so the defaults are not valid values of the type?
     parser.add_argument('--prefix', '-p', metavar = 'fix',

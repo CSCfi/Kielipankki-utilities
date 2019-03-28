@@ -18,13 +18,14 @@ from vrtnamelib import bininsertnames as insertnames
 from vrtdatalib import binasrecord as asrecord
 from vrtdatalib import binescape as escape, binunescape as unescape
 
-from outsidelib import FINPOS
+from outsidelib import FINPOS, HFSTBIN, HFSTLIB, prebins, prelibs, utf8ish
 
 def parsearguments():
     description = '''
 
-    Pass word forms of sentences in the input VRT document through the
-    Finnish name-recognition tool Finpos.
+    Pass word forms of sentences in the input VRT document through a
+    tool, FinnPos, that classifies word forms according to their
+    position in text.
 
 '''
     parser = trans_args(description = description)
@@ -56,6 +57,10 @@ def terminate(proc):
 def main(args, ins, ous):
 
     with Popen([ FINPOS, '--no-tokenize' ],
+               env = dict(os.environ,
+                          PATH = prebins(HFSTBIN),
+                          LD_LIBRARY_PATH = prelibs(HFSTLIB),
+                          LC_ALL = utf8ish()),
                stdin = PIPE,
                stdout = PIPE,
                stderr = sys.stderr.buffer) as finpos:
@@ -92,9 +97,8 @@ def main(args, ins, ous):
 def implement_main(args, ins, finpos, copy):
 
     # each "word" goes to finpos, with an empty line after each
-    # sentence; everything goes to copy alternative groups of meta and
-    # data, with new "lemma", "msd", "aux", "nertag" (or such) in
-    # names
+    # sentence; everything goes to copy in alternative groups of meta
+    # and data, with new "lemma", "msd" (or such) in names
 
     wordix = None
 
@@ -112,9 +116,7 @@ def implement_main(args, ins, finpos, copy):
             [wordix] = nameindices(namelist(line), args.word)
             return insertnames(line, args.word,
                                args.prefix + b'lemma' + args.suffix,
-                               args.prefix + b'msd' + args.suffix,
-                               args.prefix + b'aux' + args.suffix,
-                               args.prefix + b'nertag' + args.suffix)
+                               args.prefix + b'msd' + args.suffix)
         return line
 
     def issome(line): return not line.isspace()
@@ -148,9 +150,9 @@ def implement_main(args, ins, finpos, copy):
         copy.put(())
 
 def combine(args, finpos, copy, out):
-    '''Read finpos output (word TAB lemma TAB msd TAB aux TAB nergag NL /
-    NL) and flat vrt from the copy process. Insert analysis from finpos
-    to the vrt at the named position.
+    '''Read finpos output (word TAB lemma TAB msd NL / NL) and flat vrt
+    from the copy process. Insert analysis from finpos to the vrt at
+    the named position.
 
     This is run as a thread that consumes the finpos process and syncs
     it with the copy queue. Preceding meta and corresponding data were

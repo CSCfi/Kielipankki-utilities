@@ -136,16 +136,16 @@ def shipdata(lines, ouf):
             # ...
             # (with finnish-ftb-ud)
             for part in (b'<multitoken id="', jd,
-                         b'" spaces="', spaces,
+                         b'" spaces="', binescape(spaces),
                          b'" word="', binescape(word),
                          b'">\n'):
                 ouf.write(part)
-            # TODO also escape any quotes in word!
+            # TODO also escape any quotes in word! and in spaces!
             _, end = jd.split(b'-')
         else:
             for part in (jd, b'\t',
                          binescape(word), b'\t',
-                         spaces, b'\n'):
+                         binescape(spaces), b'\n'):
                 ouf.write(part)
             if jd == end: ouf.write(b'</multitoken>\n')                
     else:

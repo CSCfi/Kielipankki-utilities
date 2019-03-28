@@ -18,7 +18,7 @@ from vrtnamelib import bininsertnames as insertnames
 from vrtdatalib import binasrecord as asrecord
 from vrtdatalib import binescape as escape, binunescape as unescape
 
-from outsidelib import FINER
+from outsidelib import FINER, HFSTBIN, HFSTLIB, prebins, prelibs, utf8ish
 
 def parsearguments():
     description = '''
@@ -56,6 +56,23 @@ def terminate(proc):
 def main(args, ins, ous):
 
     with Popen([ FINER, '--no-tokenize', '--show-analyses' ],
+               env = dict(os.environ,
+
+                          # FINER needs hfst-lookup on PATH, and uses
+                          # hfst-tokenize on PATH if it is on PATH,
+                          # and those then need their own libraries on
+                          # LD_LIBRARY_PATH)
+                          PATH = prebins(HFSTBIN),
+                          LD_LIBRARY_PATH = prelibs(HFSTLIB),
+
+                          # FinnPos scripts open files without
+                          # specifying an encoding, need UTF-8 locale,
+                          # Mylly server only had C.UTF-8, and Taito
+                          # did not have that :/ not sure if anything
+                          # needs standard-stream encoding to be
+                          # specified but leave that be for now
+                          LC_ALL = utf8ish(),
+                          PYTHONIOENCODING = 'UTF-8'),
                stdin = PIPE,
                stdout = PIPE,
                stderr = sys.stderr.buffer) as fine:

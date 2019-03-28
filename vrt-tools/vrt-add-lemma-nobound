@@ -1,0 +1,553 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+
+"""
+vrt-add-lemma-noboundaries
+
+Add lemmas without compound boundaries to the input VRT with word
+forms and lemmas with compound boundaries.
+"""
+
+
+import re
+import sys
+
+from itertools import chain
+
+import vrtdatalib
+import vrtnamelib
+
+from vrtargsoolib import InputProcessor
+
+
+class NoBoundaryLemmaAdder(InputProcessor):
+
+    DESCRIPTION = """
+    Add lemmas without compound boundaries to the input VRT with word
+    forms and lemmas with compound boundaries.
+    """
+    ARGSPECS = [
+        ('--compound-boundary-marker=CHAR "|" -> boundary_char',
+         'treat CHAR as the compound boundary marker'),
+        ('--omorfi',
+         'assume that the compound lemmas have been produced by Omorfi'
+         ' and modify the lemmas without boundaries accordingly'),
+        ('--wordform-name=ATTR "word" -> word_attr',
+         'use positional attribute ATTR as the word form'),
+        ('--lemma-name=ATTR "lemma" -> lemma_attr',
+         'use positional attribute ATTR as the lemma'),
+        ('--noboundaries-name=ATTR "lemma_nobound" -> nobound_attr',
+         'output the lemma without boundaries as positional attribute ATTR'),
+        ('--insert-noboundaries-after-name|insert-after=ATTR "lemma"'
+         ' -> insert_after_attr',
+         'insert the lemma without boundaries after positional attribute ATTR'),
+        ('--verbose',
+         'log output to stderr'),
+    ]
+
+    _lemma_suffix_len_changes = [('nen', -2)]
+    _stem_changes = [('ie', 'ei'), ('uo', 'oi'), ('yö', 'öi')]
+    _vowels = 'aeiouyäö'
+    # We would only need the second part if the first part can occur inflected
+    # with some later part, such as "uudenkarhea", "uudenveroinen",
+    # "vanhanmallinen". Another option might be to special-case them, as they
+    # might be specific to certain later parts, such as "lainen", "puoleinen".
+    _inflected_first_part = {
+        ('aava', 'meri'),
+        ('hieno', 'sokeri'),
+        ('Iso', 'Britannia'),
+        ('iso', 'jako'),
+        ('iso', 'koskelo'),
+        ('iso', 'kuovi'),
+        ('iso', 'käpylintu'),
+        ('iso', 'lepinkäinen'),
+        ('iso', 'lokki'),
+        ('iso', 'maksaruoho'),
+        ('iso', 'masto'),
+        ('iso', 'panda'),
+        ('iso', 'pistooli'),
+        ('iso', 'purje'),
+        ('iso', 'rokko'),
+        ('iso', 'rumpu'),
+        ('iso', 'sisar'),
+        ('iso', 'sisko'),
+        ('isot', 'aivot'),
+        ('iso', 'varvas'),
+        ('iso', 'veli'),
+        ('iso', 'viha'),
+        ('karkea', 'rehu'),
+        ('kevyt', 'sarja'),
+        ('kirjava', 'pillike'),
+        ('kuiva', 'kakku'),
+        ('kuiva', 'kukka'),
+        ('kuiva', 'muona'),
+        ('kuiva', 'paino'),
+        ('kuiva', 'pari'),
+        ('kuiva', 'rehu'),
+        ('kultainen', 'noutaja'),
+        ('laiska', 'koira'),
+        ('lämmin', 'ruoka'),
+        ('lämmin', 'varasto'),
+        ('lämmin', 'vaunu'),
+        ('matala', 'meri'),
+        ('musta', 'herukka'),
+        ('musta', 'leipä'),
+        ('musta', 'leski'),
+        ('musta', 'lintu'),
+        ('musta', 'maija'),
+        ('musta', 'makkara'),
+        ('Musta', 'meri'),
+        ('musta', 'mies'),
+        ('musta', 'multa'),
+        ('musta', 'pekka'),
+        ('musta', 'pippuri'),
+        ('musta', 'raamattu'),
+        ('musta', 'torvisieni'),
+        ('musta', 'viinimarja'),
+        ('nuori', 'emäntä'),
+        ('nuori', 'herra'),
+        ('nuori', 'isäntä'),
+        ('nuori', 'karja'),
+        ('nuori', 'mies'),
+        ('nuori', 'pari'),
+        ('oma', 'kuva'),
+        ('oma', 'tunto'),
+        ('paha', 'henki'),
+        ('paha', 'putki'),
+        ('palava', 'kivi'),
+        ('palava', 'pensas'),
+        ('palava', 'rakkaus'),
+        ('pitkä', 'housu'),
+        ('pitkä', 'kirkko'),
+        ('pitkä', 'perjantai'),
+        ('pitkä', 'piimä'),
+        ('pitkä', 'siima'),
+        ('pitkä', 'takki'),
+        ('pitkät', 'housut'),
+        ('Punainen', 'meri'),
+        ('puoli', 'kuu'),
+        ('puoli', 'matka'),
+        ('puoli', 'päivä'),
+        ('puoli', 'väli'),
+        ('puoli', 'yö'),
+        ('raitis', 'ilma'),
+        ('raskas', 'sarja'),
+        ('raskas', 'vesi'),
+        ('raskas', 'vety'),
+        ('sepivä', 'peippi'),
+        ('suora', 'kulma'),
+        ('suora', 'ommel'),
+        ('syvä', 'meri'),
+        ('särkynyt', 'sydän'),
+        ('tyhjä', 'paino'),
+        ('Tyyni', 'meri'),
+        ('täysi', 'kuu'),
+        ('Uusi', 'kaupunki'),
+        ('uusi', 'kuu'),
+        ('Uusi', 'maa'),
+        ('Uusi', 'Seelanti'),
+        ('uusi', 'vuosi'),
+        ('Uusi', '*'),
+        ('vanha', 'emäntä'),
+        ('vanha', 'isäntä'),
+        ('vanha', 'kaupunki'),
+        ('vanha', 'piika'),
+        ('vanha', 'poika'),
+        ('vieras', 'mies'),
+    }
+    _adjust_case_fns = [
+        (str.islower, str.lower),
+        (str.isupper, str.upper),
+        (str.istitle, str.title),
+    ]
+
+    def __init__(self):
+        super().__init__()
+
+    def main(self, args, inf, ouf):
+
+        boundary_char = args.boundary_char.encode()
+        lemma_split_re = re.compile('([' + args.boundary_char + '-])')
+
+        def make_lemma_noboundaries_simple(lemma, wordform):
+            return lemma.replace(boundary_char, b'')
+
+        # def log(before, kind, after):
+        #     if args.verbose:
+        #         print('#',
+        #               *chain((w.decode().rstrip('\n')
+        #                       for w in ([b'##'] + before)[-4:]),
+        #                      [kind],
+        #                      (w.decode().rstrip('\n')
+        #                       for w in (after + [b'##'])[:6])),
+        #               file=sys.stderr)
+
+        def attr_index(s):
+            """Convert numeric 1-based attribute index strings to 0-based ints,
+            or return None for non-numeric."""
+            try:
+                return int(s) - 1
+            except ValueError:
+                return None
+
+        LESS_THAN = '<'.encode()[0]
+        make_lemma_noboundaries = (
+            self._make_lemma_noboundaries_omorfi if args.omorfi
+            else make_lemma_noboundaries_simple)
+        for arg_name in ['word_attr', 'lemma_attr', 'nobound_attr',
+                         'insert_after_attr']:
+            setattr(args, arg_name, getattr(args, arg_name).encode())
+        # print(args)
+        word_index = attr_index(args.word_attr)
+        lemma_index = attr_index(args.lemma_attr)
+        insert_after_index = attr_index(args.insert_after_attr)
+        if insert_after_index:
+            insert_after_index += 1
+        names_seen = False
+
+        for line in inf:
+            if line[0] == LESS_THAN:
+                if not names_seen and vrtnamelib.isbinnames(line):
+                    word_index, lemma_index, insert_after_index = (
+                        vrtnamelib.nameindices(vrtnamelib.binnamelist(line),
+                                               args.word_attr,
+                                               args.lemma_attr,
+                                               args.insert_after_attr))
+                    insert_after_index += 1
+                    ouf.write(vrtnamelib.bininsertnames(
+                        line, args.insert_after_attr, args.nobound_attr))
+                else:
+                    ouf.write(line)
+            else:
+                attrs = vrtdatalib.binasrecord(line)
+                lemma = attrs[lemma_index]
+                word = attrs[word_index]
+                lemma_nobound = (
+                    make_lemma_noboundaries(lemma, word)
+                    # If the word form contains a compound boundary marker, the
+                    # word is unlikely to be a real compound, so keep the lemma
+                    # as is.
+                    if boundary_char in lemma and not boundary_char in word
+                    else lemma)
+                ouf.write(b'\t'.join(chain(attrs[:insert_after_index],
+                                           [lemma_nobound],
+                                           attrs[insert_after_index:]))
+                          + b'\n')
+
+    def _make_lemma_noboundaries_omorfi(self, lemma, wordform):
+        # TODO: uudenvuoden -> uusivuosi
+        lemma_split_re = re.compile('([|-])')
+        lemma = lemma.decode()
+        wordform = wordform.decode()
+        lemma_parts = lemma_split_re.split(lemma)
+        wf_prefix_len = 0
+        lemma_prefix_len = 0
+        lemma_nobound = []
+        for partnum, part in enumerate(lemma_parts[:-2]):
+            if partnum % 2 == 0:
+                # Actual compound part
+                nobound_part, end_diff, wf_use_len = self._get_prefix(
+                    lemma_parts[partnum], lemma_parts[partnum + 2],
+                    wordform[wf_prefix_len:])
+                # print(partnum, part, nobound_part, end_diff, wf_use_len)
+                lemma_nobound.append(nobound_part)
+                if ((nobound_part[-1] == lemma_parts[partnum + 2][0]
+                         and nobound_part[-1] in self._vowels)
+                        or nobound_part[-1].isupper()
+                        or nobound_part[-1].isdigit()):
+                    lemma_nobound.append('-')
+                wf_prefix_len += len(nobound_part)
+        lemma_nobound.append(lemma_parts[-1])
+        return (''.join(lemma_nobound)).encode()
+
+    def _get_prefix(self, lemmapart_this, lemmapart_next, wordform):
+        # yhteinen kunta yhteiskunnan -> yhteis, -2, 3
+        # oleskella lupa oleskeluluvista ->
+        lemma_len = len(lemmapart_this)
+        adjust_case_fn = lambda x: x
+        for test_fn, adjust_fn in self._adjust_case_fns:
+            if test_fn(lemmapart_this):
+                adjust_case_fn = adjust_fn
+                break
+
+        def find_begin(lemmapart_next):
+            for wf_prefix_len in range(min(len(lemmapart_next), 5), 1, -1):
+                # print('CHECK:', wordform, lemmapart_next, wf_prefix_len, lemmapart_next[:wf_prefix_len], wordform[(lemma_len - 3):])
+                next_pos = find_next_begin(wf_prefix_len, lemmapart_next)
+                if next_pos:
+                    return (adjust_case_fn(wordform[:next_pos]),
+                            next_pos - lemma_len,
+                            wf_prefix_len)
+            return None
+
+        def find_next_begin(wf_prefix_len, lemmapart_next):
+            begin_candidates = []
+            start_pos = lemma_len - 3
+            next_pos = 0
+            while start_pos < lemma_len + 3 and next_pos > -1:
+                next_pos = wordform.find(lemmapart_next[:wf_prefix_len],
+                                         start_pos)
+                if -1 < next_pos < lemma_len + 3:
+                    # print('FOUND:', wf_prefix_len, next_pos, lemmapart_next, wordform[:next_pos] + '[' + wordform[next_pos:(next_pos + wf_prefix_len)] + ']' + wordform[next_pos + wf_prefix_len:])
+                    begin_candidates.append(next_pos)
+                start_pos = next_pos + 1
+            if not begin_candidates:
+                return None
+            elif len(begin_candidates) == 1:
+                return begin_candidates[0]
+            else:
+                # If the current lemma part ends with a suffix for which a
+                # length change has been specified and the first candidate for
+                # the next part start begins at or before the lemma with the
+                # length adjusted, prefer that (suomalainen|tuttu,
+                # suomalais<tu><tu>t -> suomalaistuttu and not
+                # suomalaistututtu)
+                for suffix, len_change in self._lemma_suffix_len_changes:
+                    if (lemmapart_this.endswith(suffix) and
+                            begin_candidates[0] <= lemma_len + len_change):
+                        return begin_candidates[0]
+                # Otherwise, prefer the longest prefix (oleskella|lupa,
+                # oleske<lu><lu>vista -> oleskelulupa and not oleskelupa)
+                return begin_candidates[-1]
+
+        hyphen_pos = wordform.find('-', lemma_len - 3, lemma_len + 4)
+        if ((lemmapart_this, lemmapart_next) in self._inflected_first_part
+                or (lemmapart_this, '*') in self._inflected_first_part):
+            # print('INFL FIRST')
+            return (lemmapart_this + ('-' if hyphen_pos > -1 else ''),
+                    0, len(lemmapart_this))
+        if hyphen_pos > -1:
+            return (adjust_case_fn(wordform[:(hyphen_pos + 1)]),
+                    hyphen_pos - lemma_len, 10)
+        return_vals = find_begin(lemmapart_next)
+        if return_vals:
+            return return_vals
+        else:
+            lemmapart_next_len = len(lemmapart_next)
+            for lemma_stem, infl_stem in self._stem_changes:
+                lemma_stem_len = len(lemma_stem)
+                # print(lemma_stem, infl_stem, lemmapart_next_len, lemma_stem_len + 1, lemmapart_next.endswith(lemma_stem))
+                if (lemmapart_next_len <= lemma_stem_len + 1
+                        and lemmapart_next.endswith(lemma_stem)):
+                    return_vals = find_begin(
+                        lemmapart_next[:(lemmapart_next_len - lemma_stem_len)]
+                        + infl_stem)
+                    if return_vals:
+                        return return_vals
+        # print('NOT FOUND')
+        return lemmapart_this, 0, 0
+
+    def test(self, lemma_wf_pairs=[]):
+        for lemma, wf in lemma_wf_pairs:
+            print(lemma, wf, '->', self._make_lemma_noboundaries_omorfi(lemma.encode(), wf.encode()).decode())
+
+
+if __name__ == '__main__':
+    NoBoundaryLemmaAdder().run()
+    exit(1)
+    NoBoundaryLemmaAdder().test(
+        [('yhteinen|kunta', 'yhteiskunnan'),
+         ('keskustella|palsta', 'keskustelupalstalla'),
+         ('ihminen|kunta', 'ihmiskunnan'),
+         ('viikko|loppu', 'viikonloppuna'),
+         ('alku|perä', 'alunperin'),
+         ('virka|omainen', 'viranomaiset'),
+         ('maalinen|kuu', 'maaliskuussa'),
+         ('selvä|pää', 'selvinpäin'),
+         ('opinnot|tuki', 'opintotukea'),
+         ('sisällinen|sota', 'sisällissota'),
+         ('todellinen|uusi', 'todellisuutta'),
+         ('korkea|taka', 'korkeintaan'),
+         ('suoda|tie', 'suojatien'),
+         ('piki|itu|loinen', 'pienituloisten'),
+         ('alunen|housut', 'alushousut'),
+         ('jyvänen|kylä', 'jyväskylässä'),
+         ('väärä|pää', 'väärinpäin'),
+         ('monikulttuurinen|uusi', 'monikulttuurisuuden'),
+         ('entinen|täkki', 'entistäkin'),
+         ('lainen|inka', 'laisinkaan'),
+         ('suvinen|euro', 'suviseuroissa'),
+         ('toinen|sijainen', 'toissijainen'),
+         ('yhde|sopiva', 'yhteensopiva'),
+         ('rikollinen|uusi', 'rikollisuutta'),
+         ('nimi|oma', 'nimenomaa'),
+         ('vähä|täi', 'vähintäin'),
+         ('toinen|ilta', 'toisiltaan'),
+         ('huoli|pidot', 'huolenpitoa'),
+         ('piki|impi', 'pienimmistä'),
+         ('aikuinen|mainen', 'aikuismaisesti'),
+         ('piki|yrittäjä', 'pienyrittäjä'),
+         ('piki|puolue', 'pienpuolueiden'),
+         ('asua|kulku', 'asumiskulut'),
+         ('omainen|uusi', 'omaisuutta'),
+         ('purra|rata', 'pururadalla'),
+         ('yhdenvertainen|uusi', 'yhdenvertaisuuden'),
+         ('toinen|enne', 'toisenne'),
+         ('yleinen|impi', 'yleisimmistä'),
+         ('alunen|asu', 'alusasuja'),
+         ('kihlat|sormus', 'kihlasormus'),
+         ('kaltto|kohtelu', 'kaltoinkohtelua'),
+         ('piki|okainen', 'pienokainen'),
+         ('paperinen|ota', 'paperisota'),
+         ('piki|hiukkanen', 'pienhiukkasia'),
+         ('yhde|muutto', 'yhteenmuuttoa'),
+         ('erilainen|uusi', 'erilaisuutta'),
+         ('aikainen|taka', 'aikaisintaan'),
+         ('osallinen|tupa', 'osallistuvan'),
+         ('tapa|omainen', 'tavanomaista'),
+         ('monimutkainen|uusi', 'monimutkaisuutta'),
+         ('panna|kakku', 'pannukakku'),
+         ('lainen|koi', 'laiskoille'),
+         ('kaikkivoipainen|uusi', 'kaikkivoipaisuuteen'),
+         ('parka|valinta', 'parinvalinnassa'),
+         ('moraalinen|ääntö', 'moraalisääntöjä'),
+         ('ruko|ala', 'Ruonala'),
+         ('parka|vaihto', 'parinvaihtoa'),
+         ('sisällinen|ota', 'sisällisodan'),
+         ('tulevainen|uusi', 'tulevaisuutta'),
+         ('kepulainen|uusi', 'kepulaisuuden'),
+         ('panna|huone', 'pannuhuoneessa'),
+         ('itsetuhoinen|uusi', 'itsetuhoisuutta'),
+         ('resurssit|pula', 'resurssipula'),
+         ('lapsi|kota', 'lastenkodissa'),
+         ('parka|kymppi', 'parinkympin'),
+         ('yhteinen|kunta|amme', 'yhteiskuntaamme'),
+         ('piki|talo', 'pientalojen'),
+         ('viimeinen|impi', 'viimeisimmistä'),
+         ('harhainen|uusi', 'harhaisuutta'),
+         ('alinen|teinen', 'alisteinen'),
+         ('muu|oka', 'muinoin'),
+         ('tavallinen|takki', 'tavallistakin'),
+         ('nainen|ilta', 'naisiltakin'),
+         ('vertainen|taka', 'vertaistaan'),
+         ('takainen|kari', 'takaiskarit'),
+         ('kasvot|ilta', 'kasvoiltani'),
+         ('allerginen|oiva', 'allergisoiva'),
+         ('mainen|terä', 'maisteriksi'),
+         ('uskollinen|uusi', 'uskollisuutta'),
+         ('likainen|uusi', 'likaisuudesta'),
+         ('toinen|tupa', 'Toistuvasta'),
+         ('piki|yritys', 'pienyritysten'),
+         ('piki|eläkeläinen', 'pieneläkeläiset'),
+         ('voinen|iva', 'voisivatkaan'),
+         ('parka|emi', 'paraneminen'),
+         ('karismaattinen|uusi', 'karismaattisuutta'),
+         ('asiallinen|takki', 'asiallistakin'),
+         ('nainen|tau|tie', 'naistentautien'),
+         ('näyttö|ohja', 'Näytönohjain'),
+         ('piki|imu|nainen', 'pienimunaisten'),
+         ('kokko|ansa', 'kokonansa'),
+         ('suomalainen|uusi', 'suomalaisuutta'),
+         ('menkat|mainen', 'menkkamaisia'),
+
+         ('oleskella|lupa', 'oleskeluluvista'),
+         ('suomalainen|tuttu', 'suomalaistutut'),
+         ('pääsiäinen|yö', 'pääsiäisöinä'),
+         ('askarrella|työ', 'askartelutöinä'),
+         ('suomalainen|suo', 'suomalaissoina'),
+         ('ruotsalainen|tie', 'ruotsalaisteinä'),
+
+         ('uusi|vuosi', 'uudenvuoden'),
+         ('Iso-Britannia', 'Isosta-Britanniasta'),
+         ('Iso|Britannia', 'Isosta-Britanniasta'),
+         ('Uusi-Seelanti', 'Uuteen-Seelantiin'),
+         ('Uusi|Seelanti', 'Uuteen-Seelantiin'),
+         ('Uusi-Kaledonia', 'Uuteen-Kaledoniaan'),
+         ('Uusi|Kaledonia', 'Uuteen-Kaledoniaan'),
+         ('Uusikirkko', 'Uudenkirkon'),
+
+         ('väärä|pää', 'väärin-päin'),
+         ('entinen|täkki', 'entis-täkin'),
+         ('evankelinen|luterilainen', 'evankelis-luterilaisen'),
+         ('uusi|vuosi', 'uuden-vuoden'),
+         ('kauppa|pää', 'kaupan-päälle'),
+         ('pohjoinen|korea', 'pohjois-korean'),
+         ('kokonainen|kerto', 'Kokonais-kerroin'),
+         ('puoli|vuosi', 'puolen-vuoden'),
+         ('kevyt|liikenne', 'kevyen-liikenteen'),
+         ('puoli|yö', 'puolen-yön'),
+         ('tosi|teko', 'toden-teolla'),
+         ('pohjoinen|suomi', 'pohjois-suomessa'),
+         ('suomalainen|ugrilainen', 'suomalais-ugrilaisten'),
+         ('pohjoinen|karjala', 'pohjois-karjalassa'),
+         ('pakko|omaisesti', 'pakon-omaisesti'),
+         ('uusi|liitto', 'uuden-liiton'),
+         ('laskea|aika', 'laskettu-aika'),
+         ('puoli|tunti', 'puolen-tunnin'),
+         ('yhteinen|kunta|amme', 'yhteis-kuntaamme'),
+         ('varsinainen|suomi', 'varsinais-suomessa'),
+         ('pohjoinen|pohjan|maa', 'pohjois-pohjanmaalla'),
+         ('kippi|kappi', 'kipin-kapin'),
+         ('treffit|ilmoitus', 'treffi-ilmoitus'),
+         ('tyyni|meri', 'Tyynen-meren'),
+         ('tosi|tosi', 'Toden-totta'),
+         ('maalinen|huhtikuu', 'maalis-huhtikuussa'),
+         ('juutalainen|kristillinen', 'juutalais-kristillisen'),
+         ('pakolainen|status', 'pakolais-statuksella'),
+         ('maaninen|depressiivinen', 'maanis-depressiivinen'),
+         ('markkinat|asema', 'markkina-aseman'),
+         ('uusi|testamentti', 'Uuden-testamentin'),
+         ('paavalilainen|luterilaisuus', 'paavalilais-luterilaisuuden'),
+         ('kerta|pari', 'kerran-pari'),
+         ('väki|väkinen', 'Väen-väkisin'),
+         ('opinnot|opas', 'opinto-oppaasta'),
+         ('varmuus|vuo', 'varmuuden-vuoksi'),
+         ('pohjoinen|savo', 'pohjois-savossa'),
+         ('parka|vuosi', 'parin-vuoden'),
+         ('aika|olo', 'ajan-olon'),
+         ('luoda|jumala', 'luoja-jumala'),
+         ('seurustella|mieli', 'seurustelu-mielessä'),
+         ('parka|viikko', 'parin-viikon'),
+         ('uskonnollinen|poliittinen', 'uskonnollis-poliittinen'),
+         ('maaninen|depressiivisyys', 'maanis-depressiivisyys'),
+         ('käsi|käänne', 'käden-käänteessä'),
+         ('raskas|sarja', 'raskaan-sarjan'),
+         ('vuosi|pari', 'vuoden-parin'),
+         ('viikko|pari', 'viikon-parin'),
+         ('passiivinen|aggressiivinen', 'passiivis-aggressiivinen'),
+         ('erityinen|suojelus', 'erityis-suojeluksessa'),
+         ('pohjoinen|korea|lainen', 'pohjois-korealaiset'),
+         ('matemaattinen|looginen', 'matemaattis-looginen'),
+         ('matemaattinen|luonnon|tieteellinen', 'matemaattis-luonnontieteellisen'),
+         ('enempi|kuu', 'enemmän-kuin'),
+         ('helluntailainen|karismaattinen', 'helluntailais-karismaattisia'),
+         ('opinnot|oikeus', 'opinto-oikeus'),
+         ('olka|taka', 'olan-takaa'),
+         ('suoda|aine', 'suoja-aineita'),
+         ('surra|uutinen', 'suru-uutisen'),
+         ('inttää|eksyttää', 'inttäjä-eksyttäjä'),
+         ('varsinainen|suomalainen', 'varsinais-suomalainen'),
+         ('kiikku|kaakku', 'kiikun-kaakun'),
+         ('suomalainen|venäläinen', 'suomalais-venäläisen'),
+         ('kaakkoinen|suomi', 'kaakkois-suomessa'),
+         ('tiede|kieltäjä|hihhuli', 'tieteenkieltäjä-hihhuli'),
+         ('kauppa|tekijäinen', 'kaupan-tekijäisiksi'),
+         ('pohjoinen|karjalainen', 'pohjois-karjalainen'),
+         ('kreikkalainen|roomalainen', 'kreikkalais-roomalaisen'),
+         ('urheilla|ura', 'urheilu-uran'),
+         ('aikuinen|tyyppi', 'aikuis-tyypin'),
+         ('historiallinen|kriittinen', 'historiallis-kriittinen'),
+         ('lounainen|suomi', 'lounais-suomessa'),
+         ('netti|kausi', 'netin-kautta'),
+         ('markkinat|ehtoisesti', 'markkina-ehtoisesti'),
+         ('maalainen|liitto|kepu', 'maalaisliitto-kepu'),
+         ('jatko-opiskella|paikka', 'jatko-opiskelupaikkaa'),
+         ('kokonainen|pinta-ala', 'kokonaispinta-ala'),
+         ('yhteinen|toiminta-alue', 'yhteistoiminta-alueen'),
+         ('kamppailla|urheilu', 'kamppailu-urheilua'),
+         ('nainen|enemmistö', 'nais-enemmistö'),
+         ('kuntoilla|mieli', 'kuntoilu-mielessä'),
+         ('toinen|puoleisesti', 'tois-puoleisesti'),
+         ('pohjoinen|afrikkalainen', 'pohjois-afrikkalaisen'),
+         ('hyvä|hyvä', 'hyvin-hyvin'),
+         ('urheilla|ohjelma', 'urheilu-ohjelmien'),
+         ('ahdas|portti', 'ahtaan-portin'),
+         ('säteillä|lämmittää', 'säteily-lämmitin'),
+         ('hätä|ala|isä', 'hädän-alaisille'),
+         ('katolinen|kirkko', 'katolisen-kirkon'),
+         ('lähennellä|yritys', 'lähentely-yritykset'),
+         ('korkea|oikeus', 'korkein-oikeus'),
+         ('raskas|liikenne', 'raskaan-liikenteen'),
+         ('suomalainen|ruotsalainen', 'Suomalais-ruotsalainen'),
+    ])
