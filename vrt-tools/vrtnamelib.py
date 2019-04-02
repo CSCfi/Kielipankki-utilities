@@ -4,16 +4,25 @@ import re
 
 from vrtargslib import BadData
 
+# Regular expression recognizing a valid extended field name suffix
+_xrest_exp = R'[a-z0-9_.-]+ /?'
+# Regular expression recognizing a valid extended field name
+_xname_exp = R'(?![\d.-]) ' + _xrest_exp
+
 def isxname(s):
     '''Test that the argument string is valid as an extended field name in
     VRT. Valid field names in VRT consist of ASCII letters, digits,
-    and underscores, and start with a letter or an underscore.
+    underscores and hyphens, and start with a letter or an underscore.
     Extended names may also contain ASCII periods (but still start
-    with a letter or an underscore).
+    with a letter or an underscore) and may end with a slash to indicate
+    a feature-set attribute.
 
     '''
-    return re.fullmatch(R' (?![\d.]) [\w.]+ ', s,
-                        re.ASCII | re.VERBOSE)
+    # Even though cwb-encode can encode attributes with names beginning
+    # with a hyphen, CQP apparently cannot use them in (at least as of
+    # CWB 3.4.10). A name starting with a hyphen might not be a good idea
+    # anyway, so we do not allow them.
+    return re.fullmatch(_xname_exp, s, re.ASCII | re.VERBOSE)
 
 def isxrest(s):
     '''Test that the argument is a valid suffix to an extended field name
@@ -21,7 +30,7 @@ def isxrest(s):
     period.
 
     '''
-    return re.fullmatch(R'[\w.]+', s, re.ASCII | re.VERBOSE)
+    return re.fullmatch(_xrest_exp, s, re.ASCII | re.VERBOSE)
 
 def xname(s):
     '''Return a valid name (see isxname), or raise an exception. Usable as
@@ -82,7 +91,7 @@ _names_exp = R'''
 
 <!-- \s Positional \s attributes:
 
-( \s (?![\d.]) [\w.]+ | \s \+ )+
+( \s ''' + _xname_exp + R''' | \s \+ )+
 
 \s --> \r? \n?
 
@@ -108,13 +117,13 @@ def isbinnames(bs):
 
 def namelist(nameline):
     if isnames(nameline):
-        return re.findall(R'[\w.+]+', nameline)[2:]
+        return re.findall(R'[\w+]\S*', nameline)[2:]
 
     raise BadData('invalid positional-attributes comment')
 
 def binnamelist(nameline):
     if isbinnames(nameline):
-        return re.findall(bR'[\w.+]+', nameline)[2:]
+        return re.findall(bR'[\w+]\S*', nameline)[2:]
 
     raise BadData('invalid positional-attributes comment')
 
