@@ -6,6 +6,19 @@
 #+AUTHOR: Jyrki Niemi
 
 * Special (XML) comments in VRT files [2019-02-05 Tue] :vrt_comments:
+- Some VRT Tools make use of special (XML) comments, which should have a common format.
+- An example of a comment with a special meaning (before standardizing the format) is the positional attributes comment:
+  : <!-- Positional attributes: word -->
+** To be implemented (based on feedback from Jussi Piitulainen) [2019-04-01 Mon]
+- Special comments are of the form
+  : <!-- #vrt keyword: value -->
+- More precisely, the regular expression matching a special comment (with ~re.fullmatch~) is
+  : <!-- #vrt (?P<keyword>[A-Za-z0-9_-]+): (?P<value>.+) --> \r? \n?
+- In contrast with XML comments, a ~--~ in the middle of a comment does not end the comment.
+- The current positional attributes comment should be recognized for backward-compatibility but scripts should write it as ~<!-- #vrt positional-attributes: word -->~ (or ~posattrs~, ~pos-attrs~ or ~positional attributes~, if spaces were allowed?).
+  - However, if a script copies the input positional attributes comment verbatim to the output, it may be left in the old form.
+- Otherwise, a syntax which is easy to process, with no alternative forms, as the comments are generated and processed by programs, even though some of them might also be meaningful to users.
+** Previous ideas :obsolete:
 - Currently, the VRT Tools recognize and produce the positional attributes comment:
   : <!-- Positional attributes: word -->
 - However, as the tools might make use of other special comments, it might make sense to use some common marker in the comments having special meaning to some VRT Tools.
@@ -21,10 +34,9 @@
 
 * Make VRT Tools log processing stages to comments in VRT files [2019-02-05 Tue] :vrt_comments:logging:
 - To preserve a kind of a processing trace of what has been done to produce a VRT file, each VRT tool could add information on its invocation (timestamp, tool name, version and command-line arguments) to the beginning of a VRT file as a special comment:
-  : <!-- # Process log: 2019-02-05 11:10:09 +0200: vrt-add-lemma-nobound [0.6.5] --omorfi s24_2001_01.vrt -->
-  - A problem with this is that ~--~ may not occur within an XML comment.
-  - Maybe we could insert a word joiner (WJ) U+2060 (effectively, a zero-width non-break space) between the hyphens.
-    - That would make it impossible to copy and paste the command directly from the comment, but as a ~--~ may not occur literally anyway, no other encoding of it would be any better in that respect.
+  : <!-- #vrt process-log: 2019-02-05 11:10:09 +0200: vrt-add-lemma-nobound [0.6.5] --omorfi s24_2001_01.vrt -->
+  - Possible keyword alternatives: ~log~, ~processlog~
+  - A ~--~ may not occur within an XML comment, but we can assume (or decide) that it may occur within a VRT comment, so this would not be a problem.
 - Logging could be the default, but it could be suppressed with an option ~--no-logging~.
 - Tools should preserve the logging comments in their input and output them to the output.
   - Tools producing multiple VRT output files should copy the logging comments to all the output files.
@@ -34,10 +46,10 @@
 - In general, a VRT file with only positional attributes is a valid VRT file, whereas a file with only structural attributes is not.
 - To allow for a file with only structural attributes, we could use special comments that would either
   1. indicate the next corpus (token) position:
-     : <!-- # Corpus position: 123456 -->
+     : <!-- #vrt corpus-position: 123456 -->
      or
   2. indicate the number of tokens that the comment covers:
-     : <!-- # Omitted tokens: 123 -->
+     : <!-- #vrt omitted-tokens: 123 -->
 - Both comment types could be supported.
 - Should a file without positional attributes be called something else than VRT?
   - Perhaps partial VRT (~.vrtp~, ~.vrtpart~) or extended VRT (~.xvrt~, ~.vrtx~)?
