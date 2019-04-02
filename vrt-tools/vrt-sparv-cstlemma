@@ -459,7 +459,13 @@ def implement_combine(args, cstlemma, copy, out):
             # presumably dilemma8 or rulemma8 is always non-empty so
             # that the last choice of '_' is never used; not using
             # word for that because word can contain the separator
-            lemma = (dilemma8 or rulemma8 or '_').split(b'|')[0]
+            # WAS lemma = (dilemma8 or rulemma8 or '_').split(b'|')[0]
+            # NOW is multivalued
+            lemma = (
+                b'|' + (dilemma8 or rulemma8) + b'|'
+                if dilemma8 or rulemma8
+                else b'|'
+            )
 
             args.verbose and old.insert(at + 1, escape(rulemma8) or b'_')
             args.verbose and old.insert(at + 1, escape(dilemma8) or b'_')
