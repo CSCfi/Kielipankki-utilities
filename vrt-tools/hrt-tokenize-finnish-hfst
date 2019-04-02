@@ -47,7 +47,7 @@ def main(args, inf, ouf):
                             PYTHONIOENCODING = 'UTF-8'),
                  stdin = PIPE,
                  stdout = PIPE,
-                 stderr = sys.stderr.buffer)
+                 stderr = PIPE) # sys.stderr.buffer
 
     # start a watcherr here since proc.stderr in PIPE
     # (rather redundant for this particular tool)
