@@ -8,12 +8,14 @@ from tempfile import mkstemp
 from threading import Thread
 import enum, os, re, sys, traceback
 
-MODEL = 'hunpos.suc3.suc-tags.default-setting.utf8.model'
-HUNPOS = [ '/proj/kieli/sparv/hunpos/hunpos-tag',
-           # a morphtable here?
-           os.path.join('/proj/kieli/sparv/models', MODEL)]
+from outsidelib import HUNPOSTAG, HUNPOSMODELS
 
-VERSION = '0.2 (2018-06-08)'
+HUNPOS = [ HUNPOSTAG,
+           # could use a morphtable here? from sparv
+           HUNPOSMODELS['sparv']
+]
+
+VERSION = 'TODO move to use argslib! 0.2 (2018-06-08)'
 
 parser = ArgumentParser(description = '''
 

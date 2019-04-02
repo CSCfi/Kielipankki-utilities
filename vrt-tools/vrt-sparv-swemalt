@@ -8,14 +8,14 @@ from tempfile import mkstemp
 from threading import Thread
 import enum, os, re, sys, traceback
 
+from outsidelib import MALTPARSER, SWEMALTDIR, SWEMALTMODEL
 
-SWEMALT = [ 'java', '-jar',            
-            '/proj/kieli/sparv/maltparser-1.7.2/maltparser-1.7.2.jar',
+SWEMALT = [ 'java', '-jar', MALTPARSER,
             '-v', 'warn',
-            '-w', '/proj/kieli/sparv/models/swemalt-1.7.2-wd',
-            '-c', 'swemalt-1.7.2' ]
+            '-w', SWEMALTDIR,
+            '-c', SWEMALTMODEL ]
 
-VERSION = '0.1 (2018-06-08)'
+VERSION = 'TODO move to use argslib! 0.1 (2018-06-08)'
 
 parser = ArgumentParser(description = '''
 

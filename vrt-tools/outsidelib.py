@@ -34,6 +34,35 @@ FINPOS =  (
     '/appl/ling/finnish-tagtools/1.3.2/bin/finnish-postag'
 )
 
+HUNPOSTAG = '/proj/kieli/sparv/hunpos/hunpos-tag'
+
+HUNPOSMODELS = dict(
+    sparv = ( '/proj/kieli/sparv/models/'
+              'hunpos.suc3.suc-tags.default-setting.utf8.model'
+    ),
+)
+
+MALTPARSER = '/proj/kieli/sparv/maltparser-1.7.2/maltparser-1.7.2.jar'
+SWEMALTDIR = '/proj/kieli/sparv/models/swemalt-1.7.2-wd'
+SWEMALTMODEL = 'swemalt-1.7.2'
+
+CSTLEMMA = '/proj/kieli/sparv/cstlemma'
+
+CSTLEMMAMODELS = dict(
+    saldo = [
+        '-d', '/proj/kieli/sparv/models/saldo.cstlemma.dict', # dictionary
+        '-f', '/proj/kieli/sparv/models/saldo.cstlemma.flex', # rules
+    ],
+    suc = [
+        '-d', '/proj/kieli/sparv/models/suc.cstlemma.dict', # dictionary
+        '-f', '/proj/kieli/sparv/models/suc.cstlemma.flex', # rules
+    ],
+    sucsaldo = [
+        '-d', '/proj/kieli/sparv/models/suc-saldo.cstlemma.dict', # dictionary
+        '-f', '/proj/kieli/sparv/models/suc-saldo.cstlemma.flex', # rules
+    ]
+)
+
 def prebins(*paths):
     '''Return the string where paths are prepended to PATH.'''
     return ':'.join(paths +
