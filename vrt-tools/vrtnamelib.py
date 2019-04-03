@@ -3,6 +3,7 @@ from itertools import chain
 import re
 
 from vrtargslib import BadData
+from vrtcommentlib import makevrtcomment, makebinvrtcomment
 
 # Regular expression recognizing a valid extended field name suffix
 _xrest_exp = R'[a-z0-9_.-]+ /?'
@@ -84,12 +85,18 @@ def binxnames(s):
     '''
     return xnames(s).encode('UTF-8')
 
+# Keyword for positional-attribute VRT comments
+_posattr_keyword = 'positional-attributes'
+
 _names_exp = R'''
 # matches valid extended field name comments
 # allowing . in special (temporary) names
 # including + as a special name (in "flat" format)
 
-<!-- \s Positional \s attributes:
+<!-- \s
+(?:   Positional \s attributes
+    | \# vrt \s ''' + _posattr_keyword + R''' )
+:
 
 ( \s ''' + _xname_exp + R''' | \s \+ )+
 
@@ -117,13 +124,13 @@ def isbinnames(bs):
 
 def namelist(nameline):
     if isnames(nameline):
-        return re.findall(R'[\w+]\S*', nameline)[2:]
+        return re.findall(R'[\w+]\S*', nameline.split(':', 1)[1])
 
     raise BadData('invalid positional-attributes comment')
 
 def binnamelist(nameline):
     if isbinnames(nameline):
-        return re.findall(bR'[\w+]\S*', nameline)[2:]
+        return re.findall(bR'[\w+]\S*', nameline.split(b':', 1)[1])
 
     raise BadData('invalid positional-attributes comment')
 
@@ -265,11 +272,10 @@ def insertnames(nameline, atname, *afternames):
         raise BadData('some new name of {} in old names {}'
                       .format(afternames, fieldnames))
 
-    return ' '.join(chain(['<!-- Positional attributes:'],
-                          fieldnames[:at],
-                          afternames,
-                          fieldnames[at:],
-                          ['-->\n']))
+    return makevrtcomment(_posattr_keyword,
+                          ' '.join(chain(fieldnames[:at],
+                                         afternames,
+                                         fieldnames[at:])))
 
 def bininsertnames(nameline, atname, *afternames):
     '''Return the field-name comment (a bytes object) with afternames
@@ -293,8 +299,7 @@ def bininsertnames(nameline, atname, *afternames):
         raise BadData('some new name of {} in old names {}'
                       .format(afternames, fieldnames))
 
-    return b' '.join(chain([b'<!-- Positional attributes:'],
-                           fieldnames[:at],
-                           afternames,
-                           fieldnames[at:],
-                           [b'-->\n']))
+    return makebinvrtcomment(_posattr_keyword.encode('UTF-8'),
+                             b' '.join(chain(fieldnames[:at],
+                                             afternames,
+                                             fieldnames[at:])))
