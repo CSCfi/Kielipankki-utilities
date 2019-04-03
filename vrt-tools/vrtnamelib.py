@@ -245,13 +245,23 @@ def extract_numnameindex(lines, numname, numbase=1):
 
 def insertnames(nameline, atname, *afternames):
     '''Return the field-name comment (a string) with afternames inserted
-    after atname. Or raise an exception if some aftername is not new.
+    after atname. Or raise an exception if some aftername is invalid, not new
+    or duplicated. A field name is not allowed both with and without a
+    trailing slash.
 
     '''
     fieldnames = namelist(nameline)
     at = nameindex(fieldnames, atname) + 1
 
-    if any(name in fieldnames for name in afternames):
+    invalid_names = [name for name in afternames
+                     if not (isxname(name) or name == '+')]
+    if invalid_names:
+        raise BadData('new names {} not valid extended field names'
+                      .format(invalid_names))
+    if len(afternames) != len(set(name.rstrip('/') for name in afternames)):
+        raise BadData('duplicates in new names {}'.format(afternames))
+    fieldnames_noslash = [name.rstrip('/') for name in fieldnames]
+    if any(name.rstrip('/') in fieldnames_noslash for name in afternames):
         raise BadData('some new name of {} in old names {}'
                       .format(afternames, fieldnames))
 
@@ -264,13 +274,22 @@ def insertnames(nameline, atname, *afternames):
 def bininsertnames(nameline, atname, *afternames):
     '''Return the field-name comment (a bytes object) with afternames
     inserted after atname. Or raise an exception if some aftername is
-    not new.
+    invalid, not new or duplicated. A field name is not allowed both
+    with and without a trailing slash.
 
     '''
     fieldnames = binnamelist(nameline)
     at = nameindex(fieldnames, atname) + 1
 
-    if any(name in fieldnames for name in afternames):
+    invalid_names = [name for name in afternames
+                     if not (isxname(name.decode('UTF-8')) or name == b'+')]
+    if invalid_names:
+        raise BadData('new names {} not valid as extended field names'
+                      .format(invalid_names))
+    if len(afternames) != len(set(name.rstrip(b'/') for name in afternames)):
+        raise BadData('duplicates in new names {}'.format(afternames))
+    fieldnames_noslash = [name.rstrip(b'/') for name in fieldnames]
+    if any(name.rstrip(b'/') in fieldnames_noslash for name in afternames):
         raise BadData('some new name of {} in old names {}'
                       .format(afternames, fieldnames))
 
