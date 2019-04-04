@@ -1,9 +1,12 @@
-#+COMMENT: -*- coding: utf-8 -*-
+#+COMMENT: -*- coding: utf-8; eval: (visual-line-mode t); -*-
 
 #+CATEGORY: Work
 
-#+TITLE: Miscellaneous ideas and other notes related to the development of VRT Tools
+#+TITLE: Miscellaneous ideas and other notes related to the development of VRT Tools and the VRT format
 #+AUTHOR: Jyrki Niemi
+
+* Meta
+- Implemented or agreed on parts of this document should perhaps be moved or copied to another document containing a kind of a specification for the VRT format and tools.
 
 * Special (XML) comments in VRT files [2019-02-05 Tue] :vrt_comments:
 - Some VRT Tools make use of special (XML) comments, which should have a common format.
@@ -32,14 +35,36 @@
   : <!-- # Positional attributes: word -->
   - Likewise, other keywords could have a shorter and a longer form, but supporting multiple variants would incur a small overhead.
 
-* Make VRT Tools log processing stages to comments in VRT files [2019-02-05 Tue] :vrt_comments:logging:
+* Make VRT Tools log processing stages to comments in VRT files [2019-02-05 Tue]/[2019-04-04 Thu] :vrt_comments:logging:
 - To preserve a kind of a processing trace of what has been done to produce a VRT file, each VRT tool could add information on its invocation (timestamp, tool name, version and command-line arguments) to the beginning of a VRT file as a special comment:
   : <!-- #vrt process-log: 2019-02-05 11:10:09 +0200: vrt-add-lemma-nobound [0.6.5] --omorfi s24_2001_01.vrt -->
-  - Possible keyword alternatives: ~log~, ~processlog~
+  - Or maybe formatted slightly differently, with pieces of information separated by a separator (e.g. ~|~ or ~#~), to make it easier to process with programs:
+    : <!-- #vrt process-log: 2019-02-05 11:10:09 +0200 | 0.6.5 | vrt-add-lemma-nobound --omorfi s24_2001_01.vrt -->
+  - Possible keyword alternatives: ~log~, ~processlog~, ~processing-log~, ~processed~
   - A ~--~ may not occur within an XML comment, but we can assume (or decide) that it may occur within a VRT comment, so this would not be a problem.
+  - Should we also allow a free-form description of the processing in the comment? For example:
+    : <!-- #vrt process-log: 2019-02-05 11:10:09 +0200: [Added lemmas without compound boundaries] vrt-add-lemma-nobound [0.6.5] --omorfi s24_2001_01.vrt -->
+    : <!-- #vrt process-log: 2019-02-05 11:10:09 +0200 | Added lemmas without compound boundaries | 0.6.5 | vrt-add-lemma-nobound --omorfi s24_2001_01.vrt -->
+  - Should the information also contain the user and host name?
+    : <!-- #vrt process-log: 2019-02-05 11:10:09 +0200 | jyniemi@c308 | Added lemmas without compound boundaries | 0.6.5 | vrt-add-lemma-nobound --omorfi s24_2001_01.vrt -->
+  - Or would it be better to have the logging information at the end of the VRT file?
+    - That would make it possible to make one-pass tools (with reasonable memory requirements) for combining multiple VRT files and their processing comments (see below).
+    - Would it be better to have the logging information at the beginning, immediately visible to a reader of the file (human or program), or at the end, to avoid distraction?
 - Logging could be the default, but it could be suppressed with an option ~--no-logging~.
 - Tools should preserve the logging comments in their input and output them to the output.
   - Tools producing multiple VRT output files should copy the logging comments to all the output files.
+  - Tools combining multiple VRT files into one could output a single instance of identical logging comments and a copy of each of the non-identical ones.
+    - However, if the logging comments are at the beginning of a VRT file, that cannot in general be done in a single pass over the input without storing most of it in memory, as the non-identical logging comments from subsequent files should be appended near the beginning of the output.
+    - One option might be to have a separate tool to combine the logging comments scattered over a concatenated file, to be run after a file-combining tool.
+    - Or maybe such file-combining tools could do such combining as a separate stage.
+      - They would then need to collect the logging comments and at the end of processing, combine them, write to the output file and append the (temporary) output file.
+        - Would that be faster with ~cat~ than with Python?
+    - This would not be a problem if the logging comments were at the end of a VRT file.
+- We could also have a tool for explicitly appending a logging comment to a file. That could be used for example by shell scripts processing VRT (if we also intend to have such).
+- We should have library functions for processing logging comments to make using them as easy and uniform as possible, to do at least the following:
+  - Create a logging comment for a tool invocation with all the required information.
+  - Append a logging comment existing logging comments (perhaps a list of lines also containing other lines than logging comments).
+  - Combine lists of logging comments by preserving only one of identical comments and ordering the comments by their timestamp.
 
 * Partial VRT files and VRT extracting and merging tools [2019-02-05 Tue] :vrt_comments:vrt_extract:vrt_merge:
 ** Partial VRT files
