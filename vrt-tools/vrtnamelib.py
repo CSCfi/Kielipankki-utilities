@@ -250,6 +250,15 @@ def extract_numnameindex(lines, numname, numbase=1):
     [index] = extract_numnameindices(lines, numname, numbase=numbase)
     return index
 
+def makenames(*names):
+    '''Return a field-name comment (string) with names.'''
+    return makevrtcomment(_posattr_keyword, ' '.join(names))
+
+def binmakenames(*names):
+    '''Return a field-name comment (bytes) with names.'''
+    return makebinvrtcomment(_posattr_keyword.encode('UTF-8'),
+                             b' '.join(names))
+
 def insertnames(nameline, atname, *afternames):
     '''Return the field-name comment (a string) with afternames inserted
     after atname. Or raise an exception if some aftername is invalid, not new
@@ -272,10 +281,9 @@ def insertnames(nameline, atname, *afternames):
         raise BadData('some new name of {} in old names {}'
                       .format(afternames, fieldnames))
 
-    return makevrtcomment(_posattr_keyword,
-                          ' '.join(chain(fieldnames[:at],
-                                         afternames,
-                                         fieldnames[at:])))
+    return makenames(*chain(fieldnames[:at],
+                            afternames,
+                            fieldnames[at:]))
 
 def bininsertnames(nameline, atname, *afternames):
     '''Return the field-name comment (a bytes object) with afternames
@@ -299,7 +307,6 @@ def bininsertnames(nameline, atname, *afternames):
         raise BadData('some new name of {} in old names {}'
                       .format(afternames, fieldnames))
 
-    return makebinvrtcomment(_posattr_keyword.encode('UTF-8'),
-                             b' '.join(chain(fieldnames[:at],
-                                             afternames,
-                                             fieldnames[at:])))
+    return binmakenames(*chain(fieldnames[:at],
+                               afternames,
+                               fieldnames[at:]))
