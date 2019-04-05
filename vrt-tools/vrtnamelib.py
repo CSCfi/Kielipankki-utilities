@@ -108,19 +108,29 @@ _names = re.compile(_names_exp, re.ASCII | re.VERBOSE)
 
 _binnames = re.compile(_names_exp.encode('UTF-8'), re.ASCII | re.VERBOSE)
 
+_BINLESSTHAN = b'<'[0]
+
 def isnames(s):
     '''Test if argument string is a valid positional-attributes comment,
     allowing extended field names (see isxname) and + as a field name.
 
     '''
-    return _names.fullmatch(s) is not None
+    # As the names comment occurs seldom and the regular expression test is
+    # slower, it is faster to filter out candidates by other tests first. It
+    # depends on the relative frequencies of tag and non-tag lines whether the
+    # it would be even faster with the first or second test omitted.
+    return (s != '' and s[0] == '<'
+            and s.startswith('<!--')
+            and _names.fullmatch(s) is not None)
 
 def isbinnames(bs):
     '''Test if argument bytes is a valid positional-attributes comment,
     allowing extended field names (see isxname) and + as a field name.
 
     '''
-    return _binnames.fullmatch(bs) is not None
+    return (bs != b'' and bs[0] == _BINLESSTHAN
+            and bs.startswith(b'<!--')
+            and _binnames.fullmatch(bs) is not None)
 
 def namelist(nameline):
     if isnames(nameline):
