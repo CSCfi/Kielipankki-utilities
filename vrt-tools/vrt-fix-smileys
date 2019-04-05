@@ -3,7 +3,7 @@
 
 from vrtargslib import trans_args, trans_main
 
-from vrtnamelib import xname, namelist, nameindex
+from vrtnamelib import xname, namelist, nameindex, isnames
 from vrtdatalib import unescape, asrecord
 
 def parsearguments():
@@ -76,7 +76,7 @@ def main(args, ins, ous):
         line = next(lines, None)
         if line is None:
             return
-        if line.startswith('<!-- Positional attributes:'):
+        if isnames(line):
             wp = nameindex(namelist(line), args.word)
             sp = ( None if args.spaces not in namelist(line)
                    else nameindex(namelist(line), args.spaces) )

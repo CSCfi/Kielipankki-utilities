@@ -7,7 +7,7 @@ import hfst
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 
-from vrtnamelib import xname
+from vrtnamelib import xname, isnames, makenames
 
 from vrtdatalib import unescape, escape
 
@@ -569,7 +569,7 @@ def main(args, ins, ous):
     # act on names and tokens, pass other lines on as they are
     names, pos, inpos, infeat = None, None, None, None
     for line in ins:
-        if line.startswith('<!-- Positional attributes:'):
+        if isnames(line):
             names = re.findall(r'[\w.+]+', line)[2:]
             for name in (args.word, args.inpos, args.infeat):
                 if name not in names:
@@ -583,8 +583,7 @@ def main(args, ins, ous):
             names.insert(pos + 1, args.outfeat)
             names.insert(pos + 1, args.outpos)
             names.insert(pos + 1, args.lemma)
-            print('<!-- Positional attributes:', ' '.join(names), '-->',
-                  file = ous)
+            print(makenames(*names), file = ous)
         elif line.isspace() or line.startswith('<'):
             print(line, end = '', file = ous)
         elif names is None:

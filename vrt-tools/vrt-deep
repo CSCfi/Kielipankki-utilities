@@ -6,6 +6,8 @@ from itertools import groupby, chain
 from tempfile import mkstemp
 import enum, os, re, sys, traceback
 
+from vrtnamelib import isbinnames, binmakenames
+
 VERSION = '0.1 (2018-06-10)'
 
 import signal
@@ -46,8 +48,9 @@ class Kind(enum.Enum):
 
 def identify(line):
     # used to tag lines with their kind
-    if line.startswith(b'<!-- Positional attributes:'): return Kind.names, line
-    if line.startswith(b'<!--'): return Kind.meta, line
+    if line.startswith(b'<!--'):
+        if isbinnames(line): return Kind.names, line
+        else: return Kind.meta, line
     if line.startswith(b'<sentence'): return Kind.begin, line
     if line.startswith(b'</sentence'): return Kind.end, line
     if line.startswith(b'<'): return Kind.meta, line
@@ -61,9 +64,7 @@ def shipnames(ouf, line):
         raise BadData('error: no stored meta column (+)')
 
     names.pop(pos)
-    ouf.write(b' '.join(chain([ b'<!--', b'Positional attributes:' ],
-                              names,
-                              [ b'-->\n' ])))
+    ouf.write(binmakenames(*names))
     return pos
 
 def wrap_main():

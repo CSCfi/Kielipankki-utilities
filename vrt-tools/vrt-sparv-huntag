@@ -9,6 +9,7 @@ from threading import Thread
 import enum, os, re, sys, traceback
 
 from outsidelib import HUNPOSTAG, HUNPOSMODELS
+from vrtnamelib import isbinnames, binmakenames
 
 HUNPOS = [ HUNPOSTAG,
            # could use a morphtable here? from sparv
@@ -68,8 +69,9 @@ class Kind(enum.Enum):
 
 def identify(line):
     # used by groupby to identify the kind of a line group
-    if line.startswith(b'<!-- Positional attributes:'): return Kind.names
-    if line.startswith(b'<!--'): return Kind.comment
+    if line.startswith(b'<!--'):
+        if isbinnames(line): return Kind.names
+        else: return Kind.comment
     if line.startswith(b'<sentence'): return Kind.begin
     if line.startswith(b'<'): return Kind.meta
     return Kind.data
@@ -156,7 +158,7 @@ def addtag(names, word, tag):
     if tag in new: raise BadData('name already in use: {}'
                                  .format(tag.decode('UTF-8')))
     new.insert(new.index(word) + 1, tag)
-    return b' '.join([b'<!-- Positional attributes:'] + new + [b'-->\n'])
+    return binmakenames(*new)
 
 def getword(line, pos):
     return line.rstrip(b'\n').split(b'\t')[pos]

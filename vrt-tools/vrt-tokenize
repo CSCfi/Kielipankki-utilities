@@ -18,6 +18,8 @@ from string import ascii_letters as letters
 from subprocess import Popen, PIPE
 from tempfile import mkstemp
 
+from vrtnamelib import makenames
+
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
@@ -53,7 +55,7 @@ def tokenize(processor, source, target):
         
         # field name should be an option but probably not going to fix
         # this version of the program any further
-        print('<!-- Positional attributes: word -->', file = target)
+        print(makenames('word'), file = target)
 
         dataismark = True # watch out for empty content blocks
         for ismeta, part in groupby(meta, lambda line:

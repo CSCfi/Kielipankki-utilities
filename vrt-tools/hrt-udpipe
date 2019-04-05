@@ -14,6 +14,7 @@ from threading import Thread
 
 from vrtargslib import trans_args, trans_main
 from vrtdatalib import binescape, binasrecord
+from vrtnamelib import binmakenames
 from hrtlib import tokenize
 
 from outsidelib import UDPIPE, UDPIPEMODEL
@@ -100,8 +101,7 @@ def combiner(args):
 
 def implement_combine(args, proc, meta, sent, ouf):
 
-    ouf.write(b'<!-- Positional attributes: id word lemma '
-              b'upos xpos feat head rel aux misc -->\n')
+    ouf.write(binmakenames(b'id word lemma upos xpos feat head rel aux misc'))
 
     for group in (tuple(group)
                   # must reify group to recognize sentinel group

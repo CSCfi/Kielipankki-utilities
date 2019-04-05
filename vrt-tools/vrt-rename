@@ -6,6 +6,7 @@ import enum, os, re, sys, traceback
 
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
+from vrtnamelib import isbinnames, binmakenames
 
 def spectype(text):
     if re.fullmatch(R'[\w.]+=[\w.]+', text):
@@ -40,8 +41,9 @@ class Kind(enum.Enum):
 
 def identify(line):
     # used by groupby to identify the kind of a line group
-    if line.startswith(b'<!-- Positional attributes:'): return Kind.names
-    if line.startswith(b'<!--'): return Kind.comment
+    if line.startswith(b'<!--'):
+        if isbinnames(line): return Kind.names
+        else: return Kind.comment
     if line.startswith(b'<sentence'): return Kind.begin
     if line.startswith(b'<'): return Kind.meta
     return Kind.data
@@ -58,8 +60,7 @@ def makenew(old, args):
     if len(set(new)) < len(new):
         raise BadData('error: duplicate names')
 
-    return b' '.join(chain([b'<!-- Positional attributes:'],
-                           new, [b'-->\n']))
+    return binmakenames(*new)
 
 def main(args, inf, ouf):
     status = 1

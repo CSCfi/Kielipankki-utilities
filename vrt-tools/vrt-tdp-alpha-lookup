@@ -8,7 +8,7 @@ from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 
 from vrtnamelib import xname
-from vrtnamelib import namelist, nameindex, insertnames
+from vrtnamelib import namelist, nameindex, insertnames, isnames
 
 from vrtdatalib import asrecord
 from vrtdatalib import escape, unescape
@@ -370,7 +370,7 @@ def main(args, ins, ous):
     # act on names and tokens, pass other lines on as they are
     pos = None
     for line in ins:
-        if line.startswith('<!-- Positional attributes:'):
+        if isnames(line):
             pos = nameindex(namelist(line), args.word)
             print(insertnames(line, args.word, args.feats),
                   end = '', file = ous)

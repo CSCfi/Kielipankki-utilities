@@ -9,6 +9,7 @@ from threading import Thread
 import enum, os, re, sys, traceback
 
 from outsidelib import MALTPARSER, SWEMALTDIR, SWEMALTMODEL
+from vrtnamelib import isbinnames, binmakenames
 
 SWEMALT = [ 'java', '-jar', MALTPARSER,
             '-v', 'warn',
@@ -78,8 +79,9 @@ class Kind(enum.Enum):
 
 def identify(line):
     # used by groupby to identify the kind of a line group
-    if line.startswith(b'<!-- Positional attributes:'): return Kind.names
-    if line.startswith(b'<!--'): return Kind.comment
+    if line.startswith(b'<!--'):
+        if isbinnames(line): return Kind.names
+        else: return Kind.comment
     if line.startswith(b'<sentence'): return Kind.begin
     if line.startswith(b'<'): return Kind.meta
     return Kind.data
@@ -177,7 +179,7 @@ def addnames(names, atname, *afternames):
                           .format(aftername.decode('UTF-8')))
         else:
             new.insert(new.index(atname) + 1, aftername)
-    return b' '.join([b'<!-- Positional attributes:'] + new + [b'-->\n'])
+    return binmakenames(*new)
 
 def getword(line, pos): # needs to be renamed
     return line.rstrip(b'\n').split(b'\t')[pos]

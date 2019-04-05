@@ -32,10 +32,15 @@ fields that are only positional in basic format. In the basic format
 the declaration of names is only a **comment** but these VRT tools use
 it extensively.
 
-    <!-- Positional attributes: word lemma pos -->
+    <!-- #vrt positional-attributes: word lemma pos -->
 
 Field names facilitate further annotation of tokens regardless of what
 previous annotations exist.
+
+(Please note that the format of the attribute name comment was changed
+slightly for VRT tools version 0.7.2 (2019-04-05). The old-format
+comment with ``Positional attributes`` instead of ``#vrt
+positional-attributes`` is still recognized by the tools.)
 
 A minor innovation is the use of auxiliary formats to facilitate the
 production of VRT from other formats and manipulation of large VRT

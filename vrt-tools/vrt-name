@@ -6,6 +6,7 @@ import enum, os, re, sys, traceback
 
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
+from vrtnamelib import isbinnames, binmakenames
 
 def spectype(text):
     # TODO: name spec is too permissive
@@ -55,8 +56,9 @@ class Kind(enum.Enum):
 
 def identify(line):
     # used by groupby to identify the kind of a line group
-    if line.startswith(b'<!-- Positional attributes:'): return Kind.names
-    if line.startswith(b'<!--'): return Kind.comment
+    if line.startswith(b'<!--'):
+        if isbinnames(line): return Kind.names
+        else: return Kind.comment
     if line.startswith(b'<sentence'): return Kind.begin
     if line.startswith(b'<'): return Kind.meta
     return Kind.data
@@ -72,8 +74,7 @@ def makenames(args):
     if len(set(base)) < len(base):
         raise BadData('error: duplicate names')
 
-    line = b' '.join(chain([b'<!-- Positional attributes:'],
-                           base, [b'-->\n']))
+    line = binmakenames(*base)
     return line, len(base)
 
 def main(args, inf, ouf):
