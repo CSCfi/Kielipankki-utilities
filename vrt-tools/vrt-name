@@ -6,12 +6,13 @@ import enum, os, re, sys, traceback
 
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
-from vrtnamelib import isbinnames, binmakenames
+from vrtnamelib import isxname, isbinnames, binmakenames
 
 def spectype(text):
     # TODO: name spec is too permissive
     # TODO: should reject digit in front
-    if re.fullmatch(R'[1-9][0-9]*=\w+', text):
+    m = re.fullmatch(R'[1-9][0-9]*=(.+)', text)
+    if m and isxname(m.group(1)):
         return text.encode('UTF-8')
     raise BadData('malformed specification: {}'
                   .format(text))

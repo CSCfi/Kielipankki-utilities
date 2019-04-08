@@ -6,10 +6,11 @@ import enum, os, re, sys, traceback
 
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
-from vrtnamelib import isbinnames, binmakenames
+from vrtnamelib import isxname, isbinnames, binmakenames
 
 def spectype(text):
-    if re.fullmatch(R'[\w.]+=[\w.]+', text):
+    m = re.fullmatch(R'(.+?)=(.+)', text)
+    if m and isxname(m.group(1)) and isxname(m.group(2)):
         return text.encode('UTF-8').split(b'=')
     raise ArgumentTypeError('malformed specification: {}'
                             .format(text))

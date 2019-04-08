@@ -17,7 +17,7 @@ from html import unescape, escape
 from operator import itemgetter
 from unicodedata import category
 
-from vrtnamelib import isnames
+from vrtnamelib import isxname, isnames
 
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -177,10 +177,7 @@ def validatecomment(k, line, respond):
         respond(k, 'form', 'error', 'empty field name comment')
         return
 
-    if any(not (name.isidentifier() and
-                all(ch in string.ascii_letters for ch in name
-                    if ch.isalpha()))
-            for name in names):
+    if any(not isxname(name) for name in names):
         respond(k, 'form', 'error', 'bad field name')
         return
 

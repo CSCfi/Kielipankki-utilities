@@ -392,17 +392,18 @@ test(tag = 'good-field-comment-newformat',
 
      document =
      ( b'<text>\n'
-       b'<!-- #vrt positional-attributes: foo bar -->\n'
+       # Test different kinds of valid (extended) attribute names
+       b'<!-- #vrt positional-attributes: foo bar/ a-b _ab a1 a.1 -->\n'
        b'<sentence>\n'
-       b'-\t-\n'
+       b'-\t|\t-\t-\t-\t-\n'
        b'</sentence>\n'
        b'</text>\n' ),
 
      expected =
      report(('1', 'name', 'info', 'opened element: text'),
             ('2', 'form', 'info', 'comment'),
-            ('2', 'name', 'info', 'field names: foo bar'),
-            ('2', 'data', 'info', 'number of fields: 2'),
+            ('2', 'name', 'info', 'field names: foo bar/ a-b _ab a1 a.1'),
+            ('2', 'data', 'info', 'number of fields: 6'),
             ('3', 'name', 'info', 'opened element: sentence')),
      command = INFO_COMMAND)
 
