@@ -9,7 +9,8 @@ from threading import Thread
 import enum, os, re, sys, traceback
 
 from outsidelib import HUNPOSTAG, HUNPOSMODELS
-from vrtnamelib import isbinnames, binmakenames
+from vrtnamelib import isbinnames
+from vrtnamelib import binnamelist, nameindex, bininsertnames
 
 HUNPOS = [ HUNPOSTAG,
            # could use a morphtable here? from sparv
@@ -134,7 +135,7 @@ def implement_combine(hunpos, copy, out):
 
         if kind is Kind.names:
             for line in group:
-                pos = getpos(line, args.tag)
+                pos = nameindex(binnamelist(line), args.tag)
                 out.write(line)
             else:
                 continue
@@ -144,23 +145,8 @@ def implement_combine(hunpos, copy, out):
         else:
             continue
 
-def getpos(names, name):
-    namelist = re.findall(br'[\w+]+', names)[2:]
-    try:
-        return namelist.index(name)
-    except ValueError:
-        raise BadData('no such name: {}'.format(name.decode('UTF-8')))
-
-def addtag(names, word, tag):
-    new = re.findall(br'[\w+]+', names)[2:]
-    if word not in new: raise BadData('no such name: {}'
-                                      .format(word.decode('UTF-8')))
-    if tag in new: raise BadData('name already in use: {}'
-                                 .format(tag.decode('UTF-8')))
-    new.insert(new.index(word) + 1, tag)
-    return binmakenames(*new)
-
 def getword(line, pos):
+    # todo use datalib for this too
     return line.rstrip(b'\n').split(b'\t')[pos]
 
 def wrap_main():
@@ -294,8 +280,9 @@ def implement_main(inf, hunpos, copy):
 
         if kind is Kind.names:
             for line in group:
-                pos = getpos(line, args.word)
-                copy.stdin.write(addtag(line, args.word, args.tag))
+                pos = nameindex(binnamelist(line), args.word)
+                copy.stdin.write(bininsertnames(line, args.word,
+                                                args.tag))
             else:
                 continue
 
