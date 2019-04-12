@@ -7,7 +7,8 @@ import hfst
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 
-from vrtnamelib import xname, isnames, makenames
+from vrtnamelib import xname, isnames
+from vrtnamelib import namelist, nameindices, insertnames
 
 from vrtdatalib import unescape, escape
 
@@ -567,26 +568,23 @@ def main(args, ins, ous):
     tin.close() # it *should* be made a context manager TOREPORT
 
     # act on names and tokens, pass other lines on as they are
-    names, pos, inpos, infeat = None, None, None, None
+    names, pos, inpos, infeat = False, None, None, None
     for line in ins:
         if isnames(line):
-            names = re.findall(r'[\w.+]+', line)[2:]
-            for name in (args.word, args.inpos, args.infeat):
-                if name not in names:
-                    raise BadData('no such name: {}'.format(name))
-            for name in (args.lemma, args.outpos, args.outfeat):
-                if name in names:
-                    raise BadData('name already in used: {}'.format(name))
-            pos = names.index(args.word)
-            inpos = names.index(args.inpos)
-            infeat = names.index(args.infeat)
-            names.insert(pos + 1, args.outfeat)
-            names.insert(pos + 1, args.outpos)
-            names.insert(pos + 1, args.lemma)
-            print(makenames(*names), file = ous)
+            names = True
+            pos, inpos, infeat = nameindices(namelist(line),
+                                             args.word,
+                                             args.inpos,
+                                             args.infeat)
+            print(insertnames(line, args.word,
+                              args.lemma,
+                              args.outpos,
+                              args.outfeat),
+                  end = '',
+                  file = ous)
         elif line.isspace() or line.startswith('<'):
             print(line, end = '', file = ous)
-        elif names is None:
+        elif not names:
             raise BadData('no names')
         elif not args.debug:
             record = line.rstrip('\n\r').split('\t')
