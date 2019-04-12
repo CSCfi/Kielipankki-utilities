@@ -32,17 +32,17 @@ def parsearguments():
 
     parser.add_argument('--model',
                         choices = [
-                            'finnish-tdt-ud',
-                            'finnish-ftb-ud',
-                            'swedish-talbanken-ud',
-                            'english-ewt-ud',
-                            'english-gum-ud',
+                            'finnish-tdt',
+                            'finnish-ftb',
+                            'swedish-talbanken',
+                            'english-ewt',
+                            'english-gum',
                             # ADD MODELS
                         ],
-                        default = 'finnish-tdt-ud',
+                        default = 'finnish-tdt',
                         help = '''
 
-                        UDPipe language model (default finnish-tdt-ud)
+                        UDPipe language model (default finnish-tdt)
 
                         ''')
 
