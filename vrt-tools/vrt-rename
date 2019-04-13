@@ -1,12 +1,14 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
+from argparse import ArgumentTypeError
 from itertools import groupby, chain
 import enum, os, re, sys, traceback
 
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 from vrtnamelib import isxname, isbinnames, binmakenames
+from vrtnamelib import binnamelist
 
 def spectype(text):
     m = re.fullmatch(R'(.+?)=(.+)', text)
@@ -50,7 +52,7 @@ def identify(line):
     return Kind.data
 
 def makenew(old, args):
-    names = re.findall(br'[\w.+]+', old)[2:]
+    names = binnamelist(old)
     rep = dict(args.mapping)
     for name in rep:
         if name not in names:

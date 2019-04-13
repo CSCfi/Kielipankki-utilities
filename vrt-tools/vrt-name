@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
+from argparse import ArgumentTypeError
 from itertools import groupby, chain
 import enum, os, re, sys, traceback
 
@@ -9,19 +10,17 @@ from vrtargslib import BadData, BadCode
 from vrtnamelib import isxname, isbinnames, binmakenames
 
 def spectype(text):
-    # TODO: name spec is too permissive
-    # TODO: should reject digit in front
     m = re.fullmatch(R'[1-9][0-9]*=(.+)', text)
     if m and isxname(m.group(1)):
         return text.encode('UTF-8')
-    raise BadData('malformed specification: {}'
-                  .format(text))
+    raise ArgumentTypeError('malformed specification: {}'
+                            .format(text))
 
 def numtype(text):
     if re.fullmatch(R'[1-9][0-9]*', text):
         return int(text)
-    raise BadData('malformed number of fields: {}'
-                  .format(text))
+    raise ArgumentTypeError('malformed number of fields: {}'
+                            .format(text))
 
 def parsearguments():
     description = '''
@@ -29,7 +28,7 @@ def parsearguments():
     Insert a positional-attributes comment at the beginning of a vrt
     document to give names for the fields. Also replace any existing
     positional-attributes comment. Fail if the number of fields does
-    not match the new names. (Default names are V1, v2, ...)
+    not match the new names. (Default names are v1, v2, ...)
 
 '''
 
