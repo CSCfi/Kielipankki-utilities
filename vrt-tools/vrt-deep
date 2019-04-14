@@ -7,8 +7,9 @@ from tempfile import mkstemp
 import enum, os, re, sys, traceback
 
 from vrtnamelib import isbinnames, binmakenames
+from vrtnamelib import binnamelist
 
-VERSION = '0.1 (2018-06-10)'
+VERSION = 'TODO 0.1 (2018-06-10)'
 
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -57,7 +58,7 @@ def identify(line):
     return Kind.data, line
 
 def shipnames(ouf, line):
-    names = re.findall(br'[\w+.]+', line)[2:]
+    names = binnamelist(line)
     try:
         pos = names.index(b'+')
     except IndexError:
