@@ -1,4 +1,6 @@
-# bash this
+# bash this from where ever (e.g. in vrt-tools)
+# TODO: remove output files? except may need them for post mortem?
+# TODO: maybe .gitignore them?
 
 set -e
 
@@ -10,8 +12,8 @@ then
    exit 2
 else
     cd "$(dirname ${BASH_SOURCE[0]})"
-    PACK=$(readlink -e ../vrt-pack-dir)
-    UNPACK=$(readlink -e ../vrt-unpack-dir)
+    PACK=$(readlink -e ../../vrt-pack)
+    UNPACK=$(readlink -e ../../vrt-unpack)
     date "+%F %T Run tests on ${PACK}"
     date "+%F %T Run tests on ${UNPACK}"
     date "+%F %T Run tests in $(pwd)"
@@ -47,13 +49,13 @@ ok_data_trip () {
 		echo
 	    done |
 	    grep -v -x '' |
-	    grep -v '<!-- Positional attributes'
+	    grep -v '<!-- #vrt positional-attributes:'
     ) \
 	 <(
 	find $2 -name '*.vrt' |
 	    sort |
 	    xargs cat |
-	    grep -v '<!-- Positional attributes'
+	    grep -v '<!-- #vrt positional-attributes:'
     )
 }
 
@@ -61,7 +63,7 @@ ok_have_names () {
     [ $(
 	  find $1 -type f |
 	      xargs -n 1 head -n 2 |
-	      grep -c '<!-- Positional attributes'
+	      grep -c '<!-- #vrt positional-attributes:'
       ) = \
 	$( find $1 -type f | wc -l ) ]
 }

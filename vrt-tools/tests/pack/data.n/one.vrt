@@ -1,4 +1,4 @@
-<!-- Positional attributes: word -->
+<!-- #vrt positional-attributes: word -->
 <text file="one.vrt" size="20" source="https://fi.lipsum.com" unit="paragraph">
 <paragraph n="1">
 <sentence>

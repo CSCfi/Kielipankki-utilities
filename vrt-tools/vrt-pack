@@ -113,7 +113,7 @@ def makesource(inf, path):
             frak += 1
             return frak - 1
 
-        if isbinnames(line)
+        if isbinnames(line):
             names = line
 
         return frak
