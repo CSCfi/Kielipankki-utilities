@@ -9,7 +9,7 @@ import enum, os, re, sys, traceback
 from vrtnamelib import isbinnames, binmakenames
 from vrtnamelib import binnamelist
 
-VERSION = 'TODO 0.1 (2018-06-10)'
+from vrtargslib import VERSION
 
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -179,6 +179,6 @@ def ship(ouf, pos, line):
 if __name__ == '__main__':
     args = parser.parse_args()
     if args.version:
-        print(VERSION)
+        print('vrt tools', VERSION)
     else:
         wrap_main()

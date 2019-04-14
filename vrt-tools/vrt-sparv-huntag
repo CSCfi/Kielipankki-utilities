@@ -12,12 +12,12 @@ from outsidelib import HUNPOSTAG, HUNPOSMODELS
 from vrtnamelib import isbinnames
 from vrtnamelib import binnamelist, nameindex, bininsertnames
 
+from vrtargslib import VERSION
+
 HUNPOS = [ HUNPOSTAG,
            # could use a morphtable here? from sparv
            HUNPOSMODELS['sparv']
 ]
-
-VERSION = 'TODO move to use argslib! 0.2 (2018-06-08)'
 
 parser = ArgumentParser(description = '''
 
@@ -294,5 +294,5 @@ def implement_main(inf, hunpos, copy):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    if args.version: print(VERSION) ; exit(0)
+    if args.version: print('vrt tools', VERSION) ; exit(0)
     wrap_main()

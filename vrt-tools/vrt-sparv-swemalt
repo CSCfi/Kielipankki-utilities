@@ -13,12 +13,12 @@ from vrtnamelib import isbinnames
 from vrtnamelib import binnamelist, nameindex, nameindices
 from vrtnamelib import bininsertnames
 
+from vrtargslib import VERSION
+
 SWEMALT = [ 'java', '-jar', MALTPARSER,
             '-v', 'warn',
             '-w', SWEMALTDIR,
             '-c', SWEMALTMODEL ]
-
-VERSION = 'TODO move to use argslib! 0.1 (2018-06-08)'
 
 parser = ArgumentParser(description = '''
 
@@ -328,6 +328,6 @@ def implement_main(inf, swemalt, copy):
 if __name__ == '__main__':
     args = parser.parse_args()
     if args.version:
-        print(VERSION)
+        print('vrt tools', VERSION)
     else:
         wrap_main()

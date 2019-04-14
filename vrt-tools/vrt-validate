@@ -19,6 +19,8 @@ from unicodedata import category
 
 from vrtnamelib import isxname, isnames
 
+from vrtargslib import VERSION
+
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
@@ -544,7 +546,7 @@ def main():
     args = parser.parse_args()
     
     if args.version:
-        print('vrt-validate 0.4b (FIN-CLARIN 2018)')
+        print('vrt-validate: vrt tools', VERSION)
         exit(0)
     
     respond = responder(args)
