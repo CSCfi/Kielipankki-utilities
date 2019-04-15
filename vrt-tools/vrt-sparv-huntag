@@ -9,13 +9,15 @@ from threading import Thread
 import enum, os, re, sys, traceback
 
 from outsidelib import HUNPOSTAG, HUNPOSMODELS
+from vrtnamelib import isbinnames
+from vrtnamelib import binnamelist, nameindex, bininsertnames
+
+from vrtargslib import VERSION
 
 HUNPOS = [ HUNPOSTAG,
            # could use a morphtable here? from sparv
            HUNPOSMODELS['sparv']
 ]
-
-VERSION = 'TODO move to use argslib! 0.2 (2018-06-08)'
 
 parser = ArgumentParser(description = '''
 
@@ -68,8 +70,9 @@ class Kind(enum.Enum):
 
 def identify(line):
     # used by groupby to identify the kind of a line group
-    if line.startswith(b'<!-- Positional attributes:'): return Kind.names
-    if line.startswith(b'<!--'): return Kind.comment
+    if line.startswith(b'<!--'):
+        if isbinnames(line): return Kind.names
+        else: return Kind.comment
     if line.startswith(b'<sentence'): return Kind.begin
     if line.startswith(b'<'): return Kind.meta
     return Kind.data
@@ -132,7 +135,7 @@ def implement_combine(hunpos, copy, out):
 
         if kind is Kind.names:
             for line in group:
-                pos = getpos(line, args.tag)
+                pos = nameindex(binnamelist(line), args.tag)
                 out.write(line)
             else:
                 continue
@@ -142,23 +145,8 @@ def implement_combine(hunpos, copy, out):
         else:
             continue
 
-def getpos(names, name):
-    namelist = re.findall(br'[\w+]+', names)[2:]
-    try:
-        return namelist.index(name)
-    except ValueError:
-        raise BadData('no such name: {}'.format(name.decode('UTF-8')))
-
-def addtag(names, word, tag):
-    new = re.findall(br'[\w+]+', names)[2:]
-    if word not in new: raise BadData('no such name: {}'
-                                      .format(word.decode('UTF-8')))
-    if tag in new: raise BadData('name already in use: {}'
-                                 .format(tag.decode('UTF-8')))
-    new.insert(new.index(word) + 1, tag)
-    return b' '.join([b'<!-- Positional attributes:'] + new + [b'-->\n'])
-
 def getword(line, pos):
+    # todo use datalib for this too
     return line.rstrip(b'\n').split(b'\t')[pos]
 
 def wrap_main():
@@ -292,8 +280,9 @@ def implement_main(inf, hunpos, copy):
 
         if kind is Kind.names:
             for line in group:
-                pos = getpos(line, args.word)
-                copy.stdin.write(addtag(line, args.word, args.tag))
+                pos = nameindex(binnamelist(line), args.word)
+                copy.stdin.write(bininsertnames(line, args.word,
+                                                args.tag))
             else:
                 continue
 
@@ -305,5 +294,5 @@ def implement_main(inf, hunpos, copy):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    if args.version: print(VERSION) ; exit(0)
+    if args.version: print('vrt tools', VERSION) ; exit(0)
     wrap_main()

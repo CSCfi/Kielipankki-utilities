@@ -34,8 +34,13 @@ def parsearguments():
 
     # so the defaults are not valid values of the type?
     parser.add_argument('--prefix', '-p', metavar = 'fix',
-                        type = binxname, default = b'',
-                        help = 'prefix to output field names')
+                        type = binxname, default = b'finer-',
+                        help = '''
+
+                        prefix to output field names
+                        (default "finer-")
+
+                        ''')
     parser.add_argument('--suffix', '-s', metavar = 'fix',
                         type = binxrest, default = b'',
                         help = 'suffix to output field names')
@@ -164,6 +169,14 @@ def implement_main(args, ins, fine, copy):
         # there shall always be final meta
         copy.put(())
 
+def kvpairs(args, pairs):
+    '''Rewrite [k1=v1][k2=v2] as k1=v1|k2=v2, assuming that brackets and
+    bars do not occur otherwise.
+
+    '''
+
+    return pairs.strip(b'[]').replace(b'][', b'|')
+
 def combine(args, fine, copy, out):
     '''Read finer output (word TAB lemma TAB msd TAB aux TAB nergag NL /
     NL) and flat vrt from the copy process. Insert analysis from finer
@@ -222,8 +235,8 @@ def implement_combine(args, fine, copy, out):
                 form, lemma, msd, aux, nertag
             ] = asrecord(new)
             old.insert(at + 1, escape(nertag) or b'_')
-            old.insert(at + 1, escape(aux) or b'_')
-            old.insert(at + 1, escape(msd) or b'_')
+            old.insert(at + 1, escape(kvpairs(args, aux)) or b'_')
+            old.insert(at + 1, escape(kvpairs(args, msd)) or b'_')
             old.insert(at + 1, escape(lemma) or b'_')
         else:
             shipdata(data, out)

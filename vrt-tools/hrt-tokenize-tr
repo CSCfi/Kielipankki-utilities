@@ -17,6 +17,7 @@ from threading import Thread
 
 from vrtargslib import trans_args, trans_main
 from vrtdatalib import binescape
+from vrtnamelib import binmakenames
 from hrtlib import tokenize
 
 def parsearguments():
@@ -76,7 +77,7 @@ def combiner(args):
 
 def implement_combine(args, proc, meta, sent, ouf):
 
-    ouf.write(b'<!-- Positional attributes: word -->\n')
+    ouf.write(binmakenames(b'word'))
 
     for group in (tuple(group)
                   # must reify group to recognize sentinel group

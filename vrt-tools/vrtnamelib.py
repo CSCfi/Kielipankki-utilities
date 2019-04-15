@@ -3,17 +3,27 @@ from itertools import chain
 import re
 
 from vrtargslib import BadData
+from vrtcommentlib import makevrtcomment, makebinvrtcomment
+
+# Regular expression recognizing a valid extended field name suffix
+_xrest_exp = R'[a-z0-9_.-]+ /?'
+# Regular expression recognizing a valid extended field name
+_xname_exp = R'(?![\d.-]) ' + _xrest_exp
 
 def isxname(s):
     '''Test that the argument string is valid as an extended field name in
     VRT. Valid field names in VRT consist of ASCII letters, digits,
-    and underscores, and start with a letter or an underscore.
+    underscores and hyphens, and start with a letter or an underscore.
     Extended names may also contain ASCII periods (but still start
-    with a letter or an underscore).
+    with a letter or an underscore) and may end with a slash to indicate
+    a feature-set attribute.
 
     '''
-    return re.fullmatch(R' (?![\d.]) [\w.]+ ', s,
-                        re.ASCII | re.VERBOSE)
+    # Even though cwb-encode can encode attributes with names beginning
+    # with a hyphen, CQP apparently cannot use them in (at least as of
+    # CWB 3.4.10). A name starting with a hyphen might not be a good idea
+    # anyway, so we do not allow them.
+    return re.fullmatch(_xname_exp, s, re.ASCII | re.VERBOSE)
 
 def isxrest(s):
     '''Test that the argument is a valid suffix to an extended field name
@@ -21,7 +31,7 @@ def isxrest(s):
     period.
 
     '''
-    return re.fullmatch(R'[\w.]+', s, re.ASCII | re.VERBOSE)
+    return re.fullmatch(_xrest_exp, s, re.ASCII | re.VERBOSE)
 
 def xname(s):
     '''Return a valid name (see isxname), or raise an exception. Usable as
@@ -75,14 +85,20 @@ def binxnames(s):
     '''
     return xnames(s).encode('UTF-8')
 
+# Keyword for positional-attribute VRT comments
+_posattr_keyword = 'positional-attributes'
+
 _names_exp = R'''
 # matches valid extended field name comments
 # allowing . in special (temporary) names
 # including + as a special name (in "flat" format)
 
-<!-- \s Positional \s attributes:
+<!-- \s
+(?:   Positional \s attributes
+    | \# vrt \s ''' + _posattr_keyword + R''' )
+:
 
-( \s (?![\d.]) [\w.]+ | \s \+ )+
+( \s ''' + _xname_exp + R''' | \s \+ )+
 
 \s --> \r? \n?
 
@@ -92,29 +108,39 @@ _names = re.compile(_names_exp, re.ASCII | re.VERBOSE)
 
 _binnames = re.compile(_names_exp.encode('UTF-8'), re.ASCII | re.VERBOSE)
 
+_BINLESSTHAN = b'<'[0]
+
 def isnames(s):
     '''Test if argument string is a valid positional-attributes comment,
     allowing extended field names (see isxname) and + as a field name.
 
     '''
-    return _names.fullmatch(s) is not None
+    # As the names comment occurs seldom and the regular expression test is
+    # slower, it is faster to filter out candidates by other tests first. It
+    # depends on the relative frequencies of tag and non-tag lines whether the
+    # it would be even faster with the first or second test omitted.
+    return (s != '' and s[0] == '<'
+            and s.startswith('<!--')
+            and _names.fullmatch(s) is not None)
 
 def isbinnames(bs):
     '''Test if argument bytes is a valid positional-attributes comment,
     allowing extended field names (see isxname) and + as a field name.
 
     '''
-    return _binnames.fullmatch(bs) is not None
+    return (bs != b'' and bs[0] == _BINLESSTHAN
+            and bs.startswith(b'<!--')
+            and _binnames.fullmatch(bs) is not None)
 
 def namelist(nameline):
     if isnames(nameline):
-        return re.findall(R'[\w.+]+', nameline)[2:]
+        return re.findall(R'[\w+]\S*', nameline.split(':', 1)[1])
 
     raise BadData('invalid positional-attributes comment')
 
 def binnamelist(nameline):
     if isbinnames(nameline):
-        return re.findall(bR'[\w.+]+', nameline)[2:]
+        return re.findall(bR'[\w+]\S*', nameline.split(b':', 1)[1])
 
     raise BadData('invalid positional-attributes comment')
 
@@ -234,39 +260,63 @@ def extract_numnameindex(lines, numname, numbase=1):
     [index] = extract_numnameindices(lines, numname, numbase=numbase)
     return index
 
+def makenames(*names):
+    '''Return a field-name comment (string) with names.'''
+    return makevrtcomment(_posattr_keyword, ' '.join(names))
+
+def binmakenames(*names):
+    '''Return a field-name comment (bytes) with names.'''
+    return makebinvrtcomment(_posattr_keyword.encode('UTF-8'),
+                             b' '.join(names))
+
 def insertnames(nameline, atname, *afternames):
     '''Return the field-name comment (a string) with afternames inserted
-    after atname. Or raise an exception if some aftername is not new.
+    after atname. Or raise an exception if some aftername is invalid, not new
+    or duplicated. A field name is not allowed both with and without a
+    trailing slash.
 
     '''
     fieldnames = namelist(nameline)
     at = nameindex(fieldnames, atname) + 1
 
-    if any(name in fieldnames for name in afternames):
+    invalid_names = [name for name in afternames
+                     if not (isxname(name) or name == '+')]
+    if invalid_names:
+        raise BadData('new names {} not valid extended field names'
+                      .format(invalid_names))
+    if len(afternames) != len(set(name.rstrip('/') for name in afternames)):
+        raise BadData('duplicates in new names {}'.format(afternames))
+    fieldnames_noslash = [name.rstrip('/') for name in fieldnames]
+    if any(name.rstrip('/') in fieldnames_noslash for name in afternames):
         raise BadData('some new name of {} in old names {}'
                       .format(afternames, fieldnames))
 
-    return ' '.join(chain(['<!-- Positional attributes:'],
-                          fieldnames[:at],
-                          afternames,
-                          fieldnames[at:],
-                          ['-->\n']))
+    return makenames(*chain(fieldnames[:at],
+                            afternames,
+                            fieldnames[at:]))
 
 def bininsertnames(nameline, atname, *afternames):
     '''Return the field-name comment (a bytes object) with afternames
     inserted after atname. Or raise an exception if some aftername is
-    not new.
+    invalid, not new or duplicated. A field name is not allowed both
+    with and without a trailing slash.
 
     '''
     fieldnames = binnamelist(nameline)
     at = nameindex(fieldnames, atname) + 1
 
-    if any(name in fieldnames for name in afternames):
+    invalid_names = [name for name in afternames
+                     if not (isxname(name.decode('UTF-8')) or name == b'+')]
+    if invalid_names:
+        raise BadData('new names {} not valid as extended field names'
+                      .format(invalid_names))
+    if len(afternames) != len(set(name.rstrip(b'/') for name in afternames)):
+        raise BadData('duplicates in new names {}'.format(afternames))
+    fieldnames_noslash = [name.rstrip(b'/') for name in fieldnames]
+    if any(name.rstrip(b'/') in fieldnames_noslash for name in afternames):
         raise BadData('some new name of {} in old names {}'
                       .format(afternames, fieldnames))
 
-    return b' '.join(chain([b'<!-- Positional attributes:'],
-                           fieldnames[:at],
-                           afternames,
-                           fieldnames[at:],
-                           [b'-->\n']))
+    return binmakenames(*chain(fieldnames[:at],
+                               afternames,
+                               fieldnames[at:]))

@@ -35,8 +35,13 @@ def parsearguments():
 
     # so the defaults are not valid values of the type?
     parser.add_argument('--prefix', '-p', metavar = 'fix',
-                        type = binxname, default = b'',
-                        help = 'prefix to output field names')
+                        type = binxname, default = b'finpos-',
+                        help = '''
+
+                        prefix to output field names
+                        (default "finpos-")
+
+                        ''')
     parser.add_argument('--suffix', '-s', metavar = 'fix',
                         type = binxrest, default = b'',
                         help = 'suffix to output field names')
@@ -149,6 +154,14 @@ def implement_main(args, ins, finpos, copy):
         # there shall always be final meta
         copy.put(())
 
+def kvpairs(args, pairs):
+    '''Rewrite [k1=v1]|[k2=v2] as k1=v1|k2=v2, assuming that brackets and
+    bars do not occur otherwise.
+
+    '''
+
+    return pairs.strip(b'[]').replace(b']|[', b'|')
+
 def combine(args, finpos, copy, out):
     '''Read finpos output (word TAB lemma TAB msd NL / NL) and flat vrt
     from the copy process. Insert analysis from finpos to the vrt at
@@ -206,7 +219,7 @@ def implement_combine(args, finpos, copy, out):
             [
                 form, lemma, msd
             ] = asrecord(new)
-            old.insert(at + 1, escape(msd) or b'_')
+            old.insert(at + 1, escape(kvpairs(args, msd)) or b'_')
             old.insert(at + 1, escape(lemma) or b'_')
         else:
             shipdata(data, out)

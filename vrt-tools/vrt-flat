@@ -6,7 +6,10 @@ from itertools import groupby, chain
 from tempfile import mkstemp
 import enum, os, re, sys, traceback
 
-VERSION = '0.1 (2018-06-09)'
+from vrtnamelib import isbinnames, binmakenames
+from vrtnamelib import binnamelist
+
+from vrtargslib import VERSION
 
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -49,7 +52,6 @@ class Kind(enum.Enum):
 
 def identify(line):
     # used to tag lines with their kind
-    if line.startswith(b'<!-- Positional attributes:'): return Kind.meta, line
     if line.startswith(b'<!--'): return Kind.meta, line
     if line.startswith(b'<sentence'): return Kind.begin, line
     if line.startswith(b'</sentence'): return Kind.end, line
@@ -57,14 +59,12 @@ def identify(line):
     return Kind.data, line
 
 def makenames(line):
-    names = re.findall(br'[\w+.]+', line)[2:]
+    names = binnamelist(line)
     if any(name == b'+' for name in names):
         raise BadData('error: document is already flat')
 
     names.insert(1 if args.second else len(names), b'+')
-    return b' '.join(chain([ b'<!--', b'Positional attributes:' ],
-                           names,
-                           [ b'-->\n' ]))
+    return binmakenames(*names)
 
 def wrap_main():
 
@@ -166,14 +166,14 @@ def implement_main(inf, ouf):
                 elif kind is Kind.data:
                     raise BadCode('this cannot happen (data)')
                 elif kind is Kind.meta and begin:
-                    if line.startswith(b'<!-- Positional attributes:'):
+                    if isbinnames(line):
                         ouf.write(makenames(line))
                     elif line.startswith(b'</'):
                         ouf.write(line)
                     else:
                         before.append(line.rstrip(b'\n'))
                 elif kind is Kind.meta and token:
-                    if line.startswith(b'<!-- Positional attributes:'):
+                    if isbinnames(line):
                         print(parser.prog + ': warning:',
                               'dropping names in sentence',
                               file = sys.stderr)
@@ -200,7 +200,7 @@ def implement_main(inf, ouf):
             continue
 
         if kind is Kind.meta:
-            if line.startswith(b'<!-- Positional attributes:'):
+            if isbinnames(line):
                 seen = True
                 ouf.write(makenames(line))
             else:
@@ -230,6 +230,6 @@ def ship(ouf, before, token, after, *, end = False):
 if __name__ == '__main__':
     args = parser.parse_args()
     if args.version:
-        print(VERSION)
+        print('vrt tools', VERSION)
     else:
         wrap_main()

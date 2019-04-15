@@ -8,6 +8,7 @@ import os, re, sys
 
 from vrtargslib import version_args
 from vrtargslib import BadData, BadCode
+from vrtnamelib import isbinnames
 
 def parsearguments():
     description = '''
@@ -127,7 +128,7 @@ def makesink(target, targetname, member, sentinel):
             return
 
         first = next(fragment)
-        while first.startswith(b'<!-- Positional attributes:'):
+        while isbinnames(first):
             names = first
             first = next(fragment)
 
@@ -150,7 +151,7 @@ def makesink(target, targetname, member, sentinel):
 
         for line in fragment:
             if line.startswith(b'</...>'): continue
-            if line.startswith(b'<!-- Positional attributes:'):
+            if isbinnames(line):
                 names = line
             out.write(line)
 

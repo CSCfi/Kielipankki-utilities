@@ -17,6 +17,10 @@ from html import unescape, escape
 from operator import itemgetter
 from unicodedata import category
 
+from vrtnamelib import isxname, isnames
+
+from vrtargslib import VERSION
+
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
@@ -145,7 +149,10 @@ comment = re.compile(R'''
 # matched against the contens of a comment;
 # names validated separately after matching
 fieldnamespec = re.compile(R'''
-    \s* Positional \s+ attributes \s* :
+    \s*
+    (?:   Positional \s+ attributes
+        | \# vrt \s+ positional-attributes )
+    \s* :
     (.*)
 ''', re.VERBOSE)
 
@@ -172,10 +179,7 @@ def validatecomment(k, line, respond):
         respond(k, 'form', 'error', 'empty field name comment')
         return
 
-    if any(not (name.isidentifier() and
-                all(ch in string.ascii_letters for ch in name
-                    if ch.isalpha()))
-            for name in names):
+    if any(not isxname(name) for name in names):
         respond(k, 'form', 'error', 'bad field name')
         return
 
@@ -183,6 +187,12 @@ def validatecomment(k, line, respond):
         respond(k, 'form', 'error', 'duplicate field name: {}'
                 .format(' '.join(sorted(name for name in set(names)
                                         if names.count(name) > 1))))
+        return
+
+    if not isnames(line):
+        # The fieldnamespec regular expression above is more flexible with
+        # spaces than isnames; catch the discrepancies here.
+        respond(k, 'form', 'error', 'malformed field name comment')
         return
 
     respond(k, 'name', 'info', 'field names: {}'.format(' '.join(names)))
@@ -536,7 +546,7 @@ def main():
     args = parser.parse_args()
     
     if args.version:
-        print('vrt-validate 0.4b (FIN-CLARIN 2018)')
+        print('vrt-validate: vrt tools', VERSION)
         exit(0)
     
     respond = responder(args)

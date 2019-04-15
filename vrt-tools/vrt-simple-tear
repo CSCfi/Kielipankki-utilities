@@ -9,6 +9,7 @@ from vrtargslib import BadData
 
 from vrtnamelib import xname
 from vrtnamelib import namelist, nameindex
+from vrtnamelib import isnames
 
 from vrtdatalib import asrecord
 
@@ -40,7 +41,7 @@ def main(args, inf, ouf):
                 continue
 
             print(line, end = '', file = ouf)
-            if line.startswith('<!-- Positional attributes:'):
+            if isnames(line):
                 # grab word position
                 wp = nameindex(namelist(line), args.word)
     except StopIteration:

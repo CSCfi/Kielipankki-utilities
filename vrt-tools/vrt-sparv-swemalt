@@ -9,13 +9,16 @@ from threading import Thread
 import enum, os, re, sys, traceback
 
 from outsidelib import MALTPARSER, SWEMALTDIR, SWEMALTMODEL
+from vrtnamelib import isbinnames
+from vrtnamelib import binnamelist, nameindex, nameindices
+from vrtnamelib import bininsertnames
+
+from vrtargslib import VERSION
 
 SWEMALT = [ 'java', '-jar', MALTPARSER,
             '-v', 'warn',
             '-w', SWEMALTDIR,
             '-c', SWEMALTMODEL ]
-
-VERSION = 'TODO move to use argslib! 0.1 (2018-06-08)'
 
 parser = ArgumentParser(description = '''
 
@@ -78,8 +81,9 @@ class Kind(enum.Enum):
 
 def identify(line):
     # used by groupby to identify the kind of a line group
-    if line.startswith(b'<!-- Positional attributes:'): return Kind.names
-    if line.startswith(b'<!--'): return Kind.comment
+    if line.startswith(b'<!--'):
+        if isbinnames(line): return Kind.names
+        else: return Kind.comment
     if line.startswith(b'<sentence'): return Kind.begin
     if line.startswith(b'<'): return Kind.meta
     return Kind.data
@@ -148,7 +152,7 @@ def implement_combine(swemalt, copy, out):
 
         if kind is Kind.names:
             for line in group:
-                mf = getpos(line, args.tag)
+                mf = nameindex(binnamelist(line), args.tag)
                 out.write(line)
             else:
                 continue
@@ -158,28 +162,8 @@ def implement_combine(swemalt, copy, out):
         else:
             continue
 
-def getpos(names, name):
-    namelist = re.findall(br'[\w.+]+', names)[2:]
-    try:
-        return namelist.index(name)
-    except ValueError:
-        raise BadData('no such name: {}'.format(name.decode('UTF-8')))
-
-def addnames(names, atname, *afternames):
-    '''Build new name-line with afternames inserted after atname.'''
-    new = re.findall(br'[\w.+]+', names)[2:]
-    if atname not in new:
-        raise BadData('no such positional attribute: {}'
-                      .format(atname.decode('UTF-8')))
-    for aftername in reversed(afternames):
-        if aftername in new:
-            raise BadData('positional attribute already in use: {}'
-                          .format(aftername.decode('UTF-8')))
-        else:
-            new.insert(new.index(atname) + 1, aftername)
-    return b' '.join([b'<!-- Positional attributes:'] + new + [b'-->\n'])
-
-def getword(line, pos): # needs to be renamed
+def getword(line, pos):
+    # todo use datalib for this too
     return line.rstrip(b'\n').split(b'\t')[pos]
 
 def wrap_main():
@@ -324,12 +308,14 @@ def implement_main(inf, swemalt, copy):
 
         if kind is Kind.names:
             for line in group:
-                wf = getpos(line, args.word)
-                pf = getpos(line, args.tag)
-                copy.stdin.write(addnames(line, args.tag,
-                                          args.prefix + b'id' + args.suffix,
-                                          args.prefix + b'head' + args.suffix,
-                                          args.prefix + b'rel' + args.suffix))
+                [wf, pf] = nameindices(binnamelist(line),
+                                       args.word,
+                                       args.tag)
+                nw = bininsertnames(line, args.tag,
+                                    args.prefix + b'id' + args.suffix,
+                                    args.prefix + b'head' + args.suffix,
+                                    args.prefix + b'rel' + args.suffix)
+                copy.stdin.write(nw)
             else:
                 continue
 
@@ -342,6 +328,6 @@ def implement_main(inf, swemalt, copy):
 if __name__ == '__main__':
     args = parser.parse_args()
     if args.version:
-        print(VERSION)
+        print('vrt tools', VERSION)
     else:
         wrap_main()

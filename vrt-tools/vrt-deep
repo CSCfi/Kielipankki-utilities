@@ -6,7 +6,10 @@ from itertools import groupby, chain
 from tempfile import mkstemp
 import enum, os, re, sys, traceback
 
-VERSION = '0.1 (2018-06-10)'
+from vrtnamelib import isbinnames, binmakenames
+from vrtnamelib import binnamelist
+
+from vrtargslib import VERSION
 
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -46,24 +49,23 @@ class Kind(enum.Enum):
 
 def identify(line):
     # used to tag lines with their kind
-    if line.startswith(b'<!-- Positional attributes:'): return Kind.names, line
-    if line.startswith(b'<!--'): return Kind.meta, line
+    if line.startswith(b'<!--'):
+        if isbinnames(line): return Kind.names, line
+        else: return Kind.meta, line
     if line.startswith(b'<sentence'): return Kind.begin, line
     if line.startswith(b'</sentence'): return Kind.end, line
     if line.startswith(b'<'): return Kind.meta, line
     return Kind.data, line
 
 def shipnames(ouf, line):
-    names = re.findall(br'[\w+.]+', line)[2:]
+    names = binnamelist(line)
     try:
         pos = names.index(b'+')
     except IndexError:
         raise BadData('error: no stored meta column (+)')
 
     names.pop(pos)
-    ouf.write(b' '.join(chain([ b'<!--', b'Positional attributes:' ],
-                              names,
-                              [ b'-->\n' ])))
+    ouf.write(binmakenames(*names))
     return pos
 
 def wrap_main():
@@ -177,6 +179,6 @@ def ship(ouf, pos, line):
 if __name__ == '__main__':
     args = parser.parse_args()
     if args.version:
-        print(VERSION)
+        print('vrt tools', VERSION)
     else:
         wrap_main()

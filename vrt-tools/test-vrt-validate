@@ -388,6 +388,25 @@ test(tag = 'good-field-comment',
             ('3', 'name', 'info', 'opened element: sentence')),
      command = INFO_COMMAND)
 
+test(tag = 'good-field-comment-newformat',
+
+     document =
+     ( b'<text>\n'
+       # Test different kinds of valid (extended) attribute names
+       b'<!-- #vrt positional-attributes: foo bar/ a-b _ab a1 a.1 -->\n'
+       b'<sentence>\n'
+       b'-\t|\t-\t-\t-\t-\n'
+       b'</sentence>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('1', 'name', 'info', 'opened element: text'),
+            ('2', 'form', 'info', 'comment'),
+            ('2', 'name', 'info', 'field names: foo bar/ a-b _ab a1 a.1'),
+            ('2', 'data', 'info', 'number of fields: 6'),
+            ('3', 'name', 'info', 'opened element: sentence')),
+     command = INFO_COMMAND)
+
 test(tag = 'bad-field-comment',
 
      document =
@@ -401,6 +420,22 @@ test(tag = 'bad-field-comment',
      report(('1', 'form', 'error', 'empty field name comment'),
             ('2', 'form', 'error', 'bad field name'),
             ('3', 'form', 'error', 'duplicate field name: o')))
+
+test(tag = 'bad-field-comment-newformat',
+
+     document =
+     ( b'<!-- #vrt positional-attributes: -->\n'
+       b'<!-- #vrt positional-attributes: 31 -->\n'
+       b'<!-- #vrt positional-attributes: o o -->\n'
+       b'<!-- #vrt positional-attributes : o -->\n'
+       b'<text>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('1', 'form', 'error', 'empty field name comment'),
+            ('2', 'form', 'error', 'bad field name'),
+            ('3', 'form', 'error', 'duplicate field name: o'),
+            ('4', 'form', 'error', 'malformed field name comment')))
 
 test(tag = 'names-match-record',
 

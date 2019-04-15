@@ -8,7 +8,7 @@ from operator import itemgetter
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 
-from vrtnamelib import binxnames, binnamelist
+from vrtnamelib import binxnames, binnamelist, isbinnames, binmakenames
 from vrtdatalib import binasrecord
 
 def parsearguments():
@@ -44,8 +44,9 @@ class Kind(enum.Enum):
 
 def identify(line):
     # used by groupby to identify the kind of a line group
-    if line.startswith(b'<!-- Positional attributes:'): return Kind.names
-    if line.startswith(b'<!--'): return Kind.comment
+    if line.startswith(b'<!--'):
+        if isbinnames(line): return Kind.names
+        else: return Kind.comment
     if line.startswith(b'<sentence'): return Kind.begin
     if line.startswith(b'<'): return Kind.meta
     return Kind.data
@@ -101,8 +102,7 @@ def getget(args, source):
     return getter
 
 def makenew(target):
-    return b' '.join(chain([b'<!-- Positional attributes:'],
-                           target, [b'-->\n']))
+    return binmakenames(*target)
 
 def main(args, inf, ouf):
     status = 1

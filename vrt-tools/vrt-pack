@@ -9,6 +9,7 @@ import io, os, string, sys
 
 from vrtargslib import version_args
 from vrtargslib import BadData, BadCode
+from vrtnamelib import isbinnames
 
 def sizetype(text):
     m = re.fullmatch(r'([1-9][0-9]*)(k|M|)', text)
@@ -112,7 +113,7 @@ def makesource(inf, path):
             frak += 1
             return frak - 1
 
-        if line.startswith(b'<!-- Positional attributes'):
+        if isbinnames(line):
             names = line
 
         return frak
