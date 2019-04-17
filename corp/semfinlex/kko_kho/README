@@ -1,0 +1,3 @@
+Scripts for processing Finlex court decision collection (kko_kho).
+
+xml2vrt.sh XMLFILE [--script-path PATH] [--vrt-file VRTFILE]

@@ -1,0 +1,97 @@
+This directory contains Finlex-related scripts.
+
+1. Fetch the data
+-----------------
+
+From the zip packages from https://data.finlex.fi/en/download
+(under "Original XML files as ZIP packages"). The directory structure is:
+
+asd/fi: original statutes in Finnish
+asd/sv: original statutes in Swedish
+kko/fi: supreme court decisions in Finnish
+kko/sv: supreme court decisions in Swedish
+kho/fi: supreme administrative court decisions in Finnish
+kho/sv: supreme administrative court decisions in Swedish
+
+
+2. Preprocess the files
+-----------------------
+
+Preprocessing is done in the following order:
+
+* rename-files.sh
+* fix-nonprintable-characters.sh
+* check-utf8.sh
+* fix-spaces-etc.sh (depends on fix-spaces-etc.pl whose path can be given with --script-prefix)
+
+
+3. Generate vrt files from xml files
+------------------------------------
+
+For statutes: asd/xml2vrt.sh
+For court decisions: kko_kho/xml2vrt.sh
+
+Check that the vrt files are valid with 'vrt-validate'.
+
+
+4. Analyze the vrt files
+------------------------
+
+For Finnish
+-----------
+
+vrt-pack INDIR --out data
+for file in data/*/*.vrf; do vrt-name --in-place --position 1=word $file; done
+for file in data/*/*.vrf; do echo $file && TDPipe $file > log ; done
+vrt-unpack data --out OUTDIR --vrf vrf.Dparse
+
+# give the attributes that will be preserved in the order wanted
+vrt-keep --names word,lemma,pos,feat,head,rel,id
+# CoNLL-2009 names to Korp
+vrt-rename -m feat=msd -m id=ref -m head=dephead -m rel=deprel
+
+# Attributes lemmacomp and lex are added later in korp scripts.
+
+For Swedish
+-----------
+
+vrt-pack INDIR --out data
+for file in data/*/*.vrf; do vrt-name --in-place --position 1=word $file; done
+for file in data/*/*.vrf; do echo $file && ./vrt-sparv-huntag $file | ./vrt-sparv-swemalt | ./vrt-sparv-cstlemma -o `echo $file | perl -pe 's/\.vrf/\.parsed\.vrf/;'` > log; done
+vrt-unpack data --out OUTDIR --vrf vrf.parsed
+
+
+5. Compile the vrt files into corpora for korp
+----------------------------------------------
+
+For Finnish
+-----------
+
+# CORPUSNAME is {asd_fi, kko_fi, kho_fi}.
+korp-make --force --corpus-root="/proj/clarin/korp/corpora" --log-file=log --verbose --input-attributes="lemma pos msd dephead deprel ref" CORPUSNAME VRTDIR/*/*.vrt
+
+For Swedish
+-----------
+
+# CORPUSNAME is {asd_sv, kko_sv, kho_sv}.
+korp-make --force --corpus-root="/proj/clarin/korp/corpora" --log-file=log --verbose --input-attributes="lemma msd id head rel" CORPUSNAME VRTDIR/*/*.vrt
+
+For parallel corpus
+-------------------
+
+# There are 153 statutes only in Swedish and 584 statutes only in Finnish.
+# These are included in asd_fi and asd_sv but must be left out from asd_par_fi and asd_par_sv.
+
+registrydir="/proj/clarin/korp/corpora/registry"
+corpusrootdir="/proj/clarin/korp/corpora"
+corpusname="asd_par"
+sourcedir="asd_par"
+korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-lemgrams --no-logging --verbose --input-attributes "lemma pos msd dephead deprel ref" ${corpusname}_fi ${sourcedir}/fi/*/*.vrt
+korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-lemgrams --no-logging --verbose --input-attributes "lemma msd id head rel" ${corpusname}_sv ${sourcedir}/sv/*/*.vrt
+cwb-align -v -r $registrydir -o ${corpusname}_fi_sv.align -V link_id ${corpusname}_fi ${corpusname}_sv link
+cwb-align -v -r $registrydir -o ${corpusname}_sv_fi.align -V link_id ${corpusname}_sv ${corpusname}_fi link
+cwb-regedit -r $registrydir ${corpusname}_fi :add :a ${corpusname}_sv
+cwb-regedit -r $registrydir ${corpusname}_sv :add :a ${corpusname}_fi
+cwb-align-encode -v -r $registrydir -D ${corpusname}_fi_sv.align
+cwb-align-encode -v -r $registrydir -D ${corpusname}_sv_fi.align
+korp-make-corpus-package.sh --target-corpus-root=/v/corpora --corpus-root=$corpusrootdir --database-format tsv --include-vrt-dir ${corpusname} ${corpusname}_fi ${corpusname}_sv
