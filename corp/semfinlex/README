@@ -64,6 +64,9 @@ vrt-unpack data --out OUTDIR --vrf vrf.parsed
 5. Compile the vrt files into corpora for korp
 ----------------------------------------------
 
+# Add cwb and korp scripts to PATH on taito-shell
+PATH=$PATH:/proj/clarin/korp/cwb/bin:/proj/clarin/korp/scripts
+
 For Finnish
 -----------
 
