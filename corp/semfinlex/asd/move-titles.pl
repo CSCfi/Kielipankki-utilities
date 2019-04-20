@@ -27,6 +27,7 @@ while ( <> ) {
 	}
 	else
 	{
+	    $line =~ s/>/ title="">/; # empty title
 	    print $line;
 	    $line = "";
 	    print;
