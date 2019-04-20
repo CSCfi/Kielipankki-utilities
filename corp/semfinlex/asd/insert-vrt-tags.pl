@@ -15,7 +15,7 @@ use open qw(:std :utf8);
 my $before = "";
 my $after = "";
 
-# If id cannot be extracted, use a numbering scheme
+# If part|chapter|section id cannot be extracted, use a plain numbering scheme
 my $part_n = 0;
 my $chapter_n = 0;
 my $section_n = 0;
@@ -45,6 +45,9 @@ while (<>) {
     elsif (/^<\/saa:Osa>/) { $after = "<</part>>\n"; }
 
     ## CHAPTERS
+    #
+    # Different kinds of tags:
+    #
     # <saa:Luku saa1:identifiointiTunnus="6 luku">
     # <saa:Luku saa1:identifiointiTunnus="">
     # 2 LUKU (31.3.1879/12)
@@ -74,12 +77,19 @@ while (<>) {
     }
     elsif (/^<\/saa:Luku>/) { $after = "<</chapter>>\n"; }
 
-    ## SECTIONS    
+    ## SECTIONS
+    #
+    # Different kinds of tags:
+    #
     # <saa:Pykala saa1:pykalaLuokitusKoodi="VoimaantuloPykala" saa1:identifiointiTunnus="27 §.">
     # <saa:Pykala saa1:pykalaLuokitusKoodi="Pykala" saa1:identifiointiTunnus="32 §.">
     # <saa:Pykala saa1:identifiointiTunnus="Voimaantulo" saa1:pykalaLuokitusKoodi="VoimaantuloSaannos">
     # <saa:Pykala saa1:pykalaLuokitusKoodi="Pykala">
     # <saa:Pykala>
+    #
+    # Value of section id is later preprended with part and chapter ids
+    # (in script insert-links.pl) as one statute can contain multiple
+    # sections with the same id but belonging to different parts or chapters.
     elsif (/^<saa:Pykala /)
     {
 	$section_n++;
@@ -95,6 +105,7 @@ while (<>) {
 		$pykala_id =~ s/[\.§]//g;
 		$pykala_id =~ s/\&amp\;//g; # sometimes this is part of tag
 		$pykala_id =~ s/ //g; # e.g. "21 a " -> "21a"
+		if ($pykala_id eq "") { $pykala_id = join('',"ID",$section_n); }
 	    }
 	    $before = join('','<<section id="',$pykala_id,'"',">>\n");
 	}
@@ -110,6 +121,9 @@ while (<>) {
     elsif (/^<\/saa:Pykala>/) { $after = "<</section>>\n"; }
 
     ## PARAGRAPHS
+    #
+    # Elements that are marked as paragraphs:
+    #
     # <saa:KohdatMomentti>
     # <saa:SaadosLiite>
     # <saa:SaadosNimeke>
@@ -134,6 +148,9 @@ while (<>) {
     elsif (/^<\/asi:SisaltoLiite>/) { $after = join('',"<</paragraph>>\n"); }
 
     ## SENTENCES
+    #
+    # Elements that are marked as sentences:
+    #
     # <sis:KappaleKooste>
     # <sis:SaadosKappaleKooste> (can be directly under saa:SaadosOsa)
     # <saa:MomenttiJohdantoKooste>
