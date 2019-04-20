@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 # Add <link> around each <section> for parallel corpus.
+# Also, replace section id with link id.
 
 use strict;
 use warnings;
@@ -45,7 +46,10 @@ while (<STDIN>)
 	unless ($chapter eq "") { $id .= join('',"chapter",$chapter,"_"); }
 	$id .= join('',"section",$section);
 	print join('',"<link id=\"",$id,"\">\n");
-	print;
+	# Use link id also for section
+	my $line = $_;
+	$line =~ s/id="[^"]+"/id="${id}"/;
+	print $line;
     }
     elsif (/^<\/section>/)
     {
