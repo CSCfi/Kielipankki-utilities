@@ -15,11 +15,17 @@ use open qw(:std :utf8);
 my $before = "";
 my $after = "";
 
+# If id cannot be extracted, use a numbering scheme
+my $part_n = 0;
+my $chapter_n = 0;
+my $section_n = 0;
+
 while (<>) {
 
     ## PARTS
     if (/^<saa:Osa saa1:identifiointiTunnus="([^"]*)">/)
     {
+	$part_n++;
 	my $osa_id = $1;
 	# Finnish: OSA, OSASTO, Osa, Osasto, osa, osasto
 	$osa_id =~ s/(((O|o)sa(sto)?)|(OSA(STO)?))\.?//g;
@@ -32,7 +38,7 @@ while (<>) {
 	$osa_id =~ s/ +$//;
 	$osa_id =~ s/ /_/g;
 
-	if ( $osa_id eq "" ) { $osa_id = "EMPTY"; }
+	if ( $osa_id eq "" ) { $osa_id = join('',"ID",$part_n); }
 
 	$before = join('','<<part id="',$osa_id,'">>',"\n");
     }
@@ -45,6 +51,7 @@ while (<>) {
     # "Kiinteistövarallisuuden hallinta ja hoito"
     elsif (/^<saa:Luku saa1:identifiointiTunnus="([^"]*)">/)
     {
+	$chapter_n++;
 	my $luku_id = $1;
 	if ($luku_id =~ /([0-9]+( [a-z] )?)/)
 	{
@@ -57,13 +64,13 @@ while (<>) {
 	}
 	else
 	{
-	    $luku_id = "EMPTY";
+	    $luku_id = join('',"ID",$chapter_n);
 	}
-	print join('','<<chapter id="',$luku_id,'">>',"\n");
+	$before = join('','<<chapter id="',$luku_id,'">>',"\n");
     }
     elsif (/^<saa:Luku>/)
     {
-	$before = join('','<<chapter id="EMPTY"',">>\n");
+	$before = join('','<<chapter id="ID',$chapter_n,'">>',"\n");
     }
     elsif (/^<\/saa:Luku>/) { $after = "<</chapter>>\n"; }
 
@@ -75,12 +82,13 @@ while (<>) {
     # <saa:Pykala>
     elsif (/^<saa:Pykala /)
     {
+	$section_n++;
 	if (/saa1:identifiointiTunnus="([^"]+)"/)
 	{
 	    my $pykala_id = $1;
 	    if ($pykala_id =~ /.{12}/)
 	    {
-		$pykala_id = "EMPTY";
+		$pykala_id = join('',"ID",$section_n);
 	    }
 	    else
 	    {
@@ -92,12 +100,12 @@ while (<>) {
 	}
 	else # saa1:identifiointiTunnus has an empty value or is not given at all
 	{
-	    $before = join('','<<section id="EMPTY"',">>\n");
+	    $before = join('','<<section id="ID',$section_n,'">>',"\n");
 	}
     }
     elsif (/^<saa:Pykala>/)
     {
-	$before = join('','<<section id="EMPTY"',">>\n");
+	$before = join('','<<section id="ID',$section_n,'">>',"\n");
     }
     elsif (/^<\/saa:Pykala>/) { $after = "<</section>>\n"; }
 
