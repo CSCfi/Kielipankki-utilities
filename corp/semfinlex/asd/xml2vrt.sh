@@ -38,6 +38,7 @@ fi
 if [ "$vrtfile" = "" ]; then
     vrtfile=`echo $xmlfile | perl -pe 's/\.xml/\.vrt/'`
 fi
+link_prefix=`echo $xmlfile | perl -pe 's/\.xml//'`
 
 if [ "$tmpfiles" = "true" ]; then
     cat $xmlfile | $path/move-johtolause.pl > tmp1
@@ -57,7 +58,7 @@ if [ "$tmpfiles" = "true" ]; then
     cat tmp14 | $path/move-titles.pl > tmp15
     cat tmp15 | $path/tokenize.pl > tmp16
     cat tmp16 | $path/insert-sentence-tags.pl --filename $xmlfile --limit 150 > tmp17
-    cat tmp17 | $path/insert-links.pl > tmp
+    cat tmp17 | $path/insert-links.pl --link-prefix $link_prefix > tmp
 else
     cat $xmlfile | \
 	$path/move-johtolause.pl | \
@@ -75,7 +76,7 @@ else
 	$path/move-titles.pl | \
 	$path/tokenize.pl | \
 	$path/insert-sentence-tags.pl --filename $xmlfile --limit 150 | \
-	$path/insert-links.pl > tmp
+	$path/insert-links.pl --link-prefix $link_prefix > tmp
 fi
 
 doctype=`cat $xmlfile | $path/get-doc-type.pl`
