@@ -92,14 +92,23 @@ done
 
 # <saa:Osa> inside <saa:Pykala>, rename to *.error or
 # fix manually
-# asd/fi/1968/asd19680360.vrt
-# asd/fi/1974/asd19741043.vrt
-# asd/fi/1988/asd19881240.vrt
-# asd/fi/1992/asd19921535.vrt
-# asd/fi/2006/asd20060624.vrt
-# asd/fi/2007/asd20070503.vrt
-# asd/fi/2011/asd20110621.vrt
-# asd/fi/2013/asd20130421.vrt
-# asd/fi/2015/asd20150487.vrt
+#
+# asd/fi/1968/asd19680360.xml
+# asd/fi/1974/asd19741043.xml
+# asd/fi/1988/asd19881240.xml
+# asd/fi/1992/asd19921535.xml
+# asd/fi/2006/asd20060624.xml
+# asd/fi/2007/asd20070503.xml
+# asd/fi/2011/asd20110621.xml
+# asd/fi/2013/asd20130421.xml
+# asd/fi/2015/asd20150487.xml
+#
+# asd/sv/1974/asd19741043.xml
+# asd/sv/1988/asd19881240.xml
+# asd/sv/2006/asd20060624.xml
+# asd/sv/2007/asd20070503.xml
+# asd/sv/2011/asd20110621.xml
+# asd/sv/2013/asd20130421.xml
+# asd/sv/2015/asd20150487.xml
 
 # asd/fi/1999/asd19991341.xml: contains two "&#9;"s, fix manually
