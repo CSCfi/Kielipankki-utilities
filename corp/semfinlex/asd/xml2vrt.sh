@@ -38,7 +38,7 @@ fi
 if [ "$vrtfile" = "" ]; then
     vrtfile=`echo $xmlfile | perl -pe 's/\.xml/\.vrt/'`
 fi
-link_prefix=`echo $xmlfile | perl -pe 's/\.xml//'`
+link_prefix=`echo $xmlfile | perl -pe 's/.*\/(.*)\.xml/\1/'`
 
 if [ "$tmpfiles" = "true" ]; then
     cat $xmlfile | $path/move-johtolause.pl > tmp1
