@@ -42,7 +42,7 @@ cat tmp2 | $path/mark-doc-parts.pl > tmp3
 cat tmp3 | $path/mark-heading-paragraphs.pl > tmp4
 cat tmp4 | $path/process-description.pl > tmp5
 cat tmp5 | $path/process-abstract.pl > tmp6
-cat tmp6 | $path/insert-vrt-tags.pl --filename $xmlfile> tmp7
+cat tmp6 | $path/insert-vrt-tags.pl --filename $xmlfile > tmp7
 cat tmp7 | $path/remove-orig-xml-tags.pl > tmp8
 cat tmp8 | $path/check-paragraphs.pl --filename $xmlfile > tmp9
 cat tmp9 | $path/move-titles.pl > tmp10
