@@ -111,4 +111,10 @@ done
 # asd/sv/2013/asd20130421.xml
 # asd/sv/2015/asd20150487.xml
 
-# asd/fi/1999/asd19991341.xml: contains two "&#9;"s, fix manually
+# contain "&#9;"s, fix manually
+#
+# asd/fi/1999/asd19991341.xml
+#
+# asd/sv/1991/asd19911444.xml
+# asd/sv/1999/asd19991063.xml
+# asd/sv/1999/asd19991070.xml
