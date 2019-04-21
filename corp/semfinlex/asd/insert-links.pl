@@ -24,18 +24,22 @@ while (<STDIN>)
     if (/^<part id="([^"]+)"/)
     {
 	$part = $1;
+	print;
     }
     elsif (/^<\/part>/)
     {
 	$part = "";
+	print;
     }
     elsif (/^<chapter id="([^"]+)"/)
     {
 	$chapter = $1;
+	print;
     }
     elsif (/^<\/chapter>/)
     {
 	$chapter = "";
+	print;
     }
     elsif (/^<section id="([^"]+)"/)
     {
