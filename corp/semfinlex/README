@@ -62,6 +62,8 @@ vrt-unpack data --out OUTDIR --vrf vrf.parsed
 
 (TODO: extract pos from msd: perl -pe 's/^([^\t]+\t[^\t]+\t)([^\t\.]+)/\1\2\t\2/;')
 (TODO: rename id to ref: perl -pe 's/^<\!\-\- \#vrt positional-attributes: word lemma msd id head rel \-\->/<\!\-\- \#vrt positional-attributes: word lemma pos msd ref head rel \-\->/;')
+(TODO: rename head to dephead and rel to deprel and use order dephead,deprel,ref)
+
 
 5. Compile the vrt files into corpora for korp
 ----------------------------------------------
@@ -69,27 +71,22 @@ vrt-unpack data --out OUTDIR --vrf vrf.parsed
 # Add cwb and korp scripts to PATH on taito-shell
 PATH=$PATH:/proj/clarin/korp/cwb/bin:/proj/clarin/korp/scripts
 
-For Finnish
------------
+For Finnish and Swedish
+-----------------------
 
-# CORPUSNAME is {asd_fi, kko_fi, kho_fi}.
+# CORPUSNAME is {semfinlex_[asd|kko|kho]_[fi|sv]_2018}
 korp-make --force --corpus-root="/proj/clarin/korp/corpora" --log-file=log --verbose --input-attributes="lemma pos msd dephead deprel ref" CORPUSNAME VRTDIR/*/*.vrt
-
-For Swedish
------------
-
-# CORPUSNAME is {asd_sv, kko_sv, kho_sv}.
-korp-make --force --corpus-root="/proj/clarin/korp/corpora" --log-file=log --verbose --input-attributes="lemma pos msd ref head rel" CORPUSNAME VRTDIR/*/*.vrt
 
 For parallel corpus
 -------------------
 
 # There are 153 statutes only in Swedish and 584 statutes only in Finnish.
-# These are included in asd_fi and asd_sv but must be left out from asd_par_fi and asd_par_sv.
+# These are included in semfinlex_asd_fi_2018 and semfinlex_asd_sv_2018
+# but must be left out from semfinlex_asd_par_2018_fi and semfinlex_asd_par_2018_sv
 
 registrydir="/proj/clarin/korp/corpora/registry"
 corpusrootdir="/proj/clarin/korp/corpora"
-corpusname="asd_par"
+corpusname="semfinlex_asd_par_2018"
 sourcedir="asd_par"
 korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-lemgrams --no-logging --verbose --input-attributes "lemma pos msd dephead deprel ref" ${corpusname}_fi ${sourcedir}/fi/*/*.vrt
 korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-lemgrams --no-logging --verbose --input-attributes "lemma pos msd ref head rel" ${corpusname}_sv ${sourcedir}/sv/*/*.vrt
