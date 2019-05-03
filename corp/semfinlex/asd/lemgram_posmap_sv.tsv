@@ -1,0 +1,50 @@
+# adverbi
+AB	ab
+# determineri
+DT	al
+# kysymys- tai relatiiviadverbi
+HA	ab
+# kysymys- tai relatiividetermineri
+HD	al
+# kysymys- tai relatiivipronomini
+HP	pn
+# kysymys- tai relatiivipossessiivipronomini
+HS	pn
+# infinitiivimarkkeri
+IE	ie
+# interjektio
+IN	in
+# adjektiivi
+JJ	jj
+# rinnastuskonjunktio
+KN	kn
+# välimerkki
+MAD	xx
+# välimerkki
+MID	xx
+# substantiivi
+NN	nn
+# välimerkki
+PAD	xx
+# partisiippi
+PC	vb
+# partikkeli
+PL	xx
+# erisnimi
+PM	pm
+# pronomini
+PN	pn
+# prepositio
+PP	pp
+# possessiivipronomini
+PS	pn
+# perusluku
+RG	rg
+# järjestysluku
+RO	nl
+# alistuskonjunktio
+SN	sn
+# vierassana
+UO	xx
+# verbi
+VB	vb
