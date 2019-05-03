@@ -80,12 +80,16 @@ For Finnish and Swedish
 # VRTDIR is {[asd|kko|kho]_[fi|sv]_2018}
 korp-make --force --corpus-root="/proj/clarin/korp/corpora" --log-file=log --verbose --input-attributes="lemma pos msd dephead deprel ref" CORPUSNAME VRTDIR/*/*.vrt
 
+(for Swedish, add --lemgram-posmap lemgram_posmap_sv.tsv)
+
 For parallel corpus
 -------------------
 
 # There are 153 statutes only in Swedish and 584 statutes only in Finnish.
 # These are included in semfinlex_asd_fi_2018 and semfinlex_asd_sv_2018
 # but must be left out from semfinlex_asd_par_2018_fi and semfinlex_asd_par_2018_sv
+#
+# (TODO: for Swedish, add --lemgram-posmap lemgram_posmap_sv.tsv)
 
 registrydir="/proj/clarin/korp/corpora/registry"
 corpusrootdir="/proj/clarin/korp/corpora"
