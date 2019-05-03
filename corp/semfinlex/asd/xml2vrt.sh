@@ -97,6 +97,6 @@ fi
 datefrom=$url_year"0101"
 dateto=$url_year"1231"
 
-echo '<text filename="'$xmlfile'" datefrom="'$datefrom'" dateto="'$dateto'" timefrom="000000" timeto="235959" url="'$url'" type="'$doctype'">' > $vrtfile
+echo '<text filename="'$xmlfile'" datefrom="'$datefrom'" dateto="'$dateto'" timefrom="000000" timeto="235959" url="'$url'" parl_statute_type="'$doctype'">' > $vrtfile
 cat tmp >> $vrtfile
 echo '</text>' >> $vrtfile

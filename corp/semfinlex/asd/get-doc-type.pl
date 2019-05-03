@@ -20,4 +20,4 @@ while (<>) {
     }
 }
 
-print "(none)\n";
+print "\n";
