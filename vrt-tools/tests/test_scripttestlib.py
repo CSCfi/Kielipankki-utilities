@@ -1,0 +1,167 @@
+#! /usr/bin/env python3
+
+
+"""
+test_scripttestlib.py
+
+Very basic pytest tests for scripttestlib.
+"""
+
+
+import os.path
+
+import pytest
+import yaml
+
+from scripttestlib import collect_testcases, check_program_run
+
+
+# TODO: Test more scripttestlib features, also failing tests.
+_testcase_files_content = [
+    ('scripttest1',
+     [
+         {
+             'name': 'Test: prog + args as a list',
+             'input': {
+                 'prog': 'echo',
+                 'args': ['Test1', 'Test1'],
+             },
+             'output': {
+                 'stdout': 'Test1 Test1\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: prog + args as a string',
+             'input': {
+                 'prog': 'echo',
+                 'args': 'Test1',
+             },
+             'output': {
+                 'stdout': 'Test1\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: cmdline',
+             'input': {
+                 'cmdline': 'echo Test1',
+             },
+             'output': {
+                 'stdout': 'Test1\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: cat stdin',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': 'test1\ntest2\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: cat file',
+             'input': {
+                 'cmdline': 'cat infile.txt',
+                 'file:infile.txt': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': 'test1\ntest2\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: cat non-existent file',
+             'input': {
+                 'cmdline': 'cat infile.txt',
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': {
+                     'test': '!=',
+                     'value': '',
+                 },
+                 'returncode': {
+                     'test': '!=',
+                     'value': 0,
+                 },
+             },
+         },
+         {
+             'name': 'Test: copy file',
+             'input': {
+                 'cmdline': 'cp infile.txt outfile.txt',
+                 'file:infile.txt': 'test1\ntest2\n',
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': '',
+                 'file:outfile.txt': 'test1\ntest2\n',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: environment variable',
+             'input': {
+                 'envvars': {
+                     'foo': 'bar',
+                 },
+                 'cmdline': 'sh -c \'echo $foo\'',
+             },
+             'output': {
+                 'stdout': 'bar\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+     ]),
+]
+
+# Testcase contents in the format expected by check_program_run.
+_testcases = [(testcase['name'], testcase['input'], testcase['output'])
+               for _, testcases in _testcase_files_content
+               for testcase in testcases]
+
+
+@pytest.fixture
+def testcase_files(tmpdir):
+    """pytest fixture: testcase files from _testcase_files_content
+
+    Returns a pair (testcases, testcase file name patterns).
+    """
+    testcases = []
+    for basename, content in _testcase_files_content:
+        with open(os.path.join(tmpdir, basename + '.py'), 'w') as outf:
+            outf.write('testcases = ' + repr(content) + '\n')
+        testcases.extend(content)
+        with open(os.path.join(tmpdir, basename + '.yaml'), 'w') as outf:
+            yaml.dump(content, outf)
+        testcases.extend(content)
+    return (testcases, ('scripttest*.yaml', 'scripttest*.py'))
+
+
+def test_collect_testcases(testcase_files, tmpdir):
+    """Test scripttestlib.collect_testcases."""
+    testcase_contents, testcase_filespecs = testcase_files
+    testcases = collect_testcases(*testcase_filespecs, basedir=str(tmpdir))
+    assert len(testcases) == len(testcase_contents)
+    for testcase_num, testcase in enumerate(testcases):
+        assert len(testcase) == 3
+        assert testcase[0] == testcase_contents[testcase_num]['name']
+        assert testcase[1] == testcase_contents[testcase_num]['input']
+        assert testcase[2] == testcase_contents[testcase_num]['output']
+
+
+@pytest.mark.parametrize("name, input, expected", _testcases)
+def test_check_program_run(name, input, expected, tmpdir):
+    """Test scripttestlib.check_program_run with the testcases."""
+    check_program_run(name, input, expected, tmpdir=str(tmpdir))
