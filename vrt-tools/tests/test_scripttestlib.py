@@ -123,6 +123,88 @@ _testcase_files_content = [
                  'returncode': 0,
              },
          },
+         {
+             'name': 'Test: multiple expected tests (list(dict): test+value)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': [
+                     # Also test simple equality with a plain scalar value
+                     'test1\ntest2\n',
+                     {
+                         'test': '!=',
+                         'value': 'foo',
+                     },
+                     {
+                         'test': 'matches',
+                         'value': 'test1',
+                     },
+                     {
+                         'test': 'matches',
+                         'value': 'test2',
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: multiple expected tests (list(dict): test:value)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         '!=': 'foo',
+                     },
+                     {
+                         'matches': 'test1',
+                     },
+                     {
+                         'matches': 'test2',
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: multiple expected tests (dict: test:value)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': {
+                     '!=': 'foo',
+                     'matches': 'test1',
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: multiple expected tests (dict: test:[values])',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': {
+                     '!=': 'foo',
+                     'matches': [
+                         'test1',
+                         'test2',
+                     ],
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
      ]),
 ]
 

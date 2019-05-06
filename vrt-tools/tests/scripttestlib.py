@@ -97,15 +97,22 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
           `envvars`: a dict of environment variable values
           `stdin`: the content of standard input (str)
           `file:FNAME`: the content of file FNAME (str)
-      `expected`: Expected output for the test:
+      `expected`: Expected output for the test (dict):
           `returncode`: program return code (int)
           `stdout`: the content of standard output (str)
           `stderr`: the content of standard error (str)
           `file:FNAME`: the content of file FNAME (str)
-          The values may be either simple scalar values, in which case
-          the actual values are compared for equality with them, or
-          dicts of two items: `test` is the test name (key in
-          `_output_tests`) and `value` the expected value.
+          The values may have several different forms:
+          - simple scalar value, in which case the actual value is
+            compared for equality with it;
+          - a dict of two items: `test` is the test name (key in
+            `_output_tests`) and `value` the expected value;
+          - a dict with test names (keys in `_output_tests`) as keys
+            and expected values as values (the value may also be a
+            list in which case each item in the list is treated as a
+            separate value to be tested); or
+          - a list whose items may be any of the other: all tests must
+            pass.
       `tmpdir`: The temporary directory in which to run the tests (the
           working directory for the commands and the base directory for
           input and output files)
@@ -118,9 +125,6 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
     """
     # TODO: Possible enhancements:
     # - If input_['shell'] == True, use shell=True in Popen
-    # - The expected values could be of the form test: value, or possibly
-    #   a list of such values, allowing multiple tests for the same value
-    #   (the probably should be treated as conjunctive).
     # - Allow options to tests, in particular regular expression matching.
     # - Allow specifying a test to be skipped or expected to fail. This should
     #   probably be a separate key.
@@ -171,11 +175,11 @@ def _check_output(expected, actual, tmpdir):
     """Check using an assertion if the actual values match expected.
 
     Arguments:
-      `expected`: Expected values (dict)
+      `expected`: Expected values (dict or list(dict))
       `actual`: Actual values (dict)
       `tmpdir`: The temporary directory (containing output files)
     """
-    for key, expected_val in sorted(expected.items()):
+    for key, expected_vals in sorted(expected.items()):
         if key in actual:
             actual_val = actual[key]
         elif key.startswith('file:'):
@@ -183,10 +187,20 @@ def _check_output(expected, actual, tmpdir):
             assert os.path.isfile(fname)
             with open(fname, 'r') as f:
                 actual_val = f.read()
-        if expected_val is None:
-            expected_val = ''
-        if isinstance(expected_val, dict):
-            assert _output_tests[expected_val['test']](expected_val['value'],
-                                                       actual_val)
-        else:
-            assert actual_val == expected_val
+        if expected_vals is None:
+            expected_vals = ['']
+        elif not isinstance(expected_vals, list):
+            expected_vals = [expected_vals]
+        for expected_val in expected_vals:
+            if isinstance(expected_val, dict):
+                if 'test' in expected_val:
+                    assert _output_tests[expected_val['test']](
+                        expected_val['value'], actual_val)
+                else:
+                    for test, exp_vals in expected_val.items():
+                        if not isinstance(exp_vals, list):
+                            exp_vals = [exp_vals]
+                        for exp_val in exp_vals:
+                            assert _output_tests[test](exp_val, actual_val)
+            else:
+                assert actual_val == expected_val

@@ -70,12 +70,22 @@ test case:
     -   `stderr`: the content of standard error (`str`)
     -   `file:FNAME`: the content of file FNAME (`str`)
 
-    The expected values may be either simple scalar values, in which
-    case the actual values are compared for equality with them, or
-    dicts of two items: `test` is the test name and `value` the
-    expected value. Supported test names are the following (*actual*
-    is the actual value, *expected* the expected value specified as
-    the value of the key `value`):
+    The expected values may have several different forms:
+
+    1. simple scalar value, in which case the actual value is compared
+       for equality with it;
+    2. a dict of two items: `test` is the test name (one of the values
+       shown below) and `value` the expected value;
+    3. a dict with test names (see below) as keys and expected values
+       as values (the value may also be a list, in which case each
+       item in the list is treated as a separate value to be tested);
+       or
+    4. a list whose items may be any of the other: all tests must
+       pass.
+
+    Supported test names are the following (*actual* is the actual
+    value, *expected* the expected value specified as the value of the
+    key `value`):
 
     -   `==`: *actual* equals *expected*
     -   `!=`: *actual* is not equal to *expected*
