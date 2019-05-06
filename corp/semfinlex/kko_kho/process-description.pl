@@ -34,10 +34,7 @@ while (<>) {
     else { $other_parts .= $_; }
 }
 
-unless ($keywords eq "|")
-{
-    print join('','<<keywords="',$keywords,'">>',"\n");
-}
+print join('','<<keywords="',$keywords,'">>',"\n");
 print join('','<<section type="description">>',"\n");
 print $description_part;
 print "<</section>>\n";
