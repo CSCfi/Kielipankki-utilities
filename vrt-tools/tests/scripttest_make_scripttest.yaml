@@ -1,0 +1,129 @@
+
+# FIXME: These tests are a bit fragile, as they depend on the exact
+# order and layout in which make-scripttest outputs YAML. Making them
+# more flexible would probably require adding some features to
+# scripttestlib, such as multiple (partial) tests for a value.
+
+
+- name: 'make-scripttest: cp input output'
+  input:
+    prog: make-scripttest
+    args:
+    - --name
+    - test cp
+    - --input
+    - infile.txt
+    - --output
+    - outfile.txt
+    - --
+    - cp
+    - infile.txt
+    - outfile.txt
+    file:infile.txt: |
+      test
+    stdin: ""
+  output:
+    file:outfile.txt: |
+      test
+    returncode: 0
+    stderr: ""
+    stdout: |
+      - name: test cp
+        input:
+          prog: cp
+          args:
+          - infile.txt
+          - outfile.txt
+          file:infile.txt: |
+            test
+          stdin: ""
+        output:
+          file:outfile.txt: |
+            test
+          returncode: 0
+          stderr: ""
+          stdout: ""
+
+- name: 'make-scripttest: echo string'
+  input:
+    prog: make-scripttest
+    args:
+    - --name
+    - test
+    - echo
+    - test
+    stdin: ""
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      - name: test
+        input:
+          prog: echo
+          args:
+          - test
+          stdin: ""
+        output:
+          returncode: 0
+          stderr: ""
+          stdout: |
+            test
+
+- name: 'make-scripttest: cat'
+  input:
+    prog: make-scripttest
+    args:
+    - --name
+    - test
+    - --
+    - cat
+    stdin: |
+      Test
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      - name: test
+        input:
+          prog: cat
+          stdin: |
+            Test
+        output:
+          returncode: 0
+          stderr: ""
+          stdout: |
+            Test
+
+- name: 'make-scripttest: env'
+  input:
+    prog: make-scripttest
+    args:
+    - --name
+    - test
+    - --environment
+    - foo
+    - --
+    - sh
+    - -c
+    - echo $foo
+    envvars:
+      foo: bar
+    stdin: ""
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      - name: test
+        input:
+          prog: sh
+          args:
+          - -c
+          - echo $foo
+          envvars:
+            foo: bar
+          stdin: ""
+        output:
+          returncode: 0
+          stderr: ""
+          stdout: |
+            bar
