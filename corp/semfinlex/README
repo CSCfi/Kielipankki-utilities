@@ -78,9 +78,12 @@ For Finnish and Swedish
 
 # CORPUSNAME is {semfinlex_[asd|kko|kho]_[fi|sv]_2018}
 # VRTDIR is {[asd|kko|kho]_[fi|sv]_2018}
+
+# For Finnish
 korp-make --force --corpus-root="/proj/clarin/korp/corpora" --log-file=log --verbose --input-attributes="lemma pos msd dephead deprel ref" CORPUSNAME VRTDIR/*/*.vrt
 
-(for Swedish, add --lemgram-posmap lemgram_posmap_sv.tsv)
+# For Swedish
+korp-make --force --corpus-root="/proj/clarin/korp/corpora" --log-file=log --verbose --input-attributes="lemma pos msd dephead deprel ref" --lemgram-posmap lemgram_posmap_sv.tsv CORPUSNAME VRTDIR/*/*.vrt
 
 For parallel corpus
 -------------------
@@ -88,15 +91,13 @@ For parallel corpus
 # There are 153 statutes only in Swedish and 584 statutes only in Finnish.
 # These are included in semfinlex_asd_fi_2018 and semfinlex_asd_sv_2018
 # but must be left out from semfinlex_asd_par_2018_fi and semfinlex_asd_par_2018_sv
-#
-# (TODO: for Swedish, add --lemgram-posmap lemgram_posmap_sv.tsv)
 
 registrydir="/proj/clarin/korp/corpora/registry"
 corpusrootdir="/proj/clarin/korp/corpora"
 corpusname="semfinlex_asd_par_2018"
 sourcedir="asd_par_2018"
-korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-lemgrams --no-logging --verbose --input-attributes "lemma pos msd dephead deprel ref" ${corpusname}_fi ${sourcedir}/fi/*/*.vrt
-korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-lemgrams --no-logging --verbose --input-attributes "lemma pos msd dephead deprel ref" ${corpusname}_sv ${sourcedir}/sv/*/*.vrt
+korp-make --force --no-package --corpus-root=$corpusrootdir --log-file=log --no-logging --verbose --input-attributes "lemma pos msd dephead deprel ref" ${corpusname}_fi ${sourcedir}/fi/*/*.vrt
+korp-make --force --no-package --corpus-root=$corpusrootdir --log-file=log --no-logging --verbose --input-attributes "lemma pos msd dephead deprel ref" --lemgram-posmap lemgram_posmap_sv.tsv ${corpusname}_sv ${sourcedir}/sv/*/*.vrt
 cwb-align -v -r $registrydir -o ${corpusname}_fi_sv.align -V link_id ${corpusname}_fi ${corpusname}_sv link
 cwb-align -v -r $registrydir -o ${corpusname}_sv_fi.align -V link_id ${corpusname}_sv ${corpusname}_fi link
 cwb-regedit -r $registrydir ${corpusname}_fi :add :a ${corpusname}_sv
