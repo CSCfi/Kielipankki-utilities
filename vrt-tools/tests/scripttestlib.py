@@ -68,7 +68,7 @@ def collect_testcases(*filespecs, basedir=None):
             filespec = os.path.join(basedir, filespec)
         for fname in glob.iglob(filespec):
             if fname.endswith('.py'):
-                print(basedir, sys.path)
+                # print(basedir, sys.path)
                 testcases.extend(
                     importlib.import_module(os.path.basename(fname)[:-3])
                     .testcases)
@@ -160,7 +160,7 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
             env['PATH'] = progpath.format(PATH=env.get('PATH'))
     else:
         env = None
-    print(env)
+    # print(env)
     stdin = input_.get('stdin', '').encode('UTF-8')
     for key, value in input_.items():
         if key.startswith('file:'):
