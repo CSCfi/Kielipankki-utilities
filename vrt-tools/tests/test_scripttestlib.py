@@ -283,6 +283,31 @@ _testcase_files_content = [
                  'returncode': 0,
              },
          },
+         {
+             'name': 'Test: pipe with shell = True',
+             'input': {
+                 'cmdline': 'printf "test\ntest\n" | wc -l',
+                 'shell': True,
+             },
+             'output': {
+                 'stdout': '2\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: output redirection with shell = True',
+             'input': {
+                 'cmdline': 'printf "test\ntest\n" > test.out',
+                 'shell': True,
+             },
+             'output': {
+                 'file:test.out': 'test\ntest\n',
+                 'stdout': '',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
      ]),
 ]
 

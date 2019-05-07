@@ -60,6 +60,9 @@ test case:
         unquoted strings (`str`)
     -   `cmdline`: complete command line (str), with arguments quoted
         as in shell (an alternative to `prog` and `args`)
+	-   `shell`: if `True`, pass `cmdline` to shell, allowing the use
+        of pipes, redirection and other features. Note that this works
+        only with `cmdline`, not with `prog` and `args`.
     -   `envvars`: a dict of environment variable values
     -   `stdin`: the content of standard input (`str`)
     -   `file:FNAME`: the content of file FNAME (`str`)

@@ -132,17 +132,19 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
     All input and output is currently assumed to be encoded in UTF-8.
     """
     # TODO: Possible enhancements:
-    # - If input_['shell'] == True, use shell=True in Popen
     # - Allow specifying a test to be skipped or expected to fail. This should
     #   probably be a separate key.
     # - Allow specifying the search path for the program to be run.
     # - Allow specifying input and output encodings.
-    shell = False
+    shell = input_.get('shell', False)
     if 'cmdline' in input_:
-        args = shlex.split(input_['cmdline'])
-        prog = args[0]
-        # shell = True
+        if shell:
+            args = input_['cmdline']
+        else:
+            args = shlex.split(input_['cmdline'])
+            prog = args[0]
     else:
+        shell = False
         args = input_.get('args', [])
         args = shlex.split(args) if isinstance(args, str) else args
         prog = input_.get('prog')
