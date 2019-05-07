@@ -8,12 +8,14 @@ Very basic pytest tests for scripttestlib.
 """
 
 
+import itertools
 import os.path
 
 import pytest
 import yaml
 
-from scripttestlib import collect_testcases, check_program_run
+from scripttestlib import (collect_testcases, check_program_run,
+                           expand_testcases)
 
 
 # TODO: Test more scripttestlib features, also failing tests.
@@ -308,13 +310,67 @@ _testcase_files_content = [
                  'returncode': 0,
              },
          },
+         # Note that the tests do not really check whether the tests marked to
+         # be skipped or xfailing really are skipped or xfail. How could that
+         # be tested?
+         {
+             'name': 'Test: skipping test',
+             'status': 'skip',
+             'input': {
+             },
+             'output': {
+             },
+         },
+         {
+             'name': 'Test: skipping test with reason',
+             'status': 'skip: Test skipping',
+             'input': {
+             },
+             'output': {
+             },
+         },
+         {
+             'name': 'Test: conditionally skipping test (skip)',
+             'status': 'skipif: sys.version_info > (2, 0)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+             },
+         },
+         {
+             'name': 'Test: conditionally skipping test (do not skip)',
+             'status': 'skipif: sys.version_info > (4, 0)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+             },
+         },
+         {
+             'name': 'Test: xfailing test',
+             'status': 'xfail',
+             'input': {
+             },
+             'output': {
+             },
+         },
+         {
+             'name': 'Test: xfailing test with reason',
+             'status': 'xfail: Test xfailing',
+             'input': {
+             },
+             'output': {
+             },
+         },
      ]),
 ]
 
 # Testcase contents in the format expected by check_program_run.
-_testcases = [(testcase['name'], testcase['input'], testcase['output'])
-               for _, testcases in _testcase_files_content
-               for testcase in testcases]
+_testcases = list(*itertools.chain(
+    expand_testcases(testcases) for _, testcases in _testcase_files_content))
 
 
 @pytest.fixture
@@ -340,6 +396,13 @@ def test_collect_testcases(testcase_files, tmpdir):
     testcases = collect_testcases(*testcase_filespecs, basedir=str(tmpdir))
     assert len(testcases) == len(testcase_contents)
     for testcase_num, testcase in enumerate(testcases):
+        # Handle xfailing and skipping tests
+        try:
+            testcase = testcase.values
+            assert (testcase_contents[testcase_num].get('status')
+                    .startswith(('skip', 'skipif', 'xfail')))
+        except AttributeError:
+            pass
         assert len(testcase) == 3
         assert testcase[0] == testcase_contents[testcase_num]['name']
         assert testcase[1] == testcase_contents[testcase_num]['input']

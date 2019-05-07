@@ -112,6 +112,19 @@ test case:
     test name may be `matches DOTALL|VERBOSE`, corresponding to
     `re.search(`*expected* `, `*actual* `, re.DOTALL|re.VERBOSE)`.
 
+-   `status`: The status of the test (optional). Tests should be pass
+    by default, but `status` can mark otherwise. Allowed values are:
+
+	- `skip`: the test is skipped unconditionally;
+	- `skipif:`*condition*: the test is skipped if *condition*
+      evaluates to `True` (see [pytest
+      documentation](https://docs.pytest.org/en/latest/historical-notes.html#string-conditions)
+      for more information); or
+    - `xfail`: the test is expected to fail.
+
+	The values `skip` and `xfail` may optionally be followed by a
+    colon and a reason (text) for the expected failure.
+
 
 ### Generating a test case with `make-scripttest`
 

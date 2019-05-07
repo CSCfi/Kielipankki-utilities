@@ -22,6 +22,7 @@ import sys
 
 from subprocess import Popen, PIPE
 
+import pytest
 import yaml
 
 
@@ -76,14 +77,28 @@ def collect_testcases(*filespecs, basedir=None):
                 with open(fname, 'r') as yf:
                     testcases.extend(item for items in yaml.safe_load_all(yf)
                                      for item in items)
-    return _expand_testcases(testcases)
+    return expand_testcases(testcases)
 
 
-def _expand_testcases(testcases_dictlist):
+def expand_testcases(testcases_dictlist):
     """Convert a list of test case dicts to a list of tuples."""
-    return [(tc.get('name'), tc.get('input'),
-             tc.get('output') or tc.get('expected'))
-            for tc in testcases_dictlist]
+    testcases = []
+    for tc in testcases_dictlist:
+        params = (tc.get('name', {}), tc.get('input', {}),
+                  tc.get('output') or tc.get('expected', {}))
+        # If status start swith "xfail", "skip" or "skipif", mark the test
+        # accordingly.
+        if tc.get('status'):
+            status, _, reason = tc['status'].partition(':')
+            reason = reason.strip() or None
+            if status == 'skipif':
+                mark = pytest.mark.skipif(reason)
+            elif status in ('skip', 'xfail'):
+                mark = getattr(pytest.mark, status)(reason=reason)
+            testcases.append(pytest.param(*params, marks=mark))
+        else:
+            testcases.append(params)
+    return testcases
 
 
 def add_output_test(name, test_fn):
@@ -132,8 +147,6 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
     All input and output is currently assumed to be encoded in UTF-8.
     """
     # TODO: Possible enhancements:
-    # - Allow specifying a test to be skipped or expected to fail. This should
-    #   probably be a separate key.
     # - Allow specifying the search path for the program to be run.
     # - Allow specifying input and output encodings.
     shell = input_.get('shell', False)
