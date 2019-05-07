@@ -63,6 +63,10 @@ as the expected result, represented in YAML.''')
             nargs='+', action='append',
             help='var is an environment variable used by the program')
         argparser.add_argument(
+            '--use-cmdline', dest='cmdline', action='store_true',
+            help=('output the full command as a single value (cmdline) instead'
+                  ' of separate program (prog) and argument list (args)'))
+        argparser.add_argument(
             'command', nargs='+',
             help='the program to be run and its arguments')
         self._args = argparser.parse_args(args)
@@ -70,10 +74,14 @@ as the expected result, represented in YAML.''')
         self._args.output_files = chain(*self._args.output_files or [])
         self._args.env_vars = list(chain(*self._args.env_vars or []))
         self._output['name'] = self._args.name
-        self._output['input']['prog'] = self._args.command[0]
-        if len(self._args.command) > 1:
-            self._output['input']['args'] = self._args.command[1:]
-            # ' '.join(shlex.quote(arg) for arg in self._args.command[1:])
+        if self._args.cmdline:
+            self._output['input']['cmdline'] = ' '.join(
+                shlex.quote(arg) for arg in self._args.command)
+        else:
+            self._output['input']['prog'] = self._args.command[0]
+            if len(self._args.command) > 1:
+                self._output['input']['args'] = self._args.command[1:]
+                # ' '.join(shlex.quote(arg) for arg in self._args.command[1:])
 
     def _record_input(self):
         self._output['input']['stdin'] = sys.stdin.read()

@@ -141,6 +141,9 @@ The arguments are:
     -   `--environment-variables` *var* [ *var* ]: *command* uses the
         environment variables *var*: their content is recorded before
         the program run.
+	-   `--use-cmdline`: output the full command as a single value
+        (`cmdline`) instead of separate program (`prog`) and argument
+        list (`args`)
 
 `make-scripttest` writes to standard output a YAML description of the
 program run. It can redirected to a file and used as a `scripttestlib`

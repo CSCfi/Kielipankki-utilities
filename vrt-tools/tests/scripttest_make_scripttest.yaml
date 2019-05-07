@@ -127,3 +127,21 @@
           stderr: ""
           stdout: |
             bar
+
+- name: 'make-scripttest: cmdline'
+  input:
+    cmdline: make-scripttest --name test --use-cmdline -- echo 'test!'
+    stdin: ""
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      - name: test
+        input:
+          cmdline: echo 'test!'
+          stdin: ""
+        output:
+          returncode: 0
+          stderr: ""
+          stdout: |
+            test!
