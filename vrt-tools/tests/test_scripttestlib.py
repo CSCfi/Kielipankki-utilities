@@ -205,6 +205,84 @@ _testcase_files_content = [
                  'returncode': 0,
              },
          },
+         {
+             'name': 'Test: matches with flags',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': {
+                     'not_matches': 'test1.test2',
+                     'matches DOTALL': 'test1.test2',
+                     'not_matches DOTALL': 'test1 . test2',
+                     'matches DOTALL|VERBOSE': 'test1 . test2',
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: matches with flags (with re. prefix)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': {
+                     'not_matches': 'test1.test2',
+                     'matches re.DOTALL': 'test1.test2',
+                     'not_matches re.DOTALL': 'test1 . test2',
+                     'matches re.DOTALL|re.VERBOSE': 'test1 . test2',
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: matches with flags (dict with opts in test)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'test': 'matches DOTALL',
+                         'value': 'test1.test2',
+                     },
+                     {
+                         'test': 'matches DOTALL|VERBOSE',
+                         'value': 'test1 . test2',
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: matches with flags (explicit "opts")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'test': 'matches',
+                         'opts': 'DOTALL',
+                         'value': 'test1.test2',
+                     },
+                     {
+                         'test': 'matches',
+                         'opts': 'DOTALL|VERBOSE',
+                         'value': 'test1 . test2',
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
      ]),
 ]
 

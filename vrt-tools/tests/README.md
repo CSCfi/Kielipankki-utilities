@@ -75,7 +75,8 @@ test case:
     1. simple scalar value, in which case the actual value is compared
        for equality with it;
     2. a dict of two items: `test` is the test name (one of the values
-       shown below) and `value` the expected value;
+       shown below) and `value` the expected value (and possibly
+       `opts` for options; see below);
     3. a dict with test names (see below) as keys and expected values
        as values (the value may also be a list, in which case each
        item in the list is treated as a separate value to be tested);
@@ -84,8 +85,8 @@ test case:
        pass.
 
     Supported test names are the following (*actual* is the actual
-    value, *expected* the expected value specified as the value of the
-    key `value`):
+    value, *expected* the expected value specified as the value,
+    either directly or as the value of `value`):
 
     -   `==`: *actual* equals *expected*
     -   `!=`: *actual* is not equal to *expected*
@@ -95,9 +96,18 @@ test case:
     -   `>=`: *actual* is greater than or equal to *expected*
     -   `in`: *actual* is contained in *expected*
     -   `not_in`: *actual* is not contained in *expected*
-    -   `matches`: *actual* matches the regular expression *expected*
-    -   `not_matches`: *actual* does not match the regular expression
-        *expected*
+    -   `matches`: *actual* matches the Python regular expression
+        *expected* (using `re.search`)
+    -   `not_matches`: *actual* does not match the Python regular
+        expression *expected* (using `re.search`)
+
+    For the tests `matches` and `not_matches`, a value for the `flags`
+    parameter to the `re.search` function can be passed either via the
+    value of `opts` or appended to the test name, separated by
+    whitespace. The value is as in Python, except that the names of
+    the flag constants need not be prefixed by `re.`. For example, the
+    test name may be `matches DOTALL|VERBOSE`, corresponding to
+    `re.search(`*expected* `, `*actual* `, re.DOTALL|re.VERBOSE)`.
 
 
 ### Generating a test case with `make-scripttest`

@@ -25,21 +25,29 @@ from subprocess import Popen, PIPE
 import yaml
 
 
+def _re_search(patt, val, flags=''):
+    """Wrap re.search: Flags as a string (re. prefixes can be omitted)."""
+    if flags:
+        flags = eval('|'.join(
+            ('re.' if not flag.startswith('re.') else '') + flag
+            for flag in flags.split('|')))
+    return re.search(patt, val, flags=(flags or 0))
+
 
 _output_tests = {
     # Tests that can be used for testing output values: key is test name, value
     # is a two-argument boolean function, where the first argument is the
     # expected and the second the actual value.
-    '==': lambda exp, val: val == exp,
-    '!=': lambda exp, val: val != exp,
-    '<': lambda exp, val: val < exp,
-    '<=': lambda exp, val: val <= exp,
-    '>': lambda exp, val: val > exp,
-    '>=': lambda exp, val: val >= exp,
-    'in': lambda exp, val: val in exp,
-    'not_in': lambda exp, val: val not in exp,
-    'matches': lambda exp, val: re.search(exp, val) is not None,
-    'not_matches': lambda exp, val: re.search(exp, val) is None,
+    '==': lambda exp, val, *opts: val == exp,
+    '!=': lambda exp, val, *opts: val != exp,
+    '<': lambda exp, val, *opts: val < exp,
+    '<=': lambda exp, val, *opts: val <= exp,
+    '>': lambda exp, val, *opts: val > exp,
+    '>=': lambda exp, val, *opts: val >= exp,
+    'in': lambda exp, val, *opts: val in exp,
+    'not_in': lambda exp, val, *opts: val not in exp,
+    'matches': lambda exp, val, *opts: _re_search(exp, val, *opts) is not None,
+    'not_matches': lambda exp, val, *opts: _re_search(exp, val, *opts) is None,
 }
 
 
@@ -125,7 +133,6 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
     """
     # TODO: Possible enhancements:
     # - If input_['shell'] == True, use shell=True in Popen
-    # - Allow options to tests, in particular regular expression matching.
     # - Allow specifying a test to be skipped or expected to fail. This should
     #   probably be a separate key.
     # - Allow specifying the search path for the program to be run.
@@ -194,13 +201,21 @@ def _check_output(expected, actual, tmpdir):
         for expected_val in expected_vals:
             if isinstance(expected_val, dict):
                 if 'test' in expected_val:
-                    assert _output_tests[expected_val['test']](
-                        expected_val['value'], actual_val)
+                    test, *opts = expected_val['test'].split()
+                    if 'opts' in expected_val:
+                        if isinstance(expected_val['opts'], list):
+                            opts.extend(expected_val['opts'])
+                        else:
+                            opts.extend(expected_val['opts'].split())
+                    assert _output_tests[test](
+                        expected_val['value'], actual_val, *opts)
                 else:
                     for test, exp_vals in expected_val.items():
+                        test, *opts = test.split()
                         if not isinstance(exp_vals, list):
                             exp_vals = [exp_vals]
                         for exp_val in exp_vals:
-                            assert _output_tests[test](exp_val, actual_val)
+                            assert _output_tests[test](
+                                exp_val, actual_val, *opts)
             else:
                 assert actual_val == expected_val
