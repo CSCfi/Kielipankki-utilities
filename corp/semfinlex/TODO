@@ -1,0 +1,13 @@
+Corpus asd
+----------
+
+* Add <part> and <chapter> tags.
+* Add attribute statute_type to <paragraph>.
+* Add attribute title to <text>?
+
+Corpora kko and kho
+-------------------
+
+* Add attribute url to <text>.
+* Divide text into sections/chapters/parts or use existing <div> tags.
+* Add attribute title to <text>?
