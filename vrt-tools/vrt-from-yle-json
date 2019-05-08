@@ -1,0 +1,365 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+import argparse, html, json, re, signal, sys
+from collections import Counter
+from itertools import chain, groupby
+
+from libylespecial import sane, delink, splitby
+from libyleparagraph import paragraphs
+from libylesentence import sentences
+from libyletoken import tokens
+
+from libvrtspecial import finish_av, finish_avs, finish_t
+
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+def make_texts(obj):
+    '''Yield document meta and data for non-empty documents in JSON
+    object. The values are a dict of key-value pairs and a list of
+    similar pairs of non-empty paragraph meta and data.
+
+    '''
+    
+    for doc in obj['data']:
+
+        # also should worry about "id" and various subject keywords
+        # but what and how persistent is that id or are those ids?
+
+        dp = doc['datePublished']
+        dpdate, dptime, dpzone = dp.replace('T', ' ').replace('+', ' ').split()
+
+        # 'id' seems unique over the years and ties the document
+        # identity to YLE, can be renamed 'yle_id' afterwards if any
+        # need arises because what matters is the value not the name
+
+        meta = doc.get('meta', nometa)
+        
+        tm = { 'id' : doc['id'],
+               'datefrom' : dpdate.replace('-', ''),
+               'dateto' : dpdate.replace('-', ''),
+               'timefrom' : dptime.replace(':', ''),
+               'timeto' : dptime.replace(':', ''),
+               'date_published' : doc['datePublished'],
+               'date_content_modified' : doc['dateContentModified'],
+               'date_json_modified' : doc['dateJsonModified'],
+               'url' : finish_av(doc['url']['full']),
+               'publisher' : finish_av(doc['publisher']['name']),
+               'main_department' :
+                   finish_av(meta['mainDepartment']['name']
+                             if 'mainDepartment' in meta
+                             else ''),
+
+               # is this a "set-valued" attribute and should be
+               # formatted as |name|name|? Try that
+               'departments' :
+                   finish_avs(meta.get('departments', '')),
+        }
+        
+        ps = list(make_paragraphs(doc))
+        if ps: yield tm, ps
+
+# meta placeholder for such documents as do not have meta (empty)
+nometa = dict(mainDepartment = dict(name = ''), departments = [])
+
+def make_paragraphs(doc):
+    '''Yield paragraph meta and data for non-empty paragraphs in JSON
+    document. The values are a dict of key-value pairs and a list of
+    similar pairs of non-empty sentence meta and data.
+
+    This is where the work is done. Text is found in these places in
+    the document JSON (question mark indicates key may not be there:
+
+    - headline full: sentence-string (never multi-sentence?)
+    - headline image? alt, caption: para-string
+    - lead: para-string
+    - content: list of elements that have type
+    - - type = heading => text: sentence-string (also have level)
+    - - type = text => text: multi-para-string (sometimes formatting)
+    - - type = quote => text: para-string (also have source, but ...)
+    - - ... (captions and alt texts, and link titles in a links)
+    - - ... (several types do not produce any text)
+    - summary: para-string (may be empty)
+    - shortSummary?: para-string
+
+    Force everything into the format of a typed paragraph of sentences
+    here, let the caller turn some of them into a stand-alone sentence
+    before shipping if they wish.
+
+    '''
+
+    yield from tokenize_headline(doc['headline'])
+
+    if 'lead' in doc:
+        yield from tokenize_lead(doc['lead'])
+
+    for obj in doc['content']:
+        yield from content_tokenizer.get(obj['type'], ignore)(obj)
+
+    if 'summary' in doc:
+        yield from tokenize_summary(doc['summary'])
+
+    if 'shortSummary' in doc:
+        yield from tokenize_shortSummary(doc.get('shortSummary', ''))
+
+
+def tokenize_paragraph(text, *, k = 0, alreadysane = False):
+    '''Yield text as non-empty sentences, each a list containing tokens,
+    each of which is a non-empty string.
+
+    Text is sanitized unless caller declares it already sane.
+    (Character-entity unescape is not idempotent.)
+
+    '''
+
+    if not alreadysane:
+        text = sane(text, asis = args.insane)
+
+    retext = delink(text, info = args.warnlink)
+
+    # normalize whitespace, too late to observe any formatting then!
+    retext = ' '.join(retext.split())
+
+    if args.parainfo:
+        # log the para in stdout! to develop the tokenization
+        print(k, '##', retext, '##')
+
+    sens = list(sentences(retext, info = args.sentinfo))
+    for sen in sens:
+        if sen: yield list(tokens(sen))
+
+def tokenize_multiparagraph(text):
+    '''Yield text (a string) as non-empty lists of non-empty list of
+    non-empty strings (paragraphs, each containing sentences, each of
+    which is a sequence of tokens). Empty lines separate paragraphs.
+
+    '''
+
+    text = sane(text, asis = args.insane)
+
+    texts = list(paragraphs(text))
+
+    for k, para in enumerate(texts):
+        sens = list(tokenize_paragraph(para, k = k, alreadysane = True))
+        if sens: yield sens
+
+def tokenize_headline(obj):
+    '''Yield a headline as a single paragraph, including image caption and
+    alt text if obj has them.
+
+    '''
+    
+    meta = dict(type = 'headline')
+
+    # maybe full should be tokenized as a single _sentence_
+    
+    full = [ (dict(type = 'heading'), sentence)
+             for sentence in tokenize_paragraph(obj['full']) ]
+
+    # ignoring video captions (program titles when there) silently but
+    # image captions and alt-text seem quite relevant
+
+    if 'image' in obj:
+        captext = obj['image'].get('caption', '')
+        alttext = obj['image'].get('alt', '')
+
+        caps = [ (dict(type = 'heading-caption'), sentence)
+                 for sentence in tokenize_paragraph(captext) ]
+
+        alts = [ (dict(type = 'heading-alt'), sentence)
+                 for sentence in tokenize_paragraph(alttext) ]
+    else:
+        caps, alts = (), ()
+        
+    if full or caps or alts:
+        yield meta, list(chain(full, caps, alts))
+
+def tokenize_lead(text):
+    '''Yield text (a string) as a single paragraph, unless empty.'''
+    meta = dict(type = 'lead')
+    data = list(tokenize_paragraph(text))
+    if data:
+        yield meta, [ (dict(type = 'text'), datum) for datum in data ]
+
+def tokenize_content_heading(obj):
+    '''Yield heading text as a single paragraph, unless empty.'''
+    meta = dict(type = 'heading')
+    data = list(tokenize_paragraph(obj['text']))
+    if data:
+        yield meta, [ (dict(type = 'heading'), datum) for datum in data ]
+
+def tokenize_content_text(obj):
+    '''Yield text as multiple paragraphs. Empty lines separate
+    paragraphs. Text may end in a byline.
+
+    '''
+
+    text, by = splitby(obj['text'])
+    
+    data = list(tokenize_multiparagraph(text)) # obj['text']
+    for para in data:
+        meta = dict(type = 'text')
+        yield meta, [ (dict(type = 'text'), sen) for sen in para ]
+
+    # too tedious to append by (if any) to last para (if any), and
+    # have it have its own type - make it another para - might
+    # reconsider now after libification/refactoring - see quote
+    # handling right below (though there byline is another field but
+    # that is irrelevant)
+
+    if by:
+        meta = dict(type = 'by')
+        yield meta, [ (dict(type = 'by'), list(tokens(by))) ]
+
+def tokenize_content_quote(obj):
+    '''Yield quote text as a single paragraph (even when it ends in a
+    byline - too tedious to AI complete to extract it) with source (if
+    any) as byline sentence.
+
+    There was actual HTML markup for a link in a *source*. Sanitize.
+
+    Update: even the 'source' attribute may not be there, at least in
+    Finnish articles.
+
+    '''
+
+    text = obj['text']
+    source = sane(obj.get('source', ''))
+
+    # was this ever sanitized? it should be! there's even markup!
+    # <em> and <strong> with their closers
+    
+    data = list(tokenize_paragraph(text))
+    para = list(chain(( (dict(type = 'text'), sentence)
+                        for sentence
+                        in tokenize_paragraph(text)),
+                      ( (dict(type = 'by'), sentence)
+                        for sentence in [ list(tokens(source)) ]
+                        if sentence )))
+    if para:
+        yield dict(type = 'quote'), para
+
+def tokenize_content_image(obj):
+    '''Yield image caption and alt-text as single paragraphs. SHOULD BE
+    MANY.
+
+    '''
+
+    meta = dict(type = 'image')
+    
+    captext = obj.get('caption', '')
+    alttext = obj.get('alt', '')
+
+    caps = [ (dict(type = 'caption'), sentence)
+             for sentence in tokenize_paragraph(captext) ]
+    alts = [ (dict(type = 'alt'), sentence)
+             for sentence in tokenize_paragraph(alttext) ]
+
+    if caps or alts:
+        yield meta, list(chain(caps, alts))
+    
+
+def ignore(obj):
+    '''Yield nothing for a content element type for which a tokenizer is
+    not provided.
+
+    '''
+
+    if False: yield
+
+    if args.warn:
+        print('ignoring content element of type', obj['type'],
+              file = sys.stderr)
+
+content_tokenizer = dict(heading = tokenize_content_heading,
+                         text = tokenize_content_text,
+                         quote = tokenize_content_quote,
+                         image = tokenize_content_image)
+
+def tokenize_summary(text):
+    '''Yield summary as a single paragraph, unless empty.'''
+    meta = dict(type = 'summary')
+    data = list(tokenize_paragraph(text))
+    if data:
+        yield meta, [ (dict(type = 'text'), datum) for datum in data ]
+
+def tokenize_shortSummary(text):
+    '''Yield text as a single paragraph, unless empty.'''
+    meta = dict(type = 'shortSummary')
+    data = list(tokenize_paragraph(text))
+    if data:
+        yield meta, [ (dict(type = 'text'), datum) for datum in data ]
+
+def begin(name, meta):
+    '''Format a start tag from element name and dict.'''
+    annotation = ' '.join(map('{0[0]}="{0[1]}"'.format, sorted(meta.items())))
+    separator = ' ' if annotation else ''
+    return '<{}{}{}>'.format(name, separator, annotation)
+
+def convert(obj, *, out):
+    '''Convert JSON object to VRT in the output stream.'''
+
+    # when something percolates up here, it should be good to ship
+
+    print('<!-- #vrt positional-attributes: word -->', file = out)
+    for tm, paragraphs in make_texts(obj):
+        print(begin('text', tm), file = out)
+        for pm, sentence in paragraphs:
+            print(begin('paragraph', pm), file = out)
+            for sm, tokens in sentence:
+                print(begin('sentence', sm), file = out)
+                for token in tokens:
+                    print(finish_t(token), file = out)
+                else: print('</sentence>', file = out)
+            else: print('</paragraph>', file = out)
+        else: print('</text>', file = out)
+             
+def convertfiles(ins, *, out = sys.stdout):
+    '''Load the JSON object from each input file and convert it to VRT in
+    the output stream.
+
+    '''
+    
+    for one in ins:
+        with open(one, encoding = 'utf-8') as f:
+            convert(json.load(f), out = out)
+
+def main():
+    description = '''
+    
+    Convert YLE-SV JSON files to a Kielipankki VRT file.
+
+    '''
+    
+    global args
+    
+    parser = argparse.ArgumentParser(description = description)
+
+    parser.add_argument('-o', '--output', type = str,
+                        dest = 'out',
+                        help = 'output VRT file (defaults to stdout)')
+    parser.add_argument('--warn', action = 'store_true',
+                        help = 'warn (in stderr) on potential poor handling')
+    parser.add_argument('--warnlink', action = 'store_true',
+                        help = 'warn (in stderr) of each [text](link)')
+    parser.add_argument('--parainfo', action = 'store_true',
+                        help = 'echo each paragraph (in stdout! marked with ##)')
+    parser.add_argument('--sentinfo', action = 'store_true',
+                        help = 'echo sentence boundaries (in stdout! marked with ##')
+    parser.add_argument('--insane', action = 'store_true',
+                        help = 'omit low-level cleanup of text, for debugging')
+    parser.add_argument('ins', nargs = '+', type = str,
+                        metavar = 'file',
+                        help = 'input JSON files')
+
+    args = parser.parse_args()
+
+    if args.out:
+        with open(args.out, 'w', encoding = 'utf-8') as out:
+            convertfiles(args.ins, out = out)
+    else:
+        convertfiles(args.ins)
+
+if __name__ == '__main__':
+    main()
