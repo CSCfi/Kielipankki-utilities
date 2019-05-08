@@ -117,7 +117,14 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
               arguments quoted as in shell, or as a list of unquoted strings
           `cmdline`: complete command line (str), with arguments quoted as
               in shell (an alternative to `prog` and `args`)
-          `envvars`: a dict of environment variable values
+          `envvars`: a dict of environment variable values, added to
+              or replacing values in the original environment. A value
+              may reference other environment variables with `$VAR` or
+              `${VAR}`, which is replaced by the value of `VAR`. A
+              self-reference considers only the value in the original
+              environment, whereas other references also consider the
+              added or replaced values. A literal `$` is encoded as
+              `$$`.
           `stdin`: the content of standard input (str)
           `file:FNAME`: the content of file FNAME (str)
       `expected`: Expected output for the test (dict):
@@ -147,8 +154,27 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
     All input and output is currently assumed to be encoded in UTF-8.
     """
     # TODO: Possible enhancements:
-    # - Allow specifying the search path for the program to be run.
     # - Allow specifying input and output encodings.
+
+    def update_env(env, new_vars):
+        # Replace self-references with values from the original environment
+        for var, value in new_vars.items():
+            new_vars[var] = re.sub(
+                r'(?<!\$)\$(?:' + var + r'\b|\{' + var + '\})',
+                env.get(var, ''),
+                value)
+        env.update(new_vars)
+        # Replace other references with values taking into account the new
+        # values
+        for var in new_vars:
+            env[var] = re.sub(
+                r'(?<!\$)\$(?:\w+|\{\w+\})',
+                lambda mo: env.get(mo.group(0).strip('${}'), ''),
+                env[var])
+            # Replace double dollars with a single dollar
+            env[var] = env[var].replace('$$', '$')
+        return env
+
     shell = input_.get('shell', False)
     if 'cmdline' in input_:
         if shell:
@@ -168,7 +194,7 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
     if 'envvars' in input_ or progpath is not None:
         env = dict(os.environ)
         if 'envvars' in input_:
-            env.update(input_['envvars'])
+            update_env(env, input_['envvars'])
         if progpath is not None:
             env['PATH'] = progpath.format(PATH=env.get('PATH'))
     else:

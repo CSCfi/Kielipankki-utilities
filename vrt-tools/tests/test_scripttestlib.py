@@ -126,6 +126,49 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: environment variable with non-self reference',
+             'input': {
+                 'envvars': {
+                     'foo': 'bar',
+                     'bar': 'foo${foo}foo$$ $foo'
+                 },
+                 'cmdline': 'echo $bar',
+                 'shell': True,
+             },
+             'output': {
+                 'stdout': 'foobarfoo$ bar\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             # NOTE: This does not really test that the values of PATH are HOME
+             # are got from the original environment, only that they are
+             # non-empty. Testing difference from the original values seems
+             # currently impossible: if we had 'oldpath': '$PATH', it would
+             # take the new value of PATH. This is also perhaps a bit fragile,
+             # as it assumes that the original values of PATH and HOME are
+             # non-empty.
+             'name': 'Test: environment variable with self reference',
+             'input': {
+                 'envvars': {
+                     'PATH': '.:$PATH',
+                     'HOME': 'foo${HOME}foo',
+                     # This assumes that __zz__qwerty__ is has no value in the
+                     # original environment
+                     '__zz__qwerty__': 'x${__zz__qwerty__}x',
+                 },
+                 'cmdline': ('test "$PATH" != ".:" -a "$HOME" != "foofoo"'
+                             ' -a "$__zz__qwerty__" = "xx"'),
+                 'shell': True,
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
              'name': 'Test: multiple expected tests (list(dict): test+value)',
              'input': {
                  'cmdline': 'cat',

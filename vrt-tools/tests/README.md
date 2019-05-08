@@ -63,7 +63,13 @@ test case:
 	-   `shell`: if `True`, pass `cmdline` to shell, allowing the use
         of pipes, redirection and other features. Note that this works
         only with `cmdline`, not with `prog` and `args`.
-    -   `envvars`: a dict of environment variable values
+    -   `envvars`: a dict of environment variable values, added to or
+        replacing values in the original environment. A value may
+        reference other environment variables with `$VAR` or `${VAR}`,
+        which is replaced by the value of `VAR`. A self-reference
+        considers only the value in the original environment, whereas
+        other references also consider the added or replaced values. A
+        literal `$` is encoded as `$$`.
     -   `stdin`: the content of standard input (`str`)
     -   `file:FNAME`: the content of file FNAME (`str`)
 
