@@ -18,7 +18,7 @@ def finish_av(value):
     if '"' in value: print('attr', repr(value), file = sys.stderr)
     if '|' in value:
         print('attr in ', repr(value), file = sys.stderr)
-        value = value.replace('|', '\N{BROKEN VERTICAL BAR}')
+        value = value.replace('|', '\N{BROKEN BAR}')
         print('attr out', repr(value), file = sys.stderr)
     return html.escape(value, quote = True)
 
