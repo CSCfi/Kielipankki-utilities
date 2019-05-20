@@ -1,0 +1,407 @@
+- name: 'vrt-decode-tags: No intra-paragraph markup'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text id="0">
+      <paragraph id="1">
+      HRT
+      file
+      without
+      intra-paragraph
+      markup
+      .
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text id="0">
+      <paragraph id="1">
+      HRT
+      file
+      without
+      intra-paragraph
+      markup
+      .
+      </paragraph>
+      </text>
+
+- name: 'vrt-decode-tags: Intra-paragraph but no intra-word markup'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text id="0">
+      <paragraph id="1">
+      <!-- #vrt structure-tag: i|4 Some intra-para -->
+      <!-- #vrt structure-tag: /i|19 -paragraph markup.Als -->
+      <!-- #vrt structure-tag: a href="http://www.example.com"|34 p.Alsowith attributes -->
+      <!-- #vrt structure-tag: /a|44 attributes . -->
+      Some
+      intra-paragraph
+      markup
+      .
+      Also
+      with
+      attributes
+      .
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text id="0">
+      <paragraph id="1">
+      Some
+      <i>
+      intra-paragraph
+      </i>
+      markup
+      .
+      Also
+      with
+      <a href="http://www.example.com">
+      attributes
+      </a>
+      .
+      </paragraph>
+      </text>
+
+- name: 'vrt-decode-tags: Multiple paragraphs with internal tags'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text id="0">
+      <paragraph id="1">
+      <!-- #vrt structure-tag: i|14 isthefirst testparagr -->
+      <!-- #vrt structure-tag: /i|18 efirsttest paragraph. -->
+      This
+      is
+      the
+      first
+      test
+      paragraph
+      .
+      </paragraph>
+      <paragraph id="2">
+      <!-- #vrt structure-tag: i|6 Second testparagr -->
+      <!-- #vrt structure-tag: /i|10 Secondtest paragraph. -->
+      Second
+      test
+      paragraph
+      .
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text id="0">
+      <paragraph id="1">
+      This
+      is
+      the
+      first
+      <i>
+      test
+      </i>
+      paragraph
+      .
+      </paragraph>
+      <paragraph id="2">
+      Second
+      <i>
+      test
+      </i>
+      paragraph
+      .
+      </paragraph>
+      </text>
+
+- name: 'vrt-decode-tags: Empty lines in input'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text>
+      <paragraph>
+      <!-- #vrt structure-tag: i|13 sparagraph containsbl -->
+      <!-- #vrt structure-tag: /i|21 phcontains blanklines -->
+      <!-- #vrt structure-tag: i|26 tainsblank lines(seve -->
+      <!-- #vrt structure-tag: /i|31 blanklines (severalof -->
+      This
+
+      paragraph
+
+
+      contains
+
+      blank
+      lines
+
+      (several
+      of
+      them)
+      .
+
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text>
+      <paragraph>
+      This
+
+      paragraph
+      <i>
+
+
+      contains
+      </i>
+
+      blank
+      <i>
+      lines
+      </i>
+
+      (several
+      of
+      them)
+      .
+
+      </paragraph>
+      </text>
+
+- name: 'vrt-decode-tags: Intra-paragraph markup and an additional positional attribute'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: "<text id=\"0\">\n<paragraph id=\"1\">\n<!-- #vrt structure-tag: i|4 Some\
+      \ intra-para -->\n<!-- #vrt structure-tag: /i|19 -paragraph markup.Als -->\n<!--\
+      \ #vrt structure-tag: a href=\"http://www.example.com\"|34 p.Alsowith attributes\
+      \ -->\n<!-- #vrt structure-tag: /a|44 attributes . -->\nSome\t7\nintra-paragraph\t\
+      7\nmarkup\t7\n.\t7\nAlso\t8\nwith\t8\nattributes\t8\n.\t8\n</paragraph>\n</text>\n"
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: "<text id=\"0\">\n<paragraph id=\"1\">\nSome\t7\n<i>\nintra-paragraph\t\
+      7\n</i>\nmarkup\t7\n.\t7\nAlso\t8\nwith\t8\n<a href=\"http://www.example.com\">\n\
+      attributes\t8\n</a>\n.\t8\n</paragraph>\n</text>\n"
+
+
+# The following xfailing tests should pass after making
+# vrt-decode-tags handle intra-word markup.
+
+- name: 'vrt-decode-tags: Intra-word markup'
+  status: xfail
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text id="0">
+      <paragraph id="1">
+      <!-- #vrt structure-tag: i|4 Some intrawordm -->
+      <!-- #vrt structure-tag: /i|9 Someintra wordmarkup -->
+      <!-- #vrt structure-tag: a href="http://www.example.com"|16 trawordmar kup. -->
+      <!-- #vrt structure-tag: /a|18 awordmarku p. -->
+      Some
+      intraword
+      markup
+      .
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text id="0">
+      <paragraph id="1">
+      Some
+      <i st_charspan="|1-5|" st_text="|intra|" st_cont="">
+      intraword
+      </i>
+      markup
+      <a href="http://www.example.com" st_charspan="|3-4|" st_text="|ku|" st_cont="">
+      </a>
+      .
+      </paragraph>
+      </text>
+
+- name: 'vrt-decode-tags: Multiple occurrences of an intra-word structure within one
+    word'
+  status: xfail
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text id="0">
+      <paragraph id="1">
+      <!-- #vrt structure-tag: i|24 encesofani ntra-words -->
+      <!-- #vrt structure-tag: /i|27 esofanintr a-wordstru -->
+      <!-- #vrt structure-tag: i|30 fanintra-w ordstructu -->
+      <!-- #vrt structure-tag: /i|32 nintra-wor dstructure -->
+      Multiple
+      occurrences
+      of
+      an
+      intra-word
+      structure
+      within
+      one
+      word
+      .
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text id="0">
+      <paragraph id="1">
+      Multiple
+      occurrences
+      of
+      an
+      <i st_charspan="|2-4|8-9|" st_text="|ntr|or|" st_cont="">
+      intra-word
+      </i>
+      structure
+      within
+      one
+      word
+      .
+      </paragraph>
+      </text>
+
+- name: 'vrt-decode-tags: Occurrences of different intra-word structures within one
+    word'
+  status: xfail
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text id="0">
+      <paragraph id="1">
+      <!-- #vrt structure-tag: i|23 differenti ntra-words -->
+      <!-- #vrt structure-tag: b|26 ferentintr a-wordstru -->
+      <!-- #vrt structure-tag: /b|29 entintra-w ordstructu -->
+      <!-- #vrt structure-tag: /i|31 tintra-wor dstructure -->
+      Occurrences
+      of
+      different
+      intra-word
+      structures
+      within
+      one
+      word
+      .
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text id="0">
+      <paragraph id="1">
+      Occurrences
+      of
+      different
+      <i st_charspan="|2-9|" st_text="|ntra-wor|" st_cont="">
+      <b st_charspan="|5-7|" st_text="|a-w|" st_cont="">
+      intra-word
+      </b>
+      </i>
+      structures
+      within
+      one
+      word
+      .
+      </paragraph>
+      </text>
+
+- name: 'vrt-decode-tags: Intra-word structure beginning within one word and ending
+    within another'
+  status: xfail
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text id="0">
+      <paragraph id="1">
+      <!-- #vrt structure-tag: i|35 ingwithino newordande -->
+      <!-- #vrt structure-tag: /i|60 withinanot her. -->
+      Intra-word
+      structure
+      beginning
+      within
+      one
+      word
+      and
+      ending
+      within
+      another
+      .
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text id="0">
+      <paragraph id="1">
+      Intra-word
+      structure
+      beginning
+      within
+      <i st_charspan="|2-3|" st_text="|ne|" st_cont="r">
+      one
+      </i>
+      <i st_charspan="|" st_text="word and ending within" st_cont="lr">
+      word
+      and
+      ending
+      within
+      </i>
+      <i st_charspan="|1-4|" st_text="|anot|" st_cont="l">
+      another
+      </i>
+      .
+      </paragraph>
+      </text>
+
+- name: 'vrt-decode-tags: Structure both intra-word and whole words'
+  status: xfail
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text id="0">
+      <paragraph id="1">
+      <!-- #vrt structure-tag: i|17 recovering wholewords -->
+      <!-- #vrt structure-tag: /i|27 wholewords andintra-w -->
+      <!-- #vrt structure-tag: i|36 sandintra- word. -->
+      <!-- #vrt structure-tag: /i|40 intra-word . -->
+      Structure
+      covering
+      whole
+      words
+      and
+      intra-word
+      .
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text id="0">
+      <paragraph id="1">
+      Structure
+      covering
+      <i st_charspan="|" st_text="|whole words|" st_cont="">
+      whole
+      words
+      </i>
+      and
+      <i st_charspan="|7-10|" st_text="|word|" st_cont="">
+      intra-word
+      </i>
+      .
+      </paragraph>
+      </text>

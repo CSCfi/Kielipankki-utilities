@@ -1,0 +1,195 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+
+"""
+hrt-encode-tags
+
+Encode XML tags in the input HRT as special XML comments, so that they
+can be passed through tokenization and restored with vrt-decode-tags
+at the correct places, without disturbing the tokenizer.
+
+By default, the tags for "text" and "paragraph" are preserved
+unencoded in the output if the tag begins a line (use
+--preserve-tags=taglist to change the default.) The tag comment for an
+encoded tag is placed after the closest preceding preserved tag.
+Consecutive tag comments are in the same order as the corresponding
+tags were in the text.
+
+The format of the tag comment is
+
+  <!-- #structure-tag: <tag text>|<offset> <left context> <right context> -->
+
+where each space is a single space (U+0020), and the fields have the
+following meaning:
+
+  tag text: the text in the tag between < and >, including tag name,
+      attributes and / for an end tag or empty tag; may contain "|"
+      in attribute values
+  offset: the position of the tag in the following text specified as
+      the number of non-space (content) characters following the list
+      of comments
+  left context: (up to) 10 non-space content characters preceding the
+      tag in the text (may be empty)
+  right context: (up to) 10 non-space content characters following the
+      tag in the text (may be empty)
+
+Note: The contexts may contain literal "--" (but no ">"), so the
+comment is not necessarily strictly an XML comment.
+
+In the text content from which tags have been removed, whitespace is
+preserved, except on lines containing only tags and whitespace: such
+lines are removed completely, including the final newline. All
+trailing whitespace following a tag is always removed. For example,
+the text
+
+  ab
+  <b><c>
+  <a>cd</a>
+  <a>ef</a>
+  </c>  </b>
+
+  gh
+
+becomes
+
+  ab
+  cd
+  ef
+
+  gh
+"""
+
+
+import re
+
+from itertools import accumulate, groupby
+
+from vrtargsoolib import InputProcessor
+from vrtcommentlib import makevrtcomment
+
+
+class TagEncoder(InputProcessor):
+
+    """Encode XML tags in the input HRT as XML comments."""
+
+    DESCRIPTION = """
+    Encode XML tags in the input HRT as special XML comments, so that
+    they can be passed through tokenization and restored with
+    vrt-decode-tags.
+    """
+    ARGSPECS = [
+    	('--preserve-tags = taglist "text paragraph"',
+         'preserve tags of XML elements listed in taglist if they occur at the'
+         ' beginning of a line; taglist is a list of element names separated'
+         ' by spaces'),
+        ('--spaces = regexp "\\s"',
+         'remove characters matching regexp when computing the tag offset and'
+         ' context strings; regexp is a Python string (Unicode) regular'
+         ' expression'),
+    ]
+
+    def __init__(self):
+        super().__init__()
+
+    def main(self, args, inf, ouf):
+
+        preserve_tag_re = re.compile(
+            b'</?(' + '|'.join(args.preserve_tags.split()).encode()
+            + br')[>\s]')
+        tag_re = re.compile(r'<(/\w+|\w+(?:\s[^>]+)?/?)>((?:\s*?\n)?)')
+        # CHECK: By default, the following also matches Unicode spaces,
+        # including non-break space. Should it? It might depend on the
+        # tokenizer what is most useful.
+        spaces_re = re.compile('(' + args.spaces + ')+')
+        context_chars = 10
+        LESS_THAN = '<'.encode('utf-8')[0]
+        NEWLINE = '\n'.encode('utf-8')[0]
+
+        def is_preservetag(line):
+            line_strip = line.strip()
+            return bool(line_strip and line_strip[0] == LESS_THAN
+                        and preserve_tag_re.match(line_strip))
+
+        def encode_tags(lines):
+            text = b''.join(lines).decode()
+            parts = tag_re.split(text)
+            if len(parts) == 1:
+                return lines
+            # print(parts)
+            notag_indices = range(0, len(parts), 3)
+            tag_indices = range(1, len(parts), 3)
+            nl_indices = range(2, len(parts), 3)
+            notag_parts = [spaces_re.sub('', parts[i]) for i in notag_indices]
+            # print(notag_parts)
+            # print([parts[i] for i in notag_indices])
+            # print([parts[i] for i in tag_indices])
+            # print([parts[i] for i in nl_indices])
+            notag_text_nospaces = ''.join(notag_parts)
+            tagpos = list(accumulate(len(notag_part)
+                                     for notag_part in notag_parts))
+            # print(tagpos)
+            result = []
+            for tagnum, partnum in enumerate(tag_indices):
+                result.append(encode_tag(parts[partnum], notag_text_nospaces,
+                                         tagpos[tagnum])
+                              .encode())
+            prev_nonempty_partnum = -1
+            linenum = 0
+            for partnum in notag_indices:
+                # print(prev_nonempty_partnum,
+                #       repr(parts[prev_nonempty_partnum]),
+                #       partnum,
+                #       repr(parts[partnum]))
+                if not parts[partnum]:
+                    continue
+                # print(repr(parts[partnum - 1]),
+                #       repr(parts[prev_nonempty_partnum]),
+                #       list((i, parts[i]) for i in
+                #            range(prev_nonempty_partnum + 2, partnum, 3)))
+                # If this is not the first text part and the previous
+                # non-empty text part did not end in a newline,
+                # contains non-spaces and does not end in spaces (is
+                # not only leading spaces), and if there is a newline
+                # following any of the tags after the previous
+                # non-empty text part, add a newline.
+                if partnum:
+                    prev_nonempty = parts[prev_nonempty_partnum]
+                    if (prev_nonempty
+                        and prev_nonempty[-1] != '\n'
+                        and prev_nonempty.strip()
+                        and not re.match(r'.*\s+$', prev_nonempty)
+                        and any(parts[nl_num] and parts[nl_num][-1] == '\n'
+                                for nl_num in range(
+                                    prev_nonempty_partnum + 2, partnum, 3))):
+                        # print('NEWLINE')
+                        result.append(b'\n')
+                result.append(parts[partnum].encode())
+                prev_nonempty_partnum = partnum
+            if result[-1][-1] != NEWLINE:
+                result.append(b'\n')
+            # print(result)
+            return result
+
+        def encode_tag(tag, notag_text, tagpos):
+            # <!-- #vrt structure-tag: span type="add"|7 Ochfrån detta... -->
+            return makevrtcomment(
+                'structure-tag',
+                (tag + '|' + str(tagpos) + ' '
+                 + notag_text[max(tagpos - context_chars, 0) : tagpos] + ' '
+                 + notag_text[tagpos : tagpos + context_chars]))
+
+        def output_lines(lines):
+            for line in lines:
+                ouf.write(line)
+
+        for is_preservetag_group, group in groupby(inf, is_preservetag):
+            lines = list(group)
+            # print(is_preservetag_group, lines)
+            if not is_preservetag_group:
+                lines = encode_tags(lines)
+            output_lines(lines)
+
+
+if __name__ == '__main__':
+    TagEncoder().run()

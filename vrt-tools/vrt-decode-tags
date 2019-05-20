@@ -1,0 +1,154 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+
+"""
+vrt-decode-tags
+
+Decode (restore) XML tags encoded in the input VRT as special XML
+comments with hrt-encode-tags.
+
+Note that this version of the script does not yet handle intra-word
+markup correctly.
+"""
+
+
+import re
+
+from collections import namedtuple
+from itertools import accumulate, groupby
+
+import vrtdatalib
+import vrtnamelib
+
+from vrtargsoolib import InputProcessor
+from vrtcommentlib import isbinvrtcomment, getbinvrtcomment
+
+
+class TagDecoder(InputProcessor):
+
+    """Decode XML tags represented in the input VRT as XML comments."""
+
+    DESCRIPTION = """
+    Deocde (restore) XML tags encoded in the input VRT as special XML
+    comments, as encoded with hrt-encode-tags.
+    """
+    ARGSPECS = [
+        ('--spaces = regexp "\\s"',
+         'remove characters matching regexp from word forms when computing the'
+         ' tag offset and matching context strings; regexp is a Python string'
+         ' (Unicode) regular expression'),
+        ('--word|w = name -> word_attr',
+         'use positional attribute name as the word-form attribute;'
+         ' alternatively, name may be a one-based integer denoting the index'
+         ' of the word-form attribute, or a combination of the two, separated'
+         ' by a "|" (the latter is used if the former is not found)',
+         # The default contains a literal "|", so it cannot be specified on the
+         # argspec line itself.
+         dict(default="word|1")),
+    ]
+
+    def __init__(self):
+        super().__init__()
+
+    def main(self, args, inf, ouf):
+
+        structtag_value_re = re.compile(
+            br"""\s*
+                (?P<tag> ( [^|]+ | "[^"]*" | \'[^\']*\' )+ )
+                \|
+                (?P<offset> \d+ )
+                \s
+                (?P<left> \S* )
+                \s
+                (?P<right> \S* )""",
+            re.VERBOSE)
+        tag_re = re.compile(r'<(/\w+|\w+(?:\s[^>]+)?/?)>(?:\s*\n)?')
+        # CHECK: By default, the following also matches Unicode spaces,
+        # including non-break space. Should it? It might depend on the
+        # tokenizer what is most useful.
+        spaces_re = re.compile(r'(?:' + args.spaces + r')+')
+        word_attrnum = 0
+        LESS_THAN = '<'.encode('utf-8')[0]
+
+        def is_structtag_comment(line):
+            return (line[0] == LESS_THAN and isbinvrtcomment(line)
+                    and getbinvrtcomment(line)[0] == b'structure-tag')
+
+        def restore_tags(lines, tag_lines):
+            out_lines = []
+            # Number of previous added line (index to lines)
+            prev_added_linenum = 0
+            # Word form offset excluding spaces
+            offset = 0
+            for tag_line in tag_lines:
+                tag_info = extract_tag_info(tag_line)
+                if tag_info['offset'] > offset:
+                    linenum, offset = find_tag_pos(
+                        tag_info, lines, prev_added_linenum, offset)
+                    out_lines.extend(lines[prev_added_linenum:linenum])
+                    prev_added_linenum = linenum
+                out_lines.append(b'<' + tag_info['tag'] + b'>\n')
+            out_lines.extend(lines[prev_added_linenum:])
+            return out_lines
+
+        def extract_tag_info(line):
+            _, taginfo = getbinvrtcomment(line)
+            mo = structtag_value_re.match(taginfo)
+            gd = mo.groupdict()
+            gd['offset'] = int(gd['offset'])
+            return gd
+
+        def find_tag_pos(tag_info, lines, prev_linenum, prev_offset):
+            # prev_offset corresponds to prev_linenum
+            # print(tag_info)
+            new_offset = tag_info['offset']
+            offset = prev_offset
+            linenum = prev_linenum
+            wf = None
+            while offset < new_offset:
+                if lines[linenum][0] != LESS_THAN:
+                    wf = spaces_re.sub('', get_wordform(lines[linenum]))
+                    offset += len(wf)
+                linenum += 1
+                # print(wf, linenum, offset)
+            if offset != new_offset:
+                # TODO: Handle intra-word markup and offset
+                # discrepancies due to intra-word spaces
+                self.warn(('Tag <{}> (contexts {}, {}): expected offset {:d},'
+                           ' got {:d}: possibly intra-word markup or spaces')
+                          .format(tag_info['tag'].decode(),
+                                  tag_info['left'].decode(),
+                                  tag_info['right'].decode(),
+                                  new_offset, offset))
+            return linenum, offset
+
+        def get_wordform(line):
+            return vrtdatalib.binlineref(line, word_attrnum).decode()
+
+        def output_lines(lines):
+            for line in lines:
+                ouf.write(line)
+
+        before_first_comments = True
+        tag_lines = []
+        for is_comment_group, group in groupby(inf, is_structtag_comment):
+            lines = list(group)
+            # print(is_comment_group, lines)
+            if is_comment_group:
+                tag_lines = lines
+            else:
+                if before_first_comments:
+                    # Find out which positional attribute is the word form,
+                    # based on args.word_attr and the possible
+                    # positional-attributes comment before the first comments
+                    word_attrnum = vrtnamelib.extract_numnameindex(
+                        lines, args.word_attr)
+                    before_first_comments = False
+                if tag_lines:
+                    lines = restore_tags(lines, tag_lines)
+                output_lines(lines)
+
+
+if __name__ == '__main__':
+    TagDecoder().run()
