@@ -53,6 +53,9 @@ class TagDecoder(InputProcessor):
 
     def main(self, args, inf, ouf):
 
+        OutputTag = namedtuple(
+            'OutputTag',
+            ['tag', 'linenum'])
         structtag_value_re = re.compile(
             br"""\s*
                 (?P<tag> ( [^|]+ | "[^"]*" | \'[^\']*\' )+ )
@@ -76,20 +79,28 @@ class TagDecoder(InputProcessor):
                     and getbinvrtcomment(line)[0] == b'structure-tag')
 
         def restore_tags(lines, tag_lines):
-            out_lines = []
-            # Number of previous added line (index to lines)
-            prev_added_linenum = 0
+            out_tags = []
+            # The number of the line at which the previous tag is added
+            linenum = 0
             # Word form offset excluding spaces
             offset = 0
             for tag_line in tag_lines:
                 tag_info = extract_tag_info(tag_line)
                 if tag_info['offset'] > offset:
                     linenum, offset = find_tag_pos(
-                        tag_info, lines, prev_added_linenum, offset)
-                    out_lines.extend(lines[prev_added_linenum:linenum])
-                    prev_added_linenum = linenum
-                out_lines.append(b'<' + tag_info['tag'] + b'>\n')
-            out_lines.extend(lines[prev_added_linenum:])
+                        tag_info, lines, linenum, offset)
+                out_tags.append(OutputTag(tag=tag_info['tag'], linenum=linenum))
+            # Output tags and lines interleaved. (Would it be better to
+            # implement this as a generator?)
+            out_lines = []
+            prev_linenum = 0
+            for out_tag in out_tags:
+                linenum = out_tag.linenum
+                if linenum > prev_linenum:
+                    out_lines.extend(lines[prev_linenum:linenum])
+                    prev_linenum = linenum
+                out_lines.append(b'<' + out_tag.tag + b'>\n')
+            out_lines.extend(lines[prev_linenum:])
             return out_lines
 
         def extract_tag_info(line):
