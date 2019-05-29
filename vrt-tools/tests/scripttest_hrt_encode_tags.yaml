@@ -306,3 +306,48 @@
       \ -->\n<!-- #vrt structure-tag: /a|8 abcdefij gh -->\n<!-- #vrt structure-tag: /c|8\
       \ abcdefij gh -->\n<!-- #vrt structure-tag: /b|8 abcdefij gh -->\n  ab  \n\t   cd\n\
       \tef\tij\n\t  \n\tgh\t  \n"
+
+- name: 'hrt-encode-tags: No enclosing structures'
+  input:
+    cmdline: hrt-encode-tags
+    stdin: |
+      abc<i>def</i>ghi <i>jkl</i>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <!-- #vrt structure-tag: i|3 abc defghijkl -->
+      <!-- #vrt structure-tag: /i|6 abcdef ghijkl -->
+      <!-- #vrt structure-tag: i|9 abcdefghi jkl -->
+      <!-- #vrt structure-tag: /i|12 cdefghijkl  -->
+      abcdefghi jkl
+
+- name: 'hrt-encode-tags: XML comments in input'
+  input:
+    cmdline: hrt-encode-tags
+    stdin: |
+      <text>
+      <!-- A comment before content -->
+      <i>abcd
+      <!-- A comment before an end tag to be encoded -->
+      </i>
+      <!-- A comment in the middle of content -->
+      <i>efgh</i>
+      <!-- A comment after content -->
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text>
+      <!-- A comment before content -->
+      <!-- #vrt structure-tag: i|0  abcd -->
+      abcd
+      <!-- A comment before an end tag to be encoded -->
+      <!-- #vrt structure-tag: /i|0   -->
+      <!-- A comment in the middle of content -->
+      <!-- #vrt structure-tag: i|0  efgh -->
+      <!-- #vrt structure-tag: /i|4 efgh  -->
+      efgh
+      <!-- A comment after content -->
+      </text>

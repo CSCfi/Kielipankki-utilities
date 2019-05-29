@@ -94,9 +94,13 @@ class TagEncoder(InputProcessor):
 
     def main(self, args, inf, ouf):
 
+        # Single-line XML comments are included in the "tags" to be preserved.
+        # CHECK: Is this a good approach (from the perspective of decoding), as
+        # it resets the position where the structure-tag comments are added, or
+        # would it be better to try to ignore XML comments in some other way?
         preserve_tag_re = re.compile(
-            b'</?(' + '|'.join(args.preserve_tags.split()).encode()
-            + br')[>\s]')
+            b'(?: < /? (' + '|'.join(args.preserve_tags.split()).encode()
+            + br') [>\s] | <!-- .* --> \s* $ )', re.VERBOSE)
         tag_re = re.compile(r'<(/\w+|\w+(?:\s[^>]+)?/?)>((?:\s*?\n)?)')
         # CHECK: By default, the following also matches Unicode spaces,
         # including non-break space. Should it? It might depend on the
