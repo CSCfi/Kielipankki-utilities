@@ -68,36 +68,43 @@ def collect_testcases(*filespecs, basedir=None):
         if basedir is not None:
             filespec = os.path.join(basedir, filespec)
         for fname in glob.iglob(filespec):
+            fname_rel = os.path.relpath(fname, basedir)
             if fname.endswith('.py'):
                 # print(basedir, sys.path)
-                testcases.extend(
-                    importlib.import_module(os.path.basename(fname)[:-3])
-                    .testcases)
+                testcases.append(
+                    (fname_rel,
+                     importlib.import_module(os.path.basename(fname)[:-3])
+                     .testcases))
             elif fname.endswith(('.yaml', '.yml')):
                 with open(fname, 'r') as yf:
-                    testcases.extend(item for items in yaml.safe_load_all(yf)
-                                     for item in items)
+                    testcases.append(
+                        (fname_rel, [item for items in yaml.safe_load_all(yf)
+                                     for item in items]))
     return expand_testcases(testcases)
 
 
-def expand_testcases(testcases_dictlist):
-    """Convert a list of test case dicts to a list of tuples."""
+def expand_testcases(fname_testcases_dictlist):
+    """Convert a list of (filename, test case dict) to a list of tuples."""
     testcases = []
-    for tc in testcases_dictlist:
-        params = (tc.get('name', {}), tc.get('input', {}),
-                  tc.get('output') or tc.get('expected', {}))
-        # If status start swith "xfail", "skip" or "skipif", mark the test
-        # accordingly.
-        if tc.get('status'):
-            status, _, reason = tc['status'].partition(':')
-            reason = reason.strip() or None
-            if status == 'skipif':
-                mark = pytest.mark.skipif(reason)
-            elif status in ('skip', 'xfail'):
-                mark = getattr(pytest.mark, status)(reason=reason)
-            testcases.append(pytest.param(*params, marks=mark))
-        else:
-            testcases.append(params)
+    # print(fname_testcases_dictlist)
+    for fname, testcases_dictlist in fname_testcases_dictlist:
+        for tcnum, tc in enumerate(testcases_dictlist):
+            params = ('{} {:d}: {}'.format(fname, tcnum + 1,
+                                           tc.get('name', '')),
+                      tc.get('input', {}),
+                      tc.get('output') or tc.get('expected', {}))
+            # If status starts with "xfail", "skip" or "skipif", mark the test
+            # accordingly.
+            if tc.get('status'):
+                status, _, reason = tc['status'].partition(':')
+                reason = reason.strip() or None
+                if status == 'skipif':
+                    mark = pytest.mark.skipif(reason)
+                elif status in ('skip', 'xfail'):
+                    mark = getattr(pytest.mark, status)(reason=reason)
+                testcases.append(pytest.param(*params, marks=mark))
+            else:
+                testcases.append(params)
     return testcases
 
 
