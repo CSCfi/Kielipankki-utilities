@@ -323,16 +323,25 @@
       abcdefghi jkl
 
 - name: 'hrt-encode-tags: XML comments in input'
+  # This could be divided into separate tests testing the different
+  # kinds or positions of comments
   input:
     cmdline: hrt-encode-tags
     stdin: |
       <text>
       <!-- A comment before content -->
-      <i>abcd
+      <i>ab
       <!-- A comment before an end tag to be encoded -->
       </i>
       <!-- A comment in the middle of content -->
-      <i>efgh</i>
+      <i>cd</i>
+      <!-- A comment containing a vertical bar: | -->
+      <!-- A comment containing nested markup: <a b="c">test</a> -->
+      <!-- A comment with a double hyphen -- in the middle -->
+      <!--A comment without a space at the beginning and end-->
+      <!--   A comment   with multiple spaces at   the beginning, middle and end   -->
+      ef <!-- A comment in the middle of a line --> gh
+      ij<!-- An intra-word comment -->kl
       <!-- A comment after content -->
       </text>
   output:
@@ -340,14 +349,23 @@
     stderr: ""
     stdout: |
       <text>
-      <!-- A comment before content -->
-      <!-- #vrt structure-tag: i|0  abcd -->
-      abcd
-      <!-- A comment before an end tag to be encoded -->
-      <!-- #vrt structure-tag: /i|0   -->
-      <!-- A comment in the middle of content -->
-      <!-- #vrt structure-tag: i|0  efgh -->
-      <!-- #vrt structure-tag: /i|4 efgh  -->
-      efgh
-      <!-- A comment after content -->
+      <!-- #vrt structure-tag: !-- A comment before content --|0  abcdefghij -->
+      <!-- #vrt structure-tag: i|0  abcdefghij -->
+      <!-- #vrt structure-tag: !-- A comment before an end tag to be encoded --|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: /i|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: !-- A comment in the middle of content --|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: i|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: /i|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: !-- A comment containing a vertical bar: | --|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: !-- A comment containing nested markup: <a b="c">test</a> --|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: !-- A comment with a double hyphen -- in the middle --|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: !--A comment without a space at the beginning and end--|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: !--   A comment   with multiple spaces at   the beginning, middle and end   --|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: !-- A comment in the middle of a line --|6 abcdef ghijkl -->
+      <!-- #vrt structure-tag: !-- An intra-word comment --|10 abcdefghij kl -->
+      <!-- #vrt structure-tag: !-- A comment after content --|12 cdefghijkl  -->
+      ab
+      cd
+      ef  gh
+      ijkl
       </text>

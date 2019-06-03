@@ -5,9 +5,10 @@
 """
 hrt-encode-tags
 
-Encode XML tags in the input HRT as special XML comments, so that they
-can be passed through tokenization and restored with vrt-decode-tags
-at the correct places, without disturbing the tokenizer.
+Encode XML tags and comments in the input HRT as special XML comments,
+so that they can be passed through tokenization and restored with
+vrt-decode-tags at the correct places, without disturbing the
+tokenizer.
 
 By default, the tags for "text" and "paragraph" are preserved
 unencoded in the output if the tag begins a line (use
@@ -24,8 +25,8 @@ where each space is a single space (U+0020), and the fields have the
 following meaning:
 
   tag text: the text in the tag between < and >, including tag name,
-      attributes and / for an end tag or empty tag; may contain "|"
-      in attribute values
+      attributes and / for an end tag or empty tag; may also contain
+      "|" (in attribute values or comment text)
   offset: the position of the tag in the following text specified as
       the number of non-space (content) characters following the list
       of comments
@@ -36,6 +37,9 @@ following meaning:
 
 Note: The contexts may contain literal "--" (but no ">"), so the
 comment is not necessarily strictly an XML comment.
+
+XML comments in the input are also encoded in the same way, even
+though "structure-tag" is somewhat misleading for them.
 
 In the text content from which tags have been removed, whitespace is
 preserved, except on lines containing only tags and whitespace: such
@@ -94,14 +98,21 @@ class TagEncoder(InputProcessor):
 
     def main(self, args, inf, ouf):
 
-        # Single-line XML comments are included in the "tags" to be preserved.
-        # CHECK: Is this a good approach (from the perspective of decoding), as
-        # it resets the position where the structure-tag comments are added, or
-        # would it be better to try to ignore XML comments in some other way?
         preserve_tag_re = re.compile(
-            b'(?: < /? (' + '|'.join(args.preserve_tags.split()).encode()
-            + br') [>\s] | <!-- .* --> \s* $ )', re.VERBOSE)
-        tag_re = re.compile(r'<(/\w+|\w+(?:\s[^>]+)?/?)>((?:\s*?\n)?)')
+            b'< /? (' + '|'.join(args.preserve_tags.split()).encode()
+            + br') [>\s]', re.VERBOSE)
+        # Also encode XML comments, even though they are not structural tags,
+        # so "#vrt structure-tag" is somewhat misleading. This allows comments
+        # in the middle of a line or a token. The resulting VRT comments are
+        # not strictly XML comments, as they contain "--" in the middle of the
+        # comment.
+        # Should we also allow multi-line comments? They would need to be
+        # converted to multiple single-line comments.
+        tag_re = re.compile(
+            r'''< ( (?: (?: /\w+ | \w+ (?: \s [^>]+ )? /? )
+                      | !-- .+ -- )
+                  ) >
+                ( (?: \s*? \n )? )''', re.VERBOSE)
         # CHECK: By default, the following also matches Unicode spaces,
         # including non-break space. Should it? It might depend on the
         # tokenizer what is most useful.
