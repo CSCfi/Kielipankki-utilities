@@ -569,7 +569,6 @@
       </i>
 
 - name: 'vrt-decode-tags: XML comments in input'
-  status: 'skip:Would currently appear to cause an infinite loop'
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -598,13 +597,16 @@
   output:
     returncode: 0
     stderr: ""
+    # Note that the comment before an end tag to be encoded comes
+    # after the tag because it would be more complicated to keep the
+    # order when nearest open structures are closed first.
     stdout: |
       <text>
       <!-- A comment before content -->
       <i>
       ab
-      <!-- A comment before an end tag to be encoded -->
       </i>
+      <!-- A comment before an end tag to be encoded -->
       <!-- A comment in the middle of content -->
       <i>
       cd

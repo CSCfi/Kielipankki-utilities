@@ -16,7 +16,6 @@ feature-set values and some others not.
 """
 
 # TODO (also see within the code for TODO comments):
-# - Handle encoded XML comments.
 # - Handle lone start and end tags that may result from a structure
 #   extending over a paragraph boundary (such as page). It would be
 #   more difficult to handle them if they began or ended within a
@@ -95,7 +94,7 @@ class TagDecoder(InputProcessor):
             ['tagname', 'structnum'])
         structtag_value_re = re.compile(
             br"""\s*
-                (?P<tag> ( [^|]+ | "[^"]*" | \'[^\']*\' )+ )
+                (?P<tag> .+ )
                 \|
                 (?P<offset> \d+ )
                 \s
@@ -114,6 +113,7 @@ class TagDecoder(InputProcessor):
         struct_stack = []
         LESS_THAN = '<'.encode('utf-8')[0]
         SLASH = '/'.encode('utf-8')[0]
+        EXCLAM = '!'.encode('utf-8')[0]
 
         def is_structtag_comment(line):
             return (line[0] == LESS_THAN and isbinvrtcomment(line)
@@ -132,11 +132,19 @@ class TagDecoder(InputProcessor):
             for tagnum, tag_line in enumerate(tag_lines):
                 tag_info = extract_tag_info(tag_line)
                 # print(tag_info)
-                is_endtag = (tag_info['tag'][0] == SLASH)
-                tagparts = tag_info['tag'].split(maxsplit=1)
-                basetag = tagparts[0]
-                attrs = tagparts[1] if len(tagparts) > 1 else b''
-                tagname = basetag.decode().strip('/')
+                tag_text = tag_info['tag']
+                is_comment = (
+                    tag_text[0] == EXCLAM and tag_text.startswith(b'!--'))
+                if is_comment:
+                    is_endtag = False
+                    attrs = None
+                    tagname = tag_text.decode()
+                else:
+                    is_endtag = (not is_comment and tag_text[0] == SLASH)
+                    tagparts = tag_text.split(maxsplit=1)
+                    basetag = tagparts[0]
+                    attrs = tagparts[1] if len(tagparts) > 1 else b''
+                    tagname = basetag.decode().strip('/')
                 if tag_info['offset'] > offset:
                     linenum, offset, char_offset, latest_wordform_linenum = (
                         find_tag_pos(
@@ -144,7 +152,16 @@ class TagDecoder(InputProcessor):
                             wordforms, latest_wordform_linenum))
                     # print(tag_info, linenum, offset, char_offset, is_endtag)
                 tag_linenum = linenum + int(is_endtag and bool(char_offset))
-                if is_endtag:
+                if is_comment:
+                    structs.append(
+                        StructInfo(tagname=tagname,
+                                   attrs=attrs,
+                                   tagnums=[tagnum],
+                                   linenums=[tag_linenum],
+                                   wordform_nums=[],
+                                   char_offsets=[char_offset],
+                                   continues=''))
+                elif is_endtag:
                     starttag_stack_num = find_starttag_in_stack(tagname)
                     if struct_stack and starttag_stack_num is None:
                         self.warn('Spurious end tag </' + tagname + '>')
@@ -161,7 +178,6 @@ class TagDecoder(InputProcessor):
                         StructStackInfo(tagname=tagname,
                                         structnum=len(structs)))
                     structs.append(
-            # print(structs)
                         StructInfo(
                             tagname=tagname,
                             attrs=attrs,
@@ -171,6 +187,7 @@ class TagDecoder(InputProcessor):
                                 len(wordforms) - int(char_offset > 0)],
                             char_offsets=[char_offset],
                             continues=''))
+            # print(structs)
             out_tags = make_output_tags(structs, wordforms)
             # Output tags and lines interleaved. (Would it be better to
             # implement this as a generator?)
@@ -188,7 +205,7 @@ class TagDecoder(InputProcessor):
 
         def extract_tag_info(line):
             _, taginfo = getbinvrtcomment(line)
-            mo = structtag_value_re.match(taginfo)
+            mo = structtag_value_re.fullmatch(taginfo)
             gd = mo.groupdict()
             gd['offset'] = int(gd['offset'])
             return gd
@@ -276,7 +293,12 @@ class TagDecoder(InputProcessor):
                 add_output_tag('/' + struct.tagname, struct)
 
             for struct in structs:
-                if len(struct.linenums) == 1:
+                if struct.tagname[0] == '!':
+                    # XML comment
+                    line_out_tags[(struct.tagname.encode(),
+                                   struct.linenums[0],
+                                   struct.linenums[0])] = [struct]
+                elif len(struct.linenums) == 1:
                     # TODO: Implement this: only start tag (or end tag)
                     pass
                 else:
@@ -328,9 +350,20 @@ class TagDecoder(InputProcessor):
                 output_tags.append(make_output_tag(tag, structs, wordforms))
             output_tags.sort(
                 key=lambda tag: (tag.linenum, tag.is_starttag, tag.tagnum))
+            # print(output_tags)
             return output_tags
 
         def make_output_tag(tag, structs, wordforms):
+            if tag[0] == EXCLAM:
+                # If the nearest structures are closed first (see below), this
+                # results in comments immediately preceding end tags in the
+                # input to be output after the end tags. That is not optimal,
+                # but retaining the order is not quite simple, and as comments
+                # are not essential, this should make do for now..
+                return OutputTag(linenum=structs[0].linenums[0],
+                                 tagnum=structs[0].tagnums[0],
+                                 is_starttag=False,
+                                 tag_text=b'<' + tag + b'>\n')
             if tag[0] == SLASH:
                 # This prefers closing first structures that were opened last.
                 # For original tag ordering, tagnum=structs[0].tagnums[1].
