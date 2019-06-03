@@ -189,12 +189,112 @@
       7\n</i>\nmarkup\t7\n.\t7\nAlso\t8\nwith\t8\n<a href=\"http://www.example.com\">\n\
       attributes\t8\n</a>\n.\t8\n</paragraph>\n</text>\n"
 
+- name: 'vrt-decode-tags: Intra-paragraph markup with sentences'
+  input:
+    prog: vrt-decode-tags
+    stdin: |
+      <text id="0">
+      <paragraph id="1">
+      <!-- #vrt structure-tag: i|4 Some intra-para -->
+      <!-- #vrt structure-tag: /i|19 -paragraph markup.Als -->
+      <!-- #vrt structure-tag: a href="http://www.example.com"|34 p.Alsowith attributes -->
+      <!-- #vrt structure-tag: /a|44 attributes . -->
+      <sentence id="1">
+      Some
+      intra-paragraph
+      markup
+      .
+      </sentence>
+      <sentence id="2">
+      Also
+      with
+      attributes
+      .
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text id="0">
+      <paragraph id="1">
+      <sentence id="1">
+      Some
+      <i>
+      intra-paragraph
+      </i>
+      markup
+      .
+      </sentence>
+      <sentence id="2">
+      Also
+      with
+      <a href="http://www.example.com">
+      attributes
+      </a>
+      .
+      </sentence>
+      </paragraph>
+      </text>
 
-# The following xfailing tests should pass after making
-# vrt-decode-tags handle intra-word markup.
+- name: 'vrt-decode-tags: Intra-paragraph markup with other added markup for the same
+    words'
+  input:
+    prog: vrt-decode-tags
+    stdin: |
+      <text id="0">
+      <paragraph id="1">
+      <!-- #vrt structure-tag: i|4 Some intra-para -->
+      <!-- #vrt structure-tag: /i|19 -paragraph markup.Als -->
+      <!-- #vrt structure-tag: a href="http://www.example.com"|34 p.Alsowith attributes -->
+      <!-- #vrt structure-tag: /a|44 attributes . -->
+      Some
+      <marked x="1">
+      intra-paragraph
+      </marked>
+      markup
+      .
+      <sentence id="2">
+      Also
+      <marked x="2">
+      with
+      <marked2 x="1">
+      attributes
+      </marked>
+      .
+      </marked2>
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text id="0">
+      <paragraph id="1">
+      Some
+      <i>
+      <marked x="1">
+      intra-paragraph
+      </i>
+      </marked>
+      markup
+      .
+      <sentence id="2">
+      Also
+      <marked x="2">
+      with
+      <a href="http://www.example.com">
+      <marked2 x="1">
+      attributes
+      </a>
+      </marked>
+      .
+      </marked2>
+      </paragraph>
+      </text>
 
 - name: 'vrt-decode-tags: Intra-word markup'
-  status: xfail
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -220,8 +320,8 @@
       <i st_charspan="|1-5|" st_text="|intra|" st_cont="">
       intraword
       </i>
+      <a href="http://www.example.com" st_charspan="|4-5|" st_text="|ku|" st_cont="">
       markup
-      <a href="http://www.example.com" st_charspan="|3-4|" st_text="|ku|" st_cont="">
       </a>
       .
       </paragraph>
@@ -229,7 +329,6 @@
 
 - name: 'vrt-decode-tags: Multiple occurrences of an intra-word structure within one
     word'
-  status: xfail
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -274,7 +373,6 @@
 
 - name: 'vrt-decode-tags: Occurrences of different intra-word structures within one
     word'
-  status: xfail
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -319,7 +417,6 @@
 
 - name: 'vrt-decode-tags: Intra-word structure beginning within one word and ending
     within another'
-  status: xfail
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -353,7 +450,7 @@
       <i st_charspan="|2-3|" st_text="|ne|" st_cont="r">
       one
       </i>
-      <i st_charspan="|" st_text="word and ending within" st_cont="lr">
+      <i st_charspan="|" st_text="|word and ending within|" st_cont="lr">
       word
       and
       ending
@@ -367,7 +464,9 @@
       </text>
 
 - name: 'vrt-decode-tags: Structure both intra-word and whole words'
-  status: xfail
+  status: >-
+    xfail:Not implemented yet: if one attribute occurrence of a token
+    has intra-word attributes, they all should have
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -405,3 +504,1514 @@
       .
       </paragraph>
       </text>
+
+- name: 'vrt-decode-tags: Paragraph break between structure start and end tag'
+  status: 'xfail:Not implemented yet: paragraph break between start and end tag'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text>
+      <!-- #vrt structure-tag: page n="1"|0   -->
+      <paragraph>
+      First
+      paragraph.
+      </paragraph>
+      <paragraph>
+      <!-- #vrt structure-tag: /page|15 dparagraph continueso -->
+      <!-- #vrt structure-tag: page n="2"|15 dparagraph continueso -->
+      Second
+      paragraph
+      continues
+      on
+      the
+      next
+      page.
+      </paragraph>
+      <!-- #vrt structure-tag: /page|0   -->
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text>
+      <page n="1">
+      <paragraph>
+      First
+      paragraph.
+      </paragraph>
+      <paragraph>
+      Second
+      paragraph
+      </page>
+      <page n="2">
+      continues
+      on
+      the
+      next
+      page.
+      </paragraph>
+      </page>
+      </text>
+
+- name: 'vrt-decode-tags: No enclosing structures'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: i|0  abcd -->
+      <!-- #vrt structure-tag: /i|4 abcd  -->
+      abcd
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <i>
+      abcd
+      </i>
+
+- name: 'vrt-decode-tags: XML comments in input'
+  status: 'skip:Would currently appear to cause an infinite loop'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text>
+      <!-- #vrt structure-tag: !-- A comment before content --|0  abcdefghij -->
+      <!-- #vrt structure-tag: i|0  abcdefghij -->
+      <!-- #vrt structure-tag: !-- A comment before an end tag to be encoded --|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: /i|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: !-- A comment in the middle of content --|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: i|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: /i|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: !-- A comment containing a vertical bar: | --|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: !-- A comment containing nested markup: <a b="c">test</a> --|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: !-- A comment with a double hyphen -- in the middle --|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: !--A comment without a space at the beginning and end--|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: !--   A comment   with multiple spaces at   the beginning, middle and end   --|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: !-- A comment in the middle of a line --|6 abcdef ghijkl -->
+      <!-- #vrt structure-tag: !-- An intra-word comment --|10 abcdefghij kl -->
+      <!-- #vrt structure-tag: !-- A comment after content --|12 cdefghijkl  -->
+      ab
+      cd
+      ef
+      gh
+      ijkl
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <text>
+      <!-- A comment before content -->
+      <i>
+      ab
+      <!-- A comment before an end tag to be encoded -->
+      </i>
+      <!-- A comment in the middle of content -->
+      <i>
+      cd
+      </i>
+      <!-- A comment containing a vertical bar: | -->
+      <!-- A comment containing nested markup: <a b="c">test</a> -->
+      <!-- A comment with a double hyphen -- in the middle -->
+      <!--A comment without a space at the beginning and end-->
+      <!--   A comment   with multiple spaces at   the beginning, middle and end   -->
+      ef
+      <!-- A comment in the middle of a line -->
+      gh
+      <!-- An intra-word comment -->
+      ijkl
+      <!-- A comment after content -->
+      </text>
+
+- name: 'vrt-decode-tags: Structure ends at the middle of a token: <i>abcdef</i>ghi'
+  # hrt-encode-tags input: <i>abcdef</i>ghi
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: i|0  abcdefghi -->
+      <!-- #vrt structure-tag: /i|6 abcdef ghi -->
+      abcdefghi
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <i st_charspan="|1-6|" st_text="|abcdef|" st_cont="">
+      abcdefghi
+      </i>
+
+- name: 'vrt-decode-tags: Structure starts at the middle of a token: abc<i>defghi</i>'
+  # hrt-encode-tags input: abc<i>defghi</i>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: i|3 abc defghi -->
+      <!-- #vrt structure-tag: /i|9 abcdefghi  -->
+      abcdefghi
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <i st_charspan="|4-9|" st_text="|defghi|" st_cont="">
+      abcdefghi
+      </i>
+
+- name: 'vrt-decode-tags: Structure starts and ends at the middle of a token: abc<i>def</i>jkl'
+  # hrt-encode-tags input: abc<i>def</i>jkl
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: i|3 abc defjkl -->
+      <!-- #vrt structure-tag: /i|6 abcdef jkl -->
+      abcdefjkl
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <i st_charspan="|4-6|" st_text="|def|" st_cont="">
+      abcdefjkl
+      </i>
+
+- name: 'vrt-decode-tags: Multiple same structures in the same token: a<a>b</a>cde<a>fghi</a><a>jkl</a>mn'
+  # hrt-encode-tags input: a<a>b</a>cde<a>fghi</a><a>jkl</a>mn
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: a|5 abcde fghijklmn -->
+      <!-- #vrt structure-tag: /a|9 abcdefghi jklmn -->
+      <!-- #vrt structure-tag: a|9 abcdefghi jklmn -->
+      <!-- #vrt structure-tag: /a|12 cdefghijkl mn -->
+      abcdefghijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-2|6-9|10-12|" st_text="|b|fghi|jkl|" st_cont="">
+      abcdefghijklmn
+      </a>
+
+- name: 'vrt-decode-tags: Multiple same structures in the same token, one containing
+    the end of one and beginning of the next token: a<a>b</a>cde<a>fg hi</a><a>jkl</a>mn'
+  # hrt-encode-tags input: a<a>b</a>cde<a>fg hi</a><a>jkl</a>mn
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: a|5 abcde fghijklmn -->
+      <!-- #vrt structure-tag: /a|9 abcdefghi jklmn -->
+      <!-- #vrt structure-tag: a|9 abcdefghi jklmn -->
+      <!-- #vrt structure-tag: /a|12 cdefghijkl mn -->
+      abcdefg
+      hijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-2|6-7|" st_text="|b|fg|" st_cont="r">
+      abcdefg
+      </a>
+      <a st_charspan="|1-2|3-5|" st_text="|hi|jkl|" st_cont="l">
+      hijklmn
+      </a>
+
+- name: 'vrt-decode-tags: Multiple same structures in the same token, one containing
+    the end of one and beginning of the next token, with one token in between: a<a>b</a>cde<a>fg
+    h i</a><a>jkl</a>mn'
+  # hrt-encode-tags input: a<a>b</a>cde<a>fg h i</a><a>jkl</a>mn
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: a|5 abcde fghijklmn -->
+      <!-- #vrt structure-tag: /a|9 abcdefghi jklmn -->
+      <!-- #vrt structure-tag: a|9 abcdefghi jklmn -->
+      <!-- #vrt structure-tag: /a|12 cdefghijkl mn -->
+      abcdefg
+      h
+      ijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-2|6-7|" st_text="|b|fg|" st_cont="r">
+      abcdefg
+      </a>
+      <a st_charspan="|" st_text="|h|" st_cont="lr">
+      h
+      </a>
+      <a st_charspan="|1-1|2-4|" st_text="|i|jkl|" st_cont="l">
+      ijklmn
+      </a>
+
+- name: 'vrt-decode-tags: Intra-word structures: a<a>b</a>cde <a>fghjkl</a>mn'
+  # hrt-encode-tags input: a<a>b</a>cde <a>fghjkl</a>mn
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghjkl -->
+      <!-- #vrt structure-tag: /a|2 ab cdefghjklm -->
+      <!-- #vrt structure-tag: a|5 abcde fghjklmn -->
+      <!-- #vrt structure-tag: /a|11 bcdefghjkl mn -->
+      abcde
+      fghjklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-2|" st_text="|b|" st_cont="">
+      abcde
+      </a>
+      <a st_charspan="|1-6|" st_text="|fghjkl|" st_cont="">
+      fghjklmn
+      </a>
+
+- name: 'vrt-decode-tags: Different intra-word structures in the same token: a<a>bc</a>defg<b>hijkl</b>mn'
+  # hrt-encode-tags input: a<a>bc</a>defg<b>hijkl</b>mn
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|3 abc defghijklm -->
+      <!-- #vrt structure-tag: b|7 abcdefg hijklmn -->
+      <!-- #vrt structure-tag: /b|12 cdefghijkl mn -->
+      abcdefghijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-3|" st_text="|bc|" st_cont="">
+      <b st_charspan="|8-12|" st_text="|hijkl|" st_cont="">
+      abcdefghijklmn
+      </b>
+      </a>
+
+- name: 'vrt-decode-tags: Different intra-word structures in the same token, token
+    break within one strcture: a<a>bc</a>defg<b>hij kl</b>mn'
+  # hrt-encode-tags input: a<a>bc</a>defg<b>hij kl</b>mn
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|3 abc defghijklm -->
+      <!-- #vrt structure-tag: b|7 abcdefg hijklmn -->
+      <!-- #vrt structure-tag: /b|12 cdefghijkl mn -->
+      abcdefghij
+      klmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-3|" st_text="|bc|" st_cont="">
+      <b st_charspan="|8-10|" st_text="|hij|" st_cont="r">
+      abcdefghij
+      </b>
+      </a>
+      <b st_charspan="|1-2|" st_text="|kl|" st_cont="l">
+      klmn
+      </b>
+
+- name: 'vrt-decode-tags: Different intra-word structures in the same token, structure
+    ends at token break: a<a>bc</a>defg<b>hij</b> klmn'
+  # hrt-encode-tags input: a<a>bc</a>defg<b>hij</b> klmn
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|3 abc defghijklm -->
+      <!-- #vrt structure-tag: b|7 abcdefg hijklmn -->
+      <!-- #vrt structure-tag: /b|10 abcdefghij klmn -->
+      abcdefghij
+      klmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-3|" st_text="|bc|" st_cont="">
+      <b st_charspan="|8-10|" st_text="|hij|" st_cont="">
+      abcdefghij
+      </b>
+      </a>
+      klmn
+
+- name: 'vrt-decode-tags: Nested different structures: <a>abcd <b>efgh</b> ijklmn</a>'
+  # hrt-encode-tags input: <a>abcd <b>efgh</b> ijklmn</a>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0  abcdefghij -->
+      <!-- #vrt structure-tag: b|4 abcd efghijklmn -->
+      <!-- #vrt structure-tag: /b|8 abcdefgh ijklmn -->
+      <!-- #vrt structure-tag: /a|14 efghijklmn  -->
+      abcd
+      efgh
+      ijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a>
+      abcd
+      <b>
+      efgh
+      </b>
+      ijklmn
+      </a>
+
+- name: 'vrt-decode-tags: Nested same structures: <a>abcd <a>efgh</a> ijklmn</a>'
+  # hrt-encode-tags input: <a>abcd <a>efgh</a> ijklmn</a>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0  abcdefghij -->
+      <!-- #vrt structure-tag: a|4 abcd efghijklmn -->
+      <!-- #vrt structure-tag: /a|8 abcdefgh ijklmn -->
+      <!-- #vrt structure-tag: /a|14 efghijklmn  -->
+      abcd
+      efgh
+      ijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a>
+      abcd
+      <a>
+      efgh
+      </a>
+      ijklmn
+      </a>
+
+- name: 'vrt-decode-tags: Interleaved structures: <a>abcd <b>efgh</a> ijklmn</b>'
+  # hrt-encode-tags input: <a>abcd <b>efgh</a> ijklmn</b>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0  abcdefghij -->
+      <!-- #vrt structure-tag: b|4 abcd efghijklmn -->
+      <!-- #vrt structure-tag: /a|8 abcdefgh ijklmn -->
+      <!-- #vrt structure-tag: /b|14 efghijklmn  -->
+      abcd
+      efgh
+      ijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a>
+      abcd
+      <b>
+      efgh
+      </a>
+      ijklmn
+      </b>
+
+- name: 'vrt-decode-tags: Nested and interleaved structures: <a>ab <b>cd</b> <b>efgh</a>
+    ijklmn</b>'
+  # hrt-encode-tags input: <a>ab <b>cd</b> <b>efgh</a> ijklmn</b>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0  abcdefghij -->
+      <!-- #vrt structure-tag: b|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: /b|4 abcd efghijklmn -->
+      <!-- #vrt structure-tag: b|4 abcd efghijklmn -->
+      <!-- #vrt structure-tag: /a|8 abcdefgh ijklmn -->
+      <!-- #vrt structure-tag: /b|14 efghijklmn  -->
+      ab
+      cd
+      efgh
+      ijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a>
+      ab
+      <b>
+      cd
+      </b>
+      <b>
+      efgh
+      </a>
+      ijklmn
+      </b>
+
+- name: 'vrt-decode-tags: Nested different structures, nested structure beginning
+    within a token: a<a>bc<b>defghij</b> klm</a>n'
+  # hrt-encode-tags input: a<a>bc<b>defghij</b> klm</a>n
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b|3 abc defghijklm -->
+      <!-- #vrt structure-tag: /b|10 abcdefghij klmn -->
+      <!-- #vrt structure-tag: /a|13 defghijklm n -->
+      abcdefghij
+      klmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-10|" st_text="|bcdefghij|" st_cont="r">
+      <b st_charspan="|4-10|" st_text="|defghij|" st_cont="">
+      abcdefghij
+      </b>
+      </a>
+      <a st_charspan="|1-3|" st_text="|klm|" st_cont="l">
+      klmn
+      </a>
+
+- name: 'vrt-decode-tags: Interleaved different structures, interleaved structure
+    beginning within a token: a<a>bc<b>defghij</a> klm</b>n'
+  # hrt-encode-tags input: a<a>bc<b>defghij</a> klm</b>n
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b|3 abc defghijklm -->
+      <!-- #vrt structure-tag: /a|10 abcdefghij klmn -->
+      <!-- #vrt structure-tag: /b|13 defghijklm n -->
+      abcdefghij
+      klmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-10|" st_text="|bcdefghij|" st_cont="">
+      <b st_charspan="|4-10|" st_text="|defghij|" st_cont="r">
+      abcdefghij
+      </b>
+      </a>
+      <b st_charspan="|1-3|" st_text="|klm|" st_cont="l">
+      klmn
+      </b>
+
+- name: 'vrt-decode-tags: Nested same structures within a token: a<a>bc<a>defghij</a>klm</a>n'
+  # hrt-encode-tags input: a<a>bc<a>defghij</a>klm</a>n
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: a|3 abc defghijklm -->
+      <!-- #vrt structure-tag: /a|10 abcdefghij klmn -->
+      <!-- #vrt structure-tag: /a|13 defghijklm n -->
+      abcdefghijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-13|4-10|" st_text="|bcdefghijklm|defghij|" st_cont="">
+      abcdefghijklmn
+      </a>
+
+- name: 'vrt-decode-tags: Nested same intra-token structures, with a token break:
+    a<a>bc<a>de fghij</a>klm</a>n'
+  # hrt-encode-tags input: a<a>bc<a>de fghij</a>klm</a>n
+  status: 'xfail:Not implemented yet: st_cont with feature-set values'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: a|3 abc defghijklm -->
+      <!-- #vrt structure-tag: /a|10 abcdefghij klmn -->
+      <!-- #vrt structure-tag: /a|13 defghijklm n -->
+      abcde
+      fghijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-5|4-5|" st_text="|bcde|de|" st_cont="|r|r|">
+      abcde
+      </a>
+      <a st_charspan="|1-5|1-8|" st_text="|fghij|fhgijklm|" st_cont="|l|l|">
+      fghijklmn
+      </a>
+
+- name: 'vrt-decode-tags: Nested same intra-token structures, with two token breaks:
+    a<a>bc<a>de fgh ij</a>klm</a>n'
+  # hrt-encode-tags input: a<a>bc<a>de fgh ij</a>klm</a>n
+  status: 'xfail:Not implemented yet: st_cont with feature-set values'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: a|3 abc defghijklm -->
+      <!-- #vrt structure-tag: /a|10 abcdefghij klmn -->
+      <!-- #vrt structure-tag: /a|13 defghijklm n -->
+      abcde
+      fgh
+      ijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-5|4-5|" st_text="|bcde|de|" st_cont="|r|r|">
+      abcde
+      </a>
+      <a st_charspan="|" st_text="|fgh|" st_cont="|lr|">
+      fgh
+      </a>
+      <a st_charspan="|1-2|1-5|" st_text="|ij|ijklm|" st_cont="|l|l|">
+      ijklmn
+      </a>
+
+- name: 'vrt-decode-tags: Nested different structures within a token: a<a>bc<b>defghij</b>klm</a>n'
+  # hrt-encode-tags input: a<a>bc<b>defghij</b>klm</a>n
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b|3 abc defghijklm -->
+      <!-- #vrt structure-tag: /b|10 abcdefghij klmn -->
+      <!-- #vrt structure-tag: /a|13 defghijklm n -->
+      abcdefghijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-13|" st_text="|bcdefghijklm|" st_cont="">
+      <b st_charspan="|4-10|" st_text="|defghij|" st_cont="">
+      abcdefghijklmn
+      </b>
+      </a>
+
+- name: 'vrt-decode-tags: Nested different intra-token structures, with a token break:
+    a<a>bc<b>de fghij</b>klm</a>n'
+  # hrt-encode-tags input: a<a>bc<b>de fghij</b>klm</a>n
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b|3 abc defghijklm -->
+      <!-- #vrt structure-tag: /b|10 abcdefghij klmn -->
+      <!-- #vrt structure-tag: /a|13 defghijklm n -->
+      abcde
+      fghijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-5|" st_text="|bcde|" st_cont="r">
+      <b st_charspan="|4-5|" st_text="|de|" st_cont="r">
+      abcde
+      </b>
+      </a>
+      <a st_charspan="|1-8|" st_text="|fghijklm|" st_cont="l">
+      <b st_charspan="|1-5|" st_text="|fghij|" st_cont="l">
+      fghijklmn
+      </b>
+      </a>
+
+- name: 'vrt-decode-tags: Nested different intra-token structures, with two token
+    breaks: a<a>bc<b>de fgh ij</b>klm</a>n'
+  # hrt-encode-tags input: a<a>bc<b>de fgh ij</b>klm</a>n
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b|3 abc defghijklm -->
+      <!-- #vrt structure-tag: /b|10 abcdefghij klmn -->
+      <!-- #vrt structure-tag: /a|13 defghijklm n -->
+      abcde
+      fgh
+      ijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-5|" st_text="|bcde|" st_cont="r">
+      <b st_charspan="|4-5|" st_text="|de|" st_cont="r">
+      abcde
+      </b>
+      </a>
+      <a st_charspan="|" st_text="|fgh|" st_cont="lr">
+      <b st_charspan="|" st_text="|fgh|" st_cont="lr">
+      fgh
+      </b>
+      </a>
+      <a st_charspan="|1-5|" st_text="|ijklm|" st_cont="l">
+      <b st_charspan="|1-2|" st_text="|ij|" st_cont="l">
+      ijklmn
+      </b>
+      </a>
+
+- name: 'vrt-decode-tags: Interleaved structures within a token: a<a>bc<b>defghij</a>klm</b>n'
+  # hrt-encode-tags input: a<a>bc<b>defghij</a>klm</b>n
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b|3 abc defghijklm -->
+      <!-- #vrt structure-tag: /a|10 abcdefghij klmn -->
+      <!-- #vrt structure-tag: /b|13 defghijklm n -->
+      abcdefghijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-10|" st_text="|bcdefghij|" st_cont="">
+      <b st_charspan="|4-13|" st_text="|defghijklm|" st_cont="">
+      abcdefghijklmn
+      </b>
+      </a>
+
+- name: 'vrt-decode-tags: Interleaved structures within a token, with a token break:
+    a<a>bc<b>de fghij</a>klm</b>n'
+  # hrt-encode-tags input: a<a>bc<b>de fghij</a>klm</b>n
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b|3 abc defghijklm -->
+      <!-- #vrt structure-tag: /a|10 abcdefghij klmn -->
+      <!-- #vrt structure-tag: /b|13 defghijklm n -->
+      abcde
+      fghijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-5|" st_text="|bcde|" st_cont="r">
+      <b st_charspan="|4-5|" st_text="|de|" st_cont="r">
+      abcde
+      </b>
+      </a>
+      <a st_charspan="|1-5|" st_text="|fghij|" st_cont="l">
+      <b st_charspan="|1-8|" st_text="|fghijklm|" st_cont="l">
+      fghijklmn
+      </b>
+      </a>
+
+- name: 'vrt-decode-tags: Interleaved structures within a token, with two token breaks:
+    a<a>bc<b>de fgh ij</a>klm</b>n'
+  # hrt-encode-tags input: a<a>bc<b>de fgh ij</a>klm</b>n
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b|3 abc defghijklm -->
+      <!-- #vrt structure-tag: /a|10 abcdefghij klmn -->
+      <!-- #vrt structure-tag: /b|13 defghijklm n -->
+      abcde
+      fgh
+      ijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-5|" st_text="|bcde|" st_cont="r">
+      <b st_charspan="|4-5|" st_text="|de|" st_cont="r">
+      abcde
+      </b>
+      </a>
+      <a st_charspan="|" st_text="|fgh|" st_cont="lr">
+      <b st_charspan="|" st_text="|fgh|" st_cont="lr">
+      fgh
+      </b>
+      </a>
+      <a st_charspan="|1-2|" st_text="|ij|" st_cont="l">
+      <b st_charspan="|1-5|" st_text="|ijklm|" st_cont="l">
+      ijklmn
+      </b>
+      </a>
+
+- name: 'vrt-decode-tags: Nested and interleaved structures within a token: a<a>bc<b>de</b>fg<b>hi</a>jk</b>lmn'
+  # hrt-encode-tags input: a<a>bc<b>de</b>fg<b>hi</a>jk</b>lmn
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b|3 abc defghijklm -->
+      <!-- #vrt structure-tag: /b|5 abcde fghijklmn -->
+      <!-- #vrt structure-tag: b|7 abcdefg hijklmn -->
+      <!-- #vrt structure-tag: /a|9 abcdefghi jklmn -->
+      <!-- #vrt structure-tag: /b|11 bcdefghijk lmn -->
+      abcdefghijklmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-9|" st_text="|bcdefghi|" st_cont="">
+      <b st_charspan="|4-5|8-11|" st_text="|de|hijk|" st_cont="">
+      abcdefghijklmn
+      </b>
+      </a>
+
+- name: 'vrt-decode-tags: Nested and interleaved structures within a token, with a
+    token break: a<a>b c<b>d e</b>f g<b>h i</a>j k</b>lmn'
+  # hrt-encode-tags input: a<a>b c<b>d e</b>f g<b>h i</a>j k</b>lmn
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b|3 abc defghijklm -->
+      <!-- #vrt structure-tag: /b|5 abcde fghijklmn -->
+      <!-- #vrt structure-tag: b|7 abcdefg hijklmn -->
+      <!-- #vrt structure-tag: /a|9 abcdefghi jklmn -->
+      <!-- #vrt structure-tag: /b|11 bcdefghijk lmn -->
+      ab
+      cd
+      ef
+      gh
+      ij
+      klmn
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-2|" st_text="|b|" st_cont="r">
+      ab
+      </a>
+      <a st_charspan="|" st_text="|cd ef gh|" st_cont="lr">
+      <b st_charspan="|2-2|" st_text="|d|" st_cont="r">
+      cd
+      </b>
+      <b st_charspan="|1-1|" st_text="|e|" st_cont="l">
+      ef
+      </b>
+      <b st_charspan="|2-2|" st_text="|h|" st_cont="r">
+      gh
+      </b>
+      </a>
+      <a st_charspan="|1-1|" st_text="|i|" st_cont="l">
+      <b st_charspan="|" st_text="|ij|" st_cont="lr">
+      ij
+      </b>
+      </a>
+      <b st_charspan="|1-1|" st_text="|k|" st_cont="l">
+      klmn
+      </b>
+
+- name: 'vrt-decode-tags: Nested and interleaved structures within a token, with two
+    token breaks: a<a>b c d<b>e f g</b>h i j<b>k l m</a>n o p</b>q'
+  # hrt-encode-tags input: a<a>b c d<b>e f g</b>h i j<b>k l m</a>n o p</b>q
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b|4 abcd efghijklmn -->
+      <!-- #vrt structure-tag: /b|7 abcdefg hijklmnopq -->
+      <!-- #vrt structure-tag: b|10 abcdefghij klmnopq -->
+      <!-- #vrt structure-tag: /a|13 defghijklm nopq -->
+      <!-- #vrt structure-tag: /b|16 ghijklmnop q -->
+      ab
+      c
+      de
+      f
+      gh
+      i
+      jk
+      l
+      mn
+      o
+      pq
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-2|" st_text="|b|" st_cont="r">
+      ab
+      </a>
+      <a st_charspan="|" st_text="|c de f gh i jk l|" st_cont="lr">
+      c
+      <b st_charspan="|2-2|" st_text="|e|" st_cont="r">
+      de
+      </b>
+      <b st_charspan="|" st_text="|f|" st_cont="lr">
+      f
+      </b>
+      <b st_charspan="|1-1|" st_text="|g|" st_cont="l">
+      gh
+      </b>
+      i
+      <b st_charspan="|2-2|" st_text="|k|" st_cont="r">
+      jk
+      </b>
+      <b st_charspan="|" st_text="|l mn o|" st_cont="lr">
+      l
+      </a>
+      <a st_charspan="|1-1|" st_text="|m|" st_cont="l">
+      mn
+      </a>
+      o
+      </b>
+      <b st_charspan="|1-1|" st_text="|p|" st_cont="l">
+      pq
+      </b>
+
+- name: 'vrt-decode-tags: Three interleaved structures within a token: a<a>bcd<b>efg<c>hij</a>klm</b>nop</c>q'
+  # hrt-encode-tags input: a<a>bcd<b>efg<c>hij</a>klm</b>nop</c>q
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b|4 abcd efghijklmn -->
+      <!-- #vrt structure-tag: c|7 abcdefg hijklmnopq -->
+      <!-- #vrt structure-tag: /a|10 abcdefghij klmnopq -->
+      <!-- #vrt structure-tag: /b|13 defghijklm nopq -->
+      <!-- #vrt structure-tag: /c|16 ghijklmnop q -->
+      abcdefghijklmnopq
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-10|" st_text="|bcdefghij|" st_cont="">
+      <b st_charspan="|5-13|" st_text="|efghijklm|" st_cont="">
+      <c st_charspan="|8-16|" st_text="|hijklmnop|" st_cont="">
+      abcdefghijklmnopq
+      </c>
+      </b>
+      </a>
+
+- name: 'vrt-decode-tags: Three interleaved structures, with two token breaks: a<a>b
+    c d<b>e f g<c>h i j</a>k l m</b>n o p</c>q'
+  # hrt-encode-tags input: a<a>b c d<b>e f g<c>h i j</a>k l m</b>n o p</c>q
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b|4 abcd efghijklmn -->
+      <!-- #vrt structure-tag: c|7 abcdefg hijklmnopq -->
+      <!-- #vrt structure-tag: /a|10 abcdefghij klmnopq -->
+      <!-- #vrt structure-tag: /b|13 defghijklm nopq -->
+      <!-- #vrt structure-tag: /c|16 ghijklmnop q -->
+      ab
+      c
+      de
+      f
+      gh
+      i
+      jk
+      l
+      mn
+      o
+      pq
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-2|" st_text="|b|" st_cont="r">
+      ab
+      </a>
+      <a st_charspan="|" st_text="|c de f gh i|" st_cont="lr">
+      c
+      <b st_charspan="|2-2|" st_text="|e|" st_cont="r">
+      de
+      </b>
+      <b st_charspan="|" st_text="|f gh i jk l|" st_cont="lr">
+      f
+      <c st_charspan="|2-2|" st_text="|h|" st_cont="r">
+      gh
+      </c>
+      <c st_charspan="|" st_text="|i jk l mn o|" st_cont="lr">
+      i
+      </a>
+      <a st_charspan="|1-1|" st_text="|j|" st_cont="l">
+      jk
+      </a>
+      l
+      </b>
+      <b st_charspan="|1-1|" st_text="|m|" st_cont="l">
+      mn
+      </b>
+      o
+      </c>
+      <c st_charspan="|1-1|" st_text="|p|" st_cont="l">
+      pq
+      </c>
+
+- name: 'vrt-decode-tags: Intra-word structure with an attribute 1: a<a b="1">b c</a>d
+    ef'
+  # hrt-encode-tags input: a<a b="1">b c</a>d ef
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a b="1"|1 a bcdef -->
+      <!-- #vrt structure-tag: /a|3 abc def -->
+      ab
+      cd
+      ef
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a b="1" st_charspan="|2-2|" st_text="|b|" st_cont="r">
+      ab
+      </a>
+      <a b="1" st_charspan="|1-1|" st_text="|c|" st_cont="l">
+      cd
+      </a>
+      ef
+
+- name: 'vrt-decode-tags: Intra-word structure with an attribute 2: a<a b="1">b cde
+    fgh</a>i jkl'
+  # hrt-encode-tags input: a<a b="1">b cde fgh</a>i jkl
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a b="1"|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|8 abcdefgh ijkl -->
+      ab
+      cde
+      fghi
+      jkl
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a b="1" st_charspan="|2-2|" st_text="|b|" st_cont="r">
+      ab
+      </a>
+      <a b="1" st_charspan="|" st_text="|cde|" st_cont="lr">
+      cde
+      </a>
+      <a b="1" st_charspan="|1-3|" st_text="|fgh|" st_cont="l">
+      fghi
+      </a>
+      jkl
+
+- name: 'vrt-decode-tags: Intra-word structure with an attribute 3: a<a b="1">b cde
+    fghi</a> jkl'
+  # hrt-encode-tags input: a<a b="1">b cde fghi</a> jkl
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a b="1"|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|9 abcdefghi jkl -->
+      ab
+      cde
+      fghi
+      jkl
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a b="1" st_charspan="|2-2|" st_text="|b|" st_cont="r">
+      ab
+      </a>
+      <a b="1" st_charspan="|" st_text="|cde fghi|" st_cont="l">
+      cde
+      fghi
+      </a>
+      jkl
+
+- name: 'vrt-decode-tags: Intra-word structure with an attribute 4: <a b="1">ab cde
+    fgh</a>i jkl'
+  # hrt-encode-tags input: <a b="1">ab cde fgh</a>i jkl
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a b="1"|0  abcdefghij -->
+      <!-- #vrt structure-tag: /a|8 abcdefgh ijkl -->
+      ab
+      cde
+      fghi
+      jkl
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a b="1" st_charspan="|" st_text="|ab cde|" st_cont="r">
+      ab
+      cde
+      </a>
+      <a b="1" st_charspan="|1-3|" st_text="|fgh|" st_cont="l">
+      fghi
+      </a>
+      jkl
+
+- name: 'vrt-decode-tags: Same intra-word structures with same values for an attribute:
+    a<a x="x">bcdefg</a>h<a x="x">ijklmn</a>o<a x="x">pqrstu</a>v'
+  # hrt-encode-tags input: a<a x="x">bcdefg</a>h<a x="x">ijklmn</a>o<a x="x">pqrstu</a>v
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x"|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hijklmnopq -->
+      <!-- #vrt structure-tag: a x="x"|8 abcdefgh ijklmnopqr -->
+      <!-- #vrt structure-tag: /a|14 efghijklmn opqrstuv -->
+      <!-- #vrt structure-tag: a x="x"|15 fghijklmno pqrstuv -->
+      <!-- #vrt structure-tag: /a|21 lmnopqrstu v -->
+      abcdefghijklmnopqrstuv
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="x" st_charspan="|2-7|9-14|16-21|" st_text="|bcdefg|ijklmn|pqrstu|" st_cont="">
+      abcdefghijklmnopqrstuv
+      </a>
+
+- name: 'vrt-decode-tags: Same intra-word structures with different values for an
+    attribute: a<a x="x1">bcdefg</a>h<a x="x2">ijklmn</a>o<a x="x3">pqrstu</a>v'
+  # hrt-encode-tags input: a<a x="x1">bcdefg</a>h<a x="x2">ijklmn</a>o<a x="x3">pqrstu</a>v
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x1"|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hijklmnopq -->
+      <!-- #vrt structure-tag: a x="x2"|8 abcdefgh ijklmnopqr -->
+      <!-- #vrt structure-tag: /a|14 efghijklmn opqrstuv -->
+      <!-- #vrt structure-tag: a x="x3"|15 fghijklmno pqrstuv -->
+      <!-- #vrt structure-tag: /a|21 lmnopqrstu v -->
+      abcdefghijklmnopqrstuv
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x1|x2|x3|" st_charspan="|2-7|9-14|16-21|" st_text="|bcdefg|ijklmn|pqrstu|" st_cont="">
+      abcdefghijklmnopqrstuv
+      </a>
+
+- name: 'vrt-decode-tags: Same intra-word structures with different values for an
+    attribute, with a token break: a<a x="x1">bc defg</a>h<a x="x2">ij klmn</a>o<a
+    x="x3">pq rstu</a>v'
+  # hrt-encode-tags input: a<a x="x1">bc defg</a>h<a x="x2">ij klmn</a>o<a x="x3">pq rstu</a>v
+  status: >-
+    xfail:Not implemented yet: Feature-set values consistently in all
+    occurrences of an attribute
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x1"|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hijklmnopq -->
+      <!-- #vrt structure-tag: a x="x2"|8 abcdefgh ijklmnopqr -->
+      <!-- #vrt structure-tag: /a|14 efghijklmn opqrstuv -->
+      <!-- #vrt structure-tag: a x="x3"|15 fghijklmno pqrstuv -->
+      <!-- #vrt structure-tag: /a|21 lmnopqrstu v -->
+      abc
+      defghij
+      klmnopq
+      rstuv
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x1|" st_charspan="|2-3|" st_text="|bc|" st_cont="r">
+      abc
+      </a>
+      <a x="|x1|x2|" st_charspan="|1-4|6-7|" st_text="|defg|ij|" st_cont="lr">
+      defghij
+      </a>
+      <a x="|x2|x3|" st_charspan="|1-4|6-7|" st_text="|klmn|pq|" st_cont="lr">
+      klmnopq
+      </a>
+      <a x="|x3|" st_charspan="|1-4|" st_text="|rstu|" st_cont="l">
+      rstuv
+      </a>
+
+- name: 'vrt-decode-tags: Same intra-word structures with different values for an
+    attribute, with two token breaks: a<a x="x1">bc de fg</a>h<a x="x2">ij kl mn</a>o<a
+    x="x3">pq rs tu</a>v'
+  # hrt-encode-tags input: a<a x="x1">bc de fg</a>h<a x="x2">ij kl mn</a>o<a x="x3">pq rs tu</a>v
+  status: >-
+    xfail:Not implemented yet: Feature-set values consistently in all
+    occurrences of an attribute
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x1"|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hijklmnopq -->
+      <!-- #vrt structure-tag: a x="x2"|8 abcdefgh ijklmnopqr -->
+      <!-- #vrt structure-tag: /a|14 efghijklmn opqrstuv -->
+      <!-- #vrt structure-tag: a x="x3"|15 fghijklmno pqrstuv -->
+      <!-- #vrt structure-tag: /a|21 lmnopqrstu v -->
+      abc
+      de
+      fghij
+      kl
+      mnopq
+      rs
+      tuv
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x1|" st_charspan="|2-3|" st_text="|bc|" st_cont="l">
+      abc
+      </a>
+      <a x="|x1|" st_charspan="|" st_text="|de|" st_cont="lr">
+      de
+      </a>
+      <a x="|x1|x2|" st_charspan="|1-2|4-5|" st_text="|fg|ij|" st_cont="lr">
+      fghij
+      </a>
+      <a x="|x2|" st_charspan="|" st_text="|kl|" st_cont="lr">
+      kl
+      </a>
+      <a x="|x2|x3|" st_charspan="|1-2|4-5|" st_text="|mn|pq|" st_cont="lr">
+      mnopq
+      </a>
+      <a x="|x3|" st_charspan="|" st_text="|rs|" st_cont="lr">
+      rs
+      <a x="|x3|" st_charspan="|1-2|" st_text="|tu|" st_cont="l">
+      tuv
+      </a>
+
+- name: 'vrt-decode-tags: Same intra-word structures with attributes with same and
+    different values: a<a x="x1" y="y">bcdefg</a>h<a x="x2" y="y">ijklmn</a>o<a x="x3"
+    y="y">pqrstu</a>v'
+  # hrt-encode-tags input: a<a x="x1" y="y">bcdefg</a>h<a x="x2" y="y">ijklmn</a>o<a x="x3" y="y">pqrstu</a>v
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x1" y="y"|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hijklmnopq -->
+      <!-- #vrt structure-tag: a x="x2" y="y"|8 abcdefgh ijklmnopqr -->
+      <!-- #vrt structure-tag: /a|14 efghijklmn opqrstuv -->
+      <!-- #vrt structure-tag: a x="x3" y="y"|15 fghijklmno pqrstuv -->
+      <!-- #vrt structure-tag: /a|21 lmnopqrstu v -->
+      abcdefghijklmnopqrstuv
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x1|x2|x3|" y="y" st_charspan="|2-7|9-14|16-21|" st_text="|bcdefg|ijklmn|pqrstu|" st_cont="">
+      abcdefghijklmnopqrstuv
+      </a>
+
+- name: 'vrt-decode-tags: Same intra-word structures with attributes with same and
+    different values, with a token break: a<a x="x1" y="y">bc defg</a>h<a x="x2" y="y">ij
+    klmn</a>o<a x="x3" y="y">pq rstu</a>v'
+  # hrt-encode-tags input: a<a x="x1" y="y">bc defg</a>h<a x="x2" y="y">ij klmn</a>o<a x="x3" y="y">pq rstu</a>v
+  status: >-
+    xfail:Not implemented yet: Feature-set values consistently in all
+    occurrences of an attribute
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x1" y="y"|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hijklmnopq -->
+      <!-- #vrt structure-tag: a x="x2" y="y"|8 abcdefgh ijklmnopqr -->
+      <!-- #vrt structure-tag: /a|14 efghijklmn opqrstuv -->
+      <!-- #vrt structure-tag: a x="x3" y="y"|15 fghijklmno pqrstuv -->
+      <!-- #vrt structure-tag: /a|21 lmnopqrstu v -->
+      abc
+      defghij
+      klmnopq
+      rstuv
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x1|" y="y" st_charspan="|2-3|" st_text="|bc|" st_cont="r">
+      abc
+      </a>
+      <a x="|x1|x2|" y="y" st_charspan="|1-4|6-7|" st_text="|defg|ij|" st_cont="lr">
+      defghij
+      </a>
+      <a x="|x2|x3|" y="y" st_charspan="|1-4|6-7|" st_text="|klmn|pq|" st_cont="lr">
+      klmnopq
+      </a>
+      <a x="|x3|" y="y" st_charspan="|1-4|" st_text="|rstu|" st_cont="l">
+      rstuv
+      </a>
+
+- name: 'vrt-decode-tags: Same intra-word structures with attributes with same and
+    different values, with two token breaks: a<a x="x1" y="y">bc de fg</a>h<a x="x2"
+    y="y">ij kl mn</a>o<a x="x3" y="y">pq rs tu</a>v'
+  # hrt-encode-tags input: a<a x="x1" y="y">bc de fg</a>h<a x="x2" y="y">ij kl mn</a>o<a x="x3" y="y">pq rs tu</a>v
+  status: >-
+    xfail:Not implemented yet: Feature-set values consistently in all
+    occurrences of an attribute
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x1" y="y"|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hijklmnopq -->
+      <!-- #vrt structure-tag: a x="x2" y="y"|8 abcdefgh ijklmnopqr -->
+      <!-- #vrt structure-tag: /a|14 efghijklmn opqrstuv -->
+      <!-- #vrt structure-tag: a x="x3" y="y"|15 fghijklmno pqrstuv -->
+      <!-- #vrt structure-tag: /a|21 lmnopqrstu v -->
+      abc
+      de
+      fghij
+      kl
+      mnopq
+      rs
+      tuv
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x1|" y="y" st_charspan="|2-3|" st_text="|bc|" st_cont="r">
+      abc
+      </a>
+      <a x="|x1|" y="y" st_charspan="|" st_text="|de|" st_cont="lr">
+      de
+      <a x="|x1|x2|" y="y" st_charspan="|1-2|4-5|" st_text="|fg|ij|" st_cont="lr">
+      fghij
+      </a>
+      <a x="|x2|" y="y" st_charspan="|" st_text="|kl|" st_cont="lr">
+      kl
+      </a>
+      <a x="|x2|x3|" y="y" st_charspan="|1-2|4-5|" st_text="|mn|pq|" st_cont="lr">
+      mnopq
+      </a>
+      <a x="|x3|" y="y" st_charspan="|" st_text="|rs|" st_cont="lr">
+      rs
+      </a>
+      <a x="|x3|" y="y" st_charspan="|1-2|" st_text="|tu|" st_cont="l">
+      tuv
+      </a>
+
+- name: 'vrt-decode-tags: Nested same intra-word structures with attributes with same
+    and different values: a<a x="x1" y="y">bcdefgh<a x="x2" y="y">ijklmn</a>o<a x="x3"
+    y="y">pqrstu</a>v</a>'
+  # hrt-encode-tags input: a<a x="x1" y="y">bcdefgh<a x="x2" y="y">ijklmn</a>o<a x="x3" y="y">pqrstu</a>v</a>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x1" y="y"|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: a x="x2" y="y"|8 abcdefgh ijklmnopqr -->
+      <!-- #vrt structure-tag: /a|14 efghijklmn opqrstuv -->
+      <!-- #vrt structure-tag: a x="x3" y="y"|15 fghijklmno pqrstuv -->
+      <!-- #vrt structure-tag: /a|21 lmnopqrstu v -->
+      <!-- #vrt structure-tag: /a|22 mnopqrstuv  -->
+      abcdefghijklmnopqrstuv
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x1|x2|x3|" y="y" st_charspan="|2-22|9-14|16-21|" st_text="|bcdefghijklmnopqrstuv|ijklmn|pqrstu|" st_cont="">
+      abcdefghijklmnopqrstuv
+      </a>
+
+- name: 'vrt-decode-tags: Nested same and different intra-word structures with attributes
+    with same and different values: a<a x="x1" y="y">bcdefgh<b x="x2" y="y">ijklmn</b>o<a
+    x="x3" y="y">pqrstu</a>v</a>'
+  # hrt-encode-tags input: a<a x="x1" y="y">bcdefgh<b x="x2" y="y">ijklmn</b>o<a x="x3" y="y">pqrstu</a>v</a>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x1" y="y"|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b x="x2" y="y"|8 abcdefgh ijklmnopqr -->
+      <!-- #vrt structure-tag: /b|14 efghijklmn opqrstuv -->
+      <!-- #vrt structure-tag: a x="x3" y="y"|15 fghijklmno pqrstuv -->
+      <!-- #vrt structure-tag: /a|21 lmnopqrstu v -->
+      <!-- #vrt structure-tag: /a|22 mnopqrstuv  -->
+      abcdefghijklmnopqrstuv
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x1|x3|" y="y" st_charspan="|2-22|16-21|" st_text="|bcdefghijklmnopqrstuv|pqrstu|" st_cont="">
+      <b x="x2" y="y" st_charspan="|9-14|" st_text="|ijklmn|" st_cont="">
+      abcdefghijklmnopqrstuv
+      </b>
+      </a>
+
+- name: 'vrt-decode-tags: Nested and interleaved different structures with attributes
+    with same and different values: a<a x="x1" y="y">bcdefgh<b x="x2" y="y">ijklmn</a>o<c
+    x="x3" y="y">pqrstu</c>v</b>'
+  # hrt-encode-tags input: a<a x="x1" y="y">bcdefgh<b x="x2" y="y">ijklmn</a>o<c x="x3" y="y">pqrstu</c>v</b>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x1" y="y"|1 a bcdefghijk -->
+      <!-- #vrt structure-tag: b x="x2" y="y"|8 abcdefgh ijklmnopqr -->
+      <!-- #vrt structure-tag: /a|14 efghijklmn opqrstuv -->
+      <!-- #vrt structure-tag: c x="x3" y="y"|15 fghijklmno pqrstuv -->
+      <!-- #vrt structure-tag: /c|21 lmnopqrstu v -->
+      <!-- #vrt structure-tag: /b|22 mnopqrstuv  -->
+      abcdefghijklmnopqrstuv
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="x1" y="y" st_charspan="|2-14|" st_text="|bcdefghijklmn|" st_cont="">
+      <b x="x2" y="y" st_charspan="|9-22|" st_text="|ijklmnopqrstuv|" st_cont="">
+      <c x="x3" y="y" st_charspan="|16-21|" st_text="|pqrstu|" st_cont="">
+      abcdefghijklmnopqrstuv
+      </c>
+      </b>
+      </a>
+
+- name: 'vrt-decode-tags: Two same intra-token structures within the same token, with
+    different attributes: a<a x="x">bc<a y="y">defg</a>hi</a>j'
+  # hrt-encode-tags input: a<a x="x">bc<a y="y">defg</a>hi</a>j
+  status: >-
+    xfail:Not implemented yet: missing values of an attribute as empty
+    values in a feature set
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x"|1 a bcdefghij -->
+      <!-- #vrt structure-tag: a y="y"|3 abc defghij -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hij -->
+      <!-- #vrt structure-tag: /a|9 abcdefghi j -->
+      abcdefghij
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x||" y="||y|" st_charspan="|2-3|8-9|" st_text="|bc|hi|" st_cont="">
+      abcdefghij
+      </a>
+
+- name: 'vrt-decode-tags: Nested same whole-token and intra-token structures: <a x="x1">ab
+    c<a x="x2">d ef g</a>h ij</a>'
+  # hrt-encode-tags input: <a x="x1">ab c<a x="x2">d ef g</a>h ij</a>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x1"|0  abcdefghij -->
+      <!-- #vrt structure-tag: a x="x2"|3 abc defghij -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hij -->
+      <!-- #vrt structure-tag: /a|10 abcdefghij  -->
+      ab
+      cd
+      ef
+      gh
+      ij
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="x1">
+      ab
+      <a x="x2" st_charspan="|2-2|" st_text="|d|" st_cont="r">
+      cd
+      </a>
+      <a x="x2" st_charspan="|" st_text="|ef|" st_cont="lr">
+      ef
+      </a>
+      <a x="x2" st_charspan="|1-1|" st_text="|g|" st_cont="l">
+      gh
+      </a>
+      ij
+      </a>
+
+- name: 'vrt-decode-tags: Nested same structures covering the same tokens but one
+    beginning at the start of a token and another in the middle: <a>abc<a>de fg</a>hi</a>j'
+  # hrt-encode-tags input: <a>abc<a>de fg</a>hi</a>j
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0  abcdefghij -->
+      <!-- #vrt structure-tag: a|3 abc defghij -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hij -->
+      <!-- #vrt structure-tag: /a|9 abcdefghi j -->
+      abcde
+      fghij
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|1-5|4-5|" st_text="|abcde|de|" st_cont="r">
+      abcde
+      </a>
+      <a st_charspan="|1-4|1-2|" st_text="|fghi|fg|" st_cont="l">
+      fghij
+      </a>
+
+- name: 'vrt-decode-tags: Nested same structures covering the same tokens but one
+    ending at the end of a token and another in the middle: a<a>bc<a>de fg</a>hij</a>'
+  # hrt-encode-tags input: a<a>bc<a>de fg</a>hij</a>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|1 a bcdefghij -->
+      <!-- #vrt structure-tag: a|3 abc defghij -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hij -->
+      <!-- #vrt structure-tag: /a|10 abcdefghij  -->
+      abcde
+      fghij
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|2-5|4-5|" st_text="|bcde|de|" st_cont="r">
+      abcde
+      </a>
+      <a st_charspan="|1-5|1-2|" st_text="|fghij|fg|" st_cont="l">
+      fghij
+      </a>
+
+- name: 'vrt-decode-tags: Nested same structures covering the same tokens but one
+    beginning at the start of a token and ending at the end of a token and another
+    in the middle: <a>abc<a>de fg</a>hij</a>'
+  # hrt-encode-tags input: <a>abc<a>de fg</a>hij</a>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0  abcdefghij -->
+      <!-- #vrt structure-tag: a|3 abc defghij -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hij -->
+      <!-- #vrt structure-tag: /a|10 abcdefghij  -->
+      abcde
+      fghij
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a>
+      <a st_charspan="|4-5|" st_text="|de|" st_cont="r">
+      abcde
+      </a>
+      <a st_charspan="|1-2|" st_text="|fg|" st_cont="l">
+      fghij
+      </a>
+      </a>
+
+- name: 'vrt-decode-tags: Nested same structures covering the same tokens but one
+    beginning at the start of a token and ending at the end of a token and another
+    in the middle, with one token in the middle: <a>abc<a>d ef g</a>hij</a>'
+  # hrt-encode-tags input: <a>abc<a>d ef g</a>hij</a>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0  abcdefghij -->
+      <!-- #vrt structure-tag: a|3 abc defghij -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hij -->
+      <!-- #vrt structure-tag: /a|10 abcdefghij  -->
+      abcd
+      ef
+      ghij
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a>
+      <a st_charspan="|4-4|" st_text="|d|" st_cont="r">
+      abcd
+      </a>
+      <a st_charspan="|" st_text="|ef|" st_cont="lr">
+      ef
+      </a>
+      <a st_charspan="|1-1|" st_text="|g|" st_cont="l">
+      ghij
+      </a>
+      </a>
+
+- name: 'vrt-decode-tags: Nested same structures covering the same tokens but one
+    beginning at the start of a token and another in the middle, both ending in the
+    middle of a token, with one token in between: <a>abc<a>d ef g</a>hi</a>j'
+  # hrt-encode-tags input: <a>abc<a>d ef g</a>hi</a>j
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0  abcdefghij -->
+      <!-- #vrt structure-tag: a|3 abc defghij -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hij -->
+      <!-- #vrt structure-tag: /a|9 abcdefghi j -->
+      abcd
+      ef
+      ghij
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a st_charspan="|" st_text="|abcd ef|" st_cont="r">
+      <a st_charspan="|4-4|" st_text="|d|" st_cont="r">
+      abcd
+      </a>
+      <a st_charspan="|" st_text="|ef|" st_cont="lr">
+      ef
+      </a>
+      </a>
+      <a st_charspan="|1-3|1-1|" st_text="|ghi|g|" st_cont="l">
+      ghij
+      </a>

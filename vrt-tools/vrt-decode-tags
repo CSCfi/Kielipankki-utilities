@@ -8,14 +8,44 @@ vrt-decode-tags
 Decode (restore) XML tags encoded in the input VRT as special XML
 comments with hrt-encode-tags.
 
-Note that this version of the script does not yet handle intra-word
-markup correctly.
+Note that this version of the script does not yet handle all cases
+correctly, such as when the start and end tags of a structure are in
+different encoded chunks, that is, if there is a preserved tag between
+them). In addition, some occurrences of an attribute may have
+feature-set values and some others not.
 """
+
+# TODO (also see within the code for TODO comments):
+# - Handle encoded XML comments.
+# - Handle lone start and end tags that may result from a structure
+#   extending over a paragraph boundary (such as page). It would be
+#   more difficult to handle them if they began or ended within a
+#   token.
+# - If a structure has some intra-word occurrences, add the st_*
+#   attributes to all its occurrences. Similarly, if the values of
+#   attribute are converted to feature-set values (because of several
+#   occurrences of an attribute in intra-word structures for the same
+#   word), all values of the attribute should be made feature-set
+#   values. In general, those require a second pass over the output of
+#   the first pass.
+# - Add an st_id attribute containing the running id of the structure.
+#   This might be useful in particular when a structure starting or
+#   ending at the middle of a token has been split into several
+#   structures.
+# - Add an option for the extra attribute name prefix (currently
+#   "st_").
+# - Possibly make the value of the st_cont attribute a feature-set
+#   value, so that the values would correspond to those of st_charspan
+#   and st_text. This might be needed with nested same structures,
+#   where one begins at the beginning of a token and the other in the
+#   middle of the same token (or one ends at the end of a token and
+#   the other in the middle of the same token). But would this really
+#   be needed?
 
 
 import re
 
-from collections import namedtuple
+from collections import namedtuple, defaultdict, OrderedDict
 from itertools import accumulate, groupby
 
 import vrtdatalib
@@ -55,7 +85,14 @@ class TagDecoder(InputProcessor):
 
         OutputTag = namedtuple(
             'OutputTag',
-            ['tag', 'linenum'])
+            ['linenum', 'tagnum', 'is_starttag', 'tag_text'])
+        StructInfo = namedtuple(
+            'StructInfo',
+            ['tagname', 'attrs', 'tagnums', 'linenums', 'wordform_nums',
+             'char_offsets', 'continues'])
+        StructStackInfo = namedtuple(
+            'StrucStackInfo',
+            ['tagname', 'structnum'])
         structtag_value_re = re.compile(
             br"""\s*
                 (?P<tag> ( [^|]+ | "[^"]*" | \'[^\']*\' )+ )
@@ -72,34 +109,80 @@ class TagDecoder(InputProcessor):
         # tokenizer what is most useful.
         spaces_re = re.compile(r'(?:' + args.spaces + r')+')
         word_attrnum = 0
+        # struct_stack contains StructStackInfo tuples. It is not a strict
+        # stack, as for example pages need not nest with other structures.
+        struct_stack = []
         LESS_THAN = '<'.encode('utf-8')[0]
+        SLASH = '/'.encode('utf-8')[0]
 
         def is_structtag_comment(line):
             return (line[0] == LESS_THAN and isbinvrtcomment(line)
                     and getbinvrtcomment(line)[0] == b'structure-tag')
 
         def restore_tags(lines, tag_lines):
-            out_tags = []
+            nonlocal struct_stack
             # The number of the line at which the previous tag is added
             linenum = 0
             # Word form offset excluding spaces
             offset = 0
-            for tag_line in tag_lines:
+            char_offset = 0
+            wordforms = []
+            structs = []
+            latest_wordform_linenum = -1
+            for tagnum, tag_line in enumerate(tag_lines):
                 tag_info = extract_tag_info(tag_line)
+                # print(tag_info)
+                is_endtag = (tag_info['tag'][0] == SLASH)
+                tagparts = tag_info['tag'].split(maxsplit=1)
+                basetag = tagparts[0]
+                attrs = tagparts[1] if len(tagparts) > 1 else b''
+                tagname = basetag.decode().strip('/')
                 if tag_info['offset'] > offset:
-                    linenum, offset = find_tag_pos(
-                        tag_info, lines, linenum, offset)
-                out_tags.append(OutputTag(tag=tag_info['tag'], linenum=linenum))
+                    linenum, offset, char_offset, latest_wordform_linenum = (
+                        find_tag_pos(
+                            tag_info, lines, linenum, offset,
+                            wordforms, latest_wordform_linenum))
+                    # print(tag_info, linenum, offset, char_offset, is_endtag)
+                tag_linenum = linenum + int(is_endtag and bool(char_offset))
+                if is_endtag:
+                    starttag_stack_num = find_starttag_in_stack(tagname)
+                    if struct_stack and starttag_stack_num is None:
+                        self.warn('Spurious end tag </' + tagname + '>')
+                    else:
+                        # print(struct_stack, structs)
+                        struct = structs[struct_stack.pop(starttag_stack_num)
+                                         .structnum]
+                        struct.tagnums.append(tagnum)
+                        struct.linenums.append(tag_linenum)
+                        struct.wordform_nums.append(len(wordforms) - 1)
+                        struct.char_offsets.append(char_offset)
+                else:
+                    struct_stack.append(
+                        StructStackInfo(tagname=tagname,
+                                        structnum=len(structs)))
+                    structs.append(
+            # print(structs)
+                        StructInfo(
+                            tagname=tagname,
+                            attrs=attrs,
+                            tagnums=[tagnum],
+                            linenums=[tag_linenum],
+                            wordform_nums=[
+                                len(wordforms) - int(char_offset > 0)],
+                            char_offsets=[char_offset],
+                            continues=''))
+            out_tags = make_output_tags(structs, wordforms)
             # Output tags and lines interleaved. (Would it be better to
             # implement this as a generator?)
             out_lines = []
             prev_linenum = 0
+            # print(out_tags)
             for out_tag in out_tags:
                 linenum = out_tag.linenum
                 if linenum > prev_linenum:
                     out_lines.extend(lines[prev_linenum:linenum])
                     prev_linenum = linenum
-                out_lines.append(b'<' + out_tag.tag + b'>\n')
+                out_lines.append(out_tag.tag_text)
             out_lines.extend(lines[prev_linenum:])
             return out_lines
 
@@ -110,32 +193,231 @@ class TagDecoder(InputProcessor):
             gd['offset'] = int(gd['offset'])
             return gd
 
-        def find_tag_pos(tag_info, lines, prev_linenum, prev_offset):
+        def find_tag_pos(tag_info, lines, prev_linenum, prev_offset,
+                         wordforms, latest_wordform_linenum):
             # prev_offset corresponds to prev_linenum
             # print(tag_info)
             new_offset = tag_info['offset']
             offset = prev_offset
+            char_offset = 0
             linenum = prev_linenum
             wf = None
+            # print(new_offset, offset, linenum)
             while offset < new_offset:
                 if lines[linenum][0] != LESS_THAN:
                     wf = spaces_re.sub('', get_wordform(lines[linenum]))
                     offset += len(wf)
+                    if linenum > latest_wordform_linenum:
+                        wordforms.append(wf)
+                        latest_wordform_linenum = linenum
                 linenum += 1
-                # print(wf, linenum, offset)
+                # print('WF', wf, linenum, offset, wordforms)
             if offset != new_offset:
-                # TODO: Handle intra-word markup and offset
-                # discrepancies due to intra-word spaces
-                self.warn(('Tag <{}> (contexts {}, {}): expected offset {:d},'
-                           ' got {:d}: possibly intra-word markup or spaces')
-                          .format(tag_info['tag'].decode(),
-                                  tag_info['left'].decode(),
-                                  tag_info['right'].decode(),
-                                  new_offset, offset))
-            return linenum, offset
+                if contexts_match(tag_info, offset, wordforms):
+                    offset -= len(wordforms[-1])
+                    linenum -= 1
+                    char_offset = new_offset - offset
+                else:
+                    self.warn(('Tag <{}> (contexts {}, {}): expected offset'
+                               ' {:d}, got {:d}: possibly intra-word spaces')
+                              .format(tag_info['tag'].decode(),
+                                      tag_info['left'].decode(),
+                                      tag_info['right'].decode(),
+                                      new_offset, offset))
+            return linenum, offset, char_offset, latest_wordform_linenum
 
         def get_wordform(line):
             return vrtdatalib.binlineref(line, word_attrnum).decode()
+
+        def contexts_match(tag_info, offset, wordforms):
+            # Test if the actual contexts based on wordforms match the contexts
+            # specified in tag_info
+            # print(tag_info, offset, wordforms)
+            offset_diff = offset - tag_info['offset']
+            context_left = tag_info['left'].decode()
+            context_right = tag_info['right'].decode()
+            context_left_actual = wordforms[-1][:-offset_diff]
+            contextlen_left = len(context_left)
+            wf_num = len(wordforms) - 2
+            # print(context_left_actual, contextlen_left, wf_num)
+            while len(context_left_actual) < contextlen_left and wf_num >= 0:
+                context_left_actual = wordforms[wf_num] + context_left_actual
+                wf_num -= 1
+            #     print(context_left_actual, contextlen_left, wf_num)
+            # print(context_left_actual[-contextlen_left:], context_left,
+            #       context_right, wordforms[-1][-offset_diff:][:len(context_right)],
+            #       context_left_actual[-contextlen_left:] == context_left,
+            #       context_right.startswith(
+            #             wordforms[-1][-offset_diff:][:len(context_right)]))
+            return (context_left_actual[-contextlen_left:] == context_left
+                    and context_right.startswith(
+                        wordforms[-1][-offset_diff:][:len(context_right)]))
+
+        def find_starttag_in_stack(tagname):
+            elemnum = len(struct_stack) - 1
+            while (elemnum >= 0 and struct_stack[elemnum].tagname != tagname):
+                elemnum -= 1
+            return (elemnum if 0 <= elemnum < len(struct_stack) else None)
+
+        def make_output_tags(structs, wordforms):
+            # Output tags with the same line span: dict((tag, startlinenum,
+            # endlinenum)) -> list(Struct)
+            line_out_tags = {}
+
+            def add_output_tag(tag, struct):
+                nonlocal line_out_tags
+                tag_b = tag.encode()
+                out_tag_list = line_out_tags.setdefault(
+                    (tag_b, *struct.linenums), [])
+                out_tag_list.append(struct)
+
+            def add_output_struct(struct):
+                add_output_tag(struct.tagname, struct)
+                add_output_tag('/' + struct.tagname, struct)
+
+            for struct in structs:
+                if len(struct.linenums) == 1:
+                    # TODO: Implement this: only start tag (or end tag)
+                    pass
+                else:
+                    if (all(ofs <= 0 for ofs in struct.char_offsets)
+                        or struct.linenums[0] == struct.linenums[1] - 1):
+                        # Structure covers whole words or an intra-word
+                        # structure within a single word
+                        add_output_struct(struct)
+                    else:
+                        # Structure spans at least two words
+                        linenums = struct.linenums
+                        wordform_nums = struct.wordform_nums
+                        conts = ''
+                        if struct.char_offsets[0] > 0:
+                            # Structure begins mid-word: make the first
+                            # (partial) word a separate structure
+                            add_output_struct(struct._replace(
+                                linenums=[struct.linenums[0],
+                                          struct.linenums[0] + 1],
+                                char_offsets=[struct.char_offsets[0], 0],
+                                wordform_nums=2 * [struct.wordform_nums[0]],
+                                continues='r'))
+                            linenums[0] += 1
+                            wordform_nums[0] += 1
+                            conts = 'l'
+                        if struct.char_offsets[1] > 0:
+                            # Structure ends mid-word: make the last (partial)
+                            # word a separate structure
+                            add_output_struct(struct._replace(
+                                linenums=[struct.linenums[1] - 1,
+                                          struct.linenums[1]],
+                                char_offsets=[0, struct.char_offsets[1]],
+                                wordform_nums=2 * [struct.wordform_nums[1]],
+                                continues='l'))
+                            linenums[1] -= 1
+                            wordform_nums[1] -= 1
+                            conts += 'r'
+                        if linenums[0] < linenums[1]:
+                            # Structure covers at least one complete word
+                            add_output_struct(struct._replace(
+                                linenums=linenums,
+                                char_offsets=[0, 0],
+                                wordform_nums=wordform_nums,
+                                continues=conts))
+            output_tags = []
+            # print(line_out_tags)
+            for (tag, startlinenum, endlinenum), structs in (
+                    line_out_tags.items()):
+                output_tags.append(make_output_tag(tag, structs, wordforms))
+            output_tags.sort(
+                key=lambda tag: (tag.linenum, tag.is_starttag, tag.tagnum))
+            return output_tags
+
+        def make_output_tag(tag, structs, wordforms):
+            if tag[0] == SLASH:
+                # This prefers closing first structures that were opened last.
+                # For original tag ordering, tagnum=structs[0].tagnums[1].
+                return OutputTag(linenum=structs[0].linenums[1],
+                                 tagnum=-structs[0].tagnums[0],
+                                 is_starttag=False,
+                                 tag_text=b'<' + tag + b'>\n')
+            if len(structs) > 1:
+                # It should be enough to sort by s.tagnums[0] as it should be
+                # different for all structures. Another option might be to sort
+                # by (s.char_offsets[0], s.char_offsets[1]), which might
+                # sometimes result in a more natural order (first the structure
+                # ending first within the token).
+                structs.sort(key=lambda s: s.tagnums[0])
+                # structs.sort(
+                #     key=lambda s: (s.char_offsets[0], s.char_offsets[1]))
+            tag_text = b'<' + tag + make_attrs(structs)
+            if (any(struct.continues for struct in structs)
+                    or any(chofs > 0 for struct in structs
+                           for chofs in struct.char_offsets)):
+                tag_text += make_subword_attrs(structs, wordforms)
+            return OutputTag(
+                linenum=min(struct.linenums[0] for struct in structs),
+                tagnum=structs[0].tagnums[0],
+                is_starttag=True,
+                tag_text=tag_text + b'>\n')
+
+        def make_attrs(structs):
+            attrs = [struct.attrs for struct in structs]
+            if not any(attr for attr in attrs):
+                return b''
+            if len(attrs) == 1 and attrs[0]:
+                return b' ' + attrs[0]
+            elif len(attrs) > 1:
+                return b' ' + combine_attrs(attrs)
+
+        def combine_attrs(attrslist):
+            # TODO: If an occurrence of the structure contains an attribute and
+            # another does not, treat the missing attribute as an empty value,
+            # producing a feature-set value, instead of a single value.
+            # print(attrslist)
+            attrdict = OrderedDict()
+            for attrs in attrslist:
+                attrlist = re.findall(br'''(\w+)=(["'])(.*?)\2''', attrs)
+                for attrname, _, attrval in attrlist:
+                    if not attrname in attrdict:
+                        attrdict[attrname] = []
+                    attrdict[attrname].append(attrval.replace(b'"', b'&quot;'))
+            for attrname, attrvals in attrdict.items():
+                # print(attrname, attrvals, len(attrslist))
+                if (len(attrvals) == len(attrslist)
+                    and all(attrvals[i] == attrvals[0]
+                            for i in range(1, len(attrvals)))):
+                    attrdict[attrname] = [attrvals[0]]
+            # print(attrdict)
+            return b' '.join(
+                (attrname + b'="'
+                 + (b'|' + b'|'.join(attrvals) + b'|' if len(attrvals) > 1
+                    else attrvals[0])
+                 + b'"')
+                for attrname, attrvals in attrdict.items())
+
+        def make_subword_attrs(structs, wordforms):
+            # print('make_subword_attrs', structs, wordforms)
+            struct0 = structs[0]
+            if all(char_offset == 0 for struct in structs
+                   for char_offset in struct.char_offsets):
+                # Whole words only
+                charspan = ''
+                text = ' '.join(wordforms[struct0.wordform_nums[0]
+                                          :struct0.wordform_nums[1] + 1])
+            else:
+                # Partial word only
+                wf = wordforms[struct0.wordform_nums[0]]
+                wflen = len(wf)
+                charspan = '|'.join('{:d}-{:d}'.format(
+                    struct.char_offsets[0] + 1, struct.char_offsets[1] or wflen)
+                                    for struct in structs)
+                text = '|'.join(
+                    wf[struct.char_offsets[0]:(struct.char_offsets[1] or wflen)]
+                    for struct in structs)
+            continues = ''.join(
+                sorted(set(''.join(struct.continues for struct in structs))))
+            # print(charspan, text, continues)
+            return (' st_charspan="{}" st_text="|{}|" st_cont="{}"'
+                    .format('|' + charspan + '|' if charspan else '|', text,
+                            continues).encode())
 
         def output_lines(lines):
             for line in lines:
