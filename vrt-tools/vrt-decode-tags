@@ -89,9 +89,6 @@ class TagDecoder(InputProcessor):
             'StructInfo',
             ['tagname', 'attrs', 'tagnums', 'linenums', 'wordform_nums',
              'char_offsets', 'continues'])
-        StructStackInfo = namedtuple(
-            'StrucStackInfo',
-            ['tagname', 'structnum'])
         structtag_value_re = re.compile(
             br"""\s*
                 (?P<tag> .+ )
@@ -108,8 +105,8 @@ class TagDecoder(InputProcessor):
         # tokenizer what is most useful.
         spaces_re = re.compile(r'(?:' + args.spaces + r')+')
         word_attrnum = 0
-        # struct_stack contains StructStackInfo tuples. It is not a strict
-        # stack, as for example pages need not nest with other structures.
+        # struct_stack contains StructInfo tuples. It is not a strict stack, as
+        # for example pages need not nest with other structures.
         struct_stack = []
         LESS_THAN = '<'.encode('utf-8')[0]
         SLASH = '/'.encode('utf-8')[0]
@@ -167,26 +164,22 @@ class TagDecoder(InputProcessor):
                         self.warn('Spurious end tag </' + tagname + '>')
                     else:
                         # print(struct_stack, structs)
-                        struct = structs[struct_stack.pop(starttag_stack_num)
-                                         .structnum]
+                        struct = struct_stack.pop(starttag_stack_num)
                         struct.tagnums.append(tagnum)
                         struct.linenums.append(tag_linenum)
                         struct.wordform_nums.append(len(wordforms) - 1)
                         struct.char_offsets.append(char_offset)
                 else:
-                    struct_stack.append(
-                        StructStackInfo(tagname=tagname,
-                                        structnum=len(structs)))
-                    structs.append(
-                        StructInfo(
-                            tagname=tagname,
-                            attrs=attrs,
-                            tagnums=[tagnum],
-                            linenums=[tag_linenum],
-                            wordform_nums=[
-                                len(wordforms) - int(char_offset > 0)],
-                            char_offsets=[char_offset],
-                            continues=''))
+                    struct = StructInfo(
+                        tagname=tagname,
+                        attrs=attrs,
+                        tagnums=[tagnum],
+                        linenums=[tag_linenum],
+                        wordform_nums=[len(wordforms) - int(char_offset > 0)],
+                        char_offsets=[char_offset],
+                        continues='')
+                    structs.append(struct)
+                    struct_stack.append(struct)
             # print(structs)
             out_tags = make_output_tags(structs, wordforms)
             # Output tags and lines interleaved. (Would it be better to
