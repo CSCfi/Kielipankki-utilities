@@ -506,7 +506,6 @@
       </text>
 
 - name: 'vrt-decode-tags: Paragraph break between structure start and end tag'
-  status: 'xfail:Not implemented yet: paragraph break between start and end tag'
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -551,6 +550,72 @@
       page.
       </paragraph>
       </page>
+      </text>
+
+- name: 'vrt-decode-tags: Paragraph break between structure start and end tag;
+    structure starts and ends in the middle of a token'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text>
+      <paragraph>
+      <!-- #vrt structure-tag: a x="x"|3 Fir stparagrap -->
+      First paragraph.
+      </paragraph>
+      <paragraph>
+      <!-- #vrt structure-tag: /a|11 econdparag raph. -->
+      Second paragraph.
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stderr: |
+      vrt-decode-tags: Warning: Sub-token attributes not added to a structure that begins in the middle of a token but extends past a major structure boundary (typically paragraph or text): <a x="x">
+      vrt-decode-tags: Warning: Sub-token attributes not added to a structure that ends in the middle of a token but extends past a major structure boundary (typically paragraph or text): </a>
+    stdout: |
+      <text>
+      <paragraph>
+      <a x="x">
+      First paragraph.
+      </paragraph>
+      <paragraph>
+      Second paragraph.
+      </a>
+      </paragraph>
+      </text>
+
+- name: 'vrt-decode-tags: Spurious start and end tag'
+  input:
+    prog: vrt-decode-tags
+    stdin: |
+      <text>
+      <paragraph>
+      <!-- #vrt structure-tag: a x="x"|5 First paragraph. -->
+      First
+      paragraph.
+      </paragraph>
+      <paragraph>
+      <!-- #vrt structure-tag: /b|6 Second paragraph. -->
+      Second
+      paragraph.
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stderr: |
+      vrt-decode-tags: Warning: Spurious end tag: </b>
+      vrt-decode-tags: Warning: Spurious start tag: <a x="x">
+    stdout: |
+      <text>
+      <paragraph>
+      First
+      <a x="x">
+      paragraph.
+      </paragraph>
+      <paragraph>
+      Second
+      paragraph.
+      </paragraph>
       </text>
 
 - name: 'vrt-decode-tags: No enclosing structures'

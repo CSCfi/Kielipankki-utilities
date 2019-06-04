@@ -16,10 +16,6 @@ feature-set values and some others not.
 """
 
 # TODO (also see within the code for TODO comments):
-# - Handle lone start and end tags that may result from a structure
-#   extending over a paragraph boundary (such as page). It would be
-#   more difficult to handle them if they began or ended within a
-#   token.
 # - If a structure has some intra-word occurrences, add the st_*
 #   attributes to all its occurrences. Similarly, if the values of
 #   attribute are converted to feature-set values (because of several
@@ -108,6 +104,9 @@ class TagDecoder(InputProcessor):
         # struct_stack contains StructInfo tuples. It is not a strict stack, as
         # for example pages need not nest with other structures.
         struct_stack = []
+        # Structs (StructInfo) left unclosed from previous stretches of
+        # structure-tag comments.
+        unclosed_structs = []
         LESS_THAN = '<'.encode('utf-8')[0]
         SLASH = '/'.encode('utf-8')[0]
         EXCLAM = '!'.encode('utf-8')[0]
@@ -159,16 +158,33 @@ class TagDecoder(InputProcessor):
                                    char_offsets=[char_offset],
                                    continues=''))
                 elif is_endtag:
+                    struct = None
                     starttag_stack_num = find_starttag_in_stack(tagname)
-                    if struct_stack and starttag_stack_num is None:
-                        self.warn('Spurious end tag </' + tagname + '>')
+                    if starttag_stack_num is None:
+                        structnum = len(unclosed_structs) - 1
+                        while structnum >= 0:
+                            if unclosed_structs[structnum].tagname == tagname:
+                                break
+                            structnum -= 1
+                        if structnum >= 0:
+                            struct = unclosed_structs.pop(structnum)
+                            # -1 as linenums[0] marks this struct as the end
+                            # tag of a structure that begun in an earlier
+                            # stretch of structural tags.
+                            struct.linenums[0] = -1
+                            structs.append(struct)
+                        else:
+                            # TODO: Add (input) line number to the message
+                            # (might not be easy).
+                            self.warn('Spurious end tag: </' + tagname + '>')
                     else:
-                        # print(struct_stack, structs)
                         struct = struct_stack.pop(starttag_stack_num)
+                    if struct:
                         struct.tagnums.append(tagnum)
                         struct.linenums.append(tag_linenum)
                         struct.wordform_nums.append(len(wordforms) - 1)
                         struct.char_offsets.append(char_offset)
+                    # print(struct_stack, struct)
                 else:
                     struct = StructInfo(
                         tagname=tagname,
@@ -180,6 +196,10 @@ class TagDecoder(InputProcessor):
                         continues='')
                     structs.append(struct)
                     struct_stack.append(struct)
+            # Add unclosed start tags
+            if struct_stack:
+                unclosed_structs.extend(struct_stack)
+                struct_stack = []
             # print(structs)
             out_tags = make_output_tags(structs, wordforms)
             # Output tags and lines interleaved. (Would it be better to
@@ -274,11 +294,14 @@ class TagDecoder(InputProcessor):
             # endlinenum)) -> list(Struct)
             line_out_tags = {}
 
-            def add_output_tag(tag, struct):
+            def add_output_tag(tag, struct, *linenums):
                 nonlocal line_out_tags
+                if not linenums:
+                    linenums = struct.linenums
+                if len(linenums) == 1:
+                    linenums = 2 * linenums
                 tag_b = tag.encode()
-                out_tag_list = line_out_tags.setdefault(
-                    (tag_b, *struct.linenums), [])
+                out_tag_list = line_out_tags.setdefault((tag_b, *linenums), [])
                 out_tag_list.append(struct)
 
             def add_output_struct(struct):
@@ -286,14 +309,14 @@ class TagDecoder(InputProcessor):
                 add_output_tag('/' + struct.tagname, struct)
 
             for struct in structs:
-                if struct.tagname[0] == '!':
-                    # XML comment
-                    line_out_tags[(struct.tagname.encode(),
-                                   struct.linenums[0],
-                                   struct.linenums[0])] = [struct]
-                elif len(struct.linenums) == 1:
-                    # TODO: Implement this: only start tag (or end tag)
-                    pass
+                if struct.tagname[0] == '!' or len(struct.linenums) == 1:
+                    # Either an XML comment or only a start tag in this stretch
+                    # of tags
+                    add_output_tag(struct.tagname, struct, struct.linenums[0])
+                elif struct.linenums[0] < 0:
+                    # Only an end tag in this stretch of tags
+                    add_output_tag('/' + struct.tagname, struct,
+                                   struct.linenums[1])
                 else:
                     if (all(ofs <= 0 for ofs in struct.char_offsets)
                         or struct.linenums[0] == struct.linenums[1] - 1):
@@ -347,6 +370,14 @@ class TagDecoder(InputProcessor):
             return output_tags
 
         def make_output_tag(tag, structs, wordforms):
+
+            def warn_mid_token(type_, tag_text):
+                self.warn(
+                    'Sub-token attributes not added to a structure that {}s in'
+                    ' the middle of a token but extends past a major structure'
+                    ' boundary (typically paragraph or text): {}'.format(
+                        type_, tag_text))
+
             if tag[0] == EXCLAM:
                 # If the nearest structures are closed first (see below), this
                 # results in comments immediately preceding end tags in the
@@ -358,6 +389,10 @@ class TagDecoder(InputProcessor):
                                  is_starttag=False,
                                  tag_text=b'<' + tag + b'>\n')
             if tag[0] == SLASH:
+                for struct in structs:
+                    if (struct.linenums[0] == -1
+                        and any(chofs > 0 for chofs in struct.char_offsets)):
+                        warn_mid_token('end', '<' + tag.decode() + '>')
                 # This prefers closing first structures that were opened last.
                 # For original tag ordering, tagnum=structs[0].tagnums[1].
                 return OutputTag(linenum=structs[0].linenums[1],
@@ -374,10 +409,17 @@ class TagDecoder(InputProcessor):
                 # structs.sort(
                 #     key=lambda s: (s.char_offsets[0], s.char_offsets[1]))
             tag_text = b'<' + tag + make_attrs(structs)
+            # print(structs)
             if (any(struct.continues for struct in structs)
                     or any(chofs > 0 for struct in structs
                            for chofs in struct.char_offsets)):
-                tag_text += make_subword_attrs(structs, wordforms)
+                add_subword_attrs = True
+                for struct in structs:
+                    if len(struct.linenums) == 1:
+                        warn_mid_token('begin', tag_text.decode() + '>')
+                        add_subword_attrs = False
+                if add_subword_attrs:
+                    tag_text += make_subword_attrs(structs, wordforms)
             return OutputTag(
                 linenum=min(struct.linenums[0] for struct in structs),
                 tagnum=structs[0].tagnums[0],
@@ -467,6 +509,10 @@ class TagDecoder(InputProcessor):
                 if tag_lines:
                     lines = restore_tags(lines, tag_lines)
                 output_lines(lines)
+        for struct in unclosed_structs:
+            self.warn('Spurious start tag: <{}{}>'.format(
+                struct.tagname,
+                (' ' + struct.attrs.decode() if struct.attrs else '')))
 
 
 if __name__ == '__main__':
