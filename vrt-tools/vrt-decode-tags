@@ -301,7 +301,8 @@ class TagDecoder(InputProcessor):
                 if len(linenums) == 1:
                     linenums = 2 * linenums
                 tag_b = tag.encode()
-                out_tag_list = line_out_tags.setdefault((tag_b, *linenums), [])
+                out_tag_list = line_out_tags.setdefault(
+                    (tag_b, linenums[0], linenums[1]), [])
                 out_tag_list.append(struct)
 
             def add_output_struct(struct):
