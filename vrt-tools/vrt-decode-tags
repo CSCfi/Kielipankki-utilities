@@ -436,17 +436,26 @@ class TagDecoder(InputProcessor):
                 return b' ' + combine_attrs(attrs)
 
         def combine_attrs(attrslist):
-            # TODO: If an occurrence of the structure contains an attribute and
-            # another does not, treat the missing attribute as an empty value,
-            # producing a feature-set value, instead of a single value.
             # print(attrslist)
             attrdict = OrderedDict()
-            for attrs in attrslist:
+            for structnum, attrs in enumerate(attrslist):
                 attrlist = re.findall(br'''(\w+)=(["'])(.*?)\2''', attrs)
+                # If an occurrence of the structure contains an attribute and
+                # another does not, treat the missing attribute as an empty
+                # value, producing a feature-set value.
                 for attrname, _, attrval in attrlist:
                     if not attrname in attrdict:
-                        attrdict[attrname] = []
+                        # This is the first structure with the attribute, so
+                        # add empty values to all preceding structures.
+                        attrdict[attrname] = structnum * [b'']
                     attrdict[attrname].append(attrval.replace(b'"', b'&quot;'))
+                # Add empty values for all attributes existing in some
+                # structure but missing from this one.
+                for attrname in (
+                        set(attrdict.keys())
+                        - set(attrname for attrname, _, _ in attrlist)):
+                    attrdict[attrname].append(b'')
+            # print(attrdict)
             for attrname, attrvals in attrdict.items():
                 # print(attrname, attrvals, len(attrslist))
                 if (len(attrvals) == len(attrslist)

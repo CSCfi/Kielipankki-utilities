@@ -1896,18 +1896,34 @@
       </b>
       </a>
 
-- name: 'vrt-decode-tags: Two same intra-token structures within the same token, with
-    different attributes: a<a x="x">bc<a y="y">defg</a>hi</a>j'
-  # hrt-encode-tags input: a<a x="x">bc<a y="y">defg</a>hi</a>j
-  status: >-
-    xfail:Not implemented yet: missing values of an attribute as empty
-    values in a feature set
+- name: 'vrt-decode-tags: Two same intra-token structures within the same token (nested), with
+    different attributes: a<a x="x" z="z">bc<a y="y" z="z">defg</a>hi</a>j'
+  # hrt-encode-tags input: a<a x="x" z="z">bc<a y="y" z="z">defg</a>hi</a>j
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x" z="z"|1 a bcdefghij -->
+      <!-- #vrt structure-tag: a y="y" z="z"|3 abc defghij -->
+      <!-- #vrt structure-tag: /a|7 abcdefg hij -->
+      <!-- #vrt structure-tag: /a|9 abcdefghi j -->
+      abcdefghij
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x||" z="z" y="||y|" st_charspan="|2-9|4-7|" st_text="|bcdefghi|defg|" st_cont="">
+      abcdefghij
+      </a>
+
+- name: 'vrt-decode-tags: Two same intra-token structures within the same token (consecutive), with
+    different attributes: a<a x="x">bc</a>defg<a y="y">hi</a>j'
+  # hrt-encode-tags input: a<a x="x">bc</a>defg<a y="y">hi</a>j
   input:
     cmdline: vrt-decode-tags
     stdin: |
       <!-- #vrt structure-tag: a x="x"|1 a bcdefghij -->
-      <!-- #vrt structure-tag: a y="y"|3 abc defghij -->
-      <!-- #vrt structure-tag: /a|7 abcdefg hij -->
+      <!-- #vrt structure-tag: /a|3 abc defghij -->
+      <!-- #vrt structure-tag: a y="y"|7 abcdefg hij -->
       <!-- #vrt structure-tag: /a|9 abcdefghi j -->
       abcdefghij
   output:
