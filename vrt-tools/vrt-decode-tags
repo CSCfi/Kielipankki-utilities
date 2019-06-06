@@ -84,7 +84,7 @@ class TagDecoder(InputProcessor):
         StructInfo = namedtuple(
             'StructInfo',
             ['tagname', 'attrs', 'tagnums', 'linenums', 'wordform_nums',
-             'char_offsets', 'continues', 'text_all'])
+             'char_offsets', 'partnum', 'continues', 'text_all'])
         structtag_value_re = re.compile(
             br"""\s*
                 (?P<tag> .+ )
@@ -100,10 +100,12 @@ class TagDecoder(InputProcessor):
         # including non-break space. Should it? It might depend on the
         # tokenizer what is most useful.
         spaces_re = re.compile(r'(?:' + args.spaces + r')+')
+        subword_attrs = 'charspan text text_all partnum cont'
         subword_attrs_format = (
-            ' {0}charspan="{{charspan}}" {0}text="|{{text}}|"'
-            ' {0}text_all="|{{text_all}}|" {0}cont="{{cont}}"').format(
-                args.attr_prefix)
+            ' ' + (' '.join('{prefix}{attrname}="{{{attrname}}}"'
+                            .format(prefix=args.attr_prefix,
+                                    attrname=attrname)
+                            for attrname in subword_attrs.split())))
         word_attrnum = 0
         # struct_stack contains StructInfo tuples. It is not a strict stack, as
         # for example pages need not nest with other structures.
@@ -160,6 +162,7 @@ class TagDecoder(InputProcessor):
                                    linenums=[tag_linenum],
                                    wordform_nums=[],
                                    char_offsets=[char_offset],
+                                   partnum=None,
                                    continues='',
                                    text_all=None))
                 elif is_endtag:
@@ -198,6 +201,7 @@ class TagDecoder(InputProcessor):
                         linenums=[tag_linenum],
                         wordform_nums=[len(wordforms) - int(char_offset > 0)],
                         char_offsets=[char_offset],
+                        partnum='1/1',
                         continues='',
                         text_all=None)
                     structs.append(struct)
@@ -316,6 +320,7 @@ class TagDecoder(InputProcessor):
                 add_output_tag('/' + struct.tagname, struct)
 
             for struct in structs:
+                # print(struct)
                 if struct.tagname[0] == '!' or len(struct.linenums) == 1:
                     # Either an XML comment or only a start tag in this stretch
                     # of tags
@@ -336,6 +341,13 @@ class TagDecoder(InputProcessor):
                         linenums = struct.linenums.copy()
                         wordform_nums = struct.wordform_nums.copy()
                         conts = ''
+                        part_count = (
+                            int(struct.char_offsets[0] > 0)
+                            + int(struct.char_offsets[1] > 0))
+                        part_count += int(
+                            part_count == 1
+                            or wordform_nums[1] - wordform_nums[0] > 1)
+                        partnum = 1
                         text_all_added = False
                         if struct.char_offsets[0] > 0:
                             # Structure begins mid-word: make the first
@@ -345,10 +357,12 @@ class TagDecoder(InputProcessor):
                                           struct.linenums[0] + 1],
                                 char_offsets=[struct.char_offsets[0], 0],
                                 wordform_nums=2 * [struct.wordform_nums[0]],
+                                partnum='1/' + str(part_count),
                                 continues='r',
                                 text_all=make_text_value(struct, wordforms)))
                             linenums[0] += 1
                             wordform_nums[0] += 1
+                            partnum += 1
                             conts = 'l'
                             text_all_added = True
                         if struct.char_offsets[1] > 0:
@@ -359,6 +373,7 @@ class TagDecoder(InputProcessor):
                                           struct.linenums[1]],
                                 char_offsets=[0, struct.char_offsets[1]],
                                 wordform_nums=2 * [struct.wordform_nums[1]],
+                                partnum='{0:d}/{0:d}'.format(part_count),
                                 continues='l',
                                 text_all=''))
                             linenums[1] -= 1
@@ -370,6 +385,8 @@ class TagDecoder(InputProcessor):
                                 linenums=linenums,
                                 char_offsets=[0, 0],
                                 wordform_nums=wordform_nums,
+                                partnum='{:d}/{:d}'.format(
+                                    1 + int('l' in conts), part_count),
                                 continues=conts,
                                 text_all=(make_text_value(struct, wordforms)
                                           if not text_all_added else '')))
@@ -504,12 +521,16 @@ class TagDecoder(InputProcessor):
                     wf[struct.char_offsets[0]:(struct.char_offsets[1] or wflen)]
                     for struct in structs)
             text_all = '|'.join(struct.text_all for struct in structs)
+            partnum = '|'.join(struct.partnum for struct in structs)
             continues = ''.join(
                 sorted(set(''.join(struct.continues for struct in structs))))
             # print(charspan, text, continues)
-            return (subword_attrs_format.format(
+            return subword_attrs_format.format(
                 charspan=('|' + charspan + '|' if charspan else '|'),
-                text=text, text_all=text_all, cont=continues).encode())
+                text='|' + text + '|',
+                text_all='|' + text_all + '|',
+                partnum='|' + partnum + '|',
+                cont=continues).encode()
 
         def make_text_value(struct, wordforms):
             """Make a value with both partial and whole tokens of struct."""
