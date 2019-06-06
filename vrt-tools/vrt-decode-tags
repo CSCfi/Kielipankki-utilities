@@ -27,8 +27,6 @@ feature-set values and some others not.
 #   This might be useful in particular when a structure starting or
 #   ending at the middle of a token has been split into several
 #   structures.
-# - Add an option for the extra attribute name prefix (currently
-#   "st_").
 # - Possibly make the value of the st_cont attribute a feature-set
 #   value, so that the values would correspond to those of st_charspan
 #   and st_text. This might be needed with nested same structures,
@@ -71,6 +69,8 @@ class TagDecoder(InputProcessor):
          # The default contains a literal "|", so it cannot be specified on the
          # argspec line itself.
          dict(default="word|1")),
+        ('--attribute-name-prefix = prefix "st_" -> attr_prefix',
+         'prefix the names of added attributes with prefix'),
     ]
 
     def __init__(self):
@@ -100,6 +100,10 @@ class TagDecoder(InputProcessor):
         # including non-break space. Should it? It might depend on the
         # tokenizer what is most useful.
         spaces_re = re.compile(r'(?:' + args.spaces + r')+')
+        subword_attrs_format = (
+            ' {0}charspan="{{charspan}}" {0}text="|{{text}}|"'
+            ' {0}text_all="|{{text_all}}|" {0}cont="{{cont}}"').format(
+                args.attr_prefix)
         word_attrnum = 0
         # struct_stack contains StructInfo tuples. It is not a strict stack, as
         # for example pages need not nest with other structures.
@@ -503,10 +507,9 @@ class TagDecoder(InputProcessor):
             continues = ''.join(
                 sorted(set(''.join(struct.continues for struct in structs))))
             # print(charspan, text, continues)
-            return ((' st_charspan="{}" st_text="|{}|" st_text_all="|{}|"'
-                     ' st_cont="{}"')
-                    .format('|' + charspan + '|' if charspan else '|', text,
-                            text_all, continues).encode())
+            return (subword_attrs_format.format(
+                charspan=('|' + charspan + '|' if charspan else '|'),
+                text=text, text_all=text_all, cont=continues).encode())
 
         def make_text_value(struct, wordforms):
             """Make a value with both partial and whole tokens of struct."""

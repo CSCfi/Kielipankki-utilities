@@ -2098,3 +2098,21 @@
       <a st_charspan="|1-3|1-1|" st_text="|ghi|g|" st_text_all="|||" st_cont="l">
       ghij
       </a>
+
+- name: 'vrt-decode-tags: --attribute-name-prefix'
+  # hrt-encode-tags input: a<a x="x">bc</a>defg<a y="y">hi</a>j
+  input:
+    cmdline: vrt-decode-tags --attribute-name-prefix="st_test_"
+    stdin: |
+      <!-- #vrt structure-tag: a x="x"|1 a bcdefghij -->
+      <!-- #vrt structure-tag: /a|3 abc defghij -->
+      <!-- #vrt structure-tag: a y="y"|7 abcdefg hij -->
+      <!-- #vrt structure-tag: /a|9 abcdefghi j -->
+      abcdefghij
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x||" y="||y|" st_test_charspan="|2-3|8-9|" st_test_text="|bc|hi|" st_test_text_all="|bc|hi|" st_test_cont="">
+      abcdefghij
+      </a>
