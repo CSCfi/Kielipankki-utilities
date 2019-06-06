@@ -317,10 +317,10 @@
       <text id="0">
       <paragraph id="1">
       Some
-      <i st_charspan="|1-5|" st_text="|intra|" st_cont="">
+      <i st_charspan="|1-5|" st_text="|intra|" st_text_all="|intra|" st_cont="">
       intraword
       </i>
-      <a href="http://www.example.com" st_charspan="|4-5|" st_text="|ku|" st_cont="">
+      <a href="http://www.example.com" st_charspan="|4-5|" st_text="|ku|" st_text_all="|ku|" st_cont="">
       markup
       </a>
       .
@@ -360,7 +360,7 @@
       occurrences
       of
       an
-      <i st_charspan="|2-4|8-9|" st_text="|ntr|or|" st_cont="">
+      <i st_charspan="|2-4|8-9|" st_text="|ntr|or|" st_text_all="|ntr|or|" st_cont="">
       intra-word
       </i>
       structure
@@ -402,8 +402,8 @@
       Occurrences
       of
       different
-      <i st_charspan="|2-9|" st_text="|ntra-wor|" st_cont="">
-      <b st_charspan="|5-7|" st_text="|a-w|" st_cont="">
+      <i st_charspan="|2-9|" st_text="|ntra-wor|" st_text_all="|ntra-wor|" st_cont="">
+      <b st_charspan="|5-7|" st_text="|a-w|" st_text_all="|a-w|" st_cont="">
       intra-word
       </b>
       </i>
@@ -447,16 +447,16 @@
       structure
       beginning
       within
-      <i st_charspan="|2-3|" st_text="|ne|" st_cont="r">
+      <i st_charspan="|2-3|" st_text="|ne|" st_text_all="|ne word and ending within anot|" st_cont="r">
       one
       </i>
-      <i st_charspan="|" st_text="|word and ending within|" st_cont="lr">
+      <i st_charspan="|" st_text="|word and ending within|" st_text_all="||" st_cont="lr">
       word
       and
       ending
       within
       </i>
-      <i st_charspan="|1-4|" st_text="|anot|" st_cont="l">
+      <i st_charspan="|1-4|" st_text="|anot|" st_text_all="||" st_cont="l">
       another
       </i>
       .
@@ -493,12 +493,12 @@
       <paragraph id="1">
       Structure
       covering
-      <i st_charspan="|" st_text="|whole words|" st_cont="">
+      <i st_charspan="|" st_text="|whole words|" st_text_all="|whole words|" st_cont="">
       whole
       words
       </i>
       and
-      <i st_charspan="|7-10|" st_text="|word|" st_cont="">
+      <i st_charspan="|7-10|" st_text="|word|" st_text_all="|word|" st_cont="">
       intra-word
       </i>
       .
@@ -701,7 +701,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <i st_charspan="|1-6|" st_text="|abcdef|" st_cont="">
+      <i st_charspan="|1-6|" st_text="|abcdef|" st_text_all="|abcdef|" st_cont="">
       abcdefghi
       </i>
 
@@ -717,7 +717,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <i st_charspan="|4-9|" st_text="|defghi|" st_cont="">
+      <i st_charspan="|4-9|" st_text="|defghi|" st_text_all="|defghi|" st_cont="">
       abcdefghi
       </i>
 
@@ -733,7 +733,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <i st_charspan="|4-6|" st_text="|def|" st_cont="">
+      <i st_charspan="|4-6|" st_text="|def|" st_text_all="|def|" st_cont="">
       abcdefjkl
       </i>
 
@@ -753,7 +753,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-2|6-9|10-12|" st_text="|b|fghi|jkl|" st_cont="">
+      <a st_charspan="|2-2|6-9|10-12|" st_text="|b|fghi|jkl|" st_text_all="|b|fghi|jkl|" st_cont="">
       abcdefghijklmn
       </a>
 
@@ -775,10 +775,10 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-2|6-7|" st_text="|b|fg|" st_cont="r">
+      <a st_charspan="|2-2|6-7|" st_text="|b|fg|" st_text_all="|b|fg hi|" st_cont="r">
       abcdefg
       </a>
-      <a st_charspan="|1-2|3-5|" st_text="|hi|jkl|" st_cont="l">
+      <a st_charspan="|1-2|3-5|" st_text="|hi|jkl|" st_text_all="||jkl|" st_cont="l">
       hijklmn
       </a>
 
@@ -802,13 +802,13 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-2|6-7|" st_text="|b|fg|" st_cont="r">
+      <a st_charspan="|2-2|6-7|" st_text="|b|fg|" st_text_all="|b|fg h i|" st_cont="r">
       abcdefg
       </a>
-      <a st_charspan="|" st_text="|h|" st_cont="lr">
+      <a st_charspan="|" st_text="|h|" st_text_all="||" st_cont="lr">
       h
       </a>
-      <a st_charspan="|1-1|2-4|" st_text="|i|jkl|" st_cont="l">
+      <a st_charspan="|1-1|2-4|" st_text="|i|jkl|" st_text_all="||jkl|" st_cont="l">
       ijklmn
       </a>
 
@@ -827,10 +827,10 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-2|" st_text="|b|" st_cont="">
+      <a st_charspan="|2-2|" st_text="|b|" st_text_all="|b|" st_cont="">
       abcde
       </a>
-      <a st_charspan="|1-6|" st_text="|fghjkl|" st_cont="">
+      <a st_charspan="|1-6|" st_text="|fghjkl|" st_text_all="|fghjkl|" st_cont="">
       fghjklmn
       </a>
 
@@ -848,8 +848,8 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-3|" st_text="|bc|" st_cont="">
-      <b st_charspan="|8-12|" st_text="|hijkl|" st_cont="">
+      <a st_charspan="|2-3|" st_text="|bc|" st_text_all="|bc|" st_cont="">
+      <b st_charspan="|8-12|" st_text="|hijkl|" st_text_all="|hijkl|" st_cont="">
       abcdefghijklmn
       </b>
       </a>
@@ -870,12 +870,12 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-3|" st_text="|bc|" st_cont="">
-      <b st_charspan="|8-10|" st_text="|hij|" st_cont="r">
+      <a st_charspan="|2-3|" st_text="|bc|" st_text_all="|bc|" st_cont="">
+      <b st_charspan="|8-10|" st_text="|hij|" st_text_all="|hij kl|" st_cont="r">
       abcdefghij
       </b>
       </a>
-      <b st_charspan="|1-2|" st_text="|kl|" st_cont="l">
+      <b st_charspan="|1-2|" st_text="|kl|" st_text_all="||" st_cont="l">
       klmn
       </b>
 
@@ -895,8 +895,8 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-3|" st_text="|bc|" st_cont="">
-      <b st_charspan="|8-10|" st_text="|hij|" st_cont="">
+      <a st_charspan="|2-3|" st_text="|bc|" st_text_all="|bc|" st_cont="">
+      <b st_charspan="|8-10|" st_text="|hij|" st_text_all="|hij|" st_cont="">
       abcdefghij
       </b>
       </a>
@@ -1021,12 +1021,12 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-10|" st_text="|bcdefghij|" st_cont="r">
-      <b st_charspan="|4-10|" st_text="|defghij|" st_cont="">
+      <a st_charspan="|2-10|" st_text="|bcdefghij|" st_text_all="|bcdefghij klm|" st_cont="r">
+      <b st_charspan="|4-10|" st_text="|defghij|" st_text_all="|defghij|" st_cont="">
       abcdefghij
       </b>
       </a>
-      <a st_charspan="|1-3|" st_text="|klm|" st_cont="l">
+      <a st_charspan="|1-3|" st_text="|klm|" st_text_all="||" st_cont="l">
       klmn
       </a>
 
@@ -1046,12 +1046,12 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-10|" st_text="|bcdefghij|" st_cont="">
-      <b st_charspan="|4-10|" st_text="|defghij|" st_cont="r">
+      <a st_charspan="|2-10|" st_text="|bcdefghij|" st_text_all="|bcdefghij|" st_cont="">
+      <b st_charspan="|4-10|" st_text="|defghij|" st_text_all="|defghij klm|" st_cont="r">
       abcdefghij
       </b>
       </a>
-      <b st_charspan="|1-3|" st_text="|klm|" st_cont="l">
+      <b st_charspan="|1-3|" st_text="|klm|" st_text_all="||" st_cont="l">
       klmn
       </b>
 
@@ -1069,7 +1069,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-13|4-10|" st_text="|bcdefghijklm|defghij|" st_cont="">
+      <a st_charspan="|2-13|4-10|" st_text="|bcdefghijklm|defghij|" st_text_all="|bcdefghijklm|defghij|" st_cont="">
       abcdefghijklmn
       </a>
 
@@ -1090,10 +1090,10 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-5|4-5|" st_text="|bcde|de|" st_cont="|r|r|">
+      <a st_charspan="|2-5|4-5|" st_text="|bcde|de|" st_text_all="|bcde|de|" st_cont="|r|r|">
       abcde
       </a>
-      <a st_charspan="|1-5|1-8|" st_text="|fghij|fhgijklm|" st_cont="|l|l|">
+      <a st_charspan="|1-5|1-8|" st_text="|fghij|fhgijklm|" st_text_all="|fghij|fhgijklm|" st_cont="|l|l|">
       fghijklmn
       </a>
 
@@ -1115,13 +1115,13 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-5|4-5|" st_text="|bcde|de|" st_cont="|r|r|">
+      <a st_charspan="|2-5|4-5|" st_text="|bcde|de|" st_text_all="|bcde|de|" st_cont="|r|r|">
       abcde
       </a>
-      <a st_charspan="|" st_text="|fgh|" st_cont="|lr|">
+      <a st_charspan="|" st_text="|fgh|" st_text_all="|fgh|" st_cont="|lr|">
       fgh
       </a>
-      <a st_charspan="|1-2|1-5|" st_text="|ij|ijklm|" st_cont="|l|l|">
+      <a st_charspan="|1-2|1-5|" st_text="|ij|ijklm|" st_text_all="|ij|ijklm|" st_cont="|l|l|">
       ijklmn
       </a>
 
@@ -1139,8 +1139,8 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-13|" st_text="|bcdefghijklm|" st_cont="">
-      <b st_charspan="|4-10|" st_text="|defghij|" st_cont="">
+      <a st_charspan="|2-13|" st_text="|bcdefghijklm|" st_text_all="|bcdefghijklm|" st_cont="">
+      <b st_charspan="|4-10|" st_text="|defghij|" st_text_all="|defghij|" st_cont="">
       abcdefghijklmn
       </b>
       </a>
@@ -1161,13 +1161,13 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-5|" st_text="|bcde|" st_cont="r">
-      <b st_charspan="|4-5|" st_text="|de|" st_cont="r">
+      <a st_charspan="|2-5|" st_text="|bcde|" st_text_all="|bcde fghijklm|" st_cont="r">
+      <b st_charspan="|4-5|" st_text="|de|" st_text_all="|de fghij|" st_cont="r">
       abcde
       </b>
       </a>
-      <a st_charspan="|1-8|" st_text="|fghijklm|" st_cont="l">
-      <b st_charspan="|1-5|" st_text="|fghij|" st_cont="l">
+      <a st_charspan="|1-8|" st_text="|fghijklm|" st_text_all="||" st_cont="l">
+      <b st_charspan="|1-5|" st_text="|fghij|" st_text_all="||" st_cont="l">
       fghijklmn
       </b>
       </a>
@@ -1189,18 +1189,18 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-5|" st_text="|bcde|" st_cont="r">
-      <b st_charspan="|4-5|" st_text="|de|" st_cont="r">
+      <a st_charspan="|2-5|" st_text="|bcde|" st_text_all="|bcde fgh ijklm|" st_cont="r">
+      <b st_charspan="|4-5|" st_text="|de|" st_text_all="|de fgh ij|" st_cont="r">
       abcde
       </b>
       </a>
-      <a st_charspan="|" st_text="|fgh|" st_cont="lr">
-      <b st_charspan="|" st_text="|fgh|" st_cont="lr">
+      <a st_charspan="|" st_text="|fgh|" st_text_all="||" st_cont="lr">
+      <b st_charspan="|" st_text="|fgh|" st_text_all="||" st_cont="lr">
       fgh
       </b>
       </a>
-      <a st_charspan="|1-5|" st_text="|ijklm|" st_cont="l">
-      <b st_charspan="|1-2|" st_text="|ij|" st_cont="l">
+      <a st_charspan="|1-5|" st_text="|ijklm|" st_text_all="||" st_cont="l">
+      <b st_charspan="|1-2|" st_text="|ij|" st_text_all="||" st_cont="l">
       ijklmn
       </b>
       </a>
@@ -1219,8 +1219,8 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-10|" st_text="|bcdefghij|" st_cont="">
-      <b st_charspan="|4-13|" st_text="|defghijklm|" st_cont="">
+      <a st_charspan="|2-10|" st_text="|bcdefghij|" st_text_all="|bcdefghij|" st_cont="">
+      <b st_charspan="|4-13|" st_text="|defghijklm|" st_text_all="|defghijklm|" st_cont="">
       abcdefghijklmn
       </b>
       </a>
@@ -1241,13 +1241,13 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-5|" st_text="|bcde|" st_cont="r">
-      <b st_charspan="|4-5|" st_text="|de|" st_cont="r">
+      <a st_charspan="|2-5|" st_text="|bcde|" st_text_all="|bcde fghij|" st_cont="r">
+      <b st_charspan="|4-5|" st_text="|de|" st_text_all="|de fghijklm|" st_cont="r">
       abcde
       </b>
       </a>
-      <a st_charspan="|1-5|" st_text="|fghij|" st_cont="l">
-      <b st_charspan="|1-8|" st_text="|fghijklm|" st_cont="l">
+      <a st_charspan="|1-5|" st_text="|fghij|" st_text_all="||" st_cont="l">
+      <b st_charspan="|1-8|" st_text="|fghijklm|" st_text_all="||" st_cont="l">
       fghijklmn
       </b>
       </a>
@@ -1269,18 +1269,18 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-5|" st_text="|bcde|" st_cont="r">
-      <b st_charspan="|4-5|" st_text="|de|" st_cont="r">
+      <a st_charspan="|2-5|" st_text="|bcde|" st_text_all="|bcde fgh ij|" st_cont="r">
+      <b st_charspan="|4-5|" st_text="|de|" st_text_all="|de fgh ijklm|" st_cont="r">
       abcde
       </b>
       </a>
-      <a st_charspan="|" st_text="|fgh|" st_cont="lr">
-      <b st_charspan="|" st_text="|fgh|" st_cont="lr">
+      <a st_charspan="|" st_text="|fgh|" st_text_all="||" st_cont="lr">
+      <b st_charspan="|" st_text="|fgh|" st_text_all="||" st_cont="lr">
       fgh
       </b>
       </a>
-      <a st_charspan="|1-2|" st_text="|ij|" st_cont="l">
-      <b st_charspan="|1-5|" st_text="|ijklm|" st_cont="l">
+      <a st_charspan="|1-2|" st_text="|ij|" st_text_all="||" st_cont="l">
+      <b st_charspan="|1-5|" st_text="|ijklm|" st_text_all="||" st_cont="l">
       ijklmn
       </b>
       </a>
@@ -1301,8 +1301,8 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-9|" st_text="|bcdefghi|" st_cont="">
-      <b st_charspan="|4-5|8-11|" st_text="|de|hijk|" st_cont="">
+      <a st_charspan="|2-9|" st_text="|bcdefghi|" st_text_all="|bcdefghi|" st_cont="">
+      <b st_charspan="|4-5|8-11|" st_text="|de|hijk|" st_text_all="|de|hijk|" st_cont="">
       abcdefghijklmn
       </b>
       </a>
@@ -1329,26 +1329,26 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-2|" st_text="|b|" st_cont="r">
+      <a st_charspan="|2-2|" st_text="|b|" st_text_all="|b cd ef gh i|" st_cont="r">
       ab
       </a>
-      <a st_charspan="|" st_text="|cd ef gh|" st_cont="lr">
-      <b st_charspan="|2-2|" st_text="|d|" st_cont="r">
+      <a st_charspan="|" st_text="|cd ef gh|" st_text_all="||" st_cont="lr">
+      <b st_charspan="|2-2|" st_text="|d|" st_text_all="|d e|" st_cont="r">
       cd
       </b>
-      <b st_charspan="|1-1|" st_text="|e|" st_cont="l">
+      <b st_charspan="|1-1|" st_text="|e|" st_text_all="||" st_cont="l">
       ef
       </b>
-      <b st_charspan="|2-2|" st_text="|h|" st_cont="r">
+      <b st_charspan="|2-2|" st_text="|h|" st_text_all="|h ij k|" st_cont="r">
       gh
       </b>
       </a>
-      <a st_charspan="|1-1|" st_text="|i|" st_cont="l">
-      <b st_charspan="|" st_text="|ij|" st_cont="lr">
+      <a st_charspan="|1-1|" st_text="|i|" st_text_all="||" st_cont="l">
+      <b st_charspan="|" st_text="|ij|" st_text_all="||" st_cont="lr">
       ij
       </b>
       </a>
-      <b st_charspan="|1-1|" st_text="|k|" st_cont="l">
+      <b st_charspan="|1-1|" st_text="|k|" st_text_all="||" st_cont="l">
       klmn
       </b>
 
@@ -1379,33 +1379,33 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-2|" st_text="|b|" st_cont="r">
+      <a st_charspan="|2-2|" st_text="|b|" st_text_all="|b c de f gh i jk l m|" st_cont="r">
       ab
       </a>
-      <a st_charspan="|" st_text="|c de f gh i jk l|" st_cont="lr">
+      <a st_charspan="|" st_text="|c de f gh i jk l|" st_text_all="||" st_cont="lr">
       c
-      <b st_charspan="|2-2|" st_text="|e|" st_cont="r">
+      <b st_charspan="|2-2|" st_text="|e|" st_text_all="|e f g|" st_cont="r">
       de
       </b>
-      <b st_charspan="|" st_text="|f|" st_cont="lr">
+      <b st_charspan="|" st_text="|f|" st_text_all="||" st_cont="lr">
       f
       </b>
-      <b st_charspan="|1-1|" st_text="|g|" st_cont="l">
+      <b st_charspan="|1-1|" st_text="|g|" st_text_all="||" st_cont="l">
       gh
       </b>
       i
-      <b st_charspan="|2-2|" st_text="|k|" st_cont="r">
+      <b st_charspan="|2-2|" st_text="|k|" st_text_all="|k l mn o p|" st_cont="r">
       jk
       </b>
-      <b st_charspan="|" st_text="|l mn o|" st_cont="lr">
+      <b st_charspan="|" st_text="|l mn o|" st_text_all="||" st_cont="lr">
       l
       </a>
-      <a st_charspan="|1-1|" st_text="|m|" st_cont="l">
+      <a st_charspan="|1-1|" st_text="|m|" st_text_all="||" st_cont="l">
       mn
       </a>
       o
       </b>
-      <b st_charspan="|1-1|" st_text="|p|" st_cont="l">
+      <b st_charspan="|1-1|" st_text="|p|" st_text_all="||" st_cont="l">
       pq
       </b>
 
@@ -1425,9 +1425,9 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-10|" st_text="|bcdefghij|" st_cont="">
-      <b st_charspan="|5-13|" st_text="|efghijklm|" st_cont="">
-      <c st_charspan="|8-16|" st_text="|hijklmnop|" st_cont="">
+      <a st_charspan="|2-10|" st_text="|bcdefghij|" st_text_all="|bcdefghij|" st_cont="">
+      <b st_charspan="|5-13|" st_text="|efghijklm|" st_text_all="|efghijklm|" st_cont="">
+      <c st_charspan="|8-16|" st_text="|hijklmnop|" st_text_all="|hijklmnop|" st_cont="">
       abcdefghijklmnopq
       </c>
       </b>
@@ -1460,33 +1460,33 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-2|" st_text="|b|" st_cont="r">
+      <a st_charspan="|2-2|" st_text="|b|" st_text_all="|b c de f gh i j|" st_cont="r">
       ab
       </a>
-      <a st_charspan="|" st_text="|c de f gh i|" st_cont="lr">
+      <a st_charspan="|" st_text="|c de f gh i|" st_text_all="||" st_cont="lr">
       c
-      <b st_charspan="|2-2|" st_text="|e|" st_cont="r">
+      <b st_charspan="|2-2|" st_text="|e|" st_text_all="|e f gh i jk l m|" st_cont="r">
       de
       </b>
-      <b st_charspan="|" st_text="|f gh i jk l|" st_cont="lr">
+      <b st_charspan="|" st_text="|f gh i jk l|" st_text_all="||" st_cont="lr">
       f
-      <c st_charspan="|2-2|" st_text="|h|" st_cont="r">
+      <c st_charspan="|2-2|" st_text="|h|" st_text_all="|h i jk l mn o p|" st_cont="r">
       gh
       </c>
-      <c st_charspan="|" st_text="|i jk l mn o|" st_cont="lr">
+      <c st_charspan="|" st_text="|i jk l mn o|" st_text_all="||" st_cont="lr">
       i
       </a>
-      <a st_charspan="|1-1|" st_text="|j|" st_cont="l">
+      <a st_charspan="|1-1|" st_text="|j|" st_text_all="||" st_cont="l">
       jk
       </a>
       l
       </b>
-      <b st_charspan="|1-1|" st_text="|m|" st_cont="l">
+      <b st_charspan="|1-1|" st_text="|m|" st_text_all="||" st_cont="l">
       mn
       </b>
       o
       </c>
-      <c st_charspan="|1-1|" st_text="|p|" st_cont="l">
+      <c st_charspan="|1-1|" st_text="|p|" st_text_all="||" st_cont="l">
       pq
       </c>
 
@@ -1505,10 +1505,10 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a b="1" st_charspan="|2-2|" st_text="|b|" st_cont="r">
+      <a b="1" st_charspan="|2-2|" st_text="|b|" st_text_all="|b c|" st_cont="r">
       ab
       </a>
-      <a b="1" st_charspan="|1-1|" st_text="|c|" st_cont="l">
+      <a b="1" st_charspan="|1-1|" st_text="|c|" st_text_all="||" st_cont="l">
       cd
       </a>
       ef
@@ -1529,13 +1529,13 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a b="1" st_charspan="|2-2|" st_text="|b|" st_cont="r">
+      <a b="1" st_charspan="|2-2|" st_text="|b|" st_text_all="|b cde fgh|" st_cont="r">
       ab
       </a>
-      <a b="1" st_charspan="|" st_text="|cde|" st_cont="lr">
+      <a b="1" st_charspan="|" st_text="|cde|" st_text_all="||" st_cont="lr">
       cde
       </a>
-      <a b="1" st_charspan="|1-3|" st_text="|fgh|" st_cont="l">
+      <a b="1" st_charspan="|1-3|" st_text="|fgh|" st_text_all="||" st_cont="l">
       fghi
       </a>
       jkl
@@ -1556,10 +1556,10 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a b="1" st_charspan="|2-2|" st_text="|b|" st_cont="r">
+      <a b="1" st_charspan="|2-2|" st_text="|b|" st_text_all="|b cde fghi|" st_cont="r">
       ab
       </a>
-      <a b="1" st_charspan="|" st_text="|cde fghi|" st_cont="l">
+      <a b="1" st_charspan="|" st_text="|cde fghi|" st_text_all="||" st_cont="l">
       cde
       fghi
       </a>
@@ -1581,11 +1581,11 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a b="1" st_charspan="|" st_text="|ab cde|" st_cont="r">
+      <a b="1" st_charspan="|" st_text="|ab cde|" st_text_all="|ab cde fgh|" st_cont="r">
       ab
       cde
       </a>
-      <a b="1" st_charspan="|1-3|" st_text="|fgh|" st_cont="l">
+      <a b="1" st_charspan="|1-3|" st_text="|fgh|" st_text_all="||" st_cont="l">
       fghi
       </a>
       jkl
@@ -1607,7 +1607,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="x" st_charspan="|2-7|9-14|16-21|" st_text="|bcdefg|ijklmn|pqrstu|" st_cont="">
+      <a x="x" st_charspan="|2-7|9-14|16-21|" st_text="|bcdefg|ijklmn|pqrstu|" st_text_all="|bcdefg|ijklmn|pqrstu|" st_cont="">
       abcdefghijklmnopqrstuv
       </a>
 
@@ -1628,7 +1628,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|x2|x3|" st_charspan="|2-7|9-14|16-21|" st_text="|bcdefg|ijklmn|pqrstu|" st_cont="">
+      <a x="|x1|x2|x3|" st_charspan="|2-7|9-14|16-21|" st_text="|bcdefg|ijklmn|pqrstu|" st_text_all="|bcdefg|ijklmn|pqrstu|" st_cont="">
       abcdefghijklmnopqrstuv
       </a>
 
@@ -1656,16 +1656,16 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|" st_charspan="|2-3|" st_text="|bc|" st_cont="r">
+      <a x="|x1|" st_charspan="|2-3|" st_text="|bc|" st_text_all="|bc|" st_cont="r">
       abc
       </a>
-      <a x="|x1|x2|" st_charspan="|1-4|6-7|" st_text="|defg|ij|" st_cont="lr">
+      <a x="|x1|x2|" st_charspan="|1-4|6-7|" st_text="|defg|ij|" st_text_all="|defg|ij|" st_cont="lr">
       defghij
       </a>
-      <a x="|x2|x3|" st_charspan="|1-4|6-7|" st_text="|klmn|pq|" st_cont="lr">
+      <a x="|x2|x3|" st_charspan="|1-4|6-7|" st_text="|klmn|pq|" st_text_all="|klmn|pq|" st_cont="lr">
       klmnopq
       </a>
-      <a x="|x3|" st_charspan="|1-4|" st_text="|rstu|" st_cont="l">
+      <a x="|x3|" st_charspan="|1-4|" st_text="|rstu|" st_text_all="|rstu|" st_cont="l">
       rstuv
       </a>
 
@@ -1696,24 +1696,24 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|" st_charspan="|2-3|" st_text="|bc|" st_cont="l">
+      <a x="|x1|" st_charspan="|2-3|" st_text="|bc|" st_text_all="|bc|" st_cont="l">
       abc
       </a>
-      <a x="|x1|" st_charspan="|" st_text="|de|" st_cont="lr">
+      <a x="|x1|" st_charspan="|" st_text="|de|" st_text_all="|de|" st_cont="lr">
       de
       </a>
-      <a x="|x1|x2|" st_charspan="|1-2|4-5|" st_text="|fg|ij|" st_cont="lr">
+      <a x="|x1|x2|" st_charspan="|1-2|4-5|" st_text="|fg|ij|" st_text_all="|fg|ij|" st_cont="lr">
       fghij
       </a>
-      <a x="|x2|" st_charspan="|" st_text="|kl|" st_cont="lr">
+      <a x="|x2|" st_charspan="|" st_text="|kl|" st_text_all="|kl|" st_cont="lr">
       kl
       </a>
-      <a x="|x2|x3|" st_charspan="|1-2|4-5|" st_text="|mn|pq|" st_cont="lr">
+      <a x="|x2|x3|" st_charspan="|1-2|4-5|" st_text="|mn|pq|" st_text_all="|mn|pq|" st_cont="lr">
       mnopq
       </a>
-      <a x="|x3|" st_charspan="|" st_text="|rs|" st_cont="lr">
+      <a x="|x3|" st_charspan="|" st_text="|rs|" st_text_all="|rs|" st_cont="lr">
       rs
-      <a x="|x3|" st_charspan="|1-2|" st_text="|tu|" st_cont="l">
+      <a x="|x3|" st_charspan="|1-2|" st_text="|tu|" st_text_all="|tu|" st_cont="l">
       tuv
       </a>
 
@@ -1735,7 +1735,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|x2|x3|" y="y" st_charspan="|2-7|9-14|16-21|" st_text="|bcdefg|ijklmn|pqrstu|" st_cont="">
+      <a x="|x1|x2|x3|" y="y" st_charspan="|2-7|9-14|16-21|" st_text="|bcdefg|ijklmn|pqrstu|" st_text_all="|bcdefg|ijklmn|pqrstu|" st_cont="">
       abcdefghijklmnopqrstuv
       </a>
 
@@ -1763,16 +1763,16 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|" y="y" st_charspan="|2-3|" st_text="|bc|" st_cont="r">
+      <a x="|x1|" y="y" st_charspan="|2-3|" st_text="|bc|" st_text_all="|bc|" st_cont="r">
       abc
       </a>
-      <a x="|x1|x2|" y="y" st_charspan="|1-4|6-7|" st_text="|defg|ij|" st_cont="lr">
+      <a x="|x1|x2|" y="y" st_charspan="|1-4|6-7|" st_text="|defg|ij|" st_text_all="|defg|ij|" st_cont="lr">
       defghij
       </a>
-      <a x="|x2|x3|" y="y" st_charspan="|1-4|6-7|" st_text="|klmn|pq|" st_cont="lr">
+      <a x="|x2|x3|" y="y" st_charspan="|1-4|6-7|" st_text="|klmn|pq|" st_text_all="|klmn|pq|" st_cont="lr">
       klmnopq
       </a>
-      <a x="|x3|" y="y" st_charspan="|1-4|" st_text="|rstu|" st_cont="l">
+      <a x="|x3|" y="y" st_charspan="|1-4|" st_text="|rstu|" st_text_all="|rstu|" st_cont="l">
       rstuv
       </a>
 
@@ -1803,24 +1803,24 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|" y="y" st_charspan="|2-3|" st_text="|bc|" st_cont="r">
+      <a x="|x1|" y="y" st_charspan="|2-3|" st_text="|bc|" st_text_all="|bc|" st_cont="r">
       abc
       </a>
-      <a x="|x1|" y="y" st_charspan="|" st_text="|de|" st_cont="lr">
+      <a x="|x1|" y="y" st_charspan="|" st_text="|de|" st_text_all="|de|" st_cont="lr">
       de
-      <a x="|x1|x2|" y="y" st_charspan="|1-2|4-5|" st_text="|fg|ij|" st_cont="lr">
+      <a x="|x1|x2|" y="y" st_charspan="|1-2|4-5|" st_text="|fg|ij|" st_text_all="|fg|ij|" st_cont="lr">
       fghij
       </a>
-      <a x="|x2|" y="y" st_charspan="|" st_text="|kl|" st_cont="lr">
+      <a x="|x2|" y="y" st_charspan="|" st_text="|kl|" st_text_all="|kl|" st_cont="lr">
       kl
       </a>
-      <a x="|x2|x3|" y="y" st_charspan="|1-2|4-5|" st_text="|mn|pq|" st_cont="lr">
+      <a x="|x2|x3|" y="y" st_charspan="|1-2|4-5|" st_text="|mn|pq|" st_text_all="|mn|pq|" st_cont="lr">
       mnopq
       </a>
-      <a x="|x3|" y="y" st_charspan="|" st_text="|rs|" st_cont="lr">
+      <a x="|x3|" y="y" st_charspan="|" st_text="|rs|" st_text_all="|rs|" st_cont="lr">
       rs
       </a>
-      <a x="|x3|" y="y" st_charspan="|1-2|" st_text="|tu|" st_cont="l">
+      <a x="|x3|" y="y" st_charspan="|1-2|" st_text="|tu|" st_text_all="|tu|" st_cont="l">
       tuv
       </a>
 
@@ -1842,7 +1842,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|x2|x3|" y="y" st_charspan="|2-22|9-14|16-21|" st_text="|bcdefghijklmnopqrstuv|ijklmn|pqrstu|" st_cont="">
+      <a x="|x1|x2|x3|" y="y" st_charspan="|2-22|9-14|16-21|" st_text="|bcdefghijklmnopqrstuv|ijklmn|pqrstu|" st_text_all="|bcdefghijklmnopqrstuv|ijklmn|pqrstu|" st_cont="">
       abcdefghijklmnopqrstuv
       </a>
 
@@ -1864,8 +1864,8 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|x3|" y="y" st_charspan="|2-22|16-21|" st_text="|bcdefghijklmnopqrstuv|pqrstu|" st_cont="">
-      <b x="x2" y="y" st_charspan="|9-14|" st_text="|ijklmn|" st_cont="">
+      <a x="|x1|x3|" y="y" st_charspan="|2-22|16-21|" st_text="|bcdefghijklmnopqrstuv|pqrstu|" st_text_all="|bcdefghijklmnopqrstuv|pqrstu|" st_cont="">
+      <b x="x2" y="y" st_charspan="|9-14|" st_text="|ijklmn|" st_text_all="|ijklmn|" st_cont="">
       abcdefghijklmnopqrstuv
       </b>
       </a>
@@ -1888,9 +1888,9 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="x1" y="y" st_charspan="|2-14|" st_text="|bcdefghijklmn|" st_cont="">
-      <b x="x2" y="y" st_charspan="|9-22|" st_text="|ijklmnopqrstuv|" st_cont="">
-      <c x="x3" y="y" st_charspan="|16-21|" st_text="|pqrstu|" st_cont="">
+      <a x="x1" y="y" st_charspan="|2-14|" st_text="|bcdefghijklmn|" st_text_all="|bcdefghijklmn|" st_cont="">
+      <b x="x2" y="y" st_charspan="|9-22|" st_text="|ijklmnopqrstuv|" st_text_all="|ijklmnopqrstuv|" st_cont="">
+      <c x="x3" y="y" st_charspan="|16-21|" st_text="|pqrstu|" st_text_all="|pqrstu|" st_cont="">
       abcdefghijklmnopqrstuv
       </c>
       </b>
@@ -1911,7 +1911,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x||" z="z" y="||y|" st_charspan="|2-9|4-7|" st_text="|bcdefghi|defg|" st_cont="">
+      <a x="|x||" z="z" y="||y|" st_charspan="|2-9|4-7|" st_text="|bcdefghi|defg|" st_text_all="|bcdefghi|defg|" st_cont="">
       abcdefghij
       </a>
 
@@ -1930,7 +1930,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x||" y="||y|" st_charspan="|2-3|8-9|" st_text="|bc|hi|" st_cont="">
+      <a x="|x||" y="||y|" st_charspan="|2-3|8-9|" st_text="|bc|hi|" st_text_all="|bc|hi|" st_cont="">
       abcdefghij
       </a>
 
@@ -1955,13 +1955,13 @@
     stdout: |
       <a x="x1">
       ab
-      <a x="x2" st_charspan="|2-2|" st_text="|d|" st_cont="r">
+      <a x="x2" st_charspan="|2-2|" st_text="|d|" st_text_all="|d ef g|" st_cont="r">
       cd
       </a>
-      <a x="x2" st_charspan="|" st_text="|ef|" st_cont="lr">
+      <a x="x2" st_charspan="|" st_text="|ef|" st_text_all="||" st_cont="lr">
       ef
       </a>
-      <a x="x2" st_charspan="|1-1|" st_text="|g|" st_cont="l">
+      <a x="x2" st_charspan="|1-1|" st_text="|g|" st_text_all="||" st_cont="l">
       gh
       </a>
       ij
@@ -1983,10 +1983,10 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|1-5|4-5|" st_text="|abcde|de|" st_cont="r">
+      <a st_charspan="|1-5|4-5|" st_text="|abcde|de|" st_text_all="|abcde fghi|de fg|" st_cont="r">
       abcde
       </a>
-      <a st_charspan="|1-4|1-2|" st_text="|fghi|fg|" st_cont="l">
+      <a st_charspan="|1-4|1-2|" st_text="|fghi|fg|" st_text_all="|||" st_cont="l">
       fghij
       </a>
 
@@ -2006,10 +2006,10 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|2-5|4-5|" st_text="|bcde|de|" st_cont="r">
+      <a st_charspan="|2-5|4-5|" st_text="|bcde|de|" st_text_all="|bcde fghij|de fg|" st_cont="r">
       abcde
       </a>
-      <a st_charspan="|1-5|1-2|" st_text="|fghij|fg|" st_cont="l">
+      <a st_charspan="|1-5|1-2|" st_text="|fghij|fg|" st_text_all="|||" st_cont="l">
       fghij
       </a>
 
@@ -2031,10 +2031,10 @@
     stderr: ""
     stdout: |
       <a>
-      <a st_charspan="|4-5|" st_text="|de|" st_cont="r">
+      <a st_charspan="|4-5|" st_text="|de|" st_text_all="|de fg|" st_cont="r">
       abcde
       </a>
-      <a st_charspan="|1-2|" st_text="|fg|" st_cont="l">
+      <a st_charspan="|1-2|" st_text="|fg|" st_text_all="||" st_cont="l">
       fghij
       </a>
       </a>
@@ -2058,13 +2058,13 @@
     stderr: ""
     stdout: |
       <a>
-      <a st_charspan="|4-4|" st_text="|d|" st_cont="r">
+      <a st_charspan="|4-4|" st_text="|d|" st_text_all="|d ef g|" st_cont="r">
       abcd
       </a>
-      <a st_charspan="|" st_text="|ef|" st_cont="lr">
+      <a st_charspan="|" st_text="|ef|" st_text_all="||" st_cont="lr">
       ef
       </a>
-      <a st_charspan="|1-1|" st_text="|g|" st_cont="l">
+      <a st_charspan="|1-1|" st_text="|g|" st_text_all="||" st_cont="l">
       ghij
       </a>
       </a>
@@ -2087,14 +2087,14 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a st_charspan="|" st_text="|abcd ef|" st_cont="r">
-      <a st_charspan="|4-4|" st_text="|d|" st_cont="r">
+      <a st_charspan="|" st_text="|abcd ef|" st_text_all="|abcd ef ghi|" st_cont="r">
+      <a st_charspan="|4-4|" st_text="|d|" st_text_all="|d ef g|" st_cont="r">
       abcd
       </a>
-      <a st_charspan="|" st_text="|ef|" st_cont="lr">
+      <a st_charspan="|" st_text="|ef|" st_text_all="||" st_cont="lr">
       ef
       </a>
       </a>
-      <a st_charspan="|1-3|1-1|" st_text="|ghi|g|" st_cont="l">
+      <a st_charspan="|1-3|1-1|" st_text="|ghi|g|" st_text_all="|||" st_cont="l">
       ghij
       </a>

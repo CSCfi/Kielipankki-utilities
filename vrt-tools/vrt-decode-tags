@@ -84,7 +84,7 @@ class TagDecoder(InputProcessor):
         StructInfo = namedtuple(
             'StructInfo',
             ['tagname', 'attrs', 'tagnums', 'linenums', 'wordform_nums',
-             'char_offsets', 'continues'])
+             'char_offsets', 'continues', 'text_all'])
         structtag_value_re = re.compile(
             br"""\s*
                 (?P<tag> .+ )
@@ -156,7 +156,8 @@ class TagDecoder(InputProcessor):
                                    linenums=[tag_linenum],
                                    wordform_nums=[],
                                    char_offsets=[char_offset],
-                                   continues=''))
+                                   continues='',
+                                   text_all=None))
                 elif is_endtag:
                     struct = None
                     starttag_stack_num = find_starttag_in_stack(tagname)
@@ -193,7 +194,8 @@ class TagDecoder(InputProcessor):
                         linenums=[tag_linenum],
                         wordform_nums=[len(wordforms) - int(char_offset > 0)],
                         char_offsets=[char_offset],
-                        continues='')
+                        continues='',
+                        text_all=None)
                     structs.append(struct)
                     struct_stack.append(struct)
             # Add unclosed start tags
@@ -323,12 +325,14 @@ class TagDecoder(InputProcessor):
                         or struct.linenums[0] == struct.linenums[1] - 1):
                         # Structure covers whole words or an intra-word
                         # structure within a single word
-                        add_output_struct(struct)
+                        add_output_struct(struct._replace(
+                            text_all=make_text_value(struct, wordforms)))
                     else:
                         # Structure spans at least two words
-                        linenums = struct.linenums
-                        wordform_nums = struct.wordform_nums
+                        linenums = struct.linenums.copy()
+                        wordform_nums = struct.wordform_nums.copy()
                         conts = ''
+                        text_all_added = False
                         if struct.char_offsets[0] > 0:
                             # Structure begins mid-word: make the first
                             # (partial) word a separate structure
@@ -337,10 +341,12 @@ class TagDecoder(InputProcessor):
                                           struct.linenums[0] + 1],
                                 char_offsets=[struct.char_offsets[0], 0],
                                 wordform_nums=2 * [struct.wordform_nums[0]],
-                                continues='r'))
+                                continues='r',
+                                text_all=make_text_value(struct, wordforms)))
                             linenums[0] += 1
                             wordform_nums[0] += 1
                             conts = 'l'
+                            text_all_added = True
                         if struct.char_offsets[1] > 0:
                             # Structure ends mid-word: make the last (partial)
                             # word a separate structure
@@ -349,7 +355,8 @@ class TagDecoder(InputProcessor):
                                           struct.linenums[1]],
                                 char_offsets=[0, struct.char_offsets[1]],
                                 wordform_nums=2 * [struct.wordform_nums[1]],
-                                continues='l'))
+                                continues='l',
+                                text_all=''))
                             linenums[1] -= 1
                             wordform_nums[1] -= 1
                             conts += 'r'
@@ -359,7 +366,9 @@ class TagDecoder(InputProcessor):
                                 linenums=linenums,
                                 char_offsets=[0, 0],
                                 wordform_nums=wordform_nums,
-                                continues=conts))
+                                continues=conts,
+                                text_all=(make_text_value(struct, wordforms)
+                                          if not text_all_added else '')))
             output_tags = []
             # print(line_out_tags)
             for (tag, startlinenum, endlinenum), structs in (
@@ -490,12 +499,36 @@ class TagDecoder(InputProcessor):
                 text = '|'.join(
                     wf[struct.char_offsets[0]:(struct.char_offsets[1] or wflen)]
                     for struct in structs)
+            text_all = '|'.join(struct.text_all for struct in structs)
             continues = ''.join(
                 sorted(set(''.join(struct.continues for struct in structs))))
             # print(charspan, text, continues)
-            return (' st_charspan="{}" st_text="|{}|" st_cont="{}"'
+            return ((' st_charspan="{}" st_text="|{}|" st_text_all="|{}|"'
+                     ' st_cont="{}"')
                     .format('|' + charspan + '|' if charspan else '|', text,
-                            continues).encode())
+                            text_all, continues).encode())
+
+        def make_text_value(struct, wordforms):
+            """Make a value with both partial and whole tokens of struct."""
+            wfnums = struct.wordform_nums
+            chofss = struct.char_offsets
+            # print(struct)
+            if chofss[0] == 0 and chofss[1] == 0:
+                # Whole words only
+                return ' '.join(wordforms[wfnums[0]:wfnums[1] + 1])
+            elif wfnums[0] == wfnums[1]:
+                # Single word
+                return wordforms[wfnums[0]][chofss[0]:(chofss[1] or None)]
+            else:
+                # Partial words
+                words = [wordforms[wfnums[0]][chofss[0]:]]
+                if wfnums[1] > wfnums[0] + 1:
+                    words.extend(wordforms[wfnums[0] + 1:wfnums[1]])
+                if chofss[1] > 0:
+                    words.append(wordforms[wfnums[1]][:chofss[1]])
+                else:
+                    words.append(wordforms[wfnums[1]])
+                return ' '.join(words)
 
         def output_lines(lines):
             for line in lines:
