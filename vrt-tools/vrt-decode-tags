@@ -16,24 +16,24 @@ feature-set values and some others not.
 """
 
 # TODO (also see within the code for TODO comments):
-# - If a structure has some intra-word occurrences, add the st_*
+# - If a structure has some intra-word occurrences, add the struct_*
 #   attributes to all its occurrences. Similarly, if the values of
 #   attribute are converted to feature-set values (because of several
 #   occurrences of an attribute in intra-word structures for the same
 #   word), all values of the attribute should be made feature-set
 #   values. In general, those require a second pass over the output of
 #   the first pass.
-# - Add an st_id attribute containing the running id of the structure.
-#   This might be useful in particular when a structure starting or
-#   ending at the middle of a token has been split into several
-#   structures.
-# - Possibly make the value of the st_cont attribute a feature-set
-#   value, so that the values would correspond to those of st_charspan
-#   and st_text. This might be needed with nested same structures,
-#   where one begins at the beginning of a token and the other in the
-#   middle of the same token (or one ends at the end of a token and
-#   the other in the middle of the same token). But would this really
-#   be needed?
+# - Add an struct_id attribute containing the running id of the
+#   structure. This might be useful in particular when a structure
+#   starting or ending at the middle of a token has been split into
+#   several structures.
+# - Possibly make the value of the struct_cont attribute a feature-set
+#   value, so that the values would correspond to those of
+#   struct_charspan and struct_text. This might be needed with nested
+#   same structures, where one begins at the beginning of a token and
+#   the other in the middle of the same token (or one ends at the end
+#   of a token and the other in the middle of the same token). But
+#   would this really be needed?
 
 
 import re
@@ -69,7 +69,7 @@ class TagDecoder(InputProcessor):
          # The default contains a literal "|", so it cannot be specified on the
          # argspec line itself.
          dict(default="word|1")),
-        ('--attribute-name-prefix = prefix "st_" -> attr_prefix',
+        ('--attribute-name-prefix = prefix "struct_" -> attr_prefix',
          'prefix the names of added attributes with prefix'),
     ]
 
