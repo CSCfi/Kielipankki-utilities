@@ -23,10 +23,6 @@ feature-set values and some others not.
 #   word), all values of the attribute should be made feature-set
 #   values. In general, those require a second pass over the output of
 #   the first pass.
-# - Add an struct_id attribute containing the running id of the
-#   structure. This might be useful in particular when a structure
-#   starting or ending at the middle of a token has been split into
-#   several structures.
 # - Possibly make the value of the struct_cont attribute a feature-set
 #   value, so that the values would correspond to those of
 #   struct_charspan and struct_text. This might be needed with nested
@@ -84,7 +80,7 @@ class TagDecoder(InputProcessor):
         StructInfo = namedtuple(
             'StructInfo',
             ['tagname', 'attrs', 'tagnums', 'linenums', 'wordform_nums',
-             'char_offsets', 'partnum', 'continues', 'text_all'])
+             'char_offsets', 'structnum', 'partnum', 'continues', 'text_all'])
         structtag_value_re = re.compile(
             br"""\s*
                 (?P<tag> .+ )
@@ -113,6 +109,8 @@ class TagDecoder(InputProcessor):
         # Structs (StructInfo) left unclosed from previous stretches of
         # structure-tag comments.
         unclosed_structs = []
+        # The number of structures seen this far
+        struct_count = 0
         LESS_THAN = '<'.encode('utf-8')[0]
         SLASH = '/'.encode('utf-8')[0]
         EXCLAM = '!'.encode('utf-8')[0]
@@ -122,7 +120,7 @@ class TagDecoder(InputProcessor):
                     and getbinvrtcomment(line)[0] == b'structure-tag')
 
         def restore_tags(lines, tag_lines):
-            nonlocal struct_stack
+            nonlocal struct_stack, struct_count
             # The number of the line at which the previous tag is added
             linenum = 0
             # Word form offset excluding spaces
@@ -162,6 +160,7 @@ class TagDecoder(InputProcessor):
                                    linenums=[tag_linenum],
                                    wordform_nums=[],
                                    char_offsets=[char_offset],
+                                   structnum=None,
                                    partnum=None,
                                    continues='',
                                    text_all=None))
@@ -194,6 +193,7 @@ class TagDecoder(InputProcessor):
                         struct.char_offsets.append(char_offset)
                     # print(struct_stack, struct)
                 else:
+                    struct_count += 1
                     struct = StructInfo(
                         tagname=tagname,
                         attrs=attrs,
@@ -201,6 +201,7 @@ class TagDecoder(InputProcessor):
                         linenums=[tag_linenum],
                         wordform_nums=[len(wordforms) - int(char_offset > 0)],
                         char_offsets=[char_offset],
+                        structnum=str(struct_count).encode(),
                         partnum='1/1',
                         continues='',
                         text_all=None)
@@ -459,12 +460,16 @@ class TagDecoder(InputProcessor):
 
         def make_attrs(structs):
             attrs = [struct.attrs for struct in structs]
+            structnum_attr = (
+                b' ' + args.attr_prefix.encode() + b'num="|'
+                + b'|'.join(struct.structnum for struct in structs) + b'|"')
             if not any(attr for attr in attrs):
-                return b''
-            if len(attrs) == 1 and attrs[0]:
-                return b' ' + attrs[0]
+                attr_str = b''
+            elif len(attrs) == 1 and attrs[0]:
+                attr_str = b' ' + attrs[0]
             elif len(attrs) > 1:
-                return b' ' + combine_attrs(attrs)
+                attr_str = b' ' + combine_attrs(attrs)
+            return attr_str + structnum_attr
 
         def combine_attrs(attrslist):
             # print(attrslist)
