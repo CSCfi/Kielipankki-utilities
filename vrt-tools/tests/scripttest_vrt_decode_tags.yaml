@@ -1934,6 +1934,85 @@
       abcdefghij
       </a>
 
+- name: 'vrt-decode-tags: Same structures with same or different values for attributes:
+    <a x="x1" y="y" z="z1">ab</a>cd<a x="x2" y="y" z="z2">ef</a> <a x="x3" y="y" z="z3">gh</a>'
+  # hrt-encode-tags input: <a x="x1" y="y" z="z1">ab</a>cd<a x="x2" y="y" z="z2">ef</a> <a x="x3" y="y" z="z3">gh</a>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x1" y="y" z="z1"|0  abcdefgh -->
+      <!-- #vrt structure-tag: /a|2 ab cdefgh -->
+      <!-- #vrt structure-tag: a x="x2" y="y" z="z2"|4 abcd efgh -->
+      <!-- #vrt structure-tag: /a|6 abcdef gh -->
+      <!-- #vrt structure-tag: a x="x3" y="y" z="z3"|6 abcdef gh -->
+      <!-- #vrt structure-tag: /a|8 abcdefgh  -->
+      abcdef
+      ghijkl
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x1|x2|" y="y" z="|z1|z2|" st_charspan="|1-2|5-6|" st_text="|ab|ef|" st_cont="">
+      abcdef
+      </a>
+      <a x="|x3|" y="y" z="|z3|" st_charspan="|1-2|" st_text="|gh|" st_cont="">
+      gh
+      </a>
+
+- name: 'vrt-decode-tags: Same structures with same or different values for attributes, two same values within one token:
+    <a x="x1" y="y" z="z1">ab</a>cd<a x="x2" y="y" z="z2">ef</a> <a x="x3" y="y" z="z3">gh</a>ij<a
+    x="x3" y="y" z="z4">kl</a>'
+  # hrt-encode-tags input: <a x="x1" y="y" z="z1">ab</a>cd<a x="x2" y="y" z="z2">ef</a> <a x="x3" y="y" z="z3">gh</a>ij<a x="x3" y="y" z="z4">kl</a>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x1" y="y" z="z1"|0  abcdefghij -->
+      <!-- #vrt structure-tag: /a|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: a x="x2" y="y" z="z2"|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: /a|6 abcdef ghijkl -->
+      <!-- #vrt structure-tag: a x="x3" y="y" z="z3"|6 abcdef ghijkl -->
+      <!-- #vrt structure-tag: /a|8 abcdefgh ijkl -->
+      <!-- #vrt structure-tag: a x="x3" y="y" z="z4"|10 abcdefghij kl -->
+      <!-- #vrt structure-tag: /a|12 cdefghijkl  -->
+      abcdef
+      ghijkl
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x1|x2|" y="y" z="|z1|z2|" st_charspan="|1-2|5-6|" st_text="|ab|ef|" st_cont="">
+      abcdef
+      </a>
+      <a x="|x3|" y="y" z="|z3|z4|" st_charspan="|1-2|5-6|" st_text="|gh|kl|" st_cont="">
+      ghijkl
+      </a>
+
+- name: 'vrt-decode-tags: Same and different structures with same or different values for attributes:
+    <a x="x1" y="y" z="z1">ab</a>cd<a x="x2" y="y" z="z2">ef</a> <a x="x3" y="y" z="z3">gh</a>ij<a
+    x="x3" y="y" z="z4">kl</a>'
+  # hrt-encode-tags input: <a x="x1" y="y" z="z1">ab</a>cd<a x="x2" y="y" z="z2">ef</a> <a x="x3" y="y" z="z3">gh</a>ij<a x="x3" y="y" z="z4">kl</a>
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a x="x1" y="y" z="z1"|0  abcdefghij -->
+      <!-- #vrt structure-tag: /a|2 ab cdefghijkl -->
+      <!-- #vrt structure-tag: a x="x2" y="y" z="z2"|4 abcd efghijkl -->
+      <!-- #vrt structure-tag: /a|6 abcdef ghijkl -->
+      <!-- #vrt structure-tag: a x="x3" y="y" z="z3"|6 abcdef ghijkl -->
+      <!-- #vrt structure-tag: /a|8 abcdefgh ijkl -->
+      <!-- #vrt structure-tag: b x="x3" y="y" z="z4"|10 abcdefghij kl -->
+      <!-- #vrt structure-tag: /b|12 cdefghijkl  -->
+      abcdef
+      ghijkl
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a x="|x1|x2|" y="y" z="|z1|z2|" st_charspan="|1-2|5-6|" st_text="|ab|ef|" st_cont="">
+      abcdef
+      </a>
+      <a x="|x3|" y="y" z="|z3|" st_charspan="|1-2|" st_text="|gh|" st_cont="">
+      <b x="x3" y="y" z="z4" st_charspan="|5-6|" st_text="|kl|" st_cont="">
+      ghijkl
+      </a>
+
 - name: 'vrt-decode-tags: Nested same whole-token and intra-token structures: <a x="x1">ab
     c<a x="x2">d ef g</a>h ij</a>'
   # hrt-encode-tags input: <a x="x1">ab c<a x="x2">d ef g</a>h ij</a>

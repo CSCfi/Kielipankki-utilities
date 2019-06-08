@@ -17,18 +17,16 @@ feature-set values and some others not.
 
 # TODO (also see within the code for TODO comments):
 # - If a structure has some intra-word occurrences, add the struct_*
-#   attributes to all its occurrences. Similarly, if the values of
-#   attribute are converted to feature-set values (because of several
-#   occurrences of an attribute in intra-word structures for the same
-#   word), all values of the attribute should be made feature-set
-#   values. In general, those require a second pass over the output of
-#   the first pass.
+#   attributes to all its occurrences. In general, that requires a
+#   second pass over the output of the first pass.
 
 
+import os
 import re
 
 from collections import namedtuple, defaultdict, OrderedDict
 from itertools import accumulate, groupby
+from tempfile import NamedTemporaryFile
 
 import vrtdatalib
 import vrtnamelib
@@ -104,9 +102,14 @@ class TagDecoder(InputProcessor):
         unclosed_structs = []
         # The number of structures seen this far
         struct_count = 0
+        # structname -> set(attrname): attribute attrname of structure
+        # structname was made a feature set value because of two
+        # different values covering the same token span
+        struct_attrs_featset = defaultdict(set)
         LESS_THAN = '<'.encode('utf-8')[0]
         SLASH = '/'.encode('utf-8')[0]
         EXCLAM = '!'.encode('utf-8')[0]
+        VBAR = '|'.encode('utf-8')[0]
 
         def is_structtag_comment(line):
             return (line[0] == LESS_THAN and isbinvrtcomment(line)
@@ -452,6 +455,7 @@ class TagDecoder(InputProcessor):
                 tag_text=tag_text + b'>\n')
 
         def make_attrs(structs):
+            nonlocal struct_attrs_featset
             attrs = [struct.attrs for struct in structs]
             structnum_attr = (
                 b' ' + args.attr_prefix.encode() + b'num="|'
@@ -461,18 +465,20 @@ class TagDecoder(InputProcessor):
             elif len(attrs) == 1 and attrs[0]:
                 attr_str = b' ' + attrs[0]
             elif len(attrs) > 1:
-                attr_str = b' ' + combine_attrs(attrs)
+                attr_str, set_attrs = combine_attrs(attrs)
+                attr_str = b' ' + attr_str
+                struct_attrs_featset[structs[0].tagname.encode()] |= set_attrs
             return attr_str + structnum_attr
 
         def combine_attrs(attrslist):
             # print(attrslist)
             attrdict = OrderedDict()
             for structnum, attrs in enumerate(attrslist):
-                attrlist = re.findall(br'''(\w+)=(["'])(.*?)\2''', attrs)
+                attrlist = extract_attrs(attrs)
                 # If an occurrence of the structure contains an attribute and
                 # another does not, treat the missing attribute as an empty
                 # value, producing a feature-set value.
-                for attrname, _, attrval in attrlist:
+                for attrname, attrval in attrlist:
                     if not attrname in attrdict:
                         # This is the first structure with the attribute, so
                         # add empty values to all preceding structures.
@@ -482,7 +488,7 @@ class TagDecoder(InputProcessor):
                 # structure but missing from this one.
                 for attrname in (
                         set(attrdict.keys())
-                        - set(attrname for attrname, _, _ in attrlist)):
+                        - set(attrname for attrname, _ in attrlist)):
                     attrdict[attrname].append(b'')
             # print(attrdict)
             for attrname, attrvals in attrdict.items():
@@ -492,12 +498,21 @@ class TagDecoder(InputProcessor):
                             for i in range(1, len(attrvals)))):
                     attrdict[attrname] = [attrvals[0]]
             # print(attrdict)
-            return b' '.join(
-                (attrname + b'="'
-                 + (b'|' + b'|'.join(attrvals) + b'|' if len(attrvals) > 1
-                    else attrvals[0])
-                 + b'"')
-                for attrname, attrvals in attrdict.items())
+            attrinfo = [
+                (attrname,
+                 (b'|' + b'|'.join(attrvals) + b'|' if len(attrvals) > 1
+                  else attrvals[0]),
+                 len(attrvals) > 1)
+                for attrname, attrvals in attrdict.items()]
+            attrstr = b' '.join(attrname + b'="' + attrval + b'"'
+                                for attrname, attrval, _ in attrinfo)
+            set_attrs = set(attrname for attrname, _, is_set in attrinfo
+                            if is_set)
+            return attrstr, set_attrs
+
+        def extract_attrs(attrstr):
+            return [(name, value) for name, _, value
+                    in re.findall(br'''(\w+)=(["'])(.*?)\2''', attrstr)]
 
         def make_subword_attrs(structs, wordforms):
             # print('make_subword_attrs', structs, wordforms)
@@ -581,7 +596,55 @@ class TagDecoder(InputProcessor):
                     struct.tagname,
                     (' ' + struct.attrs.decode() if struct.attrs else '')))
 
-        process_input(inf, ouf)
+        def fix_output(inf, ouf):
+            starttag_re = re.compile(
+                rb'< (?P<name> (?:'
+                + b'|'.join(set(struct_attrs_featset))
+                + rb') ) (?: \s+ (?P<attrs> .*) )? >',
+                re.VERBOSE)
+            for line in inf:
+                if line[0] == LESS_THAN:
+                    if line[1] == SLASH:
+                        pass
+                    else:
+                        mo = starttag_re.match(line)
+                        if mo:
+                            struct_name = mo.group('name')
+                            line = fix_featset_attrs(
+                                line, struct_name, mo.group('attrs'))
+                output_lines([line], ouf)
+
+        def fix_featset_attrs(line, struct_name, attrstr):
+            attrs = OrderedDict(extract_attrs(attrstr))
+            modified = False
+            for attrname in struct_attrs_featset[struct_name]:
+                if not (attrs[attrname] and attrs[attrname][0] == VBAR):
+                    attrs[attrname] = b'|' + attrs[attrname] + b'|'
+                    modified = True
+            if modified:
+                line = (b'<' + struct_name + b' '
+                        + b' '.join(attrname + b'="' + attrval + b'"'
+                                    for attrname, attrval in attrs.items())
+                        + b'>\n')
+            return line
+
+        def copy_output(inf, ouf):
+            BLOCK_SIZE = 2 ** 16
+            content_len = -1
+            while content_len != 0:
+                content = inf.read(BLOCK_SIZE)
+                ouf.write(content)
+                content_len = len(content)
+
+        with NamedTemporaryFile(delete=False) as tempf:
+            tempfname = tempf.name
+            process_input(inf, tempf)
+        with open(tempfname, 'rb') as tempf:
+            if struct_attrs_featset:
+                fix_output(tempf, ouf)
+            else:
+                copy_output(tempf, ouf)
+        os.remove(tempfname)
 
 
 if __name__ == '__main__':
