@@ -559,32 +559,37 @@ class TagDecoder(InputProcessor):
                     words.append(wordforms[wfnums[1]])
                 return ' '.join(words)
 
-        def output_lines(lines):
+        def output_lines(lines, ouf):
             for line in lines:
                 ouf.write(line)
 
-        before_first_comments = True
-        tag_lines = []
-        for is_comment_group, group in groupby(inf, is_structtag_comment):
-            lines = list(group)
-            # print(is_comment_group, lines)
-            if is_comment_group:
-                tag_lines = lines
-            else:
-                if before_first_comments:
-                    # Find out which positional attribute is the word form,
-                    # based on args.word_attr and the possible
-                    # positional-attributes comment before the first comments
-                    word_attrnum = vrtnamelib.extract_numnameindex(
-                        lines, args.word_attr)
-                    before_first_comments = False
-                if tag_lines:
-                    lines = restore_tags(lines, tag_lines)
-                output_lines(lines)
-        for struct in unclosed_structs:
-            self.warn('Spurious start tag: <{}{}>'.format(
-                struct.tagname,
-                (' ' + struct.attrs.decode() if struct.attrs else '')))
+        def process_input(inf, ouf):
+            nonlocal word_attrnum
+            before_first_comments = True
+            tag_lines = []
+            for is_comment_group, group in groupby(inf, is_structtag_comment):
+                lines = list(group)
+                # print(is_comment_group, lines)
+                if is_comment_group:
+                    tag_lines = lines
+                else:
+                    if before_first_comments:
+                        # Find out which positional attribute is the
+                        # word form, based on args.word_attr and the
+                        # possible positional-attributes comment
+                        # before the first comments
+                        word_attrnum = vrtnamelib.extract_numnameindex(
+                            lines, args.word_attr)
+                        before_first_comments = False
+                    if tag_lines:
+                        lines = restore_tags(lines, tag_lines)
+                    output_lines(lines, ouf)
+            for struct in unclosed_structs:
+                self.warn('Spurious start tag: <{}{}>'.format(
+                    struct.tagname,
+                    (' ' + struct.attrs.decode() if struct.attrs else '')))
+
+        process_input(inf, ouf)
 
 
 if __name__ == '__main__':
