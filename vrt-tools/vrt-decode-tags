@@ -23,13 +23,6 @@ feature-set values and some others not.
 #   word), all values of the attribute should be made feature-set
 #   values. In general, those require a second pass over the output of
 #   the first pass.
-# - Possibly make the value of the struct_cont attribute a feature-set
-#   value, so that the values would correspond to those of
-#   struct_charspan and struct_text. This might be needed with nested
-#   same structures, where one begins at the beginning of a token and
-#   the other in the middle of the same token (or one ends at the end
-#   of a token and the other in the middle of the same token). But
-#   would this really be needed?
 
 
 import re
@@ -527,15 +520,14 @@ class TagDecoder(InputProcessor):
                     for struct in structs)
             text_all = '|'.join(struct.text_all for struct in structs)
             partnum = '|'.join(struct.partnum for struct in structs)
-            continues = ''.join(
-                sorted(set(''.join(struct.continues for struct in structs))))
+            continues = '|'.join(struct.continues for struct in structs)
             # print(charspan, text, continues)
             return subword_attrs_format.format(
                 charspan=('|' + charspan + '|' if charspan else '|'),
                 text='|' + text + '|',
                 text_all='|' + text_all + '|',
                 partnum='|' + partnum + '|',
-                cont=continues).encode()
+                cont='|' + continues + '|').encode()
 
         def make_text_value(struct, wordforms):
             """Make a value with both partial and whole tokens of struct."""
