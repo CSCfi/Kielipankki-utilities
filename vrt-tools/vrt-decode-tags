@@ -520,29 +520,42 @@ class TagDecoder(InputProcessor):
             if all(char_offset == 0 for struct in structs
                    for char_offset in struct.char_offsets):
                 # Whole words only
-                charspan = ''
-                text = ' '.join(wordforms[struct0.wordform_nums[0]
-                                          :struct0.wordform_nums[1] + 1])
+                charspan = []
+                text = [' '.join(wordforms[struct0.wordform_nums[0]
+                                           :struct0.wordform_nums[1] + 1])]
             else:
                 # Partial word only
                 wf = wordforms[struct0.wordform_nums[0]]
                 wflen = len(wf)
-                charspan = '|'.join('{:d}-{:d}'.format(
-                    struct.char_offsets[0] + 1, struct.char_offsets[1] or wflen)
-                                    for struct in structs)
-                text = '|'.join(
-                    wf[struct.char_offsets[0]:(struct.char_offsets[1] or wflen)]
-                    for struct in structs)
-            text_all = '|'.join(struct.text_all for struct in structs)
-            partnum = '|'.join(struct.partnum for struct in structs)
-            continues = '|'.join(struct.continues for struct in structs)
+                charspan = ['{:d}-{:d}'.format(struct.char_offsets[0] + 1,
+                                               struct.char_offsets[1] or wflen)
+                            for struct in structs]
+                text = [wf[struct.char_offsets[0]
+                           :(struct.char_offsets[1] or wflen)]
+                        for struct in structs]
+            text_all = [struct.text_all for struct in structs]
+            partnum = [struct.partnum for struct in structs]
+            continues = [struct.continues for struct in structs]
             # print(charspan, text, continues)
             return subword_attrs_format.format(
-                charspan=('|' + charspan + '|' if charspan else '|'),
-                tokens='|' + text + '|',
-                tokens_all='|' + text_all + '|',
-                partnum='|' + partnum + '|',
-                continues='|' + continues + '|').encode()
+                charspan=make_featset_value(charspan),
+                tokens=make_featset_value(text),
+                tokens_all=make_featset_value(text_all),
+                partnum=make_featset_value(partnum),
+                continues=make_featset_value(continues)).encode()
+
+        def make_featset_value(values, combine_equal=True):
+            if not values:
+                return '|'
+            # If all the values of a feature-set attribute are the
+            # same, collapse them to a singleton set (|r|r| -> |r|).
+            # If any value is different from the others, keep all
+            # values, so that the position of the value can be used to
+            # determine what values belong together across attributes.
+            if (combine_equal and len(values) > 1
+                    and all(val == values[0] for val in values[1:])):
+                values = [values[0]]
+            return '|' + '|'.join(values) + '|'
 
         def make_text_value(struct, wordforms):
             """Make a value with both partial and whole tokens of struct."""
