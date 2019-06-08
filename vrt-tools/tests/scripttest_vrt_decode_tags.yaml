@@ -317,10 +317,10 @@
       <text id="0">
       <paragraph id="1">
       Some
-      <i struct_num="|1|" struct_charspan="|1-5|" struct_text="|intra|" struct_text_all="|intra|" struct_partnum="|1/1|" struct_cont="||">
+      <i struct_num="|1|" struct_charspan="|1-5|" struct_tokens="|intra|" struct_tokens_all="|intra|" struct_partnum="|1/1|" struct_continues="||">
       intraword
       </i>
-      <a href="http://www.example.com" struct_num="|2|" struct_charspan="|4-5|" struct_text="|ku|" struct_text_all="|ku|" struct_partnum="|1/1|" struct_cont="||">
+      <a href="http://www.example.com" struct_num="|2|" struct_charspan="|4-5|" struct_tokens="|ku|" struct_tokens_all="|ku|" struct_partnum="|1/1|" struct_continues="||">
       markup
       </a>
       .
@@ -360,7 +360,7 @@
       occurrences
       of
       an
-      <i struct_num="|1|2|" struct_charspan="|2-4|8-9|" struct_text="|ntr|or|" struct_text_all="|ntr|or|" struct_partnum="|1/1|1/1|" struct_cont="|||">
+      <i struct_num="|1|2|" struct_charspan="|2-4|8-9|" struct_tokens="|ntr|or|" struct_tokens_all="|ntr|or|" struct_partnum="|1/1|1/1|" struct_continues="|||">
       intra-word
       </i>
       structure
@@ -402,8 +402,8 @@
       Occurrences
       of
       different
-      <i struct_num="|1|" struct_charspan="|2-9|" struct_text="|ntra-wor|" struct_text_all="|ntra-wor|" struct_partnum="|1/1|" struct_cont="||">
-      <b struct_num="|2|" struct_charspan="|5-7|" struct_text="|a-w|" struct_text_all="|a-w|" struct_partnum="|1/1|" struct_cont="||">
+      <i struct_num="|1|" struct_charspan="|2-9|" struct_tokens="|ntra-wor|" struct_tokens_all="|ntra-wor|" struct_partnum="|1/1|" struct_continues="||">
+      <b struct_num="|2|" struct_charspan="|5-7|" struct_tokens="|a-w|" struct_tokens_all="|a-w|" struct_partnum="|1/1|" struct_continues="||">
       intra-word
       </b>
       </i>
@@ -447,16 +447,16 @@
       structure
       beginning
       within
-      <i struct_num="|1|" struct_charspan="|2-3|" struct_text="|ne|" struct_text_all="|ne word and ending within anot|" struct_partnum="|1/3|" struct_cont="|r|">
+      <i struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|ne|" struct_tokens_all="|ne word and ending within anot|" struct_partnum="|1/3|" struct_continues="|r|">
       one
       </i>
-      <i struct_num="|1|" struct_charspan="|" struct_text="|word and ending within|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <i struct_num="|1|" struct_charspan="|" struct_tokens="|word and ending within|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       word
       and
       ending
       within
       </i>
-      <i struct_num="|1|" struct_charspan="|1-4|" struct_text="|anot|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
+      <i struct_num="|1|" struct_charspan="|1-4|" struct_tokens="|anot|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       another
       </i>
       .
@@ -493,12 +493,12 @@
       <paragraph id="1">
       Structure
       covering
-      <i struct_num="|1|" struct_charspan="|" struct_text="|whole words|" struct_text_all="|whole words|" struct_partnum="|1/1|" struct_cont="||">
+      <i struct_num="|1|" struct_charspan="|" struct_tokens="|whole words|" struct_tokens_all="|whole words|" struct_partnum="|1/1|" struct_continues="||">
       whole
       words
       </i>
       and
-      <i struct_num="|2|" struct_charspan="|7-10|" struct_text="|word|" struct_text_all="|word|" struct_partnum="|1/1|" struct_cont="||">
+      <i struct_num="|2|" struct_charspan="|7-10|" struct_tokens="|word|" struct_tokens_all="|word|" struct_partnum="|1/1|" struct_continues="||">
       intra-word
       </i>
       .
@@ -701,7 +701,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <i struct_num="|1|" struct_charspan="|1-6|" struct_text="|abcdef|" struct_text_all="|abcdef|" struct_partnum="|1/1|" struct_cont="||">
+      <i struct_num="|1|" struct_charspan="|1-6|" struct_tokens="|abcdef|" struct_tokens_all="|abcdef|" struct_partnum="|1/1|" struct_continues="||">
       abcdefghi
       </i>
 
@@ -717,7 +717,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <i struct_num="|1|" struct_charspan="|4-9|" struct_text="|defghi|" struct_text_all="|defghi|" struct_partnum="|1/1|" struct_cont="||">
+      <i struct_num="|1|" struct_charspan="|4-9|" struct_tokens="|defghi|" struct_tokens_all="|defghi|" struct_partnum="|1/1|" struct_continues="||">
       abcdefghi
       </i>
 
@@ -733,7 +733,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <i struct_num="|1|" struct_charspan="|4-6|" struct_text="|def|" struct_text_all="|def|" struct_partnum="|1/1|" struct_cont="||">
+      <i struct_num="|1|" struct_charspan="|4-6|" struct_tokens="|def|" struct_tokens_all="|def|" struct_partnum="|1/1|" struct_continues="||">
       abcdefjkl
       </i>
 
@@ -753,7 +753,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|2|3|" struct_charspan="|2-2|6-9|10-12|" struct_text="|b|fghi|jkl|" struct_text_all="|b|fghi|jkl|" struct_partnum="|1/1|1/1|1/1|" struct_cont="||||">
+      <a struct_num="|1|2|3|" struct_charspan="|2-2|6-9|10-12|" struct_tokens="|b|fghi|jkl|" struct_tokens_all="|b|fghi|jkl|" struct_partnum="|1/1|1/1|1/1|" struct_continues="||||">
       abcdefghijklmn
       </a>
 
@@ -775,10 +775,10 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|2|" struct_charspan="|2-2|6-7|" struct_text="|b|fg|" struct_text_all="|b|fg hi|" struct_partnum="|1/1|1/2|" struct_cont="||r|">
+      <a struct_num="|1|2|" struct_charspan="|2-2|6-7|" struct_tokens="|b|fg|" struct_tokens_all="|b|fg hi|" struct_partnum="|1/1|1/2|" struct_continues="||r|">
       abcdefg
       </a>
-      <a struct_num="|2|3|" struct_charspan="|1-2|3-5|" struct_text="|hi|jkl|" struct_text_all="||jkl|" struct_partnum="|2/2|1/1|" struct_cont="|l||">
+      <a struct_num="|2|3|" struct_charspan="|1-2|3-5|" struct_tokens="|hi|jkl|" struct_tokens_all="||jkl|" struct_partnum="|2/2|1/1|" struct_continues="|l||">
       hijklmn
       </a>
 
@@ -802,13 +802,13 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|2|" struct_charspan="|2-2|6-7|" struct_text="|b|fg|" struct_text_all="|b|fg h i|" struct_partnum="|1/1|1/3|" struct_cont="||r|">
+      <a struct_num="|1|2|" struct_charspan="|2-2|6-7|" struct_tokens="|b|fg|" struct_tokens_all="|b|fg h i|" struct_partnum="|1/1|1/3|" struct_continues="||r|">
       abcdefg
       </a>
-      <a struct_num="|2|" struct_charspan="|" struct_text="|h|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a struct_num="|2|" struct_charspan="|" struct_tokens="|h|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       h
       </a>
-      <a struct_num="|2|3|" struct_charspan="|1-1|2-4|" struct_text="|i|jkl|" struct_text_all="||jkl|" struct_partnum="|3/3|1/1|" struct_cont="|l||">
+      <a struct_num="|2|3|" struct_charspan="|1-1|2-4|" struct_tokens="|i|jkl|" struct_tokens_all="||jkl|" struct_partnum="|3/3|1/1|" struct_continues="|l||">
       ijklmn
       </a>
 
@@ -827,10 +827,10 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-2|" struct_text="|b|" struct_text_all="|b|" struct_partnum="|1/1|" struct_cont="||">
+      <a struct_num="|1|" struct_charspan="|2-2|" struct_tokens="|b|" struct_tokens_all="|b|" struct_partnum="|1/1|" struct_continues="||">
       abcde
       </a>
-      <a struct_num="|2|" struct_charspan="|1-6|" struct_text="|fghjkl|" struct_text_all="|fghjkl|" struct_partnum="|1/1|" struct_cont="||">
+      <a struct_num="|2|" struct_charspan="|1-6|" struct_tokens="|fghjkl|" struct_tokens_all="|fghjkl|" struct_partnum="|1/1|" struct_continues="||">
       fghjklmn
       </a>
 
@@ -848,8 +848,8 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-3|" struct_text="|bc|" struct_text_all="|bc|" struct_partnum="|1/1|" struct_cont="||">
-      <b struct_num="|2|" struct_charspan="|8-12|" struct_text="|hijkl|" struct_text_all="|hijkl|" struct_partnum="|1/1|" struct_cont="||">
+      <a struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc|" struct_partnum="|1/1|" struct_continues="||">
+      <b struct_num="|2|" struct_charspan="|8-12|" struct_tokens="|hijkl|" struct_tokens_all="|hijkl|" struct_partnum="|1/1|" struct_continues="||">
       abcdefghijklmn
       </b>
       </a>
@@ -870,12 +870,12 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-3|" struct_text="|bc|" struct_text_all="|bc|" struct_partnum="|1/1|" struct_cont="||">
-      <b struct_num="|2|" struct_charspan="|8-10|" struct_text="|hij|" struct_text_all="|hij kl|" struct_partnum="|1/2|" struct_cont="|r|">
+      <a struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc|" struct_partnum="|1/1|" struct_continues="||">
+      <b struct_num="|2|" struct_charspan="|8-10|" struct_tokens="|hij|" struct_tokens_all="|hij kl|" struct_partnum="|1/2|" struct_continues="|r|">
       abcdefghij
       </b>
       </a>
-      <b struct_num="|2|" struct_charspan="|1-2|" struct_text="|kl|" struct_text_all="||" struct_partnum="|2/2|" struct_cont="|l|">
+      <b struct_num="|2|" struct_charspan="|1-2|" struct_tokens="|kl|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
       klmn
       </b>
 
@@ -895,8 +895,8 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-3|" struct_text="|bc|" struct_text_all="|bc|" struct_partnum="|1/1|" struct_cont="||">
-      <b struct_num="|2|" struct_charspan="|8-10|" struct_text="|hij|" struct_text_all="|hij|" struct_partnum="|1/1|" struct_cont="||">
+      <a struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc|" struct_partnum="|1/1|" struct_continues="||">
+      <b struct_num="|2|" struct_charspan="|8-10|" struct_tokens="|hij|" struct_tokens_all="|hij|" struct_partnum="|1/1|" struct_continues="||">
       abcdefghij
       </b>
       </a>
@@ -1021,12 +1021,12 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-10|" struct_text="|bcdefghij|" struct_text_all="|bcdefghij klm|" struct_partnum="|1/2|" struct_cont="|r|">
-      <b struct_num="|2|" struct_charspan="|4-10|" struct_text="|defghij|" struct_text_all="|defghij|" struct_partnum="|1/1|" struct_cont="||">
+      <a struct_num="|1|" struct_charspan="|2-10|" struct_tokens="|bcdefghij|" struct_tokens_all="|bcdefghij klm|" struct_partnum="|1/2|" struct_continues="|r|">
+      <b struct_num="|2|" struct_charspan="|4-10|" struct_tokens="|defghij|" struct_tokens_all="|defghij|" struct_partnum="|1/1|" struct_continues="||">
       abcdefghij
       </b>
       </a>
-      <a struct_num="|1|" struct_charspan="|1-3|" struct_text="|klm|" struct_text_all="||" struct_partnum="|2/2|" struct_cont="|l|">
+      <a struct_num="|1|" struct_charspan="|1-3|" struct_tokens="|klm|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
       klmn
       </a>
 
@@ -1046,12 +1046,12 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-10|" struct_text="|bcdefghij|" struct_text_all="|bcdefghij|" struct_partnum="|1/1|" struct_cont="||">
-      <b struct_num="|2|" struct_charspan="|4-10|" struct_text="|defghij|" struct_text_all="|defghij klm|" struct_partnum="|1/2|" struct_cont="|r|">
+      <a struct_num="|1|" struct_charspan="|2-10|" struct_tokens="|bcdefghij|" struct_tokens_all="|bcdefghij|" struct_partnum="|1/1|" struct_continues="||">
+      <b struct_num="|2|" struct_charspan="|4-10|" struct_tokens="|defghij|" struct_tokens_all="|defghij klm|" struct_partnum="|1/2|" struct_continues="|r|">
       abcdefghij
       </b>
       </a>
-      <b struct_num="|2|" struct_charspan="|1-3|" struct_text="|klm|" struct_text_all="||" struct_partnum="|2/2|" struct_cont="|l|">
+      <b struct_num="|2|" struct_charspan="|1-3|" struct_tokens="|klm|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
       klmn
       </b>
 
@@ -1069,14 +1069,14 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|2|" struct_charspan="|2-13|4-10|" struct_text="|bcdefghijklm|defghij|" struct_text_all="|bcdefghijklm|defghij|" struct_partnum="|1/1|1/1|" struct_cont="|||">
+      <a struct_num="|1|2|" struct_charspan="|2-13|4-10|" struct_tokens="|bcdefghijklm|defghij|" struct_tokens_all="|bcdefghijklm|defghij|" struct_partnum="|1/1|1/1|" struct_continues="|||">
       abcdefghijklmn
       </a>
 
 - name: 'vrt-decode-tags: Nested same intra-token structures, with a token break:
     a<a>bc<a>de fghij</a>klm</a>n'
   # hrt-encode-tags input: a<a>bc<a>de fghij</a>klm</a>n
-  status: 'xfail:Not implemented yet: struct_cont with feature-set values'
+  status: 'xfail:Not implemented yet: struct_continues with feature-set values'
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -1090,17 +1090,17 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|0|" struct_charspan="|2-5|4-5|" struct_text="|bcde|de|" struct_text_all="|bcde|de|" struct_cont="||r|r||">
+      <a struct_num="|0|" struct_charspan="|2-5|4-5|" struct_tokens="|bcde|de|" struct_tokens_all="|bcde|de|" struct_continues="||r|r||">
       abcde
       </a>
-      <a struct_num="|0|" struct_charspan="|1-5|1-8|" struct_text="|fghij|fhgijklm|" struct_text_all="|fghij|fhgijklm|" struct_cont="||l|l||">
+      <a struct_num="|0|" struct_charspan="|1-5|1-8|" struct_tokens="|fghij|fhgijklm|" struct_tokens_all="|fghij|fhgijklm|" struct_continues="||l|l||">
       fghijklmn
       </a>
 
 - name: 'vrt-decode-tags: Nested same intra-token structures, with two token breaks:
     a<a>bc<a>de fgh ij</a>klm</a>n'
   # hrt-encode-tags input: a<a>bc<a>de fgh ij</a>klm</a>n
-  status: 'xfail:Not implemented yet: struct_cont with feature-set values'
+  status: 'xfail:Not implemented yet: struct_continues with feature-set values'
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -1115,13 +1115,13 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|0|" struct_charspan="|2-5|4-5|" struct_text="|bcde|de|" struct_text_all="|bcde|de|" struct_cont="||r|r||">
+      <a struct_num="|0|" struct_charspan="|2-5|4-5|" struct_tokens="|bcde|de|" struct_tokens_all="|bcde|de|" struct_continues="||r|r||">
       abcde
       </a>
-      <a struct_num="|0|" struct_charspan="|" struct_text="|fgh|" struct_text_all="|fgh|" struct_cont="||lr||">
+      <a struct_num="|0|" struct_charspan="|" struct_tokens="|fgh|" struct_tokens_all="|fgh|" struct_continues="||lr||">
       fgh
       </a>
-      <a struct_num="|0|" struct_charspan="|1-2|1-5|" struct_text="|ij|ijklm|" struct_text_all="|ij|ijklm|" struct_cont="||l|l||">
+      <a struct_num="|0|" struct_charspan="|1-2|1-5|" struct_tokens="|ij|ijklm|" struct_tokens_all="|ij|ijklm|" struct_continues="||l|l||">
       ijklmn
       </a>
 
@@ -1139,8 +1139,8 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-13|" struct_text="|bcdefghijklm|" struct_text_all="|bcdefghijklm|" struct_partnum="|1/1|" struct_cont="||">
-      <b struct_num="|2|" struct_charspan="|4-10|" struct_text="|defghij|" struct_text_all="|defghij|" struct_partnum="|1/1|" struct_cont="||">
+      <a struct_num="|1|" struct_charspan="|2-13|" struct_tokens="|bcdefghijklm|" struct_tokens_all="|bcdefghijklm|" struct_partnum="|1/1|" struct_continues="||">
+      <b struct_num="|2|" struct_charspan="|4-10|" struct_tokens="|defghij|" struct_tokens_all="|defghij|" struct_partnum="|1/1|" struct_continues="||">
       abcdefghijklmn
       </b>
       </a>
@@ -1161,13 +1161,13 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-5|" struct_text="|bcde|" struct_text_all="|bcde fghijklm|" struct_partnum="|1/2|" struct_cont="|r|">
-      <b struct_num="|2|" struct_charspan="|4-5|" struct_text="|de|" struct_text_all="|de fghij|" struct_partnum="|1/2|" struct_cont="|r|">
+      <a struct_num="|1|" struct_charspan="|2-5|" struct_tokens="|bcde|" struct_tokens_all="|bcde fghijklm|" struct_partnum="|1/2|" struct_continues="|r|">
+      <b struct_num="|2|" struct_charspan="|4-5|" struct_tokens="|de|" struct_tokens_all="|de fghij|" struct_partnum="|1/2|" struct_continues="|r|">
       abcde
       </b>
       </a>
-      <a struct_num="|1|" struct_charspan="|1-8|" struct_text="|fghijklm|" struct_text_all="||" struct_partnum="|2/2|" struct_cont="|l|">
-      <b struct_num="|2|" struct_charspan="|1-5|" struct_text="|fghij|" struct_text_all="||" struct_partnum="|2/2|" struct_cont="|l|">
+      <a struct_num="|1|" struct_charspan="|1-8|" struct_tokens="|fghijklm|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
+      <b struct_num="|2|" struct_charspan="|1-5|" struct_tokens="|fghij|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
       fghijklmn
       </b>
       </a>
@@ -1189,18 +1189,18 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-5|" struct_text="|bcde|" struct_text_all="|bcde fgh ijklm|" struct_partnum="|1/3|" struct_cont="|r|">
-      <b struct_num="|2|" struct_charspan="|4-5|" struct_text="|de|" struct_text_all="|de fgh ij|" struct_partnum="|1/3|" struct_cont="|r|">
+      <a struct_num="|1|" struct_charspan="|2-5|" struct_tokens="|bcde|" struct_tokens_all="|bcde fgh ijklm|" struct_partnum="|1/3|" struct_continues="|r|">
+      <b struct_num="|2|" struct_charspan="|4-5|" struct_tokens="|de|" struct_tokens_all="|de fgh ij|" struct_partnum="|1/3|" struct_continues="|r|">
       abcde
       </b>
       </a>
-      <a struct_num="|1|" struct_charspan="|" struct_text="|fgh|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
-      <b struct_num="|2|" struct_charspan="|" struct_text="|fgh|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a struct_num="|1|" struct_charspan="|" struct_tokens="|fgh|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
+      <b struct_num="|2|" struct_charspan="|" struct_tokens="|fgh|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       fgh
       </b>
       </a>
-      <a struct_num="|1|" struct_charspan="|1-5|" struct_text="|ijklm|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
-      <b struct_num="|2|" struct_charspan="|1-2|" struct_text="|ij|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
+      <a struct_num="|1|" struct_charspan="|1-5|" struct_tokens="|ijklm|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
+      <b struct_num="|2|" struct_charspan="|1-2|" struct_tokens="|ij|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       ijklmn
       </b>
       </a>
@@ -1219,8 +1219,8 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-10|" struct_text="|bcdefghij|" struct_text_all="|bcdefghij|" struct_partnum="|1/1|" struct_cont="||">
-      <b struct_num="|2|" struct_charspan="|4-13|" struct_text="|defghijklm|" struct_text_all="|defghijklm|" struct_partnum="|1/1|" struct_cont="||">
+      <a struct_num="|1|" struct_charspan="|2-10|" struct_tokens="|bcdefghij|" struct_tokens_all="|bcdefghij|" struct_partnum="|1/1|" struct_continues="||">
+      <b struct_num="|2|" struct_charspan="|4-13|" struct_tokens="|defghijklm|" struct_tokens_all="|defghijklm|" struct_partnum="|1/1|" struct_continues="||">
       abcdefghijklmn
       </b>
       </a>
@@ -1241,13 +1241,13 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-5|" struct_text="|bcde|" struct_text_all="|bcde fghij|" struct_partnum="|1/2|" struct_cont="|r|">
-      <b struct_num="|2|" struct_charspan="|4-5|" struct_text="|de|" struct_text_all="|de fghijklm|" struct_partnum="|1/2|" struct_cont="|r|">
+      <a struct_num="|1|" struct_charspan="|2-5|" struct_tokens="|bcde|" struct_tokens_all="|bcde fghij|" struct_partnum="|1/2|" struct_continues="|r|">
+      <b struct_num="|2|" struct_charspan="|4-5|" struct_tokens="|de|" struct_tokens_all="|de fghijklm|" struct_partnum="|1/2|" struct_continues="|r|">
       abcde
       </b>
       </a>
-      <a struct_num="|1|" struct_charspan="|1-5|" struct_text="|fghij|" struct_text_all="||" struct_partnum="|2/2|" struct_cont="|l|">
-      <b struct_num="|2|" struct_charspan="|1-8|" struct_text="|fghijklm|" struct_text_all="||" struct_partnum="|2/2|" struct_cont="|l|">
+      <a struct_num="|1|" struct_charspan="|1-5|" struct_tokens="|fghij|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
+      <b struct_num="|2|" struct_charspan="|1-8|" struct_tokens="|fghijklm|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
       fghijklmn
       </b>
       </a>
@@ -1269,18 +1269,18 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-5|" struct_text="|bcde|" struct_text_all="|bcde fgh ij|" struct_partnum="|1/3|" struct_cont="|r|">
-      <b struct_num="|2|" struct_charspan="|4-5|" struct_text="|de|" struct_text_all="|de fgh ijklm|" struct_partnum="|1/3|" struct_cont="|r|">
+      <a struct_num="|1|" struct_charspan="|2-5|" struct_tokens="|bcde|" struct_tokens_all="|bcde fgh ij|" struct_partnum="|1/3|" struct_continues="|r|">
+      <b struct_num="|2|" struct_charspan="|4-5|" struct_tokens="|de|" struct_tokens_all="|de fgh ijklm|" struct_partnum="|1/3|" struct_continues="|r|">
       abcde
       </b>
       </a>
-      <a struct_num="|1|" struct_charspan="|" struct_text="|fgh|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
-      <b struct_num="|2|" struct_charspan="|" struct_text="|fgh|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a struct_num="|1|" struct_charspan="|" struct_tokens="|fgh|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
+      <b struct_num="|2|" struct_charspan="|" struct_tokens="|fgh|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       fgh
       </b>
       </a>
-      <a struct_num="|1|" struct_charspan="|1-2|" struct_text="|ij|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
-      <b struct_num="|2|" struct_charspan="|1-5|" struct_text="|ijklm|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
+      <a struct_num="|1|" struct_charspan="|1-2|" struct_tokens="|ij|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
+      <b struct_num="|2|" struct_charspan="|1-5|" struct_tokens="|ijklm|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       ijklmn
       </b>
       </a>
@@ -1301,8 +1301,8 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-9|" struct_text="|bcdefghi|" struct_text_all="|bcdefghi|" struct_partnum="|1/1|" struct_cont="||">
-      <b struct_num="|2|3|" struct_charspan="|4-5|8-11|" struct_text="|de|hijk|" struct_text_all="|de|hijk|" struct_partnum="|1/1|1/1|" struct_cont="|||">
+      <a struct_num="|1|" struct_charspan="|2-9|" struct_tokens="|bcdefghi|" struct_tokens_all="|bcdefghi|" struct_partnum="|1/1|" struct_continues="||">
+      <b struct_num="|2|3|" struct_charspan="|4-5|8-11|" struct_tokens="|de|hijk|" struct_tokens_all="|de|hijk|" struct_partnum="|1/1|1/1|" struct_continues="|||">
       abcdefghijklmn
       </b>
       </a>
@@ -1329,26 +1329,26 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-2|" struct_text="|b|" struct_text_all="|b cd ef gh i|" struct_partnum="|1/3|" struct_cont="|r|">
+      <a struct_num="|1|" struct_charspan="|2-2|" struct_tokens="|b|" struct_tokens_all="|b cd ef gh i|" struct_partnum="|1/3|" struct_continues="|r|">
       ab
       </a>
-      <a struct_num="|1|" struct_charspan="|" struct_text="|cd ef gh|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
-      <b struct_num="|2|" struct_charspan="|2-2|" struct_text="|d|" struct_text_all="|d e|" struct_partnum="|1/2|" struct_cont="|r|">
+      <a struct_num="|1|" struct_charspan="|" struct_tokens="|cd ef gh|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
+      <b struct_num="|2|" struct_charspan="|2-2|" struct_tokens="|d|" struct_tokens_all="|d e|" struct_partnum="|1/2|" struct_continues="|r|">
       cd
       </b>
-      <b struct_num="|2|" struct_charspan="|1-1|" struct_text="|e|" struct_text_all="||" struct_partnum="|2/2|" struct_cont="|l|">
+      <b struct_num="|2|" struct_charspan="|1-1|" struct_tokens="|e|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
       ef
       </b>
-      <b struct_num="|3|" struct_charspan="|2-2|" struct_text="|h|" struct_text_all="|h ij k|" struct_partnum="|1/3|" struct_cont="|r|">
+      <b struct_num="|3|" struct_charspan="|2-2|" struct_tokens="|h|" struct_tokens_all="|h ij k|" struct_partnum="|1/3|" struct_continues="|r|">
       gh
       </b>
       </a>
-      <a struct_num="|1|" struct_charspan="|1-1|" struct_text="|i|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
-      <b struct_num="|3|" struct_charspan="|" struct_text="|ij|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a struct_num="|1|" struct_charspan="|1-1|" struct_tokens="|i|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
+      <b struct_num="|3|" struct_charspan="|" struct_tokens="|ij|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       ij
       </b>
       </a>
-      <b struct_num="|3|" struct_charspan="|1-1|" struct_text="|k|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
+      <b struct_num="|3|" struct_charspan="|1-1|" struct_tokens="|k|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       klmn
       </b>
 
@@ -1379,33 +1379,33 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-2|" struct_text="|b|" struct_text_all="|b c de f gh i jk l m|" struct_partnum="|1/3|" struct_cont="|r|">
+      <a struct_num="|1|" struct_charspan="|2-2|" struct_tokens="|b|" struct_tokens_all="|b c de f gh i jk l m|" struct_partnum="|1/3|" struct_continues="|r|">
       ab
       </a>
-      <a struct_num="|1|" struct_charspan="|" struct_text="|c de f gh i jk l|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a struct_num="|1|" struct_charspan="|" struct_tokens="|c de f gh i jk l|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       c
-      <b struct_num="|2|" struct_charspan="|2-2|" struct_text="|e|" struct_text_all="|e f g|" struct_partnum="|1/3|" struct_cont="|r|">
+      <b struct_num="|2|" struct_charspan="|2-2|" struct_tokens="|e|" struct_tokens_all="|e f g|" struct_partnum="|1/3|" struct_continues="|r|">
       de
       </b>
-      <b struct_num="|2|" struct_charspan="|" struct_text="|f|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <b struct_num="|2|" struct_charspan="|" struct_tokens="|f|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       f
       </b>
-      <b struct_num="|2|" struct_charspan="|1-1|" struct_text="|g|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
+      <b struct_num="|2|" struct_charspan="|1-1|" struct_tokens="|g|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       gh
       </b>
       i
-      <b struct_num="|3|" struct_charspan="|2-2|" struct_text="|k|" struct_text_all="|k l mn o p|" struct_partnum="|1/3|" struct_cont="|r|">
+      <b struct_num="|3|" struct_charspan="|2-2|" struct_tokens="|k|" struct_tokens_all="|k l mn o p|" struct_partnum="|1/3|" struct_continues="|r|">
       jk
       </b>
-      <b struct_num="|3|" struct_charspan="|" struct_text="|l mn o|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <b struct_num="|3|" struct_charspan="|" struct_tokens="|l mn o|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       l
       </a>
-      <a struct_num="|1|" struct_charspan="|1-1|" struct_text="|m|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
+      <a struct_num="|1|" struct_charspan="|1-1|" struct_tokens="|m|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       mn
       </a>
       o
       </b>
-      <b struct_num="|3|" struct_charspan="|1-1|" struct_text="|p|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
+      <b struct_num="|3|" struct_charspan="|1-1|" struct_tokens="|p|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       pq
       </b>
 
@@ -1425,9 +1425,9 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-10|" struct_text="|bcdefghij|" struct_text_all="|bcdefghij|" struct_partnum="|1/1|" struct_cont="||">
-      <b struct_num="|2|" struct_charspan="|5-13|" struct_text="|efghijklm|" struct_text_all="|efghijklm|" struct_partnum="|1/1|" struct_cont="||">
-      <c struct_num="|3|" struct_charspan="|8-16|" struct_text="|hijklmnop|" struct_text_all="|hijklmnop|" struct_partnum="|1/1|" struct_cont="||">
+      <a struct_num="|1|" struct_charspan="|2-10|" struct_tokens="|bcdefghij|" struct_tokens_all="|bcdefghij|" struct_partnum="|1/1|" struct_continues="||">
+      <b struct_num="|2|" struct_charspan="|5-13|" struct_tokens="|efghijklm|" struct_tokens_all="|efghijklm|" struct_partnum="|1/1|" struct_continues="||">
+      <c struct_num="|3|" struct_charspan="|8-16|" struct_tokens="|hijklmnop|" struct_tokens_all="|hijklmnop|" struct_partnum="|1/1|" struct_continues="||">
       abcdefghijklmnopq
       </c>
       </b>
@@ -1460,33 +1460,33 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|2-2|" struct_text="|b|" struct_text_all="|b c de f gh i j|" struct_partnum="|1/3|" struct_cont="|r|">
+      <a struct_num="|1|" struct_charspan="|2-2|" struct_tokens="|b|" struct_tokens_all="|b c de f gh i j|" struct_partnum="|1/3|" struct_continues="|r|">
       ab
       </a>
-      <a struct_num="|1|" struct_charspan="|" struct_text="|c de f gh i|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a struct_num="|1|" struct_charspan="|" struct_tokens="|c de f gh i|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       c
-      <b struct_num="|2|" struct_charspan="|2-2|" struct_text="|e|" struct_text_all="|e f gh i jk l m|" struct_partnum="|1/3|" struct_cont="|r|">
+      <b struct_num="|2|" struct_charspan="|2-2|" struct_tokens="|e|" struct_tokens_all="|e f gh i jk l m|" struct_partnum="|1/3|" struct_continues="|r|">
       de
       </b>
-      <b struct_num="|2|" struct_charspan="|" struct_text="|f gh i jk l|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <b struct_num="|2|" struct_charspan="|" struct_tokens="|f gh i jk l|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       f
-      <c struct_num="|3|" struct_charspan="|2-2|" struct_text="|h|" struct_text_all="|h i jk l mn o p|" struct_partnum="|1/3|" struct_cont="|r|">
+      <c struct_num="|3|" struct_charspan="|2-2|" struct_tokens="|h|" struct_tokens_all="|h i jk l mn o p|" struct_partnum="|1/3|" struct_continues="|r|">
       gh
       </c>
-      <c struct_num="|3|" struct_charspan="|" struct_text="|i jk l mn o|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <c struct_num="|3|" struct_charspan="|" struct_tokens="|i jk l mn o|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       i
       </a>
-      <a struct_num="|1|" struct_charspan="|1-1|" struct_text="|j|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
+      <a struct_num="|1|" struct_charspan="|1-1|" struct_tokens="|j|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       jk
       </a>
       l
       </b>
-      <b struct_num="|2|" struct_charspan="|1-1|" struct_text="|m|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
+      <b struct_num="|2|" struct_charspan="|1-1|" struct_tokens="|m|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       mn
       </b>
       o
       </c>
-      <c struct_num="|3|" struct_charspan="|1-1|" struct_text="|p|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
+      <c struct_num="|3|" struct_charspan="|1-1|" struct_tokens="|p|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       pq
       </c>
 
@@ -1505,10 +1505,10 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a b="1" struct_num="|1|" struct_charspan="|2-2|" struct_text="|b|" struct_text_all="|b c|" struct_partnum="|1/2|" struct_cont="|r|">
+      <a b="1" struct_num="|1|" struct_charspan="|2-2|" struct_tokens="|b|" struct_tokens_all="|b c|" struct_partnum="|1/2|" struct_continues="|r|">
       ab
       </a>
-      <a b="1" struct_num="|1|" struct_charspan="|1-1|" struct_text="|c|" struct_text_all="||" struct_partnum="|2/2|" struct_cont="|l|">
+      <a b="1" struct_num="|1|" struct_charspan="|1-1|" struct_tokens="|c|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
       cd
       </a>
       ef
@@ -1529,13 +1529,13 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a b="1" struct_num="|1|" struct_charspan="|2-2|" struct_text="|b|" struct_text_all="|b cde fgh|" struct_partnum="|1/3|" struct_cont="|r|">
+      <a b="1" struct_num="|1|" struct_charspan="|2-2|" struct_tokens="|b|" struct_tokens_all="|b cde fgh|" struct_partnum="|1/3|" struct_continues="|r|">
       ab
       </a>
-      <a b="1" struct_num="|1|" struct_charspan="|" struct_text="|cde|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a b="1" struct_num="|1|" struct_charspan="|" struct_tokens="|cde|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       cde
       </a>
-      <a b="1" struct_num="|1|" struct_charspan="|1-3|" struct_text="|fgh|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
+      <a b="1" struct_num="|1|" struct_charspan="|1-3|" struct_tokens="|fgh|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       fghi
       </a>
       jkl
@@ -1556,10 +1556,10 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a b="1" struct_num="|1|" struct_charspan="|2-2|" struct_text="|b|" struct_text_all="|b cde fghi|" struct_partnum="|1/2|" struct_cont="|r|">
+      <a b="1" struct_num="|1|" struct_charspan="|2-2|" struct_tokens="|b|" struct_tokens_all="|b cde fghi|" struct_partnum="|1/2|" struct_continues="|r|">
       ab
       </a>
-      <a b="1" struct_num="|1|" struct_charspan="|" struct_text="|cde fghi|" struct_text_all="||" struct_partnum="|2/2|" struct_cont="|l|">
+      <a b="1" struct_num="|1|" struct_charspan="|" struct_tokens="|cde fghi|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
       cde
       fghi
       </a>
@@ -1581,11 +1581,11 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a b="1" struct_num="|1|" struct_charspan="|" struct_text="|ab cde|" struct_text_all="|ab cde fgh|" struct_partnum="|1/2|" struct_cont="|r|">
+      <a b="1" struct_num="|1|" struct_charspan="|" struct_tokens="|ab cde|" struct_tokens_all="|ab cde fgh|" struct_partnum="|1/2|" struct_continues="|r|">
       ab
       cde
       </a>
-      <a b="1" struct_num="|1|" struct_charspan="|1-3|" struct_text="|fgh|" struct_text_all="||" struct_partnum="|2/2|" struct_cont="|l|">
+      <a b="1" struct_num="|1|" struct_charspan="|1-3|" struct_tokens="|fgh|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
       fghi
       </a>
       jkl
@@ -1607,7 +1607,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="x" struct_num="|1|2|3|" struct_charspan="|2-7|9-14|16-21|" struct_text="|bcdefg|ijklmn|pqrstu|" struct_text_all="|bcdefg|ijklmn|pqrstu|" struct_partnum="|1/1|1/1|1/1|" struct_cont="||||">
+      <a x="x" struct_num="|1|2|3|" struct_charspan="|2-7|9-14|16-21|" struct_tokens="|bcdefg|ijklmn|pqrstu|" struct_tokens_all="|bcdefg|ijklmn|pqrstu|" struct_partnum="|1/1|1/1|1/1|" struct_continues="||||">
       abcdefghijklmnopqrstuv
       </a>
 
@@ -1628,7 +1628,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|x2|x3|" struct_num="|1|2|3|" struct_charspan="|2-7|9-14|16-21|" struct_text="|bcdefg|ijklmn|pqrstu|" struct_text_all="|bcdefg|ijklmn|pqrstu|" struct_partnum="|1/1|1/1|1/1|" struct_cont="||||">
+      <a x="|x1|x2|x3|" struct_num="|1|2|3|" struct_charspan="|2-7|9-14|16-21|" struct_tokens="|bcdefg|ijklmn|pqrstu|" struct_tokens_all="|bcdefg|ijklmn|pqrstu|" struct_partnum="|1/1|1/1|1/1|" struct_continues="||||">
       abcdefghijklmnopqrstuv
       </a>
 
@@ -1656,16 +1656,16 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|" struct_num="|1|" struct_charspan="|2-3|" struct_text="|bc|" struct_text_all="|bc|" struct_partnum="|1/2|" struct_cont="|r|">
+      <a x="|x1|" struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc|" struct_partnum="|1/2|" struct_continues="|r|">
       abc
       </a>
-      <a x="|x1|x2|" struct_num="|1|2|" struct_charspan="|1-4|6-7|" struct_text="|defg|ij|" struct_text_all="|defg|ij|" struct_partnum="|2/2|1/2|" struct_cont="|l|r|">
+      <a x="|x1|x2|" struct_num="|1|2|" struct_charspan="|1-4|6-7|" struct_tokens="|defg|ij|" struct_tokens_all="|defg|ij|" struct_partnum="|2/2|1/2|" struct_continues="|l|r|">
       defghij
       </a>
-      <a x="|x2|x3|" struct_num="|1|3|" struct_charspan="|1-4|6-7|" struct_text="|klmn|pq|" struct_text_all="|klmn|pq|" struct_partnum="|2/2|1/2|" struct_cont="|l|r|">
+      <a x="|x2|x3|" struct_num="|1|3|" struct_charspan="|1-4|6-7|" struct_tokens="|klmn|pq|" struct_tokens_all="|klmn|pq|" struct_partnum="|2/2|1/2|" struct_continues="|l|r|">
       klmnopq
       </a>
-      <a x="|x3|" struct_num="|3|" struct_charspan="|1-4|" struct_text="|rstu|" struct_text_all="|rstu|" struct_partnum="|2/2|" struct_cont="|l|">
+      <a x="|x3|" struct_num="|3|" struct_charspan="|1-4|" struct_tokens="|rstu|" struct_tokens_all="|rstu|" struct_partnum="|2/2|" struct_continues="|l|">
       rstuv
       </a>
 
@@ -1696,24 +1696,24 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|" struct_num="|1|" struct_charspan="|2-3|" struct_text="|bc|" struct_text_all="|bc|" struct_partnum="|3/3|" struct_cont="|l|">
+      <a x="|x1|" struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc|" struct_partnum="|3/3|" struct_continues="|l|">
       abc
       </a>
-      <a x="|x1|" struct_num="|1|" struct_charspan="|" struct_text="|de|" struct_text_all="|de|" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a x="|x1|" struct_num="|1|" struct_charspan="|" struct_tokens="|de|" struct_tokens_all="|de|" struct_partnum="|2/3|" struct_continues="|lr|">
       de
       </a>
-      <a x="|x1|x2|" struct_num="|1|" struct_charspan="|1-2|4-5|" struct_text="|fg|ij|" struct_text_all="|fg|ij|" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a x="|x1|x2|" struct_num="|1|" struct_charspan="|1-2|4-5|" struct_tokens="|fg|ij|" struct_tokens_all="|fg|ij|" struct_partnum="|2/3|" struct_continues="|lr|">
       fghij
       </a>
-      <a x="|x2|" struct_num="|1|" struct_charspan="|" struct_text="|kl|" struct_text_all="|kl|" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a x="|x2|" struct_num="|1|" struct_charspan="|" struct_tokens="|kl|" struct_tokens_all="|kl|" struct_partnum="|2/3|" struct_continues="|lr|">
       kl
       </a>
-      <a x="|x2|x3|" struct_num="|1|" struct_charspan="|1-2|4-5|" struct_text="|mn|pq|" struct_text_all="|mn|pq|" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a x="|x2|x3|" struct_num="|1|" struct_charspan="|1-2|4-5|" struct_tokens="|mn|pq|" struct_tokens_all="|mn|pq|" struct_partnum="|2/3|" struct_continues="|lr|">
       mnopq
       </a>
-      <a x="|x3|" struct_num="|1|" struct_charspan="|" struct_text="|rs|" struct_text_all="|rs|" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a x="|x3|" struct_num="|1|" struct_charspan="|" struct_tokens="|rs|" struct_tokens_all="|rs|" struct_partnum="|2/3|" struct_continues="|lr|">
       rs
-      <a x="|x3|" struct_num="|1|" struct_charspan="|1-2|" struct_text="|tu|" struct_text_all="|tu|" struct_partnum="|3/3|" struct_cont="|l|">
+      <a x="|x3|" struct_num="|1|" struct_charspan="|1-2|" struct_tokens="|tu|" struct_tokens_all="|tu|" struct_partnum="|3/3|" struct_continues="|l|">
       tuv
       </a>
 
@@ -1735,7 +1735,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|x2|x3|" y="y" struct_num="|1|2|3|" struct_charspan="|2-7|9-14|16-21|" struct_text="|bcdefg|ijklmn|pqrstu|" struct_text_all="|bcdefg|ijklmn|pqrstu|" struct_partnum="|1/1|1/1|1/1|" struct_cont="||||">
+      <a x="|x1|x2|x3|" y="y" struct_num="|1|2|3|" struct_charspan="|2-7|9-14|16-21|" struct_tokens="|bcdefg|ijklmn|pqrstu|" struct_tokens_all="|bcdefg|ijklmn|pqrstu|" struct_partnum="|1/1|1/1|1/1|" struct_continues="||||">
       abcdefghijklmnopqrstuv
       </a>
 
@@ -1763,16 +1763,16 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|" y="y" struct_num="|1|" struct_charspan="|2-3|" struct_text="|bc|" struct_text_all="|bc|" struct_partnum="|1/3|" struct_cont="|r|">
+      <a x="|x1|" y="y" struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc|" struct_partnum="|1/3|" struct_continues="|r|">
       abc
       </a>
-      <a x="|x1|x2|" y="y" struct_num="|1|" struct_charspan="|1-4|6-7|" struct_text="|defg|ij|" struct_text_all="|defg|ij|" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a x="|x1|x2|" y="y" struct_num="|1|" struct_charspan="|1-4|6-7|" struct_tokens="|defg|ij|" struct_tokens_all="|defg|ij|" struct_partnum="|2/3|" struct_continues="|lr|">
       defghij
       </a>
-      <a x="|x2|x3|" y="y" struct_num="|1|" struct_charspan="|1-4|6-7|" struct_text="|klmn|pq|" struct_text_all="|klmn|pq|" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a x="|x2|x3|" y="y" struct_num="|1|" struct_charspan="|1-4|6-7|" struct_tokens="|klmn|pq|" struct_tokens_all="|klmn|pq|" struct_partnum="|2/3|" struct_continues="|lr|">
       klmnopq
       </a>
-      <a x="|x3|" y="y" struct_num="|1|" struct_charspan="|1-4|" struct_text="|rstu|" struct_text_all="|rstu|" struct_partnum="|3/3|" struct_cont="|l|">
+      <a x="|x3|" y="y" struct_num="|1|" struct_charspan="|1-4|" struct_tokens="|rstu|" struct_tokens_all="|rstu|" struct_partnum="|3/3|" struct_continues="|l|">
       rstuv
       </a>
 
@@ -1803,24 +1803,24 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|" y="y" struct_num="|1|" struct_charspan="|2-3|" struct_text="|bc|" struct_text_all="|bc|" struct_partnum="|1/3|" struct_cont="|r|">
+      <a x="|x1|" y="y" struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc|" struct_partnum="|1/3|" struct_continues="|r|">
       abc
       </a>
-      <a x="|x1|" y="y" struct_num="|1|" struct_charspan="|" struct_text="|de|" struct_text_all="|de|" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a x="|x1|" y="y" struct_num="|1|" struct_charspan="|" struct_tokens="|de|" struct_tokens_all="|de|" struct_partnum="|2/3|" struct_continues="|lr|">
       de
-      <a x="|x1|x2|" y="y" struct_num="|1|" struct_charspan="|1-2|4-5|" struct_text="|fg|ij|" struct_text_all="|fg|ij|" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a x="|x1|x2|" y="y" struct_num="|1|" struct_charspan="|1-2|4-5|" struct_tokens="|fg|ij|" struct_tokens_all="|fg|ij|" struct_partnum="|2/3|" struct_continues="|lr|">
       fghij
       </a>
-      <a x="|x2|" y="y" struct_num="|1|" struct_charspan="|" struct_text="|kl|" struct_text_all="|kl|" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a x="|x2|" y="y" struct_num="|1|" struct_charspan="|" struct_tokens="|kl|" struct_tokens_all="|kl|" struct_partnum="|2/3|" struct_continues="|lr|">
       kl
       </a>
-      <a x="|x2|x3|" y="y" struct_num="|1|" struct_charspan="|1-2|4-5|" struct_text="|mn|pq|" struct_text_all="|mn|pq|" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a x="|x2|x3|" y="y" struct_num="|1|" struct_charspan="|1-2|4-5|" struct_tokens="|mn|pq|" struct_tokens_all="|mn|pq|" struct_partnum="|2/3|" struct_continues="|lr|">
       mnopq
       </a>
-      <a x="|x3|" y="y" struct_num="|1|" struct_charspan="|" struct_text="|rs|" struct_text_all="|rs|" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a x="|x3|" y="y" struct_num="|1|" struct_charspan="|" struct_tokens="|rs|" struct_tokens_all="|rs|" struct_partnum="|2/3|" struct_continues="|lr|">
       rs
       </a>
-      <a x="|x3|" y="y" struct_num="|1|" struct_charspan="|1-2|" struct_text="|tu|" struct_text_all="|tu|" struct_partnum="|3/3|" struct_cont="|l|">
+      <a x="|x3|" y="y" struct_num="|1|" struct_charspan="|1-2|" struct_tokens="|tu|" struct_tokens_all="|tu|" struct_partnum="|3/3|" struct_continues="|l|">
       tuv
       </a>
 
@@ -1842,7 +1842,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|x2|x3|" y="y" struct_num="|1|2|3|" struct_charspan="|2-22|9-14|16-21|" struct_text="|bcdefghijklmnopqrstuv|ijklmn|pqrstu|" struct_text_all="|bcdefghijklmnopqrstuv|ijklmn|pqrstu|" struct_partnum="|1/1|1/1|1/1|" struct_cont="||||">
+      <a x="|x1|x2|x3|" y="y" struct_num="|1|2|3|" struct_charspan="|2-22|9-14|16-21|" struct_tokens="|bcdefghijklmnopqrstuv|ijklmn|pqrstu|" struct_tokens_all="|bcdefghijklmnopqrstuv|ijklmn|pqrstu|" struct_partnum="|1/1|1/1|1/1|" struct_continues="||||">
       abcdefghijklmnopqrstuv
       </a>
 
@@ -1864,8 +1864,8 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|x3|" y="y" struct_num="|1|3|" struct_charspan="|2-22|16-21|" struct_text="|bcdefghijklmnopqrstuv|pqrstu|" struct_text_all="|bcdefghijklmnopqrstuv|pqrstu|" struct_partnum="|1/1|1/1|" struct_cont="|||">
-      <b x="x2" y="y" struct_num="|2|" struct_charspan="|9-14|" struct_text="|ijklmn|" struct_text_all="|ijklmn|" struct_partnum="|1/1|" struct_cont="||">
+      <a x="|x1|x3|" y="y" struct_num="|1|3|" struct_charspan="|2-22|16-21|" struct_tokens="|bcdefghijklmnopqrstuv|pqrstu|" struct_tokens_all="|bcdefghijklmnopqrstuv|pqrstu|" struct_partnum="|1/1|1/1|" struct_continues="|||">
+      <b x="x2" y="y" struct_num="|2|" struct_charspan="|9-14|" struct_tokens="|ijklmn|" struct_tokens_all="|ijklmn|" struct_partnum="|1/1|" struct_continues="||">
       abcdefghijklmnopqrstuv
       </b>
       </a>
@@ -1888,9 +1888,9 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="x1" y="y" struct_num="|1|" struct_charspan="|2-14|" struct_text="|bcdefghijklmn|" struct_text_all="|bcdefghijklmn|" struct_partnum="|1/1|" struct_cont="||">
-      <b x="x2" y="y" struct_num="|2|" struct_charspan="|9-22|" struct_text="|ijklmnopqrstuv|" struct_text_all="|ijklmnopqrstuv|" struct_partnum="|1/1|" struct_cont="||">
-      <c x="x3" y="y" struct_num="|3|" struct_charspan="|16-21|" struct_text="|pqrstu|" struct_text_all="|pqrstu|" struct_partnum="|1/1|" struct_cont="||">
+      <a x="x1" y="y" struct_num="|1|" struct_charspan="|2-14|" struct_tokens="|bcdefghijklmn|" struct_tokens_all="|bcdefghijklmn|" struct_partnum="|1/1|" struct_continues="||">
+      <b x="x2" y="y" struct_num="|2|" struct_charspan="|9-22|" struct_tokens="|ijklmnopqrstuv|" struct_tokens_all="|ijklmnopqrstuv|" struct_partnum="|1/1|" struct_continues="||">
+      <c x="x3" y="y" struct_num="|3|" struct_charspan="|16-21|" struct_tokens="|pqrstu|" struct_tokens_all="|pqrstu|" struct_partnum="|1/1|" struct_continues="||">
       abcdefghijklmnopqrstuv
       </c>
       </b>
@@ -1911,7 +1911,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x||" z="z" y="||y|" struct_num="|1|2|" struct_charspan="|2-9|4-7|" struct_text="|bcdefghi|defg|" struct_text_all="|bcdefghi|defg|" struct_partnum="|1/1|1/1|" struct_cont="|||">
+      <a x="|x||" z="z" y="||y|" struct_num="|1|2|" struct_charspan="|2-9|4-7|" struct_tokens="|bcdefghi|defg|" struct_tokens_all="|bcdefghi|defg|" struct_partnum="|1/1|1/1|" struct_continues="|||">
       abcdefghij
       </a>
 
@@ -1930,7 +1930,7 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x||" y="||y|" struct_num="|1|2|" struct_charspan="|2-3|8-9|" struct_text="|bc|hi|" struct_text_all="|bc|hi|" struct_partnum="|1/1|1/1|" struct_cont="|||">
+      <a x="|x||" y="||y|" struct_num="|1|2|" struct_charspan="|2-3|8-9|" struct_tokens="|bc|hi|" struct_tokens_all="|bc|hi|" struct_partnum="|1/1|1/1|" struct_continues="|||">
       abcdefghij
       </a>
 
@@ -1955,13 +1955,13 @@
     stdout: |
       <a x="x1" struct_num="|1|">
       ab
-      <a x="x2" struct_num="|2|" struct_charspan="|2-2|" struct_text="|d|" struct_text_all="|d ef g|" struct_partnum="|1/3|" struct_cont="|r|">
+      <a x="x2" struct_num="|2|" struct_charspan="|2-2|" struct_tokens="|d|" struct_tokens_all="|d ef g|" struct_partnum="|1/3|" struct_continues="|r|">
       cd
       </a>
-      <a x="x2" struct_num="|2|" struct_charspan="|" struct_text="|ef|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a x="x2" struct_num="|2|" struct_charspan="|" struct_tokens="|ef|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       ef
       </a>
-      <a x="x2" struct_num="|2|" struct_charspan="|1-1|" struct_text="|g|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
+      <a x="x2" struct_num="|2|" struct_charspan="|1-1|" struct_tokens="|g|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       gh
       </a>
       ij
@@ -1983,10 +1983,10 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|2|" struct_charspan="|1-5|4-5|" struct_text="|abcde|de|" struct_text_all="|abcde fghi|de fg|" struct_partnum="|1/2|1/2|" struct_cont="|r|r|">
+      <a struct_num="|1|2|" struct_charspan="|1-5|4-5|" struct_tokens="|abcde|de|" struct_tokens_all="|abcde fghi|de fg|" struct_partnum="|1/2|1/2|" struct_continues="|r|r|">
       abcde
       </a>
-      <a struct_num="|1|2|" struct_charspan="|1-4|1-2|" struct_text="|fghi|fg|" struct_text_all="|||" struct_partnum="|2/2|2/2|" struct_cont="|l|l|">
+      <a struct_num="|1|2|" struct_charspan="|1-4|1-2|" struct_tokens="|fghi|fg|" struct_tokens_all="|||" struct_partnum="|2/2|2/2|" struct_continues="|l|l|">
       fghij
       </a>
 
@@ -2006,10 +2006,10 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|2|" struct_charspan="|2-5|4-5|" struct_text="|bcde|de|" struct_text_all="|bcde fghij|de fg|" struct_partnum="|1/2|1/2|" struct_cont="|r|r|">
+      <a struct_num="|1|2|" struct_charspan="|2-5|4-5|" struct_tokens="|bcde|de|" struct_tokens_all="|bcde fghij|de fg|" struct_partnum="|1/2|1/2|" struct_continues="|r|r|">
       abcde
       </a>
-      <a struct_num="|1|2|" struct_charspan="|1-5|1-2|" struct_text="|fghij|fg|" struct_text_all="|||" struct_partnum="|2/2|2/2|" struct_cont="|l|l|">
+      <a struct_num="|1|2|" struct_charspan="|1-5|1-2|" struct_tokens="|fghij|fg|" struct_tokens_all="|||" struct_partnum="|2/2|2/2|" struct_continues="|l|l|">
       fghij
       </a>
 
@@ -2031,10 +2031,10 @@
     stderr: ""
     stdout: |
       <a struct_num="|1|">
-      <a struct_num="|2|" struct_charspan="|4-5|" struct_text="|de|" struct_text_all="|de fg|" struct_partnum="|1/2|" struct_cont="|r|">
+      <a struct_num="|2|" struct_charspan="|4-5|" struct_tokens="|de|" struct_tokens_all="|de fg|" struct_partnum="|1/2|" struct_continues="|r|">
       abcde
       </a>
-      <a struct_num="|2|" struct_charspan="|1-2|" struct_text="|fg|" struct_text_all="||" struct_partnum="|2/2|" struct_cont="|l|">
+      <a struct_num="|2|" struct_charspan="|1-2|" struct_tokens="|fg|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
       fghij
       </a>
       </a>
@@ -2058,13 +2058,13 @@
     stderr: ""
     stdout: |
       <a struct_num="|1|">
-      <a struct_num="|2|" struct_charspan="|4-4|" struct_text="|d|" struct_text_all="|d ef g|" struct_partnum="|1/3|" struct_cont="|r|">
+      <a struct_num="|2|" struct_charspan="|4-4|" struct_tokens="|d|" struct_tokens_all="|d ef g|" struct_partnum="|1/3|" struct_continues="|r|">
       abcd
       </a>
-      <a struct_num="|2|" struct_charspan="|" struct_text="|ef|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a struct_num="|2|" struct_charspan="|" struct_tokens="|ef|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       ef
       </a>
-      <a struct_num="|2|" struct_charspan="|1-1|" struct_text="|g|" struct_text_all="||" struct_partnum="|3/3|" struct_cont="|l|">
+      <a struct_num="|2|" struct_charspan="|1-1|" struct_tokens="|g|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       ghij
       </a>
       </a>
@@ -2087,15 +2087,15 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|1|" struct_charspan="|" struct_text="|abcd ef|" struct_text_all="|abcd ef ghi|" struct_partnum="|1/2|" struct_cont="|r|">
-      <a struct_num="|2|" struct_charspan="|4-4|" struct_text="|d|" struct_text_all="|d ef g|" struct_partnum="|1/3|" struct_cont="|r|">
+      <a struct_num="|1|" struct_charspan="|" struct_tokens="|abcd ef|" struct_tokens_all="|abcd ef ghi|" struct_partnum="|1/2|" struct_continues="|r|">
+      <a struct_num="|2|" struct_charspan="|4-4|" struct_tokens="|d|" struct_tokens_all="|d ef g|" struct_partnum="|1/3|" struct_continues="|r|">
       abcd
       </a>
-      <a struct_num="|2|" struct_charspan="|" struct_text="|ef|" struct_text_all="||" struct_partnum="|2/3|" struct_cont="|lr|">
+      <a struct_num="|2|" struct_charspan="|" struct_tokens="|ef|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       ef
       </a>
       </a>
-      <a struct_num="|1|2|" struct_charspan="|1-3|1-1|" struct_text="|ghi|g|" struct_text_all="|||" struct_partnum="|2/2|3/3|" struct_cont="|l|l|">
+      <a struct_num="|1|2|" struct_charspan="|1-3|1-1|" struct_tokens="|ghi|g|" struct_tokens_all="|||" struct_partnum="|2/2|3/3|" struct_continues="|l|l|">
       ghij
       </a>
 
@@ -2113,6 +2113,6 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x||" y="||y|" test_num="|1|2|" test_charspan="|2-3|8-9|" test_text="|bc|hi|" test_text_all="|bc|hi|" test_partnum="|1/1|1/1|" test_cont="|||">
+      <a x="|x||" y="||y|" test_num="|1|2|" test_charspan="|2-3|8-9|" test_tokens="|bc|hi|" test_tokens_all="|bc|hi|" test_partnum="|1/1|1/1|" test_continues="|||">
       abcdefghij
       </a>

@@ -89,7 +89,7 @@ class TagDecoder(InputProcessor):
         # including non-break space. Should it? It might depend on the
         # tokenizer what is most useful.
         spaces_re = re.compile(r'(?:' + args.spaces + r')+')
-        subword_attrs = 'charspan text text_all partnum cont'
+        subword_attrs = 'charspan tokens tokens_all partnum continues'
         subword_attrs_format = (
             ' ' + (' '.join('{prefix}{attrname}="{{{attrname}}}"'
                             .format(prefix=args.attr_prefix,
@@ -524,10 +524,10 @@ class TagDecoder(InputProcessor):
             # print(charspan, text, continues)
             return subword_attrs_format.format(
                 charspan=('|' + charspan + '|' if charspan else '|'),
-                text='|' + text + '|',
-                text_all='|' + text_all + '|',
+                tokens='|' + text + '|',
+                tokens_all='|' + text_all + '|',
                 partnum='|' + partnum + '|',
-                cont='|' + continues + '|').encode()
+                continues='|' + continues + '|').encode()
 
         def make_text_value(struct, wordforms):
             """Make a value with both partial and whole tokens of struct."""
