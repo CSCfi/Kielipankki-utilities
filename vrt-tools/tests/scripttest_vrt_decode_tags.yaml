@@ -1075,8 +1075,6 @@
 
 - name: 'vrt-decode-tags: Nested same intra-token structures, with a token break:
     a<a>bc<a>de fghij</a>klm</a>n'
-  # hrt-encode-tags input: a<a>bc<a>de fghij</a>klm</a>n
-  status: 'xfail:Not implemented yet: struct_continues with feature-set values'
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -1090,17 +1088,16 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|0|" struct_charspan="|2-5|4-5|" struct_tokens="|bcde|de|" struct_tokens_all="|bcde|de|" struct_continues="||r|r||">
+      <a struct_num="|1|2|" struct_charspan="|2-5|4-5|" struct_tokens="|bcde|de|" struct_tokens_all="|bcde fghijklm|de fghij|" struct_partnum="|1/2|1/2|" struct_continues="|r|r|">
       abcde
       </a>
-      <a struct_num="|0|" struct_charspan="|1-5|1-8|" struct_tokens="|fghij|fhgijklm|" struct_tokens_all="|fghij|fhgijklm|" struct_continues="||l|l||">
+      <a struct_num="|1|2|" struct_charspan="|1-8|1-5|" struct_tokens="|fghijklm|fghij|" struct_tokens_all="|||" struct_partnum="|2/2|2/2|" struct_continues="|l|l|">
       fghijklmn
       </a>
 
 - name: 'vrt-decode-tags: Nested same intra-token structures, with two token breaks:
     a<a>bc<a>de fgh ij</a>klm</a>n'
   # hrt-encode-tags input: a<a>bc<a>de fgh ij</a>klm</a>n
-  status: 'xfail:Not implemented yet: struct_continues with feature-set values'
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -1115,13 +1112,13 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a struct_num="|0|" struct_charspan="|2-5|4-5|" struct_tokens="|bcde|de|" struct_tokens_all="|bcde|de|" struct_continues="||r|r||">
+      <a struct_num="|1|2|" struct_charspan="|2-5|4-5|" struct_tokens="|bcde|de|" struct_tokens_all="|bcde fgh ijklm|de fgh ij|" struct_partnum="|1/3|1/3|" struct_continues="|r|r|">
       abcde
       </a>
-      <a struct_num="|0|" struct_charspan="|" struct_tokens="|fgh|" struct_tokens_all="|fgh|" struct_continues="||lr||">
+      <a struct_num="|1|2|" struct_charspan="|" struct_tokens="|fgh|" struct_tokens_all="|||" struct_partnum="|2/3|2/3|" struct_continues="|lr|lr|">
       fgh
       </a>
-      <a struct_num="|0|" struct_charspan="|1-2|1-5|" struct_tokens="|ij|ijklm|" struct_tokens_all="|ij|ijklm|" struct_continues="||l|l||">
+      <a struct_num="|1|2|" struct_charspan="|1-5|1-2|" struct_tokens="|ijklm|ij|" struct_tokens_all="|||" struct_partnum="|3/3|3/3|" struct_continues="|l|l|">
       ijklmn
       </a>
 
@@ -1635,10 +1632,6 @@
 - name: 'vrt-decode-tags: Same intra-word structures with different values for an
     attribute, with a token break: a<a x="x1">bc defg</a>h<a x="x2">ij klmn</a>o<a
     x="x3">pq rstu</a>v'
-  # hrt-encode-tags input: a<a x="x1">bc defg</a>h<a x="x2">ij klmn</a>o<a x="x3">pq rstu</a>v
-  status: >-
-    xfail:Not implemented yet: Feature-set values consistently in all
-    occurrences of an attribute
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -1656,16 +1649,16 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|" struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc|" struct_partnum="|1/2|" struct_continues="|r|">
+      <a x="|x1|" struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc defg|" struct_partnum="|1/2|" struct_continues="|r|">
       abc
       </a>
-      <a x="|x1|x2|" struct_num="|1|2|" struct_charspan="|1-4|6-7|" struct_tokens="|defg|ij|" struct_tokens_all="|defg|ij|" struct_partnum="|2/2|1/2|" struct_continues="|l|r|">
+      <a x="|x1|x2|" struct_num="|1|2|" struct_charspan="|1-4|6-7|" struct_tokens="|defg|ij|" struct_tokens_all="||ij klmn|" struct_partnum="|2/2|1/2|" struct_continues="|l|r|">
       defghij
       </a>
-      <a x="|x2|x3|" struct_num="|1|3|" struct_charspan="|1-4|6-7|" struct_tokens="|klmn|pq|" struct_tokens_all="|klmn|pq|" struct_partnum="|2/2|1/2|" struct_continues="|l|r|">
+      <a x="|x2|x3|" struct_num="|2|3|" struct_charspan="|1-4|6-7|" struct_tokens="|klmn|pq|" struct_tokens_all="||pq rstu|" struct_partnum="|2/2|1/2|" struct_continues="|l|r|">
       klmnopq
       </a>
-      <a x="|x3|" struct_num="|3|" struct_charspan="|1-4|" struct_tokens="|rstu|" struct_tokens_all="|rstu|" struct_partnum="|2/2|" struct_continues="|l|">
+      <a x="|x3|" struct_num="|3|" struct_charspan="|1-4|" struct_tokens="|rstu|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
       rstuv
       </a>
 
@@ -1673,9 +1666,6 @@
     attribute, with two token breaks: a<a x="x1">bc de fg</a>h<a x="x2">ij kl mn</a>o<a
     x="x3">pq rs tu</a>v'
   # hrt-encode-tags input: a<a x="x1">bc de fg</a>h<a x="x2">ij kl mn</a>o<a x="x3">pq rs tu</a>v
-  status: >-
-    xfail:Not implemented yet: Feature-set values consistently in all
-    occurrences of an attribute
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -1696,24 +1686,25 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|" struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc|" struct_partnum="|3/3|" struct_continues="|l|">
+      <a x="|x1|" struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc de fg|" struct_partnum="|1/3|" struct_continues="|r|">
       abc
       </a>
-      <a x="|x1|" struct_num="|1|" struct_charspan="|" struct_tokens="|de|" struct_tokens_all="|de|" struct_partnum="|2/3|" struct_continues="|lr|">
+      <a x="|x1|" struct_num="|1|" struct_charspan="|" struct_tokens="|de|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       de
       </a>
-      <a x="|x1|x2|" struct_num="|1|" struct_charspan="|1-2|4-5|" struct_tokens="|fg|ij|" struct_tokens_all="|fg|ij|" struct_partnum="|2/3|" struct_continues="|lr|">
+      <a x="|x1|x2|" struct_num="|1|2|" struct_charspan="|1-2|4-5|" struct_tokens="|fg|ij|" struct_tokens_all="||ij kl mn|" struct_partnum="|3/3|1/3|" struct_continues="|l|r|">
       fghij
       </a>
-      <a x="|x2|" struct_num="|1|" struct_charspan="|" struct_tokens="|kl|" struct_tokens_all="|kl|" struct_partnum="|2/3|" struct_continues="|lr|">
+      <a x="|x2|" struct_num="|2|" struct_charspan="|" struct_tokens="|kl|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       kl
       </a>
-      <a x="|x2|x3|" struct_num="|1|" struct_charspan="|1-2|4-5|" struct_tokens="|mn|pq|" struct_tokens_all="|mn|pq|" struct_partnum="|2/3|" struct_continues="|lr|">
+      <a x="|x2|x3|" struct_num="|2|3|" struct_charspan="|1-2|4-5|" struct_tokens="|mn|pq|" struct_tokens_all="||pq rs tu|" struct_partnum="|3/3|1/3|" struct_continues="|l|r|">
       mnopq
       </a>
-      <a x="|x3|" struct_num="|1|" struct_charspan="|" struct_tokens="|rs|" struct_tokens_all="|rs|" struct_partnum="|2/3|" struct_continues="|lr|">
+      <a x="|x3|" struct_num="|3|" struct_charspan="|" struct_tokens="|rs|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       rs
-      <a x="|x3|" struct_num="|1|" struct_charspan="|1-2|" struct_tokens="|tu|" struct_tokens_all="|tu|" struct_partnum="|3/3|" struct_continues="|l|">
+      </a>
+      <a x="|x3|" struct_num="|3|" struct_charspan="|1-2|" struct_tokens="|tu|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       tuv
       </a>
 
@@ -1743,9 +1734,6 @@
     different values, with a token break: a<a x="x1" y="y">bc defg</a>h<a x="x2" y="y">ij
     klmn</a>o<a x="x3" y="y">pq rstu</a>v'
   # hrt-encode-tags input: a<a x="x1" y="y">bc defg</a>h<a x="x2" y="y">ij klmn</a>o<a x="x3" y="y">pq rstu</a>v
-  status: >-
-    xfail:Not implemented yet: Feature-set values consistently in all
-    occurrences of an attribute
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -1763,16 +1751,16 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|" y="y" struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc|" struct_partnum="|1/3|" struct_continues="|r|">
+      <a x="|x1|" y="y" struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc defg|" struct_partnum="|1/2|" struct_continues="|r|">
       abc
       </a>
-      <a x="|x1|x2|" y="y" struct_num="|1|" struct_charspan="|1-4|6-7|" struct_tokens="|defg|ij|" struct_tokens_all="|defg|ij|" struct_partnum="|2/3|" struct_continues="|lr|">
+      <a x="|x1|x2|" y="y" struct_num="|1|2|" struct_charspan="|1-4|6-7|" struct_tokens="|defg|ij|" struct_tokens_all="||ij klmn|" struct_partnum="|2/2|1/2|" struct_continues="|l|r|">
       defghij
       </a>
-      <a x="|x2|x3|" y="y" struct_num="|1|" struct_charspan="|1-4|6-7|" struct_tokens="|klmn|pq|" struct_tokens_all="|klmn|pq|" struct_partnum="|2/3|" struct_continues="|lr|">
+      <a x="|x2|x3|" y="y" struct_num="|2|3|" struct_charspan="|1-4|6-7|" struct_tokens="|klmn|pq|" struct_tokens_all="||pq rstu|" struct_partnum="|2/2|1/2|" struct_continues="|l|r|">
       klmnopq
       </a>
-      <a x="|x3|" y="y" struct_num="|1|" struct_charspan="|1-4|" struct_tokens="|rstu|" struct_tokens_all="|rstu|" struct_partnum="|3/3|" struct_continues="|l|">
+      <a x="|x3|" y="y" struct_num="|3|" struct_charspan="|1-4|" struct_tokens="|rstu|" struct_tokens_all="||" struct_partnum="|2/2|" struct_continues="|l|">
       rstuv
       </a>
 
@@ -1780,9 +1768,6 @@
     different values, with two token breaks: a<a x="x1" y="y">bc de fg</a>h<a x="x2"
     y="y">ij kl mn</a>o<a x="x3" y="y">pq rs tu</a>v'
   # hrt-encode-tags input: a<a x="x1" y="y">bc de fg</a>h<a x="x2" y="y">ij kl mn</a>o<a x="x3" y="y">pq rs tu</a>v
-  status: >-
-    xfail:Not implemented yet: Feature-set values consistently in all
-    occurrences of an attribute
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -1803,24 +1788,25 @@
     returncode: 0
     stderr: ""
     stdout: |
-      <a x="|x1|" y="y" struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc|" struct_partnum="|1/3|" struct_continues="|r|">
+      <a x="|x1|" y="y" struct_num="|1|" struct_charspan="|2-3|" struct_tokens="|bc|" struct_tokens_all="|bc de fg|" struct_partnum="|1/3|" struct_continues="|r|">
       abc
       </a>
-      <a x="|x1|" y="y" struct_num="|1|" struct_charspan="|" struct_tokens="|de|" struct_tokens_all="|de|" struct_partnum="|2/3|" struct_continues="|lr|">
+      <a x="|x1|" y="y" struct_num="|1|" struct_charspan="|" struct_tokens="|de|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       de
-      <a x="|x1|x2|" y="y" struct_num="|1|" struct_charspan="|1-2|4-5|" struct_tokens="|fg|ij|" struct_tokens_all="|fg|ij|" struct_partnum="|2/3|" struct_continues="|lr|">
+      </a>
+      <a x="|x1|x2|" y="y" struct_num="|1|2|" struct_charspan="|1-2|4-5|" struct_tokens="|fg|ij|" struct_tokens_all="||ij kl mn|" struct_partnum="|3/3|1/3|" struct_continues="|l|r|">
       fghij
       </a>
-      <a x="|x2|" y="y" struct_num="|1|" struct_charspan="|" struct_tokens="|kl|" struct_tokens_all="|kl|" struct_partnum="|2/3|" struct_continues="|lr|">
+      <a x="|x2|" y="y" struct_num="|2|" struct_charspan="|" struct_tokens="|kl|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       kl
       </a>
-      <a x="|x2|x3|" y="y" struct_num="|1|" struct_charspan="|1-2|4-5|" struct_tokens="|mn|pq|" struct_tokens_all="|mn|pq|" struct_partnum="|2/3|" struct_continues="|lr|">
+      <a x="|x2|x3|" y="y" struct_num="|2|3|" struct_charspan="|1-2|4-5|" struct_tokens="|mn|pq|" struct_tokens_all="||pq rs tu|" struct_partnum="|3/3|1/3|" struct_continues="|l|r|">
       mnopq
       </a>
-      <a x="|x3|" y="y" struct_num="|1|" struct_charspan="|" struct_tokens="|rs|" struct_tokens_all="|rs|" struct_partnum="|2/3|" struct_continues="|lr|">
+      <a x="|x3|" y="y" struct_num="|3|" struct_charspan="|" struct_tokens="|rs|" struct_tokens_all="||" struct_partnum="|2/3|" struct_continues="|lr|">
       rs
       </a>
-      <a x="|x3|" y="y" struct_num="|1|" struct_charspan="|1-2|" struct_tokens="|tu|" struct_tokens_all="|tu|" struct_partnum="|3/3|" struct_continues="|l|">
+      <a x="|x3|" y="y" struct_num="|3|" struct_charspan="|1-2|" struct_tokens="|tu|" struct_tokens_all="||" struct_partnum="|3/3|" struct_continues="|l|">
       tuv
       </a>
 
