@@ -247,7 +247,7 @@ def implement_main(args):
         source = dirsource(indir)
     else:
         print('{}: error: not a directory: {}'
-              .format(parser.prog, args.indir),
+              .format(args.prog, args.indir),
               file = sys.stderr)
         exit(1)
 

@@ -1,0 +1,172 @@
+#! /usr/bin/env python3
+
+
+"""
+make-scripttest
+
+Create a YAML description of a program (script) run, to be processed
+with scripttestlib to make a pytest test case.
+
+The YAML description contains the command line, the input to the
+program and the expected output. Please see scripttestlib.py for more
+information.
+
+For usage, please run 'make-scripttest --help'.
+"""
+
+# TODO:
+# - Option to generate a single command line instead of prog and an args list.
+
+
+import os
+import re
+import shlex
+import sys
+
+from argparse import ArgumentParser
+from itertools import chain
+from subprocess import Popen, PIPE
+
+import yaml
+
+
+class ScriptTestMaker:
+
+    def __init__(self, args=None):
+        self._args = None
+        self._output = {'input': {}, 'output': {}}
+
+    def run(self, args=None):
+        self._parse_args(args)
+        self._record_input()
+        stdout, stderr, returncode = self._run_command(
+            self._output['input']['stdin'])
+        self._record_expected(stdout, stderr, returncode)
+        self._write_output()
+
+    def _parse_args(self, args):
+        argparser = ArgumentParser(
+            description='''Generate a (regression) test case by running a
+command-line program with the specified inputs and recording the output
+as the expected result, represented in YAML.''')
+        argparser.add_argument(
+            '--name', metavar='name', required=True,
+            help='name is the name (description) of the test'),
+        argparser.add_argument(
+            '--input-files', metavar='file', nargs='+', action='append',
+            help='the program uses file as an input file'),
+        argparser.add_argument(
+            '--output-files', metavar='file', nargs='+', action='append',
+            help='the program outputs file')
+        argparser.add_argument(
+            '--environment-variables', metavar='var', dest='env_vars',
+            nargs='+', action='append',
+            help='var is an environment variable used by the program')
+        argparser.add_argument(
+            '--use-cmdline', dest='cmdline', action='store_true',
+            help=('output the full command as a single value (cmdline) instead'
+                  ' of separate program (prog) and argument list (args)'))
+        argparser.add_argument(
+            'command', nargs='+',
+            help='the program to be run and its arguments')
+        self._args = argparser.parse_args(args)
+        self._args.input_files = chain(*self._args.input_files or [])
+        self._args.output_files = chain(*self._args.output_files or [])
+        self._args.env_vars = list(chain(*self._args.env_vars or []))
+        self._output['name'] = self._args.name
+        if self._args.cmdline:
+            self._output['input']['cmdline'] = ' '.join(
+                shlex.quote(arg) for arg in self._args.command)
+        else:
+            self._output['input']['prog'] = self._args.command[0]
+            if len(self._args.command) > 1:
+                self._output['input']['args'] = self._args.command[1:]
+                # ' '.join(shlex.quote(arg) for arg in self._args.command[1:])
+
+    def _record_input(self):
+        self._output['input']['stdin'] = sys.stdin.read()
+        self._record_files(self._args.input_files, self._output['input'])
+        self._record_envvars()
+
+    def _record_files(self, fnames, target):
+        for fname in fnames or []:
+            with open(fname, 'r') as f:
+                content = f.read()
+            target['file:' + fname] = content
+
+    def _record_envvars(self):
+        if not self._args.env_vars:
+            return
+        self._output['input']['envvars'] = {}
+        for envvar in self._args.env_vars:
+            self._output['input']['envvars'][envvar] = os.environ.get(envvar)
+
+    def _record_expected(self, stdout, stderr, returncode):
+        self._output['output']['stdout'] = stdout.decode('UTF-8')
+        self._output['output']['stderr'] = stderr.decode('UTF-8')
+        self._output['output']['returncode'] = returncode
+        self._record_files(self._args.output_files, self._output['output'])
+
+    def _run_command(self, stdin):
+        proc = Popen(self._args.command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = proc.communicate(stdin.encode('UTF-8'))
+        return stdout, stderr, proc.returncode
+
+    def _write_output(self):
+        base_yaml = yaml.safe_dump(
+            [self._output], default_flow_style=False, allow_unicode=True,
+            line_break='\n')
+        sys.stdout.write(self._reformat_yaml(base_yaml))
+
+    def _reformat_yaml(self, yaml_str):
+
+        def indent_multiline(s, step):
+            indent = step * ' '
+            s = re.sub('^', indent, s)
+            return re.sub('\n(.)', '\n' + indent + R'\1', s)
+
+        def reformat_file_content(mo):
+            obj = yaml.load(mo.group('key') + mo.group('value'))
+            result = yaml.dump(obj, default_style='|')
+            result = re.sub(R'^"(.*?)": ', R'\1: ', result)
+            result = indent_multiline(result, 4)
+            # print('val:', mo.group('key') + mo.group('value'))
+            # print('obj:', obj)
+            # print('dump:', result)
+            return result
+
+        # Reorder keys to a more logical order instead of alphabetical: name,
+        # expected, input
+        yaml_str = re.sub(R'''^ - \s (?P<input> input: \s .*)
+                              ^ \s\s (?P<name> name: \s .*)
+                              ^ \s\s (?P<output> output: \s .*?) \Z''',
+                          R'- \g<name>  \g<input>  \g<output>',
+                          yaml_str,
+                          flags=(re.VERBOSE | re.MULTILINE | re.DOTALL))
+        # args, prog, other
+        yaml_str = re.sub(R'''(?P<args>
+                                 ^ \s{4} args: \n
+                                (?: ^ \s{4} - .*? \n )* )
+                              (?P<other> (?: . | \n ) *? )
+                              (?P<prog> ^ \s{4} prog: .*? \n )''',
+                          R'\g<prog>\g<args>\g<other>',
+                          yaml_str,
+                          flags=(re.VERBOSE | re.MULTILINE))
+        # Try to reformat multi-line strings (file content) as literal block
+        # scalars
+        yaml_str = re.sub(
+            R'''(?P<key> ^ \s{4}
+                  (?: (?: file: .+? | std (?: in | out | err) )
+                        : \s )
+                  )
+                (?P<value>
+                    (?: ' (?: [^'] | '' | \n )* '
+                      | " (?: [^\"] | \\. | \n )* " )
+                ) \n ''',
+            reformat_file_content, yaml_str,
+            flags=(re.VERBOSE | re.MULTILINE))
+        return yaml_str
+
+
+if __name__ == '__main__':
+    ScriptTestMaker().run()
