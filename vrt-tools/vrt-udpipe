@@ -38,6 +38,12 @@ def parsearguments():
                         choices = [
                             'finnish-tdt',
                             'finnish-ftb', # not coping! has m-n lines
+                            'english-ewt',
+                            'english-gum',
+                            'english-lines',
+                            'english-partut',
+                            'swedish-lines',
+                            'swedish-talbanken',
                             # TODO add models
                         ],
                         default = 'finnish-tdt',
