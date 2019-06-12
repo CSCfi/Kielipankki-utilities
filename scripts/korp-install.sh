@@ -63,7 +63,9 @@ Arguments:
                   (default: \"$default_refspec\")
   target          the target (subdirectory) of the component to which to
                   install the new version: if \"/\", install to the top
-                  directory (main production version) (default: \"$default_target\")"
+                  directory (main production version) (default: \"$default_target\");
+                  note that you can install to the top directory only from
+                  master or its direct descendants specified as \"master~N\""
 
 optspecs='
 revert
@@ -160,6 +162,10 @@ case $target in
 	target=.
 	;;
 esac
+
+if [ "$target" = "." ] && [ "$branch" != "master" ]; then
+    error "You can install into the production Korp (\"/\") only from the master branch"
+fi
 
 case $comp in
     frontend )
