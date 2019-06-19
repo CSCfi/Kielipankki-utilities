@@ -1,1 +1,16 @@
+
 Scripts related to Wanca corpus (http://urn.fi/urn:nbn:fi:lb-2019052401).
+
+# in urls: & -> &amp;
+fix-bare-ampersands.sh
+# wid word spaces -> ref word spaces
+vrt-rename --map wid=ref
+# ref word spaces -> word spaces ref
+vrt-keep --names word,spaces,ref
+
+# rename processed vrt files to match pattern
+# wanca(_test)_LANGCODE(_multili).vrt
+
+# compile the corpora
+# PATH=$PATH:/proj/clarin/korp/cwb/bin:/proj/clarin/korp/scripts
+./korp-make-wanca.sh
