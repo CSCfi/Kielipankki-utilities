@@ -368,6 +368,10 @@ class BasicProcessor:
         """Print message msg to standard error."""
         print_error(*msg, progname=self._progname)
 
+    def warn(self, *msg):
+        """Print message msg prepended with "Warning:" to standard error."""
+        self.print_error('Warning:', *msg)
+
     def error_exit(self, *msg):
         """Print message msg to standard error and exit with code 1."""
         error_exit(*msg, progname=self._progname)

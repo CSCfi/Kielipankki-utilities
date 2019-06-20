@@ -412,8 +412,7 @@ _testcase_files_content = [
 ]
 
 # Testcase contents in the format expected by check_program_run.
-_testcases = list(*itertools.chain(
-    expand_testcases(testcases) for _, testcases in _testcase_files_content))
+_testcases = expand_testcases(_testcase_files_content)
 
 
 @pytest.fixture
@@ -423,33 +422,45 @@ def testcase_files(tmpdir):
     Returns a pair (testcases, testcase file name patterns).
     """
     testcases = []
+    fname_patts = []
     for basename, content in _testcase_files_content:
-        with open(os.path.join(tmpdir, basename + '.py'), 'w') as outf:
-            outf.write('testcases = ' + repr(content) + '\n')
-        testcases.extend(content)
-        with open(os.path.join(tmpdir, basename + '.yaml'), 'w') as outf:
-            yaml.dump(content, outf)
-        testcases.extend(content)
-    return (testcases, ('scripttest*.yaml', 'scripttest*.py'))
+        for ext, write_fn in (
+            ('.py', lambda outf, content: (
+                outf.write('testcases = ' + repr(content) + '\n'))),
+            ('.yaml', lambda outf, content: yaml.dump(content, outf)),
+            ):
+            with open(os.path.join(tmpdir, basename + ext), 'w') as outf:
+                write_fn(outf, content)
+            testcases.append((basename + ext, content))
+            fname_patts.append('scripttest*' + ext)
+    return (testcases, fname_patts)
 
 
 def test_collect_testcases(testcase_files, tmpdir):
     """Test scripttestlib.collect_testcases."""
-    testcase_contents, testcase_filespecs = testcase_files
+    fname_testcase_contents, testcase_filespecs = testcase_files
     testcases = collect_testcases(*testcase_filespecs, basedir=str(tmpdir))
-    assert len(testcases) == len(testcase_contents)
-    for testcase_num, testcase in enumerate(testcases):
-        # Handle xfailing and skipping tests
-        try:
-            testcase = testcase.values
-            assert (testcase_contents[testcase_num].get('status')
-                    .startswith(('skip', 'skipif', 'xfail')))
-        except AttributeError:
-            pass
-        assert len(testcase) == 3
-        assert testcase[0] == testcase_contents[testcase_num]['name']
-        assert testcase[1] == testcase_contents[testcase_num]['input']
-        assert testcase[2] == testcase_contents[testcase_num]['output']
+    assert len(testcases) == sum(
+        len(tc_conts) for _, tc_conts in fname_testcase_contents)
+    testcase_num = 0
+    for fname, testcase_contents in fname_testcase_contents:
+        for testcase_cont_num, testcase_cont in enumerate(testcase_contents):
+            testcase = testcases[testcase_num]
+            # Handle xfailing and skipping tests
+            try:
+                testcase = testcase.values
+                assert (testcase_cont.get('status')
+                        .startswith(('skip', 'skipif', 'xfail')))
+            except AttributeError:
+                pass
+            assert len(testcase) == 3
+            # File name and test number within the file are prepended to the test
+            # name, so use .endswith. This does not test the prepended file name
+            assert testcase[0] == '{} {:d}: {}'.format(
+                fname, testcase_cont_num + 1, testcase_cont['name'])
+            assert testcase[1] == testcase_cont['input']
+            assert testcase[2] == testcase_cont['output']
+            testcase_num += 1
 
 
 @pytest.mark.parametrize("name, input, expected", _testcases)
