@@ -2,7 +2,9 @@
 Scripts related to Wanca corpus (http://urn.fi/urn:nbn:fi:lb-2019052401).
 
 # in urls: & -> &amp;
-fix-bare-ampersands.sh
+fix-bare-ampersands.pl
+# remove soft hyphens
+remove-soft-hyphens.pl
 # wid word spaces -> ref word spaces
 vrt-rename --map wid=ref
 # ref word spaces -> word spaces ref
