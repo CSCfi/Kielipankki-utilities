@@ -34,7 +34,12 @@ character_encoding = str.maketrans({
     # but this is Swedish ... and also that the latter (either way) can also
     # occur as an apostrophe
 
+    '\u0002' : '', # STX
+    '\u0008' : '', # BS (sic)
+    '\u007f' : "'", # DEL -> '
     '\u0080' : '\u20ac', # -> EURO SIGN
+    '\u008f' : '', # SS3 (Single Shift Three)
+    '\u0090' : '', # DCS (Device Control String)
     '\u0091' : "'", # PRIVATE USE ONE -> left single quotation mark (U+2018)
     '\u0092' : "'", # PRIVATE USE TWO -> right single quotation mark (U+2019)
     '\u0093' : '"', # -> left double quotation mark (U+201C)
@@ -42,6 +47,13 @@ character_encoding = str.maketrans({
     '\u0095' : '\u2022', # MESSAGE WAITING -> bullet
     '\u0096' : '-', # -> en dash (U+2013)
     '\u0097' : '-', # -> em dash (U+2014)
+    '\u009a' : '\u0161', # SINGLE CHARACTER INTRODUCER to s caron (Windows 1252)
+    '\u009e' : '\u017e', # PRIVACY MESSAGE to z caron (Windows 1252)
+
+    # private use characters
+    '\uf02d' : '',
+    '\uf04a' : '',
+    '\uf0bd' : '',
 })
 
 last_angles = str.maketrans({
