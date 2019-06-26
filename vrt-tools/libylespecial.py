@@ -34,7 +34,8 @@ character_encoding = str.maketrans({
     # but this is Swedish ... and also that the latter (either way) can also
     # occur as an apostrophe
 
-    '\u0002' : '', # STX
+    '\u0002' : '', # STX (start of text)
+    '\u0003' : '', # ETX (end of text)
     '\u0008' : '', # BS (sic)
     '\u007f' : "'", # DEL -> '
     '\u0080' : '\u20ac', # -> EURO SIGN
