@@ -238,9 +238,10 @@ class TagDecoder(InputProcessor):
             offset = prev_offset
             char_offset = 0
             linenum = prev_linenum
+            line_count = len(lines)
             wf = None
             # print(new_offset, offset, linenum)
-            while offset < new_offset:
+            while offset < new_offset and linenum < line_count:
                 if lines[linenum][0] != LESS_THAN:
                     wf = spaces_re.sub('', get_wordform(lines[linenum]))
                     offset += len(wf)

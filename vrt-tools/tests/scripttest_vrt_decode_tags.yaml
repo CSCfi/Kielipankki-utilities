@@ -2181,3 +2181,20 @@
       <a x="|x||" y="||y|" test_num="|1|2|" test_charspan="|2-3|8-9|" test_tokens="|bc|hi|" test_tokens_all="|bc|hi|" test_partnum="|1/1|" test_continues="||">
       abcdefghij
       </a>
+
+- name: 'vrt-decode-tags: Offset past the end of the region'
+  # Previously, this crashed the script with IndexError
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0  abcd -->
+      <!-- #vrt structure-tag: /a|10 abcdefghi  -->
+      abcdefghi
+  output:
+    returncode: 0
+    stderr: |
+      vrt-decode-tags: Warning: Tag </a> (contexts abcdefghi, ): expected offset 10, got 9: possibly intra-word spaces
+    stdout: |
+      <a struct_num="|1|">
+      abcdefghi
+      </a>
