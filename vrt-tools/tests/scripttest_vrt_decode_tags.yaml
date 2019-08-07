@@ -2198,3 +2198,28 @@
       <a struct_num="|1|">
       abcdefghi
       </a>
+
+- name: 'vrt-decode-tags: Tag with an attribute converted to feature set and the same tag without the attribute'
+  # hrt-encode-tags input: <a n="1">abc</a><a n="2">def</a> <a>ghi</a>
+  # Previously, this crashed the script with a KeyError
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a n="1"|0  abcdefghi -->
+      <!-- #vrt structure-tag: /a|3 abc defghi -->
+      <!-- #vrt structure-tag: a n="2"|3 abc defghi -->
+      <!-- #vrt structure-tag: /a|6 abcdef ghi -->
+      <!-- #vrt structure-tag: a|6 abcdef ghi -->
+      <!-- #vrt structure-tag: /a|9 abcdefghi  -->
+      abcdef
+      ghi
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a n="|1|2|" struct_num="|1|2|" struct_charspan="|1-3|4-6|" struct_tokens="|abc|def|" struct_tokens_all="|abc|def|" struct_partnum="|1/1|" struct_continues="||">
+      abcdef
+      </a>
+      <a struct_num="|3|" n="|">
+      ghi
+      </a>

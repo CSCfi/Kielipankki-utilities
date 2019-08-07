@@ -632,7 +632,10 @@ class TagDecoder(InputProcessor):
             attrs = OrderedDict(extract_attrs(attrstr))
             modified = False
             for attrname in struct_attrs_featset[struct_name]:
-                if not (attrs[attrname] and attrs[attrname][0] == VBAR):
+                if attrname not in attrs:
+                    attrs[attrname] = b'|'
+                    modified = True
+                elif not (attrs[attrname] and attrs[attrname][0] == VBAR):
                     attrs[attrname] = b'|' + attrs[attrname] + b'|'
                     modified = True
             if modified:
