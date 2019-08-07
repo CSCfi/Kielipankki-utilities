@@ -2278,3 +2278,30 @@
     stdout: |
       <a n="1" tag_charoffset="3"/>
       abcdef
+
+- name: 'vrt-decode-tags: Malformed structure-tag comments'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0 abcdef -->
+      <!-- #vrt structure-tag: -->
+      <!-- #vrt structure-tag: a -->
+      <!-- #vrt structure-tag: a| -->
+      <!-- #vrt structure-tag: a| abcdef -->
+      <!-- #vrt structure-tag: a|-1 abcdef -->
+      <!-- #vrt structure-tag: /a|6 abcdef -->
+      abc
+      def
+  output:
+    returncode: 0
+    stderr: |
+      vrt-decode-tags: Warning: Ignoring malformed structure-tag comment: <!-- #vrt structure-tag: a|0 abcdef -->
+      vrt-decode-tags: Warning: Ignoring malformed structure-tag comment: <!-- #vrt structure-tag: a -->
+      vrt-decode-tags: Warning: Ignoring malformed structure-tag comment: <!-- #vrt structure-tag: a| -->
+      vrt-decode-tags: Warning: Ignoring malformed structure-tag comment: <!-- #vrt structure-tag: a| abcdef -->
+      vrt-decode-tags: Warning: Ignoring malformed structure-tag comment: <!-- #vrt structure-tag: a|-1 abcdef -->
+      vrt-decode-tags: Warning: Ignoring malformed structure-tag comment: <!-- #vrt structure-tag: /a|6 abcdef -->
+    stdout: |
+      <!-- #vrt structure-tag: -->
+      abc
+      def

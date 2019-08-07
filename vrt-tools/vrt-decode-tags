@@ -129,6 +129,10 @@ class TagDecoder(InputProcessor):
             latest_wordform_linenum = -1
             for tagnum, tag_line in enumerate(tag_lines):
                 tag_info = extract_tag_info(tag_line)
+                if tag_info is None:
+                    self.warn('Ignoring malformed structure-tag comment: '
+                              + tag_line.decode()[:-1])
+                    continue
                 # print(tag_info)
                 tag_text = tag_info['tag']
                 is_comment = (
@@ -229,6 +233,8 @@ class TagDecoder(InputProcessor):
         def extract_tag_info(line):
             _, taginfo = getbinvrtcomment(line)
             mo = structtag_value_re.fullmatch(taginfo)
+            if not mo:
+                return None
             gd = mo.groupdict()
             gd['offset'] = int(gd['offset'])
             return gd
