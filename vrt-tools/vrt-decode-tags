@@ -19,6 +19,8 @@ feature-set values and some others not.
 # - If a structure has some intra-word occurrences, add the struct_*
 #   attributes to all its occurrences. In general, that requires a
 #   second pass over the output of the first pass.
+# - Add to mid-token empty tags an extra attribute indicating the
+#   character offset of the tag.
 
 
 import os
@@ -131,12 +133,13 @@ class TagDecoder(InputProcessor):
                 tag_text = tag_info['tag']
                 is_comment = (
                     tag_text[0] == EXCLAM and tag_text.startswith(b'!--'))
-                if is_comment:
+                is_emptytag = (not is_comment and tag_text[-1] == SLASH)
+                if is_comment or is_emptytag:
                     is_endtag = False
                     attrs = None
                     tagname = tag_text.decode()
                 else:
-                    is_endtag = (not is_comment and tag_text[0] == SLASH)
+                    is_endtag = (tag_text[0] == SLASH)
                     tagparts = tag_text.split(maxsplit=1)
                     basetag = tagparts[0]
                     attrs = tagparts[1] if len(tagparts) > 1 else b''
@@ -148,7 +151,7 @@ class TagDecoder(InputProcessor):
                             wordforms, latest_wordform_linenum))
                     # print(tag_info, linenum, offset, char_offset, is_endtag)
                 tag_linenum = linenum + int(is_endtag and bool(char_offset))
-                if is_comment:
+                if is_comment or is_emptytag:
                     structs.append(
                         StructInfo(tagname=tagname,
                                    attrs=attrs,
@@ -407,7 +410,7 @@ class TagDecoder(InputProcessor):
                     ' boundary (typically paragraph or text): {}'.format(
                         type_, tag_text))
 
-            if tag[0] == EXCLAM:
+            if tag[0] == EXCLAM or tag[-1] == SLASH:
                 # If the nearest structures are closed first (see below), this
                 # results in comments immediately preceding end tags in the
                 # input to be output after the end tags. That is not optimal,

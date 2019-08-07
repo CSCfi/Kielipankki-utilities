@@ -2223,3 +2223,58 @@
       <a struct_num="|3|" n="|">
       ghi
       </a>
+
+- name: 'vrt-decode-tags: Empty XML elements'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a/|0  abcdef -->
+      <!-- #vrt structure-tag: b n="1"/|6 abcdef  -->
+      abcdef
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a/>
+      abcdef
+      <b n="1"/>
+
+- name: 'vrt-decode-tags: Empty and non-empty XML elements'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a n="1"/|0  abcdef -->
+      <!-- #vrt structure-tag: b|0  abcdef -->
+      <!-- #vrt structure-tag: a n="2"/|0  abcdef -->
+      <!-- #vrt structure-tag: a n="3"/|6 abcdef  -->
+      <!-- #vrt structure-tag: /b|6 abcdef  -->
+      <!-- #vrt structure-tag: a n="4"/|6 abcdef  -->
+      abcdef
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a n="1"/>
+      <a n="2"/>
+      <b struct_num="|1|">
+      abcdef
+      </b>
+      <a n="3"/>
+      <a n="4"/>
+
+- name: 'vrt-decode-tags: Empty XML element mid-token'
+  status: >-
+    xfail:Not implemented yet: Mid-token empty XML elements should
+    have an attribute indicating the character offset of the tag
+    within the token.
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a n="1"/|3 abc def -->
+      abcdef
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a n="1" tag_charoffset="3"/>
+      abcdef
