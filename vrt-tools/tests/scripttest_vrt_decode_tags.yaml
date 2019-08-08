@@ -2305,3 +2305,33 @@
       <!-- #vrt structure-tag: -->
       abc
       def
+
+- name: 'vrt-decode-tags: Offset past the end of a chunk'
+  # This caused previously an IndexError. Causing the error required a
+  # preserved tag to be present after the content, and the offset of
+  # the start tag also needed to be past the last token. Cases like
+  # this may result from extra characters having been removed from the
+  # encoded input.
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text>
+      <!-- #vrt structure-tag: p|2  ab -->
+      <!-- #vrt structure-tag: /p|3 ab  -->
+      a
+      b
+      </text>
+  output:
+    returncode: 0
+    stderr: |
+      vrt-decode-tags: Warning: Tag </p> (contexts ab, ): expected offset 3, got 2: possibly intra-word spaces
+    # The order of tags in the output is not logical, but VRT should
+    # not contain structures without content, so it probably does not
+    # matter.
+    stdout: |
+      <text>
+      a
+      b
+      </p>
+      <p struct_num="|1|">
+      </text>
