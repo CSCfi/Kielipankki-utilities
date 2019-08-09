@@ -2335,3 +2335,115 @@
       </p>
       <p struct_num="|1|">
       </text>
+
+- name: 'vrt-decode-tags: Ignore hyphens at the end of words'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0  Hyphenated -->
+      <!-- #vrt structure-tag: /a|10 Hyphenated text;word- -->
+      <!-- #vrt structure-tag: a|28 d-internal hyphenspre -->
+      <!-- #vrt structure-tag: /a|35 nalhyphens preserved. -->
+      <!-- #vrt structure-tag: a|35 nalhyphens preserved. -->
+      <!-- #vrt structure-tag: /a|38 hyphenspre served.Lon -->
+      <!-- #vrt structure-tag: a|49 erved.Lone -hyphens-p -->
+      <!-- #vrt structure-tag: /a|50 rved.Lone- hyphens-pr -->
+      <!-- #vrt structure-tag: a|57 ne-hyphens -preserved -->
+      <!-- #vrt structure-tag: /a|58 e-hyphens- preserved. -->
+      Hyphenated
+      text
+      ;
+      word-internal
+      hyphens
+      preserved.
+      Lone
+      -
+      hyphens
+      -
+      preserved
+      .
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a struct_num="|1|">
+      Hyphenated
+      </a>
+      text
+      ;
+      word-internal
+      <a struct_num="|2|">
+      hyphens
+      </a>
+      <a struct_num="|3|" struct_charspan="|1-3|" struct_tokens="|pre|" struct_tokens_all="|pre|" struct_partnum="|1/1|" struct_continues="||">
+      preserved.
+      </a>
+      Lone
+      <a struct_num="|4|">
+      -
+      </a>
+      hyphens
+      <a struct_num="|5|">
+      -
+      </a>
+      preserved
+      .
+
+- name: 'vrt-decode-tags: Do not ignore hyphens at the end of words'
+  input:
+    cmdline: vrt-decode-tags --hyphens=''
+    stdin: |
+      <!-- #vrt structure-tag: a|0  Hyph-enate -->
+      <!-- #vrt structure-tag: /a|11 yph-enated text;word- -->
+      <!-- #vrt structure-tag: a|29 d-internal hyp-henspr -->
+      <!-- #vrt structure-tag: /a|37 alhyp-hens pre‐served -->
+      <!-- #vrt structure-tag: a|37 alhyp-hens pre‐served -->
+      <!-- #vrt structure-tag: /a|41 p-henspre‐ served.Lon -->
+      <!-- #vrt structure-tag: a|52 erved.Lone -hyphens-p -->
+      <!-- #vrt structure-tag: /a|53 rved.Lone- hyphens-pr -->
+      <!-- #vrt structure-tag: a|60 ne-hyphens -preserved -->
+      <!-- #vrt structure-tag: /a|61 e-hyphens- preserved. -->
+      Hyph-
+      enated
+      text
+      ;
+      word-internal
+      hyp-
+      hens
+      pre‐
+      served.
+      Lone
+      -
+      hyphens
+      -
+      preserved
+      .
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a struct_num="|1|">
+      Hyph-
+      enated
+      </a>
+      text
+      ;
+      word-internal
+      <a struct_num="|2|">
+      hyp-
+      hens
+      </a>
+      <a struct_num="|3|">
+      pre‐
+      </a>
+      served.
+      Lone
+      <a struct_num="|4|">
+      -
+      </a>
+      hyphens
+      <a struct_num="|5|">
+      -
+      </a>
+      preserved
+      .

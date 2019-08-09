@@ -46,10 +46,18 @@ class TagDecoder(InputProcessor):
     comments, as encoded with hrt-encode-tags.
     """
     ARGSPECS = [
-        ('--spaces = regexp "\\s"',
-         'remove characters matching regexp from word forms when computing the'
+        # CHECK: By default, the following also matches Unicode spaces,
+        # including non-break space. Should it? It might depend on the
+        # tokenizer what is most useful.
+        ('--spaces|ignore-spaces = regexp "\\s"',
+         'ignore characters matching regexp from word forms when computing the'
          ' tag offset and matching context strings; regexp is a Python string'
          ' (Unicode) regular expression'),
+        # The following default matches ASCII hyphen-minus and Unicode HYPHEN.
+        ('--hyphens|ignore-hyphens = regexp "[-\\u2010]"',
+         'ignore characters matching regexp at the end of a word but not as'
+         ' a word by itself;'
+         ' regexp is a Python string (Unicode) regular expression'),
         ('--word|w = name -> word_attr',
          'use positional attribute name as the word-form attribute;'
          ' alternatively, name may be a one-based integer denoting the index'
@@ -85,10 +93,14 @@ class TagDecoder(InputProcessor):
                 (?P<right> \S* )""",
             re.VERBOSE)
         tag_re = re.compile(r'<(/\w+|\w+(?:\s[^>]+)?/?)>(?:\s*\n)?')
-        # CHECK: By default, the following also matches Unicode spaces,
-        # including non-break space. Should it? It might depend on the
-        # tokenizer what is most useful.
-        spaces_re = re.compile(r'(?:' + args.spaces + r')+')
+        # Ignore spaces, and hyphens preceded by a non-space and followed by
+        # space or end-of-string (a tag).
+        ignore_re = re.compile(
+            ((r'((?<= \S) (?:' + args.hyphens + ')+ )?'
+              + '(?: \Z | (?:' + args.spaces + ')+)')
+             if args.hyphens else
+             ('(?:' + args.spaces + ')+')),
+            re.VERBOSE)
         subword_attrs = 'charspan tokens tokens_all partnum continues'
         subword_attrs_format = (
             ' ' + (' '.join('{prefix}{attrname}="{{{attrname}}}"'
@@ -255,7 +267,7 @@ class TagDecoder(InputProcessor):
             # print(new_offset, offset, linenum, lines)
             while offset < new_offset and linenum < line_count:
                 if lines[linenum][0] != LESS_THAN:
-                    wf = spaces_re.sub('', get_wordform(lines[linenum]))
+                    wf = ignore_re.sub('', get_wordform(lines[linenum]))
                     offset += len(wf)
                     if linenum > latest_wordform_linenum:
                         wordforms.append(wf)
