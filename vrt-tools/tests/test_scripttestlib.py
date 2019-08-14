@@ -11,11 +11,13 @@ Very basic pytest tests for scripttestlib.
 import itertools
 import os.path
 
+from copy import deepcopy
+
 import pytest
 import yaml
 
 from scripttestlib import (collect_testcases, check_program_run,
-                           expand_testcases)
+                           expand_testcases, dict_deep_update)
 
 
 # TODO: Test more scripttestlib features, also failing tests.
@@ -353,6 +355,73 @@ _testcase_files_content = [
                  'returncode': 0,
              },
          },
+         # Test default values
+         {
+             'defaults': {
+                 'input': {
+                    'cmdline': 'cat',
+                    'shell': True,
+                 },
+                 'output': {
+                     'stderr': '',
+                     'returncode': 0,
+                 },
+             },
+         },
+         {
+             'name': 'Test: default values',
+             'input': {
+                 'stdin': 'test\n',
+             },
+             'output': {
+                 'stdout': 'test\n',
+             },
+         },
+         {
+             'name': 'Test: default values, with local overrides',
+             'input': {
+                 'cmdline': 'cat > test.out; false',
+                 'stdin': 'test\n',
+             },
+             'output': {
+                 'file:test.out': 'test\n',
+                 'returncode': 1,
+             },
+         },
+         # Change default values
+         {
+             'defaults': {
+                 'input': {
+                    'cmdline': 'cat test.in > /dev/stderr',
+                 },
+                 'output': {
+                     'stderr': {},
+                 },
+             },
+         },
+         {
+             'name': 'Test: changed default values, with local overrides',
+             'input': {
+                 'file:test.in': 'test\n',
+             },
+             'output': {
+                 'stderr': 'test\n',
+             },
+         },
+         # Clear default values
+         {
+             'defaults': {},
+         },
+         {
+             'name': 'Test: try to use cleared default values',
+             'status': 'xfail:Tries to use cleared default values',
+             'input': {
+                 'file:test.in': 'test\n',
+             },
+             'output': {
+                 'stderr': 'test\n',
+             },
+         },
          # Note that the tests do not really check whether the tests marked to
          # be skipped or xfailing really are skipped or xfail. How could that
          # be tested?
@@ -432,6 +501,7 @@ def testcase_files(tmpdir):
             with open(os.path.join(tmpdir, basename + ext), 'w') as outf:
                 write_fn(outf, content)
             testcases.append((basename + ext, content))
+            # print(basename + ext, content)
             fname_patts.append('scripttest*' + ext)
     return (testcases, fname_patts)
 
@@ -441,10 +511,27 @@ def test_collect_testcases(testcase_files, tmpdir):
     fname_testcase_contents, testcase_filespecs = testcase_files
     testcases = collect_testcases(*testcase_filespecs, basedir=str(tmpdir))
     assert len(testcases) == sum(
-        len(tc_conts) for _, tc_conts in fname_testcase_contents)
+        len([tc for tc in tc_conts if 'defaults' not in tc])
+        for _, tc_conts in fname_testcase_contents)
     testcase_num = 0
+    # print(testcases)
     for fname, testcase_contents in fname_testcase_contents:
+        # print(fname, testcase_contents)
+        default_values = {}
         for testcase_cont_num, testcase_cont in enumerate(testcase_contents):
+            if 'defaults' in testcase_cont:
+                assert all(key in ['input', 'output', 'status']
+                           for key in testcase_cont['defaults'])
+                # deepcopy is needed because otherwise default_values may
+                # reference parts of testcase_cont['defaults'], and when
+                # default_values changes, testcase_cont['defaults'] may also
+                # change, which may result in incorrect results for the second
+                # testcase file. An alternative would be to use deepcopy in the
+                # testcase_files fixture to make a separate copy the whole
+                # content for both files.
+                default_values = dict_deep_update(
+                    default_values, deepcopy(testcase_cont['defaults']))
+                continue
             testcase = testcases[testcase_num]
             # Handle xfailing and skipping tests
             try:
@@ -454,13 +541,41 @@ def test_collect_testcases(testcase_files, tmpdir):
             except AttributeError:
                 pass
             assert len(testcase) == 3
-            # File name and test number within the file are prepended to the test
-            # name, so use .endswith. This does not test the prepended file name
             assert testcase[0] == '{} {:d}: {}'.format(
                 fname, testcase_cont_num + 1, testcase_cont['name'])
-            assert testcase[1] == testcase_cont['input']
-            assert testcase[2] == testcase_cont['output']
+            assert testcase[1] == dict_deep_update(
+                dict(default_values.get('input', {})), testcase_cont['input'])
+            assert testcase[2] == dict_deep_update(
+                dict(default_values.get('output', {})), testcase_cont['output'])
             testcase_num += 1
+
+
+def test_dict_deep_update():
+    """Test dict_deep_update."""
+
+    def check(val1, val2, result):
+        assert dict_deep_update(deepcopy(val1), val2) == result
+
+    da1 = {'a': 1}
+    db2 = {'b': 2}
+    dbc3 = {'b': {'c': 3}}
+    dbc4 = {'b': {'c': 4}}
+    dbd5 = {'b': {'d': 5}}
+    dbe = {'b': {}}
+    check(None, None, None)
+    check(None, {}, {})
+    check({}, None, None)
+    check(1, {}, {})
+    check({}, da1, da1)
+    check(da1, 1, 1)
+    check(da1, db2, {'a': 1, 'b': 2})
+    check(db2, dbc3, dbc3)
+    check(dbc3, db2, db2)
+    check(da1, dbc3, {'a': 1, 'b': {'c': 3}})
+    check(dbc3, da1, {'a': 1, 'b': {'c': 3}})
+    check(dbc3, dbc4, dbc4)
+    check(dbc3, dbd5, {'b': {'c': 3, 'd': 5}})
+    check(dbd5, dbe, dbe)
 
 
 @pytest.mark.parametrize("name, input, expected", _testcases)

@@ -85,18 +85,42 @@ def collect_testcases(*filespecs, basedir=None):
 
 def expand_testcases(fname_testcases_dictlist):
     """Convert a list of (filename, test case dict) to a list of tuples."""
+
     testcases = []
+    default_values = {}
+
+    def get_output_value(d):
+        return d.get('output') or d.get('expected', {})
+
+    def get_value(default_val, base_val):
+        return (dict_deep_update(dict(default_val), base_val) if default_val
+                else base_val)
+
     # print(fname_testcases_dictlist)
     for fname, testcases_dictlist in fname_testcases_dictlist:
+        default_input = {}
+        default_output = {}
+        default_status = None
         for tcnum, tc in enumerate(testcases_dictlist):
+            if 'defaults' in tc:
+                # New defaults override (are merged to) possibly existing
+                # defaults
+                defaults = tc['defaults']
+                default_input = dict_deep_update(
+                    default_input, defaults.get('input'))
+                default_output = dict_deep_update(
+                    default_output, get_output_value(defaults))
+                default_status = defaults.get('status')
+                continue
             params = ('{} {:d}: {}'.format(fname, tcnum + 1,
                                            tc.get('name', '')),
-                      tc.get('input', {}),
-                      tc.get('output') or tc.get('expected', {}))
+                      get_value(default_input, tc.get('input', {})),
+                      get_value(default_output, get_output_value(tc)))
             # If status starts with "xfail", "skip" or "skipif", mark the test
             # accordingly.
-            if tc.get('status'):
-                status, _, reason = tc['status'].partition(':')
+            status_value = tc.get('status') or default_status
+            if status_value:
+                status, _, reason = status_value.partition(':')
                 reason = reason.strip() or None
                 if status == 'skipif':
                     mark = pytest.mark.skipif(reason)
@@ -106,6 +130,26 @@ def expand_testcases(fname_testcases_dictlist):
             else:
                 testcases.append(params)
     return testcases
+
+
+def dict_deep_update(a, b):
+    """Recursively update dict `a` from dict `b`.
+    In cases of conflict, values in `b` override those in `a`.
+    Returns updated `a`.
+    Note that contents are not copied deeply, so the result typically
+    contains references to parts of `b`. This needs to be kept in mind
+    if modifying the result.
+    Simplified from https://stackoverflow.com/a/7205107
+    """
+    if b and isinstance(b, dict) and isinstance(a, dict):
+        for key in b:
+            if (key in a and isinstance(a[key], dict)
+                    and isinstance(b[key], dict)):
+                a[key] = dict_deep_update(a[key], b[key])
+            else:
+                a[key] = b[key]
+        return a
+    return b
 
 
 def add_output_test(name, test_fn):

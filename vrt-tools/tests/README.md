@@ -45,6 +45,8 @@ structure. You can also generate such a YAML file with the
 
 ### The structure of a `scripttestlib` test
 
+#### Test cases
+
 A `scripttestlib` test contains the following information for a single
 test case:
 
@@ -130,6 +132,40 @@ test case:
 
 	The values `skip` and `xfail` may optionally be followed by a
     colon and a reason (text) for the expected failure.
+
+#### Default values
+
+The sequence of test cases may also contain items specifying default
+values for the tests that follow. Default value items contain the
+single key `defaults`, whose value is a mapping, which may contain
+keys `input`, `output` and `status`, with values as described above.
+These values become default values for the test cases that follow; the
+test cases can override the values individually. For example, the YAML
+specification
+
+    - defaults:
+	    input:
+		  cmdline: echo 'test\n'
+		  stdin: 'test\n'
+	    output:
+          stdout: 'test\n'
+	- name: Test
+	    input:
+	      cmdline: cat
+
+is equivalent to
+
+	- name: Test
+	    input:
+	      cmdline: cat
+		  stdin: 'test\n'
+	    output:
+          stdout: 'test\n'
+
+Similarly, a default values item overrides the values in a possible
+previous default values. To clear the default values completely, use
+
+    - defaults: {}
 
 
 ### Generating a test case with `make-scripttest`
