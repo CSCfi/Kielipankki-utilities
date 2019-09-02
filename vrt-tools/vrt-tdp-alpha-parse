@@ -56,6 +56,11 @@ def parsearguments():
     parser.add_argument('--word', '-w', metavar = 'name',
                         type = binxname, default = b'word',
                         help = 'input word-field name (default word)')
+    parser.add_argument('--base' , metavar = 'name',
+                        # cannot short it to -b because -b is already
+                        # short for --backup
+                        type = binxname, default = b'lemma',
+                        help = 'input base-field name (default lemma)')
     parser.add_argument('--tag', '-t', metavar = 'name',
                         type = binxname, default = b'pos',
                         help = 'input pos-tag-field name (default pos)')
@@ -209,7 +214,7 @@ def main(args, inf, ouf):
 
 def implement_main(args, inf, parser, copy):
 
-    # each "word" and "tag" go to parser, with empty line after
+    # each "word" and "tag" goes to parser, with empty line after
     # sentence; everything goes to copy in reified groups of meta and
     # data, with new "id", "dephead", "deprel" (or such) in names
 
@@ -217,7 +222,7 @@ def implement_main(args, inf, parser, copy):
     headname = args.prefix + b'head' + args.suffix
     relname = args.prefix + b'rel' + args.suffix
 
-    wf, tf, ff = None, None, None # word, tag, feat positions
+    wf, bf, tf, ff = None, None, None, None # word, base, tag, feat positions
     # found = False
     def issome(line): return not line.isspace()
     def ismeta(line): return line.startswith(b'<')
@@ -229,10 +234,11 @@ def implement_main(args, inf, parser, copy):
             meta = list(group)
             for k, line in enumerate(meta):
                 if isnames(line):
-                    wf, tf, ff = nameindices(binnamelist(line),
-                                             args.word,
-                                             args.tag,
-                                             args.feat)
+                    wf, bf, tf, ff = nameindices(binnamelist(line),
+                                                 args.word,
+                                                 args.base,
+                                                 args.tag,
+                                                 args.feat)
                     meta[k] = bininsertnames(line, args.feat,
                                              idname,
                                              headname,
@@ -262,18 +268,36 @@ def implement_main(args, inf, parser, copy):
             # to guess where the input should be - ID, FORM,
             # POS, FEAT, right? but does the parser conform?
 
+            # Update: found out the hard way that the parser _needs_
+            # PPOS and PFEAT, and it also _uses_ the base form (not
+            # bothering to check if it can do without LEMMA, POS, FEAT
+            # when given PLEMMA, PPOS, PFEAT - let it have full echo
+            # again). (FIN-CLARIN https://jira.csc.fi/browse/KP-2655)
+
             # ID tab
             parser.stdin.write(str(k).encode('UTF-8'))
             parser.stdin.write(b'\t')
-            # FORM tab LEMMA tab PLEMMA tab
+            # FORM tab
             parser.stdin.write(unescape(record[wf]))
-            parser.stdin.write(b'\t_\t_\t')
+            parser.stdin.write(b'\t')
+            # LEMMA tab PLEMMA tab
+            bv = unescape(record[bf])
+            parser.stdin.write(bv)
+            parser.stdin.write(b'\t')
+            parser.stdin.write(bv)
+            parser.stdin.write(b'\t')
             # POS tab PPOS tab
-            parser.stdin.write(unescape(record[tf]))
-            parser.stdin.write(b'\t_\t')
+            tv = unescape(record[tf])
+            parser.stdin.write(tv)
+            parser.stdin.write(b'\t')
+            parser.stdin.write(tv)
+            parser.stdin.write(b'\t')
             # FEAT tab PFEAT tab
-            parser.stdin.write(unescape(record[ff]))
-            parser.stdin.write(b'\t_\t')
+            fv = unescape(record[ff])
+            parser.stdin.write(fv)
+            parser.stdin.write(b'\t')
+            parser.stdin.write(fv)
+            parser.stdin.write(b'\t')
             # HEAD tab PHEAD tab DEPREL tab PDEPREL tab
             parser.stdin.write(b'_\t_\t_\t_\t')
             # FILLPRED tab PRED nl
