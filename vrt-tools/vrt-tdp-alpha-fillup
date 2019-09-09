@@ -12,6 +12,9 @@ from vrtnamelib import namelist, nameindices, insertnames
 
 from vrtdatalib import unescape, escape
 
+# some overrides to the omorfi transducer
+from libtdpalphalookup import additions
+
 MODELDIR = '/proj/kieli/varpunen/models'
 MODEL = 'morphology.finntreebank.hfstol'
 
@@ -193,18 +196,6 @@ def extended_cohort(form, analyses):
     }
 
     return (analyses | extCC | extCS | ext) - bad or analyses
-
-additions = {
-    # form : (lemma, tags)
-    'esimerkiksi' : { ('esimerkiksi', ('Adv',))
-    },
-    'Esimerkiksi' : { ('Esimerkiksi', ('Adv', 'Up'))
-    },
-    'mm.' : { ('mm', ('Adv',))
-    },
-    'Mm.' : { ('mm', ('Adv', 'Up'))
-    },
-}
 
 def marmot_undone(inpos, infeat):
     '''Tags from MarMoT put back into a single-list form for comparison
