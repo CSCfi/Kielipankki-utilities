@@ -226,7 +226,7 @@ additions = {
     },
 
     # TODO this might be also a noun?
-    'kottiin' : { ('kotiin' : ('Adv',)),
+    'kottiin' : { ('kotiin', ('Adv',)),
     },
 
     'alakaa' : { ('alkaa', ('V', 'Act', 'Ind', 'Prs', 'Sg3')),
@@ -280,7 +280,7 @@ additions = {
     'helevetissä' : { ('helvetti', ('N', 'Sg', 'Ine'))
     },
 
-    'saahaan' : { ('saada' : ('V', 'Pass', 'Ind', 'Prs', 'Pe4')),
+    'saahaan' : { ('saada', ('V', 'Pass', 'Ind', 'Prs', 'Pe4')),
     },
 
     'vujen' : { ('vuosi', ('N', 'Sg', 'Gen'))
