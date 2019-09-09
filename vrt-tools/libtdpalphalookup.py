@@ -18,8 +18,10 @@ additions = {
     },
 
     # Then there is the list of frequent UNK forms in Iijoki, with
-    # analyses, extracted by Melissa Eskin, edited by jpiitula.
-    # (Not sure if these are exactly in the expected format yet.)
+    # analyses, extracted by Melissa Eskin, edited by jpiitula. Not
+    # sure if these are exactly in the expected format yet, or was it
+    # a mistake to remove 'cap' from all entries, replace 'Cap' with
+    # 'Up'
 
     'oisi' : { ('olla',	('V', 'Act', 'Cond', 'Sg3')),
 	       ('olla',	('V', 'Cond', 'ConNeg'))
@@ -32,10 +34,11 @@ additions = {
 	        ('sitten', ('Pcle',)),
     },
 
-    'sillon' : { ('silloin', ('Adv',)),
-	         ('silloin', ('Pcle',)),
-	         # ('silla', ('N', 'Pl', 'Ins')),
-	         # ('silta', ( 'N', 'Pl', 'Ins'))
+    'sillon' : {
+        ('silloin', ('Adv',)),
+	('silloin', ('Pcle',)),
+	# ('silla', ('N', 'Pl', 'Ins')),
+	# ('silta', ( 'N', 'Pl', 'Ins'))
     },
 
     'meijän' : { ('minä', ('Pron', 'Pers', 'Pl', 'Gen'))
@@ -56,7 +59,7 @@ additions = {
 		   ('semmoinen', ('A', 'Pos', 'Sg', 'Nom'))
     },
 
-    'ite' : { ('itse', ('Pcle')),
+    'ite' : { ('itse', ('Pcle',)),
 	      ('itse', ('Pron', 'Refl', 'Pl', 'Gen')),
 	      ('itse', ('Pron', 'Refl', 'Pl', 'Nom')),
 	      ('itse', ('Pron', 'Refl', 'Sg', 'Gen')),
@@ -104,7 +107,7 @@ additions = {
 	('ainakin', ('Pcle',))
     },
 
-    'semmosta' : { ('semmoinen', ('Pron', 'Sg', 'Par', 'cap				')),
+    'semmosta' : { ('semmoinen', ('Pron', 'Sg', 'Par')),
 		   ('semmoinen', ('A', 'Pos', 'Sg', 'Par'))
     },
 
@@ -136,7 +139,7 @@ additions = {
 	         ('tarvita', ('V', 'Ind', 'Prs', 'ConNeg'))
     },
 
-    'tiijä' : { ('tietää', ('V', 'Act', 'Imrt', 'Sg2')),
+    'tiijä' : { ('tietää', ('V', 'Act', 'Imprt', 'Sg2')),
 	        ('tietää', ('V', 'Ind', 'Prs', 'ConNeg'))
     },
 
@@ -203,7 +206,7 @@ additions = {
     },
 
     # TO CHECK is this really singular in Iijoki?
-    'sottain' : { ('sodan', ('N', 'Sg', 'Gen'))
+    'sottain' : { ('sota', ('N', 'Sg', 'Gen'))
     },
 
     'Tessun' : { ('Tessu', ('N', 'Prop', 'Sg', 'Gen', 'Up'))
@@ -230,7 +233,7 @@ additions = {
     },
 
     'alakaa' : { ('alkaa', ('V', 'Act', 'Ind', 'Prs', 'Sg3')),
-	         ('alkaa', ('V', 'Act', 'Infl', 'Sg', 'Lat'))
+	         ('alkaa', ('V', 'Act', 'Inf1', 'Sg', 'Lat'))
     },
 
     'palajo' : { ('paljon', ('Adv',))
@@ -256,7 +259,7 @@ additions = {
     'assia' : { ('asia', ('N', 'Sg', 'Nom'))
     },
 
-    'nähä' : { ('nähdä', ('V', 'Act', 'Infl', 'Sg', 'Lat')),
+    'nähä' : { ('nähdä', ('V', 'Act', 'Inf1', 'Sg', 'Lat')),
 	       ('nähdä', ('V', 'Pass', 'Ind', 'Prs', 'Pe4', 'ConNeg'))
     },
 
@@ -310,7 +313,7 @@ additions = {
     },
 
     # TO CHECK base form in Iijoki
-    'Väinin' : { ('Kallen', ('N', 'Prop', 'Sg', 'Gen'))
+    'Väinin' : { ('Väini', ('N', 'Prop', 'Sg', 'Gen'))
     },
 
     'äitin' : { ('äiti', ('N', 'Sg', 'Gen'))
@@ -396,3 +399,195 @@ additions = {
     'meijät' : { ('minä', ('Pron', 'Pers', 'Pl', 'Acc'))
     },
 }
+
+
+TAGCAT = {
+    'Abe' : 'CASE',
+    'Abl' : 'CASE',
+    'Acc' : 'CASE',
+    'Ade' : 'CASE',
+    'All' : 'CASE',
+    'cap' : 'CASECHANGE',
+    'Cap' : 'CASECHANGE',
+    'CAP' : 'CASECHANGE',
+    'Up' : 'CASECHANGE',
+    'Com' : 'CASE',
+    'Dis' : 'CASE',
+    'Ela' : 'CASE',
+    'Ess' : 'CASE',
+    'Gen' : 'CASE',
+    'Ill' : 'CASE',
+    'Ine' : 'CASE',
+    'Ins' : 'CASE',
+    'Lat' : 'CASE',
+    'Nom' : 'CASE',
+    'Par' : 'CASE',
+    'Prl' : 'CASE',
+    'Sti' : 'CASE',
+    'Tra' : 'CASE',
+    'Foc_han' : 'CLIT',
+    'Foc_ka' : 'CLIT',
+    'Foc_kaan' : 'CLIT',
+    'Foc_kin' : 'CLIT',
+    'Foc_pa' : 'CLIT',
+    'Foc_s' : 'CLIT',
+    'Qst' : 'CLIT',
+
+    # Q. Is Qst+Foc_s one tag or two?
+    # A. Two. It comes from marmot.
+    # Q. Do we have Qst+Foc_s in Korp?
+    # A. Doubt it.
+    # Q. Does + appear in other tags?
+    # A. At least in Qst+Foc_han.
+
+    'Comp' : 'CMP',
+    'Pos' : 'CMP',
+    'Superl' : 'CMP',
+    'Der_inen' : 'DRV',
+    'Der_ja' : 'DRV',
+    'Der_lainen' : 'DRV',
+    'Der_llinen' : 'DRV',
+    'Der_maisilla' : 'DRV',
+    'Der_minen' : 'DRV',
+    'Der_oi' : 'DRV',
+    'Der_sti' : 'DRV',
+    'Der_tar' : 'DRV',
+    'Der_tattaa' : 'DRV',
+    'Der_tatuttaa' : 'DRV',
+    'Der_ton' : 'DRV',
+    'Der_tse' : 'DRV',
+    'Der_ttaa' : 'DRV',
+    'Der_ttain' : 'DRV',
+    'Der_u' : 'DRV',
+    'Der_vs' : 'DRV',
+    'Inf1' : 'INF',
+    'Inf2' : 'INF',
+    'Inf3' : 'INF',
+    'Inf5' : 'INF',
+    'Cond' : 'MOOD',
+    'Eve' : 'MOOD',
+    'Imprt' : 'MOOD',
+    'Ind' : 'MOOD',
+    'Opt' : 'MOOD',
+    'Pot' : 'MOOD',
+    'ConNeg' : 'NEG',
+    'Pl' : 'NUM',
+    'Sg' : 'NUM',
+    'AgPcp' : 'PCP',
+    'Pcp' : 'PCP',
+    'PrfPrc' : 'PCP',
+    'PrsPrc' : 'PCP',
+    'A' : 'POS',
+    'Adp' : 'POS',
+    'Adv' : 'POS',
+    'C' : 'POS',
+    'Interj' : 'POS',
+    'N' : 'POS',
+    'Null' : 'POS',
+    'Num' : 'POS',
+    'Pcle' : 'POS',
+    'Pron' : 'POS',
+    'Punct' : 'POS',
+    'PxPl1' : 'POSS',
+    'PxPl2' : 'POSS',
+    'PxPl3' : 'POSS',
+    'PxSg1' : 'POSS',
+    'PxSg2' : 'POSS',
+    'PxSg3' : 'POSS',
+    'Px3' : 'POSS',
+    'V' : 'POS',
+    'Pe4' : 'PRS',
+    'Pl1' : 'PRS',
+    'Pl2' : 'PRS',
+    'Pl3' : 'PRS',
+    'Sg1' : 'PRS',
+    'Sg2' : 'PRS',
+    'Sg3' : 'PRS',
+    'Abbr' : 'SUBCAT',
+    'Acro' : 'SUBCAT',
+    'Approx' : 'SUBCAT',
+    'Card' : 'SUBCAT',
+    'CC' : 'SUBCAT',
+    'CS' : 'SUBCAT',
+    'Dem' : 'SUBCAT',
+    'Indef' : 'SUBCAT',
+    'Interr' : 'SUBCAT',
+    'Neg' : 'SUBCAT',
+    'Ord' : 'SUBCAT',
+    'Para' : 'SUBCAT',
+    'Pers' : 'SUBCAT',
+    'Pfx' : 'SUBCAT',
+    'Po' : 'SUBCAT',
+    'Pr' : 'SUBCAT',
+    'Prop' : 'SUBCAT',
+    'Qnt' : 'SUBCAT',
+    'Real' : 'SUBCAT',
+    'Recipr' : 'SUBCAT',
+    'Refl' : 'SUBCAT',
+    'Rel' : 'SUBCAT',
+    'Sent' : 'SUBCAT',
+    'Sfx' : 'SUBCAT',
+    'Prs' : 'TENSE',
+    'Prt' : 'TENSE',
+    'Act' : 'VOICE',
+    'Pass' : 'VOICE',
+    'Typo' : 'OTHER',
+    'Cllq' : 'OTHER',
+    'Trash' : 'POS',
+    'Symb' : 'POS',
+    'Foreign' : 'POS',
+    'UNK' : 'OTHER',
+}
+
+if __name__ == '__main__':
+    print('sanity check on all additions table entries:')
+
+    if not isinstance(additions, dict):
+        print('bad additions table')
+        exit(1)
+
+    ok = True
+    for word, readings in additions.items():
+        if not (isinstance(word, str) and word):
+            print('bad word:', repr(word))
+            ok = False
+        if not (isinstance(readings, set) and readings):
+            print('bad reading set on word:', repr(word))
+            ok = False
+        else:
+            for reading in readings:
+                if not (isinstance(reading, tuple) and len(reading) == 2):
+                    print('bad reading on word:', repr(word))
+                    ok = False
+                else:
+                    base, tags = reading
+                    if not (isinstance(base, str) and base):
+                        print('bad base form on word:', repr(word))
+                        ok = False
+                    if not (isinstance(tags, tuple) and tags):
+                        print('bad tags on word:', repr(word))
+                        ok = False
+
+    if not ok:
+        print('bad entries found, not checking tags')
+        exit(1)
+
+    # the above type check was tested with various manually inserted
+    # entries during development and seemed to work as intended
+
+    bad = {
+        (repr(word), repr(tag))
+        for word, readings in additions.items()
+        for base, tags in readings
+        for tag in tags
+        if tag not in TAGCAT
+    }
+
+    if not bad:
+        print('all tags in all entries recognized')
+        exit(0)
+
+    print('unrecognized tags found')
+    for word, tag in bad:
+        print(tag, 'in', word)
+    exit(1)
