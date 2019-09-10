@@ -149,9 +149,10 @@ additions = {
     'Tessu' : { ('Tessu', ('N', 'Prop', 'Sg', 'Nom'))
     },
 
-    'tosijaan' : { ('tosiaan', ('Pcle',)),
-		   # ('tosi', ('A', 'Pos', 'Pl', 'Par', 'Px13')),
-		   # ('tosi', ('A', 'Pos', 'Pl', 'Par', 'PxSg3'))
+    'tosijaan' : {
+        ('tosiaan', ('Pcle',)),
+	# ('tosi', ('A', 'Pos', 'Pl', 'Par', 'Px13')),
+	# ('tosi', ('A', 'Pos', 'Pl', 'Par', 'PxSg3'))
     },
 
     'lähen' : { ('lähteä', ('V', 'Act', 'Ind', 'Prs', 'Sg1'))
@@ -205,8 +206,8 @@ additions = {
     'Heikinkallio' : { ('Heikinkallio', ('N', 'Prop', 'Sg', 'Nom'))
     },
 
-    # TO CHECK is this really singular in Iijoki?
-    'sottain' : { ('sota', ('N', 'Sg', 'Gen'))
+    # believe the examples to be "sotien" rather than "sodan"
+    'sottain' : { ('sota', ('N', 'Pl', 'Gen'))
     },
 
     'Tessun' : { ('Tessu', ('N', 'Prop', 'Sg', 'Gen', 'Up'))
@@ -224,11 +225,14 @@ additions = {
     'poijat' : { ('poika', ('N', 'Pl', 'Nom')),
     },
 
-    'jonku' : { ('joku', ('Pron', 'Sg', 'Gen')),
-	        # ('jonkun', ('Pron', 'Sg', 'Ins'))
+    # or should Ins be retained for this word?
+    'jonku' : {
+        ('joku', ('Pron', 'Sg', 'Gen')),
+	# ('jonkun', ('Pron', 'Sg', 'Ins'))
     },
 
-    # TODO this might be also a noun?
+    # "kotiin" might be also a noun in two ways - either "kota" Pl Ill
+    # or "koti" Sg Ill - oh well
     'kottiin' : { ('kotiin', ('Adv',)),
     },
 
@@ -312,7 +316,6 @@ additions = {
     'ainakaa' : { ('ainakaan', ('Pcle',))
     },
 
-    # TO CHECK base form in Iijoki
     'Väinin' : { ('Väini', ('N', 'Prop', 'Sg', 'Gen'))
     },
 
@@ -322,10 +325,10 @@ additions = {
     'meleko' : { ('melko', ('Pcle',))
     },
 
-    # TO CHECK ANALYSIS
+    # eww
     'terviisiä' : {
-        ('terveisiä', ('Der_inen', 'A', 'Pos', 'Pl', 'Par')),
-	('terveisiä', ('N', 'Pl', 'Par'))
+        # ('terveisiä', ('Der_inen', 'A', 'Pos', 'Pl', 'Par')),
+	('terveinen', ('N', 'Pl', 'Par'))
     },
 
     'huommenna' : { ('huomenna', ('Adv',))
@@ -378,14 +381,14 @@ additions = {
     'Lähen' : { ('lähteä', ('V', 'Act', 'Ind', 'Prs', 'Sg1', 'Up'))
     },
 
-    # TO CHECK: is this really 'aika' rather than 'aita' in Iijoki?
-    'aijan' : { ('ajan', ('N', 'Sg', 'Gen'))
+    # some examples (in Iijoki) are "aidan" but more are "ajan"
+    'aijan' : { ('aika', ('N', 'Sg', 'Gen'))
     },
 
     'ainaskaa' : { ('ainakaan', ('Pcle',))
     },
 
-    # TODO surely this should rather be Adv?
+    # "kohdalla" has only this analysis in the transducer
     'kohalla' : { ('kohta', ('N', 'Sg', 'Ade'))
     },
 
