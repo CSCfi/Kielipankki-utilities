@@ -253,7 +253,7 @@ def implement_combine(args, fine, copy, out):
             [
                 form, lemma, msd, aux, nertag
             ] = asrecord(new)
-            old.insert(at + 1, escape(nertag) or b'_')
+            old.insert(at + 1, escape(nertag.strip(b'<>')) or b'_')
             old.insert(at + 1, escape(kvpairs(args, aux)) or b'_')
             old.insert(at + 1, escape(kvpairs(args, msd)) or b'_')
             old.insert(at + 1, escape(lemma) or b'_')
