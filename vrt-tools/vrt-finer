@@ -18,7 +18,8 @@ from vrtnamelib import bininsertnames as insertnames
 from vrtdatalib import binasrecord as asrecord
 from vrtdatalib import binescape as escape, binunescape as unescape
 
-from outsidelib import FINER, HFSTBIN, HFSTLIB, prebins, prelibs, utf8ish
+from outsidelib import FINER132, FINER140, HFSTBIN, HFSTLIB
+from outsidelib import prebins, prelibs, utf8ish
 
 def parsearguments():
     description = '''
@@ -45,6 +46,11 @@ def parsearguments():
                         type = binxrest, default = b'',
                         help = 'suffix to output field names')
 
+    parser.add_argument('--tagtools',
+                        choices = ['1.3.2', '1.4.0'],
+                        default = '1.4.0',
+                        help = 'tagtools version (1.4.0)')
+
     args = parser.parse_args()
     args.prog = parser.prog
     return args
@@ -60,6 +66,12 @@ def terminate(proc):
 
 def main(args, ins, ous):
 
+    FINER = (
+        FINER132 if args.tagtools == '1.3.2' else
+        FINER140 if args.tagtools == '1.4.0' else
+        # this cannot happen
+        'nosuchfiner'
+    )
     with Popen([ FINER, '--no-tokenize', '--show-analyses' ],
                env = dict(os.environ,
 
