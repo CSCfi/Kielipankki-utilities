@@ -138,7 +138,7 @@ def implement_main(args, ins, fine, copy):
             if token.startswith(b'---') and len(set(token)) == 1:
                 # underlying tool dumps core on a multi-dash token
                 # (a component in tagtools 1.3.2, 1.4.0 at least)
-                # https://jira.csc.fi/browse/KP-2710
+                # https://jira.csc.fi/browse/KP-2704
                 fine.stdin.write(b'-\n')
             else:
                 fine.stdin.write(token)
