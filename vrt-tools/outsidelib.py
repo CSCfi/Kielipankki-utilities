@@ -21,8 +21,14 @@ HFSTLIB = '/appl/ling/hfst/3.15.0/lib'
 
 # no longer using HFSTTOKENIZE? but find it in HFSTBIN?
 HFSTTOKENIZE = '/appl/ling/hfst/3.15.0/bin/hfst-tokenize'
-OMORFITOKENIZE = (
+
+OMORFITOKENIZE132 = (
     '/appl/ling/finnish-tagtools/1.3.2/share/finnish-tagtools'
+    '/omorfi_tokenize.pmatch'
+)
+
+OMORFITOKENIZE140 = (
+    '/appl/ling/finnish-tagtools/1.4.0/share/finnish-tagtools'
     '/omorfi_tokenize.pmatch'
 )
 
