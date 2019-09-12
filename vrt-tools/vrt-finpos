@@ -126,10 +126,10 @@ def implement_main(args, ins, finpos, copy):
                 # underlying tool dumps core on a multi-dash token
                 # (a component in tagtools 1.3.2, 1.4.0 at least)
                 # https://jira.csc.fi/browse/KP-2704
-                fine.stdin.write(b'-\n')
+                finpos.stdin.write(b'-\n')
             else:
-                fine.stdin.write(token)
-                fine.stdin.write(b'\n')
+                finpos.stdin.write(token)
+                finpos.stdin.write(b'\n')
         else:
             finpos.stdin.write(b'\n')
             finpos.stdin.flush()
