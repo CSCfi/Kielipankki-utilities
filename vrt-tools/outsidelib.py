@@ -34,8 +34,12 @@ FINER140 = (
     '/appl/ling/finnish-tagtools/1.4.0/bin/finnish-nertag'
 )
 
-FINPOS =  (
+FINPOS132 =  (
     '/appl/ling/finnish-tagtools/1.3.2/bin/finnish-postag'
+)
+
+FINPOS140 =  (
+    '/appl/ling/finnish-tagtools/1.4.0/bin/finnish-postag'
 )
 
 HUNPOSTAG = '/proj/kieli/sparv/hunpos/hunpos-tag'
