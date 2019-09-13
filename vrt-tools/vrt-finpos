@@ -174,12 +174,12 @@ def implement_main(args, ins, finpos, copy):
         copy.put(())
 
 def kvpairs(args, pairs):
-    '''Rewrite [k1=v1]|[k2=v2] as k1=v1|k2=v2, assuming that brackets and
+    '''Rewrite [k1=v1]|[k2=v2] as k1=v1,k2=v2, assuming that brackets and
     bars do not occur otherwise.
 
     '''
 
-    return pairs.strip(b'[]').replace(b']|[', b'|')
+    return pairs.strip(b'[]').replace(b']|[', b',')
 
 def combine(args, finpos, copy, out):
     '''Read finpos output (word TAB lemma TAB msd NL / NL) and flat vrt
