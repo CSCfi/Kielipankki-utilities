@@ -269,7 +269,7 @@ class BasicInputProcessor(Runner):
     """An abstract class for a script processing input."""
 
     def __init__(self, args=None, **kwargs):
-        super(BasicInputProcessor, self).__init__(args, **kwargs)
+        super(BasicInputProcessor, self).__init__(**kwargs)
         self._linenr = 0
         self._filename = None
         # FIXME: These are not yet the codecs versions, since they are
