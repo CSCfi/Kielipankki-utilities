@@ -235,6 +235,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         if continued_line:
             optspec_lines.append(' '.join(continued_line))
         self._add_optspec(optspec_lines)
+        if not self._optgroups:
+            self._add_optgroup([])
 
     def _add_optspec(self, optspec_lines, optgroup=None, prepend=False):
         if not optspec_lines:
