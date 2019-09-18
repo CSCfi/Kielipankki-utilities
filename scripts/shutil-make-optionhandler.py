@@ -255,6 +255,11 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                             for name in optspec['optnames'].split('|')]
         # print repr(optspec_lines[0]), repr(optspec)
         for name in optspec['names']:
+            try:
+                _ = name.encode('ascii')
+            except UnicodeEncodeError as e:
+                self.error(u'Invalid non-ASCII option name: ' + name)
+        for name in optspec['names']:
             self._optspec_map[name.strip('-')] = optspec
         optspec['defaulttrue'] = (optspec['targetneg'] == '!')
         if not optspec['target']:
@@ -311,7 +316,11 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                 optopts['action'] = 'append'
             # print repr(optspec['names']), repr(optopts)
             optparser.add_option(*optspec['names'], **optopts)
-        self._opts, self._args = optparser.parse_args()
+        try:
+            self._opts, self._args = optparser.parse_args()
+        except UnicodeDecodeError as e:
+            self.error('Probably a non-ASCII character in an option name on'
+                       ' the command-line: ' + str(e))
         config_file_opt = self._opts._config_file_option_name
         if config_file_opt:
             optval = getattr(self._opts,
@@ -330,14 +339,17 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
 
         """Add a [Default] section at the beginning of the config file."""
 
-        def __init__(self, fname, encoding='utf-8'):
+        def __init__(self, fname, encoding='utf-8-sig'):
             self._first = True
+            # Handle possible BOM at the beginning (in a file from Windows)
+            if encoding == 'utf-8':
+                encoding = 'utf-8-sig'
             self._file = codecs.open(fname, 'r', encoding=encoding)
 
         def readline(self):
             if self._first:
                 self._first = False
-                return '[Default]\n'
+                return '[Default]\n'.decode(self._file.encoding)
             else:
                 return self._file.readline()
 
@@ -389,7 +401,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         try:
             confparser = configparser.SafeConfigParser(
                 dict_type=self.ListExtendDict)
-            confparser.optionxform = str
+            confparser.optionxform = unicode
             confparser.readfp(reader, self._opts._config_file)
             reader.close()
             # raw=True: Do not expand %(...) variable references in
@@ -437,8 +449,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         for sectname in sectnames:
             self.output(self._opts._output_section_format.format(
                 name=sectname,
-                content=(getattr(self, '_make_output_' + sectname)()
-                         .decode(self._input_encoding or 'utf-8'))))
+                content=(getattr(self, '_make_output_' + sectname)())))
 
     def _shell_quote(self, text, type_='double'):
         quote1 = '"' if type_ == 'double' else '\''
