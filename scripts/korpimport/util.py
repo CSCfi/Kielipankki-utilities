@@ -149,7 +149,7 @@ class PartialStringFormatter(string.Formatter):
                 value, spec)
 
 
-def run(main, input_encoding='utf-8', output_encoding='utf-8', *args, **kwargs):
+def run(main, input_encoding='utf-8', output_encoding='utf-8-sig', *args, **kwargs):
     """Run the main function; catch IOErrors and KeyboardInterrupt."""
     try:
         if input_encoding:
@@ -180,7 +180,7 @@ class Runner(object):
     write to output (sys.stdout).
     """
 
-    def __init__(self, input_encoding='utf-8', output_encoding='utf-8'):
+    def __init__(self, input_encoding='utf-8-sig', output_encoding='utf-8'):
         self._input_encoding = input_encoding
         self._output_encoding = output_encoding
         self._opts = self._args = None
