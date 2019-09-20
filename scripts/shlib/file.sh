@@ -28,13 +28,13 @@ find_existing_dir () {
 find_filegroup () {
     filegroup=
     for grp in $@; do
-	if groups | grep -qw $grp; then
+	if groups 2> /dev/null | grep -qw $grp; then
 	    filegroup=$grp
 	    break
 	fi
     done
     if [ "x$filegroup" = x ]; then
-	filegroup=`groups | cut -d' ' -f1`
+	filegroup=`groups 2> /dev/null | cut -d' ' -f1`
     fi
 }
 
