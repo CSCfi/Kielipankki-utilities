@@ -123,11 +123,29 @@ cat_noargs () {
     cat
 }
 
+# Encode &, <, > and " as XML character references in structural
+# attribute values, as cwb-encode -Cx appears not to do that. If
+# cwb-encode is ever changed to do that, this will have to be removed.
+perl_make_entities='
+    $attrval =~ s/&/&amp;/g;
+    $attrval =~ s/</&lt;/g;
+    $attrval =~ s/>/&gt;/g;
+    $attrval =~ s/"/&quot;/g;
+'
+
 process_tags_single () {
     # This is somewhat faster than using sed, but not significantly
     # faster than process_tags_multi below
-    perl -pe 's/^(<[^\/_\s]*)_([^ ]*) ([^>]*)>/$1 $2="$3">/;
-              s/^(<\/[^_]*)_.*>/$1>/;'
+    perl -ne '
+        if (/^(<[^\/_\s]*)_([^ ]*) ([^>]*)>/) {
+	    ($tag, $attrname, $attrval) = ($1, $2, $3);
+	    '"$perl_make_entities"'
+	    print "$tag $attrname=\"$attrval\">\n";
+	} else {
+	    s/^(<\/[^_]*)_.*>/$1>/;
+	    print;
+	}
+    '
 }
 
 process_tags_multi () {
@@ -135,7 +153,7 @@ process_tags_multi () {
         BEGIN {
             $prevtag = $tag = $attrs = "";
         }
-        if (/^(<[^\/_\s]*)(?:_([^ ]*) ([^>]*))?>/) {
+        if (/^(<[^\/_\s]*)(?:_([^ ]*) (.*))?>$/) {
             $tag = $1;
             if ($tag ne $prevtag && $attrs) {
                 print "$prevtag$attrs>\n";
@@ -143,7 +161,10 @@ process_tags_multi () {
             }
             $prevtag = $tag;
 	    if ($2) {
-                $attrs .= " $2=\"$3\"";
+		$attrname = $2;
+		$attrval = $3;
+		'"$perl_make_entities"'
+		$attrs .= " $attrname=\"$attrval\"";
 	    }
         } elsif (/^(<\/[^_]*)(_.*)?>/) {
             $tag = $1;
