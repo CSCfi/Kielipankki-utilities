@@ -147,7 +147,7 @@ process_tags_multi () {
 add_attribute_comment () {
     gawk 'NR == 1 {
               if (/^<\?xml/) { print }
-              print "<!-- Positional attributes: '"$pos_attrs"' -->";
+              print "<!-- #vrt positional-attributes: '"$pos_attrs"' -->";
               if (/^<\?xml/) { next }
           }
           { print }'
