@@ -33,6 +33,8 @@ include-corpus-element
 omit-attribute-comment
     omit the comment listing the positional attributes shown at the top of
     the output VRT
+omit-log-comment
+    omit the comment containing information about the run of the script
 vrt-file-name-template|output-file=FILE "{corpid}.vrt" outfile_templ
     write the output VRT to file named FILE, where {corpid} is replaced
     with the corpus id; FILE may contain a directory part as well; use - to
@@ -110,10 +112,10 @@ else
     tail_filter=cat
 fi
 
-if [ "x$omit_attribute_comment" = x ]; then
-    add_attribute_comment=add_attribute_comment
+if [ "x$omit_attribute_comment" = x ] || [ "x$omit_log_comment" = x ]; then
+    add_vrt_comments=prepend_vrt_comments
 else
-    add_attribute_comment=cat_noargs
+    add_vrt_comments=cat_noargs
 fi
 
 cat_noargs () {
@@ -158,19 +160,46 @@ process_tags_multi () {
         }'
 }
 
-add_attribute_comment () {
-    local pos_attrs
-    pos_attrs=$1
-    gawk 'NR == 1 {
-              if (/^<\?xml/) { print }
-              print "<!-- #vrt positional-attributes: '"$pos_attrs"' -->";
-              if (/^<\?xml/) { next }
-          }
-          { print }'
+prepend_vrt_comments () {
+    # Each comment is an argument of its own; empty arguments are
+    # excluded
+    awk '
+        BEGIN {
+	    for (i = 1; i < ARGC; i++) {
+	        if (ARGV[i]) {
+	            comments[i] = ARGV[i]
+		}
+            }
+            ARGC = 0
+        }
+	NR == 1 {
+	    if (/^<\?xml/) { print }
+            for (i in comments) {
+	        print "<!-- #vrt " comments[i] " -->"
+	    }
+	    if (/^<\?xml/) { next }
+	}
+	{ print }
+    ' "$@"
+}
+
+make_log_info () {
+    # This imitates a proposal for the VRT Tools log comment format,
+    # which is still subject to change (2019-09-20)
+    local corp timestamp userinfo version freetext command args
+    corp=$1
+    timestamp="time: $(date +'%Y-%m-%d %H:%M:%S %z')"
+    userinfo="user: $USER@$HOSTNAME"
+    # What should be the version, if any?
+    version="version: FIN-CLARIN corpus processing scripts (undefined version)"
+    descr="description: Generated VRT from CWB data for corpus \"$corp\""
+    script="script: $(basename $0)"
+    args="arguments: $cmdline_args_orig"
+    echo "process-log: $timestamp | $descr | $script | $args | $version | $userinfo"
 }
 
 extract_vrt () {
-    local corp verbose_msg outfile
+    local corp verbose_msg outfile log_comment attr_comment
     corp=$1
     verbose_msg="Writing VRT output of corpus $corp to"
     if [ "x$outfile_templ" != "x-" ]; then
@@ -192,13 +221,19 @@ extract_vrt () {
 	# separated by spaces
 	pos_attrs=$(echo $(corpus_list_attrs $corp p))
     fi
+    if [ "x$omit_log_comment" = x ]; then
+	log_comment="$(make_log_info $corp)"
+    fi
+    if [ "x$omit_attribute_comment" = x ]; then
+	attr_comment="${comments}positional-attributes: $pos_attrs"
+    fi
     $cwb_bindir/cwb-decode -Cx $corp $attr_opts |
     # This is faster than calling vrt-convert-chars.py --decode
     perl -CSD -pe 's/\x{007f}/ /g; s/\x{0080}/\//g; s/\x{0081}/&lt;/g; s/\x{0082}/&gt;/g; s/\x{0083}/|/g' |
     $process_tags |
     eval "$head_filter" |
     $tail_filter |
-    $add_attribute_comment "$pos_attrs" > $outfile
+    $add_vrt_comments "$log_comment" "$attr_comment" > $outfile
 }
 
 
