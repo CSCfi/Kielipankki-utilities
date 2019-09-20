@@ -23,6 +23,8 @@ positional-attributes|pos-attrs=ATTRLIST "word" pos_attrs
     output the positional attributes listed in ATTRLIST, separated by spaces
 structural-attributes|struct-attrs=ATTRLIST "text sentence" struct_attrs
     output the structural attributes listed in ATTRLIST, separated by spaces
+all-attributes|all all_attrs
+    output all positional and structural attributes in the corpora
 include-xml-declaration
     include XML declaration in the output (omitted by default)
 include-corpus-element
@@ -55,30 +57,35 @@ fi
 
 corpora=$(list_corpora "$@")
 
-struct_attrs_lines=$(echo $struct_attrs | tr ' ' '\n')
-struct_attrs_multi=$(
-    echo "$struct_attrs_lines" | sort | sed -e 's/_.*//' | uniq -d)
-# Filter out structural attributes without values (corresponding to
-# XML tags without attributes) if they also occur with a value (XML
-# tags with attributes), since the tag will be output anyway and so
-# that process_tags_multi needs not take into account attributes
-# without values.
-struct_attrs=$(
-    echo "$struct_attrs_lines" |
-    perl -e '$r = "^(" . join("|", qw('"$struct_attrs_multi"')) . ")\$";
-             while (<>) { print if ($_ !~ $r); }'
-)
-
-attr_opts="$(add_prefix '-P ' $pos_attrs) $(add_prefix '-S ' $struct_attrs)"
-
-if [ "${struct_attrs#*_}" != "$struct_attrs" ]; then
-    if [ "x$struct_attrs_multi" != x ]; then
-	process_tags=process_tags_multi
-    else
-	process_tags=process_tags_single
-    fi
+if [ "x$all_attrs" != x ]; then
+    struct_attrs=
+    pos_attrs=
+    attr_opts=-ALL
+    process_tags=process_tags_multi
 else
-    process_tags=cat
+    struct_attrs_lines=$(echo $struct_attrs | tr ' ' '\n')
+    struct_attrs_multi=$(
+	echo "$struct_attrs_lines" | sort | sed -e 's/_.*//' | uniq -d)
+    # Filter out structural attributes without values (corresponding to
+    # XML tags without attributes) if they also occur with a value (XML
+    # tags with attributes), since the tag will be output anyway and so
+    # that process_tags_multi needs not take into account attributes
+    # without values.
+    struct_attrs=$(
+	echo "$struct_attrs_lines" |
+	perl -e '$r = "^(" . join("|", qw('"$struct_attrs_multi"')) . ")\$";
+		 while (<>) { print if ($_ !~ $r); }'
+    )
+    attr_opts="$(add_prefix '-P ' $pos_attrs) $(add_prefix '-S ' $struct_attrs)"
+    if [ "${struct_attrs#*_}" != "$struct_attrs" ]; then
+	if [ "x$struct_attrs_multi" != x ]; then
+	    process_tags=process_tags_multi
+	else
+	    process_tags=process_tags_single
+	fi
+    else
+	process_tags=cat
+    fi
 fi
 
 if [ "x$include_corpus_element" = x ]; then
@@ -106,8 +113,13 @@ fi
 if [ "x$omit_attribute_comment" = x ]; then
     add_attribute_comment=add_attribute_comment
 else
-    add_attribute_comment=cat
+    add_attribute_comment=cat_noargs
 fi
+
+cat_noargs () {
+    # Ignore possible arguments
+    cat
+}
 
 process_tags_single () {
     # This is somewhat faster than using sed, but not significantly
@@ -121,15 +133,17 @@ process_tags_multi () {
         BEGIN {
             $prevtag = $tag = $attrs = "";
         }
-        if (/^(<[^\/_\s]*)_([^ ]*) ([^>]*)>/) {
+        if (/^(<[^\/_\s]*)(?:_([^ ]*) ([^>]*))?>/) {
             $tag = $1;
             if ($tag ne $prevtag && $attrs) {
                 print "$prevtag$attrs>\n";
                 $attrs = "";
             }
             $prevtag = $tag;
-            $attrs .= " $2=\"$3\"";
-        } elsif (/^(<\/[^_]*)_.*>/) {
+	    if ($2) {
+                $attrs .= " $2=\"$3\"";
+	    }
+        } elsif (/^(<\/[^_]*)(_.*)?>/) {
             $tag = $1;
             if ($tag ne $prevtag) {
                 print "$tag>\n";
@@ -145,6 +159,8 @@ process_tags_multi () {
 }
 
 add_attribute_comment () {
+    local pos_attrs
+    pos_attrs=$1
     gawk 'NR == 1 {
               if (/^<\?xml/) { print }
               print "<!-- #vrt positional-attributes: '"$pos_attrs"' -->";
@@ -171,13 +187,18 @@ extract_vrt () {
 	outfile=/dev/stdout
 	echo_verb "$verbose_msg standard output" >&2
     fi
+    if [ "x$all_attrs" != x ]; then
+	# Use echo to get the attribute names on the same line,
+	# separated by spaces
+	pos_attrs=$(echo $(corpus_list_attrs $corp p))
+    fi
     $cwb_bindir/cwb-decode -Cx $corp $attr_opts |
     # This is faster than calling vrt-convert-chars.py --decode
     perl -CSD -pe 's/\x{007f}/ /g; s/\x{0080}/\//g; s/\x{0081}/&lt;/g; s/\x{0082}/&gt;/g; s/\x{0083}/|/g' |
     $process_tags |
     eval "$head_filter" |
     $tail_filter |
-    $add_attribute_comment > $outfile
+    $add_attribute_comment "$pos_attrs" > $outfile
 }
 
 
