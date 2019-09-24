@@ -48,32 +48,34 @@ FINPOS140 =  (
     '/appl/ling/finnish-tagtools/1.4.0/bin/finnish-postag'
 )
 
-HUNPOSTAG = '/proj/kieli/sparv/hunpos/hunpos-tag'
+HUNPOSTAG = '/appl/ling/hunpos/1.0/bin/hunpos-tag'
+
+SPARVDIR = '/appl/ling/sparv_pipeline/2.0_MIT_2017-10-23'
 
 HUNPOSMODELS = dict(
-    sparv = ( '/proj/kieli/sparv/models/'
-              'hunpos.suc3.suc-tags.default-setting.utf8.model'
-    ),
+    sparv = os.path.join(SPARVDIR, 'models',
+                         'hunpos.suc3.suc-tags.default-setting.utf8.model'),
 )
 
-MALTPARSER = '/proj/kieli/sparv/maltparser-1.7.2/maltparser-1.7.2.jar'
-SWEMALTDIR = '/proj/kieli/sparv/models/swemalt-1.7.2-wd'
+MALTPARSER = os.path.join(SPARVDIR, 'jars', 'maltparser-1.7.2.jar')
+SWEMALTDIR = os.path.join(SPARVDIR, 'models')
 SWEMALTMODEL = 'swemalt-1.7.2'
 
-CSTLEMMA = '/proj/kieli/sparv/cstlemma'
+CSTLEMMA = os.path.join(SPARVDIR, 'bin', 'cstlemma')
 
 CSTLEMMAMODELS = dict(
+    # model options: variants of dictionary (*.dict) and rules (*.flex)
     saldo = [
-        '-d', '/proj/kieli/sparv/models/saldo.cstlemma.dict', # dictionary
-        '-f', '/proj/kieli/sparv/models/saldo.cstlemma.flex', # rules
+        '-d', os.path.join(SPARVDIR, 'models', 'saldo.cstlemma.dict'),
+        '-f', os.path.join(SPARVDIR, 'models', 'saldo.cstlemma.flex'),
     ],
     suc = [
-        '-d', '/proj/kieli/sparv/models/suc.cstlemma.dict', # dictionary
-        '-f', '/proj/kieli/sparv/models/suc.cstlemma.flex', # rules
+        '-d', os.path.join(SPARVDIR, 'models', 'suc.cstlemma.dict'),
+        '-f', os.path.join(SPARVDIR, 'models', 'suc.cstlemma.flex'),
     ],
     sucsaldo = [
-        '-d', '/proj/kieli/sparv/models/suc-saldo.cstlemma.dict', # dictionary
-        '-f', '/proj/kieli/sparv/models/suc-saldo.cstlemma.flex', # rules
+        '-d', os.path.join(SPARVDIR, 'models', 'suc-saldo.cstlemma.dict'),
+        '-f', os.path.join(SPARVDIR, 'models', 'suc-saldo.cstlemma.flex'),
     ]
 )
 
