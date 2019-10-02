@@ -350,12 +350,42 @@ The METASHARE article for your corpus should be checked and possibly updated. Th
 
 
 ### Archiving the corpus package and conversion scripts
-After the corpus is installed on the production Korp, the corpus package should be uploaded to the IDA storage service (in it's own corpus folder? or a separate package folder?).
+After the corpus is installed on the production Korp, the **corpus package** should be uploaded to the IDA storage service. Usually there is a folder for your corpus in IDA already, containing e.g. the original data. The package should be added to the same folder.
 You can find the corpus package under `/proj/clarin/korp/corpora/pkgs/'corpus_id'/` on Taito(-shell).
-Command for loading it up to IDA (to be filled).
 
-Your conversion scripts for creating the HRT should be preserved. It is recommended to upload them to GitHub (folder?) (to be filled)
+Command for uploading the package to IDA:
 
+    ida upload -v corpora/'corpus'/file.tgz file.tgz
+    
+-v means 'verbose' and will give you information about the process of uploading.
+    
+Example:
+
+    ida upload -v corpora/ylioppilasaineet/yoaineet_korp_20190916.tgz yoaineet_korp_20190916.tgz
+
+In case the folder for your corpus is already frozen in IDA, you should create a folder of the same name in the stage area and upload your package here. During the next 'freeze' the content of these folders will be combined.
+NOTE: It is usually not recommended to unfreeze already frozen data in IDA!
+
+
+Your **conversion scripts** for creating the HRT should be preserved. It is recommended to upload them to GitHub. The place for your scripts is in 'Kielipankki-konversio'. Do 'git pull' to make sure your copy of the repository is up to date. Then change to the sub folder 'corp' and create a new folder for your corpus in here. Copy your conversion scripts to this folder.
+
+This is the command for adding your scripts to the repository (from Kielipankki-konversio/corp/'your_corpus'/:
+
+    git add .
+    
+With the following command you can check the git status:
+
+    git status
+
+Commit your changes and give a short description of your action (e.g. 'conversion scripts for 'corpus' added'):
+
+    git commit
+    
+Finally you can push your changes:
+
+    git push
+    
+    
 
 ### Additional information
 For additional information, please see the following links: 
