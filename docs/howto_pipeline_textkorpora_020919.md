@@ -250,7 +250,7 @@ The following command is used for corpora **not** NER-tagged with vrt-finer:
 
 And this command is used for corpora NER-tagged with vrt-finer:
 
-    bin/vrt-rename --map wid=initid --map feat=msd --map id=ref --map head=dephead --map rel=deprel --map  nertag_finer=nertag folder/filename_cleaned.vrt | bin/vrt-keep --names "word,ref,lemma,pos,msd,dephead,deprel,nertag,lemma_finer,msd_finer,propercat_finer,spaces,initid" > folder_final/filename_final.vrt
+    bin/vrt-rename --map wid=initid --map feat=msd --map id=ref --map head=dephead --map rel=deprel --map  nertag_finer=nertag folder/filename_cleaned.vrt | bin/vrt-keep --names "word,ref,lemma,pos,msd,dephead,deprel,nertag,propercat_finer,spaces,initid" > folder_final/filename_final.vrt
 
 If your corpus consists of several files and you want to rename and order them all at once, this command can also be run as a bash script. 
 
@@ -308,7 +308,7 @@ For corpora **not** NER-tagged with vrt-finer:
 
 In case you used vrt-finer to NER-tag the corpus, the line would be like this:
 
-    input-attrs= ref lemma pos msd dephead deprel nertag lemma_finer msd_finer propercat_finer spaces initid
+    input-attrs= ref lemma pos msd dephead deprel nertag propercat_finer spaces initid
 
 
 The command for running korp-make is:
