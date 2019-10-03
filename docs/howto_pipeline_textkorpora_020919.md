@@ -25,7 +25,7 @@ For converting the original data to HRT, you can use your preferred tools, may i
 
 More information about the conversion process can be found from [kielipankki: converting a corpus and importing it to Korp](https://www.kielipankki.fi/development/korp/corpus-import/#Converting_a_corpus_and_importing_it_to_Korp)
 
-In case the original data does not have paragraph and/or sentence elements, these will be added in the tokenizing process. The tokenizer needs indicators like empty lines within the text though, to be able to add the paragraph elements at the correct place.
+In case the original data does not have paragraph and/or sentence tags, these will be added in the tokenizing process. The tokenizer needs indicators like empty lines within the text though, to be able to add the paragraph tags at the correct place.
 
 In case the original data has another or additional structure (e.g. tables, line groups), they preferably should be preserved in the HRT format (a guideline on how to preserve the original structure with a standardized set of element names is planned to be created). In this case you would need to encode these inline elements before tokenizing and decode them after parsing. A guideline on how to use the **tag encoding and decoding scripts** can be found from [howto: tag encoding and decoding](howto_tag_encoding_decoding.md).
 
@@ -349,11 +349,15 @@ Once the corpus works as desired in the test version of Korp, it is ready to be 
 The METASHARE article for your corpus should be checked and possibly updated. The access location (Korp URN) has to be added to the METASHARE article as well as to the Korp configuration, if not done earlier.
 
 
-### Archiving the corpus package and conversion scripts
+### Archiving the corpus package
 After the corpus is installed on the production Korp, the **corpus package** should be uploaded to the IDA storage service. Usually there is a folder for your corpus in IDA already, containing e.g. the original data. The package should be added to the same folder.
-You can find the corpus package under `/proj/clarin/korp/corpora/pkgs/'corpus_id'/` on Taito(-shell).
+You can find the corpus package in Taito(-shell) under `/proj/clarin/korp/corpora/pkgs/'corpus_id'/`.
 
-Command for uploading the package to IDA:
+Instructions on how to upload and download data to IDA can be found here: [IDA user guide](https://www.fairdata.fi/en/ida/user-guide/ "https://www.fairdata.fi/en/ida/user-guide/"). 
+
+If you decide to use the IDA client in Taito, you can find instructions on configuring and using IDA from the command line here: [CSC guide for archiving data](https://research.csc.fi/csc-guide-archiving-data-to-the-archive-servers#3.2.2 "https://research.csc.fi/csc-guide-archiving-data-to-the-archive-servers#3.2.2").
+
+Assuming that you use the IDA client on Taito, the command for uploading the package to IDA is:
 
     ida upload -v corpora/'corpus'/file.tgz file.tgz
     
@@ -367,9 +371,10 @@ In case the folder for your corpus is already frozen in IDA, you should create a
 NOTE: It is usually not recommended to unfreeze already frozen data in IDA!
 
 
+### Archiving your conversion scripts
 Your **conversion scripts** for creating the HRT should be preserved. It is recommended to upload them to GitHub. The place for your scripts is in 'Kielipankki-konversio'. Do 'git pull' to make sure your copy of the repository is up to date. Then change to the sub folder 'corp' and create a new folder for your corpus in here. Copy your conversion scripts to this folder.
 
-This is the command for adding your scripts to the repository (from Kielipankki-konversio/corp/'your_corpus'/:
+The command for adding your scripts to the repository (from Kielipankki-konversio/corp/'your_corpus'/) is:
 
     git add .
     
@@ -377,9 +382,11 @@ With the following command you can check the git status:
 
     git status
 
-Commit your changes and give a short description of your action (e.g. 'conversion scripts for 'corpus' added'):
+Commit your changes:
 
     git commit
+    
+This will ask for a short description of your action (e.g. 'conversion scripts for 'corpus' added')
     
 Finally you can push your changes:
 
