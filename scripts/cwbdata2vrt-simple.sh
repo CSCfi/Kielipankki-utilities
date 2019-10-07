@@ -204,23 +204,33 @@ prepend_vrt_comments () {
     ' "$@"
 }
 
+get_isodate () {
+    date +'%Y-%m-%d %H:%M:%S %z'
+}
+
 make_log_info () {
     # This imitates a proposal for the VRT Tools log comment format,
     # which is still subject to change (2019-09-20)
     local corp timestamp userinfo version freetext command args
     corp=$1
-    timestamp="time: $(date +'%Y-%m-%d %H:%M:%S %z')"
-    userinfo="user: $USER@$HOSTNAME"
+    timestamp="Time: $(get_isodate)"
+    userinfo="User: $USER@$HOSTNAME"
     # What should be the version, if any?
-    version="version: FIN-CLARIN corpus processing scripts (undefined version)"
-    descr="description: Generated VRT from CWB data for corpus \"$corp\""
-    script="script: $(basename $0)"
-    args="arguments: $cmdline_args_orig"
-    echo "process-log: $timestamp | $descr | $script | $args | $version | $userinfo"
+    version="Version: FIN-CLARIN corpus processing scripts (undefined version)"
+    descr="Description: Generated VRT from CWB data for corpus \"$corp\""
+    script="Script: $(basename $0)"
+    args="Arguments: $cmdline_args_orig"
+    echo "process-log: BEGIN"
+    printf "%s\n" "process-log: $timestamp | $descr | $script | $args | $version | $userinfo"
+    echo "process-log: END"
+}
+
+make_vrt_comments () {
+    awk '{print "<!-- #vrt " $0 " -->"}'
 }
 
 extract_vrt () {
-    local corp verbose_msg outfile log_comment attr_comment
+    local corp verbose_msg outfile head_comment head_comment2 attr_comment
     corp=$1
     verbose_msg="Writing VRT output of corpus $corp to"
     if [ "x$outfile_templ" != "x-" ]; then
@@ -243,10 +253,11 @@ extract_vrt () {
 	pos_attrs=$(echo $(corpus_list_attrs $corp p))
     fi
     if [ "x$omit_log_comment" = x ]; then
-	log_comment="$(make_log_info $corp)"
+	head_comment="info: VRT generated from CWB data for corpus \"$corp\" ($(get_isodate))"
+	head_comment2="info: A processing log at the end of file"
     fi
     if [ "x$omit_attribute_comment" = x ]; then
-	attr_comment="${comments}positional-attributes: $pos_attrs"
+	attr_comment="positional-attributes: $pos_attrs"
     fi
     $cwb_bindir/cwb-decode -Cx $corp $attr_opts |
     # This is faster than calling vrt-convert-chars.py --decode
@@ -254,7 +265,10 @@ extract_vrt () {
     $process_tags |
     eval "$head_filter" |
     $tail_filter |
-    $add_vrt_comments "$log_comment" "$attr_comment" > $outfile
+    $add_vrt_comments "$attr_comment" "$head_comment" "$head_comment2" > $outfile
+    if [ "x$omit_log_comment" = x ]; then
+	make_log_info $corp | make_vrt_comments >> $outfile
+    fi
 }
 
 
