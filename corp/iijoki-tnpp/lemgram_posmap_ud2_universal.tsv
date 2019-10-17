@@ -1,0 +1,34 @@
+# adjective
+ADJ	jj
+# adposition
+ADP	pp
+# adverb
+ADV	ab
+# auxiliary
+AUX	vb
+# coordinating conjunction
+CCONJ	kn
+# determiner
+DET	al
+# interjection
+INTJ	in
+# noun
+NOUN	nn
+# numeral
+NUM	rg
+# particle
+PART	xx
+# pronoun
+PRON	pn
+# proper noun
+PROPN	pm
+# punctuation
+PUNCT	xx
+# subordinating conjunction
+SCONJ	sn
+# symbol
+SYM	xx
+# verb
+VERB	vb
+# other
+X	xx

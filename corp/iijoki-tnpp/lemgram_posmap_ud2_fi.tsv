@@ -1,0 +1,24 @@
+# adjective
+A	jj
+# adposition
+Adp	pp
+# adverb
+Adv	ab
+# conjunction
+C 	kn
+# foreign word
+Foreign	xx
+# interjection
+Interj	in
+# noun
+N	nn
+# numeral
+Num	rg
+# pronoun
+Pron	pn
+# punctuation
+Punct	xx
+# symbol
+Symb	xx
+# verb
+V	vb
