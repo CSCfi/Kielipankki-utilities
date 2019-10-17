@@ -31,6 +31,9 @@ Then, for each file in $modified_dir/FILE.txt:
   # validate the result
   vrt-validate $vrt_dir/FILE.vrt
 
+  # Seems that some elements given in comments are dropped in txt-to-conllu conversion.
+  # That it why the following files must be manually edited as vrt-validate gives errors
+  # about open <paragraph> elements: 001, 002, 006, 007 (two errors), 011, 013, 014.
 
 conllu-to-vrt commands:
 -----------------------

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Convert conllu output to vrt format. Used for preocessing Iijoki series.
+# Convert conllu output to vrt format. Used for preprocessing Iijoki series.
 #
 # cat CONLLU_FILE | ./conllu_to_vrt.pl TITLE YEAR SRC_FILENAME > VRT_FILE
 
@@ -48,9 +48,9 @@ foreach my $line ( <STDIN> ) {
 	$sentence_id++;
     }
     $line =~ s/^# [^<].*//; # get rid of comment lines produced by TNPP
-    $line =~ s/^# //;
-    $line =~ s/^\n$//; # remove empty lines
-    $line =~ s/&/&amp;/g; # escape ampersands for korp
+    $line =~ s/^# //;       # remove "# " from comment lines added in iijoki scripts
+    $line =~ s/^\n$//;      # remove empty lines
+    $line =~ s/&/&amp;/g;   # escape ampersands for korp
     print $line;
 
 }
