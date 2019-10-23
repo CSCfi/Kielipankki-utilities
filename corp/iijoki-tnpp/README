@@ -13,9 +13,10 @@ If no fixes have been done, the file has been copied as such from $src_dir to $m
 
 Then, for each file in $modified_dir/FILE.txt:
 
-  # insert chapter, section and paragraph markers
+  # insert chapter, section and paragraph markers in comments
   cat $modified_dir/FILE.txt | ./insert-chapter-section-and-paragraph-markers.pl > $marked_dir/FILE.txt 
-  
+
+  # parse the text
   cat $marked_dir/FILE.txt | python3 full_pipeline_stream.py --gpu -1 --conf models_fi_tdt/pipelines.yaml parse_plaintext > $conllu_dir/FILE.conllu
   
   # skip 6 last lines to get rid of "TNPP_INPUT_CANNOT_END_IN_COMMENT_LINE"
@@ -72,4 +73,4 @@ Compile on korp:
 ----------------
 
 PATH=$PATH:/proj/clarin/korp/cwb/bin:/proj/clarin/korp/scripts
-korp-make --corpus-root="/proj/clarin/korp/corpora" --input-attributes="ref lemma pos xpos msd dephead deprel deps misc" --lemgram-posmap=lemgram_posmap_ud2_universal.tsv --log-file=log --verbose CORPUSNAME FILE1.vrt FILE2.vrt ...
+korp-make --corpus-root="/proj/clarin/korp/corpora" --input-attributes="ref lemma pos xpos msd dephead deprel deps misc" --compound-boundary-marker="#" --lemgram-posmap=lemgram_posmap_ud2_universal.tsv --log-file=log --verbose CORPUSNAME FILE1.vrt FILE2.vrt ...
