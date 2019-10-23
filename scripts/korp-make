@@ -4,7 +4,6 @@
 
 # TODO:
 # - Allow specifying input via options (config file).
-# - Allow different compound boundary options.
 # - Allow multiple instances of extra file options to pass to
 #   korp-make-corpus-package
 # - --add-structure-ids: Specify by structure type if existing values
@@ -125,6 +124,12 @@ wordpict-relmap|wordpicture-relation-map=RELMAP_FILE \
     relation codes to those used in the Korp word picture; the file
     should contain lines with corpus dependency relation code and word
     picture dependency relation code separated by a tab
+
+@ Compound boundaries
+
+compound-boundary-marker=MARKER "|"
+    the string MARKER marks compound boundaries in lemmas and will be
+    removed from lemmas without compound boundaries
 
 @ Structure ids
 
@@ -575,7 +580,8 @@ generate_input () {
 add_lemmas_without_boundaries () {
     process_vrt $vrt_fix_attrs --input-fields "$input_attrs" \
 	--output-fields "${input_attrs/lemma /lemma:noboundaries lemma }" \
-	--compound-boundary-marker='|' --compound-boundary-can-replace-hyphen
+	--compound-boundary-marker="$compound_boundary_marker" \
+	--compound-boundary-can-replace-hyphen
     input_attrs=${input_attrs/lemma /lemma lemmacomp }
 }
 
