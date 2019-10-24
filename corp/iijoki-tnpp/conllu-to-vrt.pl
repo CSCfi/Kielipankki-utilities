@@ -8,6 +8,13 @@ use strict;
 use warnings;
 use open qw(:std :utf8);
 
+# Make sure that command line arguments are encoded right
+# (book titles contain characters outside ascii range).
+use I18N::Langinfo qw(langinfo CODESET);
+my $codeset = langinfo(CODESET);
+use Encode qw(decode);
+@ARGV = map { decode $codeset, $_ } @ARGV;
+
 my $sentence_id=1;
 my $first_sentence_in_paragraph="true";
 
@@ -18,6 +25,8 @@ print "<text filename=\"";
 print $ARGV[2];
 print "\" title=\"";
 print $ARGV[0];
+print "\" year=\"";
+print $ARGV[1];
 print "\" dateto=\"";
 print $ARGV[1];
 print "0101\" datefrom=\"";
