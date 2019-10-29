@@ -29,6 +29,9 @@ Then, for each file in $modified_dir/FILE.txt:
   # rename attributes for korp, use universal pos tags
   vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos $vrt_dir/FILE.vrt
 
+  # convert vertical bars into spaces in msd field (until korp-make supports the conversion)
+  cat $vrt_dir/FILE.vrt | ./msd-bar-to-space.pl > tmp && mv tmp $vrt_dir/FILE.vrt
+
   # validate the result
   vrt-validate $vrt_dir/FILE.vrt
 
