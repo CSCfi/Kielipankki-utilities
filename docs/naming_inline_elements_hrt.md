@@ -25,7 +25,6 @@ As a basis to start a list, here are the elements used in the text corpus `Lönn
 - hi                 (highlighting; the kind is given as the attribute value)
 - line               (part of linegroup)
 - linegroup
-- ptr                (only one case; a link to some internet source)
 - row                (part of table)
 - span               (type: e.g. editor_note )
 - table
