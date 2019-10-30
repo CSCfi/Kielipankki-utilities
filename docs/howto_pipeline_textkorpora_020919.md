@@ -27,7 +27,7 @@ More information about the conversion process can be found from [kielipankki: co
 
 In case the original data does not have paragraph and/or sentence tags, these will be added in the tokenizing process. The tokenizer needs indicators like empty lines within the text though, to be able to add the paragraph tags at the correct place.
 
-In case the original data has another or additional structure (e.g. tables, line groups), they preferably should be preserved in the HRT format (a guideline on how to preserve the original structure with a standardized set of element names is planned to be created). In this case you would need to encode these inline elements before tokenizing and decode them after parsing. A guideline on how to use the **tag encoding and decoding scripts** can be found from [howto: tag encoding and decoding](howto_tag_encoding_decoding.md).
+In case the original data has another or additional structure (e.g. tables, line groups), they preferably should be preserved in the HRT format. A guideline on how to preserve the original structure with a standardized set of element names can be found from [naming_inline_elements_hrt.md](naming_inline_elements_hrt.md). In this case you would need to encode these inline elements before tokenizing and decode them after parsing. A guideline on how to use the **tag encoding and decoding scripts** can be found from [howto: tag encoding and decoding](howto_tag_encoding_decoding.md).
 
 Note that all `text` tags as well as all `paragraph` and `sentence` element tags must be on their own line, and they have to be at the beginning of the line (be aware of empty spaces here).
 
