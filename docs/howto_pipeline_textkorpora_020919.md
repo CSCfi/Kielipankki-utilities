@@ -402,4 +402,4 @@ For additional information, please see the following links:
 
 [converting a corpus and importing it to Korp](https://www.kielipankki.fi/development/korp/corpus-import/#Converting_a_corpus_and_importing_it_to_Korp "https://www.kielipankki.fi/development/korp/corpus-import/#Converting_a_corpus_and_importing_it_to_Korp")
 
-
+[collection of specialties found in text corpora](collection_specialties_of_corpora.md)
