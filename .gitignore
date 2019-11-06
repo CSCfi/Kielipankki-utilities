@@ -124,6 +124,7 @@ parsetab.*
 *.docx
 *.doc
 *.txt
+!readme_conversion.txt
 
 # Test input and output files
 *.in
