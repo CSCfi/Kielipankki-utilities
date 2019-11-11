@@ -422,6 +422,104 @@ _testcase_files_content = [
                  'stderr': 'test\n',
              },
          },
+         # Output options
+         {
+             'name': 'Test: option filter-out for stdout',
+             'input': {
+                 'cmdline': 'printf "foo\nbar\n"',
+              },
+             'output': {
+                 'options': {
+                     'filter-out stdout': 'o',
+                 },
+                 'stdout': 'f\nbar\n',
+                 'stderr': '',
+                 'returncode': 0,
+              },
+         },
+         {
+             'name': 'Test: option filter-out for all output',
+             'input': {
+                 'cmdline': 'printf "foo\nbar\n" | tee /dev/stderr test.out',
+                 'shell': True,
+              },
+             'output': {
+                 'options': {
+                     'filter-out': 'o',
+                 },
+                 'stdout': 'f\nbar\n',
+                 'stderr': 'f\nbar\n',
+                 'file:test.out': 'f\nbar\n',
+                 'returncode': 0,
+              },
+         },
+         {
+             'name': 'Test: option filter-out for named output file',
+             'input': {
+                 'cmdline': 'printf "foo\nbar\n" > test.out',
+                 'shell': True,
+              },
+             'output': {
+                 'options': {
+                     'filter-out file:test.out': 'o',
+                 },
+                 'stdout': '',
+                 'stderr': '',
+                 'file:test.out': 'f\nbar\n',
+                 'returncode': 0,
+              },
+         },
+         {
+             'name': 'Test: option filter-out with a regexp',
+             'input': {
+                 'cmdline': 'printf "aabb\nccdd\neeff\n"',
+                 'shell': True,
+              },
+             'output': {
+                 'options': {
+                     'filter-out': 'c.*\n',
+                 },
+                 'stdout': 'aabb\neeff\n',
+                 'stderr': '',
+                 'returncode': 0,
+              },
+         },
+         {
+             'name': 'Test: multiple filter-out options',
+             'input': {
+                 'cmdline': 'printf "foo\nbar\nbaz\n" | tee /dev/stderr test.out',
+                 'shell': True,
+              },
+             'output': {
+                 'options': {
+                     'filter-out': 'b',
+                     'filter-out stdout': 'o',
+                     'filter-out stderr': 'a',
+                     'filter-out file:test.out': 'foo\n',
+                 },
+                 'stdout': 'f\nar\naz\n',
+                 'stderr': 'foo\nr\nz\n',
+                 'file:test.out': 'ar\naz\n',
+                 'returncode': 0,
+              },
+         },
+         {
+             'name': 'Test: option filter-out with a list value',
+             'input': {
+                 'cmdline': 'printf "foo\nbar\nbaz\n"',
+              },
+             'output': {
+                 'options': {
+                     'filter-out': [
+                         'o',
+                         'b',
+                     ],
+                 },
+                 'stdout': 'f\nar\naz\n',
+                 'stderr': '',
+                 'returncode': 0,
+              },
+         },
          # Note that the tests do not really check whether the tests marked to
          # be skipped or xfailing really are skipped or xfail. How could that
          # be tested?

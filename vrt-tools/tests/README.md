@@ -75,11 +75,14 @@ test case:
     -   `stdin`: the content of standard input (`str`)
     -   `file:FNAME`: the content of file FNAME (`str`)
 
--   `output`: Expected output for the test:
+-   `output`: Expected output for the test and options affecting the
+    output:
     -   `returncode`: program return code (`int`)
     -   `stdout`: the content of standard output (`str`)
     -   `stderr`: the content of standard error (`str`)
     -   `file:FNAME`: the content of file FNAME (`str`)
+    -   `options`: output options (`dict`) (see below for more
+        information)
 
     The expected values may have several different forms:
 
@@ -119,6 +122,23 @@ test case:
     the flag constants need not be prefixed by `re.`. For example, the
     test name may be `matches DOTALL|VERBOSE`, corresponding to
     `re.search(`*expected* `, `*actual* `, re.DOTALL|re.VERBOSE)`.
+
+    `options` is a dict of options transforming the actual output or
+    otherwise affecting matching actual and expected output.
+    Currently, only one output option is supported, although it can be
+    used for multiple targets (output items):
+
+    -   `filter-out[ TARGET]`: Remove from actual output (in TARGET)
+        substrings matching the regular expression that is the value
+        of the option. The optional TARGET may be `stdin`, `stdout` or
+        `file:FILE`. If TARGET is omitted, applies to all output.
+        Multiple option values may be specified for different TARGETs.
+        The value of the option may also be a list of regular
+        expressions, in which case their matches are removed in order.
+        If the option is specified both with and without TARGET, the
+        matches with TARGET are removed before those without. The
+        option is useful in particular for removing such parts of the
+        output that change on each run, such as timestamps.
 
 -   `status`: The status of the test (optional). Tests should be pass
     by default, but `status` can mark otherwise. Allowed values are:
