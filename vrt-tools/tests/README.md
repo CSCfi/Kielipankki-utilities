@@ -52,7 +52,7 @@ test case:
 
 -   `name`: A name or description of the test (`str`)
 
--   `input_`: A dict containing input information for the test:
+-   `input`: A dict containing input information for the test:
     -   `prog`: program (script) name (`str`). The program is searched
         in `$PATH` as usual, but for tests under this directory, the
         `vrt-tools` directory is added to `$PATH`, so the bare name of
