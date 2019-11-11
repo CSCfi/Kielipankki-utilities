@@ -45,12 +45,14 @@ structure. You can also generate such a YAML file with the
 
 ### The structure of a `scripttestlib` test
 
+#### Test cases
+
 A `scripttestlib` test contains the following information for a single
 test case:
 
 -   `name`: A name or description of the test (`str`)
 
--   `input_`: A dict containing input information for the test:
+-   `input`: A dict containing input information for the test:
     -   `prog`: program (script) name (`str`). The program is searched
         in `$PATH` as usual, but for tests under this directory, the
         `vrt-tools` directory is added to `$PATH`, so the bare name of
@@ -73,11 +75,14 @@ test case:
     -   `stdin`: the content of standard input (`str`)
     -   `file:FNAME`: the content of file FNAME (`str`)
 
--   `output`: Expected output for the test:
+-   `output`: Expected output for the test and options affecting the
+    output:
     -   `returncode`: program return code (`int`)
     -   `stdout`: the content of standard output (`str`)
     -   `stderr`: the content of standard error (`str`)
     -   `file:FNAME`: the content of file FNAME (`str`)
+    -   `options`: output options (`dict`) (see below for more
+        information)
 
     The expected values may have several different forms:
 
@@ -118,6 +123,23 @@ test case:
     test name may be `matches DOTALL|VERBOSE`, corresponding to
     `re.search(`*expected* `, `*actual* `, re.DOTALL|re.VERBOSE)`.
 
+    `options` is a dict of options transforming the actual output or
+    otherwise affecting matching actual and expected output.
+    Currently, only one output option is supported, although it can be
+    used for multiple targets (output items):
+
+    -   `filter-out[ TARGET]`: Remove from actual output (in TARGET)
+        substrings matching the regular expression that is the value
+        of the option. The optional TARGET may be `stdin`, `stdout` or
+        `file:FILE`. If TARGET is omitted, applies to all output.
+        Multiple option values may be specified for different TARGETs.
+        The value of the option may also be a list of regular
+        expressions, in which case their matches are removed in order.
+        If the option is specified both with and without TARGET, the
+        matches with TARGET are removed before those without. The
+        option is useful in particular for removing such parts of the
+        output that change on each run, such as timestamps.
+
 -   `status`: The status of the test (optional). Tests should be pass
     by default, but `status` can mark otherwise. Allowed values are:
 
@@ -130,6 +152,40 @@ test case:
 
 	The values `skip` and `xfail` may optionally be followed by a
     colon and a reason (text) for the expected failure.
+
+#### Default values
+
+The sequence of test cases may also contain items specifying default
+values for the tests that follow. Default value items contain the
+single key `defaults`, whose value is a mapping, which may contain
+keys `input`, `output` and `status`, with values as described above.
+These values become default values for the test cases that follow; the
+test cases can override the values individually. For example, the YAML
+specification
+
+    - defaults:
+	    input:
+		  cmdline: echo 'test\n'
+		  stdin: 'test\n'
+	    output:
+          stdout: 'test\n'
+	- name: Test
+	    input:
+	      cmdline: cat
+
+is equivalent to
+
+	- name: Test
+	    input:
+	      cmdline: cat
+		  stdin: 'test\n'
+	    output:
+          stdout: 'test\n'
+
+Similarly, a default values item overrides the values in a possible
+previous default values. To clear the default values completely, use
+
+    - defaults: {}
 
 
 ### Generating a test case with `make-scripttest`
