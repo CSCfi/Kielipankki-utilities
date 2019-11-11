@@ -8,7 +8,7 @@ The source files have first been processed with:
 
 The script prints to stderr all chapter and section titles and warns about some suspicious titles.
 They have been fixed manually, i.e. marked with <title> or <notitle> tags in $modified_dir/FILE.txt.
-Some OCR'd characters have also been fixed. Full list of modifications is in file TODO.
+Some OCR'd characters have also been fixed. Full diff of modifications is in file "modifications".
 If no fixes have been done, the file has been copied as such from $src_dir to $modified_dir.
 
 Then, for each file in $modified_dir/FILE.txt:
