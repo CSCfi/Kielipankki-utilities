@@ -2447,3 +2447,44 @@
       </a>
       preserved
       .
+
+- name: 'vrt-decode-tags: Intra-word spaces'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|3 abc defghi -->
+      <!-- #vrt structure-tag: /a|6 abcdef ghi -->
+      a
+      b c
+      d e
+      f
+      g h
+      i
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      a
+      b c
+      <a struct_num="|1|">
+      d e
+      f
+      </a>
+      g h
+      i
+
+- name: 'vrt-decode-tags: Intra-word markup within a word with intra-word spaces'
+  status: 'xfail:Not implemented yet: intra-word attributes should take intra-word spaces into account'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|3 abc defghi -->
+      <!-- #vrt structure-tag: /a|6 abcdef ghi -->
+      a b c d e f g h i
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a struct_num="|1|" struct_charspan="|7-11|" struct_tokens="|d e f|" struct_tokens_all="|d e f|" struct_partnum="|1/1|" struct_continues="||">
+      a b c d e f g h i
+      </a>
