@@ -106,9 +106,10 @@ class TagEncoder(InputProcessor):
 
     def main(self, args, inf, ouf):
 
+        # Tags not to be encoded, including special VRT comments
         preserve_tag_re = re.compile(
-            b'< /? (' + '|'.join(args.preserve_tags.split()).encode()
-            + br') [>\s]', re.VERBOSE)
+            b'< ( /? (' + '|'.join(args.preserve_tags.split()).encode() + br')'
+            + br' | !-- \s \#vrt \s .* ) [>\s]', re.VERBOSE)
         # Also encode XML comments, even though they are not structural tags,
         # so "#vrt structure-tag" is somewhat misleading. This allows comments
         # in the middle of a line or a token. The resulting VRT comments are

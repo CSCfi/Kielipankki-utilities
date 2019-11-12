@@ -427,3 +427,26 @@
       hens pre‐
       served.
       Lone - hyphens  -  preserved.
+
+- name: 'hrt-encode-tags: Do not encode special VRT comments'
+  input:
+    cmdline: hrt-encode-tags
+    stdin: |
+      <!-- #vrt info: test -->
+      <text>
+      <!-- #vrt info: test 2 -->
+      abc
+      <!-- #vrt info: test 3 -->
+      </text>
+      <!-- #vrt info: test 4 -->
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <!-- #vrt info: test -->
+      <text>
+      <!-- #vrt info: test 2 -->
+      abc
+      <!-- #vrt info: test 3 -->
+      </text>
+      <!-- #vrt info: test 4 -->
