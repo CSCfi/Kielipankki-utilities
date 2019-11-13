@@ -2184,6 +2184,7 @@
 
 - name: 'vrt-decode-tags: Offset past the end of the region'
   # Previously, this crashed the script with IndexError
+  status: skip
   input:
     cmdline: vrt-decode-tags
     stdin: |
@@ -2488,3 +2489,35 @@
       <a struct_num="|1|" struct_charspan="|7-11|" struct_tokens="|d e f|" struct_tokens_all="|d e f|" struct_partnum="|1/1|" struct_continues="||">
       a b c d e f g h i
       </a>
+
+- name: 'vrt-decode-tags: Words with hyphens possibly affecting offset'
+  # This previously caused warnings and tags in the wrong places
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0  tun-,2menn -->
+      <!-- #vrt structure-tag: /a|5 tun-, 2menneta-, -->
+      <!-- #vrt structure-tag: a|5 tun-, 2menneta-, -->
+      <!-- #vrt structure-tag: /a|9 tun-,2men neta-,3:ma -->
+      tun-
+      ,
+      2men
+      ne
+      ta-
+      ,
+      3:mas
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a struct_num="|1|">
+      tun-
+      ,
+      </a>
+      <a struct_num="|2|">
+      2men
+      </a>
+      ne
+      ta-
+      ,
+      3:mas
