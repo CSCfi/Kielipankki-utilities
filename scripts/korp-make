@@ -156,6 +156,14 @@ text-sort-transform=TRANSFORM '"'"' * { add_text_sort_opt --transform "$1" }
     order; if read from a configuration file, TRANSFORM is treated as
     enclosed in single quotes, so you need not protect \\ nor \$
 
+@ Omitting structures
+
+omit-structures=STRUCTS
+    omit structures listed in STRUCTS, separated by spaces; you cannot
+    omit text or sentence structures; this can be used to remove
+    paragraphs from corpora whose sentences should be scrambled within
+    whole texts
+
 @ Scrambling structures
 
 scramble=STRUCTS
@@ -373,6 +381,18 @@ if [ "x$logging" != x ]; then
     echo_verb "Logging output to $logfile"
 fi
 
+if [ "x$omit_structures" != x ]; then
+    if word_in "text" "$omit_structures" ||
+	    word_in "sentence" "$omit_structures"
+    then
+	error "You cannot omit text or sentence structures"
+    fi
+    # Use echo to get single spaces between structures to be omitted
+    omit_structures=$(echo $omit_structures)
+    # Convert to a regexp for grep -Ev
+    omit_structures="^</?(${omit_structures// /|})[ >]"
+fi
+
 echo_verb "Running: $cmdline_orig"
 echo_verb "Processed arguments: $cmdline_args_processed"
 
@@ -486,6 +506,7 @@ run_stages () {
 stages=(
     "$stage1_fn" "$stage1_descr"
     "$stage2_fn" "$stage2_descr"
+    omit_structures "Omitting structures"
     add_lemmas_without_boundaries "Adding lemmas without compound boundaries"
     add_lemgrams "Adding lemgrams"
     add_datefromto "Adding datefrom and dateto"
@@ -575,6 +596,15 @@ generate_input () {
     input_attrs=${input_attrs/ lex / lex/ }
     input_attrs=${input_attrs% }
     initial_input_attrs=$input_attrs
+}
+
+omit_structures () {
+    process_vrt grep -Ev "$omit_structures"
+}
+
+test_skip_omit_structures () {
+    [ "x$omit_structures" = x ] &&
+	echo "not requested"
 }
 
 add_lemmas_without_boundaries () {
