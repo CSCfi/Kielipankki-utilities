@@ -1,0 +1,148 @@
+# Map the dependency relations produced by Sparv to those used in the
+# Korp word picture: SS (subject), OBJ (object), ADV (adverbial), PA
+# (preposition), AT ((pre)modifier), ET (postmodifier), CPL
+# (complement). Relations to be ignored are marked with a dash.
+#
+# Source for the original relations (MAMBA categories in the Swedish
+# Treebank):
+# https://cl.lingfil.uu.se/~nivre/swedish_treebank/dep.html
+# Relations occurring in the data but not listed in the above list are
+# ignored.
+
+
+# Coordinating conjunction (not in data)
+++	-
+# Conjunctional adverbial
++A	ADV
+# Coordination at main clause level
++F	-
+# Other adverbial
+AA	ADV
+# Agent
+AG	SS
+# Apposition
+AN	-
+# Nominal (adjectival) pre-modifier
+AT	AT
+# Contrastive adverbial
+CA	ADV
+# Conjunct (in coordinate structure)
+CJ	-
+# Doubled function
+DB	-
+# ? (not in list)
+DEN	-
+# Determiner
+DT	-
+# Relative clause in cleft
+EF	-
+# Logical object
+EO	OBJ
+# Logical subject
+ES	SS
+# Other nominal post-modifier
+ET	ET
+# Dummy object
+FO	OBJ
+# Free subjective predicative complement
+FP	CPL
+# Dummy subject
+FS	SS
+# Finite predicate verb
+FV	-
+# ? (not in list)
+HA	-
+# Head
+HD	-
+# Question mark
+I?	-
+# Quotation mark
+IC	-
+# Infinitive verb phrase minus infinitive marker
+IF	-
+# Other punctuation mark
+IG	-
+# Comma
+IK	-
+# Infinitive marker (not in data)
+IM	-
+# Indirect object
+IO	CPL
+# Period
+IP	-
+# Colon
+IQ	-
+# Parenthesis
+IR	-
+# Semicolon
+IS	-
+# Dash
+IT	-
+# Exclamation mark
+IU	-
+# Nonfinite verb (not in data)
+IV	-
+# Second quotation mark
+JC	-
+# Second (other) punctuation mark
+JG	-
+# Second parenthesis
+JR	-
+# Second dash
+JT	-
+# Comparative adverbial
+KA	ADV
+# Attitude adverbial
+MA	ADV
+# Macrosyntagm
+MS	-
+# Negation adverbial
+NA	ADV
+# Object adverbial
+OA	ADV
+# Direct object
+OO	OBJ
+# Object predicative
+OP	OBJ
+# Complement of preposition
+PA	CPL
+# Verb particle
+PL	-
+# Preposition (not in data)
+PR	-
+# Predicative attribute
+PT	ET
+# Place adverbial
+RA	ADV
+# Root (not in list)
+ROOT	-
+# Subjective predicative complement
+SP	CPL
+# Other subject
+SS	SS
+# Time adverbial
+TA	-
+# Address phrase (not in data)
+TT	-
+# Subordinate clause minus subordinating conjunction
+UA	-
+# Subordinating conjunction (not in data)
+UK	-
+# Notifying adverbial
+VA	ADV
+# Verb group
+VG	-
+# Infinitive object complement
+VO	CPL
+# Infinitive subject complement
+VS	CPL
+# Expressions like "så att säga" (so to speak)
+XA	-
+# Fundament phrase
+XF	-
+# Expressions like "så kallad" (so called)
+XT	AT
+# Unclassifiable grammatical function
+XX	-
+# Interjection phrase
+YY	-
