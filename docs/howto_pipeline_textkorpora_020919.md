@@ -2,7 +2,7 @@
 ## Preparing a text corpus for importing it to Korp
 
 ### Conversion to HRT
-The format of the original data can differ between corpora. It can be for example plain text, PDF, XML, RTF. The first aim is to convert this data to **HRT**, a simple form of XML, the pre-format of **VRT** (VeRticalized Text), which is the input format for Korp. For more information on the format see [kielipankki: corpus input format](https://www.kielipankki.fi/development/korp/corpus-input-format/). The HRT data must be **UTF-8** encoded Unicode. 
+The format of the original data can differ between corpora. It can be for example plain text, PDF, XML, RTF. The first aim is to convert this data to **HRT**, a simple form of XML, the pre-format of **VRT** (VeRticalized Text), which is the input format for Korp. For more information on the **VRT** format see [kielipankki: corpus input format](https://www.kielipankki.fi/development/korp/corpus-input-format/). The HRT data must be **UTF-8** encoded Unicode. 
 
 To test the encoding of a file, you can use the command ‘file’:
 
