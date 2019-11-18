@@ -267,7 +267,9 @@ The script can be run with gamarr:
 The input files for this command are in a folder 'out' (the result files from step 5, 'Cleaning up'). The final files go to another folder 'final' and are named *_final.vrt
 
 
-If you have several files for one corpus (e.g. one per year), for the following steps it is recommended to create a zip file containing all the final files (result from step 6, 'Renaming and final ordering of pos attributes after parsing). You can do that with the command ‘zip’:
+#### 7. Creating a corpus zip file
+
+Always, but especially if you have several files for one corpus (e.g. one per year), for the following steps it is recommended to create a zip file containing all the final files (result from step 6, 'Renaming and final ordering of pos attributes after parsing). You can do that with the command ‘zip’:
 
     zip data.zip file1 file2 …	 
 or
@@ -277,7 +279,7 @@ or
 With the second command you create an archive with a sub directory, to which all files are extracted when unzipping.
 
 
-NOTE: It is recommended to upload the successfully parsed data (as zip file) to the respective corpus folder in IDA, especially if it is not processed further right away (e.g. OpenSubtitles).
+NOTE: It is recommended to upload the successfully parsed data (as zip file) to the respective corpus folder in IDA, especially if for some reason it is not processed further right away.
 
 In case of data which contains dialect or other specialities (e.g. Iijoki), Melissa created some scripts for testing the parsed data and creating statistics. The instructions for using those scripts will be accessible here (link to be created).
 
@@ -325,7 +327,7 @@ The script korp-make creates a corpus package under `/proj/clarin/korp/corpora/p
 
 
 ### Adding the Korp configuration to the Korp frontend
-This part of the pipeline consists of making changes to the Korp configuration and translation files on **your own branch** of the Korp frontend repository and committing the changes.
+This part of the pipeline consists of making changes to the Korp configuration and translation files on the **corpus-specific branch** of the Korp frontend repository and committing the changes.
 
 For further information please see the instructions for [Korp configuration](howto_Korp_configuration.md "howto_Korp_configuration.md").
 
