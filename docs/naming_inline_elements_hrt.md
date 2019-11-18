@@ -1,15 +1,9 @@
 ﻿# How to preserve the original structure of corpus data
 ## Naming elemens and attributes
 
-For some text corpora the original data is structured in some way already (e.g. if it is in a form of XML), which should be preserved.
+For some text corpora the original data may be structured in some way already (e.g. if it is in a form of XML), which should be preserved. There might be tables, lists, highlighting, comments etc.
 
-To cite Jyrki:
-> "In addition to the texts, paragraphs and sentences, the VRT input may also contain other structures, 
-> even though they are seen in Korp only via their possible attributes.
-> The structures may be at any level, for example, chapters containing paragraphs, or clauses within sentences. 
-> If the original data has other structures, they should preferably be preserved in the VRT format."
-
-Because the tokenizer wants the text, paragraph and sentence tags to be on their own line, we call these additional tags 'inline element tags' here.
+Because the tokenizer wants the text, paragraph and sentence tags to be on their own line, we call these additional tags 'inline element tags' here. These additional elements can be within sentences or as siblings to sentences, but they always have to be within paragraphs.
 
 Because the tokenizer cannot handle such inline element tags, they have to be encoded in the HRT before tokenizing, and decoded again after parsing.
 For this purpose we have the scripts `hrt-encode-tags` and `vrt-decode-tags` available in our vrt-tools.
