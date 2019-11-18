@@ -299,7 +299,7 @@ For licensed data the content of the corpus.conf could be:
     licence-type = ACA
     lbr-id = 201407301 
 
-(the libr-id is usually the URN of the top META-SHARE article for the corpus)
+The licence-type can be either ACA or RES. The libr-id is usually the URN of the top META-SHARE article for the corpus.
 
 And you should add a line for the positional attributes, which were added during the parsing process:
 
