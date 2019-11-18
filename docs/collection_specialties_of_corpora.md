@@ -55,6 +55,8 @@ Action needed:
 
 - Encode and decode the data (because of inline elements, here page elements)
 
+- Tokenize and parse the data with vrt-tools
+
 
 Not needed for publication right now; could be done for a later version:
 
@@ -91,6 +93,9 @@ Action needed:
 
 - Deal with inline elements (think of names of elements/attributes, make sure they are all within paragraph structure; run encoding and decoding scripts)
 
+- Tokenize and parse the data with vrt-tools
+
+
 Not needed for publication right now; could be done for a later version:
 
 -	Take care of nested elements
@@ -122,6 +127,8 @@ Action needed:
 
 - Deal with inline elements (run encoding and decoding scripts)
 
+- Tokenize and parse the data with vrt-tools
+
 
 ## Ylioppilasaineet
 Original data: 
@@ -140,6 +147,8 @@ Action needed:
 - Remove duplicates
 
 - Combine files for each year
+
+- Tokenize and parse the data with vrt-tools
 
 
 ## OpenSubtitles/Wikipedia
