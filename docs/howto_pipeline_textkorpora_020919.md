@@ -102,7 +102,7 @@ In case the validator gives out messages, they should be investigated further wi
 
 It might be, that you have to fix something in your conversion to HRT. Preferably the validator should not give any messages in the end. 
 
-Some messages, e.g. warnings of the following type, could be ignored. This should be decided for each corpus and case individually.
+Some messages from the validator, e.g. warnings of the following type, could be ignored. This should be decided for each corpus and case individually.
 
     line	kind	level   issue
     5443	data	warning double space in value: title of text
