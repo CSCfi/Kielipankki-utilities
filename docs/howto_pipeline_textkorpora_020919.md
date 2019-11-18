@@ -290,7 +290,7 @@ For data containing dialect or other linguistic specialities (e.g. Iijoki), Meli
 ### Creating a Korp package
 Encoding VRT data into the CWB database format and creating a Korp package for the corpus can be done with a single command: **korp-make**.
 
-The command should be run from your HOME directory in the respective corpus folder. In this corpus folder you need to have a folder ‘scripts’ containing your (HRT) conversion scripts and a readme about the conversion process. Furthermore, in the corpus folder you need to have a readme about the corpus (you can find the according information from METASHARE) and a configuration file named **corpus.conf**. 
+The command should be run from your HOME directory in the respective corpus folder. In this corpus folder you need to have a folder ‘scripts’ containing your (HRT) conversion scripts and a readme about the conversion process (make sure to give the date of conversion as well as version numbers of vrt-tools, parser and FiNER). Furthermore, in the corpus folder you need to have a readme about the corpus (you can find the according information from METASHARE) and a configuration file named **corpus.conf**. 
 
 The basic content of the corpus.conf is just the path to the scripts' folder:
 
