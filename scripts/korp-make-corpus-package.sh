@@ -176,7 +176,7 @@ tsvdir=$CORPUS_TSVDIR
 vrtdir=$CORPUS_VRTDIR
 
 cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
-cwbdata2vrt=$progdir/cwbdata2vrt.py
+cwbdata2vrt=$progdir/cwbdata2vrt-simple.sh
 vrt_decode_chars="$progdir/vrt-convert-chars.py --decode"
 korp_mysql_export="$progdir/korp-mysql-export.sh"
 korp_make_auth_info=$progdir/korp-make-auth-info.sh
@@ -477,8 +477,7 @@ fi
 
 generate_vrt () {
     local corpus_id=$1
-    $cwbdata2vrt --registry "$regdir" --cwbdir "$cwb_bindir" $corpus_id |
-    $vrt_decode_chars
+    $cwbdata2vrt --all-attributes --output-file=- $corpus_id
 }
 
 if [ "x$generate_vrt" != x ]; then
