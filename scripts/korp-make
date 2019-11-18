@@ -177,7 +177,7 @@ scramble-seed=SEED
     scrambling data; "0" for random seed (non-reproducible order)
     (default: corpus id)
 
-@ Copying structural attributes
+@ Copying and renaming structural attributes
 
 copy-struct-attr|copy-structure-attribute=TARGET:SOURCELIST *
     copy structural attributes from a preceding (enclosing) structure.
@@ -196,6 +196,15 @@ copy-struct-attr|copy-structure-attribute=TARGET:SOURCELIST *
     Multiple attribute copy operations may be specified either by
     listing them in the argument separated by spaces or by specifying
     this option multiple times.
+rename-struct-attr|rename-structure-attribute=STRUCT/SOURCE:TARGET *
+    rename in structure STRUCT attributes matching the (Perl) regular
+    expression SOURCE as TARGET. SOURCE needs to be mathced in full.
+    SOURCE may contain capture groups (...) and TARGET may reference
+    them as \$1, \$2 and so on. Attributes are renamed after copying
+    (see above), so you can rename copied attributes. Multiple
+    attribute rename operations may be specified either by listing
+    them in the argument separated by spaces or by specifying this
+    option multiple times.
 
 @ Date information
 
@@ -285,6 +294,7 @@ config_file_optname=config-file
 # cleanup_on_exit=
 
 
+vrt_rename_struct_attrs=$progdir/vrt-rename-struct-attrs.pl
 vrt_fix_attrs=$progdir/vrt-fix-attrs.py
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
 vrt_sort_texts=$progdir/vrt-sort-texts.sh
@@ -527,6 +537,7 @@ stages=(
     "$stage1_fn" "$stage1_descr"
     "$stage2_fn" "$stage2_descr"
     copy_struct_attrs "Copying structural attributes"
+    rename_struct_attrs "Renaming structural attributes"
     omit_structures "Omitting structures"
     add_lemmas_without_boundaries "Adding lemmas without compound boundaries"
     add_lemgrams "Adding lemgrams"
@@ -626,6 +637,15 @@ copy_struct_attrs () {
 
 test_skip_copy_struct_attrs () {
     [ "x$copy_struct_attr" = x ] &&
+	echo "not requested"
+}
+
+rename_struct_attrs () {
+    process_vrt $vrt_rename_struct_attrs $rename_struct_attr
+}
+
+test_skip_rename_struct_attrs () {
+    [ "x$rename_struct_attr" = x ] &&
 	echo "not requested"
 }
 
