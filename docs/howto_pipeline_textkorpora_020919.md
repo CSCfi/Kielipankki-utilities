@@ -281,7 +281,10 @@ With the second command you create an archive with a sub directory, to which all
 
 NOTE: It is recommended to upload the successfully parsed data (as zip file) to the respective corpus folder in IDA, especially if for some reason it is not processed further right away.
 
-In case of data which contains dialect or other specialities (e.g. Iijoki), Melissa created some scripts for testing the parsed data and creating statistics. The instructions for using those scripts will be accessible here (link to be created).
+
+#### 8. Special corpora with dialect
+For data containing dialect or other linguistic specialities (e.g. Iijoki), Melissa created some scripts for testing the parsed data and creating statistics. The instructions for using those scripts will be accessible here (link to be created).
+
 
 
 ### Creating a Korp package
@@ -324,6 +327,7 @@ The korp-id for the corpus should be derived from the short name of the corpus, 
 If korp-make has to be re-run on the same corpus, add option `--force` to the above mentioned command (this will overwrite all existing data).
 
 The script korp-make creates a corpus package under `/proj/clarin/korp/corpora/pkgs/'corpus_id'/` and it writes a log file to `/proj/clarin/korp/corpora/log/`on Taito(-shell).
+
 
 
 ### Adding the Korp configuration to the Korp frontend
