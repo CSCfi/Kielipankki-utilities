@@ -1,5 +1,5 @@
 # Korp configuration
-This part of the pipeline consists of making changes to the existing Korp configuration and translation files on your own branch of the Korp frontend repository and committing the changes.
+This part of the pipeline consists of making changes to the existing Korp configuration and translation files on the corpus-specific branch of the Korp frontend repository and committing the changes.
 
 You should have a folder ‘korp-frontend’ in your HOME directory in Taito shell, which is a Git working directory. 
 
@@ -29,7 +29,7 @@ You can check, in which branch you are right now:
   
 ## Changing the configuration and translation files
 
-Every time, before adding a new batch of corpus configurations, do (in your own corpus branch!):
+Every time, before adding a new batch of corpus configurations, do (in the corpus-specific branch!):
 
     git pull origin master  
 
@@ -37,7 +37,7 @@ That merges the changes made to the master branch to your current committed chan
 
 In order to create a configuration of your corpus, you should think about where to add the corpus in Korp: Which language is it? Is it a parallel corpus? Does it fit under a collection of corpora already available? Does the corpus have any access restrictions?
 
-Add the corpus configuration of your corpus to the file `app/modes/default_mode.js` (for Finnish). See the configuration of other corpora, e.g. ‘yo_aineet’, for examples.
+Add the corpus configuration of your corpus to the file `app/modes/default_mode.js` (for Finnish). See the configuration of other corpora for examples.
 If needed, add common definitions to `app/modes/common.js` 
 If needed, add translations to `app/translations/corpora-fi.json` for Finnish and the corresponding files for English and Swedish.
       
