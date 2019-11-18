@@ -177,6 +177,26 @@ scramble-seed=SEED
     scrambling data; "0" for random seed (non-reproducible order)
     (default: corpus id)
 
+@ Copying structural attributes
+
+copy-struct-attr|copy-structure-attribute=TARGET:SOURCELIST *
+    copy structural attributes from a preceding (enclosing) structure.
+    TARGET is the name of the structure to which attributes are to be
+    copied and SOURCELIST is a semicolon-separated list of items of
+    the form SOURCESTRUCT/ATTRLIST, where SOURCESTRUCT is the source
+    structure and ATTRLIST is a comma-separated list of the names of
+    attributes in SOURCESTRUCT to be copied, or "*" for all
+    attributes. For example, the value
+    "sentence:paragraph/type,speaker" specifies that the values of the
+    attributes type and speaker of the preceding (enclosing) paragraph
+    structure are added to the attributes of a sentence structure,
+    named paragraph_type and paragraph_speaker. Copying attributes
+    takes place before omitting structures, so for example, paragraph
+    attributes may be copied to sentences before removing paragraphs.
+    Multiple attribute copy operations may be specified either by
+    listing them in the argument separated by spaces or by specifying
+    this option multiple times.
+
 @ Date information
 
 corpus-date=DATE
@@ -506,6 +526,7 @@ run_stages () {
 stages=(
     "$stage1_fn" "$stage1_descr"
     "$stage2_fn" "$stage2_descr"
+    copy_struct_attrs "Copying structural attributes"
     omit_structures "Omitting structures"
     add_lemmas_without_boundaries "Adding lemmas without compound boundaries"
     add_lemgrams "Adding lemgrams"
@@ -596,6 +617,16 @@ generate_input () {
     input_attrs=${input_attrs/ lex / lex/ }
     input_attrs=${input_attrs% }
     initial_input_attrs=$input_attrs
+}
+
+copy_struct_attrs () {
+    process_vrt $vrt_fix_attrs \
+		$(add_prefix "--copy-struct-attribute " $copy_struct_attr)
+}
+
+test_skip_copy_struct_attrs () {
+    [ "x$copy_struct_attr" = x ] &&
+	echo "not requested"
 }
 
 omit_structures () {
