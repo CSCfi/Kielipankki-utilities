@@ -2526,7 +2526,7 @@
   # hrt-encode-tags input: a- b <a>c</a> d
   # Wrong contexts after removing hyphens
   input:
-    cmdline: ../vrt-tools/vrt-decode-tags
+    cmdline: vrt-decode-tags
     stdin: |
       <!-- #vrt structure-tag: a|3 a-b cd -->
       <!-- #vrt structure-tag: /a|4 a-bc d -->

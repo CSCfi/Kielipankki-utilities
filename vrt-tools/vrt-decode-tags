@@ -39,7 +39,9 @@ feature-set values and some others not.
 #   could make hrt-encode-tags add empty structure-tag comments that would be
 #   used for realigning offsets. For case (2), we could check following word
 #   forms (so many that their total length exceeds the number of spaces in the
-#   preceding word forms).
+#   preceding word forms). On second thoughts, can case (2) happen at all, as
+#   we remove spaces from contexts in hrt-encode-tags and from word forms here,
+#   before testing contexts? That would of course simplify things.
 
 
 import os
@@ -165,9 +167,9 @@ class TagDecoder(InputProcessor):
             char_offset = 0
             # Offset adjustment if actual offsets differ from expected
             offset_adj = 0
-            wordforms = []
+            wordforms, wordform_linenums = get_wordforms(lines)
+            wfnum = -1
             structs = []
-            latest_wordform_linenum = -1
             for tagnum, tag_line in enumerate(tag_lines):
                 # print(tag_line)
                 tag_info = extract_tag_info(tag_line)
@@ -191,11 +193,10 @@ class TagDecoder(InputProcessor):
                     attrs = tagparts[1] if len(tagparts) > 1 else b''
                     tagname = basetag.decode().strip('/')
                 if tag_info['offset'] + offset_adj > offset:
-                    (linenum, offset, char_offset, offset_adj,
-                     latest_wordform_linenum) = (
+                    (linenum, wfnum, offset, char_offset, offset_adj) = (
                         find_tag_pos(
-                            tag_info, lines, linenum, offset, offset_adj,
-                            wordforms, latest_wordform_linenum))
+                            tag_info, lines, offset, offset_adj, wfnum,
+                            wordforms, wordform_linenums))
                     # print(tag_info, linenum, offset, char_offset, is_endtag)
                 tag_linenum = linenum + int(is_endtag and bool(char_offset))
                 if is_comment or is_emptytag:
@@ -236,7 +237,7 @@ class TagDecoder(InputProcessor):
                         # print(struct)
                         struct.tagnums.append(tagnum)
                         struct.linenums.append(tag_linenum)
-                        struct.wordform_nums.append(len(wordforms) - 1)
+                        struct.wordform_nums.append(wfnum + 1)
                         struct.char_offsets.append(char_offset)
                     # print(struct_stack, struct)
                 else:
@@ -246,7 +247,7 @@ class TagDecoder(InputProcessor):
                         attrs=attrs,
                         tagnums=[tagnum],
                         linenums=[tag_linenum],
-                        wordform_nums=[len(wordforms) - int(char_offset > 0)],
+                        wordform_nums=[wfnum + 1 + int(char_offset == 0)],
                         char_offsets=[char_offset],
                         structnum=str(struct_count).encode(),
                         partnum='1/1',
@@ -284,7 +285,211 @@ class TagDecoder(InputProcessor):
             gd['offset'] = int(gd['offset'])
             return gd
 
-        def find_tag_pos(tag_info, lines, prev_linenum, prev_offset,
+        def get_wordforms(lines):
+            # This usually does some unnecessary work, as it also gets the word
+            # forms after the last tag to be decoded. However, this approach
+            # simplifies other code, as the word forms do not need to be
+            # computed on demand.
+            wordforms = []
+            wordform_linenums = []
+            for linenum, line in enumerate(lines):
+                if lines[linenum][0] != LESS_THAN:
+                    wf = ignores_re[0].sub('', get_wordform(lines[linenum]))
+                    wordforms.append(wf)
+                    wordform_linenums.append(linenum)
+            return (wordforms, wordform_linenums)
+
+        def find_tag_pos(tag_info, lines, prev_offset, offset_adj, wfnum,
+                         wordforms, wordform_linenums):
+            # prev_offset corresponds to prev_linenum
+            print(tag_info)
+            exp_offset = tag_info['offset'] + offset_adj
+            offset = prev_offset
+            char_offset = 0
+            wf_count = len(wordforms)
+            wfnum += 1
+            print(exp_offset, offset, offset_adj, wfnum, wordforms)
+            while offset < exp_offset and wfnum < wf_count:
+                offset += len(wordforms[wfnum])
+                wfnum += 1
+            wfnum -= 1
+            linenum = wordform_linenums[wfnum] + 1
+            # Always test that the contexts match, even if the offset looks
+            # correct, as the data might contain short words making the offset
+            # match even if the actual contents had deviated from the expected
+            # one, which would make the contexts mismatch and result in the tag
+            # in the wrong place.
+            (offset, offset_adj, char_offset, linenum, wfnum) = check_contexts(
+                tag_info, offset, offset_adj, linenum, wfnum, wordforms,
+                wordform_linenums)
+            print(linenum, wfnum, offset, char_offset, offset_adj)
+            return (linenum, wfnum, offset, char_offset, offset_adj)
+
+        def check_contexts(tag_info, offset, offset_adj, linenum, base_wfnum,
+                           wordforms, wordform_linenums):
+            # Test if the actual contexts based on wordforms match the contexts
+            # specified in tag_info.
+            # Return tuple (offset, offset_adj, char_offset, linenum, wfnum)
+            # Possible cases:
+            # 1. Contexts and offsets match
+            # 2. Contexts match but at a different offset (offsets do not match)
+            # 3. Contexts match after removing hyphens (or similar)
+            # 4. No matching contexts are found
+            # 1...3 have two subcases:
+            # a. Match at token boundary (-> char_offset == 0)
+            # b. Match inside a token (-> char_offset > 0)
+            print('ck_ctxt', tag_info, offset, offset_adj, linenum, base_wfnum, wordforms, wordform_linenums)
+            exp_offset = tag_info['offset'] + offset_adj
+            offset_diff = offset - (tag_info['offset'] + offset_adj)
+            context_left = tag_info['left'].decode()
+            context_right = tag_info['right'].decode()
+            wfnum = base_wfnum
+            context_left_actual = [wordforms[wfnum]]
+            contextlen_left_actual = len(context_left_actual[0])
+            contextlen_left = len(context_left)
+            while contextlen_left_actual < contextlen_left and wfnum >= 0:
+                context_left_actual[0:0] = [wordforms[wfnum]]
+                contextlen_left_actual += len(context_left_actual[0])
+                wfnum -= 1
+                print(context_left_actual, contextlen_left, wfnum)
+            context_left_actual_str = ''.join(context_left_actual)
+            wfnum = base_wfnum + 1
+            context_right_actual = []
+            contextlen_right_actual = 0
+            contextlen_right = len(context_right)
+            while contextlen_right_actual < contextlen_right and wfnum < len(wordforms):
+                context_right_actual.append(wordforms[wfnum])
+                contextlen_right_actual += len(context_right_actual[-1])
+                wfnum += 1
+            context_right_actual_str = ''.join(context_right_actual)
+            if (context_left_actual_str.endswith(context_left)
+                and context_right_actual_str.startswith(context_right)):
+                return (offset, offset_adj, 0, linenum, base_wfnum)
+            else:
+                pass
+                # find_context_match(context_left_actual_str, context_left)
+            print(context_left_actual, contextlen_left, wfnum)
+            return (offset, offset_adj, 0, linenum, base_wfnum)
+
+        def match_contexts(tag_info, offset, offset_adj, wordforms):
+            # Return tuple (match, extra_offset_adj)
+            #
+            # abcd efg- hij klmn opq rst uvwxy
+            # abcd efghij klmn opq rst uvwxy
+            # fg-hijklmno
+            # fghijklmno
+            print('CM', tag_info, offset, offset_adj, wordforms)
+            offset_diff = offset - (tag_info['offset'] + offset_adj)
+            context_left = tag_info['left'].decode()
+            context_right = tag_info['right'].decode()
+            context_left_actual = [wordforms[-1][:-offset_diff]]
+            contextlen_left_actual = len(context_left_actual[0])
+            contextlen_left = len(context_left)
+            wf_num = len(wordforms) - 2
+            print(context_left_actual, contextlen_left, wf_num)
+            ignore_re_num = 0
+            while ignore_re_num < len(ignores_re):
+                while contextlen_left_actual < contextlen_left and wf_num >= 0:
+                    context_left_actual[0:0] = [wordforms[wf_num]]
+                    contextlen_left_actual += len(context_left_actual[0])
+                    wf_num -= 1
+                    print(context_left_actual, contextlen_left, wf_num)
+                context_left_actual_str = ''.join(context_left_actual)
+                if (context_left_actual_str[-contextlen_left:] == context_left
+                    and context_right.startswith(
+                        wordforms[-1][-offset_diff:][:len(context_right)])):
+                    return (True, 0)
+                else:
+                    find_context_match(context_left_actual_str, context_left)
+                ignore_re_num += 1
+            while ignore_re_num < len(ignores_re):
+                ignore_re_num += 1
+            print(context_left_actual[-contextlen_left:], context_left,
+                  context_right, wordforms[-1][-offset_diff:][:len(context_right)],
+                  context_left_actual[-contextlen_left:] == context_left,
+                  context_right.startswith(
+                        wordforms[-1][-offset_diff:][:len(context_right)]))
+            return (context_left_actual[-contextlen_left:] == context_left
+                    and context_right.startswith(
+                        wordforms[-1][-offset_diff:][:len(context_right)]))
+
+                
+        def find_context_match(context_left_actual, context_right_actual,
+                               context_left, context_right):
+            # abcdefgh
+            #    defg
+            # abcdefgh
+            #      fghi
+            #  abcdefgh
+            # 0abc
+            #      fghi
+            # abcdefgh
+            # 0abc
+            #  abcdefgh
+            context_actual = context_left_actual + context_right_actual
+            context_expected = context_left + context_right
+            matcher = SequenceMatcher(None, context_actual, context_expected,
+                                      autojunk=False)
+            match = matcher.find_longest_match(0, len(context_actual), 0,
+                                               len(context_expected))
+            if match.size < MIN_MATCH_LEN:
+                return (False, 0, -1)
+            else:
+                # Only take into account matches that cover the actual or
+                # expected as a whole or are at the beginning of one and at the
+                # end of the other, that is, not internal substring matches.
+                if (match.size == len(context_actual)
+                    or match.size == len(context_expected)
+                    or (match.a == 0
+                        and match.b + match.size == len(context_expected))
+                    or (match.b == 0
+                        and match.a + match.size == len(context_actual))):
+                    return (True, match_len, )
+
+            
+            if offset != exp_offset:
+                warn = True
+                match = False
+                ignore_re_num = 1
+                wfnum = len(wordforms) - 1
+                offset_diff = exp_offset - offset
+                while warn and not match and ignore_re_num < len(ignores_re):
+                    offset_adj_old = offset_adj
+                    (match, offset_adj) = match_contexts(tag_info, offset, offset_adj, wordforms)
+                    if match:
+                        linenum -= 1
+                        last_wf_len = len(wordforms[-1])
+                        if exp_offset - offset < last_wf_len:
+                            warn = False
+                            offset -= last_wf_len
+                            char_offset = exp_offset - offset
+                    else:
+                        match = True
+                        continue
+                        wf_changed = False
+                        while not wf_changed and ignore_re_num < len(ignores_re):
+                            wflen = len(wordforms[wfnum])
+                            wf = ignores_re[ignore_re_num].sub('', wordforms[wfnum])
+                            if len(wf) != wflen:
+                                wf_changed = True
+                                wordforms[wfnum] = wf
+                            wfnum -= 1
+                            if wfnum < first_wfnum:
+                                ignore_re_num += 1
+                                wfnum = len(wordforms) - 1
+                if warn:
+                    self.warn(('Tag <{}> (contexts {}, {}): expected offset'
+                               ' {:d}, got {:d}: possibly intra-word spaces')
+                              .format(tag_info['tag'].decode(),
+                                      tag_info['left'].decode(),
+                                      tag_info['right'].decode(),
+                                      exp_offset, offset))
+                    offset_adj = offset_adj + (offset - exp_offset)
+            print(linenum, offset, char_offset, latest_wordform_linenum)
+            return (linenum, offset, char_offset, offset_adj,
+                    latest_wordform_linenum)
+
+        def find_tag_pos_old(tag_info, lines, prev_linenum, prev_offset,
                          offset_adj, wordforms, latest_wordform_linenum):
             # prev_offset corresponds to prev_linenum
             print(tag_info)
@@ -397,38 +602,6 @@ class TagDecoder(InputProcessor):
             return (context_left_actual[-contextlen_left:] == context_left
                     and context_right.startswith(
                         wordforms[-1][-offset_diff:][:len(context_right)]))
-
-        def find_context_match(context_left_actual, context_right_actual,
-                               context_left, context_right):
-            # abcdefgh
-            #    defg
-            # abcdefgh
-            #      fghi
-            #  abcdefgh
-            # 0abc
-            #      fghi
-            # abcdefgh
-            # 0abc
-            #  abcdefgh
-            context_actual = context_left_actual + context_right_actual
-            context_expected = context_left + context_right
-            matcher = SequenceMatcher(None, context_actual, context_expected,
-                                      autojunk=False)
-            match = matcher.find_longest_match(0, len(context_actual), 0,
-                                               len(context_expected))
-            if match.size < MIN_MATCH_LEN:
-                return (False, 0, -1)
-            else:
-                # Only take into account matches that cover the actual or
-                # expected as a whole or are at the beginning of one and at the
-                # end of the other, that is, not internal substring matches.
-                if (match.size == len(context_actual)
-                    or match.size == len(context_expected)
-                    or (match.a == 0
-                        and match.b + match.size == len(context_expected))
-                    or (match.b == 0
-                        and match.a + match.size == len(context_actual))):
-                    return (True, match_len, )
                 
 
         def contexts_match_new(tag_info, offset, offset_adj, wordforms):
