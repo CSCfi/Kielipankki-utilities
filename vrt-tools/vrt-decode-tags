@@ -11,7 +11,7 @@ comments with hrt-encode-tags.
 Note that this version of the script does not yet handle all cases
 correctly, such as when the start and end tags of a structure are in
 different encoded chunks, that is, if there is a preserved tag between
-them). In addition, some occurrences of an attribute may have
+them. In addition, some occurrences of an attribute may have
 feature-set values and some others not.
 """
 
@@ -22,11 +22,31 @@ feature-set values and some others not.
 # - Add to mid-token empty tags an extra attribute indicating the
 #   character offset of the tag.
 
+# - Handle cases in which expected tag offsets differ from the actual data so
+#   much that contexts cannot be matched. There are in principle two cases: (1)
+#   Actual data is behind the expected offsets, which means that characters
+#   have been removed from the data (in tokenization), typically word-final
+#   hyphens. (2) Actual data is ahead of the expected offsets, which means that
+#   characters (spaces) expected to be removed have been preserved in the data.
+#   When encountering a context mismatch, we probably cannot know which of
+#   these cases is in question. (Or could we? Case (2) probably only occurs if
+#   the word forms contain spaces, so we might count the spaces.) These may
+#   cause problems if the offset difference is larger than the length of the
+#   context (minus the length required for a context match). As the offsets are
+#   realigned at each decoded tag if needed, this becomes a problem when the
+#   data has a long stretch without tags. For case (1), we could either expand
+#   preceding context further (but by how much and how much at a time?), or we
+#   could make hrt-encode-tags add empty structure-tag comments that would be
+#   used for realigning offsets. For case (2), we could check following word
+#   forms (so many that their total length exceeds the number of spaces in the
+#   preceding word forms).
+
 
 import os
 import re
 
 from collections import namedtuple, defaultdict, OrderedDict
+from difflib import SequenceMatcher
 from itertools import accumulate, groupby
 from tempfile import NamedTemporaryFile
 
@@ -130,6 +150,7 @@ class TagDecoder(InputProcessor):
         SLASH = '/'.encode('utf-8')[0]
         EXCLAM = '!'.encode('utf-8')[0]
         VBAR = '|'.encode('utf-8')[0]
+        MIN_MATCH_LEN = 5
 
         def is_structtag_comment(line):
             return (line[0] == LESS_THAN and isbinvrtcomment(line)
@@ -284,6 +305,10 @@ class TagDecoder(InputProcessor):
                         latest_wordform_linenum = linenum
                 linenum += 1
                 print('WF', wf, linenum, offset, wordforms)
+            # FIXME: Always test that the contexts match, even if the offset
+            # looks correct, as the data might contain short words making the
+            # offset match even if the actual contents had deviated from the
+            # expected one making the contexts mismatch.
             if offset != new_offset:
                 warn = True
                 match = False
@@ -291,7 +316,8 @@ class TagDecoder(InputProcessor):
                 wfnum = len(wordforms) - 1
                 offset_diff = new_offset - offset
                 while warn and not match and ignore_re_num < len(ignores_re):
-                    match = contexts_match(tag_info, offset, offset_adj, wordforms)
+                    offset_adj_old = offset_adj
+                    (match, offset_adj) = match_contexts(tag_info, offset, offset_adj, wordforms)
                     if match:
                         linenum -= 1
                         last_wf_len = len(wordforms[-1])
@@ -328,11 +354,90 @@ class TagDecoder(InputProcessor):
         def get_wordform(line):
             return vrtdatalib.binlineref(line, word_attrnum).decode()
 
-        def contexts_match(tag_info, offset, offset_adj, wordforms):
+        def match_contexts(tag_info, offset, offset_adj, wordforms):
+            # Test if the actual contexts based on wordforms match the contexts
+            # specified in tag_info
+            # Return tuple (match, extra_offset_adj)
+            #
+            # abcd efg- hij klmn opq rst uvwxy
+            # abcd efghij klmn opq rst uvwxy
+            # fg-hijklmno
+            # fghijklmno
+            print('CM', tag_info, offset, offset_adj, wordforms)
+            offset_diff = offset - (tag_info['offset'] + offset_adj)
+            context_left = tag_info['left'].decode()
+            context_right = tag_info['right'].decode()
+            context_left_actual = [wordforms[-1][:-offset_diff]]
+            contextlen_left_actual = len(context_left_actual[0])
+            contextlen_left = len(context_left)
+            wf_num = len(wordforms) - 2
+            print(context_left_actual, contextlen_left, wf_num)
+            ignore_re_num = 0
+            while ignore_re_num < len(ignores_re):
+                while contextlen_left_actual < contextlen_left and wf_num >= 0:
+                    context_left_actual[0:0] = [wordforms[wf_num]]
+                    contextlen_left_actual += len(context_left_actual[0])
+                    wf_num -= 1
+                    print(context_left_actual, contextlen_left, wf_num)
+                context_left_actual_str = ''.join(context_left_actual)
+                if (context_left_actual_str[-contextlen_left:] == context_left
+                    and context_right.startswith(
+                        wordforms[-1][-offset_diff:][:len(context_right)])):
+                    return (True, 0)
+                else:
+                    find_context_match(context_left_actual_str, context_left)
+                ignore_re_num += 1
+            while ignore_re_num < len(ignores_re):
+                ignore_re_num += 1
+            print(context_left_actual[-contextlen_left:], context_left,
+                  context_right, wordforms[-1][-offset_diff:][:len(context_right)],
+                  context_left_actual[-contextlen_left:] == context_left,
+                  context_right.startswith(
+                        wordforms[-1][-offset_diff:][:len(context_right)]))
+            return (context_left_actual[-contextlen_left:] == context_left
+                    and context_right.startswith(
+                        wordforms[-1][-offset_diff:][:len(context_right)]))
+
+        def find_context_match(context_left_actual, context_right_actual,
+                               context_left, context_right):
+            # abcdefgh
+            #    defg
+            # abcdefgh
+            #      fghi
+            #  abcdefgh
+            # 0abc
+            #      fghi
+            # abcdefgh
+            # 0abc
+            #  abcdefgh
+            context_actual = context_left_actual + context_right_actual
+            context_expected = context_left + context_right
+            matcher = SequenceMatcher(None, context_actual, context_expected,
+                                      autojunk=False)
+            match = matcher.find_longest_match(0, len(context_actual), 0,
+                                               len(context_expected))
+            if match.size < MIN_MATCH_LEN:
+                return (False, 0, -1)
+            else:
+                # Only take into account matches that cover the actual or
+                # expected as a whole or are at the beginning of one and at the
+                # end of the other, that is, not internal substring matches.
+                if (match.size == len(context_actual)
+                    or match.size == len(context_expected)
+                    or (match.a == 0
+                        and match.b + match.size == len(context_expected))
+                    or (match.b == 0
+                        and match.a + match.size == len(context_actual))):
+                    return (True, match_len, )
+                
+
+        def contexts_match_new(tag_info, offset, offset_adj, wordforms):
             # Test if the actual contexts based on wordforms match the contexts
             # specified in tag_info
             # Return tuple (match, extra_offset_adj)
             # abcd efg- hij klmn opq rst uvwxy
+            # abcd efghij klmn opq rst uvwxy
+            # fg-hijklmno
             # fghijklmno
             print('CM', tag_info, offset, offset_adj, wordforms)
             offset_diff = offset - (tag_info['offset'] + offset_adj)

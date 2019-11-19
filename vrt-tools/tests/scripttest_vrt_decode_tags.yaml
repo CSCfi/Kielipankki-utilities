@@ -2521,3 +2521,24 @@
       ta-
       ,
       3:mas
+
+- name: 'vrt-decode-tags: Wrong contexts in the expected offset'
+  # hrt-encode-tags input: a- b <a>c</a> d
+  # Wrong contexts after removing hyphens
+  input:
+    cmdline: ../vrt-tools/vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|3 a-b cd -->
+      <!-- #vrt structure-tag: /a|4 a-bc d -->
+      ab
+      c
+      d
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      ab
+      c
+      <a struct_num="|1|">
+      d
+      </a>
