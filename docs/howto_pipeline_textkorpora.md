@@ -318,7 +318,7 @@ In case you used vrt-finer to NER-tag the corpus, the line would be like this:
 
 The command for running korp-make is:
 
-    /proj/clarin/korp/scripts/korp-make --config-file=corpus.conf --readme-file=readme_about_'corpus'.txt 'korp-id' /wrk/'username'/'corpus'/'corpus-parsed'.zip
+    /proj/clarin/korp/scripts/korp-make --config-file=corpus.conf --readme-file=readme_about_'corpus'.txt 'korp-id' /'path'/'corpus-parsed'.zip
 
 
 
