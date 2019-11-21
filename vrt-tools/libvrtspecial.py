@@ -14,12 +14,12 @@ import html, sys
 # No " ' < > seen so far.
 
 def finish_av(value):
-    if "'" in value: print('attr', repr(value), file = sys.stderr)
-    if '"' in value: print('attr', repr(value), file = sys.stderr)
+    if "'" in value: print('vrt-special attr', repr(value), file = sys.stderr)
+    if '"' in value: print('vrt-special attr', repr(value), file = sys.stderr)
     if '|' in value:
-        print('attr in ', repr(value), file = sys.stderr)
+        print('vrt-special attr in', repr(value), file = sys.stderr)
         value = value.replace('|', '\N{BROKEN BAR}')
-        print('attr out', repr(value), file = sys.stderr)
+        print('vrt-special attr out', repr(value), file = sys.stderr)
     return html.escape(value, quote = True)
 
 def finish_avs(values):
@@ -32,5 +32,5 @@ def finish_t(token):
     # if '<' in token: print(repr(token), file = sys.stderr)
     # if '>' in token: print(repr(token), file = sys.stderr)
     # if '&' in token: print(repr(token), file = sys.stderr)
-    if '|' in token: print('token', repr(token), file = sys.stderr)
+    if '|' in token: print('vrt-special token', repr(token), file = sys.stderr)
     return html.escape(token.replace(' ', '\xa0'), quote = False)
