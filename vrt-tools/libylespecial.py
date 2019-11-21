@@ -91,7 +91,7 @@ def sane(text, *, asis = False):
 
     return text
 
-# se [denna exempelsida](http://example.com); => se denna sida;
+# se [denna sida](http://example.com); => se denna sida;
 # pattern captures full match and the replacement text
 
 delink_pattern = re.compile(R'''
