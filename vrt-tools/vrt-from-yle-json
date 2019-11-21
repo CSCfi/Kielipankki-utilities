@@ -184,6 +184,16 @@ def tokenize_lead(text):
 
 def tokenize_content_heading(obj):
     '''Yield heading text as a single paragraph, unless empty.'''
+    # hunting for what failed in fi/2013/10/0008.json,
+    # one obj['text'] really turned out to be a list,
+    # some sort of resource reference: ignore it with a
+    # warning (actually four of them, so ignore them)
+    if not isinstance(obj['text'], str):
+        args.warn and print('ignore non-str content heading:',
+                            type(obj['text']), repr(obj['text']),
+                            file = sys.stderr)
+        return
+
     meta = dict(type = 'heading')
     data = list(tokenize_paragraph(obj['text']))
     if data:
