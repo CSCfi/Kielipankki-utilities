@@ -32,7 +32,7 @@ shlib_required_libs="msgs file"
 # variables KORP_MYSQL_USER and KORP_MYSQL_PASSWORD. Additional MySQL
 # options may be specified after sql_command.
 run_mysql () {
-    local _db
+    local _db sql_cmd
     _db=$korpdb
     if [ "x$mysql_bin" = x ]; then
 	warn "MySQL client mysql not found"
@@ -49,7 +49,13 @@ run_mysql () {
 	fi
 	shift
     fi
-    $mysql_bin $mysql_opts --batch --raw --execute "$@" $_db
+    # SET SQL_BIG_SELECTS=1 is needed for large SELECT (and other)
+    # operations. Does it make the performance suffer for operations
+    # not requiring it? If it does, we could have an option (--big?)
+    # for using it.
+    sql_cmd="SET SQL_BIG_SELECTS=1; $1"
+    shift
+    $mysql_bin $mysql_opts --batch --raw --execute "$sql_cmd" "$@" $_db
 }
 
 # mysql_table_exists table_name
