@@ -1,0 +1,61 @@
+
+Converting the texts into vrt
+-----------------------------
+
+Get package ceal-en-fi_clean from IDA. Then run:
+
+for author in austen dickens james;
+do
+  mkdir $author;
+  cat ceal-en-fi_clean/${author}_clean.txt | cut -f1 > $author/${author}_en.txt;
+  cat ceal-en-fi_clean/${author}_clean.txt | cut -f2 > $author/${author}_fi.txt;
+done
+
+You need Turku Dependency Parser Pipeline (TNPP) and language models
+for Finnish (fi_tdt) and English (en_ewt). The script expects that
+the TNPP script and models are in the current directory. If you have
+installed TNPP in a virtual environment, first run:
+
+  source venv-parser-neural/bin/activate
+
+You also need vrt tools from Kielipankki-konversio repository.
+Set vrttools variable in file make-ceal.sh so that the script finds them.
+Then run:
+
+  ceal-txt-to-vrt.sh [--austen|--dickens|--james] [--fin|--eng]
+
+Source text must be in AUTHOR/AUTHOR_LANG.txt, e.g. austen/austen_fi.txt.
+
+If you are in a virtual environment, run:
+
+  deactivate
+
+after you have generated all vrt files.
+
+
+Changes made to text files
+--------------------------
+
+Austen
+------
+
+Fixed: line 1173: "joka vain surettaisi Janea.<U+2028>" (<U+2028 removed> with perl -C -pe 's/\x{2028}//;')
+
+Dickens
+-------
+
+Fixed manually:
+
+_       Kahdeksastoista luku
+CHAPTER XVIII   Lady Dedlock
+Lady Dedlock    _
+
+James
+-----
+
+First and last lines are handled by script:
+
+# WASHINGTON SQUARE       Washingtonin aukio
+# By Henry James  _
+
+# WASHINGTON SQUARE       _
