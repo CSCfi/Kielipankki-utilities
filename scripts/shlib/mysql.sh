@@ -16,7 +16,8 @@ shlib_required_libs="msgs file"
 
 # Functions
 
-# run_mysql [--auth | --table table_name] sql_command [MySQL options ...]
+# run_mysql [--auth | --table table_name] [sql_command | ""]
+#           [MySQL options ...]
 #
 # Run sql_command on the Korp database using MySQL and get the raw
 # output (TSV format; first line containing column names).
@@ -28,11 +29,16 @@ shlib_required_libs="msgs file"
 # database has table names beginning "auth_" and that all the table
 # names in the authorization database begin with it.
 #
+# If sql_command is omitted or empty, the SQL commands are read from
+# stdin.
+#
 # MySQL username and password may be specified via the environment
 # variables KORP_MYSQL_USER and KORP_MYSQL_PASSWORD. Additional MySQL
-# options may be specified after sql_command.
+# options may be specified after sql_command. If additional MySQL
+# options are specified and the input should be read from stdin,
+# sql_command needs to be specified as an empty string.
 run_mysql () {
-    local _db
+    local _db sql_cmd
     _db=$korpdb
     if [ "x$mysql_bin" = x ]; then
 	warn "MySQL client mysql not found"
@@ -49,7 +55,22 @@ run_mysql () {
 	fi
 	shift
     fi
-    $mysql_bin $mysql_opts --batch --raw --execute "$@" $_db
+    sql_cmd=$1
+    # Unlike Bash, Dash gives an error message when trying to shift
+    # past the end of the arguments, so test that there are arguments
+    # left before shifting.
+    if [ "$#" != 0 ]; then
+	shift
+    fi
+    if [ "x$sql_cmd" = x ]; then
+	sql_cmd=$(cat)
+    fi
+    # SET SQL_BIG_SELECTS=1 is needed for large SELECT (and other)
+    # operations. Does it make the performance suffer for operations
+    # not requiring it? If it does, we could have an option (--big?)
+    # for using it.
+    sql_cmd="SET SQL_BIG_SELECTS=1; $sql_cmd"
+    $mysql_bin $mysql_opts --batch --raw --execute "$sql_cmd" "$@" $_db
 }
 
 # mysql_table_exists table_name
@@ -106,7 +127,7 @@ elif [ -x /opt/mariadb/bin/mysql ]; then
     mysql_bin="/opt/mariadb/bin/mysql --defaults-extra-file=/var/lib/mariadb/my.cnf"
 else
     mysql_bin=$(find_prog mysql)
-    if [ "x$(run_mysql "" 2>&1)" != x ]; then
+    if [ "x$(run_mysql ";" 2>&1)" != x ]; then
 	mysql_bin=
     fi
 fi
