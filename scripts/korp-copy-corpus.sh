@@ -15,63 +15,28 @@
 progname=`basename $0`
 progdir=`dirname $0`
 
-# For getopt, called in korp-lib.sh
-shortopts=hc:r:
-longopts=help,corpus-root:,registry:
+
+usage_header="Usage: $progname [options] source target
+
+Copy a Korp corpus with id \"source\" to id \"target\": CWB data directory,
+registry file and Korp MySQL data (time data, lemgram index, relations tables
+and authorization data)."
+
+optspecs='
+c|corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
+    use DIR as the root directory of corpus files
+r|registry=DIR "$cwb_regdir" { set_corpus_registry "$1" }
+    use DIR as the CWB registry
+'
 
 . $progdir/korp-lib.sh
 
+# Process options
+eval "$optinfo_opt_handler"
+
+
 multicorpus_tables="timedata timedata_date timespans lemgram_index corpus_info"
 multicorpus_tables_auth="auth_license auth_lbr_map auth_allow"
-
-
-usage () {
-    cat <<EOF
-Usage: $progname [options] source target
-
-Copy a Korp corpus with id "source" to id "target": CWB data directory,
-registry file and Korp MySQL data (time data, lemgram index, relations tables
-and authorization data).
-
-Options:
-  -h, --help      show this help
-  -c, --corpus-root DIR
-                  use DIR as the root directory of corpus files (default:
-                  $corpus_root)
-  -r, --registry DIR
-                  use DIR as the CWB registry (default: $cwb_regdir)
-EOF
-    exit 0
-}
-
-
-# Process options
-while [ "x$1" != "x" ] ; do
-    case "$1" in
-	-h | --help )
-	    usage
-	    ;;
-	-c | --corpus-root )
-	    set_corpus_root "$2"
-	    shift
-	    ;;
-	-r | registry )
-	    set_corpus_registry "$2"
-	    shift
-	    ;;
-	-- )
-	    shift
-	    break
-	    ;;
-	--* )
-	    warn "Unrecognized option: $1"
-	    ;;
-	* )
-	    break
-	    ;;
-    esac
-    shift
-done
 
 
 extract_datadir () {
