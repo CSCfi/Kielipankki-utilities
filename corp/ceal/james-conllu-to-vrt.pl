@@ -19,16 +19,12 @@ my $lang = $ARGV[0];
 # English text
 if ($lang eq "--eng")
 {
-    print '<text filename="?" title="Washington Square" datefrom="?" dateto="?" timefrom="000000" timeto="235959"';
-    print ' author="Henry James" lang="en" publisher="?">';
-    print "\n";
+    print '<text filename="" title="Washington Square" year="1880" datefrom="18800101" dateto="18802131" timefrom="000000" timeto="235959" author="Henry James" lang="en">'."\n";
 }
 # Finnish text
 elsif ($lang eq "--fin")
 {
-    print '<text filename="?" title="Washingtonin aukio" year="2003" datefrom="20030101" dateto="20031231" timefrom="000000" timeto="235959"';
-    print ' author="Kersti Juva" lang="fi" publisher="Otava">';
-    print "\n";
+    print '<text filename="" title="Washingtonin aukio" year="2003" datefrom="20030101" dateto="20031231" timefrom="000000" timeto="235959" author="Henry James" translator="Kersti Juva" lang="fi" publisher="Otava">'."\n";
 }
 
 foreach my $line ( <STDIN> ) {    

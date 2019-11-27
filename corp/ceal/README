@@ -26,6 +26,8 @@ Then run:
 
 Source text must be in AUTHOR/AUTHOR_LANG.txt, e.g. austen/austen_fi.txt.
 
+Set value of attribute 'filename' in element 'text'.
+
 If you are in a virtual environment, run:
 
   deactivate
@@ -47,15 +49,19 @@ do
   cat austen/austen_fi.vrt | ./ceal-scramble-ids.pl --${element} austen/${element}_ids.txt > austen/tmp && mv austen/tmp austen/austen_fi.vrt;
 done
 
-The sentence elements cannot have the same scrambled IDs as there is different
-number of sentences in English and Finnish versions of the text. For example
-for Austen:
+The sentence elements cannot have the same scrambled IDs as their
+numbers differ in English and Finnish versions of the text.
 
 for lang in en fi;
 do
   cat austen/austen_$lang.vrt | ./ceal-generate-scrambled-ids.sh --sentence > austen/sentence_ids_$lang.txt;
   cat austen/austen_$lang.vrt | ./ceal-scramble-ids.pl --sentence austen/sentence_ids_$lang.txt > austen/tmp && mv austen/tmp austen/austen_$lang.vrt;
 done
+
+It is safest to remove chapter elements from the scrambled version so that
+the paragraphs are scrambled within the whole text:
+
+cat austen/austen_en.vrt | egrep -v '^</?chapter' > austen/tmp && mv austen/tmp austen/austen_en.vrt;
 
 
 Changes made to text files

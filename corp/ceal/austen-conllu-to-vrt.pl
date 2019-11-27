@@ -19,15 +19,11 @@ print "<!-- #vrt positional-attributes: id word lemma upos xpos feats head depre
 # English text
 if ($lang eq "--eng")
 {
-    print '<text filename="?" title="Pride and Prejudice" datefrom="?" dateto="?" timefrom="000000" timeto="235959"';
-    print ' author="Jane Austen" lang="en" publisher="?">';
-    print "\n";
+    print '<text filename="" title="Pride and Prejudice" year="1813" datefrom="18130101" dateto="18131231" timefrom="000000" timeto="235959" author="Jane Austen" lang="en">'."\n";
 }
 elsif ($lang eq "--fin")
 {
-    print '<text filename="?" title="Ylpeys ja ennakkoluulo" year="2013" datefrom="20130101" dateto="20131231" timefrom="000000" timeto="235959"';
-    print ' author="Kersti Juva" lang="fi" publisher="?">';
-    print "\n";
+    print '<text filename="" title="Ylpeys ja ennakkoluulo" year="2013" datefrom="20130101" dateto="20131231" timefrom="000000" timeto="235959" author="Jane Austen" translator="Kersti Juva" lang="fi" publisher="Teos">'."\n";
 }
 
 foreach my $line ( <STDIN> ) {    

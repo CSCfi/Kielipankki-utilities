@@ -161,16 +161,12 @@ my $lang = $ARGV[0];
 # English text
 if ($lang eq "--eng")
 {
-    print '<text filename="?" title="Bleak House" datefrom="?" dateto="?" timefrom="000000" timeto="235959"';
-    print ' author="Charles Dickens" lang="en" publisher="?">';
-    print "\n";
+    print '<text filename="" title="Bleak House" year="1853" datefrom="18530101" dateto="18531231" timefrom="000000" timeto="235959" author="Charles Dickens" lang="en">'."\n";
 }
 # Finnish text
 elsif ($lang eq "--fin")
 {
-    print '<text filename="?" title="Kolea Talo" year="2006" datefrom="20060101" dateto="20061231" timefrom="000000" timeto="235959"';
-    print ' author="Kersti Juva" lang="fi" publisher="Tammi">';
-    print "\n";
+    print '<text filename="" title="Kolea Talo" year="2006" datefrom="20060101" dateto="20061231" timefrom="000000" timeto="235959" author="Charles Dickens" translator="Kersti Juva" lang="fi" publisher="Tammi">'."\n";
 }
 
 foreach my $line ( <STDIN> ) {    
