@@ -63,6 +63,8 @@ the paragraphs are scrambled within the whole text:
 
 cat austen/austen_en.vrt | egrep -v '^</?chapter' > austen/tmp && mv austen/tmp austen/austen_en.vrt;
 
+(Option "--omit-structures chapter" of korp-make does the same?)
+
 
 Compiling the corpus for korp
 -----------------------------
@@ -70,7 +72,9 @@ Compiling the corpus for korp
 PATH=$PATH:/proj/clarin/korp/cwb/bin:/proj/clarin/korp/scripts
 attrs="ref lemma pos xpos msd dephead deprel deps misc"
 lemgram_posmap="lemgram_posmap_ud2_universal.tsv"
-corpusname="ceal_[o|s]"  # original or scrambled
+corpusname="ceal_[o|s]"               # original or scrambled
+scramble=["--scramble paragraph"|""]  # original or scrambled
+# "--omit-structures chapter" could be added here?
 corpusrootdir="/proj/clarin/korp/corpora"
 registrydir="/proj/clarin/korp/corpora/registry"
 
@@ -78,7 +82,7 @@ registrydir="/proj/clarin/korp/corpora/registry"
 
 for lang in en fi;
 do
-  korp-make --corpus-root=$corpusrootdir --input-attributes=$attrs \
+  korp-make --corpus-root=$corpusrootdir --input-attributes=$attrs $scramble \
   --compound-boundary-marker="#" --lemgram-posmap=$lemgram_posmap --log-file=log --verbose $corpusname_$lang \
   austen/austen_$lang.vrt dickens/dickens_$lang.vrt james/james_$lang.vrt;
 done
@@ -86,10 +90,10 @@ done
 # English, Finnish and parallel versions:
 
 korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-logging --verbose --input-attributes=$attrs \
-  --compound-boundary-marker="#" --lemgram-posmap=$lemgram_posmap ${corpusname}_fi \
+  $scramble --compound-boundary-marker="#" --lemgram-posmap=$lemgram_posmap ${corpusname}_fi \
     austen/austen_fi.vrt dickens/dickens_fi.vrt james/james_fi.vrt;
 korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-logging --verbose --input-attributes=$attrs \
-  --compound-boundary-marker="#" --lemgram-posmap=$lemgram_posmap ${corpusname}_en \
+  $scramble --compound-boundary-marker="#" --lemgram-posmap=$lemgram_posmap ${corpusname}_en \
     austen/austen_en.vrt dickens/dickens_en.vrt james/james_en.vrt;
 cwb-align -v -r $registrydir -o ${corpusname}_fi_en.align -V link_id ${corpusname}_fi ${corpusname}_en link;
 cwb-align -v -r $registrydir -o ${corpusname}_en_fi.align -V link_id ${corpusname}_en ${corpusname}_fi link;
