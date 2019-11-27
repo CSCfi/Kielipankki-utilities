@@ -33,6 +33,31 @@ If you are in a virtual environment, run:
 after you have generated all vrt files.
 
 
+Scrambled version
+-----------------
+
+If you are going to create a scrambled corpus, the IDs of sentence, paragraph and
+link elements must also de scrambled. The paragraph and link elements must have
+the same scrambled IDs as CEAL is a parallel corpus. For example for Austen:
+
+for element in paragraph link;
+do
+  cat austen/austen_en.vrt | ./ceal-generate-scrambled-ids.sh --$element > austen/${element}_ids.txt
+  cat austen/austen_en.vrt | ./ceal-scramble-ids.pl --${element} austen/${element}_ids.txt > austen/tmp && mv austen/tmp austen/austen_en.vrt;
+  cat austen/austen_fi.vrt | ./ceal-scramble-ids.pl --${element} austen/${element}_ids.txt > austen/tmp && mv austen/tmp austen/austen_fi.vrt;
+done
+
+The sentence elements cannot have the same scrambled IDs as there is different
+number of sentences in English and Finnish versions of the text. For example
+for Austen:
+
+for lang in en fi;
+do
+  cat austen/austen_$lang.vrt | ./ceal-generate-scrambled-ids.sh --sentence > austen/sentence_ids_$lang.txt;
+  cat austen/austen_$lang.vrt | ./ceal-scramble-ids.pl --sentence austen/sentence_ids_$lang.txt > austen/tmp && mv austen/tmp austen/austen_$lang.vrt;
+done
+
+
 Changes made to text files
 --------------------------
 
