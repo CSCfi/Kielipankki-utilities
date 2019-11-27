@@ -146,9 +146,9 @@ copy_database () {
 	mysql_make_copy_table_rows $source_u $target_u $multicorpus_tables
 	mysql_make_copy_rel_tables $source_u $target_u
     } |
-    $mysql_bin --batch $mysql_opts $korpdb
+	run_mysql
     mysql_make_copy_table_rows $source_u $target_u $multicorpus_tables_auth |
-    $mysql_bin --batch $mysql_opts $korpdb_auth
+	run_mysql --auth
 }
 
 copy_corpus () {
