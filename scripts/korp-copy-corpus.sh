@@ -40,12 +40,14 @@ multicorpus_tables_auth="auth_license auth_lbr_map auth_allow"
 
 
 extract_datadir () {
+    local regfile
     regfile=$1
     grep '^HOME ' $regfile |
     cut -d' ' -f2
 }
 
 copy_data () {
+    local source target source_datadir top_datadir target_datadir
     source=$1
     target=$2
     source_datadir=$(extract_datadir $cwb_regdir/$source)
@@ -56,6 +58,7 @@ copy_data () {
 }
 
 copy_registry () {
+    local source target source_u target_u
     source=$1
     target=$2
     source_u=$(toupper $source)
@@ -71,6 +74,7 @@ s,^\(INFO .*/\)'$source'\(/\.info\),\1'$target'\2,' \
 }
 
 mysql_make_copy_table_rows () {
+    local source_u target_u cols cols_list table
     source_u=$1
     target_u=$2
     shift
@@ -90,6 +94,7 @@ mysql_make_copy_table_rows () {
 }
 
 mysql_make_copy_rel_tables () {
+    local source_u target_u tabletype source_table target_table
     source_u=$1
     target_u=$2
     for tabletype in "" _dep_rel _head_rel _rel _sentences _strings; do
@@ -103,6 +108,7 @@ mysql_make_copy_rel_tables () {
 }
 
 copy_database () {
+    local source target source_u target_u
     source=$1
     target=$2
     source_u=$(toupper $source)
@@ -117,6 +123,7 @@ copy_database () {
 }
 
 copy_corpus () {
+    local source target
     source=$1
     target=$2
     test "x$target" != "x" ||
