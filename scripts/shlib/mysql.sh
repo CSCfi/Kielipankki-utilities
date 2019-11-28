@@ -80,7 +80,7 @@ run_mysql () {
 mysql_table_exists () {
     local table result
     table=$1
-    result=$(run_mysql --table $table "DESCRIBE $table;" 2> /dev/null)
+    result=$(run_mysql --table $table "DESCRIBE \`$table\`;" 2> /dev/null)
     if [ "x$result" = x ]; then
 	return 1
     fi
@@ -94,7 +94,7 @@ mysql_table_exists () {
 mysql_list_table_cols () {
     local table
     table=$1
-    run_mysql --table $table "SHOW COLUMNS FROM $table;" 2> /dev/null |
+    run_mysql --table $table "SHOW COLUMNS FROM \`$table\`;" 2> /dev/null |
     tail -n+2 |
     cut -d"$tab" -f1
 }
