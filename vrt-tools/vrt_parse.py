@@ -55,8 +55,7 @@ def _get_tag_name_and_attribs(tag):
                next_sym_is_escaped = True
     return (name, attribs)
 
-def parse_file(filename):
-    fobj = open(filename)
+def parse_file(fobj):
     firstline = fobj.readline().strip()
     if not _is_comment(firstline) or ':' not in firstline:
         raise Exception(
@@ -103,4 +102,4 @@ def parse_file(filename):
     return _second(_first(xml_stack))
 
 if __name__ == '__main__':
-    print(json.dumps(parse_file(sys.argv[1])))
+    print(json.dumps(parse_file(open(sys.argv[1]))))
