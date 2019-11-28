@@ -17,7 +17,7 @@ def _last(l): return l[-1]
 
 def _get_tag_name_and_attribs(tag):
     # We assume that the tag name and attribute names don't have escaped
-    # characters, spaces or equals signs
+    # characters, spaces or equals signs. We do parse escaping etc. in the values.
     class parse_state(enum.Enum):
         outside_name, inside_name, outside_value, inside_value = range(4)
     if not _is_opening_tag(tag):
