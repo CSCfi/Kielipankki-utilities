@@ -18,11 +18,9 @@ installed TNPP in a virtual environment, first run:
 
   source venv-parser-neural/bin/activate
 
-You also need vrt tools from Kielipankki-konversio repository.
-Set vrttools variable in file make-ceal.sh so that the script finds them.
-Then run:
+You also need vrt tools from Kielipankki-konversio repository. Run
 
-  ceal-txt-to-vrt.sh [--austen|--dickens|--james] [--fin|--eng]
+  ceal-txt-to-vrt.sh [--austen|--dickens|--james] [--fin|--eng] VRTTOOLSDIR
 
 Source text must be in AUTHOR/AUTHOR_LANG.txt, e.g. austen/austen_fi.txt.
 
@@ -40,41 +38,45 @@ Scrambled version
 
 If you are going to create a scrambled corpus, the IDs of sentence, paragraph and
 link elements must also de scrambled. The paragraph and link elements must have
-the same scrambled IDs as CEAL is a parallel corpus. For example for Austen:
+the same scrambled IDs as CEAL is a parallel corpus.
 
-for element in paragraph link;
+for author in austen dickens james;
 do
-  cat austen/austen_en.vrt | ./ceal-generate-scrambled-ids.sh --$element > austen/${element}_ids.txt
-  cat austen/austen_en.vrt | ./ceal-scramble-ids.pl --${element} austen/${element}_ids.txt > austen/tmp && mv austen/tmp austen/austen_en.vrt;
-  cat austen/austen_fi.vrt | ./ceal-scramble-ids.pl --${element} austen/${element}_ids.txt > austen/tmp && mv austen/tmp austen/austen_fi.vrt;
+  cat ${author}/${author}_en.vrt | ./ceal-generate-scrambled-ids.sh --paragraph > ${author}/paragraph_ids.txt
+  cat ${author}/${author}_en.vrt | ./ceal-scramble-ids.pl --paragraph ${author}/paragraph_ids.txt > ${author}/tmp && mv ${author}/tmp ${author}/${author}_en.vrt;
+  cat ${author}/${author}_fi.vrt | ./ceal-scramble-ids.pl --paragraph ${author}/paragraph_ids.txt > ${author}/tmp && mv ${author}/tmp ${author}/${author}_fi.vrt;
+
+  cat ${author}/${author}_en.vrt | ./ceal-generate-scrambled-ids.sh --link ${author}_ > ${author}/link_ids.txt  # links need a prefix '${author}_'
+  cat ${author}/${author}_en.vrt | ./ceal-scramble-ids.pl --link ${author}/link_ids.txt > ${author}/tmp && mv ${author}/tmp ${author}/${author}_en.vrt;
+  cat ${author}/${author}_fi.vrt | ./ceal-scramble-ids.pl --link ${author}/link_ids.txt > ${author}/tmp && mv ${author}/tmp ${author}/${author}_fi.vrt;
 done
 
 The sentence elements cannot have the same scrambled IDs as their
 numbers differ in English and Finnish versions of the text.
 
-for lang in en fi;
+for author in austen dickens james;
 do
-  cat austen/austen_$lang.vrt | ./ceal-generate-scrambled-ids.sh --sentence > austen/sentence_ids_$lang.txt;
-  cat austen/austen_$lang.vrt | ./ceal-scramble-ids.pl --sentence austen/sentence_ids_$lang.txt > austen/tmp && mv austen/tmp austen/austen_$lang.vrt;
+  for lang in en fi;
+  do
+    cat ${author}/${author}_$lang.vrt | ./ceal-generate-scrambled-ids.sh --sentence > ${author}/sentence_ids_$lang.txt;
+    cat ${author}/${author}_$lang.vrt | ./ceal-scramble-ids.pl --sentence ${author}/sentence_ids_$lang.txt > ${author}/tmp && mv ${author}/tmp ${author}/${author}_$lang.vrt;
+  done;
 done
 
 It is safest to remove chapter elements from the scrambled version so that
-the paragraphs are scrambled within the whole text:
+the paragraphs are scrambled within the whole text. (Option "--omit-structures chapter"
+of korp-make does the same so this is needed only for download package).
 
-cat austen/austen_en.vrt | egrep -v '^</?chapter' > austen/tmp && mv austen/tmp austen/austen_en.vrt;
-
-(Option "--omit-structures chapter" of korp-make does the same?)
+cat ${author}/${author}_en.vrt | egrep -v '^</?chapter' > ${author}/tmp && mv ${author}/tmp ${author}/${author}_en.vrt;
 
 
 Compiling the corpus for korp
 -----------------------------
 
 PATH=$PATH:/proj/clarin/korp/cwb/bin:/proj/clarin/korp/scripts
-attrs="ref lemma pos xpos msd dephead deprel deps misc"
 lemgram_posmap="lemgram_posmap_ud2_universal.tsv"
 corpusname="ceal_[o|s]"               # original or scrambled
-scramble=["--scramble paragraph"|""]  # original or scrambled
-# "--omit-structures chapter" could be added here?
+scramble=["--scramble paragraph --omit-structures chapter"|""]  # original or scrambled
 corpusrootdir="/proj/clarin/korp/corpora"
 registrydir="/proj/clarin/korp/corpora/registry"
 
@@ -82,19 +84,21 @@ registrydir="/proj/clarin/korp/corpora/registry"
 
 for lang in en fi;
 do
-  korp-make --corpus-root=$corpusrootdir --input-attributes=$attrs $scramble \
+  korp-make --corpus-root=$corpusrootdir --input-attributes="ref lemma pos xpos msd dephead deprel deps misc" $scramble \
   --compound-boundary-marker="#" --lemgram-posmap=$lemgram_posmap --log-file=log --verbose $corpusname_$lang \
   austen/austen_$lang.vrt dickens/dickens_$lang.vrt james/james_$lang.vrt;
 done
 
 # English, Finnish and parallel versions:
 
-korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-logging --verbose --input-attributes=$attrs \
+korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-logging --verbose \
+ --input-attributes="ref lemma pos xpos msd dephead deprel deps misc" \
   $scramble --compound-boundary-marker="#" --lemgram-posmap=$lemgram_posmap ${corpusname}_fi \
-    austen/austen_fi.vrt dickens/dickens_fi.vrt james/james_fi.vrt;
-korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-logging --verbose --input-attributes=$attrs \
+   austen/austen_fi.vrt dickens/dickens_fi.vrt james/james_fi.vrt;
+korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-logging --verbose \
+ --input-attributes="ref lemma pos xpos msd dephead deprel deps misc" \
   $scramble --compound-boundary-marker="#" --lemgram-posmap=$lemgram_posmap ${corpusname}_en \
-    austen/austen_en.vrt dickens/dickens_en.vrt james/james_en.vrt;
+   austen/austen_en.vrt dickens/dickens_en.vrt james/james_en.vrt;
 cwb-align -v -r $registrydir -o ${corpusname}_fi_en.align -V link_id ${corpusname}_fi ${corpusname}_en link;
 cwb-align -v -r $registrydir -o ${corpusname}_en_fi.align -V link_id ${corpusname}_en ${corpusname}_fi link;
 cwb-regedit -r $registrydir ${corpusname}_fi :add :a ${corpusname}_en;
@@ -102,7 +106,7 @@ cwb-regedit -r $registrydir ${corpusname}_en :add :a ${corpusname}_fi;
 cwb-align-encode -v -r $registrydir -D ${corpusname}_fi_en.align;
 cwb-align-encode -v -r $registrydir -D ${corpusname}_en_fi.align;
 korp-make-corpus-package.sh --target-corpus-root=/v/corpora --corpus-root=$corpusrootdir \
-  --database-format tsv --include-vrt-dir ${corpusname} ${corpusname}_fi ${corpusname}_en;
+  --database-format tsv --include-vrt-dir ${corpusname}_par ${corpusname}_fi ${corpusname}_en;
 
 
 Changes made to text files
