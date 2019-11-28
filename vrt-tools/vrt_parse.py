@@ -1,4 +1,3 @@
-import sys
 import enum
 
 def _is_comment(s): return s.startswith('<!--') and s.endswith('-->')
@@ -101,5 +100,5 @@ def parse_file(fobj):
     return _second(_first(xml_stack))
 
 if __name__ == '__main__':
-    import json
+    import sys, json
     print(json.dumps(parse_file(open(sys.argv[1]))))
