@@ -23,6 +23,9 @@ registry file and Korp MySQL data (time data, lemgram index, relations tables
 and authorization data)."
 
 optspecs='
+f|force
+    force overwriting the target if it exists, but make a timestamped
+    backup copy of an existing target (CORPUS -> CORPUS-YYYYMMDDHHMMSS)
 c|corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
     use DIR as the root directory of corpus files
 r|registry=DIR "$cwb_regdir" { set_corpus_registry "$1" }
@@ -53,8 +56,11 @@ copy_data () {
     source_datadir=$(extract_datadir $cwb_regdir/$source)
     top_datadir=$(echo "$source_datadir" | sed -e 's,\(.*\)/.*,\1,')
     target_datadir=$top_datadir/$target
-    cp -dpr $source_datadir $target_datadir
-    ensure_perms $target_datadir
+    if [ "x$force" != x ]; then
+	rm -rf "$target_datadir"
+    fi
+    cp -dpr "$source_datadir" "$target_datadir"
+    ensure_perms "$target_datadir"
 }
 
 copy_registry () {
@@ -74,7 +80,7 @@ s,^\(INFO .*/\)'$source'\(/\.info\),\1'$target'\2,' \
 }
 
 mysql_make_copy_table_rows () {
-    local source_u target_u cols cols_list table
+    local source_u target_u cols cols_list table sql_stmt
     source_u=$1
     target_u=$2
     shift
@@ -87,8 +93,13 @@ mysql_make_copy_table_rows () {
 		sed -e 's/\([^ ][^ ]*\)/`\1`/g; s/ /, /g;
                         s/`corpus`/'"'$target_u'/"
 	    )
-	    echo "INSERT IGNORE INTO $table
-                  SELECT $cols_list FROM $table where corpus='$source_u';"
+	    if [ "x$force" != x ]; then
+		sql_stmt="REPLACE"
+	    else
+		sql_stmt="INSERT IGNORE"
+	    fi
+	    echo "$sql_stmt INTO \`$table\`
+                  SELECT $cols_list FROM \`$table\` where corpus='$source_u';"
 	fi
     done
 }
@@ -101,8 +112,11 @@ mysql_make_copy_rel_tables () {
 	source_table=relations_$source_u$tabletype
 	target_table=relations_$target_u$tabletype
 	if mysql_table_exists $source_table; then
-	    echo "CREATE TABLE IF NOT EXISTS $target_table LIKE $source_table;"
-	    echo "INSERT IGNORE INTO $target_table SELECT * FROM $source_table;"
+	    if [ "x$force" != x ]; then
+		echo "DROP TABLE IF EXISTS \`$target_table\`;"
+	    fi
+	    echo "CREATE TABLE IF NOT EXISTS \`$target_table\` LIKE \`$source_table\`;"
+	    echo "INSERT IGNORE INTO \`$target_table\` SELECT * FROM \`$source_table\`;"
 	fi
     done
 }
@@ -123,7 +137,7 @@ copy_database () {
 }
 
 copy_corpus () {
-    local source target
+    local source target target_bak
     source=$1
     target=$2
     test "x$target" != "x" ||
@@ -131,8 +145,15 @@ copy_corpus () {
 $progname --help for more information"
     test -e "$cwb_regdir/$source" ||
     error "Corpus $source not found in registry $cwb_regdir"
-    test ! -e "$cwb_regdir/$target" ||
-    error "Corpus $target is already in the registry; not overwriting"
+    if [ -e "$cwb_regdir/$target" ]; then
+	if [ "x$force" = x ]; then
+	    error "Corpus $target is already in the registry; specify --force to overwrite"
+	else
+	    target_bak=${target}-$(date '+%Y%m%d%H%M%S')
+	    warn "--force specified: copying existing target corpus $target to $target_bak before overwriting"
+	    copy_corpus $target $target_bak
+	fi
+    fi
     copy_data $source $target
     copy_registry $source $target
     copy_database $source $target
