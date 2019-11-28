@@ -19,7 +19,7 @@ my $lang = $ARGV[0];
 # English text
 if ($lang eq "--eng")
 {
-    print '<text filename="" title="Washington Square" year="1880" datefrom="18800101" dateto="18802131" timefrom="000000" timeto="235959" author="Henry James" lang="en">'."\n";
+    print '<text filename="" title="Washington Square" year="1880" datefrom="18800101" dateto="18801231" timefrom="000000" timeto="235959" author="Henry James" lang="en">'."\n";
 }
 # Finnish text
 elsif ($lang eq "--fin")
