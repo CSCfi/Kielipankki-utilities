@@ -1,12 +1,12 @@
 #!/bin/sh
 
 if [ "$1" = "--help" ]; then
-    echo "ceal-txt-to-vrt.sh [--austen|--dickens|--james] [--fin|--eng]";
+    echo "ceal-txt-to-vrt.sh [--austen|--dickens|--james] [--fin|--eng] VRTTOOLSDIR";
     echo "source text must be in AUTHOR/AUTHOR_LANG.txt, e.g. austen/austen_fi.txt"
     exit 0;
 fi
 
-vrttools="";
+vrttools=$3;
 
 ### Austen
 if [ "$1" = "--austen" ]; then    
@@ -20,7 +20,7 @@ if [ "$1" = "--austen" ]; then
 	cat austen/austen_en_3.conllu | ./austen-conllu-to-vrt.pl --eng > austen/austen_en.vrt
 	$vrttools/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' austen/austen_en.vrt
 	$vrttools/vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos austen/austen_en.vrt
-	# msd-bar-to-space.pl
+	cat austen/austen_en.vrt | ./msd-bar-to-space.pl > austen/tmp && mv austen/tmp austen/austen_en.vrt;
 	cat austen/austen_en.vrt | ./ceal-insert-links.pl --austen > austen/tmp && mv austen/tmp austen/austen_en.vrt;
     fi
     if [ "$2" = "--fin" ]; then
@@ -33,7 +33,7 @@ if [ "$1" = "--austen" ]; then
 	cat austen/austen_fi_3.conllu | ./austen-conllu-to-vrt.pl --fin > austen/austen_fi.vrt
 	$vrttools/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' austen/austen_fi.vrt
 	$vrttools/vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos austen/austen_fi.vrt
-	# msd-bar-to-space.pl
+	cat austen/austen_fi.vrt | ./msd-bar-to-space.pl > austen/tmp && mv austen/tmp austen/austen_fi.vrt;
 	cat austen/austen_fi.vrt | ./ceal-insert-links.pl --austen > austen/tmp && mv austen/tmp austen/austen_fi.vrt;
     fi
     exit 0;
@@ -52,7 +52,7 @@ if [ "$1" = "--dickens" ]; then
 	cat dickens/dickens_en_3.conllu | ./dickens-conllu-to-vrt.pl --eng > dickens/dickens_en.vrt
 	$vrttools/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' dickens/dickens_en.vrt
 	$vrttools/vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos dickens/dickens_en.vrt
-	# msd-bar-to-space.pl
+	cat dickens/dickens_en.vrt | ./msd-bar-to-space.pl > dickens/tmp && mv dickens/tmp dickens/dickens_en.vrt;
 	cat dickens/dickens_en.vrt | ./ceal-insert-links.pl --dickens > dickens/tmp && mv dickens/tmp dickens/dickens_en.vrt;
     fi
     if [ "$2" = "--fin" ]; then
@@ -66,7 +66,7 @@ if [ "$1" = "--dickens" ]; then
 	cat dickens/dickens_fi_3.conllu | ./dickens-conllu-to-vrt.pl --fin > dickens/dickens_fi.vrt
 	$vrttools/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' dickens/dickens_fi.vrt
 	$vrttools/vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos dickens/dickens_fi.vrt
-	# msd-bar-to-space.pl
+	cat dickens/dickens_fi.vrt | ./msd-bar-to-space.pl > dickens/tmp && mv dickens/tmp dickens/dickens_fi.vrt;
 	cat dickens/dickens_fi.vrt | ./ceal-insert-links.pl --dickens > dickens/tmp && mv dickens/tmp dickens/dickens_fi.vrt;
     fi
     exit 0;
@@ -84,7 +84,7 @@ if [ "$1" = "--james" ]; then
 	cat james/james_en_3.conllu | ./james-conllu-to-vrt.pl --eng > james/james_en.vrt
 	$vrttools/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' james/james_en.vrt
 	$vrttools/vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos james/james_en.vrt
-	# msd-bar-to-space.pl
+	cat james/james_en.vrt | ./msd-bar-to-space.pl > james/tmp && mv james/tmp james/james_en.vrt;
 	cat james/james_en.vrt | ./ceal-insert-links.pl --james > james/tmp && mv james/tmp james/james_en.vrt;
     fi
     if [ "$2" = "--fin" ]; then
@@ -97,7 +97,7 @@ if [ "$1" = "--james" ]; then
 	cat james/james_fi_3.conllu | ./james-conllu-to-vrt.pl --fin > james/james_fi.vrt
 	$vrttools/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' james/james_fi.vrt
 	$vrttools/vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos james/james_fi.vrt
-	# msd-bar-to-space.pl
+	cat james/james_fi.vrt | ./msd-bar-to-space.pl > james/tmp && mv james/tmp james/james_fi.vrt;
 	cat james/james_fi.vrt | ./ceal-insert-links.pl --james > james/tmp && mv james/tmp james/james_fi.vrt;
     fi
     exit 0;
