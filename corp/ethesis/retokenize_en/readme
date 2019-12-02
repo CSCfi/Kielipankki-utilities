@@ -1,0 +1,35 @@
+- newer gradut package contains dir matemaattis with 577 files
+- newer gradut package contains 1203 more files
+- older gradut package contains one file that is not in newer package: teologinen/tuhoa.zip
+- both packages contain "Hot Folder Log.txt", category.txt and logfile.txt files
+- gradutiivistelmat is not in IDA in txt format? 2016 files in package
+
+"You do not have the credentials to access the restricted item hdl:10138/165906. The selected item is withdrawn and is no longer available."
+
+# language not marked:
+#
+ls E-thesis_gradut_TXT_2016-11-22/*/*.txt | grep -v 'Hot Folder Log' | grep -v 'logfile\.txt' | grep -v 'read\.me' | grep -v 'category\.txt' | egrep -v '\(2\)' | egrep -v '\/(en_|eng_|fi_|fin_|sv_|swe_|ru_|de_|es_|fr_|it_|pol_)' | wc -l
+#
+# or E-thesis_vaitokset_TXT_2016-10-17/*/*.txt
+
+
+Faculty abbreviations and other information about the packages:
+
+E-thesis_gradut_	E-thesis_vaitokset_	korp		vrt	logfile.txt
+TXT_2016-11-22.zip	TXT_2016-10-17.zip	configuration	package	or read.me
+------------------	-------------------	-------------	-------	-----------
+
+aleksanteri-instituutti	--			ai					
+bio_ja_ymparistot	bio			bio
+elainlaaketiede		elain			elain		not MA
+farmasia		farmasia		far
+humanistinen		humanistinen		hum		not MA
+kayttaytymistiede	beh			beh
+laaketiede		med			med		not MA
+maajametsatiede		maajametsa		mm			not MA
+matemaattis		matematiikka		sci, math		not MA
+oikeustiede		oikeus			ot
+teologinen		teologinen		teo
+valtiotiede		valtiotiede		valt			not MA
+
+
