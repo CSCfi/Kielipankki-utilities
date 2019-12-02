@@ -7,11 +7,38 @@
 "You do not have the credentials to access the restricted item hdl:10138/165906. The selected item is withdrawn and is no longer available."
 
 # language not marked:
-#
 ls E-thesis_gradut_TXT_2016-11-22/*/*.txt | grep -v 'Hot Folder Log' | grep -v 'logfile\.txt' | grep -v 'read\.me' | grep -v 'category\.txt' | egrep -v '\(2\)' | egrep -v '\/(en_|eng_|fi_|fin_|sv_|swe_|ru_|de_|es_|fr_|it_|pol_)' | wc -l
-#
 # or E-thesis_vaitokset_TXT_2016-10-17/*/*.txt
 
+# guess language:
+cat document.txt | python3 -c 'from lang_recognizer import recognize; import sys; print(recognize(sys.stdin.read()));'
+
+# 1) generate filenames for files whose language has not been marked:
+# i.e. prepend the output of lang_recognizer.py to the filename
+for file in `ls *.txt | grep -v 'Hot Folder Log' | grep -v 'logfile\.txt' | grep -v 'read\.me' | grep -v 'category\.txt' | egrep -v '\(2\)' | egrep -v '(en_|eng_|fi_|fin_|sv_|swe_|ru_|de_|es_|fr_|it_|pol_)'`;
+do
+  cat $file | python3 -c 'from lang_recognizer import recognize; import sys; print(recognize(sys.stdin.read()));' | perl -pe 's/\n//;';
+  echo $file;
+done
+
+# and rename files accordingly
+
+# 2) harmonize language prefixes, e.g. eng -> en or vice versa
+
+# 3) generate original pdf filename from filename in TXT package:
+# PDF-TO-TXT conversion seems to work like this: original.pdf -> {LANG}_o_{YEAR}_riginal.txt
+echo FILENAME.txt | perl -pe 's/^[^_]+_([^_])_[0-9]{4}(.*)\.txt/\1\2\.pdf/;' > FILENAME.pdf
+# original pdf filename can be used as a search criterion to extract
+# (missing) metadata from the VRT file:
+grep 'pdfurl="FILENAME\.pdf"' ethesis_en_ma_{FACULTY}.vrt
+
+# possibly rename all txt filenames to conform with the pdf filename
+
+# 4) generate VRT file from metadata and txt file
+
+# 5) run the VRT files through TNPP (ewt model seems to perform best)
+
+# 6) then korp-make etc.
 
 Faculty abbreviations and other information about the packages:
 
@@ -31,5 +58,3 @@ matemaattis		matematiikka		sci, math		not MA
 oikeustiede		oikeus			ot
 teologinen		teologinen		teo
 valtiotiede		valtiotiede		valt			not MA
-
-
