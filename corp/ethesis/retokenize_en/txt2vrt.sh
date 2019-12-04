@@ -1,0 +1,160 @@
+#!/bin/sh
+
+# - newer gradut package contains dir matemaattis with 577 files
+# - newer gradut package contains 1203 more files
+# - older gradut package contains one file that is not in newer package: teologinen/tuhoa.zip
+# - both packages contain "Hot Folder Log.txt", category.txt and logfile.txt files
+# - gradutiivistelmat is not in IDA in txt format? 2016 files in package
+
+# "You do not have the credentials to access the restricted item hdl:10138/165906. The selected item is withdrawn and is no longer available."
+
+# language not marked:
+# ls E-thesis_gradut_TXT_2016-11-22/*/*.txt | grep -v 'Hot Folder Log' | grep -v 'logfile\.txt' | grep -v 'read\.me' | grep -v 'category\.txt' | egrep -v '\(2\)' | egrep -v '\/(en_|eng_|fi_|fin_|sv_|swe_|ru_|de_|es_|fr_|it_|pol_)' | wc -l
+# or E-thesis_vaitokset_TXT_2016-10-17/*/*.txt
+
+# guess language:
+# cat document.txt | python3 -c 'from lang_recognizer import recognize; import sys; print(recognize(sys.stdin.read()));'
+
+# harmonize directory names
+
+if !(ls gradut/ > /dev/null 2> /dev/null); then
+    mkdir gradut ;
+    cd gradut ;
+    cp -R ../E-thesis_gradut_TXT_2016-11-22/* . ;
+    cd .. ;
+fi
+
+if !(ls vaitokset/ > /dev/null 2> /dev/null); then
+    mkdir vaitokset ;
+    cd vaitokset ;
+    cp -R ../E-thesis_vaitokset_TXT_2016-10-17/* . ;
+    mv beh kayttaytymistiede ;
+    mv bio bio_ja_ymparistot ;
+    mv elain elainlaaketiede ;
+    mv maajametsa maajametsatiede ;
+    mv matematiikka matemaattis ;
+    mv med laaketiede ;
+    mv oikeus oikeustiede ;
+    cd .. ;
+fi
+
+if !(ls lang_recognizer.py > /dev/null 2> /dev/null); then
+    echo "lang_recognizer.py not found in the current directory";
+    exit 1;
+fi
+
+# 1) generate filenames for files whose language has not been marked:
+# i.e. prepend the output of lang_recognizer.py to the filename
+
+for dir in gradut vaitokset;
+do
+  cd $dir;
+  for subdir in aleksanteri-instituutti bio_ja_ymparistot elainlaaketiede farmasia humanistinen kayttaytymistiede laaketiede maajametsatiede matemaattis oikeustiede teologinen valtiotiede;
+  do
+    if (ls $subdir > /dev/null 2> /dev/null); then
+	cd $subdir;
+	# e.g. _t_2016utkielma.txt -> fi_t_2016utkielma.txt
+	for file in `ls *.txt | grep -v 'Hot Folder Log' | grep -v 'logfile\.txt' | grep -v 'read\.me' | grep -v 'category\.txt' | egrep -v '\(2\)' | egrep -v '(en_|eng_|fi_|fin_|sv_|swe_|ru_|de_|es_|fr_|it_|pol_|other_)'`;
+	do
+	    lang=`cat $file | python3 -c 'import sys; sys.path.insert(0, "../.."); from lang_recognizer import recognize; import sys; print(recognize(sys.stdin.read()));' | perl -pe 's/\n//;'`;
+	    newfile=`echo $file | perl -pe 's/^([^_])/_\1/; s/^/'$lang'/;'`;
+	    mv $file $newfile;
+	done;
+	for file in `ls *.txt | grep -v 'Hot Folder Log' | grep -v 'logfile\.txt' | grep -v 'read\.me' | grep -v 'category\.txt' | egrep -v '\(2\)'`;
+	do
+	    # e.g. fi_t_2016utkielma.txt -> fi_tutkielma_DATE=2016.txt, en_m_2013-05-29aster_thesis.txt -> en_master_thesis_DATE=2013-05-29.txt
+	    # (checked that there will not be identical filenames in the same directory)
+	    newfile=`echo $file | perl -pe 'if (m/^[^_]+_([^_])_[0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?/) { s/^([^_]+_)([^_])_([0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?)(.*)\.txt/\1\2\6_DATE=\3.txt/; } else { $_=""; }'`;
+	    if [ "$subdir" = "oikeustiede" ]; then
+		# some files have T, 6 digits and Z added in between
+		newfile=`echo $newfile | perl -pe 's/T[0-9]{6}Z//;'`;
+	    fi
+	    if ! [ "$newfile" = "" ]; then
+		mv $file $newfile;
+	    fi
+	done
+	# copy English files to a separate directory
+	if !(ls en/ > /dev/null 2> /dev/null); then
+	    mkdir en;
+	fi
+	for file in `ls *.txt | egrep -v '\(2\)' | egrep '^(en_|eng_)'`;
+	do
+	    no_prefix=`echo $file | perl -pe 's/^(en_|eng_)//;'`;
+	    cp $file en/$no_prefix;
+	done
+	cd ..;
+    fi;
+  done;
+  cd ..;
+done
+
+mkdir ethesis_en;
+mkdir ethesis_en/gradut;
+mkdir ethesis_en/vaitokset;
+for subdir in bio_ja_ymparistot elainlaaketiede farmasia humanistinen kayttaytymistiede laaketiede maajametsatiede matemaattis oikeustiede teologinen valtiotiede;
+do
+    mkdir ethesis_en/gradut/$subdir;
+    mkdir ethesis_en/vaitokset/$subdir;
+    cp gradut/$subdir/en/*.txt ethesis_en/gradut/$subdir/;
+    cp vaitokset/$subdir/en/*.txt ethesis_en/vaitokset/$subdir/;
+done
+mkdir ethesis_en/gradut/aleksanteri-instituutti;
+cp gradut/aleksanteri-instituutti/en/*.txt ethesis_en/gradut/aleksanteri-instituutti/;
+
+# get metadata from logfile.txt or read.me, e.g.
+# for file in *; do echo $file | perl -pe 's/\n/\t/;' && (echo $file | perl -pe 's/_[0-9]{4}\.txt/\\.pdf/; s/^(.*)$/grep -c "\1" ..\/..\/..\/E-thesis_gradut_TXT_2016-11-22\/humanistinen\/read.me/;') | sh ; done
+
+# logfile.txt or read.me
+cd ethesis_en/gradut;
+for dir in aleksanteri-instituutti bio_ja_ymparistot elainlaaketiede farmasia humanistinen kayttaytymistiede laaketiede oikeustiede teologinen;
+do
+    cd $dir;
+    touch GREP;
+    metadatafile="logfile.txt";
+    if [ "$dir" = "humanistinen" -o "$dir" = "kayttaytymistiede" ]; then
+	metadatafile="read.me";
+    fi
+    for file in *.txt;
+    do
+	(echo $file | perl -pe 's/\n/\t/;' && (echo $file | perl -pe 's/(_DATE=[0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?)?\.txt/\\.pdf/; s/^(.*)$/grep -c "\1" ..\/..\/..\/E-thesis_gradut_TXT_2016-11-22\/'$dir'\/'$metadatafile'/;' | sh)) >> GREP;
+    done
+    cd ..;
+done
+# neither
+# maajametsatiede matemaattis valtiotiede
+
+# or from VRT file, e.g.
+
+# 3) generate original pdf filename from filename in TXT package:
+# PDF-TO-TXT conversion seems to work like this: original.pdf -> {LANG}_o_{YEAR}_riginal.txt
+# echo FILENAME.txt | perl -pe 's/^[^_]+_([^_])_[0-9]{4}(.*)\.txt/\1\2\.pdf/;' > FILENAME.pdf
+# original pdf filename can be used as a search criterion to extract
+# (missing) metadata from the VRT file:
+# grep 'pdfurl="FILENAME\.pdf"' ethesis_en_ma_{FACULTY}.vrt
+
+# possibly rename all txt filenames to conform with the pdf filename
+
+# 4) generate VRT file from metadata and txt file
+
+# 5) run the VRT files through TNPP (ewt model seems to perform best)
+
+# 6) then korp-make etc.
+
+# Faculty abbreviations and other information about the packages:
+# 
+# E-thesis_gradut_	E-thesis_vaitokset_	korp		vrt	logfile.txt
+# TXT_2016-11-22.zip	TXT_2016-10-17.zip	configuration	package	or read.me
+# ------------------	-------------------	-------------	-------	-----------
+# 
+# aleksanteri-instituutti	--			ai					
+# bio_ja_ymparistot	bio			bio
+# elainlaaketiede		elain			elain		not MA
+# farmasia		farmasia		far
+# humanistinen		humanistinen		hum		not MA
+# kayttaytymistiede	beh			beh
+# laaketiede		med			med		not MA
+# maajametsatiede		maajametsa		mm			not MA
+# matemaattis		matematiikka		sci, math		not MA
+# oikeustiede		oikeus			ot
+# teologinen		teologinen		teo
+# valtiotiede		valtiotiede		valt			not MA
