@@ -15,7 +15,9 @@
 # guess language:
 # cat document.txt | python3 -c 'from lang_recognizer import recognize; import sys; print(recognize(sys.stdin.read()));'
 
-# harmonize directory names
+# copy files from IDA packages
+
+if [ "$1" = "--verbose" ]; then echo "Copying files from IDA packages"; fi
 
 if !(ls gradut/ > /dev/null 2> /dev/null); then
     mkdir gradut ;
@@ -28,6 +30,7 @@ if !(ls vaitokset/ > /dev/null 2> /dev/null); then
     mkdir vaitokset ;
     cd vaitokset ;
     cp -R ../E-thesis_vaitokset_TXT_2016-10-17/* . ;
+    # harmonize directory names
     mv beh kayttaytymistiede ;
     mv bio bio_ja_ymparistot ;
     mv elain elainlaaketiede ;
@@ -37,6 +40,25 @@ if !(ls vaitokset/ > /dev/null 2> /dev/null); then
     mv oikeus oikeustiede ;
     cd .. ;
 fi
+
+if [ "$1" = "--verbose" ]; then echo "Harmonizing metadata filenames"; fi
+
+# harmonize metadata filenames
+for file in gradut/*/logfile.txt;
+do
+    echo $file | perl -pe 's/^(.*)\/logfile\.txt$/mv \1\/logfile.txt \1\/metadata/;' | sh;
+done
+for file in gradut/*/read.me;
+do
+    echo $file | perl -pe 's/^(.*)\/read\.me$/mv \1\/read.me \1\/metadata/;' | sh;
+done
+for file in vaitokset/*/logfile.txt;
+do
+    echo $file | perl -pe 's/^(.*)\/logfile\.txt$/mv \1\/logfile.txt \1\/metadata/;' | sh;
+done
+
+
+if [ "$1" = "--verbose" ]; then echo "Checking that lang_recognizer.py is found"; fi
 
 if !(ls lang_recognizer.py > /dev/null 2> /dev/null); then
     echo "lang_recognizer.py not found in the current directory";
@@ -51,42 +73,45 @@ do
   cd $dir;
   for subdir in aleksanteri-instituutti bio_ja_ymparistot elainlaaketiede farmasia humanistinen kayttaytymistiede laaketiede maajametsatiede matemaattis oikeustiede teologinen valtiotiede;
   do
-    if (ls $subdir > /dev/null 2> /dev/null); then
-	cd $subdir;
-	# e.g. _t_2016utkielma.txt -> fi_t_2016utkielma.txt
-	for file in `ls *.txt | grep -v 'Hot Folder Log' | grep -v 'logfile\.txt' | grep -v 'read\.me' | grep -v 'category\.txt' | egrep -v '\(2\)' | egrep -v '(en_|eng_|fi_|fin_|sv_|swe_|ru_|de_|es_|fr_|it_|pol_|other_)'`;
-	do
-	    lang=`cat $file | python3 -c 'import sys; sys.path.insert(0, "../.."); from lang_recognizer import recognize; import sys; print(recognize(sys.stdin.read()));' | perl -pe 's/\n//;'`;
-	    newfile=`echo $file | perl -pe 's/^([^_])/_\1/; s/^/'$lang'/;'`;
-	    mv $file $newfile;
-	done;
-	for file in `ls *.txt | grep -v 'Hot Folder Log' | grep -v 'logfile\.txt' | grep -v 'read\.me' | grep -v 'category\.txt' | egrep -v '\(2\)'`;
-	do
-	    # e.g. fi_t_2016utkielma.txt -> fi_tutkielma_DATE=2016.txt, en_m_2013-05-29aster_thesis.txt -> en_master_thesis_DATE=2013-05-29.txt
-	    # (checked that there will not be identical filenames in the same directory)
-	    newfile=`echo $file | perl -pe 'if (m/^[^_]+_([^_])_[0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?/) { s/^([^_]+_)([^_])_([0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?)(.*)\.txt/\1\2\6_DATE=\3.txt/; } else { $_=""; }'`;
-	    if [ "$subdir" = "oikeustiede" ]; then
-		# some files have T, 6 digits and Z added in between
-		newfile=`echo $newfile | perl -pe 's/T[0-9]{6}Z//;'`;
-	    fi
-	    if ! [ "$newfile" = "" ]; then
-		mv $file $newfile;
-	    fi
-	done
-	# copy English files to a separate directory
-	if !(ls en/ > /dev/null 2> /dev/null); then
-	    mkdir en;
-	fi
-	for file in `ls *.txt | egrep -v '\(2\)' | egrep '^(en_|eng_)'`;
-	do
-	    no_prefix=`echo $file | perl -pe 's/^(en_|eng_)//;'`;
-	    cp $file en/$no_prefix;
-	done
-	cd ..;
-    fi;
+      if (ls $subdir > /dev/null 2> /dev/null); then
+	  if [ "$1" = "--verbose" ]; then echo "Guessing language and renaming files for "$dir"/"$subdir; fi
+	  cd $subdir;
+	  # e.g. _t_2016utkielma.txt -> fi_t_2016utkielma.txt
+	  for file in `ls *.txt | grep -v 'Hot Folder Log' | grep -v 'logfile\.txt' | grep -v 'read\.me' | grep -v 'category\.txt' | egrep -v '\(2\)' | egrep -v '(en_|eng_|fi_|fin_|sv_|swe_|ru_|de_|es_|fr_|it_|pol_|other_)'`;
+	  do
+	      lang=`cat $file | python3 -c 'import sys; sys.path.insert(0, "../.."); from lang_recognizer import recognize; import sys; print(recognize(sys.stdin.read()));' | perl -pe 's/\n//;'`;
+	      newfile=`echo $file | perl -pe 's/^([^_])/_\1/; s/^/'$lang'/;'`;
+	      mv $file $newfile;
+	  done;
+	  for file in `ls *.txt | grep -v 'Hot Folder Log' | grep -v 'logfile\.txt' | grep -v 'read\.me' | grep -v 'category\.txt' | egrep -v '\(2\)'`;
+	  do
+	      # e.g. fi_t_2016utkielma.txt -> fi_tutkielma_DATE=2016.txt, en_m_2013-05-29aster_thesis.txt -> en_master_thesis_DATE=2013-05-29.txt
+	      # (checked that there will not be identical filenames in the same directory)
+	      newfile=`echo $file | perl -pe 'if (m/^[^_]+_([^_])_[0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?/) { s/^([^_]+_)([^_])_([0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?)(.*)\.txt/\1\2\6_DATE=\3.txt/; } else { $_=""; }'`;
+	      if [ "$subdir" = "oikeustiede" ]; then
+		  # some files have T, 6 digits and Z added in between
+		  newfile=`echo $newfile | perl -pe 's/T[0-9]{6}Z//;'`;
+	      fi
+	      if ! [ "$newfile" = "" ]; then
+		  mv $file $newfile;
+	      fi
+	  done
+	  # copy English files to a separate directory
+	  if !(ls en/ > /dev/null 2> /dev/null); then
+	      mkdir en;
+	  fi
+	  for file in `ls *.txt | egrep -v '\(2\)' | egrep '^(en_|eng_)'`;
+	  do
+	      no_prefix=`echo $file | perl -pe 's/^(en_|eng_)//;'`;
+	      cp $file en/$no_prefix;
+	  done
+	  cd ..;
+      fi;
   done;
   cd ..;
 done
+
+if [ "$1" = "--verbose" ]; then echo "Copying English files"; fi
 
 mkdir ethesis_en;
 mkdir ethesis_en/gradut;
@@ -96,32 +121,49 @@ do
     mkdir ethesis_en/gradut/$subdir;
     mkdir ethesis_en/vaitokset/$subdir;
     cp gradut/$subdir/en/*.txt ethesis_en/gradut/$subdir/;
+    if ! [ "$subdir" = "maajametsatiede" -o "$subdir" = "matemaattis" -o "$subdir" = "valtiotiede" ]; then
+	cp gradut/$subdir/metadata ethesis_en/gradut/$subdir/;
+    fi
     cp vaitokset/$subdir/en/*.txt ethesis_en/vaitokset/$subdir/;
+    cp vaitokset/$subdir/metadata ethesis_en/vaitokset/$subdir/;
 done
 mkdir ethesis_en/gradut/aleksanteri-instituutti;
 cp gradut/aleksanteri-instituutti/en/*.txt ethesis_en/gradut/aleksanteri-instituutti/;
+cp gradut/aleksanteri-instituutti/metadata ethesis_en/gradut/aleksanteri-instituutti/;
 
 # get metadata from logfile.txt or read.me, e.g.
 # for file in *; do echo $file | perl -pe 's/\n/\t/;' && (echo $file | perl -pe 's/_[0-9]{4}\.txt/\\.pdf/; s/^(.*)$/grep -c "\1" ..\/..\/..\/E-thesis_gradut_TXT_2016-11-22\/humanistinen\/read.me/;') | sh ; done
 
-# logfile.txt or read.me
-cd ethesis_en/gradut;
-for dir in aleksanteri-instituutti bio_ja_ymparistot elainlaaketiede farmasia humanistinen kayttaytymistiede laaketiede oikeustiede teologinen;
+# get metadata
+cd ethesis_en;
+for dir in gradut vaitokset;
 do
     cd $dir;
-    touch GREP;
-    metadatafile="logfile.txt";
-    if [ "$dir" = "humanistinen" -o "$dir" = "kayttaytymistiede" ]; then
-	metadatafile="read.me";
+    subdirs=;
+    if [ "$dir" = "gradut" ]; then
+	subdirs="aleksanteri-instituutti bio_ja_ymparistot elainlaaketiede farmasia humanistinen kayttaytymistiede laaketiede oikeustiede teologinen";
+    else
+	subdirs="bio_ja_ymparistot elainlaaketiede farmasia humanistinen kayttaytymistiede laaketiede maajametsatiede matemaattis oikeustiede teologinen valtiotiede";
     fi
-    for file in *.txt;
+    for subdir in $subdirs;
     do
-	(echo $file | perl -pe 's/\n/\t/;' && (echo $file | perl -pe 's/(_DATE=[0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?)?\.txt/\\.pdf/; s/^(.*)$/grep -c "\1" ..\/..\/..\/E-thesis_gradut_TXT_2016-11-22\/'$dir'\/'$metadatafile'/;' | sh)) >> GREP;
+	if ! [ "$dir" = "gradut" -a '(' "$subdir" = "maajametsatiede" -o "$subdir" = "matemaattis" -o "$subdir" = "valtiotiede" ')' ]; then
+	    if [ "$1" = "--verbose" ]; then echo "Grepping metadata for "$dir"/"$subdir; fi
+	    cd $subdir;
+	    touch GREP;
+	    for file in *.txt;
+	    do
+		(echo $file | perl -pe 's/\n/\t/;' && (echo $file | perl -pe 's/(_DATE=[0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?)?\.txt/\\.pdf/; s/^(.*)$/grep -c "\1" metadata/;' | sh)) >> GREP;
+	    done
+	    cd ..;
+	fi
     done
     cd ..;
 done
+cd ..;
+
 # neither
-# maajametsatiede matemaattis valtiotiede
+# gradut: maajametsatiede matemaattis valtiotiede
 
 # or from VRT file, e.g.
 
