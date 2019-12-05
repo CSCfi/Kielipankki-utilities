@@ -15,6 +15,20 @@
 # guess language:
 # cat document.txt | python3 -c 'from lang_recognizer import recognize; import sys; print(recognize(sys.stdin.read()));'
 
+if [ "foo" = "bar" ]; then
+if !(ls lang_recognizer.py > /dev/null 2> /dev/null); then
+    echo "lang_recognizer.py not found in the current directory";
+    exit 1;
+fi
+
+for packagedir in E-thesis_gradut_TXT_2016-11-22 E-thesis_other_langs_VRT_2016-11-22;
+do
+    if !(ls $packagedir > /dev/null 2> /dev/null); then
+	echo "Package directory "$packagedir" not found in the current directory";
+	exit 1;
+    fi
+done
+
 # copy files from IDA packages
 
 if [ "$1" = "--verbose" ]; then echo "Copying files from IDA packages"; fi
@@ -23,6 +37,9 @@ if !(ls gradut/ > /dev/null 2> /dev/null); then
     mkdir gradut ;
     cd gradut ;
     cp -R ../E-thesis_gradut_TXT_2016-11-22/* . ;
+    cp ../E-thesis_other_langs_VRT_2016-11-22/ethesis_en_ma_mm.vrt maajametsatiede/metadata_vrt ;
+    cp ../E-thesis_other_langs_VRT_2016-11-22/ethesis_en_ma_sci.vrt matemaattis/metadata_vrt ;
+    cp ../E-thesis_other_langs_VRT_2016-11-22/ethesis_en_ma_valt.vrt valtiotiede/metadata_vrt ;
     cd .. ;
 fi
 
@@ -41,29 +58,20 @@ if !(ls vaitokset/ > /dev/null 2> /dev/null); then
     cd .. ;
 fi
 
-if [ "$1" = "--verbose" ]; then echo "Harmonizing metadata filenames"; fi
-
 # harmonize metadata filenames
 for file in gradut/*/logfile.txt;
 do
-    echo $file | perl -pe 's/^(.*)\/logfile\.txt$/mv \1\/logfile.txt \1\/metadata/;' | sh;
+    echo $file | perl -pe 's/^(.*)\/logfile\.txt$/mv \1\/logfile.txt \1\/metadata_txt/;' | sh;
 done
 for file in gradut/*/read.me;
 do
-    echo $file | perl -pe 's/^(.*)\/read\.me$/mv \1\/read.me \1\/metadata/;' | sh;
+    echo $file | perl -pe 's/^(.*)\/read\.me$/mv \1\/read.me \1\/metadata_txt/;' | sh;
 done
 for file in vaitokset/*/logfile.txt;
 do
-    echo $file | perl -pe 's/^(.*)\/logfile\.txt$/mv \1\/logfile.txt \1\/metadata/;' | sh;
+    echo $file | perl -pe 's/^(.*)\/logfile\.txt$/mv \1\/logfile.txt \1\/metadata_txt/;' | sh;
 done
 
-
-if [ "$1" = "--verbose" ]; then echo "Checking that lang_recognizer.py is found"; fi
-
-if !(ls lang_recognizer.py > /dev/null 2> /dev/null); then
-    echo "lang_recognizer.py not found in the current directory";
-    exit 1;
-fi
 
 # 1) generate filenames for files whose language has not been marked:
 # i.e. prepend the output of lang_recognizer.py to the filename
@@ -122,15 +130,17 @@ do
     mkdir ethesis_en/vaitokset/$subdir;
     cp gradut/$subdir/en/*.txt ethesis_en/gradut/$subdir/;
     if ! [ "$subdir" = "maajametsatiede" -o "$subdir" = "matemaattis" -o "$subdir" = "valtiotiede" ]; then
-	cp gradut/$subdir/metadata ethesis_en/gradut/$subdir/;
+	cp gradut/$subdir/metadata_txt ethesis_en/gradut/$subdir/;
+    else
+	cp gradut/$subdir/metadata_vrt ethesis_en/gradut/$subdir/;
     fi
     cp vaitokset/$subdir/en/*.txt ethesis_en/vaitokset/$subdir/;
-    cp vaitokset/$subdir/metadata ethesis_en/vaitokset/$subdir/;
+    cp vaitokset/$subdir/metadata_txt ethesis_en/vaitokset/$subdir/;
 done
 mkdir ethesis_en/gradut/aleksanteri-instituutti;
 cp gradut/aleksanteri-instituutti/en/*.txt ethesis_en/gradut/aleksanteri-instituutti/;
-cp gradut/aleksanteri-instituutti/metadata ethesis_en/gradut/aleksanteri-instituutti/;
-
+cp gradut/aleksanteri-instituutti/metadata_txt ethesis_en/gradut/aleksanteri-instituutti/;
+fi
 # get metadata from logfile.txt or read.me, e.g.
 # for file in *; do echo $file | perl -pe 's/\n/\t/;' && (echo $file | perl -pe 's/_[0-9]{4}\.txt/\\.pdf/; s/^(.*)$/grep -c "\1" ..\/..\/..\/E-thesis_gradut_TXT_2016-11-22\/humanistinen\/read.me/;') | sh ; done
 
@@ -139,24 +149,39 @@ cd ethesis_en;
 for dir in gradut vaitokset;
 do
     cd $dir;
-    subdirs=;
+    subdirs="bio_ja_ymparistot elainlaaketiede farmasia humanistinen kayttaytymistiede laaketiede maajametsatiede matemaattis oikeustiede teologinen valtiotiede";
     if [ "$dir" = "gradut" ]; then
-	subdirs="aleksanteri-instituutti bio_ja_ymparistot elainlaaketiede farmasia humanistinen kayttaytymistiede laaketiede oikeustiede teologinen";
-    else
-	subdirs="bio_ja_ymparistot elainlaaketiede farmasia humanistinen kayttaytymistiede laaketiede maajametsatiede matemaattis oikeustiede teologinen valtiotiede";
+	subdirs="aleksanteri-instituutti "$subdirs;
     fi
     for subdir in $subdirs;
     do
-	if ! [ "$dir" = "gradut" -a '(' "$subdir" = "maajametsatiede" -o "$subdir" = "matemaattis" -o "$subdir" = "valtiotiede" ')' ]; then
-	    if [ "$1" = "--verbose" ]; then echo "Grepping metadata for "$dir"/"$subdir; fi
-	    cd $subdir;
-	    touch GREP;
-	    for file in *.txt;
-	    do
-		(echo $file | perl -pe 's/\n/\t/;' && (echo $file | perl -pe 's/(_DATE=[0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?)?\.txt/\\.pdf/; s/^(.*)$/grep -c "\1" metadata/;' | sh)) >> GREP;
-	    done
-	    cd ..;
+	if [ "$1" = "--verbose" ]; then echo "Grepping metadata for "$dir"/"$subdir; fi
+	cd $subdir;
+	# touch GREP;
+	metadatafile="metadata_txt";
+	if [ "$dir" = "gradut" -a '(' "$subdir" = "maajametsatiede" -o "$subdir" = "matemaattis" -o "$subdir" = "valtiotiede" ')' ]; then
+	    metadatafile="metadata_vrt";
 	fi
+	for file in *.txt;
+	do
+	    echo $file | perl -pe 's/(_DATE=[0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?)?\.txt/\\.pdf/; s/^(.*)$/grep "\/\1" '$metadatafile'/;' > tmp;
+	    hits=`wc -l tmp | perl -pe 's/^([0-9]+).*/\1/;'`;
+	    if [ "$hits" -gt 1 ]; then
+		# filter out lines that contain the date (original files sometimes have the same name, e.g. "gradu.pdf")
+		date=`echo $file | perl -pe 's/.*_DATE=([0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?).*/(citation)?date="\1"/'`;
+		dateregexp=`echo $date | perl -pe 's/\-/\\-/g;'`;
+		cat tmp | egrep "'"$dateregexp"'" > TMP;
+		echo $file | perl -pe 's/(_DATE=[0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?)?\.txt/\\.pdf/; s/^(.*)$/grep "\/\1" TMP/;' > tmp;
+		hits=`wc -l tmp | perl -pe 's/^([0-9]+).*/\1/;'`;
+	    fi
+	    if [ "$hits" -ne 1 ]; then
+		echo "ERROR";
+		exit 1;
+	    fi
+	    # echo $file | perl -pe 's/\n/\t/;' >> GREP;
+	    # echo $hits >> GREP;
+	done
+	cd ..;
     done
     cd ..;
 done
