@@ -72,6 +72,11 @@ do
     echo $file | perl -pe 's/^(.*)\/logfile\.txt$/mv \1\/logfile.txt \1\/metadata_txt/;' | sh;
 done
 
+for file in gradut/*/metadata_txt gradut/*/metadata_vrt vaitokset/*/metadata_txt ;
+do
+    cat $file | perl -pe "s/(\|\|\|<text )/\n\1/g;" > tmp;
+    mv tmp $file;
+done
 
 # 1) generate filenames for files whose language has not been marked:
 # i.e. prepend the output of lang_recognizer.py to the filename
@@ -164,20 +169,21 @@ do
 	fi
 	for file in *.txt;
 	do
-	    echo $file | perl -pe 's/(_DATE=[0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?)?\.txt/\\.pdf/; s/^(.*)$/grep "\/\1" '$metadatafile'/;' > tmp;
-	    hits=`wc -l tmp | perl -pe 's/^([0-9]+).*/\1/;'`;
-	    if [ "$hits" -gt 1 ]; then
+	    echo $file | perl -pe 's/(_DATE=[0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?)?\.txt/\\.pdf/; s/^(.*)$/grep "\/\1" '$metadatafile'/;' | sh | perl -pe 's/^[^<]*(<text[^>]+>).*$/\1/;' | egrep '(citation_)?lang(uage)?="(eng?)?"' | sort | uniq > hits;
+	    cp hits $file.hits;
+	    hits=`wc -l hits | perl -pe 's/^([0-9]+).*$/\1/;'`;
+	    orig_hits=$hits;
+	    if ! [ "$hits" = "1" -o "$hits" = "0" ]; then
 		# filter out lines that contain the date (original files sometimes have the same name, e.g. "gradu.pdf")
-		date=`echo $file | perl -pe 's/.*_DATE=([0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?).*/(citation)?date="\1"/'`;
-		dateregexp=`echo $date | perl -pe 's/\-/\\-/g;'`;
-		cat tmp | egrep "'"$dateregexp"'" > TMP;
-		echo $file | perl -pe 's/(_DATE=[0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?)?\.txt/\\.pdf/; s/^(.*)$/grep "\/\1" TMP/;' > tmp;
-		hits=`wc -l tmp | perl -pe 's/^([0-9]+).*/\1/;'`;
+		date=`echo $file | perl -pe 's/.*_DATE=([0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?).*/\(citation_\)\?date="\1/'`;
+		dateregexp=`echo $date | perl -pe 's/\-/\\\\-/g;'`;
+		echo "REGEXP: "$dateregexp;
+		cat hits | egrep $dateregexp > tmp;
+		mv tmp hits;
+		cp hits $file.hits2;
+		hits=`wc -l hits | perl -pe 's/^([0-9]+).*/\1/;'`;
 	    fi
-	    if [ "$hits" -ne 1 ]; then
-		echo "ERROR";
-		exit 1;
-	    fi
+	    echo "ethesis_en/"$dir"/"$subdir"/"$file": "$hits" ("$orig_hits")";
 	    # echo $file | perl -pe 's/\n/\t/;' >> GREP;
 	    # echo $hits >> GREP;
 	done
