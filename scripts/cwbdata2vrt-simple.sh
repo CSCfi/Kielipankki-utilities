@@ -250,7 +250,7 @@ extract_vrt () {
     if [ "x$all_attrs" != x ]; then
 	# Use echo to get the attribute names on the same line,
 	# separated by spaces
-	pos_attrs=$(echo $(corpus_list_attrs $corp p))
+	pos_attrs=$(echo $(corpus_list_attrs --feature-set-slash $corp p))
     fi
     if [ "x$omit_log_comment" = x ]; then
 	head_comment="info: VRT generated from CWB data for corpus \"$corp\" ($(get_isodate))"
