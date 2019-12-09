@@ -402,6 +402,57 @@ corpus_get_attr_type () {
     nth_arg 1 $(corpus_list_attrs --show-type $1 '*' $2)
 }
 
+# corpus_attr_is_featset_valued corpus attrtype attrname
+#
+# Return true (0) if the attribute attrname of type attrtype in corpus
+# is feature-set-valued. attrtype should begin with either p
+# (positional) or s (structural) (lower- or upper-case). On error,
+# return 2.
+corpus_attr_is_featset_valued () {
+    local corpus attrtype attrname errfile result
+    corpus=$1
+    attrtype=$2
+    attrname=$3
+    errfile=$tmp_prefix.corpus_attr_is_featset_valued.err
+    case $attrtype in
+	[pP]* )
+	    result=$(
+		$cwb_bindir/cwb-lexdecode -P $attrname -p '[^|].*[^|]' \
+					    $corpus 2> "$errfile" |
+		    head -1 | wc -l
+		)
+	    if [ -s "$errfile" ]; then
+		cat "$errfile" > /dev/stderr
+		return 2
+	    else
+		return $result
+	    fi
+	    ;;
+	[sS]* )
+	    # Structure without annotated values cannot have be
+	    # feature-set-valued
+	    if [ "${attrname##*_}" = "$attrname" ]; then
+		return 1
+	    fi
+	    # Heuristic: most likely an attribute whose first 100
+	    # values look like feature-sets is feature-set-valued.
+	    result=$(
+		$cwb_bindir/cwb-s-decode -n $corpus -S $attrname 2> "$errfile" |
+		    head -100 | grep -c '^|.*|$'
+		  )
+	    if [ -s "$errfile" ]; then
+		cat "$errfile" > /dev/stderr
+		return 2
+	    else
+		[ "$result" = "100" ]
+		return
+	    fi
+	    ;;
+	* )
+	    return 2
+    esac
+}
+
 # corpus_exists corpus
 #
 # Return true if corpus exists (cwb-describe-corpus returns true).
