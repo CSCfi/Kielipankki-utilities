@@ -315,7 +315,7 @@ cwb_registry_remove_attr () {
 }
 
 
-# corpus_list_attrs [--show-type] corpus attrtypes [attr_regex]
+# corpus_list_attrs [options] corpus attrtypes [attr_regex]
 #
 # List the names of attributes in corpus, of the types listed in
 # attrtypes, a space-separated list of attribute types that are words
@@ -323,17 +323,30 @@ cwb_registry_remove_attr () {
 # (any type). If attr_regex is specified, list only the attributes
 # matching it (an extended regular expression as recognized by AWK).
 #
-# In the output, each attribute name is on its own line. If
-# --show-type is specified, each attribute name is preceded by its
-# type (p, s, a) and a space. Returns 1 if the registry file for
-# corpus is not found or attrtypes contains an invalid attribute type.
+# In the output, each attribute name is on its own line. Returns 1 if
+# the registry file for corpus is not found or attrtypes contains an
+# invalid attribute type.
+#
+# Options:
+#   --show-type: Precede each attribute name is preceded by its type
+#     (p, s, a) and a space.
+#   --feature-set-slash: Suffix the names of feature-set-valued
+#     attributes with a slash. Note that this may slow down the
+#     function.
 corpus_list_attrs () {
-    local corpus attrtypes attrtype attrtypes_re show_type attr_re
+    local corpus attrtypes attrtype attrtypes_re show_type slashes attr_re attrs attrname
     show_type=
-    if [ "x$1" = "x--show-type" ]; then
-	show_type=1
+    slashes=
+    while [ "x${1##--*}" = x ]; do
+	if [ "x$1" = "x--show-type" ]; then
+	    show_type=1
+	elif [ "x$1" = "x--feature-set-slash" ]; then
+	    slashes=1
+	else
+	    lib_error "corpus_list_attrs: unrecognized option $1"
+	fi
 	shift
-    fi
+    done
     corpus=$1
     attrtypes=$2
     attr_re=".*"
@@ -365,7 +378,7 @@ corpus_list_attrs () {
 	attrtypes_re="$attrtypes_re|$attrtype"
     done
     attrtypes_re=${attrtypes_re#|}
-    if [ "x$show_type" != x ]; then
+    attrs="$(
 	awk "BEGIN {
 	         map[\"ATTRIBUTE\"] = \"p\"
 		 map[\"STRUCTURE\"] = \"s\"
@@ -373,9 +386,25 @@ corpus_list_attrs () {
 	     }
 	     /^($attrtypes_re) (\\<$attr_re\\>)/ {print map[\$1] \" \" \$2}
         " $cwb_regdir/$corpus
+	)"
+    if [ "x$slashes" != x ]; then
+	attrs="$(
+	    echo "$attrs" |
+		while read attrtype attrname; do
+		    printf "$attrtype $attrname"
+		    if [ "$attrtype" != "a" ] &&
+			   corpus_attr_is_featset_valued $corpus $attrtype $attrname; then
+			printf "/"
+		    fi
+		    printf "\n"
+		done
+	    )"
+    fi
+    if [ "x$show_type" = x ]; then
+	echo "$attrs" |
+	    cut -d" " -f2
     else
-	awk "/^($attrtypes_re) (\\<$attr_re\\>)/ {print \$2}" \
-	    $cwb_regdir/$corpus
+	echo "$attrs"
     fi
 }
 
