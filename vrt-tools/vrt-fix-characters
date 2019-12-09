@@ -1,0 +1,196 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from itertools import groupby, chain
+import os, re, sys, traceback
+
+from vrtargslib import trans_args, trans_main
+from vrtargslib import BadData, BadCode
+
+from vrtnamelib import xname, isnames, namelist, nameindices
+from vrtdatalib import asrecord, unescape, escape
+
+def parsearguments():
+    description = '''
+
+    Replace invalid characters or character entities in attribute
+    values and named fields with something that is valid in VRT and
+    hopefully closer to what was intended.
+
+    Input must already be UTF-8, much like VRT, have field names.
+
+    Any annotations that may have been based on invalid input may
+    become mysterious when the input fields change.
+
+    '''
+
+    parser = trans_args(description = description)
+
+    parser.add_argument('--attribute', '-a',
+                        metavar = 'attr-name',
+                        dest = 'attributes', type = xname,
+                        action = 'append', default = [],
+                        help = 'an attribute to edit (default: no attributes)')
+
+    parser.add_argument('--field', '-f',
+                        metavar = 'field-name',
+                        dest = 'fields', type = xname,
+                        action = 'append', default = [],
+                        help = 'a field to edit (default: no fields)')
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
+
+def main(args, inf, ouf):
+
+    # *all* these exceptions should probably go to trans_main, q.v.
+
+    status = 1
+    try:
+        implement_main(args, inf, ouf)
+        status = 0
+    except BadData as exn:
+        print(args.prog + ':', exn, file = sys.stderr)
+    except BadCode as exn:
+        print(args.prog + ':', exn, file = sys.stderr)
+    except BrokenPipeError:
+        print(args.prog + ': broken pipe in main', file = sys.stderr)
+    except KeyboardInterrupt:
+        print(args.prog + ': keyboard interrupt', file = sys.stderr)
+    except Exception as exn:
+        print(traceback.format_exc(), file = sys.stderr)
+
+    return status
+
+def implement_main(args, ins, ous):
+
+    def issome(line): return not line.isspace()
+    def ismeta(line): return line.startswith('<')
+
+    anames = set(args.attributes)
+    fnames = set(args.fields)
+
+    if not (anames or fnames):
+        print('{}: warning: no attributes or fields specified'
+              .format(args.prog),
+              file = sys.stderr)
+
+    fix = None
+    for groupismeta, group in groupby(filter(issome, ins), ismeta):
+
+        if groupismeta:
+            for line in group:
+                if isnames(line):
+                    # find field indices to fix
+                    fix = nameindices(namelist(line), *fnames)
+                    print(line, end = '', file = ous)
+                    continue
+                
+                if line.startswith(('<!', '</')):
+                    print(line, end = '', file = ous)
+                    continue
+
+                # line is a start tag and may contain attributes
+                print(fixmeta(args, line, anames), end = '', file = ous)
+                continue
+
+        # groupisdata aka token lines
+
+        if fix is None:
+            raise BadData('no names before tokens')
+
+        for line in group:
+            record = asrecord(line)
+
+            for ix in fix:
+                # intentionally do not unescape entities
+                record[ix] = fixdata(args, record[ix])
+
+            print(*record, sep = '\t', file = ous)
+
+def fixmeta(args, start, anames):
+    '''Return fixed start-tag line'''
+    if not anames: return start
+    tag, attrs = parsemeta(start)
+    for aname in anames:
+        if aname not in attrs: continue
+        attrs[aname] = fixattr(args, attrs[aname])
+    return composemeta(tag, attrs, end = '\n')
+
+def fixattr(args, value):
+    '''Return fixed attribute value'''
+    value = re.sub(entitylike, unbreakity_quote, value)
+    return '[{}]'.format(value) # testing
+    return value
+
+def fixdata(args, value):
+    '''Return fixed positional-field value'''
+    value = re.sub(entitylike, unbreakity, value)
+    return '[{}]'.format(value) # testing
+    return value
+
+def unbreakity(match, quote = False):
+    '''Consider any &\w+; an attempted named entity (ASCII only), also
+    consider any numerical-looking entity up to and including the
+    semicolon, and actually consider any string of such up to and
+    including a semicolon - type "&lt&lt&lt;" that complicators of
+    legend in their legendary wisdom used to consider a good idea,
+    syntactically - and any lone & < > " ' as such - and return a
+    canonical, minimal interpretation.
+
+    '''
+    value = '[{}]'.format(match.group())
+    return value
+
+unbreakity_quote = lambda match : unbreakity(match, quote = True)
+
+entitylike = re.compile(R'''
+
+    # eventual semicolon is mandatory on an entity sequence
+    # or the entity sequence will not be recognized as such
+
+    (?: & [a-z] +
+      | & \# [0-9] +
+      | & \# x [0-9a-f] + ) + ;
+    | [&<>"']
+
+''', re.ASCII | re.IGNORECASE | re.VERBOSE)
+
+def parsemeta(start):
+    '''Parse a start tag into the element name and a dictionary of
+    attributes.
+
+    '''
+    # capture element name and make sure that the rest of the line
+    # consists of something that could be key="value" pairs - is it an
+    # overkill to enforce that element name consists of letters only?
+    name = re.fullmatch(R'<(\w+)(?: [\w\d._\-]+/?="[^"]*")*>\r?\n?',
+                        start)
+
+    if name is None:
+        raise BadData('no match: {!r}'.format(start))
+
+    # now be safe to capture (key, value) pairs with a lax pattern
+
+    name = name.group(1)
+    rest = re.finditer(R'(\S+)="([^"]*)"', start)
+    return name, dict(mo.groups() for mo in rest)
+
+def composemeta(name, attrs, end = ''):
+    '''Given element name and a dictionary of attributes, properly
+    entified and all, construct the start tag line, sorted, spaced,
+    double-quoted.
+
+    '''
+    return ( '<{name}{attrs}>{end}'
+             .format(name = name,
+                     attrs = ''.join(( ' {name}="{value}"'
+                                       .format(name = name,
+                                               value = value) )
+                                     for name, value
+                                     in sorted(attrs.items())),
+                     end = end) )
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main)
