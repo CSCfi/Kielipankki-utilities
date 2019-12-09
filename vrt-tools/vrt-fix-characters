@@ -41,9 +41,17 @@ def parsearguments():
                         action = 'append', default = [],
                         help = 'a field to edit (default: no fields)')
 
+    # should allow only one of --entities and --controls and such
+    # (TODO Microsoft code page interpretation of C1 as an option)
+
     parser.add_argument('--entities',
                         action = 'store_true',
                         help = 'repair character entities')
+
+    parser.add_argument('--controls',
+                        action = 'store_true',
+                        help = '''replace control characters (C0, DEL, C1)
+                        with short names''')
 
     args = parser.parse_args()
     args.prog = parser.prog
@@ -111,7 +119,7 @@ def implement_main(args, ins, ous):
             record = asrecord(line)
 
             for ix in fix:
-                # intentionally do not unescape entities
+                # intentionally do not unescape entities yet
                 record[ix] = fixdata(args, record[ix])
 
             print(*record, sep = '\t', file = ous)
@@ -127,15 +135,15 @@ def fixmeta(args, start, anames):
 
 def fixattr(args, value):
     '''Return fixed attribute value'''
-    if args.entities:
-        value = re.sub(entitylike, unbreakity_quote, value)
-    return '[{}]'.format(value) # testing
+    if args.entities: value = re.sub(entitylike, unbreakity_quote, value)
+    if args.controls: value = value.translate(CONTROLS)
+    # return '[{}]'.format(value) # testing
     return value
 
 def fixdata(args, value):
     '''Return fixed positional-field value'''
-    if args.entities:
-        value = re.sub(entitylike, unbreakity, value)
+    if args.entities: value = re.sub(entitylike, unbreakity, value)
+    if args.controls: value = value.translate(CONTROLS)
     # return '[{}]'.format(value) # testing
     return value
 
@@ -240,6 +248,18 @@ TANKEROES = {
     # ==> SYMBOL FOR CARRIAGE RETURN
     '\r' : '\u240d',
 
+    # U+001c INFORMATION SEPARATOR FOUR
+    # aka FS, FILE SEPARATOR
+    '\x1c' : '(FS)',
+
+    # U+001d INFORMATION SEPARATOR THREE
+    # aka GS, GROUP SEPARATOR
+    '\x1d' : '(GS)',
+
+    # U+001e INFORMATION SEPARATOR TWO
+    # aka RS, RECORD SEPARATOR
+    '\x1e' : '(RS)',
+
     # U+0085 NEXT LINE
     # aka NEL
     # ==> SYMBOL FOR NEWLINE (ok?)
@@ -251,6 +271,80 @@ TANKEROES = {
     # U+2029 PARAGRAPH SEPARATOR
     '\u2029' : '(PS)',
 }
+
+CONTROLS = str.maketrans({
+
+    # C0 (ASCII) controls
+    '\x00' : '(C0:NUL)',
+    '\x01' : '(C0:SOH)',
+    '\x02' : '(C0:STX)',
+    '\x03' : '(C0:ETX)',
+    '\x04' : '(C0:EOT)',
+    '\x05' : '(C0:ENQ)',
+    '\x06' : '(C0:ACK)',
+    '\x07' : '(C0:BEL)',
+    '\x08' : '(C0:BS) ',
+    '\x09' : '(C0:HT) ', # cannot happen
+    '\x0A' : '(C0:LF) ', # cannot happen
+    '\x0B' : '(C0:VT) ', # cannot happen
+    '\x0C' : '(C0:FF) ', # cannot happen
+    '\x0D' : '(C0:CR) ', # cannot happen
+    '\x0E' : '(C0:SO) ',
+    '\x0F' : '(C0:SI) ',
+    '\x10' : '(C0:DLE)',
+    '\x11' : '(C0:DC1)',
+    '\x12' : '(C0:DC2)',
+    '\x13' : '(C0:DC3)',
+    '\x14' : '(C0:DC4)',
+    '\x15' : '(C0:NAK)',
+    '\x16' : '(C0:SYN)',
+    '\x17' : '(C0:ETB)',
+    '\x18' : '(C0:CAN)',
+    '\x19' : '(C0:EM) ',
+    '\x1A' : '(C0:SUB)',
+    '\x1B' : '(C0:ESC)',
+    '\x1C' : '(C0:FS) ', # cannot happen
+    '\x1D' : '(C0:GS) ', # cannot happen
+    '\x1E' : '(C0:RS) ', # cannot happen
+    '\x1F' : '(C0:US) ',
+
+    # DEL
+    '\x7F' : '(CC:DEL)',
+
+    # C1 controls
+    '\x80' : '(C1:PAD)',
+    '\x81' : '(C1:HOP)',
+    '\x82' : '(C1:BPH)',
+    '\x83' : '(C1:NBH)',
+    '\x84' : '(C1:IND)',
+    '\x85' : '(C1:NEL)', # cannot happen ...
+    '\x86' : '(C1:SSA)',
+    '\x87' : '(C1:ESA)',
+    '\x88' : '(C1:HTS)',
+    '\x89' : '(C1:HTJ)',
+    '\x8A' : '(C1:VTS)',
+    '\x8B' : '(C1:PLD)',
+    '\x8C' : '(C1:PLU)',
+    '\x8D' : '(C1:RI)',
+    '\x8E' : '(C1:SS2)',
+    '\x8F' : '(C1:SS3)',
+    '\x90' : '(C1:DCS)',
+    '\x91' : '(C1:PU1)',
+    '\x92' : '(C1:PU2)',
+    '\x93' : '(C1:STS)',
+    '\x94' : '(C1:CCH)',
+    '\x95' : '(C1:MW)',
+    '\x96' : '(C1:SPA)',
+    '\x97' : '(C1:EPA)',
+    '\x98' : '(C1:SOS)',
+    '\x99' : '(C1:SGCI)',
+    '\x9A' : '(C1:SCI)',
+    '\x9B' : '(C1:CSI)',
+    '\x9C' : '(C1:ST)',
+    '\x9D' : '(C1:OSC)',
+    '\x9E' : '(C1:PM)',
+    '\x9F' : '(C1:APC)',
+})
 
 def parsemeta(start):
     '''Parse a start tag into the element name and a dictionary of
