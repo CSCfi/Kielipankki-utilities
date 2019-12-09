@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
+import html
 from itertools import groupby, chain
 import os, re, sys, traceback
 
@@ -8,7 +9,7 @@ from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 
 from vrtnamelib import xname, isnames, namelist, nameindices
-from vrtdatalib import asrecord, unescape, escape
+from vrtdatalib import asrecord, escape
 
 def parsearguments():
     description = '''
@@ -20,7 +21,9 @@ def parsearguments():
     Input must already be UTF-8, much like VRT, have field names.
 
     Any annotations that may have been based on invalid input may
-    become mysterious when the input fields change.
+    become mysterious when the input fields change. It is also too
+    late to introduce line breaks or tabs through entities when the
+    data is posing as VRT, so something is substituted for such.
 
     '''
 
@@ -37,6 +40,10 @@ def parsearguments():
                         dest = 'fields', type = xname,
                         action = 'append', default = [],
                         help = 'a field to edit (default: no fields)')
+
+    parser.add_argument('--entities',
+                        action = 'store_true',
+                        help = 'repair character entities')
 
     args = parser.parse_args()
     args.prog = parser.prog
@@ -120,14 +127,16 @@ def fixmeta(args, start, anames):
 
 def fixattr(args, value):
     '''Return fixed attribute value'''
-    value = re.sub(entitylike, unbreakity_quote, value)
+    if args.entities:
+        value = re.sub(entitylike, unbreakity_quote, value)
     return '[{}]'.format(value) # testing
     return value
 
 def fixdata(args, value):
     '''Return fixed positional-field value'''
-    value = re.sub(entitylike, unbreakity, value)
-    return '[{}]'.format(value) # testing
+    if args.entities:
+        value = re.sub(entitylike, unbreakity, value)
+    # return '[{}]'.format(value) # testing
     return value
 
 def unbreakity(match, quote = False):
@@ -140,8 +149,32 @@ def unbreakity(match, quote = False):
     canonical, minimal interpretation.
 
     '''
-    value = '[{}]'.format(match.group())
-    return value
+    ents = match.group()
+    if len(ents) == 1:
+        # ents is one of & < > " '
+        result = (
+            ENTITIES.get(ents) or
+            (quote and QUOTES.get(ents)) or
+            (not quote and ents in ('"', "'") and ents) or
+            # this cannot happen
+            '[??{}]'.format(repr(ents))
+        )
+    else:
+        # ents looks like an entity sequence: undo and redo
+        result = ''.join([
+            (
+                ENTITIES.get(part) or
+                (quote and QUOTES.get(part)) or
+                TANKEROES.get(part) or
+                # to handle mispeling here
+                # though really why bother
+                escape(part)
+            )
+            for mo in re.finditer('&[^&]+', ents)
+            for part in [ html.unescape(mo.group()) ]
+        ])
+    # value = '[{} => {}]'.format(ents, result)
+    return result
 
 unbreakity_quote = lambda match : unbreakity(match, quote = True)
 
@@ -156,6 +189,68 @@ entitylike = re.compile(R'''
     | [&<>"']
 
 ''', re.ASCII | re.IGNORECASE | re.VERBOSE)
+
+ENTITIES = {
+    # Three characters are entified in both meta and data
+    '&amp;' : '&amp;',
+    '&lt;' : '&lt;',
+    '&gt;' : '&gt;',
+    '&' : '&amp;',
+    '<' : '&lt;',
+    '>' : '&gt;'
+}
+
+QUOTES = {
+    # Two more characters are entified in meta
+    '&quote;' : '&quote;',
+    '&apos;' : '&apos;',
+    '"' : '&quote;',
+    "'" : '&apos;'
+}
+
+TANKEROES = {
+    # The characters that absolutely must not be allowed
+    # because they would formally break lines or fields,
+    # and something is trying to smuggle them in through
+    # a nentity. Substitute basically anything at all.
+
+    # Many other control characters are merely annoying.
+
+    # U+0009 CHARACTER TABULATION
+    # aka HT, HORIZONTAL TAB
+    # ==> SYMBOL FOR HORIZONTAL TABULATION
+    '\t' : '\u2409',
+
+    # U+000a LINE FEED
+    # ==> SYMBOL FOR LINE FEED
+    '\n' : '\u240a',
+
+    # U+000b LINE TABULATION
+    # aka VT, VERTICAL TAB
+    # ==> SYMBOL FOR VERTICAL TABULATION 
+    '\v' : '\u240b',
+
+    # U+000b FORM FEED
+    # aka FF
+    # ==> SYMBOL FOR FORM FEED
+    '\0x0c' : '\u240c',
+
+    # U+000d CARRIAGE RETURN
+    # aka CR
+    # ==> SYMBOL FOR CARRIAGE RETURN
+    '\r' : '\u240d',
+
+    # U+0085 NEXT LINE
+    # aka NEL
+    # ==> SYMBOL FOR NEWLINE (ok?)
+    '\x85' : '\u2424',
+
+    # U+2028 LINE SEPARATOR
+    '\u2028' : '(LS)',
+
+    # U+2029 PARAGRAPH SEPARATOR
+    '\u2029' : '(PS)',
+}
 
 def parsemeta(start):
     '''Parse a start tag into the element name and a dictionary of
