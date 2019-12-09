@@ -16,3 +16,38 @@ vrt-keep --names word,spaces,ref
 # compile the corpora
 # PATH=$PATH:/proj/clarin/korp/cwb/bin:/proj/clarin/korp/scripts
 ./korp-make-wanca.sh
+
+
+
+# Tokenization problem in wanca_2016_nio fixed (09-12-2019):
+
+# drop third field as word numbering has to be added again after tokenization is fixed
+cut -f1,2 wanca_2016_nio_korp_20190812/vrt/wanca_2016_nio/wanca_2016_nio.vrt
+
+# fix cases (нинту ” -> нинту”):
+#
+# нинту   SpaceAfter=No
+# ”       _
+#
+# or (ӈизи ” силинягәтыӈ -> ӈизи” силинягәтыӈ):
+#
+# ӈизи    SpaceAfter=No
+# ”       SpaceAfter=No
+# силинягәтыӈ     _
+#
+perl -pe 's/\n/¤/g;' | perl -pe 's/\tSpaceAfter=No¤(”\t)/\1/g;' | perl -pe 's/¤/\n/g;'
+
+# fix cases (ӈизисибся” дя -> ӈизисибся”дя):
+#
+# ӈизисибся”      SpaceAfter=No
+# дя      _
+#
+# or (ӈизи” силинягәтыӈ -> ӈизи”силинягәтыӈ):
+#
+# ӈизи”       SpaceAfter=No
+# силинягәтыӈ     _
+#
+perl -pe 's/^([^\t]+”)\tSpaceAfter=No\n/\1/;'
+
+# add word numbering
+./add-numbering.pl
