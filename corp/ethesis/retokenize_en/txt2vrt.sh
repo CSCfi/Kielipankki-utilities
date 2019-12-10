@@ -15,7 +15,6 @@
 # guess language:
 # cat document.txt | python3 -c 'from lang_recognizer import recognize; import sys; print(recognize(sys.stdin.read()));'
 
-if [ "foo" = "bar" ]; then
 if !(ls lang_recognizer.py > /dev/null 2> /dev/null); then
     echo "lang_recognizer.py not found in the current directory";
     exit 1;
@@ -101,7 +100,7 @@ do
 	      # e.g. fi_t_2016utkielma.txt -> fi_tutkielma_DATE=2016.txt, en_m_2013-05-29aster_thesis.txt -> en_master_thesis_DATE=2013-05-29.txt
 	      # (checked that there will not be identical filenames in the same directory)
 	      newfile=`echo $file | perl -pe 'if (m/^[^_]+_([^_])_[0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?/) { s/^([^_]+_)([^_])_([0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?)(.*)\.txt/\1\2\6_DATE=\3.txt/; } else { $_=""; }'`;
-	      if [ "$subdir" = "oikeustiede" ]; then
+	      if [ "$subdir" = "oikeustiede" -o "$subdir" = "valtiotiede" ]; then
 		  # some files have T, 6 digits and Z added in between
 		  newfile=`echo $newfile | perl -pe 's/T[0-9]{6}Z//;'`;
 	      fi
@@ -145,7 +144,7 @@ done
 mkdir ethesis_en/gradut/aleksanteri-instituutti;
 cp gradut/aleksanteri-instituutti/en/*.txt ethesis_en/gradut/aleksanteri-instituutti/;
 cp gradut/aleksanteri-instituutti/metadata_txt ethesis_en/gradut/aleksanteri-instituutti/;
-fi
+
 # get metadata from logfile.txt or read.me, e.g.
 # for file in *; do echo $file | perl -pe 's/\n/\t/;' && (echo $file | perl -pe 's/_[0-9]{4}\.txt/\\.pdf/; s/^(.*)$/grep -c "\1" ..\/..\/..\/E-thesis_gradut_TXT_2016-11-22\/humanistinen\/read.me/;') | sh ; done
 
@@ -177,7 +176,7 @@ do
 		# filter out lines that contain the date (original files sometimes have the same name, e.g. "gradu.pdf")
 		date=`echo $file | perl -pe 's/.*_DATE=([0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?).*/\(citation_\)\?date="\1/'`;
 		dateregexp=`echo $date | perl -pe 's/\-/\\\\-/g;'`;
-		echo "REGEXP: "$dateregexp;
+		# echo "REGEXP: "$dateregexp;
 		cat hits | egrep $dateregexp > tmp;
 		mv tmp hits;
 		cp hits $file.hits2;
@@ -192,6 +191,9 @@ do
     cd ..;
 done
 cd ..;
+
+# 40 cases that must be handled manually:
+# egrep -v ': 1 ' | grep '('
 
 # neither
 # gradut: maajametsatiede matemaattis valtiotiede
