@@ -13,21 +13,21 @@ shlib_required_libs="file"
 . $_shlibdir/loadlibs.sh
 
 
-# get_vrt_token_count [vrt_file ...]
+# vrt_get_token_count [vrt_file ...]
 #
 # Print the number of tokens in the VRT input vrt_file. vrt_file may
 # be compressed. If vrt_file is not specified, read from stdin.
-get_vrt_token_count () {
+vrt_get_token_count () {
     comprcat "$@" |
     grep -E -cv '^($|<)'
 }
 
-# get_vrt_struct_count struct [vrt_file ...]
+# vrt_get_struct_count struct [vrt_file ...]
 #
 # Print the number of structures struct in the VRT input vrt_file.
 # vrt_file may be compressed. If vrt_file is not specified, read from
 # stdin.
-get_vrt_struct_count () {
+vrt_get_struct_count () {
     local struct
     struct=$1
     shift

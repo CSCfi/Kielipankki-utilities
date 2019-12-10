@@ -90,7 +90,7 @@ corpus_add_attrs () {
 	--pos-attrs "$input_attrs" --struct-attrs "$input_struct_attrs" $corp |
     eval "$generator" > "$newattrs_vrt"
     corp_token_cnt=$(get_corpus_token_count $corp)
-    newattrs_token_cnt=$(get_vrt_token_count "$newattrs_vrt")
+    newattrs_token_cnt=$(vrt_get_token_count "$newattrs_vrt")
     if [ "$corp_token_cnt" != "$newattrs_token_cnt" ]; then
 	warn "Corpus $corp: Attributes not added because token count for new attributes ($newattrs_token_cnt) differs from corpus token count ($corp_token_cnt)"
 	return

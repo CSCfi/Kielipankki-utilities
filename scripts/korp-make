@@ -565,7 +565,7 @@ combine_input () {
     # that cwb-encode was told to skip empty lines).
     comprcat "${input_files[@]}" |
     grep -v '^$' > $vrt_file
-    input_token_count=$(get_vrt_token_count "$vrt_file")
+    input_token_count=$(vrt_get_token_count "$vrt_file")
     echo_verb "  $input_token_count tokens in the input VRT"
     if [ "x$augment_data" != x ]; then
 	existing_token_count=$(get_corpus_token_count $corpus)
