@@ -195,6 +195,17 @@ cd ..;
 # 40 cases that must be handled manually:
 # egrep -v ': 1 ' | grep '('
 
+# Then, for each txt file:
+
+# cat file.txt | perl -pe 's/^/\n/;' | python3 full_pipeline_stream.py --gpu -1 --conf models_en_ewt/pipelines.yaml parse_plaintext > file.conllu;
+# cat file.conllu | perl -pe 's/^# newpar/<paragraph>/; s/^# sent_id = ([0-9]+)/<sentence id="\1">/; s/^# text .*//; s/^# newdoc//;' | ./add-missing-tags.pl > file.prevrt; # TODO: write script
+# (echo "<!-- #vrt positional-attributes: id word lemma upos xpos feats head deprel deps misc -->"; cat file.metadata file.prevrt; echo "</text>") > file.vrt; 
+#
+# $vrttools/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' file.vrt;
+# $vrttools/vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos file.vrt;
+# cat file | ./msd-bar-to-space.pl > tmp && mv tmp file.vrt;
+
+
 # neither
 # gradut: maajametsatiede matemaattis valtiotiede
 
