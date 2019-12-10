@@ -36,6 +36,24 @@ vrt_get_struct_count () {
 }
 
 
+# vrt_get_posattr_names [vrt_file]
+#
+# Print the positional attribute names in the positional attributes
+# comment of vrt_file on a single line, separated by spaces. vrt_file
+# may be compressed. If vrt_file is not specified, read from stdin. If
+# the input does not contain a positional attributes comment, print
+# nothing.
+vrt_get_posattr_names () {
+    comprcat "$@" |
+	perl -ne '
+	    if (/^<!--\s*(#vrt\spositional-attributes|Positional attributes):\s*(.*?)\s*-->/) {
+	        print "$2\n";
+	    } elsif (/^[^<]/) {
+	        exit;
+            }'
+}
+
+
 # decode_special_chars [--xml-entities]
 #
 # Decode the special characters encoded in Korp corpora in stdin and
