@@ -4,6 +4,7 @@
 import html
 from itertools import groupby, chain
 import os, re, sys, traceback
+import unicodedata
 
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
@@ -52,6 +53,23 @@ def parsearguments():
                         action = 'store_true',
                         help = '''replace control characters (C0, DEL, C1)
                         with short names''')
+
+    parser.add_argument('--private',
+                        action = 'store_true',
+                        help = '''replace private-use characters with
+                        (PRIV:code)''')
+
+    parser.add_argument('--char', metavar = 'replacement',
+                        choices = [
+                            'identify',
+                            'lowline',
+                            'vanish'
+                        ],
+                        default = 'identify',
+                        help = '''what to replace an unwanted character with:
+                        identify (a short name),
+                        lowline (_),
+                        vanish (nothing)''')
 
     args = parser.parse_args()
     args.prog = parser.prog
@@ -136,14 +154,18 @@ def fixmeta(args, start, anames):
 def fixattr(args, value):
     '''Return fixed attribute value'''
     if args.entities: value = re.sub(entitylike, unbreakity_quote, value)
+    # TODO move controls to a function to dispatch there on args.char
     if args.controls: value = value.translate(CONTROLS)
+    if args.private: value = ''.join(fixprivate(args, value)) or '_'
     # return '[{}]'.format(value) # testing
     return value
 
 def fixdata(args, value):
     '''Return fixed positional-field value'''
     if args.entities: value = re.sub(entitylike, unbreakity, value)
+    # TODO move controls to a function to dispatch there on args.char
     if args.controls: value = value.translate(CONTROLS)
+    if args.private: value = ''.join(fixprivate(args, value)) or '_'
     # return '[{}]'.format(value) # testing
     return value
 
@@ -345,6 +367,35 @@ CONTROLS = str.maketrans({
     '\x9E' : '(C1:PM)',
     '\x9F' : '(C1:APC)',
 })
+
+def fixprivate(args, value):
+    '''Replace private-use characters with something'''
+    if args.char == 'identify':
+        yield from (
+            ( '(PRIV:{:04x})'.format(ord(c))
+              if unicodedata.category(c) == 'Co' else
+              c
+            )
+            for c in value
+        )
+    elif args.char == 'lowline':
+        yield from (
+            ( '_'
+              if unicodedata.category(c) == 'Co' else
+              c
+            )
+            for c in value
+        )
+    elif args.char == 'vanish':
+        yield from (
+            ( ''
+              if unicodedata.category(c) == 'Co' else
+              c
+            )
+            for c in value
+        )
+    else:
+        raise BadCode('this cannot happen')
 
 def parsemeta(start):
     '''Parse a start tag into the element name and a dictionary of
