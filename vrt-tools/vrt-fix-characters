@@ -44,22 +44,35 @@ def parsearguments():
 
     # should allow only one of --entities and --controls and such
     # (TODO Microsoft code page interpretation of C1 as an option)
+    # no actually leave them be with a guarantee that entities are
+    # handled before actual character replacements but TODO then
+    # entities could, er, what
 
     parser.add_argument('--entities',
                         action = 'store_true',
                         help = 'repair character entities')
 
-    parser.add_argument('--controls',
+    parser.add_argument('--control',
                         action = 'store_true',
                         help = '''replace control characters (C0, DEL, C1)
-                        with short names''')
+                        with choice of {Cc:sub:code-name}, _, or nothing''')
 
     parser.add_argument('--private',
                         action = 'store_true',
                         help = '''replace private-use characters with
-                        (PRIV:code)''')
+                        choice of {Co:code}, _, or nothing''')
 
-    parser.add_argument('--char', metavar = 'replacement',
+    parser.add_argument('--nonchar',
+                        action = 'store_true',
+                        help = '''replace non-characters with choice of
+                        {Cn:non:code}, _, or nothing''')
+
+    parser.add_argument('--reserved',
+                        action = 'store_true', dest = 'reservd',
+                        help = '''replace reserved codes with choice of
+                        {Cn:res:code}, _, or nothing''')
+
+    parser.add_argument('--replace', metavar = 'type',
                         choices = [
                             'identify',
                             'lowline',
@@ -154,18 +167,20 @@ def fixmeta(args, start, anames):
 def fixattr(args, value):
     '''Return fixed attribute value'''
     if args.entities: value = re.sub(entitylike, unbreakity_quote, value)
-    # TODO move controls to a function to dispatch there on args.char
-    if args.controls: value = value.translate(CONTROLS)
-    if args.private: value = ''.join(fixprivate(args, value)) or '_'
+    if args.control: value = ''.join(fixchar(args, value, catControl))
+    if args.private: value = ''.join(fixchar(args, value, catPrivate))
+    if args.nonchar: value = ''.join(fixchar(args, value, catNonchar))
+    if args.reservd: value = ''.join(fixchar(args, value, catReservd))
     # return '[{}]'.format(value) # testing
     return value
 
 def fixdata(args, value):
     '''Return fixed positional-field value'''
     if args.entities: value = re.sub(entitylike, unbreakity, value)
-    # TODO move controls to a function to dispatch there on args.char
-    if args.controls: value = value.translate(CONTROLS)
-    if args.private: value = ''.join(fixprivate(args, value)) or '_'
+    if args.control: value = ''.join(fixchar(args, value, catControl)) or '_'
+    if args.private: value = ''.join(fixchar(args, value, catPrivate)) or '_'
+    if args.nonchar: value = ''.join(fixchar(args, value, catNonchar)) or '_'
+    if args.reservd: value = ''.join(fixchar(args, value, catReservd)) or '_'
     # return '[{}]'.format(value) # testing
     return value
 
@@ -246,6 +261,11 @@ TANKEROES = {
 
     # Many other control characters are merely annoying.
 
+    # TODO make these replacements depend on args.replace!
+    # But then it can also happen that even entities may
+    # lead to the vanishment of the whole value! Which
+    # must then be handled so this is not quite so simple.
+
     # U+0009 CHARACTER TABULATION
     # aka HT, HORIZONTAL TAB
     # ==> SYMBOL FOR HORIZONTAL TABULATION
@@ -294,7 +314,13 @@ TANKEROES = {
     '\u2029' : '(PS)',
 }
 
-CONTROLS = str.maketrans({
+TODO = str.maketrans({
+
+    # TODO replace this with catControl
+    # but then use this for Windows
+    # interpretation what are really
+    # control codes in Unicode but
+    # some data contains them as such
 
     # C0 (ASCII) controls
     '\x00' : '(C0:NUL)',
@@ -368,34 +394,159 @@ CONTROLS = str.maketrans({
     '\x9F' : '(C1:APC)',
 })
 
-def fixprivate(args, value):
-    '''Replace private-use characters with something'''
-    if args.char == 'identify':
-        yield from (
-            ( '(PRIV:{:04x})'.format(ord(c))
-              if unicodedata.category(c) == 'Co' else
-              c
-            )
-            for c in value
-        )
-    elif args.char == 'lowline':
-        yield from (
-            ( '_'
-              if unicodedata.category(c) == 'Co' else
-              c
-            )
-            for c in value
-        )
-    elif args.char == 'vanish':
-        yield from (
-            ( ''
-              if unicodedata.category(c) == 'Co' else
-              c
-            )
-            for c in value
-        )
+def fixchar(args, value, cat):
+    '''Yield characters in value, with replacements for private-use
+    characters (Unicode category Co) or certain other categories, with
+    something (depending on args.replace). Caller joins and guards
+    against the whole value vanishing altogether.
+
+    '''
+
+    if args.replace == 'identify':
+        yield from (cat(c) or c for c in value)
+    elif args.replace == 'lowline':
+        yield from ('_' if cat(c) else c for c in value)
+    elif args.replace == 'vanish':
+        yield from ('' if cat(c) else c for c in value)
     else:
         raise BadCode('this cannot happen')
+
+def catControl(c):
+    '''Return an identifying non-empty string for control character,
+    None for other character
+
+    '''
+    return CONTROLS.get(c)
+
+CONTROLS = {
+
+    # C0 (ASCII) controls
+    '\x00' : '{Cc:C0:00-NUL}',
+    '\x01' : '{Cc:C0:01-SOH}',
+    '\x02' : '{Cc:C0:02-STX}',
+    '\x03' : '{Cc:C0:03-ETX}',
+    '\x04' : '{Cc:C0:04-EOT}',
+    '\x05' : '{Cc:C0:05-ENQ}',
+    '\x06' : '{Cc:C0:06-ACK}',
+    '\x07' : '{Cc:C0:07-BEL}',
+    '\x08' : '{Cc:C0:08-BS} ',
+    '\x09' : '{Cc:C0:09-HT} ', # cannot happen
+    '\x0A' : '{Cc:C0:0A-LF} ', # cannot happen
+    '\x0B' : '{Cc:C0:0B-VT} ', # cannot happen
+    '\x0C' : '{Cc:C0:0C-FF} ', # cannot happen
+    '\x0D' : '{Cc:C0:0D-CR} ', # cannot happen
+    '\x0E' : '{Cc:C0:0E-SO} ',
+    '\x0F' : '{Cc:C0:0F-SI} ',
+    '\x10' : '{Cc:C0:10-DLE}',
+    '\x11' : '{Cc:C0:11-DC1}',
+    '\x12' : '{Cc:C0:12-DC2}',
+    '\x13' : '{Cc:C0:13-DC3}',
+    '\x14' : '{Cc:C0:14-DC4}',
+    '\x15' : '{Cc:C0:15-NAK}',
+    '\x16' : '{Cc:C0:16-SYN}',
+    '\x17' : '{Cc:C0:17-ETB}',
+    '\x18' : '{Cc:C0:18-CAN}',
+    '\x19' : '{Cc:C0:19-EM} ',
+    '\x1A' : '{Cc:C0:1A-SUB}',
+    '\x1B' : '{Cc:C0:1B-ESC}',
+    '\x1C' : '{Cc:C0:1C-FS} ', # cannot happen
+    '\x1D' : '{Cc:C0:1D-GS} ', # cannot happen
+    '\x1E' : '{Cc:C0:1E-RS} ', # cannot happen
+    '\x1F' : '{Cc:C0:1F-US} ',
+
+    # so DEL is not C0
+    '\x7F' : '{Cc:del:7F-DEL}',
+
+    # C1 controls
+    '\x80' : '{Cc:C1:80-PAD}',
+    '\x81' : '{Cc:C1:81-HOP}',
+    '\x82' : '{Cc:C1:82-BPH}',
+    '\x83' : '{Cc:C1:83-NBH}',
+    '\x84' : '{Cc:C1:84-IND}',
+    '\x85' : '{Cc:C1:85-NEL}', # cannot happen ...
+    '\x86' : '{Cc:C1:86-SSA}',
+    '\x87' : '{Cc:C1:87-ESA}',
+    '\x88' : '{Cc:C1:88-HTS}',
+    '\x89' : '{Cc:C1:89-HTJ}',
+    '\x8A' : '{Cc:C1:8A-VTS}',
+    '\x8B' : '{Cc:C1:8B-PLD}',
+    '\x8C' : '{Cc:C1:8C-PLU}',
+    '\x8D' : '{Cc:C1:8D-RI}',
+    '\x8E' : '{Cc:C1:8E-SS2}',
+    '\x8F' : '{Cc:C1:8F-SS3}',
+    '\x90' : '{Cc:C1:90-DCS}',
+    '\x91' : '{Cc:C1:91-PU1}',
+    '\x92' : '{Cc:C1:92-PU2}',
+    '\x93' : '{Cc:C1:93-STS}',
+    '\x94' : '{Cc:C1:94-CCH}',
+    '\x95' : '{Cc:C1:95-MW}',
+    '\x96' : '{Cc:C1:96-SPA}',
+    '\x97' : '{Cc:C1:97-EPA}',
+    '\x98' : '{Cc:C1:98-SOS}',
+    '\x99' : '{Cc:C1:99-SGCI}',
+    '\x9A' : '{Cc:C1:9A-SCI}',
+    '\x9B' : '{Cc:C1:9B-CSI}',
+    '\x9C' : '{Cc:C1:9C-ST}',
+    '\x9D' : '{Cc:C1:9D-OSC}',
+    '\x9E' : '{Cc:C1:9E-PM}',
+    '\x9F' : '{Cc:C1:9F-APC}',
+}
+
+def catPrivate(c):
+    '''Return an identifying non-empty string for private-use character,
+    None for other character
+
+    '''
+    return (
+        '{{Co:priv:{:04x}}}'.format(ord(c))
+        if unicodedata.category(c) == 'Co' else
+        None
+    )
+
+def catNonchar(c):
+    '''Return an identifying non-empty string for non-character,
+    None for other character
+
+    '''
+    return (
+        '{{Cn:non:{:04x}}}'.format(ord(c))
+        if ord(c) in NONCHARS else
+        None
+    )
+
+NONCHARS = set(chain(range(0xfdd0, 0xfdef + 1),
+                     (0x00fffe, 0x00ffff,
+                      0x01fffe, 0x01ffff,
+                      0x02fffe, 0x02ffff,
+                      0x03fffe, 0x03ffff,
+                      0x04fffe, 0x04ffff,
+                      0x05fffe, 0x05ffff,
+                      0x06fffe, 0x06ffff,
+                      0x07fffe, 0x07ffff,
+                      0x08fffe, 0x08ffff,
+                      0x09fffe, 0x09ffff,
+                      0x0afffe, 0x0affff,
+                      0x0bfffe, 0x0bffff,
+                      0x0cfffe, 0x0cffff,
+                      0x0dfffe, 0x0dffff,
+                      0x0efffe, 0x0effff,
+                      0x0ffffe, 0x0fffff,
+                      0x10fffe, 0x10ffff)))
+
+def catReservd(c):
+    '''Return an identifying non-empty string for reserved character, None
+    for other character TODO is this the place to guard against
+    identifying known false negatives like the rubble symbol because
+    unicodedata is not up to date?
+
+    '''
+    return (
+        '{{Cn:res:{:04x}}}'.format(ord(c))
+        if ( unicodedata.category(c) == 'Cn' and
+             ord(c) not in NONCHARS)
+        else
+        None
+    )
 
 def parsemeta(start):
     '''Parse a start tag into the element name and a dictionary of
