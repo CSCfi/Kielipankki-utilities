@@ -35,7 +35,7 @@ cut -f1,2 wanca_2016_nio_korp_20190812/vrt/wanca_2016_nio/wanca_2016_nio.vrt
 # ”       SpaceAfter=No
 # силинягәтыӈ     _
 #
-perl -pe 's/\n/¤/g;' | perl -pe 's/\tSpaceAfter=No¤(”\t)/\1/g;' | perl -pe 's/¤/\n/g;'
+perl -pe 's/\n/¤/g;' | perl -pe 's/\tSpaceAfter=No¤(”\t)/\1/g;'
 
 # fix cases (ӈизисибся” дя -> ӈизисибся”дя):
 #
@@ -47,7 +47,9 @@ perl -pe 's/\n/¤/g;' | perl -pe 's/\tSpaceAfter=No¤(”\t)/\1/g;' | perl -pe '
 # ӈизи”       SpaceAfter=No
 # силинягәтыӈ     _
 #
-perl -pe 's/^([^\t]+”)\tSpaceAfter=No\n/\1/;'
+# but ignore punctuation
+#
+perl -pe 's/¤([^\t]+”)\tSpaceAfter=No¤([^.,;:)])/¤\1\2/g;' | perl -pe 's/¤/\n/g;'
 
 # add word numbering
 ./add-numbering.pl
