@@ -54,13 +54,15 @@ def parsearguments():
 
     parser.add_argument('--control',
                         action = 'store_true',
-                        help = '''replace control characters (C0, DEL, C1)
-                        with choice of {Cc:sub:code-name}, _, or nothing''')
+                        help = '''replace control characters with
+                        choice of {Cc:sub:code-name}, _, or nothing;
+                        sub is one of C0, del, C1; name is
+                        a short name of the character''')
 
     parser.add_argument('--private',
                         action = 'store_true',
                         help = '''replace private-use characters with
-                        choice of {Co:code}, _, or nothing''')
+                        choice of {Co:priv:code}, _, or nothing''')
 
     parser.add_argument('--nonchar',
                         action = 'store_true',
@@ -71,6 +73,11 @@ def parsearguments():
                         action = 'store_true', dest = 'reservd',
                         help = '''replace reserved codes with choice of
                         {Cn:res:code}, _, or nothing''')
+
+    parser.add_argument('--surrogate',
+                        action = 'store_true', dest = 'surrogt',
+                        help = '''replace surrogates with choice of
+                        {Cs:surr:code}, _, or nothing.''')
 
     parser.add_argument('--replace', metavar = 'type',
                         choices = [
@@ -171,6 +178,7 @@ def fixattr(args, value):
     if args.private: value = ''.join(fixchar(args, value, catPrivate))
     if args.nonchar: value = ''.join(fixchar(args, value, catNonchar))
     if args.reservd: value = ''.join(fixchar(args, value, catReservd))
+    if args.surrogt: value = ''.join(fixchar(args, value, catSurrogt))
     # return '[{}]'.format(value) # testing
     return value
 
@@ -181,6 +189,7 @@ def fixdata(args, value):
     if args.private: value = ''.join(fixchar(args, value, catPrivate)) or '_'
     if args.nonchar: value = ''.join(fixchar(args, value, catNonchar)) or '_'
     if args.reservd: value = ''.join(fixchar(args, value, catReservd)) or '_'
+    if args.surrogt: value = ''.join(fixchar(args, value, catSurrogt)) or '_'
     # return '[{}]'.format(value) # testing
     return value
 
@@ -544,6 +553,18 @@ def catReservd(c):
         '{{Cn:res:{:04x}}}'.format(ord(c))
         if ( unicodedata.category(c) == 'Cn' and
              ord(c) not in NONCHARS)
+        else
+        None
+    )
+
+def catSurrogt(c):
+    '''Return an identifying non-empty string for surrogate code, None for
+    other character.
+
+    '''
+    return (
+        '{{Cs:surr:{:04x}}}'.format(ord(c))
+        if unicodedata.category(c) == 'Cs'
         else
         None
     )
