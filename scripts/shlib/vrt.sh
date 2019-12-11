@@ -9,9 +9,11 @@
 
 
 # Load shlib components for the functions used
-shlib_required_libs="file"
+shlib_required_libs="file msgs"
 . $_shlibdir/loadlibs.sh
 
+
+# Public functions
 
 # vrt_get_token_count [vrt_file ...]
 #
@@ -54,22 +56,90 @@ vrt_get_posattr_names () {
 }
 
 
-# decode_special_chars [--xml-entities]
+# vrt_decode_special_chars [--xml-entities | --no-xml-entities]
 #
-# Decode the special characters encoded in Korp corpora in stdin and
-# write to stdout. If --xml-entities is specified, decode < and > as
-# &lt; and &gt;.
+# Decode the special characters encoded in the Korp corpora of the
+# Language Bank of Finland in stdin and write to stdout. If
+# --no-xml-entities is specified, keep < and > literally (e.g., for
+# database data) instead of encoding them as &lt; and &gt; (for VRT)
+# and also decode &amp;, &quot; and &apos;. --xml-entities is the
+# default.
 #
-# This is faster than using vrt-convert-chars.py --decode.
-decode_special_chars () {
-    local lt gt
-    lt="<"
-    gt=">"
-    if [ "x$1" = "x--xml-entities" ]; then
-	lt="&lt;"
-	gt="&gt;"
+# Despite the name of the function, it can be used to decode CWB data
+# (attribute values) in addition to VRT.
+#
+# With --xml-entities (the default), this is somewhat faster than
+# using vrt-convert-chars.py --decode.
+vrt_decode_special_chars () {
+    local perl_subst
+    perl_subst=$_perl_decode_special_chars_xml
+    if [ "x$1" = "x--no-xml-entities" ]; then
+	perl_subst=$_perl_decode_special_chars_literal
+    elif [ "x$1" != x ] && [ "x$1" != "x--xml-entities" ]; then
+	lib_error "vrt_decode_special_chars: Invalid option or argument: $1"
     fi
-    perl -CSD -pe 's/\x{007f}/ /g; s/\x{0080}/\//g;
-                   s/\x{0081}/'"$lt"'/g; s/\x{0082}/'"$gt"'/g;
-                   s/\x{0083}/|/g'
+    perl -CSD -pe "$perl_subst"
 }
+
+
+# Private functions
+
+# _convert_mapping_to_perl_substs [mapping]
+#
+# Output Perl code to substitute strings based on mapping, which has
+# lines in the format "source target" where source is the Perl regular
+# expression to substitute with target. Spaces and quotation marks
+# should be expressed via character codes. If mapping is not specified
+# as an argument, it is read from stdin.
+_convert_mapping_to_perl_substs () {
+    local get_mapping
+    if [ "x$1" != x ]; then
+	get_mapping="printf %s \"$1\""
+    else
+	get_mapping=cat
+    fi
+    eval "$get_mapping" |
+	perl -pe 's!(\S+)\s+(\S+)!s,$1,$2,g;!g'
+}
+
+
+# Initialize variables
+
+# XML character entities to decode
+xml_char_entity_map="
+    &lt; <
+    &gt; >
+    &amp; &
+    &quot; \x22
+    &apos; \x27
+"
+# Perl substitutions based on the above
+_perl_subst_xml_entities=$(_convert_mapping_to_perl_substs "$xml_char_entity_map")
+
+# Special characters to decode
+special_char_map='
+    \x{007f} \x20
+    \x{0080} /
+    \x{0081} &lt;
+    \x{0082} &gt;
+    \x{0083} |
+'
+
+# Perl substitutions for special characters: output &lt; and &gt; for
+# < and >.
+_perl_decode_special_chars_xml=$(
+    _convert_mapping_to_perl_substs "$special_char_map")
+
+# Perl substitutions for special characters: output < and > literally
+# and also convert other XML character entities to literal characters.
+_perl_decode_special_chars_literal=$(
+    {
+	printf %s "$special_char_map" |
+	    perl -CSD -pe "$_perl_subst_xml_entities"
+	# Exclude from $xml_char_entity_map the lines containing
+	# strings present in $special_char_map
+	echo "$xml_char_entity_map" |
+	    grep -Fv "$(echo $special_char_map | tr ' ' '\n')"
+    } |
+	_convert_mapping_to_perl_substs
+				  )
