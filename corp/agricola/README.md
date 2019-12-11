@@ -1,3 +1,6 @@
+Preparation: Have the original files in a folder 'xml' and organize them in subdirectories:
+abckiria, kasikiria, messu, piina, profeetat, psaltari, rucouskiria, sewsitestamenti, veisut  
+
 To convert all files to VRT, run `./convert-all.sh` 
 
 To convert the contents of a single subdirectory, use `./convert-subcorpus.sh [PATH]`
