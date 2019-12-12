@@ -172,6 +172,7 @@ do
 	    cp hits $file.hits;
 	    hits=`wc -l hits | perl -pe 's/^([0-9]+).*$/\1/;'`;
 	    orig_hits=$hits;
+	    metadatafile=`echo $file | perl -pe 's/\.txt/\.metadata/;'`;
 	    if ! [ "$hits" = "1" -o "$hits" = "0" ]; then
 		# filter out lines that contain the date (original files sometimes have the same name, e.g. "gradu.pdf")
 		date=`echo $file | perl -pe 's/.*_DATE=([0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?).*/\(citation_\)\?date="\1/'`;
@@ -181,6 +182,13 @@ do
 		mv tmp hits;
 		cp hits $file.hits2;
 		hits=`wc -l hits | perl -pe 's/^([0-9]+).*/\1/;'`;
+		if [ "$hits" = "1" ]; then
+		    cp hits $metadatafile;
+		fi
+	    else
+		if [ "$hits" = "1" ]; then
+		    cp hits $metadatafile;
+		fi
 	    fi
 	    echo "ethesis_en/"$dir"/"$subdir"/"$file": "$hits" ("$orig_hits")";
 	    # echo $file | perl -pe 's/\n/\t/;' >> GREP;
@@ -195,7 +203,89 @@ cd ..;
 # 40 cases that must be handled manually:
 # egrep -v ': 1 ' | grep '('
 
-# Then, for each txt file:
+# Combine files in a directory into a single file for faster parsing
+cd ethesis_en;
+for dir in gradut vaitokset;
+do
+    cd $dir;
+    subdirs="bio_ja_ymparistot elainlaaketiede farmasia humanistinen kayttaytymistiede laaketiede maajametsatiede matemaattis oikeustiede teologinen valtiotiede";
+    if [ "$dir" = "gradut" ]; then
+	subdirs="aleksanteri-instituutti "$subdirs;
+    fi
+    for subdir in $subdirs;
+    do
+	cd $subdir;
+	touch ALL;
+	for file in *.txt;
+	do
+	    echo "###C: FILENAME: "$file >> ALL;
+	    echo "" >> ALL;
+	    cat $file >> ALL;
+	    echo "" >> ALL;
+	done
+	cd ..;
+    done
+    cd ..;
+done
+cd ..;
+
+# parse all files
+for file in ethesis_en/*/*/ALL; do echo $file && cat $file | perl -pe 's/^/\n/;' | python3 full_pipeline_stream.py --gpu -1 --conf models_en_ewt/pipelines.yaml parse_plaintext > `echo $file | perl -pe 's/ALL/ALL.conllu/;'`; done
+
+# ALL.conllu -> ALL.CONLLU
+
+# split the parsed files and process conllu files into vrt files
+cd ethesis_en;
+for dir in gradut vaitokset;
+do
+    cd $dir;
+    subdirs="bio_ja_ymparistot elainlaaketiede farmasia humanistinen kayttaytymistiede laaketiede maajametsatiede matemaattis oikeustiede teologinen valtiotiede";
+    if [ "$dir" = "gradut" ]; then
+	subdirs="aleksanteri-instituutti "$subdirs;
+    fi
+    for subdir in $subdirs;
+    do
+	cd $subdir;
+	cat ALL.CONLLU | ./split-conllu-files.pl;
+	for conllufile in *.conllu;
+	do
+	    prevrtfile=`echo $conllufile | perl -pe 's/\.conllu/\.prevrt/;'`;
+	    metadatafile=`echo $conllufile | perl -pe 's/\.conllu/\.metadata/;'`;
+	    vrtfile=`echo $conllufile | perl -pe 's/\.conllu/\.vrt/;'`;
+	    cat $conllufile | perl -pe 's/^# newpar/<paragraph>/; s/^# sent_id = ([0-9]+)/<sentence id="\1">/; s/^# text .*//; s/^# newdoc//;' | ./add-missing-tags.pl > $prevrtfile;
+	    (echo '<!-- #vrt positional-attributes: id word lemma upos xpos feats head deprel deps misc -->'; cat $metadatafile $prevrtfile; echo "</text>") > $vrtfile;
+	    # cp $vrtfile $vrtfile.bak;
+	    $vrttools/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' $vrtfile;
+	    $vrttools/vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos $vrtfile;
+	    # cat file | ./msd-bar-to-space.pl > tmp && mv tmp $vrtfile;
+
+	done
+	cd ..;
+    done
+    cd ..;
+done
+cd ..;
+
+# get metadata file
+#for file in ethesis_en/*/*/*.conllu;
+#do
+#    metadatafile=`echo $file | perl -pe 's/\.conllu/\.metadata/;'`;
+#    hitsfile2=`echo $file | perl -pe 's/\.conllu/\.hits2/;'`;
+#    hitsfile1=`echo $file | perl -pe 's/\.conllu/\.hits/;'`;
+#
+#    if (ls $hitsfile1 > /dev/null 2> /dev/null); then
+#	hits=`wc -l $hitsfile1`;
+#	if [ "$hits" = "1" ]; then
+#	    cp $hitsfile1 $metadatafile;
+#	fi
+#    fi
+#    if (ls $hitsfile2 > /dev/null 2> /dev/null); then
+#	hits=`wc -l $hitsfile2`;
+#	if [ "$hits" = "1" ]; then
+#	    cp $hitsfile2 $metadatafile;
+#	fi
+#    fi
+#done
 
 # cat file.txt | perl -pe 's/^/\n/;' | python3 full_pipeline_stream.py --gpu -1 --conf models_en_ewt/pipelines.yaml parse_plaintext > file.conllu;
 # cat file.conllu | perl -pe 's/^# newpar/<paragraph>/; s/^# sent_id = ([0-9]+)/<sentence id="\1">/; s/^# text .*//; s/^# newdoc//;' | ./add-missing-tags.pl > file.prevrt
