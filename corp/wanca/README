@@ -19,11 +19,31 @@ vrt-keep --names word,spaces,ref
 
 
 
-# Tokenization problem in wanca_2016_nio fixed (09-12-2019):
+# Tokenization problems fixed:
+#
+# wanca_2016_nio (09-12-2019)
+# wanca_2016_yrk (11-12-2019)
+# wanca_2016_vro_multili (12-12-2019)
+# wanca_2016_lud (12-12-2019)
 
 # drop third field as word numbering has to be added again after tokenization is fixed
+
+### nio:
 cut -f1,2 wanca_2016_nio_korp_20190812/vrt/wanca_2016_nio/wanca_2016_nio.vrt
 
+#### yrk:
+cut -f1,2 wanca_2016_yrk_korp_20190812/vrt/wanca_2016_yrk/wanca_2016_yrk.vrt
+
+#### vro_multili:
+cut -f1,2 wanca_2016_vro_multili_korp_20190812/vrt/wanca_2016_vro_multili/wanca_2016_vro_multili.vrt
+
+#### lud:
+cut -f1,2 wanca_2016_lud_korp_20190812/vrt/wanca_2016_lud/wanca_2016_lud.vrt
+
+
+
+### nio:
+#
 # fix cases (нинту ” -> нинту”):
 #
 # нинту   SpaceAfter=No
@@ -37,6 +57,47 @@ cut -f1,2 wanca_2016_nio_korp_20190812/vrt/wanca_2016_nio/wanca_2016_nio.vrt
 #
 perl -pe 's/\n/¤/g;' | perl -pe 's/\tSpaceAfter=No¤(”\t)/\1/g;'
 
+### yrk:
+#
+perl -pe 's/\n/¤/g;' | perl -pe 's/\tSpaceAfter=No¤(’\t)/\1/g;' | perl -pe 's/\tSpaceAfter=No¤(’\t)/\1/g;'
+
+### lud (same as yrk):
+#
+# fix cases (ott ’ -> ott’)
+#
+# ott     SpaceAfter=No
+# ’       SpaceAfter=No
+# ?       SpacesAfter=\n\n
+#
+perl -pe 's/\n/¤/g;' | perl -pe 's/\tSpaceAfter=No¤(’\t)/\1/g;' | perl -pe 's/\tSpaceAfter=No¤(’\t)/\1/g;' | perl -pe 's/¤/\n/g;'
+
+### vro_multili:
+#
+# Escape consecutive quotes:
+#
+./escape-consecutive-quotes.pl
+#
+# Manually escape 7 cases of:
+# '       SpaceAfter=No   1
+# Times   _       2
+# New     _       3
+# Roman   SpaceAfter=No   4
+# '       SpaceAfter=No   5
+#
+# fix cases (A ' -> A')
+#
+# A       SpaceAfter=No
+# '       _
+#
+perl -pe 's/\n/¤/g;' | perl -pe "s/\tSpaceAfter=No¤('\t)/\1/g;" | perl -pe "s/\tSpaceAfter=No¤('\t)/\1/g;" | perl -pe 's/¤/\n/g;'
+#
+# Then, remove quote escape:
+perl -pe "s/^<'/'/;"
+
+
+
+### nio:
+#
 # fix cases (ӈизисибся” дя -> ӈизисибся”дя):
 #
 # ӈизисибся”      SpaceAfter=No
@@ -51,5 +112,14 @@ perl -pe 's/\n/¤/g;' | perl -pe 's/\tSpaceAfter=No¤(”\t)/\1/g;'
 #
 perl -pe 's/¤([^\t]+”)\tSpaceAfter=No¤([^.,;:)])/¤\1\2/g;' | perl -pe 's/¤/\n/g;'
 
+### yrk:
+#
+perl -pe 's/¤([^\t]+’)\tSpaceAfter=No¤([^.,;:)])/¤\1\2/g;' | perl -pe 's/¤/\n/g;'
+
+
+
+#### nio, yrk. vro_multili, lud:
+#
 # add word numbering
+#
 ./add-numbering.pl
