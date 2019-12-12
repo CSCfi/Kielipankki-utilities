@@ -82,6 +82,29 @@ vrt_decode_special_chars () {
 }
 
 
+# set_xml_char_entity_map mapping
+#
+# Use mapping as the XML character entity map. mapping has lines in
+# the format "source target" where source is the Perl regular
+# expression to substitute with target. Spaces and quotation marks
+# should be expressed via character codes.
+set_xml_char_entity_map () {
+    xml_char_entity_map=$1
+    _initialize_perl_substs
+}
+
+# set_special_char_map mapping
+#
+# Use mapping as the encoded special characters map. mapping has lines
+# in the format "source target" where source is the Perl regular
+# expression to substitute with target. Spaces and quotation marks
+# should be expressed via character codes.
+set_special_char_map () {
+    special_char_map=$1
+    _initialize_perl_substs
+}
+
+
 # Private functions
 
 # _convert_mapping_to_perl_substs [mapping]
@@ -102,44 +125,56 @@ _convert_mapping_to_perl_substs () {
 	perl -pe 's!(\S+)\s+(\S+)!s,$1,$2,g;!g'
 }
 
+# _initialize_perl_substs
+#
+# Initialize the variables containing Perl substitutions for XML
+# character entities and encoded special characters:
+# - _perl_subst_xml_entities: substitute XML character entities with
+#    the corresponding literal characters
+# - _perl_decode_special_chars_xml: decode encoded special characters;
+#    output &lt; and &gt; for < and >
+# - _perl_decode_special_chars_literal: decode encoded special
+#    characters; output < and > literally and also convert other XML
+#    character entities to literal characters
+_initialize_perl_substs () {
+    if [ "x$xml_char_entity_map" != x ]; then
+	_perl_subst_xml_entities=$(
+	    _convert_mapping_to_perl_substs "$xml_char_entity_map")
+    fi
+    if [ "x$special_char_map" != x ]; then
+	_perl_decode_special_chars_xml=$(
+	    _convert_mapping_to_perl_substs "$special_char_map")
+	_perl_decode_special_chars_literal=$(
+	    {
+		printf %s "$special_char_map" |
+		    perl -CSD -pe "$_perl_subst_xml_entities"
+		# Exclude from $xml_char_entity_map the lines
+		# containing strings present in $special_char_map
+		echo "$xml_char_entity_map" |
+		    grep -Fv "$(echo $special_char_map | tr ' ' '\n')"
+	    } |
+		_convert_mapping_to_perl_substs
+					  )
+    fi
+}
+
 
 # Initialize variables
 
 # XML character entities to decode
-xml_char_entity_map="
+set_xml_char_entity_map '
     &lt; <
     &gt; >
     &amp; &
     &quot; \x22
     &apos; \x27
-"
-# Perl substitutions based on the above
-_perl_subst_xml_entities=$(_convert_mapping_to_perl_substs "$xml_char_entity_map")
+'
 
 # Special characters to decode
-special_char_map='
+set_special_char_map '
     \x{007f} \x20
     \x{0080} /
     \x{0081} &lt;
     \x{0082} &gt;
     \x{0083} |
 '
-
-# Perl substitutions for special characters: output &lt; and &gt; for
-# < and >.
-_perl_decode_special_chars_xml=$(
-    _convert_mapping_to_perl_substs "$special_char_map")
-
-# Perl substitutions for special characters: output < and > literally
-# and also convert other XML character entities to literal characters.
-_perl_decode_special_chars_literal=$(
-    {
-	printf %s "$special_char_map" |
-	    perl -CSD -pe "$_perl_subst_xml_entities"
-	# Exclude from $xml_char_entity_map the lines containing
-	# strings present in $special_char_map
-	echo "$xml_char_entity_map" |
-	    grep -Fv "$(echo $special_char_map | tr ' ' '\n')"
-    } |
-	_convert_mapping_to_perl_substs
-				  )
