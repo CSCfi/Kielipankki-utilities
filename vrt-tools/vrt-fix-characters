@@ -652,9 +652,15 @@ def fixchar(args, value, cat):
     if args.replace == 'identify':
         yield from (cat(c) or c for c in value)
     elif args.replace == 'lowline':
-        yield from ('_' if cat(c) else c for c in value)
+        yield from ((c if (unicodedata.category(c) == 'Cn' and
+                           ord(c) in NEWCHARS)
+                     else '_')
+                    if cat(c) else c for c in value)
     elif args.replace == 'vanish':
-        yield from ('' if cat(c) else c for c in value)
+        yield from ((c if (unicodedata.category(c) == 'Cn' and
+                           ord(c) in NEWCHARS)
+                     else '')
+                    if cat(c) else c for c in value)
     else:
         raise BadCode('this cannot happen')
 
@@ -780,14 +786,25 @@ NONCHARS = set(chain(range(0xfdd0, 0xfdef + 1),
                       0x0ffffe, 0x0fffff,
                       0x10fffe, 0x10ffff)))
 
+NEWCHARS = {
+    # codes that were reserved but have been assigned a meaning - an
+    # old version of unicodedata in an old version of Python would
+    # misidentify
+    0x052a, # U+052a Lu CYRILLIC CAPITAL LETTER DZZHE (Unicode 7.0)
+    0x20bd, # U+20bd Cs RUBLE SIGN (Unicode 7.0, June 2014)
+}
+
 def catReservd(c):
     '''Return an identifying non-empty string for reserved character, None
-    for other character TODO is this the place to guard against
-    identifying known false negatives like the rubble symbol because
-    unicodedata is not up to date?
+    for other character, and guard against misidentifying known new
+    characters like the ruble sign in case unicodedata is too old
 
     '''
     return (
+        '{{Cn:new:{:04x}}}'.format(ord(c))
+        if ( unicodedata.category(c) == 'Cn' and
+             ord(c) in NEWCHARS)
+        else
         '{{Cn:res:{:04x}}}'.format(ord(c))
         if ( unicodedata.category(c) == 'Cn' and
              ord(c) not in NONCHARS)
