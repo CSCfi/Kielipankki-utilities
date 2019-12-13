@@ -62,8 +62,8 @@ vrt_get_posattr_names () {
 # Language Bank of Finland in stdin and write to stdout. If
 # --no-xml-entities is specified, keep < and > literally (e.g., for
 # database data) instead of encoding them as &lt; and &gt; (for VRT)
-# and also decode &amp;, &quot; and &apos;. --xml-entities is the
-# default.
+# and also decode possible &lt;, &gt;, &amp;, &quot; and &apos in the
+# input;. --xml-entities is the default.
 #
 # Despite the name of the function, it can be used to decode CWB data
 # (attribute values) in addition to VRT.
@@ -148,10 +148,9 @@ _initialize_perl_substs () {
 	    {
 		printf %s "$special_char_map" |
 		    perl -CSD -pe "$_perl_subst_xml_entities"
-		# Exclude from $xml_char_entity_map the lines
-		# containing strings present in $special_char_map
-		echo "$xml_char_entity_map" |
-		    grep -Fv "$(echo $special_char_map | tr ' ' '\n')"
+		# Also convert possible &lt; and &gt; in the input
+		# even if not encoded as special characters
+		echo "$xml_char_entity_map"
 	    } |
 		_convert_mapping_to_perl_substs
 					  )
