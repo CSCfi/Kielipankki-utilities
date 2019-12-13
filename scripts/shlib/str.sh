@@ -72,6 +72,28 @@ count_words () {
     echo "$#"
 }
 
+# suffix_word wordlist word suffix
+#
+# Output wordlist with each occurrence of word (matching as a whole)
+# suffixed with suffix. Words in wordlist are separated by spaces, but
+# word and suffix may also contain spaces, so the function can be used
+# to add words following the given words.
+#
+# Requires Bash because of using ${.../.../...}
+suffix_word () {
+    local wordlist word suffix
+    # Add a space at the beginning and end so that a suffix can be
+    # added to the first and last word
+    wordlist=" $1 "
+    word=$2
+    suffix=$3
+    wordlist=${wordlist//" $word "/" $word$suffix "}
+    # Remove the extra space at the beginning and end
+    wordlist=${wordlist% }
+    wordlist=${wordlist# }
+    safe_echo "$wordlist"
+}
+
 
 # indent [step] < input > output
 #
