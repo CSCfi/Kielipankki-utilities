@@ -172,7 +172,7 @@ process_raw_output () {
 
 preprocess_input () {
     if [ "x$decode_input" != x ]; then
-	$progdir/vrt-convert-chars.py --decode
+	vrt_decode_special_chars --no-xml-entities
     else
 	cat
     fi

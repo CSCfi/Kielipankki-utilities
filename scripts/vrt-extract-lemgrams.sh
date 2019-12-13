@@ -68,7 +68,7 @@ combine_lemgrams () {
     corpname_u=`echo $corpus_id | sed 's/.*/\U&\E/'`
     sort |
     uniq -c |
-    decode_special_chars --xml-entities |
+    vrt_decode_special_chars --no-xml-entities |
     perl -e '
 	$token = $prev_token = "";
 	@freqs = ("0", "0", "0");
