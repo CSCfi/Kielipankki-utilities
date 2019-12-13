@@ -310,7 +310,7 @@ run_extract_rels=$progdir/run-extract-rels.sh
 vrt_add_name_attrs=$progdir/vrt-add-name-attrs.sh
 korp_make_corpus_package=$progdir/korp-make-corpus-package.sh
 korp_mysql_import=$progdir/korp-mysql-import.sh
-cwbdata2vrt=$progdir/cwbdata2vrt.py
+cwbdata2vrt="$progdir/cwbdata2vrt-simple.sh --all-attributes --output-file=-"
 
 cwb_encode=$cwb_bindir/cwb-encode
 cwb_describe_corpus=$cwb_bindir/cwb-describe-corpus
@@ -619,8 +619,7 @@ filter_and_reorder_posattrs () {
 generate_input () {
     existing_token_count=$(get_corpus_token_count $corpus)
     echo_verb "  $existing_token_count tokens in the existing data"
-    run_cmd $cwbdata2vrt --cwbdir $cwb_bindir --registry $cwb_regdir $corpus |
-    decode_special_chars --xml-entities > $vrt_file
+    run_cmd $cwbdata2vrt $corpus > $vrt_file
     # Use echo to convert newlines in corpus_list_attrs to spaces
     input_attrs=$(echo $(corpus_list_attrs $corpus POS))
     # Replace lex with lex/ (lemgram has feature-set values)
