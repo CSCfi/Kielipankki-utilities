@@ -177,7 +177,6 @@ vrtdir=$CORPUS_VRTDIR
 
 cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
 cwbdata2vrt=$progdir/cwbdata2vrt-simple.sh
-vrt_decode_chars="$progdir/vrt-convert-chars.py --decode"
 korp_mysql_export="$progdir/korp-mysql-export.sh"
 korp_make_auth_info=$progdir/korp-make-auth-info.sh
 
