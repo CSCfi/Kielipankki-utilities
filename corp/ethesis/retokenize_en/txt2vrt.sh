@@ -256,7 +256,8 @@ do
 	    metadatafile=`echo $conllufile | perl -pe 's/\.conllu/\.metadata/;'`;
 	    vrtfile=`echo $conllufile | perl -pe 's/\.conllu/\.vrt/;'`;
 	    cat $conllufile | perl -pe 's/^# newpar/<paragraph>/; s/^# sent_id = ([0-9]+)/<sentence id="\1">/; s/^# text .*//; s/^# newdoc//;' | ../../../add-missing-tags.pl | perl -pe 's/^\n$//g;' > $prevrtfile;
-	    (echo '<!-- #vrt positional-attributes: id word lemma upos xpos feats head deprel deps misc -->'; cat $metadatafile $prevrtfile; echo "</text>") > $vrtfile;
+	    # TODO: escape special characters in metadata file
+	    (echo '<!-- #vrt positional-attributes: id word lemma upos xpos feats head deprel deps misc -->'; cat $metadatafile; cat $prevrtfile; echo "</text>") > $vrtfile;
 	    # cp $vrtfile $vrtfile.bak;
 	    $vrttools/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' $vrtfile;
 	    $vrttools/vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos $vrtfile;
