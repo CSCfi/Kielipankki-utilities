@@ -123,3 +123,8 @@ perl -pe 's/¤([^\t]+’)\tSpaceAfter=No¤([^.,;:)])/¤\1\2/g;' | perl -pe 's/¤
 # add word numbering
 #
 ./add-numbering.pl
+
+
+### Problems with multiple sentences inside paragraphs because of abbreviations
+
+perl -pe 's/\n/¤/g;' | perl -pe 's/(<paragraph id="[0-9]+">)¤<sentence (id="[0-9]+")>/\1¤<SENTENCE \2>/g; s/<\/sentence>¤<\/paragraph>/<\/SENTENCE>¤<\/paragraph>/g;' | perl -pe 's/<sentence id="[0-9]+">//g; s/<\/sentence>//g;' | perl -pe 's/¤/\n/g;' | perl -pe 's/<SENTENCE/<sentence/; s/<\/SENTENCE/<\/sentence/;' | perl -pe 's/^\n//;' | cut -f1,2 | perl -pe 's/\n/¤/;' | perl -pe 's/\tSpaceAfter=No¤(\.\t[^¤]+¤[^<])/\1/g;' | perl -pe 's/¤/\n/g;' | cut -f1,2 | ./add-sentence-and-word-numbering.pl
