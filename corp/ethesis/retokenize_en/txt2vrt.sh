@@ -172,7 +172,7 @@ do
 	    cp hits $file.hits;
 	    hits=`wc -l hits | perl -pe 's/^([0-9]+).*$/\1/;'`;
 	    orig_hits=$hits;
-	    metadatafile=`echo $file | perl -pe 's/\.txt/\.metadata/;'`;
+	    metadata_file=`echo $file | perl -pe 's/\.txt/\.metadata/;'`;
 	    if ! [ "$hits" = "1" -o "$hits" = "0" ]; then
 		# filter out lines that contain the date (original files sometimes have the same name, e.g. "gradu.pdf")
 		date=`echo $file | perl -pe 's/.*_DATE=([0-9]{4}(\-[0-9]{2})?(\-[0-9]{2})?).*/\(citation_\)\?date="\1/'`;
@@ -183,11 +183,11 @@ do
 		cp hits $file.hits2;
 		hits=`wc -l hits | perl -pe 's/^([0-9]+).*/\1/;'`;
 		if [ "$hits" = "1" ]; then
-		    cp hits $metadatafile;
+		    cp hits $metadata_file;
 		fi
 	    else
 		if [ "$hits" = "1" ]; then
-		    cp hits $metadatafile;
+		    cp hits $metadata_file;
 		fi
 	    fi
 	    echo "ethesis_en/"$dir"/"$subdir"/"$file": "$hits" ("$orig_hits")";
@@ -204,6 +204,7 @@ cd ..;
 # egrep -v ': 1 ' | grep '('
 
 # Combine files in a directory into a single file for faster parsing
+# At this point, remove also some strange characters
 cd ethesis_en;
 for dir in gradut vaitokset;
 do
@@ -220,7 +221,7 @@ do
 	do
 	    echo "###C: FILENAME: "$file >> ALL;
 	    echo "" >> ALL;
-	    cat $file >> ALL;
+	    cat $file | perl -C -pe 's/\x{ffff}//g; s/\x{feff}//g;' >> ALL;
 	    echo "" >> ALL;
 	done
 	cd ..;
@@ -246,13 +247,15 @@ do
     for subdir in $subdirs;
     do
 	cd $subdir;
+	cp ../../../split-conllu-files.pl .;
 	cat ALL.CONLLU | ./split-conllu-files.pl;
+	rm split-conllu-files.pl;
 	for conllufile in *.conllu;
 	do
 	    prevrtfile=`echo $conllufile | perl -pe 's/\.conllu/\.prevrt/;'`;
 	    metadatafile=`echo $conllufile | perl -pe 's/\.conllu/\.metadata/;'`;
 	    vrtfile=`echo $conllufile | perl -pe 's/\.conllu/\.vrt/;'`;
-	    cat $conllufile | perl -pe 's/^# newpar/<paragraph>/; s/^# sent_id = ([0-9]+)/<sentence id="\1">/; s/^# text .*//; s/^# newdoc//;' | ./add-missing-tags.pl > $prevrtfile;
+	    cat $conllufile | perl -pe 's/^# newpar/<paragraph>/; s/^# sent_id = ([0-9]+)/<sentence id="\1">/; s/^# text .*//; s/^# newdoc//;' | ../../../add-missing-tags.pl | perl -pe 's/^\n$//g;' > $prevrtfile;
 	    (echo '<!-- #vrt positional-attributes: id word lemma upos xpos feats head deprel deps misc -->'; cat $metadatafile $prevrtfile; echo "</text>") > $vrtfile;
 	    # cp $vrtfile $vrtfile.bak;
 	    $vrttools/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' $vrtfile;
