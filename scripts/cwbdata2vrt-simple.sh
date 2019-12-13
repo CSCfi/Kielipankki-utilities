@@ -260,8 +260,7 @@ extract_vrt () {
 	attr_comment="positional-attributes: $pos_attrs"
     fi
     $cwb_bindir/cwb-decode -Cx $corp $attr_opts |
-    # This is faster than calling vrt-convert-chars.py --decode
-    perl -CSD -pe 's/\x{007f}/ /g; s/\x{0080}/\//g; s/\x{0081}/&lt;/g; s/\x{0082}/&gt;/g; s/\x{0083}/|/g' |
+    vrt_decode_special_chars --xml-entities |
     $process_tags |
     eval "$head_filter" |
     $tail_filter |

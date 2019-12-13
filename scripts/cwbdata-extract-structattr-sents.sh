@@ -34,7 +34,7 @@ unique
 
 
 cwb_s_decode=$cwb_bindir/cwb-s-decode
-decode_special_chars="$progdir/vrt-convert-chars.py --decode"
+decode_special_chars="vrt_decode_special_chars --xml-entities"
 
 
 # Process options

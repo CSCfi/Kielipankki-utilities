@@ -150,7 +150,7 @@ get_wordform_lemma () {
 	$cwb_bindir/cwb-decode -Cx $corpus -P word -P lemma |
 	grep -v '^<'
     fi |
-    $progdir/vrt-convert-chars.py --decode
+    vrt_decode_special_chars --xml-entities
 }
 
 get_nertag () {
@@ -161,7 +161,7 @@ get_nertag () {
 	$cwb_bindir/cwb-decode -Cx $corpus -P $attr_nertag |
 	grep -v '^<'
     fi |
-    $progdir/vrt-convert-chars.py --decode
+    vrt_decode_special_chars --xml-entities
 }
 
 sort_names_vrt () {
@@ -199,10 +199,7 @@ get_cwb_corpus_attr () {
     attr=$2
     $cwb_bindir/cwb-decode -Cx $corpus -P $attr |
     grep -v '^<' |
-    # This may need to be changed if vrt-convert-chars.py --decode is
-    # modified to encode at least the ampersand.
-    sed -e 's/&apos;/'"'"'/g; s/&quot;/"/g; s/&amp;/\&/g' |
-    $progdir/vrt-convert-chars.py --decode
+    vrt_decode_special_chars --no-xml-entities
 }
 
 verify_names_vrt_order () {
