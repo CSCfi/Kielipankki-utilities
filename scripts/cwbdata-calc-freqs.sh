@@ -89,6 +89,6 @@ awk 'function print_line (token, freq) {
          freq += $1
      }
      END { print_line(prev, freq) }' |
-decode_special_chars |
+vrt_decode_special_chars --no-xml-entities |
 sort -k2,2nr -s |
 add_rank
