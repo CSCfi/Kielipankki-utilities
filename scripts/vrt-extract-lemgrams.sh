@@ -8,11 +8,11 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 
-usage_header='$progname [options] [input.vrt ...]
+usage_header="$progname [options] [input.vrt ...]
 
 Extract lemgram frequency information from VRT input and output the
 data in a TSV format suitable for importing to the lemgram_index
-table of the Korp MySQL database.'
+table of the Korp MySQL database."
 
 optspecs='
 corpus-id|corpus-name=CORPUS
