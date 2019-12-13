@@ -9,7 +9,7 @@ my $file = FileHandle->new();
 
 foreach my $line ( <STDIN> ) {    
 
-    if ($line =~ /^###C: FILENAME: (.*)/ )
+    if ($line =~ /^# FILENAME: (.*)/ )
     {
 	my $filename = $1;
 	$filename =~ s/\.txt/\.conllu/;
