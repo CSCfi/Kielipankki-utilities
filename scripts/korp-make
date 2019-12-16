@@ -9,10 +9,13 @@
 # - --add-structure-ids: Specify by structure type if existing values
 #   should be overwritten or not.
 # - Allow specifying structure id value format.
-# - Generate a VRT file containing all the added information.
+# - Generate a VRT file containing all the added information: in
+#   particular, add the name attributes to the VRT before
+#   cwb-encoding.
 # - Run stages based on checksums of previous stage's output.
 # - Make multiple (related) corpora in the same package.
 # - Make parallel corpora.
+# - (?) Omit positional attributes with a full stop in their names.
 
 
 progname=`basename $0`
