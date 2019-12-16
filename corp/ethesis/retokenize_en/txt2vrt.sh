@@ -220,8 +220,14 @@ do
 	for file in *.txt;
 	do
 	    echo "###C: FILENAME: "$file >> ALL;
+	    # the parser drops some comment lines out, try duplicating them?
+	    echo "###C: FILENAME: "$file >> ALL;
 	    echo "" >> ALL;
-	    cat $file | perl -C -pe 's/\x{ffff}//g; s/\x{feff}//g;' >> ALL;
+	    # - remove control characters U+0000 - U+001F (excluding TAB U+0009, LF U+000A and CR U+000D) and U+007F - U+009F,
+	    #   Unicode line and paragraph separators (U+2028, U+2029) and soft hyphens (U+00AD) and some other strange characters
+	    # - convert FIGURE SPACE (U+2007) and NARROW NO-BREAK SPACE (U+202F) (and also THIN SPACE, U+2009) to NBSPs
+	    # - convert other spaces into oridinary spaces
+	    cat $file | perl -C -pe 's/[\x{0000}-\x{0008}\x{000B}\x{000C}\x{000E}-\x{001F}\x{00AD}\x{007F}-\x{009F}\x{2028}\x{2029}\x{00AD}\x{2028}\x{FEFF}\x{FFFF}]//g; s/[\x{2007}\x{202F}\x{2009}]/\x{00A0}/g; s/[\x{0085}\x{1680}\x{2000}-\x{200A}\x{202F}\x{205F}\x{3000}]/ /g;' >> ALL;
 	    echo "" >> ALL;
 	done
 	cd ..;
@@ -230,12 +236,13 @@ do
 done
 cd ..;
 
-# parse all files
-for file in ethesis_en/*/*/ALL; do echo $file && cat $file | perl -pe 's/^/\n/;' | python3 full_pipeline_stream.py --gpu -1 --conf models_en_ewt/pipelines.yaml parse_plaintext > `echo $file | perl -pe 's/ALL/ALL.conllu/;'`; done
+exit 0;
 
-# ALL.conllu -> ALL.CONLLU
+# parse all files
+for file in ethesis_en/*/*/ALL; do echo "Parsing "$file && cat $file | perl -pe 's/^/\n/;' | python3 full_pipeline_stream.py --gpu -1 --conf models_en_ewt/pipelines.yaml parse_plaintext > `echo $file | perl -pe 's/ALL/ALL.conllu/;'`; done
 
 # split the parsed files and process conllu files into vrt files
+# TODO: the parser drops some comment lines out?
 cd ethesis_en;
 for dir in gradut vaitokset;
 do
