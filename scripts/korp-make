@@ -90,8 +90,14 @@ input-attrs|input-attributes|input-fields=ATTRS \
     specify the names of the positional attributes in the input,
     excluding the first one ("word" or token; unless
     --no-word-attribute is specified), separated by spaces;
+    if the input VRT contains a positional attributes comment, it
+    overrides this option, unless --override-vrt-attributes is
+    specified;
     attributes named "_" or with names beginning with a "-" are
     skipped in the input
+override-vrt-attrs|override-vrt-attributes
+    use the positional attributes specified with --input-attributes
+    even if the input VRT contains a positional attributes comment
 no-word-attribute no_word_attr
     the input does not contain a "word" attribute; useful in
     particular with --augment-data
@@ -352,9 +358,9 @@ if [ "x$corpus" = "x" ]; then
     shift
 fi
 
-stage2_fn=
-stage2_descr=
 preprocess_posattrs=
+initial_vrt_posattrs=
+
 if [ "x$generate_input" != x ]; then
     if [ "x$force" != x ]; then
 	error "You cannot specify both --force and --generate-input-from-data"
@@ -365,26 +371,6 @@ if [ "x$generate_input" != x ]; then
 else
     stage1_fn=combine_input
     stage1_descr="Combining input files"
-    if word_in _ "$initial_input_attrs" ||
-	    [ "${initial_input_attrs#*-}" != "$initial_input_attrs" ]
-    then
-	stage2_fn=filter_and_reorder_posattrs
-	stage2_descr="Filtering out positional attributes with name \"_\" or starting with \"-\""
-	preprocess_posattrs=filter
-    fi
-    if [ "x$keep_attr_order" = x ] && [ "x$augment_data" = x ] &&
-	   [ "x$no_word_attr" != x ] &&
-	   [ "$(nth_arg 1 $initial_input_attrs)" != "word" ]
-    then
-	stage2_fn=filter_and_reorder_posattrs
-	stage2b_descr='moving "word" to be the first positional attribute'
-	if [ "x$stage2_descr" != x ]; then
-	    stage2_descr="$stage2_descr, and $stage2b_descr"
-	else
-	    stage2_descr=${stage2b_descr^}
-	fi
-	preprocess_posattrs="$preprocess_posattrs reorder"
-    fi
 fi
 
 if [ "x$augment_data" != x ]; then
@@ -448,11 +434,6 @@ if [ "x$vrt_file" = "x" ]; then
 	vrt_file=$vrtdir/$corpus.vrt
     fi
 fi
-
-if [ "x$no_word_attr" = x ]; then
-    initial_input_attrs="word $initial_input_attrs"
-fi
-input_attrs=$initial_input_attrs
 
 verbose_opt=
 if [ "x$verbose" != x ]; then
@@ -535,7 +516,8 @@ run_stages () {
 # Stage functions and their descriptions
 stages=(
     "$stage1_fn" "$stage1_descr"
-    "$stage2_fn" "$stage2_descr"
+    # Stage 2 information set in check_input_attrs if needed
+    "" ""
     copy_struct_attrs "Copying structural attributes"
     rename_struct_attrs "Renaming structural attributes"
     omit_structures "Omitting structures"
@@ -553,6 +535,7 @@ stages=(
     extract_wordpict_rels
     "Extracting word picture relations for the database"
     add_name_attrs "Adding name attributes"
+    adjust_posattrs_comment "Adjusting or adding VRT positional-attributes comment"
     make_corpus_package "Creating corpus package"
     import_database "Importing data to the MySQL database"
 )
@@ -573,6 +556,7 @@ combine_input () {
 	    error "The number of tokens in the input ($input_token_count) differs from that in the existing corpus data ($existing_token_count)"
 	fi
     fi
+    check_input_attrs
 }
 
 test_skip_combine_input () {
@@ -582,6 +566,55 @@ test_skip_combine_input () {
     if [ -r $vrt_file ] && [ -s $vrt_file ]; then
 	echo "using existing VRT file $vrt_file"
     fi
+}
+
+check_input_attrs () {
+    local stage2_fn=
+    local stage2_descr=
+    initial_vrt_posattrs=$(vrt_get_posattr_names $vrt_file)
+    if [ "x$initial_vrt_posattrs" != x ]; then
+	if [ "x$override_vrt_attrs" = x ]; then
+	    no_word_attr=1
+	    initial_input_attrs=$initial_vrt_posattrs
+	    # The lex attribute in the positional attributes comment
+	    # might lack the final slash, but lex (lemgram) is always
+	    # a feature-set attribute, so add it if needed.
+	    initial_input_attrs=$(suffix_word "$initial_input_attrs" lex /)
+	    verbose safe_echo "Using positional attributes named in the input VRT: $initial_input_attrs"
+	elif [ "$initial_vrt_posattrs" != "$initial_input_attrs" ] &&
+		 [ "$initial_vrt_posattrs" != "word $initial_input_attrs" ];
+	then
+	    warn "Overriding positional attributes \"$initial_vrt_posattrs\" in the input VRT with \"$initial_input_attrs\""
+	fi
+    else
+	verbose safe_echo "No positional attributes named in the input VRT; using those listed with --input-attributes: $initial_input_attrs"
+    fi
+    if word_in _ "$initial_input_attrs" ||
+	    [ "${initial_input_attrs#*-}" != "$initial_input_attrs" ]
+    then
+	stage2_fn=filter_and_reorder_posattrs
+	stage2_descr="Filtering out positional attributes with name \"_\" or starting with \"-\""
+	preprocess_posattrs=filter
+    fi
+    if [ "x$keep_attr_order" = x ] && [ "x$augment_data" = x ] &&
+	   [ "x$no_word_attr" != x ] &&
+	   [ "$(nth_arg 1 $initial_input_attrs)" != "word" ]
+    then
+	stage2_fn=filter_and_reorder_posattrs
+	stage2b_descr='moving "word" to be the first positional attribute'
+	if [ "x$stage2_descr" != x ]; then
+	    stage2_descr="$stage2_descr, and $stage2b_descr"
+	else
+	    stage2_descr=${stage2b_descr^}
+	fi
+	preprocess_posattrs="$preprocess_posattrs reorder"
+    fi
+    stages[2]=$stage2_fn
+    stages[3]=$stage2_descr
+    if [ "x$no_word_attr" = x ]; then
+	initial_input_attrs="word $initial_input_attrs"
+    fi
+    input_attrs=$initial_input_attrs
 }
 
 filter_and_reorder_posattrs () {
@@ -662,6 +695,7 @@ add_lemmas_without_boundaries () {
 	--compound-boundary-marker="$compound_boundary_marker" \
 	--compound-boundary-can-replace-hyphen
     input_attrs=$(suffix_word "$input_attrs" lemma " lemmacomp")
+    # process_vrt vrt_replace_posattr_names "$input_attrs"
 }
 
 test_skip_add_lemmas_without_boundaries () {
@@ -685,6 +719,7 @@ add_lemgrams () {
 	exit_on_error false
     fi
     input_attrs="$input_attrs lex/"
+    # process_vrt vrt_replace_posattr_names "$input_attrs"
 }
 
 test_skip_add_lemgrams () {
@@ -1001,6 +1036,15 @@ test_skip_add_name_attrs () {
     elif corpus_has_attr $corpus s ne_ex; then
 	echo "already present"
     fi
+}
+
+adjust_posattrs_comment () {
+    process_vrt vrt_replace_posattr_names "$input_attrs"
+}
+
+test_skip_adjust_posattrs_comment () {
+    [ "x$input_attrs" = "x$initial_vrt_posattrs" ] &&
+	echo "positional attributes not changed"
 }
 
 make_corpus_package () {
