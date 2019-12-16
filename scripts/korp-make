@@ -86,10 +86,11 @@ lbr-id=URN { add_auth_opts lbr_id $optname $1 }
 @ Input attributes
 
 input-attrs|input-attributes|input-fields=ATTRS \
-  "ref lemma pos msd dephead deprel nertag" initial_input_attrs
+  "word ref lemma pos msd dephead deprel nertag" initial_input_attrs
     specify the names of the positional attributes in the input,
-    excluding the first one ("word" or token; unless
-    --no-word-attribute is specified), separated by spaces;
+    separated by spaces; if "word" (token) is not included in the
+    list, add it as the first attribute, unless --no-word-attribute is
+    specified;
     if the input VRT contains a positional attributes comment, it
     overrides this option, unless --override-vrt-attributes is
     specified;
@@ -99,12 +100,11 @@ override-vrt-attrs|override-vrt-attributes
     use the positional attributes specified with --input-attributes
     even if the input VRT contains a positional attributes comment
 no-word-attribute no_word_attr
-    the input does not contain a "word" attribute; useful in
-    particular with --augment-data
+    the input does not contain a "word" attribute; implied by
+    --augment-data
 keep-attr-order|keep-attribute-order
     do not reorder positional attributes even if "word" is not the
-    first attribute; relevant only with --no-word-attribute and
-    implied by --augment-data
+    first attribute; implied by --augment-data
 augment-data|augment-existing-data
     augment existing corpus data with the data in the input, for
     example, to add parse annotations to a corpus already encoded; if
@@ -571,10 +571,10 @@ test_skip_combine_input () {
 check_input_attrs () {
     local stage2_fn=
     local stage2_descr=
+    local attrnum_word=
     initial_vrt_posattrs=$(vrt_get_posattr_names $vrt_file)
     if [ "x$initial_vrt_posattrs" != x ]; then
 	if [ "x$override_vrt_attrs" = x ]; then
-	    no_word_attr=1
 	    initial_input_attrs=$initial_vrt_posattrs
 	    # The lex attribute in the positional attributes comment
 	    # might lack the final slash, but lex (lemgram) is always
@@ -589,6 +589,10 @@ check_input_attrs () {
     else
 	verbose safe_echo "No positional attributes named in the input VRT; using those listed with --input-attributes: $initial_input_attrs"
     fi
+    if [ "x$augment_data" != x ]; then
+	keep_attr_order=1
+	no_word_attr=1
+    fi
     if word_in _ "$initial_input_attrs" ||
 	    [ "${initial_input_attrs#*-}" != "$initial_input_attrs" ]
     then
@@ -596,9 +600,9 @@ check_input_attrs () {
 	stage2_descr="Filtering out positional attributes with name \"_\" or starting with \"-\""
 	preprocess_posattrs=filter
     fi
-    if [ "x$keep_attr_order" = x ] && [ "x$augment_data" = x ] &&
-	   [ "x$no_word_attr" != x ] &&
-	   [ "$(nth_arg 1 $initial_input_attrs)" != "word" ]
+    attrnum_word="$(word_index word $initial_input_attrs)"
+    if [ "x$keep_attr_order" = x ] &&
+	   [ "$attrnum_word" != "-1" ] && [ "$attrnum_word" != "1" ]
     then
 	stage2_fn=filter_and_reorder_posattrs
 	stage2b_descr='moving "word" to be the first positional attribute'
@@ -611,7 +615,7 @@ check_input_attrs () {
     fi
     stages[2]=$stage2_fn
     stages[3]=$stage2_descr
-    if [ "x$no_word_attr" = x ]; then
+    if [ "x$no_word_attr" = x ] && [ "$attrnum_word" = "-1" ]; then
 	initial_input_attrs="word $initial_input_attrs"
     fi
     input_attrs=$initial_input_attrs
