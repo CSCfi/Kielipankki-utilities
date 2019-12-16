@@ -623,9 +623,7 @@ generate_input () {
     # Use echo to convert newlines in corpus_list_attrs to spaces
     input_attrs=$(echo $(corpus_list_attrs $corpus POS))
     # Replace lex with lex/ (lemgram has feature-set values)
-    input_attrs="$input_attrs "
-    input_attrs=${input_attrs/ lex / lex/ }
-    input_attrs=${input_attrs% }
+    input_attrs=$(suffix_word "$input_attrs" lex /)
     initial_input_attrs=$input_attrs
 }
 
@@ -659,10 +657,10 @@ test_skip_omit_structures () {
 
 add_lemmas_without_boundaries () {
     process_vrt $vrt_fix_attrs --input-fields "$input_attrs" \
-	--output-fields "${input_attrs/lemma /lemma:noboundaries lemma }" \
+	--output-fields "$(suffix_word "$input_attrs" lemma ":noboundaries lemma")" \
 	--compound-boundary-marker="$compound_boundary_marker" \
 	--compound-boundary-can-replace-hyphen
-    input_attrs=${input_attrs/lemma /lemma lemmacomp }
+    input_attrs=$(suffix_word "$input_attrs" lemma " lemmacomp")
 }
 
 test_skip_add_lemmas_without_boundaries () {
