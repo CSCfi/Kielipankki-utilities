@@ -606,6 +606,7 @@ filter_and_reorder_posattrs () {
 	fi
 	attrnum=$(($attrnum + 1))
     done
+    attrs_names=${attrs_names# }
     attrs_nums=${attrs_nums#,}
     # set +vx
     process_vrt awk -F"$tab" '
