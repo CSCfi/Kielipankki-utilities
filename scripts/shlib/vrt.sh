@@ -55,6 +55,20 @@ vrt_get_posattr_names () {
             }'
 }
 
+# vrt_replace_posattr_names posattr_names [vrt_file]
+#
+# Output the input VRT with the positional attributes comment replaced
+# with a comment listing posattr_names as the attribute names. The
+# validity of posattr_names is not checked in any way. If vrt_file is
+# not specified, read from stdin. If the input VRT has no positional
+# attributes comment, add one at the beginning.
+vrt_replace_posattr_names () {
+    safe_echo "<!-- #vrt positional-attributes: $1 -->"
+    shift
+    comprcat "$@" |
+	grep -vE '^<!--\s*(#vrt\spositional-attributes|Positional attributes):'
+}
+
 
 # vrt_decode_special_chars [--xml-entities | --no-xml-entities]
 #
