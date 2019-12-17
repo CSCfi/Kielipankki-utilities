@@ -8,13 +8,6 @@
 
 # "You do not have the credentials to access the restricted item hdl:10138/165906. The selected item is withdrawn and is no longer available."
 
-# language not marked:
-# ls E-thesis_gradut_TXT_2016-11-22/*/*.txt | grep -v 'Hot Folder Log' | grep -v 'logfile\.txt' | grep -v 'read\.me' | grep -v 'category\.txt' | egrep -v '\(2\)' | egrep -v '\/(en_|eng_|fi_|fin_|sv_|swe_|ru_|de_|es_|fr_|it_|pol_)' | wc -l
-# or E-thesis_vaitokset_TXT_2016-10-17/*/*.txt
-
-# guess language:
-# cat document.txt | python3 -c 'from lang_recognizer import recognize; import sys; print(recognize(sys.stdin.read()));'
-
 if !(ls lang_recognizer.py > /dev/null 2> /dev/null); then
     echo "lang_recognizer.py not found in the current directory";
     exit 1;
@@ -219,9 +212,12 @@ do
 	touch ALL;
 	for file in *.txt;
 	do
-	    echo "###C: FILENAME: "$file >> ALL;
-	    # the parser drops some comment lines out, try duplicating them?
-	    echo "###C: FILENAME: "$file >> ALL;
+	    # the parser drops some comment lines out, try multiple lines?
+	    echo "" >> ALL;
+	    for n in 1 2 3 4 5;
+	    do
+		echo "###C: FILENAME: "$file >> ALL;
+	    done
 	    echo "" >> ALL;
 	    # - remove control characters U+0000 - U+001F (excluding TAB U+0009, LF U+000A and CR U+000D) and U+007F - U+009F,
 	    #   Unicode line and paragraph separators (U+2028, U+2029) and soft hyphens (U+00AD) and some other strange characters
