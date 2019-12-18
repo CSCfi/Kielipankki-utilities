@@ -240,7 +240,7 @@ done
 cd ..;
 
 # parse all files
-for file in ethesis_en/*/*/ALL*.TXT; do echo "Parsing "$file && cat $file | perl -pe 's/^/\n/;' | python3 full_pipeline_stream.py --gpu -1 --conf models_en_ewt/pipelines.yaml parse_plaintext > `echo $file | perl -pe 's/ALL([0-9]+)\.TXT/ALL\1.CONLLU/;'`; done
+for file in ethesis_en/*/*/ALL*.TXT; do echo "Parsing "$file && cat $file | perl -pe 's/^/\n/;' | python3 full_pipeline_stream.py --gpu -1 --conf models_en_ewt/pipelines.yaml parse_plaintext > `echo $file | perl -pe 's/(ALL[0-9]+)\.TXT/ALL\1.CONLLU/;'`; done
 
 # split the parsed files and process conllu files into vrt files
 # TODO: the parser drops some comment lines out?
