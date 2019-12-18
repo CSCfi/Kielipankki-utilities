@@ -196,7 +196,7 @@ cd ..;
 # 40 cases that must be handled manually:
 # egrep -v ': 1 ' | grep '('
 
-# Combine files in a directory into a single file for faster parsing
+# Combine hundred files in a directory into a single directory for faster parsing
 # At this point, remove also some strange characters
 cd ethesis_en;
 for dir in gradut vaitokset;
@@ -209,22 +209,29 @@ do
     for subdir in $subdirs;
     do
 	cd $subdir;
-	touch ALL;
+	nall="0"; # ALL1, ALL2, ...
+	nfiles="0";
 	for file in *.txt;
 	do
+	    nfiles=$((nfiles + 1));
+	    if [ "$((nfiles % 100))" = "1" ]; then
+		nall=$((nall + 1));
+		touch "ALL"$nall.TXT;
+		echo "Creating file "$dir"/"$subdir"/ALL"$nall.TXT"...";
+	    fi
 	    # the parser drops some comment lines out, try multiple lines?
-	    echo "" >> ALL;
+	    echo "" >> "ALL"$nall.TXT;
 	    for n in 1 2 3 4 5;
 	    do
-		echo "###C: FILENAME: "$file >> ALL;
+		echo "###C: FILENAME: "$file >> "ALL"$nall.TXT;
 	    done
-	    echo "" >> ALL;
+	    echo "" >> "ALL"$nall.TXT;
 	    # - remove control characters U+0000 - U+001F (excluding TAB U+0009, LF U+000A and CR U+000D) and U+007F - U+009F,
 	    #   Unicode line and paragraph separators (U+2028, U+2029) and soft hyphens (U+00AD) and some other strange characters
 	    # - convert FIGURE SPACE (U+2007) and NARROW NO-BREAK SPACE (U+202F) (and also THIN SPACE, U+2009) to NBSPs
 	    # - convert other spaces into oridinary spaces
-	    cat $file | perl -C -pe 's/[\x{0000}-\x{0008}\x{000B}\x{000C}\x{000E}-\x{001F}\x{00AD}\x{007F}-\x{009F}\x{2028}\x{2029}\x{00AD}\x{2028}\x{FEFF}\x{FFFF}]//g; s/[\x{2007}\x{202F}\x{2009}]/\x{00A0}/g; s/[\x{0085}\x{1680}\x{2000}-\x{200A}\x{202F}\x{205F}\x{3000}]/ /g;' >> ALL;
-	    echo "" >> ALL;
+	    cat $file | perl -C -pe 's/[\x{0000}-\x{0008}\x{000B}\x{000C}\x{000E}-\x{001F}\x{00AD}\x{007F}-\x{009F}\x{2028}\x{2029}\x{00AD}\x{2028}\x{FEFF}\x{FFFF}]//g; s/[\x{2007}\x{202F}\x{2009}]/\x{00A0}/g; s/[\x{0085}\x{1680}\x{2000}-\x{200A}\x{202F}\x{205F}\x{3000}]/ /g;' >> "ALL"$nall.TXT;
+	    echo "" >> "ALL"$nall.TXT;
 	done
 	cd ..;
     done
@@ -232,10 +239,8 @@ do
 done
 cd ..;
 
-exit 0;
-
 # parse all files
-for file in ethesis_en/*/*/ALL; do echo "Parsing "$file && cat $file | perl -pe 's/^/\n/;' | python3 full_pipeline_stream.py --gpu -1 --conf models_en_ewt/pipelines.yaml parse_plaintext > `echo $file | perl -pe 's/ALL/ALL.conllu/;'`; done
+for file in ethesis_en/*/*/ALL*.TXT; do echo "Parsing "$file && cat $file | perl -pe 's/^/\n/;' | python3 full_pipeline_stream.py --gpu -1 --conf models_en_ewt/pipelines.yaml parse_plaintext > `echo $file | perl -pe 's/ALL([0-9]+)\.TXT/ALL\1.CONLLU/;'`; done
 
 # split the parsed files and process conllu files into vrt files
 # TODO: the parser drops some comment lines out?
@@ -251,7 +256,10 @@ do
     do
 	cd $subdir;
 	cp ../../../split-conllu-files.pl .;
-	cat ALL.CONLLU | ./split-conllu-files.pl;
+	for file in ALL*.CONLLU;
+	do
+	    cat $file | ./split-conllu-files.pl;
+	done
 	rm split-conllu-files.pl;
 	for conllufile in *.conllu;
 	do
