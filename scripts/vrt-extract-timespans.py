@@ -28,12 +28,20 @@ def get_current_century():
 class TimespanExtractor(object):
 
     DEFAULT_PATTERN_PARTS = {
-        'Y': ur'(?P<Y>(?:0?[0-9]?[0-9]?[0-9]|(?:1[0-9]|20)[0-9][0-9]))',
+        # The four-digit year subpattern needs to precede the shorter pattern
+        # in the alternatives, as the subpatterns are matched from left to
+        # right and if one matches, the following ones are not tested even if
+        # they would produce a longer match for the whole regular expression,
+        # so having them the other way round would match a three-digit prefix
+        # of a four-digit year.
+        'Y': ur'(?P<Y>(?:(?:1[0-9]|20)[0-9][0-9]|0?[0-9]?[0-9]?[0-9]))',
         # FIXME: Can we support simultaneously two-digit years and
         # years before 1000?
         'Y2': ur'(?P<Y>(?:[01][0-9]|20)?[0-9][0-9])',
-        'M': ur'(?P<M>0?[1-9]|1[0-2])',
-        'D': ur'(?P<D>0?[1-9]|[12][0-9]|3[01])'
+        # Also here, the longer alternative is before the shorter one, even
+        # though it might not make a difference.
+        'M': ur'(?P<M>1[0-2]|0?[1-9])',
+        'D': ur'(?P<D>[12][0-9]|3[01]|0?[1-9])'
         }
     PART_SEP_PATTERN = ur'[-./]'
     RANGE_SEP_PATTERN = ur'\s*[-/–]\s*'
