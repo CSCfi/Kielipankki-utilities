@@ -84,11 +84,28 @@ def read_posmap(fname, opts):
     pos_types = {(False, True): 'source',
                  (True, False): 'target',
                  (False, False): 'source and target'}
+    # Supported file-specific options and their default values
+    # The options may be set on a line beginning with "#:options: ".
+    fileopts = {
+        # Source parts of speech may contain spaces, so they do not split the
+        # source field into multiple parts of speech mapped to the same target
+        # PoS.
+        'source-spaces': False,
+    }
     with codecs.open(fname, 'r', encoding='utf-8') as f:
         linenum = 0
         for line in f:
             linenum += 1
-            if line.strip() == '' or line.startswith('#'):
+            if line.startswith('#:options:'):
+                fileopt_list = line.split()[1:]
+                for fileopt in fileopt_list:
+                    if fileopt not in fileopts:
+                        warn_posmap('unrecognized file option: {fileopt}',
+                                    locals())
+                    else:
+                        fileopts[fileopt] = True
+                continue
+            elif line.strip() == '' or line.startswith('#'):
                 continue
             fields = line[:-1].split('\t')
             fieldcount = len(fields)
@@ -107,7 +124,8 @@ def read_posmap(fname, opts):
                 continue
             if opts.inverse_pos_map:
                 (src_poses, trg_pos) = (trg_pos, src_poses)
-            src_pos_list = src_poses.split()
+            src_pos_list = ([src_poses] if fileopts['source-spaces']
+                            else src_poses.split())
             for src_pos in src_pos_list:
                 if src_pos in posmap:
                     if posmap[src_pos] != trg_pos:
