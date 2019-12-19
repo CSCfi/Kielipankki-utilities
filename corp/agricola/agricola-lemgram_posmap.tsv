@@ -1,0 +1,133 @@
+?	xx
+a?	jj
+a	jj
+abbr?	an
+abbr	an
+adp	pp
+adp:post	pp
+adp:post_acc	pp
+adp:post_ela	pp
+adp:post_gen	pp
+adp:post_gen adv	pp
+adp:post_gen fp	pp
+adp:post_gen ill	pp
+adp:post_gen part	pp
+adp:post_gen_part	pp
+adp:post_gen post_acc	pp
+adp:post_gen post_part	pp
+adp:post_ill	pp
+adp:post_lat	pp
+adp:post_nom	pp
+adp:post_nom lp	pp
+adp:post_other	pp
+adp:post_part	pp
+adp:post_part_gen	pp
+adp:post_px	pp
+adp:post_px3	pp
+adp:pre	pp
+adp:pre_abe	pp
+adp:pre_abe part	pp
+adp:pre_abe_part	pp
+adp:pre_abe pre_part	pp
+adp:pre_abl	pp
+adp:pre_ela	pp
+adp:pre_gen	pp
+adp:pre_gen adv	pp
+adp:pre_nom	pp
+adp:pre_part	pp
+adp:pre_part abe	pp
+adp:pre_part_abe	pp
+adp:pre_part pre_abe	pp
+adp:pre_part pre_gen	pp
+adp:px	pp
+adv?	ab
+adv	ab
+adv fp	ab
+adv:neg	ab
+adv:neg:pro	ab
+adv n:pro:rel	ab
+adv:pro	ab
+adv:pro:dem	ab
+adv:pro:indef	ab
+adv:pro:int	ab
+adv:pro:rel	ab
+adv:px	ab
+adv tp	ab
+adv_v:neg	ab
+adv_v:neg_pro	ab
+a fp	jj
+a:ord	jj
+a:pro	jj
+a:pro:int	jj
+a:pro:ord	jj
+a:prop:topo fp	jj
+a tp	jj
+a:tp	jj
+bn	xx
+c	kn
+c_negv	kn
+c_negv pro	kn
+c_negv pro fp	kn
+c:pro	kn
+c_v:neg_cp	kn
+delimiter	xx
+fig	rg
+forgn	xx
+intj	in
+n?	nn
+n	nn
+n:forgn	nn
+n fp	nn
+n:num:card	rg
+n:pro	pn
+n:pro:dem	pn
+n:pro:dem fp	pn
+n:pro:int	pn
+n:prop?	pm
+n:prop	pm
+n:pro:per	pn
+n:pro:per:ref	pn
+n:prop:pname?	pm
+n:prop:pname	pm
+n:prop:pname fp	pm
+n:prop:pname tp	pm
+n:prop:topo?	pm
+n:prop:topo	pm
+n:prop:topo fp	pm
+n:prop:topo tp	pm
+n:pro:q	pn
+n:pro:q tp	pn
+n:pro:ref	pn
+n:pro:rel	pn
+n:pro:res	pn
+n tp	nn
+q	pn
+q:card	rg
+q:card fp	rg
+q:card:pro	rg
+q:card tp	rg
+q:comp	pn
+q:comp:pro	pn
+q:indef	pn
+q:indef:pro	pn
+q:neg	pn
+q:neg:pro	pn
+q:ord	rg
+q:pro	pn
+q:pro:indef	pn
+q:pro:res	pn
+q:qt	pn
+q:qt fp	pn
+q:qt n	pn
+q:qt:pro	pn
+q:total	pn
+q:total fp	pn
+q:total:pro	pn
+v	vv
+v fp	vv
+v n	vv
+v:neg	vv
+v:neg_cp	vv
+v:neg n:pro:per	vv
+v tp	vv
+ww	xx
