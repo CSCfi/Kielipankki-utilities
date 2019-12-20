@@ -15,3 +15,7 @@ To convert a single file to VRT, use
     perl bin/la_murre-add-clause-elems.pl --remove-cl
     
 The script `bin/la_murre-add-clause-elems.pl` splits nested `<cl>...</cl>` elements into consecutive `<clause>...</clause>` elements. The result is written to standard output.
+
+korp-import.sh runs korp-make for all sub directories.
+
+korp-import_2019_12_16.sh creates a test version for the fixed data. Here also the lemgrams' mapping is corrected with --lemgram-posmap
