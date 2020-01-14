@@ -196,7 +196,7 @@ cd ..;
 # 40 cases that must be handled manually:
 # egrep -v ': 1 ' | grep '('
 
-# Combine hundred files in a directory into a single directory for faster parsing
+# Combine 50 files in a directory into a single directory for faster parsing
 # At this point, remove also some strange characters
 cd ethesis_en;
 for dir in gradut vaitokset;
@@ -214,17 +214,18 @@ do
 	for file in *.txt;
 	do
 	    nfiles=$((nfiles + 1));
-	    if [ "$((nfiles % 100))" = "1" ]; then
+	    if [ "$((nfiles % 50))" = "1" ]; then
 		nall=$((nall + 1));
 		touch "ALL"$nall.TXT;
 		echo "Creating file "$dir"/"$subdir"/ALL"$nall.TXT"...";
 	    fi
 	    # the parser drops some comment lines out, try multiple lines?
 	    echo "" >> "ALL"$nall.TXT;
-	    for n in 1 2 3 4 5;
-	    do
-		echo "###C: FILENAME: "$file >> "ALL"$nall.TXT;
-	    done
+	    #for n in 1 2 3 4 5;
+	    #do
+	    #	echo "###C: FILENAME: "$file >> "ALL"$nall.TXT;
+	    #done
+	    echo "FILENAME_"$file >> "ALL"$nall.TXT;
 	    echo "" >> "ALL"$nall.TXT;
 	    # - remove control characters U+0000 - U+001F (excluding TAB U+0009, LF U+000A and CR U+000D) and U+007F - U+009F,
 	    #   Unicode line and paragraph separators (U+2028, U+2029) and soft hyphens (U+00AD) and some other strange characters
@@ -239,8 +240,10 @@ do
 done
 cd ..;
 
+exit 0;
+
 # parse all files
-for file in ethesis_en/*/*/ALL*.TXT; do echo "Parsing "$file && cat $file | perl -pe 's/^/\n/;' | python3 full_pipeline_stream.py --gpu -1 --conf models_en_ewt/pipelines.yaml parse_plaintext > `echo $file | perl -pe 's/(ALL[0-9]+)\.TXT/ALL\1.CONLLU/;'`; done
+for file in ethesis_en/*/*/ALL*.TXT; do echo "Parsing "$file && cat $file | perl -pe 's/^/\n/;' | python3 full_pipeline_stream.py --gpu -1 --conf models_en_ewt/pipelines.yaml parse_plaintext 2> /dev/null > `echo $file | perl -pe 's/(ALL[0-9]+)\.TXT/\1.CONLLU/;'`; done
 
 # split the parsed files and process conllu files into vrt files
 # TODO: the parser drops some comment lines out?
@@ -258,7 +261,9 @@ do
 	cp ../../../split-conllu-files.pl .;
 	for file in ALL*.CONLLU;
 	do
-	    cat $file | ./split-conllu-files.pl;
+	    # change filename info ("FILENAME_", newpar, sent_id and text comment lines) into "# FILENAME: ..."
+	    # todo: renumber the sentences
+	    cat $file | perl -pe 's/\n/¤/g;' | perl -pe 's/# newpar¤# sent_id = [^¤]+¤# text = FILENAME_[^¤]+¤[^\t]+\tFILENAME_([^\t]+)\t[^¤]+¤/# FILENAME: \1¤/g;' | perl -pe 's/¤/\n/g;' | ./split-conllu-files.pl;
 	done
 	rm split-conllu-files.pl;
 	for conllufile in *.conllu;
