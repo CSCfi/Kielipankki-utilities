@@ -263,7 +263,9 @@ do
 	do
 	    # change filename info ("FILENAME_", newpar, sent_id and text comment lines) into "# FILENAME: ..."
 	    # todo: renumber the sentences
-	    cat $file | perl -pe 's/\n/¤/g;' | perl -pe 's/# newpar¤# sent_id = [^¤]+¤# text = FILENAME_[^¤]+¤[^\t]+\tFILENAME_([^\t]+)\t[^¤]+¤/# FILENAME: \1¤/g;' | perl -pe 's/¤/\n/g;' | ./split-conllu-files.pl;
+	    # first two perl scripts combine FILENAMES that have been tokenized as two words
+	    cat $file | perl -pe 's/FILENAME\t.*\n/FILENAME/;' | perl -pe 's/\tFILENAME2\t/\tFILENAME/;' | perl -pe 's/\n/¤/g;' | \
+		perl -pe 's/# newpar¤# sent_id = [^¤]+¤# text = FILENAME_[^¤]+¤[^\t]+\tFILENAME_([^\t]+)\t[^¤]+¤/# FILENAME: \1¤/g;' | perl -pe 's/¤/\n/g;' | ./split-conllu-files.pl;
 	done
 	rm split-conllu-files.pl;
 	for conllufile in *.conllu;
@@ -272,7 +274,8 @@ do
 	    metadatafile=`echo $conllufile | perl -pe 's/\.conllu/\.metadata/;'`;
 	    vrtfile=`echo $conllufile | perl -pe 's/\.conllu/\.vrt/;'`;
 	    cat $conllufile | perl -pe 's/^# newpar/<paragraph>/; s/^# sent_id = ([0-9]+)/<sentence id="\1">/; s/^# text .*//; s/^# newdoc//;' | ../../../add-missing-tags.pl | perl -pe 's/^\n$//g;' > $prevrtfile;
-	    (echo '<!-- #vrt positional-attributes: id word lemma upos xpos feats head deprel deps misc -->'; cat $metadatafile | perl -pe 's/\&/&amp;/g;' | perl -pe "s/'/&apos;/g;"; cat $prevrtfile; echo "</text>") > $vrtfile;
+	    (echo '<!-- #vrt positional-attributes: id word lemma upos xpos feats head deprel deps misc -->'; (cat $metadatafile || echo "<text>") | \
+														  perl -pe 's/\&/&amp;/g;' | perl -pe "s/'/&apos;/g;"; cat $prevrtfile; echo "</text>") > $vrtfile;
 	    # cp $vrtfile $vrtfile.bak;
 	    $vrttools/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' $vrtfile;
 	    $vrttools/vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos $vrtfile;
