@@ -95,6 +95,11 @@ def sentence(sent):
     sentence_atts = { 'id' : sentence_id, }
     sentence_id += 1
 
+    # Escape &, < and >
+    string = string.replace('&','&amp;')
+    string = string.replace('<','&lt;')
+    string = string.replace('>','&gt;')
+
     return enclose(string, 'sentence', sentence_atts)
 
 """
