@@ -2,7 +2,15 @@
 
 # copy files from IDA packages
 
-if [ "$1" = "--verbose" ]; then echo "Copying files from IDA packages"; fi
+for dir in gradut vaitokset;
+do
+    if (ls $dir > /dev/null 2> /dev/null); then
+	echo "Directory "$dir" exists";
+	exit 1;
+    fi
+done
+
+if [ "$1" = "--verbose" -o "$2" = "--verbose" ]; then echo "Copying files from IDA packages"; fi
 
 if !(ls gradut/ > /dev/null 2> /dev/null); then
     mkdir gradut ;

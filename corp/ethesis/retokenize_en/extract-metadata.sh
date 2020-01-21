@@ -11,7 +11,7 @@ do
     fi
     for subdir in $subdirs;
     do
-	if [ "$1" = "--verbose" ]; then echo "Grepping metadata for "$dir"/"$subdir; fi
+	if [ "$1" = "--verbose" -o "$2" = "--verbose" ]; then echo "Grepping metadata for "$dir"/"$subdir; fi
 	cd $subdir;
 	# touch GREP;
 	metadatafile="metadata_txt";
@@ -42,7 +42,7 @@ do
 		    cp hits $metadata_file;
 		fi
 	    fi
-	    echo "ethesis_en/"$dir"/"$subdir"/"$file": "$hits" ("$orig_hits")";
+	    # echo "ethesis_en/"$dir"/"$subdir"/"$file": "$hits" ("$orig_hits")";
 	    # echo $file | perl -pe 's/\n/\t/;' >> GREP;
 	    # echo $hits >> GREP;
 	done
