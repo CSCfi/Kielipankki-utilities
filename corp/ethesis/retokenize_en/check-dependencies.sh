@@ -18,7 +18,7 @@ if !(ls lang_recognizer.py > /dev/null 2> /dev/null); then
     exit 1;
 fi
 
-for packagedir in E-thesis_gradut_TXT_2016-11-22 E-thesis_other_langs_VRT_2016-11-22;
+for packagedir in E-thesis_gradut_TXT_2016-11-22 E-thesis_vaitokset_TXT_2016-10-17 E-thesis_other_langs_VRT_2016-11-22;
 do
     if !(ls $packagedir > /dev/null 2> /dev/null); then
 	echo "Package directory "$packagedir" not found in the current directory";
