@@ -15,11 +15,11 @@ do
     fi
 done
 
-./check-dependencies.sh $1 && \
-    ./extract-packages.sh $1 && \
-    ./copy-english-files.sh $1 && \
-    ./extract-metadata.sh $1 && \
-    ./combine-files.sh $1 && \
-    ./parse-files.sh $1 && \
-    ./split-files.sh $1 && \
-    ./conllu-to-vrt.sh $1;
+./check-dependencies.sh $@ && \
+    ./extract-packages.sh $@ && \
+    ./copy-english-files.sh $@ && \
+    ./extract-metadata.sh $@ && \
+    ./combine-files.sh $@ && \
+    ./parse-files.sh $@ && \
+    ./split-files.sh $@ && \
+    ./conllu-to-vrt.sh $@;
