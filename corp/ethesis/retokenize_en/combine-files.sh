@@ -20,6 +20,7 @@ do
 	    nfiles=$((nfiles + 1));
 	    if [ "$((nfiles % 50))" = "1" ]; then
 		nall=$((nall + 1));
+		rm --force "ALL"$nall.TXT;
 		touch "ALL"$nall.TXT;
 		if [ "$1" = "--verbose" -o "$2" = "--verbose" ]; then
 		    echo "Creating file "$dir"/"$subdir"/ALL"$nall.TXT"...";
