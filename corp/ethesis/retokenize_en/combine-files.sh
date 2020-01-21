@@ -21,23 +21,26 @@ do
 	    if [ "$((nfiles % 50))" = "1" ]; then
 		nall=$((nall + 1));
 		touch "ALL"$nall.TXT;
-		if [ "$1" = "--verbose" ]; then
+		if [ "$1" = "--verbose" -o "$2" = "--verbose" ]; then
 		    echo "Creating file "$dir"/"$subdir"/ALL"$nall.TXT"...";
 		fi
 	    fi
-	    # the parser drops some comment lines out, try multiple lines?
 	    echo "" >> "ALL"$nall.TXT;
-	    #for n in 1 2 3 4 5;
-	    #do
-	    #	echo "###C: FILENAME: "$file >> "ALL"$nall.TXT;
-	    #done
-	    echo "FILENAME_"$file >> "ALL"$nall.TXT;
+	    echo "###C: " >> "ALL"$nall.TXT;
+	    echo '"FILENAME_'$file'"' >> "ALL"$nall.TXT;
+	    echo "###C: " >> "ALL"$nall.TXT;
 	    echo "" >> "ALL"$nall.TXT;
 	    # - remove control characters U+0000 - U+001F (excluding TAB U+0009, LF U+000A and CR U+000D) and U+007F - U+009F,
 	    #   Unicode line and paragraph separators (U+2028, U+2029) and soft hyphens (U+00AD) and some other strange characters
 	    # - convert FIGURE SPACE (U+2007) and NARROW NO-BREAK SPACE (U+202F) (and also THIN SPACE, U+2009) to NBSPs
 	    # - convert other spaces into oridinary spaces
-	    cat $file | perl -C -pe 's/[\x{0000}-\x{0008}\x{000B}\x{000C}\x{000E}-\x{001F}\x{00AD}\x{007F}-\x{009F}\x{2028}\x{2029}\x{00AD}\x{2028}\x{FEFF}\x{FFFF}]//g; s/[\x{2007}\x{202F}\x{2009}]/\x{00A0}/g; s/[\x{0085}\x{1680}\x{2000}-\x{200A}\x{202F}\x{205F}\x{3000}]/ /g;' >> "ALL"$nall.TXT;
+	    if [ "$1" = "--test" -o "$2" = "--test" ]; then
+		head -10 $file > tmp;
+	    else
+		cat $file > tmp;
+	    fi
+	    cat tmp | perl -C -pe 's/[\x{0000}-\x{0008}\x{000B}\x{000C}\x{000E}-\x{001F}\x{00AD}\x{007F}-\x{009F}\x{2028}\x{2029}\x{00AD}\x{2028}\x{FEFF}\x{FFFF}]//g; s/[\x{2007}\x{202F}\x{2009}]/\x{00A0}/g; s/[\x{0085}\x{1680}\x{2000}-\x{200A}\x{202F}\x{205F}\x{3000}]/ /g;' >> "ALL"$nall.TXT;
+	    rm tmp;
 	    echo "" >> "ALL"$nall.TXT;
 	done
 	cd ..;
