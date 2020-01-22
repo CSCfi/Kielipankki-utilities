@@ -1,5 +1,10 @@
 #!/bin/sh
 
+vrttools="";
+if [ "$1" = "--vrt-tools-dir" ]; then
+    vrttools=$2;
+fi
+
 for script in ./check-dependencies.sh \
 		  ./extract-packages.sh \
 		  ./copy-english-files.sh \
@@ -22,4 +27,4 @@ done
     ./combine-files.sh $@ && \
     ./parse-files.sh $@ && \
     ./split-files.sh $@ && \
-    ./conllu-to-vrt.sh $@;
+    ./conllu-to-vrt.sh $vrttools;

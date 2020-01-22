@@ -16,11 +16,9 @@ do
 	cp ../../../split-conllu-files.pl .;
 	for file in ALL*.CONLLU;
 	do
-	    # change filename info ("FILENAME_", newpar, sent_id and text comment lines) into "# FILENAME: ..."
+	    # change filename info ("FILENAME_", newpar, sent_id) into "# FILENAME: ..."
 	    # todo: renumber the sentences
-	    # first two perl scripts combine FILENAMES that have been tokenized as two words
-	    cat $file | perl -pe 's/FILENAME\t.*\n/FILENAME/;' | perl -pe 's/\tFILENAME2\t/\tFILENAME/;' | perl -pe 's/\n/¤/g;' | \
-		perl -pe 's/# newpar¤# sent_id = [^¤]+¤# text = FILENAME_[^¤]+¤[^\t]+\tFILENAME_([^\t]+)\t[^¤]+¤/# FILENAME: \1¤/g;' | perl -pe 's/¤/\n/g;' | ./split-conllu-files.pl;
+	    cat $file | perl -pe 's/\n/¤/g;' | perl -pe 's/# newpar¤# sent_id = [^¤]+¤# text = "FILENAME_([^"]+)"/# FILENAME: \1¤/g;' | perl -pe 's/¤/\n/g;' | ./split-conllu-files.pl;
 	done
 	rm split-conllu-files.pl;
 	cd ..;
