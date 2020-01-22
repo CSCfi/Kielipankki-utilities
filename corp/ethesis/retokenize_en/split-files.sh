@@ -2,6 +2,15 @@
 
 # split the parsed files and process conllu files into vrt files
 # TODO: the parser drops some comment lines out?
+
+verbose="false";
+for arg in $@;
+do
+    if [ "$arg" = "--verbose" ]; then
+	verbose="true";
+    fi
+done
+
 cd ethesis_en;
 for dir in gradut vaitokset;
 do
@@ -13,12 +22,15 @@ do
     for subdir in $subdirs;
     do
 	cd $subdir;
+	if [ "$verbose" = "true" ]; then
+	    echo "Splitting files in "$dir"/"$subdir;
+	fi
 	cp ../../../split-conllu-files.pl .;
 	for file in ALL*.CONLLU;
 	do
 	    # change filename info ("FILENAME_", newpar, sent_id) into "# FILENAME: ..."
 	    # todo: renumber the sentences
-	    cat $file | perl -pe 's/\n/¤/g;' | perl -pe 's/# newpar¤# sent_id = [^¤]+¤# text = "FILENAME_([^"]+)"/# FILENAME: \1¤/g;' | perl -pe 's/¤/\n/g;' > tmp;
+	    cat $file | perl -pe 's/\n/¤/g;' | perl -pe 's/# newpar¤# sent_id = [^¤]+¤# text = "FILENAME_([^"]+)"/# FILENAME: \1/g;' | perl -pe 's/¤/\n/g;' > tmp;
 	    filenames=`cat tmp | egrep '^# FILENAME' | perl -pe 's/# FILENAME\: //;'`;
 	    for filename in $filenames;
 	    do
