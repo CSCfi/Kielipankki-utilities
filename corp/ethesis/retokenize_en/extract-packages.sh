@@ -2,6 +2,14 @@
 
 # copy files from IDA packages
 
+verbose="false";
+for arg in $@;
+do
+    if [ "$arg" = "--verbose" ]; then
+	verbose="true";
+    fi
+done
+
 for dir in gradut vaitokset;
 do
     if (ls $dir > /dev/null 2> /dev/null); then
@@ -10,7 +18,7 @@ do
     fi
 done
 
-if [ "$1" = "--verbose" -o "$2" = "--verbose" ]; then echo "Copying files from IDA packages"; fi
+if [ "$verbose" = "true" ]; then echo "Copying files from IDA packages"; fi
 
 if !(ls gradut/ > /dev/null 2> /dev/null); then
     mkdir gradut ;

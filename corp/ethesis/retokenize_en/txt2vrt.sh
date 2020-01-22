@@ -1,9 +1,16 @@
 #!/bin/sh
 
-vrttools="";
-if [ "$1" = "--vrt-tools-dir" ]; then
-    vrttools=$2;
-fi
+vrttooldir=""
+for arg in $@;
+do
+    if [ "$arg" = "--vrt-tool-dir" ]; then
+	vrttooldir="<next>";
+    else
+	if [ "$vrttooldir" = "<next>" ]; then
+	    vrttooldir=$arg"/";
+	fi
+    fi
+done
 
 for script in ./check-dependencies.sh \
 		  ./extract-packages.sh \
@@ -27,4 +34,4 @@ done
     ./combine-files.sh $@ && \
     ./parse-files.sh $@ && \
     ./split-files.sh $@ && \
-    ./conllu-to-vrt.sh $vrttools;
+    ./conllu-to-vrt.sh $@;

@@ -3,13 +3,21 @@
 # 1) generate filenames for files whose language has not been marked:
 # i.e. prepend the output of lang_recognizer.py to the filename
 
+verbose="false";
+for arg in $@;
+do
+    if [ "$arg" = "--verbose" ]; then
+	verbose="true";
+    fi
+done
+
 for dir in gradut vaitokset;
 do
   cd $dir;
   for subdir in aleksanteri-instituutti bio_ja_ymparistot elainlaaketiede farmasia humanistinen kayttaytymistiede laaketiede maajametsatiede matemaattis oikeustiede teologinen valtiotiede;
   do
       if (ls $subdir > /dev/null 2> /dev/null); then
-	  if [ "$1" = "--verbose" -o "$2" = "--verbose" ]; then echo "Guessing language and renaming files for "$dir"/"$subdir; fi
+	  if [ "$verbose" = "true" ]; then echo "Guessing language and renaming files for "$dir"/"$subdir; fi
 	  cd $subdir;
 	  # e.g. _t_2016utkielma.txt -> fi_t_2016utkielma.txt
 	  for file in `ls *.txt | grep -v 'Hot Folder Log' | grep -v 'logfile\.txt' | grep -v 'read\.me' | grep -v 'category\.txt' | egrep -v '\(2\)' | egrep -v '(en_|eng_|fi_|fin_|sv_|swe_|ru_|de_|es_|fr_|it_|pol_|other_)'`;
@@ -51,7 +59,7 @@ if (ls ethesis_en > /dev/null 2> /dev/null); then
     exit 1;
 fi
 
-if [ "$1" = "--verbose" -o "$2" = "--verbose" ]; then echo "Copying English files"; fi
+if [ "$verbose" = "true" ]; then echo "Copying English files"; fi
 
 mkdir ethesis_en;
 mkdir ethesis_en/gradut;

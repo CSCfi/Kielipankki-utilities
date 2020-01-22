@@ -1,6 +1,19 @@
 #!/bin/sh
 
-vrttools=$1;
+verbose="false";
+vrttooldir=""
+for arg in $@;
+do
+    if [ "$vrttooldir" = "<next>" ]; then
+	vrttooldir=$arg"/";
+    fi
+    if [ "$arg" = "--vrt-tool-dir" ]; then
+	vrttooldir="<next>";
+    fi
+    if [ "$arg" = "--verbose" ]; then
+	verbose="true";
+    fi
+done
 
 cd ethesis_en;
 for dir in gradut vaitokset;
@@ -13,6 +26,9 @@ do
     for subdir in $subdirs;
     do
 	cd $subdir;
+	if [ "$verbose" = "true" ]; then
+	    echo "Generating VRT files in directory "$dir"/"$subdir;
+	fi
 	for conllufile in *.conllu;
 	do
 	    prevrtfile=`echo $conllufile | perl -pe 's/\.conllu/\.prevrt/;'`;
@@ -23,8 +39,8 @@ do
 														  perl -pe 's/\&/&amp;/g;' | perl -pe "s/'/&apos;/g;"; cat $prevrtfile; echo "</text>") > $vrtfile;
 	    #cat $vrtfile | ./renumber-sentences.pl > tmp && mv tmp $vrtfile;
 	    # cp $vrtfile $vrtfile.bak;
-	    $vrttools/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' $vrtfile;
-	    $vrttools/vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos $vrtfile;
+	    $vrttooldir/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' $vrtfile;
+	    $vrttooldir/vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos $vrtfile;
 	    # cat file | ./msd-bar-to-space.pl > tmp && mv tmp $vrtfile;
 
 	done

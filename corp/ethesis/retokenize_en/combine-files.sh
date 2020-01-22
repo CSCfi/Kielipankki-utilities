@@ -1,5 +1,13 @@
 #!/bin/sh
 
+verbose="false";
+for arg in $@;
+do
+    if [ "$arg" = "--verbose" ]; then
+	verbose="true";
+    fi
+done
+
 # Combine 50 files in a directory into a single directory for faster parsing
 # At this point, remove also some strange characters
 cd ethesis_en;
@@ -22,7 +30,7 @@ do
 		nall=$((nall + 1));
 		rm --force "ALL"$nall.TXT;
 		touch "ALL"$nall.TXT;
-		if [ "$1" = "--verbose" -o "$2" = "--verbose" ]; then
+		if [ "$verbose" = "true" ]; then
 		    echo "Creating file "$dir"/"$subdir"/ALL"$nall.TXT"...";
 		fi
 	    fi

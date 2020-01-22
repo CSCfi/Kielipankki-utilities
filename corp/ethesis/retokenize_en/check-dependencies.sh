@@ -33,3 +33,23 @@ do
 	exit 1;
     fi
 done
+
+vrttooldir=""
+for arg in $@;
+do
+    if [ "$arg" = "--vrt-tool-dir" ]; then
+	vrttooldir="<next>";
+    else
+	if [ "$vrttooldir" = "<next>" ]; then
+	    vrttooldir=$arg"/";
+	fi
+    fi
+done
+
+for tool in vrt-keep vrt-rename;
+do
+    if !(which $vrttooldir$tool > /dev/null 2> /dev/null); then
+	echo "Tool "$vrttooldir$tool" not found (path can be given with --vrt-tool-dir PATH)";
+	exit 1;
+    fi
+done

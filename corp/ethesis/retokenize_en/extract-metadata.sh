@@ -1,5 +1,13 @@
 #!/bin/sh
 
+verbose="false";
+for arg in $@;
+do
+    if [ "$arg" = "--verbose" ]; then
+	verbose="true";
+    fi
+done
+
 # get metadata
 cd ethesis_en;
 for dir in gradut vaitokset;
@@ -11,7 +19,7 @@ do
     fi
     for subdir in $subdirs;
     do
-	if [ "$1" = "--verbose" -o "$2" = "--verbose" ]; then echo "Grepping metadata for "$dir"/"$subdir; fi
+	if [ "$verbose" = "true" ]; then echo "Grepping metadata for "$dir"/"$subdir; fi
 	cd $subdir;
 	# touch GREP;
 	metadatafile="metadata_txt";
