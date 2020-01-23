@@ -29,8 +29,8 @@ do
 	for file in ALL*.CONLLU;
 	do
 	    # change filename info ("FILENAME_", newpar, sent_id) into "# FILENAME: ..."
-	    # todo: renumber the sentences
-	    cat $file | perl -pe 's/\n/¤/g;' | perl -pe 's/# newpar¤# sent_id = [^¤]+¤# text = "FILENAME_([^"]+)"/# FILENAME: \1/g;' | perl -pe 's/¤/\n/g;' > tmp;
+	    # ¤, ¤¤ and ¤¤¤ are used in some vaitokset files, but not in beginning or end of line
+	    cat $file | perl -pe 's/\n/¤¤¤¤/g;' | perl -pe 's/# newpar¤¤¤¤# sent_id = [0-9]+¤¤¤¤# text = "FILENAME_([^"]+)"/# FILENAME: \1/g;' | perl -pe 's/¤¤¤¤/\n/g;' > tmp;
 	    filenames=`cat tmp | egrep '^# FILENAME' | perl -pe 's/# FILENAME\: //;'`;
 	    for filename in $filenames;
 	    do
