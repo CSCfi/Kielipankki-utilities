@@ -54,6 +54,11 @@ for file in gradut/*/read.me;
 do
     echo $file | perl -pe 's/^(.*)\/read\.me$/mv \1\/read.me \1\/metadata_txt/;' | sh;
 done
+
+# Fix typos in logfile:
+cat vaitokset/laaketiede/logfile.txt | perl -pe 's/ xml\:lang=" / /; s/\@\@\@" xml\:lang=//;' > tmp;
+mv tmp vaitokset/laaketiede/logfile.txt;
+
 for file in vaitokset/*/logfile.txt;
 do
     echo $file | perl -pe 's/^(.*)\/logfile\.txt$/mv \1\/logfile.txt \1\/metadata_txt/;' | sh;
