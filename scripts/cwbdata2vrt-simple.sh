@@ -37,8 +37,8 @@ omit-log-comment
     omit the comment containing information about the run of the script
 vrt-file-name-template|output-file=FILE "{corpid}.vrt" outfile_templ
     write the output VRT to file named FILE, where {corpid} is replaced
-    with the corpus id; FILE may contain a directory part as well; use - to
-    write to standard output
+    with the corpus id; FILE may contain a directory part as well; possible
+    non-existent directories are created; use - to write to standard output
 overwrite|force
     overwrite output VRT file if it already exists; by default, do not
     overwrite
@@ -230,13 +230,26 @@ make_vrt_comments () {
 }
 
 extract_vrt () {
-    local corp verbose_msg outfile head_comment head_comment2 attr_comment
+    local corp verbose_msg outfile dirname head_comment head_comment2 attr_comment
     corp=$1
     verbose_msg="Writing VRT output of corpus $corp to"
     if [ "x$outfile_templ" != "x-" ]; then
 	outfile=$(echo "$outfile_templ" | sed -e "s/{corpid}/$corp/g")
 	if [ -e "$outfile" ] && [ "x$overwrite" = x ]; then
 	    warn "Skipping corpus $corp: output file $outfile already exists"
+	    return
+	fi
+	if [ ! -e "$outfile" ]; then
+	    dirname=$(dirname "$outfile")
+	    mkdir -p "$dirname" 2> $tmp_prefix.err
+	    if [ $? != 0 ]; then
+		warn "Skipping corpus $corp: $(sed -e 's/^mkdir: //' $tmp_prefix.err)"
+		return
+	    fi
+	fi
+	touch "$outfile" 2> $tmp_prefix.err
+	if [ $? != 0 ]; then
+	    warn "Skipping corpus $corp: cannot write to output file $outfile"
 	    return
 	fi
 	echo_verb "$verbose_msg file $outfile"
