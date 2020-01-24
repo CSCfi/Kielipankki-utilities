@@ -273,7 +273,10 @@ extract_vrt () {
 	attr_comment="positional-attributes: $pos_attrs"
     fi
     $cwb_bindir/cwb-decode -Cx $corp $attr_opts |
-    vrt_decode_special_chars --xml-entities |
+    # Use --no-xml-entities, as < and > are converted to entities in
+    # process_tags_(single|multi) (using $perl_make_entities);
+    # otherwise the result would have ">" as "&amp;gt;", for example.
+    vrt_decode_special_chars --no-xml-entities |
     $process_tags |
     eval "$head_filter" |
     $tail_filter |
