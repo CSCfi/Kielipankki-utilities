@@ -43,11 +43,11 @@ do
 		cp hits $file.hits2;
 		hits=`wc -l hits | perl -pe 's/^([0-9]+).*/\1/;'`;
 		if [ "$hits" = "1" ]; then
-		    cp hits $metadata_file;
+		    cat hits | perl -C -pe 's/  +/ /; s/\x{2028}//;' > $metadata_file;
 		fi
 	    else
 		if [ "$hits" = "1" ]; then
-		    cp hits $metadata_file;
+		    cat hits | perl -C -pe 's/  +/ /;  s/\x{2028}//;' > $metadata_file;
 		fi
 	    fi
 	    # echo "ethesis_en/"$dir"/"$subdir"/"$file": "$hits" ("$orig_hits")";
