@@ -36,7 +36,7 @@ do
 	    vrtfile=`echo $conllufile | perl -pe 's/\.conllu/\.vrt/;'`;
 	    cat $conllufile | perl -pe 's/^# newpar/<paragraph>/; s/^# sent_id = ([0-9]+)/<sentence id="\1">/; s/^# text .*//; s/^# newdoc//; s/^# *//;' | ../../../add-missing-tags.pl | perl -pe 's/^\n$//g;' > $prevrtfile;
 	    (echo '<!-- #vrt positional-attributes: id word lemma upos xpos feats head deprel deps misc -->'; (cat $metadatafile 2> /dev/null || echo "<text>") | \
-														  perl -pe 's/\&/&amp;/g;' | perl -pe "s/'/&apos;/g;"; cat $prevrtfile; echo "</text>") > $vrtfile;
+														  perl -pe 's/\&/&amp;/g;' | perl -pe "s/'/&apos;/g;" | perl -pe 's/ +/ /g; s/ "/"/g;'; cat $prevrtfile; echo "</text>") > $vrtfile;
 	    #cat $vrtfile | ./renumber-sentences.pl > tmp && mv tmp $vrtfile;
 	    # cp $vrtfile $vrtfile.bak;
 	    $vrttooldir/vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' $vrtfile;
