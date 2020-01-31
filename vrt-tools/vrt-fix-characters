@@ -792,6 +792,7 @@ NEWCHARS = {
     # misidentify
     0x052a, # U+052a Lu CYRILLIC CAPITAL LETTER DZZHE (Unicode 7.0)
     0x20bd, # U+20bd Cs RUBLE SIGN (Unicode 7.0, June 2014)
+    0x20bf, # TESTING - reserved even in miilu
 }
 
 def catReservd(c):
@@ -802,12 +803,12 @@ def catReservd(c):
     '''
     return (
         '{{Cn:new:{:04x}}}'.format(ord(c))
-        if ( unicodedata.category(c) == 'Cn' and
-             ord(c) in NEWCHARS)
+        if (unicodedata.category(c) == 'Cn' and
+            ord(c) in NEWCHARS)
         else
         '{{Cn:res:{:04x}}}'.format(ord(c))
-        if ( unicodedata.category(c) == 'Cn' and
-             ord(c) not in NONCHARS)
+        if (unicodedata.category(c) == 'Cn' and
+            ord(c) not in NONCHARS)
         else
         None
     )
