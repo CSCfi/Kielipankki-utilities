@@ -799,16 +799,18 @@ test_skip_sort_texts () {
 # with others. It is unclear how or if scrambling should be done in
 # such cases.
 find_containing_struct () {
-    local struct vrt_fname
+    local struct vrt_fname exitcode
     struct=$1
     vrt_fname=$2
-    if ! grep -q -s "^<$struct" $vrt_fname; then
-	return $?
+    grep -q -s "^<$struct" $vrt_fname
+    exitcode=$?
+    if [ $exitcode != 0 ]; then
+	return $exitcode
     fi
     grep '^<' $vrt_fname |
     awk '
 	BEGIN { top = 0 }
-	/^<[^\/]/ {
+	/^<[^\/!]/ {
 	    struct = substr($1, 2)
 	    if (struct == "'"$struct"'") {
 		print (top > 0 ? stack[top] : "")
