@@ -177,10 +177,10 @@ omit-structures=STRUCTS
 
 scramble=STRUCTS
     scramble structures listed in STRUCTS, separated by spaces;
-    allowed structures are sentence and paragraph; they are scrambled
-    within the immediately containing structure, typically within
-    paragraph and text, respectively; "sentence paragraph" scrambles
-    both ways
+    typical structures are sentence and paragraph (and link for
+    parallel corpus parts); they are scrambled within the immediately
+    containing structure, typically within paragraph and text,
+    respectively; "sentence paragraph" scrambles both ways
 scramble-seed=SEED
     use the string SEED as the random number generator seed for
     scrambling data; "0" for random seed (non-reproducible order)
@@ -829,19 +829,14 @@ scramble_structs () {
 	scramble_seed=$corpus
     fi
     for unit in $scramble; do
-	case $unit in
-	    "paragraph" | "sentence" )
-		within=$(find_containing_struct $unit "$vrt_file")
-		if [ $? != 0 ]; then
-		    warn "Input VRT has no $unit structures specified with --scramble"
-		elif [ "x$within" = x ]; then
-		    warn "Cannot scramble top-level structures $unit"
-		fi
-		;;
-	    * )
-		warn "Structure $unit unsupported for scrambling"
-		;;
-	esac
+	within=$(find_containing_struct $unit "$vrt_file")
+	if [ $? != 0 ]; then
+	    warn "Input VRT has no $unit structures specified with --scramble"
+	elif [ "x$within" = x ]; then
+	    warn "Cannot scramble top-level structures $unit"
+	elif ! word_in "$unit" "sentence paragraph link"; then
+	    warn "Scrambling $unit structures instead of the usual sentence, paragraph or link"
+	fi
 	if [ "x$within" != x ]; then
 	    process_vrt $vrt_scramble --seed $scramble_seed \
 		--unit $unit --within $within
