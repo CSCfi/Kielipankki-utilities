@@ -278,40 +278,77 @@ corpus_remove_attrs () {
     done
 }
 
+
+# _cwb_registry_manage_attr corpus attrname_src attrname_dst attrtype
+#                           nonstruct_eval struct_bare_eval
+#                           struct_annot_eval
+#
+# This function contains the common code for renaming, copying and
+# removing an attribute in the registry file.
+#
+# Filter the registry file of corpus through transformation code that
+# is evaluated by the shell. The transformation code may for example
+# rename, copy or remove the source attribute attrname_src (to
+# destination attrname_dst). attrtype is the type of the attribute; if
+# empty, it is found out. The original registry file is saved with the
+# suffix .old.
+#
+# nonstruct_eval is evaluated for positional and alignment attributes,
+# struct_bare_eval for structures without annotations and
+# struct_annot_eval for structures with annotations. The evaluated
+# code may refer to $attrname_src and $attrname_dst, struct_annot_eval
+# also to $struct (the base name of the structure without annotations)
+# and $attrname_src0 and $attrname_dst0 (the annotation name without
+# the base name).
+_cwb_registry_manage_attr () {
+    local corpus attrname_src attrname_dst attrtype \
+	  struct_annot_eval struct_bare_eval nonstruct_eval \
+	  regfile struct attrname0_src attrname0_dst
+    corpus=$1
+    attrname_src=$2
+    attrname_dst=$3
+    if [ "x$4" != x ]; then
+	attrtype=$4
+    else
+	attrtype=$(corpus_get_attr_type $corpus $attrname_src)
+    fi
+    nonstruct_eval=$5
+    struct_bare_eval=$6
+    struct_annot_eval=$7
+    regfile="$cwb_regdir/$corpus"
+    cp -p "$regfile" "$regfile.old" ||
+	error "Could not copy $regfile to $regfile.old"
+    if [ "$attrtype" = "s" ]; then
+	if in_str _ $attrname_src; then
+	    struct=${attrname_src%%_*}
+	    attrname0_src=${attrname_src#*_}
+	    attrname0_dst=${attrname_dst#*_}
+	    eval "$struct_annot_eval" < "$regfile.old" > "$regfile"
+	else
+	    eval "$struct_bare_eval" < "$regfile.old" > "$regfile"
+	fi
+    else
+	eval "$nonstruct_eval" < "$regfile.old" > "$regfile"
+    fi
+    ensure_perms "$regfile" "$regfile.old"
+}
+
 # cwb_registry_remove_attr corpus attrname [attrtype]
 #
 # Remove attribute attrname of type attrypte from the registry file of
 # corpus. If attrtype is omitted, it is found out.
 cwb_registry_remove_attr () {
-    local corpus attrname attrtype regfile struct attrname0
-    corpus=$1
-    attrname=$2
-    if [ "x$3" != x ]; then
-	attrtype=$3
-    else
-	attrtype=$(corpus_get_attr_type $corpus $attrname)
-    fi
-    regfile="$cwb_regdir/$corpus"
-    cp -p "$regfile" "$regfile.old" ||
-	error "Could not copy $regfile to $regfile.old"
-    if [ $attrtype = "s" ]; then
-	if in_str _ $attrname; then
-	    struct=${attrname%%_*}
-	    attrname0=${attrname#*_}
-	    grep -v "^STRUCTURE $attrname" "$regfile.old" |
-		awk "/^# <$struct / {
-		         sub(/ $attrname0=\"\.\.\"/, \"\"); print; next
-		     }
-		     { print }
-		" > "$regfile"
-	else
-	    awk "/^# <$attrname[ >]/,/^ *$/ {next}
-                 {print}" "$regfile.old" > "$regfile"
-	fi
-    else
-	grep -v -E "^(ATTRIBUTE|ALIGNED) $attrname" "$regfile.old" > "$regfile"
-    fi
-    ensure_perms "$regfile" "$regfile.old"
+    _cwb_registry_manage_attr \
+	$1 $2 $2 "$3" \
+	'grep -v -E "^(ATTRIBUTE|ALIGNED) $attrname_src\$"' \
+	'awk "/^# <$attrname_src[ >]/,/^ *$/ { next }
+              { print }"
+        ' \
+	'awk "/^# <$struct / {
+	          sub(/ $attrname0_src=\"\.\.\"/, \"\"); print; next
+	      }
+	      ! /^STRUCTURE $attrname_src / { print }"
+	'
 }
 
 
