@@ -278,6 +278,33 @@ corpus_remove_attrs () {
     done
 }
 
+# corpus_rename_attr corpus attrname_src attrname_dst
+#
+# Rename attribute attrname_src as attrname_dst in corpus: both data
+# files and information in the registry file.
+corpus_rename_attr () {
+    local corpus attrname_src attrname_dst attrtype dir fnames fname
+    corpus=$1
+    attrname_src=$2
+    attrname_dst=$3
+    attrtype=$(corpus_get_attr_type $corpus $attrname_src)
+    if [ "x$attrtype" != x ]; then
+	cwb_registry_rename_attr $corpus $attrname_src $attrname_dst $attrtype
+	(
+	    cd "$corpus_root/data/$corpus"
+	    # This should be safe as data file names cannot contain
+	    # spaces
+	    fnames=$(echo $attrname_src.*)
+	    if [ $attrtype = "s" ] && ! in_str _ $attrname_src; then
+		fnames="$fnames $(echo ${attrname_src}_*.*)"
+	    fi
+	    for fname in $fnames; do
+		mv $fname $attrname_dst${fname#$attrname_src}
+	    done
+	)
+    fi
+}
+
 
 # _cwb_registry_manage_attr corpus attrname_src attrname_dst attrtype
 #                           nonstruct_eval struct_bare_eval
@@ -349,6 +376,23 @@ cwb_registry_remove_attr () {
 	      }
 	      ! /^STRUCTURE $attrname_src / { print }"
 	'
+}
+
+# cwb_registry_rename_attr corpus attrname_src attrname_dst [attrtype]
+#
+# Rename attribute attrname_src (of type attrtype) as attrname_dst in
+# the registry file of corpus. If attrtype is omitted, it is found
+# out.
+cwb_registry_rename_attr () {
+    _cwb_registry_manage_attr \
+	$1 $2 $3 "$4" \
+	'sed -e "s/^\(ATTRIBUTE\|ALIGNED\) $attrname_src\$/\1 $attrname_dst/"' \
+	'sed -e "s/^\(# <\)$attrname_src\([ >]\)/\1$attrname_dst\2/;
+                 s/<\/$attrname_src>/<\/$attrname_dst>/;
+                 s/^\(STRUCTURE \)$attrname_src\(_\|$\)/\1$attrname_dst\2/"
+	' \
+	'sed -e "s/^\(STRUCTURE \)$attrname_src /\1$attrname_dst /;
+                 /^# <$struct / s/ $attrname0_src=/ $attrname0_dst=/"'
 }
 
 
