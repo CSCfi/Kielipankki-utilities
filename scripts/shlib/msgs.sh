@@ -263,6 +263,19 @@ echo_quoted () {
 }
 
 
+# run_dbg command [args ...]
+#
+# Run command with args. If $debug is non-empty, print the command and
+# the arguments to stderr before running.
+run_dbg () {
+    if [ "x$debug" != x ]; then
+	printf "Running: " > /dev/stderr
+	echo_quoted "$@" > /dev/stderr
+    fi
+    "$@"
+}
+
+
 # Initialize variables
 
 # Code to be evaluated at warn and error
