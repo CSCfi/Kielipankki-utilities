@@ -365,8 +365,12 @@ corpus_alias_attr () {
 # also to $struct (the base name of the structure without annotations)
 # and $attrname_src0 and $attrname_dst0 (the annotation name without
 # the base name).
+#
+# If the destination attribute name is non-empty and different from
+# the source, the destination attribute is removed if their types are
+# the same; otherwise, the function exits with an error.
 _cwb_registry_manage_attr () {
-    local corpus attrname_src attrname_dst attrtype \
+    local corpus attrname_src attrname_dst attrtype attrtype_dst \
 	  struct_annot_eval struct_bare_eval nonstruct_eval \
 	  regfile struct attrname0_src attrname0_dst
     corpus=$1
@@ -381,6 +385,17 @@ _cwb_registry_manage_attr () {
     struct_bare_eval=$6
     struct_annot_eval=$7
     regfile="$cwb_regdir/$corpus"
+    # Check for possibly existing destination attribute
+    if [ "$attrname_dst" != "$attrname_src" ] && [ "x$attrname_dst" != x ]; then
+	attrtype_dst=$(corpus_get_attr_type $corpus $attrname_dst)
+	if [ "x$attrtype_dst" != x ]; then
+	    if [ "$attrtype_dst" = "$attrtype" ]; then
+		cwb_registry_remove_attr $corpus $attrname_dst $attrtype
+	    else
+		error "Destination attribute \"$attrname_dst\" exists and has different type from source attribute \"$attrname_src\""
+	    fi
+	fi
+    fi
     cp -p "$regfile" "$regfile.old" ||
 	error "Could not copy $regfile to $regfile.old"
     if [ "$attrtype" = "s" ]; then
