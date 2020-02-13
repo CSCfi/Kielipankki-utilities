@@ -278,18 +278,27 @@ corpus_remove_attrs () {
     done
 }
 
-# corpus_rename_attr corpus attrname_src attrname_dst
+# _corpus_copy_or_rename_attr mode corpus attrname_src attrname_dst
 #
-# Rename attribute attrname_src as attrname_dst in corpus: both data
-# files and information in the registry file.
-corpus_rename_attr () {
-    local corpus attrname_src attrname_dst attrtype dir fnames fname
-    corpus=$1
-    attrname_src=$2
-    attrname_dst=$3
+# Copy (if mode = "copy") or rename (if mode = "rename") attribute
+# attrname_src as attrname_dst in corpus: both data files and
+# information in the registry file.
+_corpus_copy_or_rename_attr () {
+    local mode corpus attrname_src attrname_dst cmd attrtype dir fnames fname
+    mode=$1
+    corpus=$2
+    attrname_src=$3
+    attrname_dst=$4
+    if [ "$mode" = "copy" ]; then
+	cmd="cp -p"
+    elif [ "$mode" = "rename" ]; then
+	cmd="mv"
+    else
+	lib_error "_corpus_copy_or_rename_attr: Invalid mode \"$mode\""
+    fi
     attrtype=$(corpus_get_attr_type $corpus $attrname_src)
     if [ "x$attrtype" != x ]; then
-	cwb_registry_rename_attr $corpus $attrname_src $attrname_dst $attrtype
+	cwb_registry_${mode}_attr $corpus $attrname_src $attrname_dst $attrtype
 	(
 	    cd "$corpus_root/data/$corpus"
 	    # This should be safe as data file names cannot contain
@@ -299,10 +308,26 @@ corpus_rename_attr () {
 		fnames="$fnames $(echo ${attrname_src}_*.*)"
 	    fi
 	    for fname in $fnames; do
-		mv $fname $attrname_dst${fname#$attrname_src}
+		$cmd $fname $attrname_dst${fname#$attrname_src}
 	    done
 	)
     fi
+}
+
+# corpus_rename_attr corpus attrname_src attrname_dst
+#
+# Rename attribute attrname_src as attrname_dst in corpus: both data
+# files and information in the registry file.
+corpus_rename_attr () {
+    _corpus_copy_or_rename_attr rename "$@"
+}
+
+# corpus_copy_attr corpus attrname_src attrname_dst
+#
+# Copy attribute attrname_src to attrname_dst in corpus: both data
+# files and information in the registry file.
+corpus_copy_attr () {
+    _corpus_copy_or_rename_attr copy "$@"
 }
 
 
