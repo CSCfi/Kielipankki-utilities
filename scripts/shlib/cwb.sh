@@ -474,6 +474,94 @@ cwb_registry_rename_attr () {
 	'sub(/ $attrname0_src=/, \" $attrname0_dst=\")'
 }
 
+# cwb_registry_copy_attr corpus attrname_src attrname_dst [attrtype]
+#
+# Copy attribute attrname_src (of type attrtype) to attrname_dst in
+# the registry file of corpus. If attrtype is omitted, it is found
+# out.
+cwb_registry_copy_attr () {
+    # This would be complicated if not impossible to implement using
+    # _cwb_registry_manage_awk.
+    _cwb_registry_manage_attr \
+	$1 $2 $3 "$4" \
+	'awk "/^(ATTRIBUTE|ALIGNED) $attrname_src\$/ {
+	          print
+		  print gensub(/$attrname_src/, \"$attrname_dst\", 1)
+		  next
+              }
+              { print }
+             "' \
+	'awk "/^# <$attrname_src[ >]/ {
+                  struct = 1
+    		  copy = gensub(/<$attrname_src/, \"<$attrname_dst\", 1)
+    		  copy = gensub(/<\/$attrname_src/, \"</$attrname_dst\", 1, \\
+                                copy)
+              }
+	      /^#(\$|[^ ]| [^<])/ && struct {
+	          copy = copy \"\n\" \$0
+	      }
+              # Treat an empty line as ending the attribute definitions
+	      # for a structure.
+              /^ *\$/ && struct {
+	          struct = 0
+		  print
+		  print copy
+		  # Current empty line is printed again below as the
+		  # last line of the copy
+              }
+              /^STRUCTURE $attrname_src([ _]|\$)/ {
+    		  copy = copy \"\n\" gensub(/$attrname_src/, \"$attrname_dst\", 1)
+	      }
+	      { print }
+	     "' \
+	'awk "/^# <$struct / {
+	          sub(/ $attrname0_src=\"\.\.\"/, \"& $attrname0_dst=\\\"..\\\"\")
+	      }
+              /^STRUCTURE $attrname_src( |\$)/ {
+	          print
+		  print gensub(/$attrname_src/, \"$attrname_dst\", 1)
+		  next
+	      }
+	      { print }
+             "'
+}
+
+# cwb_registry_comment_out_attr corpus attrname [attrtype]
+#
+# Comment out attribute attrname (of type attrtype) in the registry
+# file of corpus. If attrtype is omitted, it is found out.
+cwb_registry_comment_out_attr () {
+    _cwb_registry_manage_attr_awk \
+	$1 $2 $2 "$3" \
+	'sub(/^/, \"# \")' \
+	'sub(/^/, \"# \")' \
+	'sub(/ $attrname0_src=/, \" #$attrname0_src=\")' \
+	'if (/[^ ]/ && ! /^# # <$attrname_src/) { sub(/^/, \"# \") }'
+}
+
+# cwb_registry_add_attr_comment corpus attrname comment [attrtype]
+#
+# Add a comment before the attribute attrname (of type attrtype) in
+# the registry file of corpus. For bare (unannotated) structural
+# attributes, the comment is added before the leading comment line
+# containing <struct attr1=".."> ... If attrtype is omitted, it is
+# found out. comment may contain multiple lines; each line is prefixed
+# with "# ".
+cwb_registry_add_attr_comment () {
+    local comment
+    # Convert newlines to "\\n" for Awk code to be evaled
+    comment="$(safe_echo "$3" | sed -e 's/^/# /; s/$/\\\\n/' | tr -d '\n')"
+    _cwb_registry_manage_attr_awk \
+	$1 $2 $2 "$4" \
+	'# struct is an implementation detail of
+	 #_cwb_registry_manage_attr_awk but that is needed to not add
+	 # comments to each annotated attribute of a bare structure.
+	 if (! struct) { printf \"%s\", \"'"$comment"'\" }' \
+	'printf \"%s\", \"'"$comment"'\"' \
+	'' \
+	''
+}
+
 
 # corpus_list_attrs [options] corpus attrtypes [attr_regex]
 #
