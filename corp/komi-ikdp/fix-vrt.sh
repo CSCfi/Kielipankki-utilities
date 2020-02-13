@@ -39,3 +39,10 @@ do
 	fi
     fi
 done
+
+# Seems that sentence attributes 'id_sessions' and 'region' have always the same values in all sentences within a text.
+# TODO: Move them as attributes of text?
+
+# "|" is used in lemmas, so "#" is defined as compund boundary marker instead
+# with option --compound-boundary-marker="#" of korp-make ("#" is not used in lemmas)
+# TODO: should "|" be replaced with something else in lemmas?
