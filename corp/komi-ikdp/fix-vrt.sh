@@ -1,5 +1,22 @@
 #!/bin/sh
 
+vrt_validate="vrt-validate";
+if [ "$1" = "--vrtdir" ]; then
+    vrtdir=$2;
+    if ! (ls $vrtdir/$vrt_validate > /dev/null 2> /dev/null); then
+	echo "Error: vrt-validate not found in "$vrtdir;
+	exit 1;
+    else
+	vrt_validate=$vrtdir/vrt-validate;
+    fi
+else
+    if ! (which $vrt_validate > /dev/null 2> /dev/null); then
+	echo "vrt-validate not found, running with no VRT validation";
+	echo "(define path to validator with --vrtdir VRTDIR)";
+	vrt_validate="";
+    fi
+fi
+
 for file in *.vrt.txt;
 do
     if (wc -l $file | egrep '^0 ' > /dev/null); then
@@ -16,7 +33,9 @@ do
 	# - swap first and second fields ( ref word -> word ref )
 	# - add missing third and fourth fields with empty values ( foo 1 -> foo 1 _ _ )
 	cat $file | perl -pe 's/></>\n</g;' | perl -C -pe 's/(\t\|)\t/\1/g; s/\|\t"/|"/g;' | perl -pe 's/<\/text>/<\/text>\n/;' | perl -pe 's/^\n$//;' | perl -pe 'if (/^<text/) { s/<text/<text corpus_shortname="komi-ikdp"/; }' | perl -pe 'unless (/^</) { s/^([^\t]+)\t([^\t\n]+)/\2\t\1/; }' | perl -pe 'unless (/^</) { s/^([^\t]+\t[^\t]+)\n$/\1\t_\t_\n/; }' >> $vrtfile;
-	echo "validating "$vrtfile":";
-	$vrttools/vrt-validate $vrtfile;
+	if [ "$vrt_validate" != "" ]; then
+	    echo "validating "$vrtfile":";
+	    $vrtdir/vrt-validate $vrtfile;
+	fi
     fi
 done
