@@ -69,3 +69,7 @@ do
     cat $file | perl -pe "s/(\|\|\|<text )/\n\1/g;" > tmp;
     mv tmp $file;
 done
+
+# rename vaitokset/maajametsatiede/en_a_hammaslДДkmmoniae.txt, else korp-make gives an error:
+# UnicodeDecodeError: 'ascii' codec can't decode byte 0xd0 in position 47: ordinal not in range(128)
+mv vaitokset/maajametsatiede/en_a_hammaslДДkmmoniae.txt vaitokset/maajametsatiede/en_a_hammaslaakmmoniae.txt

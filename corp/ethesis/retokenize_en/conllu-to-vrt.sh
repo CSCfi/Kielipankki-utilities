@@ -16,8 +16,8 @@ do
 done
 
 # text attributes "type" and "faculty_directory"
-text_type=""; # add if missing
-text_faculty_directory=""; # add to all texts
+text_type="";
+text_faculty_directory="";
 
 cd ethesis_en;
 for dir in gradut vaitokset;
@@ -88,13 +88,6 @@ do
 	    # - add timefrom="000000" timeto="235959" (no file has these, but korp requires them?)
 	    #
 	    # Add type, if empty. Define faculty directory.
-	    # (text_faculty_directory and text_type contain spaces so they must be surrounded by double quotes)
-	    # the perl statement consists of:
-	    # -  'if (/^<text /) { s/>/ faculty_directory="'
-	    # -  "$text_faculty_directory"
-	    # -  '">/; s/type="_"/type="'
-	    # -  "$text_type"
-	    # -  '"/; }'
 	    perl -pe 'if (/^<text /) { s/>/ faculty_directory="'"$text_faculty_directory"'">/; s/type="_"/type="'"$text_type"'"/; }'
 
 	done
