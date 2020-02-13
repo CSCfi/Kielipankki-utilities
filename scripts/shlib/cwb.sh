@@ -280,9 +280,9 @@ corpus_remove_attrs () {
 
 # _corpus_copy_or_rename_attr mode corpus attrname_src attrname_dst
 #
-# Copy (if mode = "copy") or rename (if mode = "rename") attribute
-# attrname_src as attrname_dst in corpus: both data files and
-# information in the registry file.
+# Copy (if mode = "copy"), rename (if mode = "rename") or alias, i.e.
+# symlink (if mode = "alias") attribute attrname_src as attrname_dst
+# in corpus: both data files and information in the registry file.
 _corpus_copy_or_rename_attr () {
     local mode corpus attrname_src attrname_dst cmd attrtype dir fnames fname
     mode=$1
@@ -293,6 +293,10 @@ _corpus_copy_or_rename_attr () {
 	cmd="cp -p"
     elif [ "$mode" = "rename" ]; then
 	cmd="mv"
+    elif [ "$mode" = "alias" ]; then
+	cmd="ln -sf"
+	# Registry information is copied
+	mode=copy
     else
 	lib_error "_corpus_copy_or_rename_attr: Invalid mode \"$mode\""
     fi
@@ -328,6 +332,15 @@ corpus_rename_attr () {
 # files and information in the registry file.
 corpus_copy_attr () {
     _corpus_copy_or_rename_attr copy "$@"
+}
+
+# corpus_copy_attr corpus attrname_src attrname_dst
+#
+# Create alias attrname_dst for attribute attrname_src in corpus:
+# information in the registry file is copied and data files are
+# symlinked.
+corpus_alias_attr () {
+    _corpus_copy_or_rename_attr alias "$@"
 }
 
 
