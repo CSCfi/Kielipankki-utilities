@@ -278,67 +278,174 @@ corpus_remove_attrs () {
     done
 }
 
-# _corpus_copy_or_rename_attr mode corpus attrname_src attrname_dst
+# _corpus_copy_or_rename_attr mode [options] corpus attrname_src attrname_dst
 #
 # Copy (if mode = "copy"), rename (if mode = "rename") or alias, i.e.
 # symlink (if mode = "alias") attribute attrname_src as attrname_dst
 # in corpus: both data files and information in the registry file.
+#
+# Options:
+# --backup-suffix SUFFIX: Use SUFFIX instead of .bak-YYYYMMDDhhmmss as
+#     the suffix for the backups of the registry file and possible
+#     existing destination data files; use "" not to make backups.
+# --comment COMMENT: Add comment COMMENT to the registry file instead
+#     of a standard comment; use "" to omit the comment.
+#
+# Note that options follow mode (to make it easier to pass the
+# arguments from specific functions using a fixed mode).
+#
+# The source attribute must exist and the destination may not be the
+# same as the source. If the destination attribute exists, it must
+# have the same type as the source. If it is a structural attribute
+# with annotations, the bare structure must be the same. If the
+# destination attribute does not exist, and if the source attribute is
+# structural with annotations, the destination name must contain an
+# underscore, or if the source is bare structure, the destination name
+# must not contain underscore. If these conditions are not met, the
+# function returns 1.
 _corpus_copy_or_rename_attr () {
-    local mode corpus attrname_src attrname_dst cmd attrtype dir fnames fname
+    local mode comment comment_verb corpus attrname_src attrname_dst cmd \
+	  attrtype_src attrtype_dst baksuff fnames fname fname_dst
     mode=$1
+    comment="__DEFAULT"
+    baksuff=.bak-$(date +%Y%m%d%H%M%S)
+    while [ "${2#--}" != "$2" ]; do
+	if [ "$2" = "--comment" ]; then
+	    comment=$3
+	    shift 2
+	elif [ "$2" = "--backup-suffix" ]; then
+	    baksuff=$3
+	    shift 2
+	else
+	    lib_error "_corpus_copy_or_rename_attr: Unrecognized option $2"
+	fi
+    done
     corpus=$2
     attrname_src=$3
     attrname_dst=$4
     if [ "$mode" = "copy" ]; then
 	cmd="cp -p"
+	comment_verb="Copied"
     elif [ "$mode" = "rename" ]; then
 	cmd="mv"
+	comment_verb="Renamed"
     elif [ "$mode" = "alias" ]; then
 	cmd="ln -sf"
+	comment_verb="Aliased"
 	# Registry information is copied
 	mode=copy
     else
 	lib_error "_corpus_copy_or_rename_attr: Invalid mode \"$mode\""
     fi
-    attrtype=$(corpus_get_attr_type $corpus $attrname_src)
-    if [ "x$attrtype" != x ]; then
-	cwb_registry_${mode}_attr $corpus $attrname_src $attrname_dst $attrtype
-	(
-	    cd "$corpus_root/data/$corpus"
-	    # This should be safe as data file names cannot contain
-	    # spaces
-	    fnames=$(echo $attrname_src.*)
-	    if [ $attrtype = "s" ] && ! in_str _ $attrname_src; then
-		fnames="$fnames $(echo ${attrname_src}_*.*)"
+    attrtype_src=$(corpus_get_attr_type_full $corpus $attrname_src)
+    # Source attribute needs to exist and be different from the
+    # destination
+    if [ "x$attrtype_src" = x ] || [ "$attrname_src" = "$attrname_dst" ]; then
+	return 1
+    fi
+    attrtype_dst=$(corpus_get_attr_type_full $corpus $attrname_dst)
+    # If the destination attribute already exists, it needs to have
+    # the same type as the source.
+    if [ "x$attrtype_dst" != x ] && [ "$attrtype_src" != "$attrtype_dst" ]; then
+	return 1
+    fi
+    # If the destination attribute does not exist, and if the source
+    # attribute is structural with annotations, the destination name
+    # must contain an underscore, or if the source is bare structure,
+    # the destination name must not contain underscore.
+    if [ "x$attrtype_dst" = x ]; then
+	if { [ "$attrtype_src" = "s_" ] && ! in_str "_" "$attrname_dst"; } ||
+	       { [ "$attrtype_src" = "s" ] && in_str "_" "$attrname_dst"; }
+	then
+	    return 1
+	fi
+    fi
+    # If the source attribute is structural with annotations, the bare
+    # structure of the destination needs to be the same
+    if [ "$attrtype_src" = "s_" ] &&
+	   [ "${attrname_src%%_*}" != "${attrname_dst%%_*}" ]
+    then
+	return 1
+    fi
+    if [ "$comment" = "__DEFAULT" ]; then
+	comment="$(date "+%Y-%m-%d"): $comment_verb $attrname_src to $attrname_dst"
+	if [ "$attrtype_dst" = "$attrtype_src" ]
+	then
+	    if [ "x$baksuff" != x ]; then
+		comment="$comment; existing $attrname_dst data backed up with suffix $baksuff"
+	    else
+		comment="$comment, overwriting existing $attrname_dst data"
 	    fi
-	    for fname in $fnames; do
-		$cmd $fname $attrname_dst${fname#$attrname_src}
-	    done
-	)
+	fi
+    fi
+    if [ "x$baksuff" != x ]; then
+	cp -p "$cwb_regdir/$corpus" "$cwb_regdir/$corpus$baksuff"
+    fi
+    cwb_registry_${mode}_attr $corpus $attrname_src $attrname_dst $attrtype_src
+    (
+	cd "$corpus_root/data/$corpus"
+	# This should be safe as data file names cannot contain
+	# spaces
+	fnames=$(echo $attrname_src.*)
+	if [ $attrtype_src = "s" ]; then
+	    fnames="$fnames $(echo ${attrname_src}_*.*)"
+	fi
+	for fname in $fnames; do
+	    fname_dst=$attrname_dst${fname#$attrname_src}
+	    if [ "x$baksuff" != x ] && [ -e $fname_dst ]; then
+		cp -p $fname_dst $fname_dst$baksuff
+	    fi
+	    $cmd $fname $fname_dst
+	done
+    )
+    if [ "x$comment" != x ]; then
+	cwb_registry_add_attr_comment \
+	    $corpus $attrname_dst "$comment" $attrtype_src
     fi
 }
 
-# corpus_rename_attr corpus attrname_src attrname_dst
+# corpus_rename_attr [options] corpus attrname_src attrname_dst
 #
 # Rename attribute attrname_src as attrname_dst in corpus: both data
 # files and information in the registry file.
+#
+# Options:
+# --backup-suffix SUFFIX: Use SUFFIX instead of .bak-YYYYMMDDhhmmss as
+#     the suffix for the backups of the registry file and possible
+#     existing target data files; use "" not to make backups.
+# --comment COMMENT: Add comment COMMENT to the registry file instead
+#     of a standard comment; use "" to omit the comment.
 corpus_rename_attr () {
     _corpus_copy_or_rename_attr rename "$@"
 }
 
-# corpus_copy_attr corpus attrname_src attrname_dst
+# corpus_copy_attr [options] corpus attrname_src attrname_dst
 #
 # Copy attribute attrname_src to attrname_dst in corpus: both data
 # files and information in the registry file.
+#
+# Options:
+# --backup-suffix SUFFIX: Use SUFFIX instead of .bak-YYYYMMDDhhmmss as
+#     the suffix for the backups of the registry file and possible
+#     existing target data files; use "" not to make backups.
+# --comment COMMENT: Add comment COMMENT to the registry file instead
+#     of a standard comment; use "" to omit the comment.
 corpus_copy_attr () {
     _corpus_copy_or_rename_attr copy "$@"
 }
 
-# corpus_copy_attr corpus attrname_src attrname_dst
+# corpus_alias_attr [options] corpus attrname_src attrname_dst
 #
 # Create alias attrname_dst for attribute attrname_src in corpus:
 # information in the registry file is copied and data files are
 # symlinked.
+#
+# Options:
+# --backup-suffix SUFFIX: Use SUFFIX instead of .bak-YYYYMMDDhhmmss as
+#     the suffix for the backups of the registry file and possible
+#     existing target data files; use "" not to make backups.
+# --comment COMMENT: Add comment COMMENT to the registry file instead
+#     of a standard comment; use "" to omit the comment.
 corpus_alias_attr () {
     _corpus_copy_or_rename_attr alias "$@"
 }
