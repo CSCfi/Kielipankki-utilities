@@ -700,25 +700,39 @@ cwb_registry_comment_out_attr () {
 	'if (/[^ ]/ && ! /^# # <$attrname_src/) { sub(/^/, \"# \") }'
 }
 
-# cwb_registry_add_attr_comment corpus attrname comment [attrtype]
+# cwb_registry_add_attr_comment [--blank=before|after|before+after]
+#                               corpus attrname comment [attrtype]
 #
 # Add a comment before the attribute attrname (of type attrtype) in
 # the registry file of corpus. For bare (unannotated) structural
 # attributes, the comment is added before the leading comment line
 # containing <struct attr1=".."> ... If attrtype is omitted, it is
 # found out. comment may contain multiple lines; each line is prefixed
-# with "# ".
+# with "# ". If --blank is specified, a blank line is added before,
+# after, or before and after the comment, according to its argument.
 cwb_registry_add_attr_comment () {
-    local comment
+    local comment blank print_stmt
+    blank=
+    if [ "${1#--blank=}" != "$1" ]; then
+	blank=${1#--blank=}
+	shift
+    fi
     # Convert newlines to "\\n" for Awk code to be evaled
     comment="$(safe_echo "$3" | sed -e 's/^/# /; s/$/\\\\n/' | tr -d '\n')"
+    print_stmt='printf \"%s\", \"'"$comment"'\"'
+    if in_str "before" "$blank"; then
+	print_stmt='print \"\"; '"$print_stmt"
+    fi
+    if in_str "after" "$blank"; then
+	print_stmt="$print_stmt"'; print \"\"'
+    fi
     _cwb_registry_manage_attr_awk \
 	$1 $2 $2 "$4" \
 	'# struct is an implementation detail of
 	 #_cwb_registry_manage_attr_awk but that is needed to not add
 	 # comments to each annotated attribute of a bare structure.
-	 if (! struct) { printf \"%s\", \"'"$comment"'\" }' \
-	'printf \"%s\", \"'"$comment"'\"' \
+	 if (! struct) { '"$print_stmt"' }' \
+	"$print_stmt" \
 	'' \
 	''
 }
