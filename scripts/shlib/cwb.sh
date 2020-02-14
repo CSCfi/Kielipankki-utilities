@@ -369,6 +369,9 @@ corpus_alias_attr () {
 # If the destination attribute name is non-empty and different from
 # the source, the destination attribute is removed if their types are
 # the same; otherwise, the function exits with an error.
+#
+# TODO: Should we check that if the source and target attributes are
+# structures with annotations, their bare structure is the same?
 _cwb_registry_manage_attr () {
     local corpus attrname_src attrname_dst attrtype attrtype_dst \
 	  struct_annot_eval struct_bare_eval nonstruct_eval \
@@ -379,7 +382,7 @@ _cwb_registry_manage_attr () {
     if [ "x$4" != x ]; then
 	attrtype=$4
     else
-	attrtype=$(corpus_get_attr_type $corpus $attrname_src)
+	attrtype=$(corpus_get_attr_type_full $corpus $attrname_src)
     fi
     nonstruct_eval=$5
     struct_bare_eval=$6
@@ -387,7 +390,7 @@ _cwb_registry_manage_attr () {
     regfile="$cwb_regdir/$corpus"
     # Check for possibly existing destination attribute
     if [ "$attrname_dst" != "$attrname_src" ] && [ "x$attrname_dst" != x ]; then
-	attrtype_dst=$(corpus_get_attr_type $corpus $attrname_dst)
+	attrtype_dst=$(corpus_get_attr_type_full $corpus $attrname_dst)
 	if [ "x$attrtype_dst" != x ]; then
 	    if [ "$attrtype_dst" = "$attrtype" ]; then
 		cwb_registry_remove_attr $corpus $attrname_dst $attrtype
@@ -399,14 +402,12 @@ _cwb_registry_manage_attr () {
     cp -p "$regfile" "$regfile.old" ||
 	error "Could not copy $regfile to $regfile.old"
     if [ "$attrtype" = "s" ]; then
-	if in_str _ $attrname_src; then
-	    struct=${attrname_src%%_*}
-	    attrname0_src=${attrname_src#*_}
-	    attrname0_dst=${attrname_dst#*_}
-	    eval "$struct_annot_eval" < "$regfile.old" > "$regfile"
-	else
-	    eval "$struct_bare_eval" < "$regfile.old" > "$regfile"
-	fi
+	eval "$struct_bare_eval" < "$regfile.old" > "$regfile"
+    elif [ "$attrtype" = "s_" ]; then
+	struct=${attrname_src%%_*}
+	attrname0_src=${attrname_src#*_}
+	attrname0_dst=${attrname_dst#*_}
+	eval "$struct_annot_eval" < "$regfile.old" > "$regfile"
     else
 	eval "$nonstruct_eval" < "$regfile.old" > "$regfile"
     fi
