@@ -724,12 +724,35 @@ corpus_has_attr () {
     grep -E -q -s "^$attrname$"
 }
 
-# corpus_get_attrtype corpus attrname
+# corpus_get_attr_type corpus attrname
 #
 # Output the type of attribute attrname in corpus: p (positional), s
 # (structural) or a (alignment).
 corpus_get_attr_type () {
     nth_arg 1 $(corpus_list_attrs --show-type $1 '*' $2)
+}
+
+# corpus_get_attr_type_full corpus attrname
+#
+# Output the type of attribute like corpus_get_attr_type, but with
+# "s_" for a structural attribute with annotations (such as
+# sentence_id) and "s" for a bare structural attribute (such as
+# sentence).
+corpus_get_attr_type_full () {
+    local attrtype
+    attrtype=$(corpus_get_attr_type "$@")
+    if [ "$attrtype" = "s" ] && in_str "_" "$2"; then
+	attrtype=s_
+    fi
+    echo "$attrtype"
+}
+
+# struct_attr_get_struct attrname
+#
+# Output the bare structure for a structural attribute attrname with
+# annotations, such as "sentence" for "sentence_id".
+struct_attr_get_struct () {
+    echo "${1%%_*}"
 }
 
 # corpus_attr_is_featset_valued corpus attrtype attrname
