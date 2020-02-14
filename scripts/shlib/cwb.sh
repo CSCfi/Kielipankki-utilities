@@ -262,6 +262,9 @@ cwb_index_posattr () {
 #
 # Remove the listed attribute names from corpus: both data files and
 # information in the registry file.
+#
+# NOTE: This function is superseded by corpus_remove_attr further
+# below.
 corpus_remove_attrs () {
     local corpus attrname attrtype
     corpus=$1
@@ -278,11 +281,12 @@ corpus_remove_attrs () {
     done
 }
 
-# _corpus_copy_or_rename_attr mode [options] corpus attrname_src attrname_dst
+# _corpus_manage_attr mode [options] corpus attrname_src [attrname_dst]
 #
 # Copy (if mode = "copy"), rename (if mode = "rename") or alias, i.e.
-# symlink (if mode = "alias") attribute attrname_src as attrname_dst
-# in corpus: both data files and information in the registry file.
+# symlink (if mode = "alias") attribute attrname_src as attrname_dst,
+# or remove (if mode = "remove") attribute attrname_src in corpus:
+# both data files and information in the registry file.
 #
 # Options:
 # --backup-suffix SUFFIX: Use SUFFIX instead of .bak-YYYYMMDDhhmmss as
@@ -303,9 +307,19 @@ corpus_remove_attrs () {
 # underscore, or if the source is bare structure, the destination name
 # must not contain underscore. If these conditions are not met, the
 # function returns 1.
-_corpus_copy_or_rename_attr () {
-    local mode comment comment_verb corpus attrname_src attrname_dst cmd \
-	  attrtype_src attrtype_dst baksuff fnames fname fname_dst
+#
+# FIXME: Would it actually be better to use hard links instead of
+# symbolic ones for alias? Renaming or removing an attribute that
+# another attribute links to makes the symbolic links dangle, whereas
+# that would not be a problem for hard links. On the other hand,
+# hard-linked files are more difficult to recognize as links. Another
+# option might be to try to check for such cases and either disallow
+# them, warn on them or apply the operation also to the linking
+# attribute. We could also have an option for hard links.
+_corpus_manage_attr () {
+    local mode comment comment_verb corpus attrname_src attrname_dst \
+	  attrname_bak cmd attrtype_src attrtype_dst baksuff fnames fname \
+	  fname_dst
     mode=$1
     comment="__DEFAULT"
     baksuff=.bak-$(date +%Y%m%d%H%M%S)
@@ -317,11 +331,12 @@ _corpus_copy_or_rename_attr () {
 	    baksuff=$3
 	    shift 2
 	else
-	    lib_error "_corpus_copy_or_rename_attr: Unrecognized option $2"
+	    lib_error "_corpus_manage_attr: Unrecognized option $2"
 	fi
     done
     corpus=$2
     attrname_src=$3
+    # Destination is empty for remove
     attrname_dst=$4
     if [ "$mode" = "copy" ]; then
 	cmd="cp -p"
@@ -334,8 +349,11 @@ _corpus_copy_or_rename_attr () {
 	comment_verb="Aliased"
 	# Registry information is copied
 	mode=copy
+    elif [ "$mode" = "remove" ]; then
+	cmd="rm -f"
+	comment_verb="Removed"
     else
-	lib_error "_corpus_copy_or_rename_attr: Invalid mode \"$mode\""
+	lib_error "_corpus_manage_attr: Invalid mode \"$mode\""
     fi
     attrtype_src=$(corpus_get_attr_type_full $corpus $attrname_src)
     # Source attribute needs to exist and be different from the
@@ -343,43 +361,69 @@ _corpus_copy_or_rename_attr () {
     if [ "x$attrtype_src" = x ] || [ "$attrname_src" = "$attrname_dst" ]; then
 	return 1
     fi
-    attrtype_dst=$(corpus_get_attr_type_full $corpus $attrname_dst)
-    # If the destination attribute already exists, it needs to have
-    # the same type as the source.
-    if [ "x$attrtype_dst" != x ] && [ "$attrtype_src" != "$attrtype_dst" ]; then
-	return 1
-    fi
-    # If the destination attribute does not exist, and if the source
-    # attribute is structural with annotations, the destination name
-    # must contain an underscore, or if the source is bare structure,
-    # the destination name must not contain underscore.
-    if [ "x$attrtype_dst" = x ]; then
-	if { [ "$attrtype_src" = "s_" ] && ! in_str "_" "$attrname_dst"; } ||
-	       { [ "$attrtype_src" = "s" ] && in_str "_" "$attrname_dst"; }
+    if [ $mode = "remove" ]; then
+	# Back up the source attribute to be removed
+	attrname_bak=$attrname_src
+	attrtype_dst=$attrtype_src
+    else
+	attrname_bak=$attrname_dst
+	attrtype_dst=$(corpus_get_attr_type_full $corpus $attrname_dst)
+	# If the destination attribute already exists, it needs to
+	# have the same type as the source.
+	if [ "x$attrtype_dst" != x ] && [ "$attrtype_src" != "$attrtype_dst" ]
+	then
+	    return 1
+	fi
+	# If the destination attribute does not exist, and if the
+	# source attribute is structural with annotations, the
+	# destination name must contain an underscore, or if the
+	# source is bare structure, the destination name must not
+	# contain underscore.
+	if [ "x$attrtype_dst" = x ]; then
+	    if { [ "$attrtype_src" = "s_" ] &&
+		     ! in_str "_" "$attrname_dst"; } ||
+		   { [ "$attrtype_src" = "s" ] &&
+			 in_str "_" "$attrname_dst"; }
+	    then
+		return 1
+	    fi
+	fi
+	# If the source attribute is structural with annotations, the
+	# bare structure of the destination needs to be the same
+	if [ "$attrtype_src" = "s_" ] &&
+	       [ "${attrname_src%%_*}" != "${attrname_dst%%_*}" ]
 	then
 	    return 1
 	fi
     fi
-    # If the source attribute is structural with annotations, the bare
-    # structure of the destination needs to be the same
-    if [ "$attrtype_src" = "s_" ] &&
-	   [ "${attrname_src%%_*}" != "${attrname_dst%%_*}" ]
-    then
-	return 1
-    fi
     if [ "$comment" = "__DEFAULT" ]; then
-	comment="$(date "+%Y-%m-%d"): $comment_verb $attrname_src to $attrname_dst"
-	if [ "$attrtype_dst" = "$attrtype_src" ]
-	then
-	    if [ "x$baksuff" != x ]; then
-		comment="$comment; existing $attrname_dst data backed up with suffix $baksuff"
-	    else
-		comment="$comment, overwriting existing $attrname_dst data"
+	comment="$(date "+%Y-%m-%d"): $comment_verb $attrname_src"
+	if [ $mode != "remove" ]; then
+	    comment="$comment to $attrname_dst"
+	    if [ "$attrtype_dst" = "$attrtype_src" ]
+	    then
+		if [ "x$baksuff" != x ]; then
+		    comment="$comment; existing $attrname_dst data backed up with suffix $baksuff"
+		else
+		    comment="$comment, overwriting existing $attrname_dst data"
+		fi
 	    fi
+	elif [ "x$baksuff" != x ]; then
+	    comment="$comment; data backed up with suffix $baksuff"
 	fi
     fi
     if [ "x$baksuff" != x ]; then
 	cp -p "$cwb_regdir/$corpus" "$cwb_regdir/$corpus$baksuff"
+    fi
+    # For removal, the comment needs to be added before removing the
+    # information.
+    if [ $mode = "remove" ] && [ "x$comment" != x ]; then
+	# Add a blank line after the comment, before the structure
+	# block to be removed, to separate it from the structure block
+	# after removal, as the trailing blank line of a structure
+	# block is also removed.
+	cwb_registry_add_attr_comment \
+	    --blank=after $corpus $attrname_src "$comment" $attrtype_src
     fi
     cwb_registry_${mode}_attr $corpus $attrname_src $attrname_dst $attrtype_src
     (
@@ -391,14 +435,20 @@ _corpus_copy_or_rename_attr () {
 	    fnames="$fnames $(echo ${attrname_src}_*.*)"
 	fi
 	for fname in $fnames; do
-	    fname_dst=$attrname_dst${fname#$attrname_src}
-	    if [ "x$baksuff" != x ] && [ -e $fname_dst ]; then
+	    fname_dst=$attrname_bak${fname#$attrname_src}
+	    # Do not back up backup files
+	    if [ "x$baksuff" != x ] && [ -e $fname_dst ] &&
+		   [ ${fname_dst%.bak*} = $fname_dst ]
+	    then
 		cp -p $fname_dst $fname_dst$baksuff
+	    fi
+	    if [ $mode = "remove" ]; then
+		fname_dst=
 	    fi
 	    $cmd $fname $fname_dst
 	done
     )
-    if [ "x$comment" != x ]; then
+    if [ $mode != "remove" ] && [ "x$comment" != x ]; then
 	cwb_registry_add_attr_comment \
 	    $corpus $attrname_dst "$comment" $attrtype_src
     fi
@@ -416,7 +466,7 @@ _corpus_copy_or_rename_attr () {
 # --comment COMMENT: Add comment COMMENT to the registry file instead
 #     of a standard comment; use "" to omit the comment.
 corpus_rename_attr () {
-    _corpus_copy_or_rename_attr rename "$@"
+    _corpus_manage_attr rename "$@"
 }
 
 # corpus_copy_attr [options] corpus attrname_src attrname_dst
@@ -431,7 +481,7 @@ corpus_rename_attr () {
 # --comment COMMENT: Add comment COMMENT to the registry file instead
 #     of a standard comment; use "" to omit the comment.
 corpus_copy_attr () {
-    _corpus_copy_or_rename_attr copy "$@"
+    _corpus_manage_attr copy "$@"
 }
 
 # corpus_alias_attr [options] corpus attrname_src attrname_dst
@@ -447,7 +497,25 @@ corpus_copy_attr () {
 # --comment COMMENT: Add comment COMMENT to the registry file instead
 #     of a standard comment; use "" to omit the comment.
 corpus_alias_attr () {
-    _corpus_copy_or_rename_attr alias "$@"
+    _corpus_manage_attr alias "$@"
+}
+
+# corpus_remove_attr [options] corpus attrname
+#
+# Remove attribute attrname in corpus: both data files and information
+# in the registry file.
+#
+# Options:
+# --backup-suffix SUFFIX: Use SUFFIX instead of .bak-YYYYMMDDhhmmss as
+#     the suffix for the backups of the registry file and data files;
+#     use "" not to make backups.
+# --comment COMMENT: Add comment COMMENT to the registry file instead
+#     of a standard comment; use "" to omit the comment.
+#
+# Note that this function takes only for a single attribute name as an
+# argument, unlike corpus_remove_attrs further above.
+corpus_remove_attr () {
+    _corpus_manage_attr remove "$@"
 }
 
 
