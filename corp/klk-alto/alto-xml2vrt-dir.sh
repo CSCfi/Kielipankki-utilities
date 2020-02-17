@@ -7,7 +7,7 @@ for xmlfile in *.xml;
 do
     if !(echo $xmlfile | grep 'mets\.xml' > /dev/null 2> /dev/null); then
 	if !(echo $xmlfile | egrep 'page\-[0-9]+\.xml' > /dev/null 2> /dev/null); then
-	    echo "Error: XML file "$file" does not have page defined in its name, exiting.";
+	    echo "Error: XML file "$xmlfile" does not have page defined in its name, exiting.";
 	    exit 1;
 	fi
 	metsfile=`echo $xmlfile | perl -pe 's/page\-[0-9]+\.xml/mets.xml/'`;
