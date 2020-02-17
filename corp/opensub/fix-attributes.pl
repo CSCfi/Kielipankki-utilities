@@ -13,9 +13,11 @@ while (<STDIN>)
 
     if (/^<\!/)
     {
+	# Get rid of this line, korp-make inserts it
 	# <!-- #vrt positional-attributes: word ref lemma lemmacomp pos msd dephead deprel lemma_ud1 pos_ud1 msd_ud1 dephead_ud1 deprel_ud1 lex/ -->
-	s/lemmacomp //;
-	s/lex\/ //;
+	# s/lemmacomp //;
+	# s/lex\/ //;
+	next;
     }
     elsif (/^<text /)
     {
@@ -54,8 +56,9 @@ while (<STDIN>)
     }
     else
     {
-	# get rid of lemmacomp (4th field) and lex/ (last field)
-	s/^([^\t]+\t[^\t]+\t[^\t]+\t)[^\t]+\t/$1/;
+	# get rid of lemma (3th field) and lex/ (last field)
+	# lemmacomp (4th field) is the original lemma that was renamed to lemmacomp by korp-make
+	s/^([^\t]+\t[^\t]+\t)[^\t]+\t/$1/;
 	s/\t[^\t\n]+$//;
     }
     print;
