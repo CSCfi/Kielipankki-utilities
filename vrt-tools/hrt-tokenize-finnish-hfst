@@ -17,9 +17,7 @@ from vrtdatalib import binescape
 from vrtnamelib import binmakenames
 from hrtlib import tokenize
 
-from outsidelib import OMORFITOKENIZE132, OMORFITOKENIZE140
-from outsidelib import HFSTBIN, HFSTLIB
-from outsidelib import prebins, prelibs, utf8ish
+from outsidelib import OMORFITOKENIZER, HFSTENV
 
 def parsearguments():
     description = '''
@@ -47,18 +45,9 @@ def parsearguments():
 
 def main(args, inf, ouf):
 
-    OMORFITOKENIZE = (
-        OMORFITOKENIZE132 if args.tagtools == '1.3.2' else
-        OMORFITOKENIZE140 if args.tagtools == '1.4.0' else
-        # this cannot happen
-        'nosuchomorfi'
-    )
-    proc = Popen([ 'hfst-tokenize', OMORFITOKENIZE ],
-                 env = dict(os.environ,
-                            PATH = prebins(HFSTBIN),
-                            LD_LIBRARY_PATH = prelibs(HFSTLIB),
-                            LC_ALL = utf8ish(),
-                            PYTHONIOENCODING = 'UTF-8'),
+    proc = Popen([ 'hfst-tokenize',
+                   OMORFITOKENIZER.format(args.tagtools) ],
+                 env = HFSTENV,
                  stdin = PIPE,
                  stdout = PIPE,
                  stderr = PIPE) # sys.stderr.buffer

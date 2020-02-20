@@ -18,21 +18,7 @@ from vrtdatalib import binasrecord
 from vrtdatalib import binunescape as unescape
 from vrtdatalib import binescape as escape
 
-# The underlying thing is known variously as "mate tools" (though mate
-# tools consist of other things, too), "anna" (for whatever
-# motivation, nowhere to be found), apparently "is2", and "the parser"
-# and certain other locutions that describe or praise the parser.
-
-PARSER = [ 'java', '-cp',
-           '/proj/kieli/varpunen/mate-tools/anna-3-1.jar',
-           'is2.parser.Parser',
-           '-model', '/proj/kieli/varpunen/models/parser.model',
-           '-test', '/dev/stdin'
-
-           # extend with [ '-out', pipename ] at the point of Popen,
-           # when a named-pipe name is at hand, because this version
-           # of this thing writes its *diagnostics* in its stdout
-]
+from outsidelib import ALPARSERCMD
 
 # Let slip the first "Processing Sentence: 1 (32 ms/instance)".
 # Quash the hundred thousand "2 (113 ms/instance)" that follow.
@@ -140,12 +126,10 @@ def main(args, inf, ouf):
 
     quasher is None or breaker.stdout.close()
 
-    with Popen(PARSER + [ '-out', pipename ],
+    with Popen(ALPARSERCMD + [ '-out', pipename ],
                stdin = PIPE,
                stdout = (breaker.stdin if breaker else DEVNULL),
                stderr = sys.stderr.buffer) as parser:
-
-
 
         # opening the named pipe *here* seems to succeed
 

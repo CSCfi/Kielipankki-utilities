@@ -18,16 +18,7 @@ from vrtnamelib import bininsertnames as insertnames
 from vrtdatalib import binasrecord as asrecord
 from vrtdatalib import binescape as escape, binunescape as unescape
 
-from outsidelib import MARMOTJAR, MARMOTMODEL
-
-MARMOT = [
-    'java',
-    '-cp', MARMOTJAR,
-    'marmot.morph.cmd.Annotator',
-    '--model-file', MARMOTMODEL,
-    '--test-file', 'form-index=0,token-feature-index=1,/dev/stdin',
-    '--pred-file', '/dev/stdout'
-]
+from outsidelib import ALMARMOTCMD
 
 def parsearguments():
     description = '''
@@ -72,7 +63,7 @@ def terminate(proc):
 
 def main(args, inf, ouf):
 
-    with Popen(MARMOT,
+    with Popen(AMARMOTCMD,
                stdin = PIPE,
                stdout = PIPE,
                stderr = sys.stderr.buffer) as marmot:

@@ -15,8 +15,7 @@ from vrtdatalib import unescape, escape
 # some overrides to the omorfi transducer
 from libtdpalphalookup import additions, TAGCAT
 
-MODELDIR = '/proj/kieli/varpunen/models'
-MODEL = 'morphology.finntreebank.hfstol'
+from outsidelib import AOMORFI
 
 def parsearguments():
     description = '''
@@ -416,7 +415,7 @@ def main(args, ins, ous):
 
     global FTB
     # that be optimized-lookup form transducer (specific transducer!)
-    tin = hfst.HfstInputStream(os.path.join(MODELDIR, MODEL))
+    tin = hfst.HfstInputStream(AOMORFI)
     FTB = next(tin)
     tin.close() # it *should* be made a context manager TOREPORT
 
