@@ -63,7 +63,7 @@ def terminate(proc):
 
 def main(args, inf, ouf):
 
-    with Popen(AMARMOTCMD,
+    with Popen(ALMARMOTCMD,
                stdin = PIPE,
                stdout = PIPE,
                stderr = sys.stderr.buffer) as marmot:
