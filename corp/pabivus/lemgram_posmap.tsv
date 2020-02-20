@@ -1,0 +1,35 @@
+_	xx
+N	nn # noun
+CLB	xx # punctuation
+V	vb # verb
+Pron	pn # pronoun
+Adv	ab # adverb
+PUNCT	xx # punctuation
+CC	kn # coordinating conjunction
+A	jj # adjective
+Adp	pp # adposition 
+Pcle	xx # particle
+Po	pp # adposition
+Num	rg # numeral
+CS	sn # subordinating conjunction
+Det	al # determiner
+Interj	in # interjection
+Ad	ab # adverb
+Hom	xx
+C	xx # conjunction
+Hom1	xx
+Card	rg # cardinal number
+Pl	xx # plural
+Adn	jj # adjective
+Hom2	xx
+Sg	xx # singular
+Temp	ab # adverb
+Qnt	ab # adverb
+Coll	xx # collective nominal
+Ord	jj # ordinal adjective
+SP	xx # singular/plural
+Descr	xx
+Prc	vb # participe
+IV	vb # intransitive verb
+Der	xx
+Err/Dial	xx
