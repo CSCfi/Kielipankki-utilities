@@ -15,7 +15,7 @@ from vrtdatalib import unescape, escape
 # some overrides to the omorfi transducer
 from libtdpalphalookup import additions, TAGCAT
 
-from outsidelib import AOMORFI
+from outsidelib import ALOMORFI
 
 def parsearguments():
     description = '''
@@ -415,7 +415,7 @@ def main(args, ins, ous):
 
     global FTB
     # that be optimized-lookup form transducer (specific transducer!)
-    tin = hfst.HfstInputStream(AOMORFI)
+    tin = hfst.HfstInputStream(ALOMORFI)
     FTB = next(tin)
     tin.close() # it *should* be made a context manager TOREPORT
 
