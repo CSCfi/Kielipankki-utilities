@@ -9,7 +9,7 @@ from .fixenv import prebins, prelibs, utf8ish
 LINGDIR = '/appl/soft/ling'
 
 # where tdp "alpha" components are installed on a temporary basis
-VARPUNENDIR = '/scratch/clarin/varpunen' # highly temporary
+VARPUNENDIR = '/projappl/clarin/varpunen'
 
 # tdp "alpha" omorfi transducer
 ALOMORFI = (
