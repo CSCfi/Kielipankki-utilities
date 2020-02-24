@@ -2,7 +2,7 @@
 
 # - Mitä on erä?
 # - Riistaa kuten te.
-# (Seen in a Tenavat cartoon that has not be found again.)
+# (Seen in a Tenavat cartoon that has not been found again.)
 
 from argparse import ArgumentParser, REMAINDER
 from itertools import chain
@@ -13,8 +13,10 @@ import os
 
 parser = ArgumentParser(description = '''
 
-Send a single command to the batch system in Taito, with all manner of
+Send a single command to the batch system in Puhti, with all manner of
 defaults, to be run in the current working directory, without waiting.
+
+By default, the command is executed with module kieli loaded.
 
 ''')
 parser.add_argument('command', help = "an executable command")
@@ -73,6 +75,10 @@ parser.add_argument('--test', action = 'store_const', const = 'test',
                     run in test partition instead of serial
                     ''')
 
+parser.add_argument('--no-kieli', dest = 'kieli', action = 'store_false',
+                    help = '''
+                    do not load kieli (default is to load)
+                    ''')
 # add options
 
 args = parser.parse_args()
@@ -143,6 +149,8 @@ def setup(args):
 
 logdir, outfile, tempfile = setup(args)
 
+kieli = ('module load kieli' if args.kieli else '')
+
 # Depending on the output options, one of:
 # cmd arg ...
 # cmd arg ... > outfile
@@ -202,9 +210,11 @@ echo workdir: {workdir}
 echo partition: {partition}
 echo time: {time}
 echo memory: {memory}
+echo load kieli: {whetherkieli}
 echo
 date "+%F %T START"
 
+{kieli}
 {command}
 
 status=$?
@@ -222,6 +232,8 @@ date "+%F %T FINISH IN $time WITH STATUS $status"
            workdir = quote(os.getcwd()),
            logcommand = quote(logcommand),
            outfile = quote(outfile or '(stdout)'),
+           kieli = kieli,
+           whetherkieli = ('yes' if args.kieli else 'no'),
            command = command,
            finish = finish)
 

@@ -19,9 +19,11 @@ import os, sys
 parser = ArgumentParser(description = '''
 
 Send a single command with a set of arguments to the batch system in
-Taito, with all manner of defaults, as an array job to be run in the
+Puhti, with all manner of defaults, as an array job to be run in the
 current working directory on each argument, without waiting. The set
 of separate arguments starts at '//' on the command line.
+
+By default, the command is executed with module kieli loaded.
 
 ''')
 parser.add_argument('command',
@@ -102,6 +104,11 @@ parser.add_argument('--test', action = 'store_const', const = 'test',
                     run in test partition instead of serial
                     ''')
 
+parser.add_argument('--no-kieli', dest = 'kieli', action = 'store_false',
+                    help = '''
+                    do not load kieli (default is to load)
+                    ''')
+
 # add options
 
 args = parser.parse_args()
@@ -173,6 +180,8 @@ def setup(args):
     return simplepath(args.log), outfile, tempfile
 
 logdir, outfile, tempfile = setup(args)
+
+kieli = ('module load kieli' if args.kieli else '')
 
 # Depending on the output options, command is one of:
 # cmd arg ... args[TASK_ID]
@@ -280,9 +289,11 @@ echo workdir: {workdir}
 echo partition: {partition}
 echo time: {time}
 echo memory: {memory}
+echo load kieli: {whetherkieli}
 echo
 date "+%F %T START"
 
+{kieli}
 {command}
 
 status=$?
@@ -300,6 +311,8 @@ date "+%F %T FINISH IN $time WITH STATUS $status"
            last = len(tailargs),
            workdir = quote(os.getcwd()),
            logcommand = quote(logcommand),
+           kieli = kieli,
+           whetherkieli = ('yes' if args.kieli else 'no'),
            outfile = quote(outfile or '(stdout)'),
            command = command,
            args = ''.join(fill(tailargs)),
