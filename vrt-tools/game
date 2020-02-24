@@ -70,17 +70,42 @@ parser.add_argument('--cat', action = 'store_true',
                     (for information only when using temp file)
                     ''')
 
-parser.add_argument('--test', action = 'store_const', const = 'test',
-                    help = '''
-                    run in test partition instead of serial
-                    ''')
+# default partition is set just before parsing the arguments;
+# Taito defaults to "serial" as always,
+# Puhti will probably default to "large".
+group = parser.add_mutually_exclusive_group()
+group.add_argument('--test', dest = 'partition',
+                   action = 'store_const', const = 'test',
+                   help = '''
+                   run in "test" partition
+                   ''')
+group.add_argument('--serial', dest = 'partition',
+                   action = 'store_const', const = 'serial',
+                   help = '''
+                   run in "serial" partition (Taito default)
+                   ''')
+group.add_argument('--small', dest = 'partition',
+                   action = 'store_const', const = 'small',
+                   help = '''
+                   run in "small" partition (Puhti)
+                   ''')
+group.add_argument('--large', dest = 'partition',
+                   action = 'store_const', const = 'large',
+                   help = '''
+                   run in "large" partition (Puhti default)
+                   ''')
 
 parser.add_argument('--no-kieli', dest = 'kieli', action = 'store_false',
                     help = '''
                     do not load kieli (default is to load)
                     ''')
+
 # add options
 
+parser.set_defaults(partition = ('large' # guess this is Puhti
+                                 if os.path.exists('/appl/soft/ling') else
+                                 # guess this is Taito
+                                 'serial'))
 args = parser.parse_args()
 
 def simplepath(path):
@@ -224,7 +249,7 @@ T=$SECONDS
 printf -v time %d:%02d:%02d $((T/3600)) $((T%3600/60)) $((T%60))
 date "+%F %T FINISH IN $time WITH STATUS $status"
 '''.format(job = args.job,
-           partition = args.test or 'serial',
+           partition = args.partition,
            time = time,
            memory = memory,
            out = quote(os.path.join(args.log, '%j-{}.out'.format(args.job))),
