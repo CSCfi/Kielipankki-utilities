@@ -65,10 +65,42 @@ group.add_argument('--GiB', metavar = 'num',
 
 parser.add_argument('--cat', action = 'store_true',
                     help = '''
-                    write the job desciption to standard output
+                    write the job description to standard output
                     instead of sending it to the batch queue
                     (for information only when using temp file)
                     ''')
+
+if os.path.exists('/appl/soft/ling'):
+    parser.add_argument('--cores', '-c',
+                        choices = [
+                            # Puhti nodes have 40 cores, trying to
+                            # allocate all cores in the same node so that
+                            # the communication between them is fast -
+                            # TODO to allow larger multi-node numbers for
+                            # heavier but core-savvy jobs like ffmpeg
+                            '1', '2', '4', '5',
+                            '10', '20', '40'
+                        ],
+                        default = '4', # not sure!
+                        help = '''
+                        how many Puhti cores to use,
+                        all in one node [tentative default is 4]
+                        (nodes have 40 cores)
+                        ''')
+else:
+    parser.add_argument('--cores', '-c',
+                        choices = [
+                            # Taito nodes have 24 cores, trying to
+                            # allocate all cores in the same node so that
+                            # the communication between them is fast
+                            '1', '2', '4', '8', '12', '24'
+                        ],
+                        default = '4', # not sure!
+                        help = '''
+                        how many Taito cores to use,
+                        all in one node [tentative default is 4]
+                        (nodes have 24 cores)
+                        ''')
 
 # default partition is set just before parsing the arguments;
 # Taito defaults to "serial" as always,
@@ -223,6 +255,8 @@ script = '''\
 #! /bin/bash
 #SBATCH --job-name={job}
 #SBATCH --partition={partition}
+#SBATCH --nodes={nodes}
+#SBATCH --ntasks={cores}
 #SBATCH --time={time}
 #SBATCH --mem={memory}
 #SBATCH --out={out}
@@ -233,6 +267,8 @@ echo command: {logcommand}
 echo outfile: {outfile}
 echo workdir: {workdir}
 echo partition: {partition}
+echo nodes: {nodes}
+echo cores: {cores}
 echo time: {time}
 echo memory: {memory}
 echo load kieli: {whetherkieli}
@@ -250,6 +286,8 @@ printf -v time %d:%02d:%02d $((T/3600)) $((T%3600/60)) $((T%60))
 date "+%F %T FINISH IN $time WITH STATUS $status"
 '''.format(job = args.job,
            partition = args.partition,
+           nodes = '1',
+           cores = args.cores,
            time = time,
            memory = memory,
            out = quote(os.path.join(args.log, '%j-{}.out'.format(args.job))),
