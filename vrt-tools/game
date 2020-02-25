@@ -16,7 +16,7 @@ parser = ArgumentParser(description = '''
 Send a single command to the batch system in Puhti, with all manner of
 defaults, to be run in the current working directory, without waiting.
 
-By default, the command is executed with module kieli loaded.
+By default, module kieli is loaded quietly.
 
 ''')
 parser.add_argument('command', help = "an executable command")
@@ -127,9 +127,20 @@ group.add_argument('--large', dest = 'partition',
                    run in "large" partition (Puhti default)
                    ''')
 
-parser.add_argument('--no-kieli', dest = 'kieli', action = 'store_false',
+parser.add_argument('--kieli',
+                    choices = [
+                        'yes',
+                        'out',
+                        'err',
+                        'null',
+                        'no'
+                    ],
+                    default = 'null',
                     help = '''
-                    do not load kieli (default is to load)
+                    how to load kieli (default is yes, just load;
+                    out redirects its stderr to stdout, err its
+                    stdout to stderr, null both to /dev/null, and
+                    no means do not load)
                     ''')
 
 # add options
@@ -206,7 +217,12 @@ def setup(args):
 
 logdir, outfile, tempfile = setup(args)
 
-kieli = ('module load kieli' if args.kieli else '')
+kieli = ({ 'yes' : 'module load kieli',
+           'out' : '2>&1 module load kieli',
+           'err' : '1>&2 module load kieli',
+           'null' : '1> /dev/null 2>&1 module load kieli',
+           'no' : '# module load kieli' }
+         [args.kieli])
 
 # Depending on the output options, one of:
 # cmd arg ...
@@ -296,7 +312,7 @@ date "+%F %T FINISH IN $time WITH STATUS $status"
            logcommand = quote(logcommand),
            outfile = quote(outfile or '(stdout)'),
            kieli = kieli,
-           whetherkieli = ('yes' if args.kieli else 'no'),
+           whetherkieli = args.kieli,
            command = command,
            finish = finish)
 
