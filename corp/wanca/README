@@ -128,3 +128,51 @@ perl -pe 's/¤([^\t]+’)\tSpaceAfter=No¤([^.,;:)])/¤\1\2/g;' | perl -pe 's/¤
 ### Problems with multiple sentences inside paragraphs because of abbreviations
 
 perl -pe 's/\n/¤/g;' | perl -pe 's/(<paragraph id="[0-9]+">)¤<sentence (id="[0-9]+")>/\1¤<SENTENCE \2>/g; s/<\/sentence>¤<\/paragraph>/<\/SENTENCE>¤<\/paragraph>/g;' | perl -pe 's/<sentence id="[0-9]+">//g; s/<\/sentence>//g;' | perl -pe 's/¤/\n/g;' | perl -pe 's/<SENTENCE/<sentence/; s/<\/SENTENCE/<\/sentence/;' | perl -pe 's/^\n//;' | cut -f1,2 | perl -pe 's/\n/¤/;' | perl -pe 's/\tSpaceAfter=No¤(\.\t[^¤]+¤[^<])/\1/g;' | perl -pe 's/¤/\n/g;' | cut -f1,2 | ./add-sentence-and-word-numbering.pl
+
+
+# Tokenization problems fixed:
+#
+# wanca_2016_krl (25-02-2020)
+# wanca_2016_olo (25-02-2020)
+# wanca_2016_vep (25-02-2020)
+
+# Karjalassa ei toimi vielä heittomerkki.
+# Eli jos tämä merkki: ’ on yksin virkkeessä, sen pitää olla kiinni
+# edellisessä ja/tai seuraavassa jos se on kiinni alkuperäisessäkin.
+# Esim. "bol’ševikkivallankumouš"
+#
+# bol     SpaceAfter=No   3
+# ’       SpaceAfter=No   4
+# ševikkivallankumouš     _       5
+#
+# Samoin vepsässä ainakin sananloppuisena. Esim. "Uz’ Zavet"
+#
+# Uz      SpaceAfter=No   1
+# ’       _       2
+# Zavet   SpaceAfter=No   3
+#
+# Sekä Livvissä (olo) esim: "rodn’astettih" on kolmena eri sanana.
+#
+# rodn    SpaceAfter=No   40
+# ’       SpaceAfter=No   41
+# astettih        SpaceAfter=No   42
+
+# First for krl, olo and vep: append ’ to the preceding word if there is no space between them
+cut -f1,2 | perl -pe 's/\n/¤/g;' | perl -pe 's/\tSpaceAfter=No¤’/’/g;'
+
+# Then, for krl, olo and vep: prepend ’ to the following word if there is no space
+# - do not prepend to punctuation characters or xml elements
+# - do not prepend a single ’ as it has probably been used in quotation
+perl -pe 's/([^¤]’)\tSpaceAfter=No¤([^.,;:!?)…”<])/\1\2/g;'
+
+# Finally, for krl, olo and vep: change ¤ to newline and add word numbering:
+perl -pe 's/¤/\n/g;'
+./add-numbering.pl
+
+# Seems that krl has some words beginning with ’, probably quotations.
+# Fix them manually, if needed.
+egrep -C 5 '^’'
+
+# Seems that krl and olo have some words where ’ comes after a vowel,
+# maybe quotations?
+egrep '[aeiouyäö]’'
