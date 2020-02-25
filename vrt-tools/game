@@ -261,7 +261,7 @@ script = '''\
 #SBATCH --mem={memory}
 #SBATCH --out={out}
 #SBATCH --error={err}
-#SBATCH --workdir={workdir}
+#SBATCH --chdir={workdir}
 
 echo command: {logcommand}
 echo outfile: {outfile}

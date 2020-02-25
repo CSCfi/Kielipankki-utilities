@@ -333,7 +333,7 @@ script = '''\
 #SBATCH --mem={memory}
 #SBATCH --out={out}
 #SBATCH --error={err}
-#SBATCH --workdir={workdir}
+#SBATCH --chdir={workdir}
 #SBATCH --array=1-{last}
 
 args=(:
