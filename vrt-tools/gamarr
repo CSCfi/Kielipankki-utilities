@@ -14,7 +14,7 @@ from itertools import chain
 from shlex import quote
 from subprocess import Popen, PIPE
 from tempfile import mkstemp
-import os, sys
+import os, grp, sys
 
 parser = ArgumentParser(description = '''
 
@@ -156,6 +156,13 @@ group.add_argument('--large', dest = 'partition',
                    run in "large" partition (Puhti default)
                    ''')
 
+# default billing group set below just before parsing
+parser.add_argument('--bill', '-B', metavar = 'group',
+                    help = '''
+                    bill the project associated with the group
+                    [defaults to clarin if user is in clarin]
+                    ''')
+
 parser.add_argument('--kieli',
                     choices = [
                         'yes',
@@ -166,7 +173,8 @@ parser.add_argument('--kieli',
                     ],
                     default = 'null',
                     help = '''
-                    how to load kieli (default is yes, just load;
+                    how to load modle kieli
+                    (default is yes, just load;
                     out redirects its stderr to stdout, err its
                     stdout to stderr, null both to /dev/null, and
                     no means do not load)
@@ -174,12 +182,29 @@ parser.add_argument('--kieli',
 
 # add options
 
+groupnames = [ grp.getgrgid(k).gr_name for k in os.getgroups() ]
 parser.set_defaults(partition = ('large' # guess this is Puhti
                                  if os.path.exists('/appl/soft/ling') else
                                  # guess this is Taito
-                                 'serial'))
+                                 'serial'),
+                    bill = ('clarin' if 'clarin' in groupnames else None))
+
 args = parser.parse_args()
 args.prog = parser.prog
+
+if args.bill in groupnames:
+    print('{}: info: billing "{}" project'.format(args.prog, args.bill),
+          file = sys.stderr)
+elif args.bill:
+    print('{}: error: billing group "{}" not in:'
+          .format(args.prog, args.bill),
+          *groupnames,
+          file = sys.stderr)
+    exit(1)
+else:
+    print('{}: error: no billing group'.format(args.prog),
+          file = sys.stderr)
+    exit(1)
 
 def simplepath(path):
     '''Normalize path as relative to current directory if under the
@@ -342,6 +367,7 @@ def fill(args):
 script = '''\
 #! /bin/bash
 #SBATCH --job-name={job}
+#SBATCH --account={bill}
 #SBATCH --partition={partition}
 #SBATCH --nodes={nodes}
 #SBATCH --ntasks={cores}
@@ -366,6 +392,7 @@ echo cores: {cores}
 echo time: {time}
 echo memory: {memory}
 echo load kieli: {whetherkieli}
+echo billing group: {bill}
 echo
 date "+%F %T START"
 
@@ -379,6 +406,7 @@ T=$SECONDS
 printf -v time %d:%02d:%02d $((T/3600)) $((T%3600/60)) $((T%60))
 date "+%F %T FINISH IN $time WITH STATUS $status"
 '''.format(job = args.job,
+           bill = args.bill,
            partition = args.partition,
            nodes = '1',
            cores = args.cores,
