@@ -88,7 +88,7 @@ if os.path.exists('/appl/soft/ling'):
                         (nodes have 40 cores)
                         ''')
 else:
-    parser.add_argument('--cores', '-c',
+    parser.add_argument('--cores', '-C',
                         choices = [
                             # Taito nodes have 24 cores, trying to
                             # allocate all cores in the same node so that
