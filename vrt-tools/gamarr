@@ -133,7 +133,7 @@ else:
 
 # default partition is set just before parsing the arguments;
 # Taito defaults to "serial" as always,
-# Puhti will probably default to "large".
+# Puhti will default to "small" (1 node, up to 40 cores).
 group = parser.add_mutually_exclusive_group()
 group.add_argument('--test', dest = 'partition',
                    action = 'store_const', const = 'test',
@@ -148,12 +148,12 @@ group.add_argument('--serial', dest = 'partition',
 group.add_argument('--small', dest = 'partition',
                    action = 'store_const', const = 'small',
                    help = '''
-                   run in "small" partition (Puhti)
+                   run in "small" partition (Puhti default)
                    ''')
 group.add_argument('--large', dest = 'partition',
                    action = 'store_const', const = 'large',
                    help = '''
-                   run in "large" partition (Puhti default)
+                   run in "large" partition (Puhti)
                    ''')
 
 # default billing group set below just before parsing
@@ -183,7 +183,7 @@ parser.add_argument('--kieli',
 # add options
 
 groupnames = [ grp.getgrgid(k).gr_name for k in os.getgroups() ]
-parser.set_defaults(partition = ('large' # guess this is Puhti
+parser.set_defaults(partition = ('small' # guess this is Puhti
                                  if os.path.exists('/appl/soft/ling') else
                                  # guess this is Taito
                                  'serial'),
