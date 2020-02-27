@@ -173,7 +173,7 @@ parser.add_argument('--kieli',
                     ],
                     default = 'null',
                     help = '''
-                    how to load modle kieli
+                    how to load modules kieli and biojava
                     (default is yes, just load;
                     out redirects its stderr to stdout, err its
                     stdout to stderr, null both to /dev/null, and
@@ -279,12 +279,17 @@ def setup(args):
 
 logdir, outfile, tempfile = setup(args)
 
+# watch out! appending ' biojava' to the command when in Puhti,
+# because otherwise Puhti batch jobs do not have java!
 kieli = ({ 'yes' : 'module load kieli',
            'out' : '2>&1 module load kieli',
            'err' : '1>&2 module load kieli',
            'null' : '1> /dev/null 2>&1 module load kieli',
            'no' : '# module load kieli' }
          [args.kieli])
+
+# appending ' biojava' to 'module load kieli' in Puhti
+if os.path.exists('/appl/soft/ling'): kieli += ' biojava'
 
 # Depending on the output options, command is one of:
 # cmd arg ... args[TASK_ID]
