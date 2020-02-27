@@ -31,7 +31,7 @@
 progname=$(basename $0)
 progdir=$(dirname $0)
 
-remote_git_repo_pattern=git@github.com:CSCfi/korp-%s.git
+remote_git_repo_pattern=git@github.com:CSCfi/Kielipankki-korp-%s.git
 local_git_root=/v/korp/git
 local_git_prefix=$local_git_root/korp-
 backup_root=/v/korp/backup
