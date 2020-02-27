@@ -192,7 +192,13 @@ parser.set_defaults(partition = ('large' # guess this is Puhti
 args = parser.parse_args()
 args.prog = parser.prog
 
-if args.bill in groupnames:
+if not os.path.exists('/appl/soft/ling'):
+    # Taito does not seem to accept any value for --account
+    # but works as usual when --account is not specified.
+    print('{}: info: ignoring billing group "{}" in Taito'
+          .format(args.prog, args.bill),
+          file = sys.stderr)
+elif args.bill in groupnames:
     print('{}: info: billing "{}" project'.format(args.prog, args.bill),
           file = sys.stderr)
 elif args.bill:
@@ -423,6 +429,12 @@ date "+%F %T FINISH IN $time WITH STATUS $status"
            command = command,
            args = ''.join(fill(tailargs)),
            finish = finish)
+
+if not os.path.exists('/appl/soft/ling'):
+    # Taito does not seem to accept any value for --account,
+    # but works as usual when --account is not specified.
+    script = '\n'.join((line for line in script.split('\n')
+                        if not line.startswith('#SBATCH --account=')))
 
 with Popen(['cat' if args.cat else 'sbatch'], stdin = PIPE) as process:
     process.stdin.write(script.encode('UTF-8'))
