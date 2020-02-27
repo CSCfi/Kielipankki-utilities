@@ -100,7 +100,7 @@ parser.add_argument('--cat', action = 'store_true',
                     ''')
 
 if os.path.exists('/appl/soft/ling'):
-    parser.add_argument('--cores', '-c',
+    parser.add_argument('--cores', '-C',
                         choices = [
                             # Puhti nodes have 40 cores, trying to
                             # allocate all cores in the same node so that
