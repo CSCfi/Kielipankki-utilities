@@ -46,7 +46,7 @@ def parsearguments():
                         help = 'suffix to output field names')
 
     parser.add_argument('--tagtools',
-                        choices = ['1.3.2', '1.4.0'],
+                        choices = ['1.3.2', '1.4.0', '1.5.0'],
                         default = '1.4.0',
                         help = 'tagtools version (1.4.0)')
 
