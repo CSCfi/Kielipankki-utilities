@@ -60,6 +60,16 @@ while (<STDIN>)
 	# lemmacomp (4th field) is the original lemma that was renamed to lemmacomp by korp-make
 	s/^([^\t]+\t[^\t]+\t)[^\t]+\t/$1/;
 	s/\t[^\t\n]+$//;
+
+	# Replace "|" with " " in morphological analyses (now 5th and 10th fields)
+	if (/^([^\t]+\t[^\t]+\t[^\t]+\t[^\t]+\t)([^\t]+\t)([^\t]+\t[^\t]+\t[^\t]+\t[^\t]+\t)([^\t]+\t)(.*)$/)
+	{
+	    my $msd1=$2;
+	    my $msd2=$4;
+	    $msd1 =~ s/|/ /g;
+	    $msd2 =~ s/|/ /g;
+	    $_ = $1.$msd1.$3.$msd2.$5;
+	}
     }
     print;
 }

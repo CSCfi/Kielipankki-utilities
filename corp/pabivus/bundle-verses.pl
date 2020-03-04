@@ -6,16 +6,32 @@ use open qw(:std :utf8);
 
 if ( $ARGV[0] eq "--help" || $ARGV[0] eq "-h" )
 {
-    print "bundle-verses.sh FROM TO REPLACE\n";
+    print "bundle-verses.pl FROM TO REPLACE\n";
     print "Bundle verses from FROM to TO and replace the id with REPLACE\n";
     print "Input comes from standard input, output is written to standard output\n";
     print "E.g. bundle-verses.pl MRK.11.29 MRK.11.30 MRK.11.29-30\n";
+    print "Alternative: bundle-verses.pl REPLACE (FROM and TO are inferred from REPLACE)\n";
     exit(0);
 }
 
-my $from = $ARGV[0];
-my $to = $ARGV[1];
-my $replace = $ARGV[2];
+my $replace = "";
+my $from = "";
+my $to = "";
+if (scalar @ARGV eq 1)
+{
+    if ( $ARGV[0] =~ /(...\.[0-9]+\.)([0-9]+)\-([0-9]+)/)
+    {
+	$from = $1.$2;
+	$to = $1.$3;
+	$replace = $ARGV[0];
+    }
+}
+else
+{
+    $from = $ARGV[0];
+    $to = $ARGV[1];
+    $replace = $ARGV[2];
+}
 
 my $bundling = "false";
 
