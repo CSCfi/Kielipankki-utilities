@@ -17,6 +17,7 @@ if ( $ARGV[0] eq "--help" || $ARGV[0] eq "-h" )
 my $replace = "";
 my $from = "";
 my $to = "";
+
 if (scalar @ARGV eq 1)
 {
     if ( $ARGV[0] =~ /(...\.[0-9]+\.)([0-9]+)\-([0-9]+)/)
@@ -26,14 +27,20 @@ if (scalar @ARGV eq 1)
 	$replace = $ARGV[0];
     }
 }
-else
+elsif (scalar @ARGV eq 3)
 {
     $from = $ARGV[0];
     $to = $ARGV[1];
     $replace = $ARGV[2];
 }
+else
+{
+    print STDERR "Error: wrong number of arguments\n";
+    exit(1);
+}
 
 my $bundling = "false";
+my $bundling_done = "false";
 
 foreach my $line ( <STDIN> )
 {
@@ -46,8 +53,16 @@ foreach my $line ( <STDIN> )
 	}
 	elsif ( $1 eq $to )
 	{
-	    $line = ""; # remove link start tag
-	    $bundling = "false";
+	    if ( $bundling eq "false" )
+	    {
+		print STDERR "Warning: end verse ".$to." encountered but no begin verse ".$from."\n";
+	    }
+	    else
+	    {
+		$line = ""; # remove link start tag
+		$bundling = "false";
+		$bundling_done = "true";
+	    }
 	}
 	elsif ( $bundling eq "true" )
 	{
@@ -59,4 +74,14 @@ foreach my $line ( <STDIN> )
 	$line = ""; # remove link end tag
     }
     print $line;
+}
+
+if ( $bundling eq "true" )
+{
+    print STDERR "Error: no end verse ".$to." encountered\n";
+    exit(1);
+}
+elsif ( $bundling_done eq "false" )
+{
+    print STDERR "Warning: no bundling done for ".$replace."\n";
 }
