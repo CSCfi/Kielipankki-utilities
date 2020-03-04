@@ -211,10 +211,12 @@ get_isodate () {
 make_log_info () {
     # This imitates a proposal for the VRT Tools log comment format,
     # which is still subject to change (2019-09-20)
-    local corp timestamp userinfo version freetext command args
+    local corp timestamp fullname userinfo version freetext command args
     corp=$1
     timestamp="Time: $(get_isodate)"
-    userinfo="User: $USER@$HOSTNAME"
+    # https://stackoverflow.com/a/833256
+    fullname="$(getent passwd $USER | cut -d: -f5 | cut -d, -f1)"
+    userinfo="User: $USER@$(hostname -f) ($fullname)"
     # What should be the version, if any?
     version="Version: FIN-CLARIN corpus processing scripts (undefined version)"
     descr="Description: Generated VRT from CWB data for corpus \"$corp\""
