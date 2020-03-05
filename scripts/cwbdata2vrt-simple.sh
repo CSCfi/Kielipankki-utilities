@@ -13,8 +13,10 @@ data stored in CWB.
 
 The output is XML-compatible, except for possible crossing elements. By
 default, the output contains only the positional attribute 'word' and the
-structural attributes 'text' and 'sentence'. The output has the encoded
-special characters unencoded.
+structural attributes 'text' and 'sentence'.
+
+The output has the encoded special characters unencoded; <, > and &
+XML-encoded everywhere and \" XML-encoded in structural attribute values.
 
 The corpus ids specified may contain shell wildcards that are expanded."
 
@@ -123,14 +125,23 @@ cat_noargs () {
     cat
 }
 
-# Encode &, <, > and " as XML character references in structural
-# attribute values, as cwb-encode -Cx appears not to do that. If
-# cwb-encode is ever changed to do that, this will have to be removed.
-perl_make_entities='
+
+# Perl code snippets used in both process_tags_single and
+# process_tags_multi
+
+# Encode & and " as XML character references in structural attribute
+# values, as cwb-encode -Cx appears not to do that. If cwb-encode is
+# ever changed to do that, this will have to be removed. Encoding <
+# and > is handled by vrt_decode_special_chars in shlib/vrt.sh.
+perl_encode_entities_attrval='
     $attrval =~ s/&/&amp;/g;
-    $attrval =~ s/</&lt;/g;
-    $attrval =~ s/>/&gt;/g;
     $attrval =~ s/"/&quot;/g;
+'
+# Decode &quot; and &apos; in tokens (positional attributes), as they
+# need not be encoded there but they are encoded by cwb-encode -Cx.
+perl_decode_entities_token='
+    s/&quot;/"/g;
+    s/&apos;/'"'"'/g;
 '
 
 process_tags_single () {
@@ -138,11 +149,16 @@ process_tags_single () {
     # faster than process_tags_multi below
     perl -ne '
         if (/^(<[^\/_\s]*)_([^ ]*) ([^>]*)>/) {
+	    # Structure start tag with annotation value
 	    ($tag, $attrname, $attrval) = ($1, $2, $3);
-	    '"$perl_make_entities"'
+	    '"$perl_encode_entities_attrval"'
 	    print "$tag $attrname=\"$attrval\">\n";
 	} else {
+	    # Anything else
 	    s/^(<\/[^_]*)_.*>/$1>/;
+	    if (! /^</) {
+		'"$perl_decode_entities_token"'
+	    }
 	    print;
 	}
     '
@@ -154,6 +170,7 @@ process_tags_multi () {
             $prevtag = $tag = $attrs = "";
         }
         if (/^(<[^\/_\s]*)(?:_([^ ]*) (.*))?>$/) {
+	    # Structure start tag with annotation value
             $tag = $1;
             if ($tag ne $prevtag && $attrs) {
                 print "$prevtag$attrs>\n";
@@ -163,22 +180,29 @@ process_tags_multi () {
 	    if ($2) {
 		$attrname = $2;
 		$attrval = $3;
-		'"$perl_make_entities"'
+		'"$perl_encode_entities_attrval"'
 		$attrs .= " $attrname=\"$attrval\"";
 	    }
         } elsif (/^(<\/[^_]*)(_.*)?>/) {
+	    # Structure end tag
             $tag = $1;
             if ($tag ne $prevtag) {
                 print "$tag>\n";
             }
             $prevtag = $tag;
         } else {
+	    # Token, XML declaration or <corpus> start tag
             if ($prevtag && $attrs) {
                 print "$prevtag$attrs>\n";
             }
             $tag = $prevtag = $attrs = "";
+	    if (! /^</) {
+	       	# Token
+	        '"$perl_decode_entities_token"'
+	    }
             print;
-        }'
+        }
+    '
 }
 
 prepend_vrt_comments () {
@@ -274,12 +298,12 @@ extract_vrt () {
     if [ "x$omit_attribute_comment" = x ]; then
 	attr_comment="positional-attributes: $pos_attrs"
     fi
+    # $process_tags needs to precede vrt_decode_special_chars;
+    # otherwise it would encode the & in the &lt; and &gt; produced by
+    # the latter.
     $cwb_bindir/cwb-decode -Cx $corp $attr_opts |
-    # Use --no-xml-entities, as < and > are converted to entities in
-    # process_tags_(single|multi) (using $perl_make_entities);
-    # otherwise the result would have ">" as "&amp;gt;", for example.
-    vrt_decode_special_chars --no-xml-entities |
     $process_tags |
+    vrt_decode_special_chars --xml-entities |
     eval "$head_filter" |
     $tail_filter |
     $add_vrt_comments "$attr_comment" "$head_comment" "$head_comment2" > $outfile
