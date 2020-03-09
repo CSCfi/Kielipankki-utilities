@@ -165,12 +165,15 @@ process_tags_single () {
 }
 
 process_tags_multi () {
+    local corp
+    corp=$1
     perl -ne '
         BEGIN {
             $prevtag = $tag = $attrs = "";
+	    $cpos = 0;
         }
-        if (/^(<[^\/_\s]*)(?:_([^ ]*) (.*))?>$/) {
-	    # Structure start tag with annotation value
+        if (/^(<[^\/_\s]*)(?:_([^ ]*)( )?(.*))?>$/) {
+	    # Structure start tag, possibly with an annotation value
             $tag = $1;
             if ($tag ne $prevtag && $attrs) {
                 print "$prevtag$attrs>\n";
@@ -179,7 +182,21 @@ process_tags_multi () {
             $prevtag = $tag;
 	    if ($2) {
 		$attrname = $2;
-		$attrval = $3;
+		# If the annotation is defined but has no value, not
+		# even an empty string (a line of the form
+		# <struct_attr>), it is treated as an empty string.
+		# Alternatively, we could have special value for such
+		# undefined values, but they probably should not occur
+		# anyway. One option might be to add (optionally) a
+		# special VRT comment indicating the issue.
+		if (! $3) {
+		    $struct = substr($prevtag, 1);
+		    print STDERR ("'"$progname"': Warning: corpus '"$corp"',"
+		                  . " position $cpos: structure \"$struct\":"
+				  . " undefined value for attribute"
+				  . " \"$attrname\" treated as empty string\n");
+		}
+		$attrval = $4;
 		'"$perl_encode_entities_attrval"'
 		$attrs .= " $attrname=\"$attrval\"";
 	    }
@@ -199,6 +216,7 @@ process_tags_multi () {
 	    if (! /^</) {
 	       	# Token
 	        '"$perl_decode_entities_token"'
+		$cpos++;
 	    }
             print;
         }
@@ -302,7 +320,7 @@ extract_vrt () {
     # otherwise it would encode the & in the &lt; and &gt; produced by
     # the latter.
     $cwb_bindir/cwb-decode -Cx $corp $attr_opts |
-    $process_tags |
+    $process_tags $corp |
     vrt_decode_special_chars --xml-entities |
     eval "$head_filter" |
     $tail_filter |
