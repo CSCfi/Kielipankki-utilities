@@ -229,28 +229,31 @@ def validatecomment(k, line, respond):
     else:
         raise Exception('this cannot happen (please report)')
 
-# match spurious whitespace in and after tags
-# but not between < or </ and element name;
-# allow _ - . in element and attribute names;
-# require doublequoted attribute values
+# match spurious whitespace in and after tags but not between < or </
+# and element name; allow lower-case ASCII letters and . and
+# non-initial ASCII digits and - in element and attribute names and _
+# in attribute names; require doublequoted attribute values
+# (CWB would allow underscores in element names, but as it is
+# internally used for separating element and attribute name, it would
+# complicate matters. CWB would also allow initial hyphens.)
 
 opening = re.compile(R'''
-    < ([a-zA-Z_\-.]+) # element name as .group(1)
-    (?: \s+ [a-zA-Z_\-.]+ \s* = \s* "[^"]*" )*
+    < ([a-z.][a-z\-.0-9]*) # element name as .group(1)
+    (?: \s+ [a-z_.][a-z_\-.0-9]* \s* = \s* "[^"]*" )*
     \s* > \s*
 ''', re.VERBOSE)
 
 openingspace = re.compile(R'<\S+(?: \S+="[^"]*")*>')
 
 closing = re.compile(R'''
-    </ ([a-zA-Z_\-.]+) # element name as .group(1)
+    </ ([a-z.][a-z\-.0-9]*) # element name as .group(1)
     \s* > \s*
 ''', re.VERBOSE)
 
 closingspace = re.compile(R'</\S+>')
 
 attribute = re.compile(R'''
-    ([a-zA-Z_\-.]+) # attribute name as .group(1)
+    ([a-z_.][a-z_\-.0-9]*) # attribute name as .group(1)
     \s* = \s*
     " (.*?) " # attribute value as .group(2)
 ''', re.VERBOSE)

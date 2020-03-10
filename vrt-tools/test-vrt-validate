@@ -144,6 +144,64 @@ test(document =
             ('1', 'names', 'info', 'attribute names out of order in element: foo')),
      command = INFO_COMMAND)
 
+test(tag = 'valid element and attribute names',
+
+     document =
+     ( b'<te-s.t2- _b-a.r2-="">\n'
+       b'<.te2st. .ba2r_="">\n'
+       b'</.te2st.>\n'
+       b'</te-s.t2->\n' ),
+
+     expected =
+     report(('1', 'names', 'warning',
+             'attribute name not an identifier: _b-a.r2- of te-s.t2-'),
+            ('2', 'names', 'warning',
+             'attribute name not an identifier: .ba2r_ of .te2st.'),),
+     command = VERBOSE_COMMAND)
+
+test(tag = 'invalid element and attribute names',
+
+     document =
+     ( b'<Test>\n'                  # uppercase letter in element name
+       b'<2test>\n'                 # initial digit in element name
+       b'<-test>\n'                 # initial hyphen in element name
+       b'<test$>\n'                 # $ in element name
+       b'<te_st>\n'                 # underscore in element name
+       b'<test Test="foo">\n'       # uppercase letter in attribute name
+       b'<testb 2test="foo">\n'     # initial digit in attribute name
+       b'<testc -test="foo">\n'     # initial hyphen in attribute name
+       b'<testd test$="foo">\n'     # $ in attribute name
+       b'</testd>\n'
+       b'</testc>\n'
+       b'</testb>\n'
+       b'</test>\n'
+       b'</te_st>\n'
+       b'</test$>\n'
+       b'</-test>\n'
+       b'</2test>\n'
+       b'</Test>\n' ),
+
+     expected =
+     report(('1', 'form', 'error', 'malformed tag'),
+            ('2', 'form', 'error', 'malformed tag'),
+            ('3', 'form', 'error', 'malformed tag'),
+            ('4', 'form', 'error', 'malformed tag'),
+            ('5', 'form', 'error', 'malformed tag'),
+            ('6', 'form', 'error', 'malformed tag'),
+            ('7', 'form', 'error', 'malformed tag'),
+            ('8', 'form', 'error', 'malformed tag'),
+            ('9', 'form', 'error', 'malformed tag'),
+            ('10', 'nest', 'error', 'element not open: testd'),
+            ('11', 'nest', 'error', 'element not open: testc'),
+            ('12', 'nest', 'error', 'element not open: testb'),
+            ('13', 'nest', 'error', 'element not open: test'),
+            ('14', 'form', 'error', 'malformed tag'),
+            ('15', 'form', 'error', 'malformed tag'),
+            ('16', 'form', 'error', 'malformed tag'),
+            ('17', 'form', 'error', 'malformed tag'),
+            ('18', 'form', 'error', 'malformed tag'),),
+     command = VERBOSE_COMMAND)
+
 test(document =
      ( b'<text with="some&#xa;thing">\n'
 
