@@ -49,6 +49,12 @@ default_cwb_bindirs=${default_cwb_bindirs:-"
     $USERAPPL/bin
     /v/util/cwb/utils
 "}
+# Add possible CWB-Perl binary directories parallel to the CWB binary
+# directories by replacing /cwb/ with /cwb-perl/.
+default_cwb_bindirs="$(
+    printf "%s" "$default_cwb_bindirs" |
+    sed -e '/\/cwb\// {p; s/\(.*\)\/cwb\//\1\/cwb-perl\//}'
+)"
 
 default_filegroups="korp clarin"
 
