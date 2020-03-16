@@ -1,0 +1,32 @@
+
+The original files:
+
+ kitxtall.txt
+ kiphrall.txt
+ kiphral2.txt
+
+Manual corrections and notes:
+
+kitxtall.txt:
+
+  One non-utf8 character 'é' in word fiancé (on line 8644)
+  Empty \t and \m tags (on lines 10364 and 10365)
+  Missing name of story (on line 10369)
+
+kiphral2.txt:
+
+  Many sentences have two dates, one after \rf and the other at the end of sentence,
+  the script uses the latter.
+
+kiphrall.txt:
+
+  Sometimes one \rf comprises several sentences, e.g. "\rf BF165-175 (BFS01)" (on line 1724).
+  These have been manually corrected by adding the missing \rf at start of the sentence.
+  That is, "\rf BF165" for the first sentence, "\rf BF166" for the second one, etc.
+  Although sometimes there were fewer sentences than listed in the \rf.
+
+Commands:
+
+ ./ha-process.sh kitxtall_corrected.txt ha_stories --stories
+ ./ha-process.sh kiphrall_corrected.txt ha_sentences_1 --sentences
+ ./ha-process.sh kiphral2_corrected.txt ha_sentences_2 --sentences
