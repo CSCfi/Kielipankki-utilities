@@ -1,18 +1,14 @@
 #!/bin/sh
 
-convpy="";
-vrtvalidate="";
+convpy="/scratch/clarin/USERNAME/Kielipankki-utilities/corp/klk-alto/conv.py";
+vrtvalidate="/scratch/clarin/USERNAME/Kielipankki-utilities/vrt-tools/vrt-validate";
 
 for xmlfile in *.xml;
 do
     if !(echo $xmlfile | grep 'mets\.xml' > /dev/null 2> /dev/null); then
-	if !(echo $xmlfile | egrep 'page\-[0-9]+\.xml' > /dev/null 2> /dev/null); then
-	    echo "Error: XML file "$xmlfile" does not have page defined in its name, exiting.";
-	    exit 1;
-	fi
-	metsfile=`echo $xmlfile | perl -pe 's/page\-[0-9]+\.xml/mets.xml/'`;
+	metsfile=`echo $xmlfile | perl -pe 's/page\-[0-9]+/mets/'`;
 	if !(ls $metsfile > /dev/null 2> /dev/null); then
-	    echo "Error: metsfile "$metsfile" not found, exiting.";
+	    echo "Metsfile "$metsfile" not found, exiting.";
 	    exit 1;
 	else
 	    echo "Using metsfile "$metsfile;
@@ -21,16 +17,19 @@ do
 	echo "Generating "$vrtfile;
 	# Remove lines with no word, i.e. an empty first field.
 	# Such lines occur after numerals, e.g. "2 000 ihmistä".
-	$convpy --mets $metsfile $xmlfile 2> /dev/null | perl -pe 'if (/^\t/) { $_="" }' > $vrtfile;
-	echo "Validating result";
-        if (ls --size $vrtfile | egrep '^0' > /dev/null 2> /dev/null); then
-            echo "Warning: empty VRT file, renaming it to "$vrtfile".empty";
-	    mv $vrtfile $vrtfile".empty";
-            continue;
-        fi
-	if !($vrtvalidate $vrtfile); then
-	    echo "Error: not valid VRT format, exiting.";
-	    exit 1;
+	# Use only first field, i.e. 'word'.
+	echo "<!-- #vrt positional-attributes: word -->" > $vrtfile;
+	$convpy --mets $metsfile $xmlfile 2> /dev/null | perl -pe 'if (/^\t/) { $_="" }' | cut -f1 >> $vrtfile;
+	lines=`cat $vrtfile | wc -l`;
+	if [ "$lines" = "1" ]; then
+	    echo "Empty VRT file, renaming *.vrt -> *.vrt.empty";
+	    mv $vrtfile $vrtfile.empty;
+	else
+	    echo "Validating result";
+	    if !($vrtvalidate $vrtfile); then
+		echo "Not valid VRT format, exiting.";
+		exit 1;
+	    fi
 	fi
     fi
 done
