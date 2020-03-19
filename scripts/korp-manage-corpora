@@ -1,41 +1,126 @@
 #! /bin/sh
 # -*- coding: utf-8 -*-
 
-# Copy a Korp corpus to another name: CWB data directory, registry
-# file, data in the Korp MySQL database
+# Copy or rename a Korp corpus to another name or remove a Korp
+# corpus: CWB data directory, registry file, data in the Korp MySQL
+# database
 #
-# korp-copy-corpus.sh --help for more information
+# korp-manage-corpora --help for more information
 #
 # TODO:
-# - An option to copy multiple corpora (possibly using shell
-#   wildcards) with copies named using a substitution pattern (sed or
-#   Perl).
+# - Handle alignment attributes.
+# - Add command "alias": symlink CWB data, copy registry and MySQL
+#   data.
 
 
 progname=`basename $0`
 progdir=`dirname $0`
 
+baksuff_default="-YYYYMMDDhhmmss"
 
-usage_header="Usage: $progname [options] source target
 
-Copy a Korp corpus with id \"source\" to id \"target\": CWB data directory,
-registry file and Korp MySQL data (time data, lemgram index, relations tables
-and authorization data)."
+usage_header="Usage: $progname [options] (copy | rename) source target
+       $progname [options] --pattern=src:trg (copy | rename) source ...
+       $progname [options] remove corpus ...
+
+Manage (copy, rename or remove) the Korp corpora with the specified
+corpus ids: CWB data directory, registry file and Korp MySQL data
+(time data, lemgram index, relations tables and authorization data).
+
+The commands copy, rename and remove can be abbreviated as cp, mv and
+rm, respectively."
 
 optspecs='
-f|force
-    force overwriting the target if it exists, but make a timestamped
-    backup copy of an existing target (CORPUS -> CORPUS-YYYYMMDDHHMMSS)
-c|corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
-    use DIR as the root directory of corpus files
-r|registry=DIR "$cwb_regdir" { set_corpus_registry "$1" }
-    use DIR as the CWB registry
+pattern|substitution-pattern=PATT substpatt
+    Use the substitution pattern PATT to form the new names for the
+    corpora in copy or rename. PATT can be a Perl substitution
+    expression "s/SOURCE/TARGET/" or semicolon-separated list of them,
+    or it can be of the form SOURCE:TARGET, which is converted to the
+    Perl expression "s/SOURCE/TARGET/".
+force
+    Force overwriting the target of a copy or rename if it exists. The
+    existing target is backed up by default; use --backup-suffix="" to
+    omit backups.
+backup-suffix|suffix=SUFFIX "'$baksuff_default'" baksuff
+    Use SUFFIX as the suffix for the backup corpus name; use "" to
+    make no backups.
+quiet !verbose
+    Suppress informational messages.
+corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
+    Use DIR as the root directory of corpus files.
+registry=DIR "$cwb_regdir" { set_corpus_registry "$1" }
+    Use DIR as the CWB registry directory.
 '
 
 . $progdir/korp-lib.sh
 
 # Process options
 eval "$optinfo_opt_handler"
+
+
+case "$1" in
+    "copy" | "cp" )
+	command="copy"
+	;;
+    "rename" | "mv" )
+	command="rename"
+	;;
+    "remove" | "rm" )
+	command="remove"
+	;;
+    "" )
+	error "Please specify command and corpus or corpora"
+	;;
+    * )
+	error "Unrecognized command \"$1\""
+	;;
+esac
+if [ "$command" = "remove" ] || [ "x$substpatt" != x ]; then
+    if [ "x$2" = x ]; then
+	error "Please specify at least one corpus id"
+    fi
+else
+    if [ "x$3" = x ]; then
+	error "Please specify source and target corpus id"
+    fi
+fi
+shift
+
+if [ "x$substpatt" != x ]; then
+    if [ "$command" = "remove" ]; then
+	error "Cannot use --pattern with command remove"
+    elif [ "${substpatt#s/}" = "$substpatt" ]; then
+	source=${substpatt%%:*}
+	target=${substpatt#*:}
+	substpatt="s/$source/$target/"
+    else
+	for patt in $(echo "$substpatt" | tr ";" " "); do
+	    if [ "${patt#s/}" = "$patt" ]; then
+		# Require that the Perl expression is s/.../.../, so
+		# that it cannot be e.g. unlink (remove)
+		error "Substitution expression is not of the form \"s/SOURCE/TARGET/\": $patt"
+	    elif [ "${patt%/*e*}" != "$patt" ]; then
+		# Forbid the "e" (eval) flag, as it could be used for
+		# e.g. unlink
+		error "Substitution expression may not contain the flag \"e\": $patt"
+	    fi
+	done
+    fi
+fi
+
+if [ "$baksuff" = "$baksuff_default" ]; then
+    baksuff=-$(date '+%Y%m%d%H%M%S')
+fi
+
+if [ "$command" = "remove" ] || [ "x$substpatt" != x ]; then
+    corpora=$(list_corpora "$@")
+elif [ "x$3" != x ]; then
+    shift 2
+    error "Spurious argument(s) after source and target: $@"
+else
+    corpora=$1
+    target_corpus=$2
+fi
 
 
 multicorpus_tables="timedata timedata_date timespans lemgram_index corpus_info"
@@ -49,115 +134,177 @@ extract_datadir () {
     cut -d' ' -f2
 }
 
-copy_data () {
-    local source target source_datadir top_datadir target_datadir
-    source=$1
-    target=$2
+manage_data () {
+    local cmd source target source_datadir top_datadir target_datadir
+    cmd=$1
+    source=$2
+    target=$3
     source_datadir=$(extract_datadir $cwb_regdir/$source)
     top_datadir=$(echo "$source_datadir" | sed -e 's,\(.*\)/.*,\1,')
-    target_datadir=$top_datadir/$target
-    if [ "x$force" != x ]; then
-	rm -rf "$target_datadir"
+    if [ "$cmd" = "remove" ]; then
+	rm -rf "$source_datadir"
+    else
+	target_datadir=$top_datadir/$target
+	if [ "$cmd" = "copy" ]; then
+	    cp -dpr "$source_datadir" "$target_datadir"
+	    ensure_perms "$target_datadir"
+	else
+	    mv "$source_datadir" "$target_datadir"
+	    ensure_perms "$target_datadir"
+	fi
     fi
-    cp -dpr "$source_datadir" "$target_datadir"
-    ensure_perms "$target_datadir"
 }
 
-copy_registry () {
-    local source target source_u target_u
-    source=$1
-    target=$2
+manage_registry () {
+    local cmd source target source_u target_u
+    cmd=$1
+    source=$2
     source_u=$(toupper $source)
-    target_u=$(toupper $target)
-    cat "$cwb_regdir/$source" |
-    sed -e '
-s,^\(## registry entry for corpus \)'$source_u',\1'$target_u',;
-s,^\(ID *\)'$source',\1'$target',;
-s,^\(HOME .*/\)'$source',\1'$target',;
-s,^\(INFO .*/\)'$source'\(/\.info\),\1'$target'\2,' \
-    > "$cwb_regdir/$target"
-    ensure_perms "$cwb_regdir/$target"
+    if [ "$cmd" != "remove" ]; then
+	target=$3
+	target_u=$(toupper $target)
+	cat "$cwb_regdir/$source" |
+	sed -e '
+    	    s,^\(## registry entry for corpus \)'$source_u',\1'$target_u',;
+	    s,^\(ID *\)'$source',\1'$target',;
+	    s,^\(HOME .*/\)'$source',\1'$target',;
+	    s,^\(INFO .*/\)'$source'\(/\.info\),\1'$target'\2,' \
+		> "$cwb_regdir/$target"
+	ensure_perms "$cwb_regdir/$target"
+    fi
+    if [ "$cmd" != "copy" ]; then
+	rm "$cwb_regdir/$source"
+    fi
 }
 
-mysql_make_copy_table_rows () {
-    local source_u target_u cols cols_list table sql_stmt
-    source_u=$1
-    target_u=$2
-    shift
-    shift
+mysql_make_manage_table_rows () {
+    local cmd source_u target_u cols cols_list table sql_stmt
+    cmd=$1
+    source_u=$2
+    target_u=$3
+    shift 3
     for table in "$@"; do
-	cols=$(mysql_list_table_cols $table)
-	if [ "x$cols" != x ]; then
-	    cols_list=$(
-		echo $cols |
-		sed -e 's/\([^ ][^ ]*\)/`\1`/g; s/ /, /g;
-                        s/`corpus`/'"'$target_u'/"
-	    )
-	    if [ "x$force" != x ]; then
-		sql_stmt="REPLACE"
-	    else
-		sql_stmt="INSERT IGNORE"
+	if [ "$cmd" = "remove" ]; then
+	    echo "DELETE FROM \`$table\` WHERE corpus='$source_u';"
+	elif [ "$cmd" = "rename" ]; then
+	    # This assumes that corresponding rows with corpus =
+	    # $target_u do not exist: they would cause an error.
+	    echo "UPDATE \`$table\` SET corpus='$target_u' WHERE corpus='$source_u';"
+	elif [ "$cmd" = "copy" ]; then
+	    cols=$(mysql_list_table_cols $table)
+	    if [ "x$cols" != x ]; then
+		cols_list=$(
+		    echo $cols |
+		    sed -e 's/\([^ ][^ ]*\)/`\1`/g; s/ /, /g;
+			    s/`corpus`/'"'$target_u'/"
+		)
+		if [ "x$force" != x ]; then
+		    sql_stmt="REPLACE"
+		else
+		    sql_stmt="INSERT IGNORE"
+		fi
+		echo "$sql_stmt INTO \`$table\`
+		      SELECT $cols_list FROM \`$table\` WHERE corpus='$source_u';"
 	    fi
-	    echo "$sql_stmt INTO \`$table\`
-                  SELECT $cols_list FROM \`$table\` where corpus='$source_u';"
 	fi
     done
 }
 
-mysql_make_copy_rel_tables () {
-    local source_u target_u tabletype source_table target_table
-    source_u=$1
-    target_u=$2
+mysql_make_manage_rel_tables () {
+    local cmd source_u target_u tabletype source_table target_table
+    cmd=$1
+    source_u=$2
+    target_u=$3
     for tabletype in "" _dep_rel _head_rel _rel _sentences _strings; do
 	source_table=relations_$source_u$tabletype
 	target_table=relations_$target_u$tabletype
 	if mysql_table_exists $source_table; then
-	    if [ "x$force" != x ]; then
+	    if [ "$cmd" = "remove" ]; then
+		echo "DROP TABLE IF EXISTS \`$source_table\`;"
+	    else
 		echo "DROP TABLE IF EXISTS \`$target_table\`;"
+		if [ "$cmd" = "rename" ]; then
+		    echo "RENAME TABLE \`$source_table\` TO \`$target_table\`;"
+		elif [ "$cmd" = "copy" ]; then
+		    echo "CREATE TABLE IF NOT EXISTS \`$target_table\` LIKE \`$source_table\`;"
+		    echo "INSERT IGNORE INTO \`$target_table\` SELECT * FROM \`$source_table\`;"
+		fi
 	    fi
-	    echo "CREATE TABLE IF NOT EXISTS \`$target_table\` LIKE \`$source_table\`;"
-	    echo "INSERT IGNORE INTO \`$target_table\` SELECT * FROM \`$source_table\`;"
 	fi
     done
 }
 
-copy_database () {
-    local source target source_u target_u
-    source=$1
-    target=$2
+manage_database () {
+    local cmd source target source_u target_u
+    cmd=$1
+    source=$2
+    target=$3
     source_u=$(toupper $source)
     target_u=$(toupper $target)
     {
-	mysql_make_copy_table_rows $source_u $target_u $multicorpus_tables
-	mysql_make_copy_rel_tables $source_u $target_u
+	mysql_make_manage_table_rows $cmd $source_u $target_u \
+				     $multicorpus_tables
+	mysql_make_manage_rel_tables $cmd $source_u $target_u
     } |
 	run_mysql
-    mysql_make_copy_table_rows $source_u $target_u $multicorpus_tables_auth |
+    mysql_make_manage_table_rows $cmd $source_u $target_u \
+				 $multicorpus_tables_auth |
 	run_mysql --auth
 }
 
-copy_corpus () {
-    local source target target_bak
-    source=$1
-    target=$2
-    test "x$target" != "x" ||
-    error "Usage: $progname [options] source target
-$progname --help for more information"
-    test -e "$cwb_regdir/$source" ||
-    error "Corpus $source not found in registry $cwb_regdir"
-    if [ -e "$cwb_regdir/$target" ]; then
-	if [ "x$force" = x ]; then
-	    error "Corpus $target is already in the registry; specify --force to overwrite"
-	else
-	    target_bak=${target}-$(date '+%Y%m%d%H%M%S')
-	    warn "--force specified: copying existing target corpus $target to $target_bak before overwriting"
-	    copy_corpus $target $target_bak
+manage_corpus () {
+    local cmd source target target_bak msg
+    cmd=$1
+    source=$2
+    target=$3
+    if [ "$source" = "$target" ]; then
+	warn "Skipping corpus $source: target is the same"
+	return
+    fi
+    if ! corpus_exists "$source"; then
+	warn "Skipping corpus $source: not found in registry $cwb_regdir"
+	return
+    fi
+    if [ "$cmd" != "remove" ]; then
+        if ! corpus_id_is_valid $target; then
+	    warn "Skipping corpus $source: invalid target corpus id: $target"
+	    return
+	elif corpus_exists $target; then
+	    if [ "x$force" = x ]; then
+		warn "Skipping corpus $source: target corpus $target already exists; specify --force to overwrite"
+		return
+	    elif [ "x$baksuff" = x ]; then
+		warn "Corpus $source: overwriting existing target corpus $target as --force and --backup-suffix=\"\" were specified"
+		# Removing the existing target is probably needed for
+		# the MySQL database statements to work correctly
+		manage_corpus remove $target
+	    else
+		target_bak=$target$baksuff
+		warn "Corpus $source: renaming existing target corpus $target to $target_bak before overwriting as --force was specified"
+		manage_corpus rename $target $target_bak
+	    fi
 	fi
     fi
-    copy_data $source $target
-    copy_registry $source $target
-    copy_database $source $target
+    if [ "x$verbose" != x ]; then
+	msg="${cmd%e}ing $source"
+	if [ "$cmd" != "remove" ]; then
+	    msg="$msg to $target"
+	fi
+	safe_echo "$msg"
+    fi
+    manage_data $cmd $source $target
+    manage_registry $cmd $source $target
+    manage_database $cmd $source $target
 }
 
 
-copy_corpus $1 $2
+for corpus in $corpora; do
+    if [ "$command" = "remove" ]; then
+	target=
+    elif [ "x$substpatt" != x ]; then
+	target=$(echo "$corpus" | perl -pe "$substpatt")
+    else
+	target=$target_corpus
+    fi
+    manage_corpus $command $corpus $target
+done
