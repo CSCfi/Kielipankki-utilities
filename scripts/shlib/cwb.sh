@@ -43,8 +43,11 @@ list_corpora () {
     grep '^[a-z_][a-z0-9_-]*$' > $tmp_prefix.corpids
     if [ -s $tmp_prefix.corpid_errors ]; then
 	# Use echo to convert newlines to spaces
+	# On some systems, the file name in the error message is
+	# enclosed in single quotes; on others not.
 	error_files=$(echo $(
-	    sed -e 's,^.*cannot access .*/\([^:/]*\):.*$,\1,' \
+	    sed -e "s,^.*cannot access .*/\([^:/]*\):.*\$,\1,;
+                    s,'\$,," \
 		< $tmp_prefix.corpid_errors
 	))
 	$error_func \
