@@ -1003,6 +1003,18 @@ corpus_exists () {
     $cwb_bindir/cwb-describe-corpus $1 > /dev/null 2> /dev/null
 }
 
+# corpus_id_is_valid corpus
+#
+# Return true if corpus is a valid CWB corpus id: contains only ASCII
+# letters and digits, underscores and hyphens, and begins with an
+# ASCII letter or an underscore.
+corpus_id_is_valid () {
+    local corpus
+    corpus=$1
+    test "$corpus" = "${corpus#*[!a-zA-Z0-9_-]}" &&
+	test "$corpus" = "${corpus#[0-9-]}"
+}
+
 # get_corpus_token_count corpus
 #
 # Print the number of tokens in corpus.
