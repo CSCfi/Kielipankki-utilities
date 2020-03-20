@@ -36,7 +36,8 @@ pattern|substitution-pattern=PATT substpatt
     corpora in copy or rename. PATT can be a Perl substitution
     expression "s/SOURCE/TARGET/" or semicolon-separated list of them,
     or it can be of the form SOURCE:TARGET, which is converted to the
-    Perl expression "s/SOURCE/TARGET/".
+    Perl expression "s/SOURCE/TARGET/". Note that the "e" flag is not
+    allowed in the substitution expression, for security reasons.
 force
     Force overwriting the target of a copy or rename if it exists. The
     existing target is backed up by default; use --backup-suffix="" to
@@ -86,10 +87,19 @@ else
 fi
 shift
 
+check_perl_syntax () {
+    local perl_msg
+    perl_msg=$(perl -c -e "$1" 2>&1)
+    if [ $? != 0 ]; then
+	perl_msg=${perl_msg% at -e *}
+	error "Perl syntax error in substitution \"$1\": $perl_msg"
+    fi
+}
+
 if [ "x$substpatt" != x ]; then
     if [ "$command" = "remove" ]; then
 	error "Cannot use --pattern with command remove"
-    elif [ "${substpatt#s/}" = "$substpatt" ]; then
+    elif in_str ":" "$substpatt" && ! str_hasprefix "$substpatt" "s/"; then
 	source=${substpatt%%:*}
 	target=${substpatt#*:}
 	substpatt="s/$source/$target/"
@@ -98,14 +108,19 @@ if [ "x$substpatt" != x ]; then
 	    if [ "${patt#s/}" = "$patt" ]; then
 		# Require that the Perl expression is s/.../.../, so
 		# that it cannot be e.g. unlink (remove)
-		error "Substitution expression is not of the form \"s/SOURCE/TARGET/\": $patt"
-	    elif [ "${patt%/*e*}" != "$patt" ]; then
-		# Forbid the "e" (eval) flag, as it could be used for
-		# e.g. unlink
-		error "Substitution expression may not contain the flag \"e\": $patt"
+		error "Substitution expression is not of the form \"SOURCE:TARGET\" or \"s/SOURCE/TARGET/\": $patt"
+	    else
+		flags=${patt##*/}
+		if in_str "e" "$flags"; then
+		    # Forbid the "e" (eval) flag, as it could be used for
+		    # e.g. unlink
+		    error "Substitution expression may not contain the flag \"e\": $patt"
+		fi
 	    fi
+	    check_perl_syntax "$patt"
 	done
     fi
+    check_perl_syntax "$substpatt"
 fi
 
 if [ "$baksuff" = "$baksuff_default" ]; then
