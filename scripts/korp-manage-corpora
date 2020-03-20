@@ -17,6 +17,7 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 baksuff_default="-YYYYMMDDhhmmss"
+verbose=1
 
 
 usage_header="Usage: $progname [options] (copy | rename) source target
@@ -45,7 +46,13 @@ force
 backup-suffix|suffix=SUFFIX "'$baksuff_default'" baksuff
     Use SUFFIX as the suffix for the backup corpus name; use "" to
     make no backups.
-quiet !verbose
+dry-run
+    Output information on what would be done but do not actually do
+    it. (Cancels the effect of a possible --quiet.)
+verbose { verbose=2 }
+    Output more detailed information on what is done (or would be
+    done).
+quiet { verbose= }
     Suppress informational messages.
 corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
     Use DIR as the root directory of corpus files.
@@ -62,12 +69,15 @@ eval "$optinfo_opt_handler"
 case "$1" in
     "copy" | "cp" )
 	command="copy"
+	cmd_verb="Copying"
 	;;
     "rename" | "mv" )
 	command="rename"
+	cmd_verb="Renaming"
 	;;
     "remove" | "rm" )
 	command="remove"
+	cmd_verb="Removing"
 	;;
     "" )
 	error "Please specify command and corpus or corpora"
@@ -137,10 +147,30 @@ else
     target_corpus=$2
 fi
 
+if [ "x$verbose" = x ] && [ "x$dry_run" != x ]; then
+    warn "--dry-run cancels the effect of --quiet"
+    verbose=1
+fi
+
 
 multicorpus_tables="timedata timedata_date timespans lemgram_index corpus_info"
 multicorpus_tables_auth="auth_license auth_lbr_map auth_allow"
 
+
+# If --verbose, echo the first argument (preceded by two spaces). If
+# not --dry-run, execute the rest of the arguments as a command.
+run_verb () {
+    local msg
+    msg=$1
+    shift
+    if [ "x$dry_run" != x ]; then
+	msg="Dry run: $msg"
+    fi
+    echo_verb 2 "  $msg"
+    if [ "x$dry_run" = x ]; then
+	"$@"
+    fi
+}
 
 extract_datadir () {
     local regfile
@@ -157,39 +187,74 @@ manage_data () {
     source_datadir=$(extract_datadir $cwb_regdir/$source)
     top_datadir=$(echo "$source_datadir" | sed -e 's,\(.*\)/.*,\1,')
     if [ "$cmd" = "remove" ]; then
-	rm -rf "$source_datadir"
+	run_verb "Removing data directory $source_datadir and its contents" \
+		 rm_datadir "$source_datadir"
     else
 	target_datadir=$top_datadir/$target
 	if [ "$cmd" = "copy" ]; then
-	    cp -dpr "$source_datadir" "$target_datadir"
-	    ensure_perms "$target_datadir"
+	    run_verb "Copying data directory $source_datadir to $target_datadir" \
+		     cp_datadir "$source_datadir" "$target_datadir"
 	else
-	    mv "$source_datadir" "$target_datadir"
-	    ensure_perms "$target_datadir"
+	    run_verb "Renaming data directory $source_datadir to $target_datadir" \
+		     mv_datadir "$source_datadir" "$target_datadir"
 	fi
     fi
 }
 
+rm_datadir () {
+    rm -rf "$1"
+}
+
+cp_datadir () {
+    cp -dpr "$1" "$2"
+    ensure_perms "$2"
+}
+
+mv_datadir () {
+    mv "$1" "$2"
+    ensure_perms "$1"
+}
+
 manage_registry () {
-    local cmd source target source_u target_u
+    local cmd source target source_u target_u source_reg target_reg
     cmd=$1
     source=$2
     source_u=$(toupper $source)
+    source_reg=$cwb_regdir/$source
     if [ "$cmd" != "remove" ]; then
 	target=$3
 	target_u=$(toupper $target)
-	cat "$cwb_regdir/$source" |
-	sed -e '
-    	    s,^\(## registry entry for corpus \)'$source_u',\1'$target_u',;
-	    s,^\(ID *\)'$source',\1'$target',;
-	    s,^\(HOME .*/\)'$source',\1'$target',;
-	    s,^\(INFO .*/\)'$source'\(/\.info\),\1'$target'\2,' \
-		> "$cwb_regdir/$target"
-	ensure_perms "$cwb_regdir/$target"
+	target_reg=$cwb_regdir/$target
+	run_verb "Copying registry file $source_reg to $target_reg, changing corpus id" \
+		 cp_regfile $source $target $source_u $target_u \
+		 "$source_reg" "$target_reg"
     fi
     if [ "$cmd" != "copy" ]; then
-	rm "$cwb_regdir/$source"
+	run_verb "Removing registry file $source_reg" \
+		 rm_regfile "$source_reg"
     fi
+}
+
+cp_regfile () {
+    local source target source_u target_u source_reg target_reg
+    source=$1
+    target=$2
+    source_u=$3
+    target_u=$4
+    source_reg=$5
+    target_reg=$6
+    cat "$source_reg" |
+	sed -e '
+		s,^\(## registry entry for corpus \)'$source_u',\1'$target_u',;
+		s,^\(ID *\)'$source',\1'$target',;
+		s,^\(HOME .*/\)'$source',\1'$target',;
+		s,^\(INFO .*/\)'$source'\(/\.info\),\1'$target'\2,' \
+		    > "$target_reg"
+    ensure_perms "$target_reg"
+}
+
+rm_regfile () {
+    rm "$1"
 }
 
 mysql_make_manage_table_rows () {
@@ -249,6 +314,20 @@ mysql_make_manage_rel_tables () {
     done
 }
 
+run_mysql_verb () {
+    local tmpfile dbname
+    tmpfile=$tmpprefix.mysql
+    cat > $tmpfile
+    if [ "x$1" = "x--auth" ]; then
+	dbname=korp_auth
+    else
+	dbname=korp
+    fi
+    run_verb "Executing MySQL statements on database $dbname:
+$(indent_input 4 < $tmpfile)" \
+	     run_mysql "$@" < $tmpfile
+}
+
 manage_database () {
     local cmd source target source_u target_u
     cmd=$1
@@ -261,10 +340,10 @@ manage_database () {
 				     $multicorpus_tables
 	mysql_make_manage_rel_tables $cmd $source_u $target_u
     } |
-	run_mysql
+	run_mysql_verb
     mysql_make_manage_table_rows $cmd $source_u $target_u \
 				 $multicorpus_tables_auth |
-	run_mysql --auth
+	run_mysql_verb --auth
 }
 
 manage_corpus () {
@@ -289,7 +368,7 @@ manage_corpus () {
 		warn "Skipping corpus $source: target corpus $target already exists; specify --force to overwrite"
 		return
 	    elif [ "x$baksuff" = x ]; then
-		warn "Corpus $source: overwriting existing target corpus $target as --force and --backup-suffix=\"\" were specified"
+		warn "Corpus $source: overwriting existing target corpus $target without making a backup as --force and --backup-suffix=\"\" were specified"
 		# Removing the existing target is probably needed for
 		# the MySQL database statements to work correctly
 		manage_corpus remove $target
@@ -301,7 +380,10 @@ manage_corpus () {
 	fi
     fi
     if [ "x$verbose" != x ]; then
-	msg="${cmd%e}ing $source"
+	msg="$cmd_verb corpus $source"
+	if [ "x$dry_run" != x ]; then
+	    msg="Dry run: $msg"
+	fi
 	if [ "$cmd" != "remove" ]; then
 	    msg="$msg to $target"
 	fi
