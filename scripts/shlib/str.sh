@@ -39,6 +39,16 @@ in_str () {
     [ -z "${str##*$substr*}" ] && [ -z "$substr" -o -n "$str" ]
 }
 
+# str_hasprefix string prefix
+#
+# Returns true if string starts with prefix, false otherwise.
+str_hasprefix () {
+    local str prefix
+    str=$1
+    prefix=$2
+    [ -z "${str##$prefix*}" ] && [ -z "$prefix" -o -n "$str" ]
+}
+
 # word_in word text
 #
 # Return true if text contains word, text words separated by spaces.
