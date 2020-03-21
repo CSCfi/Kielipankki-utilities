@@ -8,9 +8,9 @@
 # korp-manage-corpora --help for more information
 #
 # TODO:
-# - Handle alignment attributes.
 # - Add command "alias": symlink CWB data, copy registry and MySQL
 #   data.
+# - Add comments to the registry file documenting the changes.
 
 
 progname=`basename $0`
@@ -25,8 +25,9 @@ usage_header="Usage: $progname [options] (copy | rename) source target
        $progname [options] remove corpus ...
 
 Manage (copy, rename or remove) the Korp corpora with the specified
-corpus ids: CWB data directory, registry file and Korp MySQL data
-(time data, lemgram index, relations tables and authorization data).
+corpus ids: CWB data directory, registry file, alignment attributes in
+aligned corpora and Korp MySQL data (time data, lemgram index,
+relations tables and authorization data).
 
 The commands copy, rename and remove can be abbreviated as cp, mv and
 rm, respectively. For the remove command and when using --pattern with
@@ -61,6 +62,15 @@ corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
 registry=DIR "$cwb_regdir" { set_corpus_registry "$1" }
     Use DIR as the CWB registry directory.
 '
+
+usage_footer="Note that when copying aligned corpora to a different name, it is
+in general advisable to copy all mutually aligned corpora with the
+same command using the appropriate --pattern, since in that case, the
+alignment attributes in the copies are renamed accordingly. If you
+copy only one corpus at a time, the alignment attribute in the aligned
+corpora are duplicated, with one attribute referring to the new copy,
+whereas the new copy has only the attribute referring to the original
+corpus."
 
 . $progdir/korp-lib.sh
 
@@ -178,6 +188,11 @@ multicorpus_tables="timedata timedata_date timespans lemgram_index corpus_info"
 multicorpus_tables_auth="auth_license auth_lbr_map auth_allow"
 
 
+apply_substpatt () {
+    echo "$1" |
+	perl -pe "$substpatt"
+}
+
 # If --verbose, echo the first argument (preceded by two spaces). If
 # not --dry-run, execute the rest of the arguments as a command.
 run_verb () {
@@ -200,13 +215,19 @@ extract_datadir () {
     cut -d' ' -f2
 }
 
+extract_top_datadir () {
+    local regfile
+    regfile=$1
+    extract_datadir "$regfile" |
+	sed -e 's,\(.*\)/.*,\1,'
+}
+
 manage_data () {
-    local cmd source target source_datadir top_datadir target_datadir
+    local cmd source target source_datadir target_datadir
     cmd=$1
     source=$2
     target=$3
     source_datadir=$(extract_datadir $cwb_regdir/$source)
-    top_datadir=$(echo "$source_datadir" | sed -e 's,\(.*\)/.*,\1,')
     if [ "$cmd" = "remove" ]; then
 	run_verb "Removing data directory $source_datadir and its contents" \
 		 rm_datadir "$source_datadir"
@@ -276,6 +297,74 @@ cp_regfile () {
 
 rm_regfile () {
     rm "$1"
+}
+
+manage_aligned () {
+    local cmd source target aligned_corpora aligned
+    cmd=$1
+    source=$2
+    target=$3
+    if [ "$cmd" = "copy" ] && [ "x$substpatt" != x ]; then
+	# If dry-running, the target does not exist yet, so to see the
+	# effect, try it for the source.
+	if [ "x$dry_run" = x ]; then
+	    rename_align_pattern $target
+	else
+	    rename_align_pattern $source
+	fi
+    else
+	# FIXME: This is somewhat simplistic, as it assumes that the
+	# top data directory is the same for all the aligned corpora.
+	# To be precise, we should take the data directory from the
+	# registry file. In practice, this should suffice for us.
+	aligned_corpora=$(
+	    find "$top_datadir" -name $source.alx |
+		sed -e 's,.*/\([^/]*\)/[^/]*,\1,')
+	for aligned in $aligned_corpora; do
+	    run_verb "$cmd_verb alignment attribute in aligned corpus $aligned" \
+		     ${cmd}_align $aligned $source $target
+	done
+    fi
+}
+
+rename_align_pattern () {
+    local corpus align_attr align_attr_new
+    corpus=$1
+    for align_attr in $(corpus_list_attrs $corpus "ALIGNED"); do
+	# Use echo to convert newlines to spaces in $corpora
+	if word_in "$align_attr" "$(echo $corpora)"; then
+	    align_attr_new=$(apply_substpatt $align_attr)
+	    if [ "$align_attr_new" != "$align_attr" ]; then
+		run_verb "Renaming alignment attribute $align_attr to $align_attr_new" \
+			 corpus_rename_attr --backup-suffix "" \
+			 $corpus $align_attr $align_attr_new
+	    fi
+	fi
+    done
+}
+
+copy_align () {
+    local corpus source target
+    corpus=$1
+    source=$2
+    target=$3
+    warn "Aligned corpus $corpus: duplicating alignment attribute $source as $target; please check if that is appropriate"
+    corpus_copy_attr --backup-suffix "" $corpus $source $target
+}
+
+rename_align () {
+    local corpus source target
+    corpus=$1
+    source=$2
+    target=$3
+    corpus_rename_attr --backup-suffix "" $corpus $source $target
+}
+
+remove_align () {
+    local corpus source
+    corpus=$1
+    source=$2
+    corpus_remove_attr --backup-suffix "" $corpus $source
 }
 
 mysql_make_manage_table_rows () {
@@ -418,9 +507,11 @@ manage_corpus () {
 	fi
 	safe_echo "$msg"
     fi
-    manage_data $cmd $source $target
-    manage_registry $cmd $source $target
-    manage_database $cmd $source $target
+    # This is a global variable that is used in the called functions
+    top_datadir=$(extract_top_datadir $cwb_regdir/$source)
+    for type in data registry aligned database; do
+	manage_$type $cmd $source $target
+    done
 }
 
 
