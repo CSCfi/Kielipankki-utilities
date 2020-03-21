@@ -21,7 +21,7 @@ verbose=1
 
 
 usage_header="Usage: $progname [options] (copy | rename) source target
-       $progname [options] --pattern=src:trg (copy | rename) source ...
+       $progname [options] --pattern=src:trg (copy | rename) corpus ...
        $progname [options] remove corpus ...
 
 Manage (copy, rename or remove) the Korp corpora with the specified
@@ -29,7 +29,9 @@ corpus ids: CWB data directory, registry file and Korp MySQL data
 (time data, lemgram index, relations tables and authorization data).
 
 The commands copy, rename and remove can be abbreviated as cp, mv and
-rm, respectively."
+rm, respectively. For the remove command and when using --pattern with
+copy or rename, the corpus ids may contain shell wildcards that are
+expanded."
 
 optspecs='
 pattern|substitution-pattern=PATT substpatt
@@ -137,11 +139,30 @@ if [ "$baksuff" = "$baksuff_default" ]; then
     baksuff=-$(date '+%Y%m%d%H%M%S')
 fi
 
+# Only warn on corpora not found, each with a separate message. The
+# function get_error_corpora is called from list_corpora if some of
+# the arguments were not found.
+warn_nonfound_corpora () {
+    local msg corpora corpus
+    msg=$1
+    corpora=${msg##*:}
+    for corpus in $corpora; do
+	verbose warn \
+		"Skipping corpus $corpus: not found in registry $cwb_regdir"
+    done
+}
+
 if [ "$command" = "remove" ] || [ "x$substpatt" != x ]; then
-    corpora=$(list_corpora "$@")
+    # This warns on all non-existent corpora at this point, in
+    # alphabetical order, instead of in the order in which they are on
+    # the command line.
+    corpora=$(list_corpora --on-error warn_nonfound_corpora "$@")
 elif [ "x$3" != x ]; then
     shift 2
-    error "Spurious argument(s) after source and target: $@"
+    # Use $* instead of $@, as the latter would expand to separate
+    # arguments and if the error function is given multiple arguments,
+    # it expects that the first argument is the exit code.
+    error "Spurious argument(s) after source and target: $*"
 else
     corpora=$1
     target_corpus=$2
@@ -354,21 +375,21 @@ manage_corpus () {
     cmd=$1
     source=$2
     target=$3
-    if [ "$source" = "$target" ]; then
-	verbose warn "Skipping corpus $source: target is the same"
-	return
-    fi
     if ! corpus_exists "$source"; then
 	verbose warn \
 		"Skipping corpus $source: not found in registry $cwb_regdir"
 	return
     fi
+    if [ "$source" = "$target" ]; then
+	verbose warn "Skipping corpus $source: target is the same"
+	return
+    fi
     if [ "$cmd" != "remove" ]; then
-        if ! corpus_id_is_valid $target; then
+        if ! corpus_id_is_valid "$target"; then
 	    verbose warn \
 		    "Skipping corpus $source: invalid target corpus id: $target"
 	    return
-	elif corpus_exists $target; then
+	elif corpus_exists "$target"; then
 	    if [ "x$force" = x ]; then
 		verbose warn \
 			"Skipping corpus $source: target corpus $target already exists; specify --force to overwrite"
@@ -403,13 +424,24 @@ manage_corpus () {
 }
 
 
-for corpus in $corpora; do
-    if [ "$command" = "remove" ]; then
-	target=
-    elif [ "x$substpatt" != x ]; then
-	target=$(echo "$corpus" | perl -pe "$substpatt")
-    else
-	target=$target_corpus
-    fi
-    manage_corpus $command $corpus $target
-done
+# If $corpora contains shell wildcards (for the single-file copy and
+# rename, for which the arguments have not been expanded using
+# list_corpora), they should not be expanded to file names, so it is
+# easier to use a while loop instead of a for loop, which expands
+# shell wildcards.
+echo "$corpora" |
+    tr ' ' '\n' |
+    while read corpus; do
+	# If $corpora is empty, echo still adds a newline, resulting
+	# in read returning an ampty string, so ignore it.
+	if [ "x$corpus" != x ]; then
+	    if [ "$command" = "remove" ]; then
+		target=
+	    elif [ "x$substpatt" != x ]; then
+		target=$(apply_substpatt $corpus)
+	    else
+		target=$target_corpus
+	    fi
+	    manage_corpus $command "$corpus" "$target"
+	fi
+    done
