@@ -133,6 +133,21 @@ nth_arg () {
     eval echo "\${$n}"
 }
 
+
+# but_n_first_args n arg ...
+#
+# Output the arguments (starting from the second argument) except for
+# the n first ones. Note that the output loses the distinction between
+# spaces between and within arguments.
+but_n_first_args () {
+    local n
+    n=$1
+    shift
+    shift $n
+    echo "$@"
+}
+
+
 # is_int arg
 #
 # Return true if arg is an integer
