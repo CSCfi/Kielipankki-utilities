@@ -335,13 +335,16 @@ manage_database () {
     target=$3
     source_u=$(toupper $source)
     target_u=$(toupper $target)
+    # $target_u is empty for remove, but mysql_make_manage_table_rows
+    # expects three arguments before table names, so enclose it in
+    # quotes to avoid leaving out the first table name.
     {
-	mysql_make_manage_table_rows $cmd $source_u $target_u \
+	mysql_make_manage_table_rows $cmd $source_u "$target_u" \
 				     $multicorpus_tables
 	mysql_make_manage_rel_tables $cmd $source_u $target_u
     } |
 	run_mysql_verb
-    mysql_make_manage_table_rows $cmd $source_u $target_u \
+    mysql_make_manage_table_rows $cmd $source_u "$target_u" \
 				 $multicorpus_tables_auth |
 	run_mysql_verb --auth
 }
