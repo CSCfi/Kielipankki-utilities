@@ -53,7 +53,7 @@ verbose { verbose=2 }
     Output more detailed information on what is done (or would be
     done).
 quiet { verbose= }
-    Suppress informational messages.
+    Suppress warnings and informational messages.
 corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
     Use DIR as the root directory of corpus files.
 registry=DIR "$cwb_regdir" { set_corpus_registry "$1" }
@@ -355,29 +355,34 @@ manage_corpus () {
     source=$2
     target=$3
     if [ "$source" = "$target" ]; then
-	warn "Skipping corpus $source: target is the same"
+	verbose warn "Skipping corpus $source: target is the same"
 	return
     fi
     if ! corpus_exists "$source"; then
-	warn "Skipping corpus $source: not found in registry $cwb_regdir"
+	verbose warn \
+		"Skipping corpus $source: not found in registry $cwb_regdir"
 	return
     fi
     if [ "$cmd" != "remove" ]; then
         if ! corpus_id_is_valid $target; then
-	    warn "Skipping corpus $source: invalid target corpus id: $target"
+	    verbose warn \
+		    "Skipping corpus $source: invalid target corpus id: $target"
 	    return
 	elif corpus_exists $target; then
 	    if [ "x$force" = x ]; then
-		warn "Skipping corpus $source: target corpus $target already exists; specify --force to overwrite"
+		verbose warn \
+			"Skipping corpus $source: target corpus $target already exists; specify --force to overwrite"
 		return
 	    elif [ "x$baksuff" = x ]; then
-		warn "Corpus $source: overwriting existing target corpus $target without making a backup as --force and --backup-suffix=\"\" were specified"
+		verbose warn \
+			"Corpus $source: overwriting existing target corpus $target without making a backup as --force and --backup-suffix=\"\" were specified"
 		# Removing the existing target is probably needed for
 		# the MySQL database statements to work correctly
 		manage_corpus remove $target
 	    else
 		target_bak=$target$baksuff
-		warn "Corpus $source: renaming existing target corpus $target to $target_bak before overwriting as --force was specified"
+		verbose warn \
+			"Corpus $source: renaming existing target corpus $target to $target_bak before overwriting as --force was specified"
 		manage_corpus rename $target $target_bak
 	    fi
 	fi
