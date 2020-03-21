@@ -17,10 +17,10 @@ shlib_required_libs="base msgs file str"
 # list_corpora [--registry registry_dir] [--on-error error_cmd] [corpus_id ...]
 #
 # List the corpora in the parameters as found in registry_dir
-# (default: $cwb_regdir), expanding shell wildcards (but not braces).
-# If no corpus_ids are specified, list all corpora found.
-# If some listed corpora are not found, call error_cmd (default:
-# error) with an error message.
+# (default: $cwb_regdir), expanding shell wildcards. The result is
+# sorted (as done by ls) and uniquified. If no corpus_ids are
+# specified, list all corpora found. If some listed corpora are not
+# found, call error_cmd (default: error) with an error message.
 list_corpora () {
     local no_error error_func error_files registry
     no_error=
@@ -37,10 +37,12 @@ list_corpora () {
     if [ "$#" = 0 ]; then
 	set -- '*'
     fi
+    # ls sorts its output, so we can use uniq instead of sort -u
     ls $(add_prefix $registry/ "$@") \
 	2> $tmp_prefix.corpid_errors |
     sed -e 's,.*/,,' |
-    grep '^[a-z_][a-z0-9_-]*$' > $tmp_prefix.corpids
+    grep '^[a-z_][a-z0-9_-]*$' |
+    uniq > $tmp_prefix.corpids
     if [ -s $tmp_prefix.corpid_errors ]; then
 	# Use echo to convert newlines to spaces
 	# On some systems, the file name in the error message is
