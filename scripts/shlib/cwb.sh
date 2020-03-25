@@ -298,7 +298,8 @@ corpus_remove_attrs () {
 #     the suffix for the backups of the registry file and possible
 #     existing destination data files; use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment; use "" to omit the comment.
+#     of a standard comment ("" to omit the comment).
+# --omit-comment: Omit the comment (an alias of '--comment ""').
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
 #     the registry file.
@@ -341,6 +342,9 @@ _corpus_manage_attr () {
 	    shift 2
 	elif [ "$2" = "--attribute-comment" ]; then
 	    attr_comment=1
+	    shift
+	elif [ "$2" = "--omit-comment" ]; then
+	    comment=
 	    shift
 	else
 	    lib_error "_corpus_manage_attr: Unrecognized option $2"
@@ -498,7 +502,8 @@ _corpus_manage_attr () {
 #     the suffix for the backups of the registry file and possible
 #     existing target data files; use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment; use "" to omit the comment.
+#     of a standard comment ("" to omit the comment).
+# --omit-comment: Omit the comment (an alias of '--comment ""').
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
 #     the registry file.
@@ -516,7 +521,8 @@ corpus_rename_attr () {
 #     the suffix for the backups of the registry file and possible
 #     existing target data files; use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment; use "" to omit the comment.
+#     of a standard comment ("" to omit the comment).
+# --omit-comment: Omit the comment (an alias of '--comment ""').
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
 #     the registry file.
@@ -535,7 +541,8 @@ corpus_copy_attr () {
 #     the suffix for the backups of the registry file and possible
 #     existing target data files; use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment; use "" to omit the comment.
+#     of a standard comment ("" to omit the comment).
+# --omit-comment: Omit the comment (an alias of '--comment ""').
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
 #     the registry file.
@@ -553,7 +560,8 @@ corpus_alias_attr () {
 #     the suffix for the backups of the registry file and data files;
 #     use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment; use "" to omit the comment.
+#     of a standard comment ("" to omit the comment).
+# --omit-comment: Omit the comment (an alias of '--comment ""').
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
 #     the registry file.
