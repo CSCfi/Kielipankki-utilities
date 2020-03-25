@@ -299,6 +299,9 @@ corpus_remove_attrs () {
 #     existing destination data files; use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
 #     of a standard comment; use "" to omit the comment.
+# --attribute-comment: Add comment immediately after the attribute
+#     declaration, instead of to the changelog section at the end of
+#     the registry file.
 #
 # Note that options follow mode (to make it easier to pass the
 # arguments from specific functions using a fixed mode).
@@ -324,10 +327,11 @@ corpus_remove_attrs () {
 _corpus_manage_attr () {
     local mode comment comment_verb corpus attrname_src attrname_dst \
 	  attrname_bak cmd attrtype_src attrtype_dst baksuff fnames fname \
-	  fname_dst
+	  fname_dst attrtype_word attr_comment
     mode=$1
     comment="__DEFAULT"
     baksuff=.bak-$(date +%Y%m%d%H%M%S)
+    attr_comment=
     while [ "${2#--}" != "$2" ]; do
 	if [ "$2" = "--comment" ]; then
 	    comment=$3
@@ -335,6 +339,9 @@ _corpus_manage_attr () {
 	elif [ "$2" = "--backup-suffix" ]; then
 	    baksuff=$3
 	    shift 2
+	elif [ "$2" = "--attribute-comment" ]; then
+	    attr_comment=1
+	    shift
 	else
 	    lib_error "_corpus_manage_attr: Unrecognized option $2"
 	fi
@@ -402,7 +409,21 @@ _corpus_manage_attr () {
 	fi
     fi
     if [ "$comment" = "__DEFAULT" ]; then
-	comment="$(date "+%Y-%m-%d"): $comment_verb $attrname_src"
+	case $attrtype_src in
+	    p* )
+		attrtype_word=positional
+		;;
+	    s* )
+		attrtype_word=structural
+		;;
+	    a* )
+		attrtype_word=alignment
+		;;
+	esac
+	comment="$comment_verb $attrtype_word attribute $attrname_src"
+	if [ "x$attr_comment" != x ]; then
+	    comment="$(date "+%Y-%m-%d"): $comment"
+	fi
 	if [ $mode != "remove" ]; then
 	    comment="$comment to $attrname_dst"
 	    if [ "$attrtype_dst" = "$attrtype_src" ]
@@ -420,9 +441,15 @@ _corpus_manage_attr () {
     if [ "x$baksuff" != x ]; then
 	cp -p "$cwb_regdir/$corpus" "$cwb_regdir/$corpus$baksuff"
     fi
-    # For removal, the comment needs to be added before removing the
-    # information.
-    if [ $mode = "remove" ] && [ "x$comment" != x ]; then
+    # Add comment to the changelog section (default)
+    if [ "x$attr_comment" = x ] && [ "x$comment" != x ]; then
+	cwb_registry_add_change_comment $corpus "$comment"
+    fi
+    # For removal, an attribute comment needs to be added before
+    # removing the information.
+    if [ $mode = "remove" ] && [ "x$attr_comment" != x ] &&
+	   [ "x$comment" != x ]
+    then
 	# Add a blank line after the comment, before the structure
 	# block to be removed, to separate it from the structure block
 	# after removal, as the trailing blank line of a structure
@@ -453,7 +480,9 @@ _corpus_manage_attr () {
 	    $cmd $fname $fname_dst
 	done
     )
-    if [ $mode != "remove" ] && [ "x$comment" != x ]; then
+    if [ $mode != "remove" ] && [ "x$attr_comment" != x ] &&
+	   [ "x$comment" != x ]
+    then
 	cwb_registry_add_attr_comment \
 	    $corpus $attrname_dst "$comment" $attrtype_src
     fi
@@ -470,6 +499,9 @@ _corpus_manage_attr () {
 #     existing target data files; use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
 #     of a standard comment; use "" to omit the comment.
+# --attribute-comment: Add comment immediately after the attribute
+#     declaration, instead of to the changelog section at the end of
+#     the registry file.
 corpus_rename_attr () {
     _corpus_manage_attr rename "$@"
 }
@@ -485,6 +517,9 @@ corpus_rename_attr () {
 #     existing target data files; use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
 #     of a standard comment; use "" to omit the comment.
+# --attribute-comment: Add comment immediately after the attribute
+#     declaration, instead of to the changelog section at the end of
+#     the registry file.
 corpus_copy_attr () {
     _corpus_manage_attr copy "$@"
 }
@@ -501,6 +536,9 @@ corpus_copy_attr () {
 #     existing target data files; use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
 #     of a standard comment; use "" to omit the comment.
+# --attribute-comment: Add comment immediately after the attribute
+#     declaration, instead of to the changelog section at the end of
+#     the registry file.
 corpus_alias_attr () {
     _corpus_manage_attr alias "$@"
 }
@@ -516,6 +554,9 @@ corpus_alias_attr () {
 #     use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
 #     of a standard comment; use "" to omit the comment.
+# --attribute-comment: Add comment immediately after the attribute
+#     declaration, instead of to the changelog section at the end of
+#     the registry file.
 #
 # Note that this function takes only for a single attribute name as an
 # argument, unlike corpus_remove_attrs further above.
