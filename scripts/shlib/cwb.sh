@@ -810,6 +810,48 @@ cwb_registry_add_attr_comment () {
 	''
 }
 
+# cwb_registry_add_change_comment corpus comment
+#
+# Add comment as a changelog entry at the end of a registry file of
+# corpus, after the heading "## Changelog". The entry contains the
+# date (YYYY-MM-DD), followed by a colon and the comment. If the
+# changelog heading is absent, it is added. The new entry is added as
+# the topmost one after the changelog heading (most recent first).
+#
+# If comment contains multiple lines, each new line is preceded by a
+# "#", followed by spaces to align it with the first line of the
+# comment text (following the date).
+cwb_registry_add_change_comment () {
+    local comment regfile
+    corpus=$1
+    comment=$2
+    # Convert newlines to \n followed by # and indentation for Awk
+    comment="$(date "+%Y-%m-%d"): $(printf "%s" "$comment" |
+    		    		    tr '\n' '\a' |
+				    sed -e 's/\a/\\n#             /g')"
+    regfile="$cwb_regdir/$corpus"
+    cp -p "$regfile" "$regfile.old" ||
+	error "Could not copy $regfile to $regfile.old"
+    awk '
+        function add_comment() {
+	    print "# '"$comment"'"
+        }
+	insert_comment { add_comment(); insert_comment = 0 }
+	log_heading_seen && /^##/ { insert_comment = 1 }
+        /^## Changelog/ { log_heading_seen = 1 }
+	{ print }
+	END {
+	    if (! log_heading_seen) {
+	        print "\n\n##"
+		print "## Changelog"
+		print "##"
+	        add_comment()
+	    }
+	}
+    ' < "$regfile.old" > "$regfile"
+    ensure_perms "$regfile" "$regfile.old"
+}
+
 
 # corpus_list_attrs [options] corpus attrtypes [attr_regex]
 #
