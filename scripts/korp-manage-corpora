@@ -10,7 +10,6 @@
 # TODO:
 # - Add command "alias": symlink CWB data, copy registry and MySQL
 #   data.
-# - Add comments to the registry file documenting the changes.
 
 
 progname=`basename $0`
@@ -49,6 +48,11 @@ force
 backup-suffix|suffix=SUFFIX "'$baksuff_default'" baksuff
     Use SUFFIX as the suffix for the backup corpus name; use "" to
     make no backups.
+comment=COMMENT
+    Append COMMENT to the standard comment added to the changelog in
+    the corpus registry file.
+omit-comment|no-comment
+    Do not add a changelog comment to the corpus registry file.
 dry-run
     Output information on what would be done but do not actually do
     it. (Cancels the effect of a possible --quiet.)
@@ -82,14 +86,17 @@ case "$1" in
     "copy" | "cp" )
 	command="copy"
 	cmd_verb="Copying"
+	cmd_verb_past="Copied"
 	;;
     "rename" | "mv" )
 	command="rename"
 	cmd_verb="Renaming"
+	cmd_verb_past="Renamed"
 	;;
     "remove" | "rm" )
 	command="remove"
 	cmd_verb="Removing"
+	cmd_verb_past="Removed"
 	;;
     "" )
 	error "Please specify command and corpus or corpora"
@@ -258,7 +265,7 @@ mv_datadir () {
 }
 
 manage_registry () {
-    local cmd source target source_u target_u source_reg target_reg
+    local cmd source target source_u target_u source_reg target_reg comment_text
     cmd=$1
     source=$2
     source_u=$(toupper $source)
@@ -270,6 +277,13 @@ manage_registry () {
 	run_verb "Copying registry file $source_reg to $target_reg, changing corpus id" \
 		 cp_regfile $source $target $source_u $target_u \
 		 "$source_reg" "$target_reg"
+	if [ "x$omit_comment" = x ]; then
+	    comment_text="$cmd_verb_past corpus $source to $target"
+	    if [ "x$comment" != x ]; then
+		comment_text="$comment_text: $comment"
+	    fi
+	    cwb_registry_add_change_comment $target "$comment_text"
+	fi
     fi
     if [ "$cmd" != "copy" ]; then
 	run_verb "Removing registry file $source_reg" \
@@ -300,15 +314,19 @@ rm_regfile () {
 }
 
 manage_aligned () {
-    local cmd source target aligned_corpora aligned
+    local cmd source target aligned_corpora aligned omit_cmt
     cmd=$1
     source=$2
     target=$3
+    omit_cmt=
+    if [ "x$omit_comment" != x ]; then
+	omit_cmt=--omit-comment
+    fi
     if [ "$cmd" = "copy" ] && [ "x$substpatt" != x ]; then
 	# If dry-running, the target does not exist yet, so to see the
 	# effect, try it for the source.
 	if [ "x$dry_run" = x ]; then
-	    rename_align_pattern $target
+	    rename_align_pattern $target $omit_cmt
 	else
 	    rename_align_pattern $source
 	fi
@@ -322,21 +340,22 @@ manage_aligned () {
 		sed -e 's,.*/\([^/]*\)/[^/]*,\1,')
 	for aligned in $aligned_corpora; do
 	    run_verb "$cmd_verb alignment attribute in aligned corpus $aligned" \
-		     ${cmd}_align $aligned $source $target
+		     ${cmd}_align $aligned $source $target $omit_cmt
 	done
     fi
 }
 
 rename_align_pattern () {
-    local corpus align_attr align_attr_new
+    local corpus omit_cmt align_attr align_attr_new
     corpus=$1
+    omit_cmt=$2
     for align_attr in $(corpus_list_attrs $corpus "ALIGNED"); do
 	# Use echo to convert newlines to spaces in $corpora
 	if word_in "$align_attr" "$(echo $corpora)"; then
 	    align_attr_new=$(apply_substpatt $align_attr)
 	    if [ "$align_attr_new" != "$align_attr" ]; then
 		run_verb "Renaming alignment attribute $align_attr to $align_attr_new" \
-			 corpus_rename_attr --backup-suffix "" \
+			 corpus_rename_attr --backup-suffix "" $omit_cmt \
 			 $corpus $align_attr $align_attr_new
 	    fi
 	fi
@@ -344,27 +363,30 @@ rename_align_pattern () {
 }
 
 copy_align () {
-    local corpus source target
+    local corpus source target omit_cmt
     corpus=$1
     source=$2
     target=$3
+    omit_cmt=$4
     warn "Aligned corpus $corpus: duplicating alignment attribute $source as $target; please check if that is appropriate"
-    corpus_copy_attr --backup-suffix "" $corpus $source $target
+    corpus_copy_attr --backup-suffix "" $omit_cmt $corpus $source $target
 }
 
 rename_align () {
-    local corpus source target
+    local corpus source target omit_cmt
     corpus=$1
     source=$2
     target=$3
-    corpus_rename_attr --backup-suffix "" $corpus $source $target
+    omit_cmt=$4
+    corpus_rename_attr --backup-suffix "" $omit_cmt $corpus $source $target
 }
 
 remove_align () {
-    local corpus source
+    local corpus source omit_cmt
     corpus=$1
     source=$2
-    corpus_remove_attr --backup-suffix "" $corpus $source
+    omit_cmt=$3
+    corpus_remove_attr --backup-suffix "" $omit_cmt $corpus $source
 }
 
 mysql_make_manage_table_rows () {
