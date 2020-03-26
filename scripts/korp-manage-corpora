@@ -20,7 +20,7 @@ verbose=1
 
 
 usage_header="Usage: $progname [options] (copy | rename) source target
-       $progname [options] --pattern=src:trg (copy | rename) corpus ...
+       $progname [options] (copy | rename) pattern corpus ...
        $progname [options] remove corpus ...
 
 Manage (copy, rename or remove) the Korp corpora with the specified
@@ -28,19 +28,23 @@ corpus ids: CWB data directory, registry file, alignment attributes in
 aligned corpora and Korp MySQL data (time data, lemgram index,
 relations tables and authorization data).
 
+The arguments to the copy and rename commands may be specified in two
+different forms: either a literal source and target corpus id (when
+copying only one corpus) or a substitution pattern and a list of
+source corpus ids to which to apply the pattern to get the target
+corpus ids. The substitution pattern can be a Perl substitution
+expression \"s/source/target/\" or semicolon-separated list of them,
+or it can be of the form \"source:target\", which is converted to the
+Perl expression \"s/source/target/\". Note that the \"e\" flag is not
+allowed in the Perl substitution expressions, for security reasons.
+
+For the remove command and when using a pattern in copy or rename, the
+corpus ids may contain shell wildcards that are expanded.
+
 The commands copy, rename and remove can be abbreviated as cp, mv and
-rm, respectively. For the remove command and when using --pattern with
-copy or rename, the corpus ids may contain shell wildcards that are
-expanded."
+rm, respectively."
 
 optspecs='
-pattern|substitution-pattern=PATT substpatt
-    Use the substitution pattern PATT to form the new names for the
-    corpora in copy or rename. PATT can be a Perl substitution
-    expression "s/SOURCE/TARGET/" or semicolon-separated list of them,
-    or it can be of the form SOURCE:TARGET, which is converted to the
-    Perl expression "s/SOURCE/TARGET/". Note that the "e" flag is not
-    allowed in the substitution expression, for security reasons.
 force
     Force overwriting the target of a copy or rename if it exists. The
     existing target is backed up by default; use --backup-suffix="" to
@@ -99,16 +103,25 @@ case "$1" in
 	error "Unrecognized command \"$1\""
 	;;
 esac
-if [ "$command" = "remove" ] || [ "x$substpatt" != x ]; then
-    if [ "x$2" = x ]; then
+shift
+
+substpatt=
+if in_str ":" "$1" || str_hasprefix "$1" "s/"; then
+    substpatt=$1
+    shift
+fi
+
+if [ "$command" = "remove" ] && [ "x$substpatt" != x ]; then
+    error "Cannot use substitution pattern with command remove"
+elif [ "$command" = "remove" ] || [ "x$substpatt" != x ]; then
+    if [ "x$1" = x ]; then
 	error "Please specify at least one corpus id"
     fi
 else
-    if [ "x$3" = x ]; then
-	error "Please specify source and target corpus id"
+    if [ "x$2" = x ]; then
+	error "Please specify source and target corpus id, or a pattern and source corpus ids"
     fi
 fi
-shift
 
 cmd_verb_copy="Copying"
 cmd_verb_past_copy="Copied"
@@ -127,9 +140,7 @@ check_perl_syntax () {
 }
 
 if [ "x$substpatt" != x ]; then
-    if [ "$command" = "remove" ]; then
-	error "Cannot use --pattern with command remove"
-    elif in_str ":" "$substpatt" && ! str_hasprefix "$substpatt" "s/"; then
+    if in_str ":" "$substpatt" && ! str_hasprefix "$substpatt" "s/"; then
 	source=${substpatt%%:*}
 	target=${substpatt#*:}
 	substpatt="s/$source/$target/"
