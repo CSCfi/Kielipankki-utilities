@@ -289,13 +289,6 @@ manage_registry () {
 	run_verb "Copying registry file $source_reg to $target_reg, changing corpus id" \
 		 cp_regfile $source $target $source_u $target_u \
 		 "$source_reg" "$target_reg"
-	if [ "x$omit_comment" = x ]; then
-	    comment_text="$(eval echo "\$cmd_verb_past_$cmd") corpus $source to $target"
-	    if [ "x$comment" != x ]; then
-		comment_text="$comment_text: $comment"
-	    fi
-	    cwb_registry_add_change_comment $target "$comment_text"
-	fi
     fi
     if [ "$cmd" != "copy" ]; then
 	run_verb "Removing registry file $source_reg" \
@@ -319,6 +312,13 @@ cp_regfile () {
 		s,^\(INFO .*/\)'$source'\(/\.info\),\1'$target'\2,' \
 		    > "$target_reg"
     ensure_perms "$target_reg"
+    if [ "x$omit_comment" = x ]; then
+	comment_text="$(eval echo "\$cmd_verb_past_$cmd") corpus $source to $target"
+	if [ "x$comment" != x ]; then
+	    comment_text="$comment_text: $comment"
+	fi
+	cwb_registry_add_change_comment $target "$comment_text"
+    fi
 }
 
 rm_regfile () {
