@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# extract pdfurl, date and txt filename from VRT text elements:
+# grep '<text' E-thesis_other_langs_VRT_2016-11-22/ethesis_en_phd_med.vrt | perl -pe 'my $pdfurl=""; my $date=""; if (/(pdfurl="[^"]*")/) { $pdfurl=$1; print $pdfurl." "; } if (/(date="[^"]*")/) { $date=$1; print $1." "; } $date =~ s/date="//; $date =~ s/"//; $pdfurl =~ s/.*\/(.*)\.pdf"/\1/; $pdfurl =~ s/^(.)/en_\1_${date}/; $pdfurl =~ s/$/\.txt/; print $pdfurl; $_=""; print "\n"; '
+
 # - newer gradut package contains dir matemaattis with 577 files
 # - newer gradut package contains 1203 more files
 # - older gradut package contains one file that is not in newer package: teologinen/tuhoa.zip
