@@ -85,18 +85,12 @@ eval "$optinfo_opt_handler"
 case "$1" in
     "copy" | "cp" )
 	command="copy"
-	cmd_verb="Copying"
-	cmd_verb_past="Copied"
 	;;
     "rename" | "mv" )
 	command="rename"
-	cmd_verb="Renaming"
-	cmd_verb_past="Renamed"
 	;;
     "remove" | "rm" )
 	command="remove"
-	cmd_verb="Removing"
-	cmd_verb_past="Removed"
 	;;
     "" )
 	error "Please specify command and corpus or corpora"
@@ -115,6 +109,13 @@ else
     fi
 fi
 shift
+
+cmd_verb_copy="Copying"
+cmd_verb_past_copy="Copied"
+cmd_verb_rename="Renaming"
+cmd_verb_past_rename="Renamed"
+cmd_verb_remove="Removing"
+cmd_verb_past_remove="Removed"
 
 check_perl_syntax () {
     local perl_msg
@@ -278,7 +279,7 @@ manage_registry () {
 		 cp_regfile $source $target $source_u $target_u \
 		 "$source_reg" "$target_reg"
 	if [ "x$omit_comment" = x ]; then
-	    comment_text="$cmd_verb_past corpus $source to $target"
+	    comment_text="$(eval echo "\$cmd_verb_past_$cmd") corpus $source to $target"
 	    if [ "x$comment" != x ]; then
 		comment_text="$comment_text: $comment"
 	    fi
@@ -339,7 +340,7 @@ manage_aligned () {
 	    find "$top_datadir" -name $source.alx |
 		sed -e 's,.*/\([^/]*\)/[^/]*,\1,')
 	for aligned in $aligned_corpora; do
-	    run_verb "$cmd_verb alignment attribute in aligned corpus $aligned" \
+	    run_verb "$(eval echo "\$cmd_verb_$cmd") alignment attribute in aligned corpus $aligned" \
 		     ${cmd}_align $aligned $source $target $omit_cmt
 	done
     fi
@@ -520,7 +521,7 @@ manage_corpus () {
 	fi
     fi
     if [ "x$verbose" != x ]; then
-	msg="$cmd_verb corpus $source"
+	msg="$(eval echo "\$cmd_verb_$cmd") corpus $source"
 	if [ "x$dry_run" != x ]; then
 	    msg="Dry run: $msg"
 	fi
