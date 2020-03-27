@@ -164,11 +164,15 @@ class NoBoundaryLemmaAdder(InputProcessor):
 
     def __init__(self):
         super().__init__()
+        self._lemma_split_keepsep_re = None
 
     def main(self, args, inf, ouf):
 
         boundary_char = args.boundary_char.encode()
-        lemma_split_re = re.compile('([' + args.boundary_char + '-])')
+        # Handle double boundary characters, which occur in for example
+        # "neli||siipinen"
+        self._lemma_split_keepsep_re = re.compile(
+            '([' + args.boundary_char + '-]+)')
 
         def make_lemma_noboundaries_simple(lemma, wordform):
             return lemma.replace(boundary_char, b'')
@@ -237,10 +241,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
 
     def _make_lemma_noboundaries_omorfi(self, lemma, wordform):
         # TODO: uudenvuoden -> uusivuosi
-        lemma_split_re = re.compile('([|-])')
         lemma = lemma.decode()
         wordform = wordform.decode()
-        lemma_parts = lemma_split_re.split(lemma)
+        lemma_parts = self._lemma_split_keepsep_re.split(lemma)
         wf_prefix_len = 0
         lemma_prefix_len = 0
         lemma_nobound = []
@@ -252,8 +255,15 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     wordform[wf_prefix_len:])
                 # print(partnum, part, nobound_part, end_diff, wf_use_len)
                 lemma_nobound.append(nobound_part)
-                if ((nobound_part[-1] == lemma_parts[partnum + 2][0]
-                         and nobound_part[-1] in self._vowels)
+                # print(nobound_part, lemma_parts, partnum, file=sys.stderr)
+                # nobound_part may be empty if the lemma begins with a boundary
+                # marker, which has replaced a hyphen ("|tuntinen"). This
+                # replaces such a boundary marker with a hyphen; an alternative
+                # would be to leave it out if the word form has no initial
+                # hyphen.
+                if (nobound_part == ''
+                        or (nobound_part[-1] == lemma_parts[partnum + 2][0]
+                            and nobound_part[-1] in self._vowels)
                         or nobound_part[-1].isupper()
                         or nobound_part[-1].isdigit()):
                     lemma_nobound.append('-')
