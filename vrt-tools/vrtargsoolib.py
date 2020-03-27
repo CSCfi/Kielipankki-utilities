@@ -68,15 +68,17 @@ def get_argparser(argspecs=None, *, common_args=CommonArgs.trans, **kwargs):
 def argparser_add_args(argparser, argspecs):
     """Add the arguments specified in argspecs to ArgumentParser argparser.
 
-    `argspecs` is a list of command-line argument specifications,
-    which are lists or tuples of 2 or 3 elements: (argnames, help,
+    `argspecs` is a list of command-line argument specifications, which
+    are in general lists or tuples of 2 or 3 elements: (argnames, help,
     [argdict]) where argnames is either a single string or a list or
     tuple of strings representing argument names (and optionally some
     options, see below), help is the usage string and argdict is a
     dictionary of the keyword arguments to be passed to
-    `ArgumentParser.add_argument`. If argdict contains a default
-    value, information about it is appended to the usage string,
-    unless the usage string already contains the word "default".
+    `ArgumentParser.add_argument`. If argdict contains a default value,
+    information about it is appended to the usage string, unless the
+    usage string already contains the word "default". Special argnames
+    are used to add a named or mutually exclusive argument group; see
+    below.
 
     argnames (or its first element) is of the following form:
         argname ('|' | ' ' | ',') argname)* ('=' metavar)? (':' type)?
@@ -101,6 +103,19 @@ def argparser_add_args(argparser, argspecs):
     (which is allowed only if none of choices, default, metavar, nargs
     or type is present).
 
+    A named argument group is specified with the special argnames
+    "#GROUP title" (case-insensitive) where title is the title of the
+    group. In this case the second element of the tuple (or list) is the
+    description of the group and third is a list of argument
+    specifications in the form described above.
+
+    A mutually exclusive argument group is specified with the special
+    argnames beginning with "#EXCLUSIVE" (case-insensitive), in which
+    case the second element of the tuple (or list) is a list of argument
+    specifications in the form described above. If "#EXCLUSIVE" is
+    followed by "REQUIRED", one of the arguments in the group is
+    required.
+
     Note that many of the argspec components are meaningful only for
     optional arguments, with names beginning with a hyphen. Also note
     that nargs currently supports only ?, * and +, not integer values.
@@ -109,7 +124,20 @@ def argparser_add_args(argparser, argspecs):
     """
     if argspecs:
         for argspec in argspecs:
-            _argparser_add_arg(argparser, argspec)
+            optname_u = argspec[0].upper()
+            if optname_u.startswith('#EXCLUSIVE'):
+                group = argparser.add_mutually_exclusive_group(
+                    required=('REQUIRED' in optname_u))
+                for argspec_sub in argspec[1]:
+                    _argparser_add_arg(group, argspec_sub)
+            elif optname_u.startswith('#GROUP'):
+                group_title = argspec[0].split(None, 1)[1]
+                group_descr = argspec[1]
+                group = argparser.add_argument_group(group_title, group_descr)
+                for argspec_sub in argspec[2]:
+                    _argparser_add_arg(group, argspec_sub)
+            else:
+                _argparser_add_arg(argparser, argspec)
 
 
 def _argparser_add_arg(argparser, argspec):
