@@ -88,7 +88,7 @@ else
 	    process_tags=process_tags_single
 	fi
     else
-	process_tags=cat
+	process_tags=cat_noargs
     fi
 fi
 
