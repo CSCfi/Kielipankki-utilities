@@ -254,41 +254,55 @@ class NoBoundaryLemmaAdder(InputProcessor):
                           + b'\n')
 
     def _make_lemma_noboundaries_omorfi_simple(self, lemma_b, wordform_b):
-        # Adapted from vrt-fix-attrs.py
+        # Adapted and slightly improved from vrt-fix-attrs.py
         # (PosAttrConverter._make_lemma_without_boundaries_tdt)
         lemma = lemma_b.decode()
         wordform = wordform_b.decode()
         boundary_char = self._args.boundary_char
-        if len(lemma) < 3 or boundary_char not in lemma:
-            return lemma_b
+        # If the boundary character is the first or the last in the lemma, it
+        # should most likely be taken literally.
+        if len(lemma) < 3 or boundary_char not in lemma[1:-1]:
+            if boundary_char not in lemma:
+                return lemma_b
+            # For example, "tuntinen" and "-tuntinen" get the lemma
+            # "|tuntinen": in the first case, drop the boundary, in the second,
+            # replace it with a hyphen.
+            if lemma[0] == boundary_char:
+                lemma = lemma[1:]
+                if wordform[0] == '-':
+                    lemma = '-' + lemma
+            # Do trailing "|" occur?
+            if lemma[-1] == boundary_char:
+                lemma = lemma[:-1]
+                if wordform[-1] == '-':
+                    lemma += '-'
         elif '-' not in wordform:
             return lemma.replace(boundary_char, '').encode()
+        # In some cases, the lemma has - replaced with a |; in
+        # other cases not
+        wordform_parts = wordform.split('-')
+        lemma_parts = self._lemma_split_re.split(lemma)
+        if (len(wordform_parts) == len(lemma_parts)
+            and '-' not in lemma):
+            return lemma.replace(boundary_char, '-').encode()
         else:
-            # In some cases, the lemma has - replaced with a |; in
-            # other cases not
-            wordform_parts = wordform.split('-')
-            lemma_parts = self._lemma_split_re.split(lemma)
-            if (len(wordform_parts) == len(lemma_parts)
-                and '-' not in lemma):
-                return lemma.replace(boundary_char, '-').encode()
-            else:
-                lemma_without_boundaries = [lemma_parts[0]]
-                lemma_prefix_len = len(lemma_parts[0])
-                wf_prefix_len = len(wordform_parts[0])
-                wf_partnr = 1
-                for lemma_part in lemma_parts[1:]:
-                    if wf_partnr >= len(wordform_parts):
-                        lemma_without_boundaries.append(lemma_part)
-                    elif (lemma_part[:2] == wordform_parts[wf_partnr][:2]
-                          and abs(wf_prefix_len - lemma_prefix_len) <= 2):
-                        # FIXME: Devise a better heuristic
-                        lemma_without_boundaries.extend(['-', lemma_part])
-                        wf_prefix_len += len(wordform_parts[wf_partnr])
-                        wf_partnr += 1
-                    else:
-                        lemma_without_boundaries.append(lemma_part)
-                    lemma_prefix_len += len(lemma_part)
-                return ''.join(lemma_without_boundaries).encode()
+            lemma_without_boundaries = [lemma_parts[0]]
+            lemma_prefix_len = len(lemma_parts[0])
+            wf_prefix_len = len(wordform_parts[0])
+            wf_partnr = 1
+            for lemma_part in lemma_parts[1:]:
+                if wf_partnr >= len(wordform_parts):
+                    lemma_without_boundaries.append(lemma_part)
+                elif (lemma_part[:2] == wordform_parts[wf_partnr][:2]
+                      and abs(wf_prefix_len - lemma_prefix_len) <= 2):
+                    # FIXME: Devise a better heuristic
+                    lemma_without_boundaries.extend(['-', lemma_part])
+                    wf_prefix_len += len(wordform_parts[wf_partnr])
+                    wf_partnr += 1
+                else:
+                    lemma_without_boundaries.append(lemma_part)
+                lemma_prefix_len += len(lemma_part)
+            return ''.join(lemma_without_boundaries).encode()
 
     def _make_lemma_noboundaries_omorfi(self, lemma, wordform):
         # TODO: uudenvuoden -> uusivuosi
