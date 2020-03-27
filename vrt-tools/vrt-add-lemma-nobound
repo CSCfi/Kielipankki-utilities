@@ -28,19 +28,14 @@ class NoBoundaryLemmaAdder(InputProcessor):
     forms and lemmas with compound boundaries.
     """
     ARGSPECS = [
+        ('--mode (*simple-omorfi|omorfi|naive)',
+         'use the specified mode for handling compound boundary markers in'
+         ' lemmas: "simple-omorfi" handles compound boundary markers replacing'
+         ' hyphens as produced by Omorfi; "omorfi" also tries to handle'
+         ' lemmatized non-final compound parts; and "naive" simply removes'
+         ' all compound boundary markers (unless thw word form contains them)'),
         ('--compound-boundary-marker=CHAR "|" -> boundary_char',
          'treat CHAR as the compound boundary marker'),
-        ('#EXCLUSIVE', [
-            ('--omorfi',
-             'assume that the compound lemmas have been produced by Omorfi'
-             ' and modify the lemmas without boundaries accordingly, in'
-             ' particular, try to handle lemmatized non-final compound parts'
-             ' and compound boundary markers replacing hyphens'),
-            ('--simple-omorfi',
-             'a simplified version of --omorfi to handle compound boundary '
-             ' markers replacing hyphens'),
-            ]
-        ),
         ('--wordform-name=ATTR "word" -> word_attr',
          'use positional attribute ATTR as the word form'),
         ('--lemma-name=ATTR "lemma" -> lemma_attr',
@@ -206,13 +201,13 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 return None
 
         LESS_THAN = '<'.encode()[0]
-        if args.omorfi:
+        if args.mode == 'omorfi':
             make_lemma_noboundaries = self._make_lemma_noboundaries_omorfi
-        elif args.simple_omorfi:
+        elif args.mode == 'naive':
+            make_lemma_noboundaries = make_lemma_noboundaries_simple
+        else:
             make_lemma_noboundaries = (
                 self._make_lemma_noboundaries_omorfi_simple)
-        else:
-            make_lemma_noboundaries = make_lemma_noboundaries_simple
         for arg_name in ['word_attr', 'lemma_attr', 'nobound_attr',
                          'insert_after_attr']:
             setattr(args, arg_name, getattr(args, arg_name).encode())
