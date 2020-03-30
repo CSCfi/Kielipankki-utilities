@@ -206,11 +206,19 @@ fi
 multicorpus_tables="timedata timedata_date timespans lemgram_index corpus_info"
 multicorpus_tables_auth="auth_license auth_lbr_map auth_allow"
 
+# Set to non-null when renaming an existing target corpus for backup
+backing_up=
+
 
 apply_substpatt () {
-    echo "$1" |
-	perl -pe "$substpatt"
+    local corpus patt
+    corpus=$1
+    patt=${2:-$substpatt}
+    echo "$corpus" |
+	perl -pe "$patt"
 }
+
+target_corpora="$(apply_substpatt "$corpora")"
 
 # If --verbose, echo the first argument (preceded by two spaces). If
 # not --dry-run, execute the rest of the arguments as a command.
@@ -334,12 +342,19 @@ manage_aligned () {
     if [ "x$omit_comment" != x ]; then
 	omit_cmt=--omit-comment
     fi
-    if [ "$cmd" = "copy" ] && [ "x$substpatt" != x ]; then
-	# If dry-running, the target does not exist yet, so to see the
-	# effect, try it for the source.
+    # If copying mutually aligned corpora with a substitution pattern
+    # (or if renaming when backing up), the alignment attributes of
+    # all the aligned corpora need to be renamed at the same time to
+    # avoid the duplication of alignment attributes.
+    if [ "x$substpatt" != x ] &&
+	   { [ "$cmd" = "copy" ] ||
+		 { [ "$cmd" = "rename" ] && [ "x$backing_up" != x ]; }; }
+    then
 	if [ "x$dry_run" = x ]; then
 	    rename_align_pattern $target $omit_cmt
 	else
+	    # When dry-running, the target does not exist yet, so to
+	    # see the effect, try it for the source.
 	    rename_align_pattern $source
 	fi
     else
@@ -357,14 +372,28 @@ manage_aligned () {
     fi
 }
 
+# Rename the alignment attributes in $corpus according to the
+# substitution pattern if $corpora contains them. This makes renaming
+# work correctly when copying all mutually aligned corpora using the
+# same pattern; otherwise, some alignment attributes would be
+# duplicated with the old and new name.
 rename_align_pattern () {
-    local corpus omit_cmt align_attr align_attr_new
+    local corpus omit_cmt corpus_list patt align_attr align_attr_new
     corpus=$1
     omit_cmt=$2
+    # backing_up is a global variable that is set to a non-null value
+    # when renaming an existing target corpus to a backup name
+    if [ "x$backing_up" = x ]; then
+	corpus_list=$corpora
+	patt=$substpatt
+    else
+	corpus_list=$target_corpora
+	patt="s/\$/$baksuff/"
+    fi
     for align_attr in $(corpus_list_attrs $corpus "ALIGNED"); do
 	# Use echo to convert newlines to spaces in $corpora
-	if word_in "$align_attr" "$(echo $corpora)"; then
-	    align_attr_new=$(apply_substpatt $align_attr)
+	if word_in "$align_attr" "$(echo $corpus_list)"; then
+	    align_attr_new=$(apply_substpatt $align_attr "$patt")
 	    if [ "$align_attr_new" != "$align_attr" ]; then
 		run_verb "Renaming alignment attribute $align_attr to $align_attr_new" \
 			 corpus_rename_attr --backup-suffix "" $omit_cmt \
@@ -524,10 +553,12 @@ manage_corpus () {
 		# the MySQL database statements to work correctly
 		manage_corpus remove $target
 	    else
+		backing_up=1
 		target_bak=$target$baksuff
 		verbose warn \
 			"Corpus $source: renaming existing target corpus $target to $target_bak before overwriting as --force was specified"
 		manage_corpus rename $target $target_bak
+		backing_up=
 	    fi
 	fi
     fi
