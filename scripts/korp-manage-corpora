@@ -41,14 +41,18 @@ allowed in the Perl substitution expressions, for security reasons.
 For the remove command and when using a pattern in copy or rename, the
 corpus ids may contain shell wildcards that are expanded.
 
+When removing corpora, the script prompts to confirm the removal of
+each corpus unless the option --force is specified.
+
 The commands copy, rename and remove can be abbreviated as cp, mv and
 rm, respectively."
 
 optspecs='
 force
-    Force overwriting the target of a copy or rename if it exists. The
-    existing target is backed up by default; use --no-backups to omit
-    backups.
+    With copy or rename, force overwriting the target corpus if it
+    exists. The existing target is backed up by default; use
+    --no-backups to omit backups. With remove, do not prompt for
+    confirming the removal of each corpus.
 backup-suffix|suffix=SUFFIX "'$baksuff_default'" baksuff
     Use SUFFIX as the suffix for the backup corpus name.
 no-backups !backups
@@ -526,7 +530,7 @@ manage_database () {
 }
 
 manage_corpus () {
-    local cmd source target target_bak msg
+    local cmd source target internal_remove target_bak msg
     cmd=$1
     source=$2
     target=$3
@@ -538,6 +542,14 @@ manage_corpus () {
     if [ "$source" = "$target" ]; then
 	verbose warn "Skipping corpus $source: target is the same"
 	return
+    fi
+    # The command "remove-internal" is used when removing an existing
+    # target corpus, in which case the user should not be prompted for
+    # confirmation.
+    internal_remove=
+    if [ "$cmd" = "remove-internal" ]; then
+	internal_remove=1
+	cmd=remove
     fi
     if [ "$cmd" != "remove" ]; then
         if ! corpus_id_is_valid "$target"; then
@@ -554,7 +566,7 @@ manage_corpus () {
 			"Corpus $source: overwriting existing target corpus $target without making a backup as --force and --no-backups were specified"
 		# Removing the existing target is probably needed for
 		# the MySQL database statements to work correctly
-		manage_corpus remove $target
+		manage_corpus remove-internal $target
 	    else
 		backing_up=1
 		target_bak=$target$baksuff
@@ -563,6 +575,15 @@ manage_corpus () {
 		manage_corpus rename $target $target_bak
 		backing_up=
 	    fi
+	fi
+    elif [ "x$internal_remove" = x ]; then
+	if [ "x$force" = x ]; then
+	    if ! confirm_yn "Remove corpus $source"; then
+		echo_verb "Not removing corpus $source"
+		return
+	    fi
+	else
+	    verbose warn "Removing corpus $source without confirmation as --force was specified"
 	fi
     fi
     if [ "x$verbose" != x ]; then
