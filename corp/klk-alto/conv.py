@@ -76,6 +76,14 @@ def get_string_data(block_elem):
         if 'SUBS_CONTENT' in atts:
             if atts['SUBS_TYPE'] == 'HypPart1':
                 pairs.append(( atts['SUBS_CONTENT'], atts ))
+            if atts['SUBS_TYPE'] == 'HypPart2':
+                # combine CC values from first and second parts
+                # of hyphenated words
+                if len(pairs) > 0:
+                    previous_cc = pairs[-1][1]['CC']
+                    current_cc = atts['CC']
+                    new_cc = previous_cc + current_cc
+                    pairs[-1][1]['CC'] = new_cc
         else:
             pairs.append(( atts['CONTENT'], atts))
     return pairs
@@ -91,7 +99,9 @@ def sentence(sent):
         cont = atts['CONTENT']
         vpos = atts['VPOS']
         hpos = atts['HPOS']
-        string += '%s\t%s\t%s\t%s\n' % (token, s_id, cont, vpos)
+        ocr = atts['WC']
+        cc = atts['CC']
+        string += '%s\t%s\t%s\t%s\t%s\t%s\n' % (token, s_id, cont, vpos, ocr, cc)
     sentence_atts = { 'id' : sentence_id, }
     sentence_id += 1
 
@@ -153,6 +163,8 @@ def text(page_file, mets={}, date=''):
         'timeto'   : timeto,
         'page_no'  : element.findall('.//'+page_tag, ns)[0].get('PHYSICAL_IMG_NR'),
         'page_id'  : element.findall('.//'+page_tag, ns)[0].get('ID'),
+        'filename_orig' : page_file,
+        'filename_metadata' : mets_file
         }
     text_atts.update(mets)
     
@@ -208,5 +220,6 @@ if __name__ == '__main__':
             date = get_date(mets)
     
     vrt_string = main(page_file, mets, date)
+    print('<!-- #vrt positional-attributes: word id content vpos ocr cc -->')
     print(vrt_string, end='')
     stderr.write('Done.\n')
