@@ -47,11 +47,12 @@ rm, respectively."
 optspecs='
 force
     Force overwriting the target of a copy or rename if it exists. The
-    existing target is backed up by default; use --backup-suffix="" to
-    omit backups.
+    existing target is backed up by default; use --no-backups to omit
+    backups.
 backup-suffix|suffix=SUFFIX "'$baksuff_default'" baksuff
-    Use SUFFIX as the suffix for the backup corpus name; use "" to
-    make no backups.
+    Use SUFFIX as the suffix for the backup corpus name.
+no-backups !backups
+    Do not make a backup before overwriting an existing target corpus.
 comment=COMMENT
     Append COMMENT to the standard comment added to the changelog in
     the corpus registry file.
@@ -166,6 +167,8 @@ fi
 
 if [ "$baksuff" = "$baksuff_default" ]; then
     baksuff=-$(date '+%Y%m%d%H%M%S')
+elif [ "x$baksuff" = x ]; then
+    error "Backup suffix must be non-empty"
 fi
 
 # Only warn on corpora not found, each with a separate message. The
@@ -546,9 +549,9 @@ manage_corpus () {
 		verbose warn \
 			"Skipping corpus $source: target corpus $target already exists; specify --force to overwrite"
 		return
-	    elif [ "x$baksuff" = x ]; then
+	    elif [ "x$backups" = x ]; then
 		verbose warn \
-			"Corpus $source: overwriting existing target corpus $target without making a backup as --force and --backup-suffix=\"\" were specified"
+			"Corpus $source: overwriting existing target corpus $target without making a backup as --force and --no-backups were specified"
 		# Removing the existing target is probably needed for
 		# the MySQL database statements to work correctly
 		manage_corpus remove $target
