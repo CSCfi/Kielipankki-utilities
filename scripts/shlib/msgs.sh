@@ -201,6 +201,24 @@ echo_dbg () {
     fi
 }
 
+# confirm_yn message
+#
+# Print "$message (y/N)? " to the terminal, read answer from the
+# terminal and return true if the answer was "y", "Y", "yes", "Yes" or
+# "YES", otherwise false.
+confirm_yn () {
+    local msg answer
+    msg=$1
+    printf "%s (y/N)? " "$msg" > /dev/tty
+    read answer < /dev/tty
+    case $answer in
+	y | Y | yes | Yes | YES )
+	    return 0
+	    ;;
+    esac
+    return 1
+}
+
 # quote_args args ...
 #
 # Print each argument in args: arguments containing spaces, quotes or

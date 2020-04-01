@@ -17,10 +17,10 @@ shlib_required_libs="base msgs file str"
 # list_corpora [--registry registry_dir] [--on-error error_cmd] [corpus_id ...]
 #
 # List the corpora in the parameters as found in registry_dir
-# (default: $cwb_regdir), expanding shell wildcards (but not braces).
-# If no corpus_ids are specified, list all corpora found.
-# If some listed corpora are not found, call error_cmd (default:
-# error) with an error message.
+# (default: $cwb_regdir), expanding shell wildcards. The result is
+# sorted (as done by ls) and uniquified. If no corpus_ids are
+# specified, list all corpora found. If some listed corpora are not
+# found, call error_cmd (default: error) with an error message.
 list_corpora () {
     local no_error error_func error_files registry
     no_error=
@@ -37,14 +37,19 @@ list_corpora () {
     if [ "$#" = 0 ]; then
 	set -- '*'
     fi
+    # ls sorts its output, so we can use uniq instead of sort -u
     ls $(add_prefix $registry/ "$@") \
 	2> $tmp_prefix.corpid_errors |
     sed -e 's,.*/,,' |
-    grep '^[a-z_][a-z0-9_-]*$' > $tmp_prefix.corpids
+    grep '^[a-z_][a-z0-9_-]*$' |
+    uniq > $tmp_prefix.corpids
     if [ -s $tmp_prefix.corpid_errors ]; then
 	# Use echo to convert newlines to spaces
+	# On some systems, the file name in the error message is
+	# enclosed in single quotes; on others not.
 	error_files=$(echo $(
-	    sed -e 's,^.*cannot access .*/\([^:/]*\):.*$,\1,' \
+	    sed -e "s,^.*cannot access .*/\([^:/]*\):.*\$,\1,;
+                    s,'\$,," \
 		< $tmp_prefix.corpid_errors
 	))
 	$error_func \
@@ -293,7 +298,11 @@ corpus_remove_attrs () {
 #     the suffix for the backups of the registry file and possible
 #     existing destination data files; use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment; use "" to omit the comment.
+#     of a standard comment ("" to omit the comment).
+# --omit-comment: Omit the comment (an alias of '--comment ""').
+# --attribute-comment: Add comment immediately after the attribute
+#     declaration, instead of to the changelog section at the end of
+#     the registry file.
 #
 # Note that options follow mode (to make it easier to pass the
 # arguments from specific functions using a fixed mode).
@@ -319,10 +328,11 @@ corpus_remove_attrs () {
 _corpus_manage_attr () {
     local mode comment comment_verb corpus attrname_src attrname_dst \
 	  attrname_bak cmd attrtype_src attrtype_dst baksuff fnames fname \
-	  fname_dst
+	  fname_dst attrtype_word attr_comment
     mode=$1
     comment="__DEFAULT"
     baksuff=.bak-$(date +%Y%m%d%H%M%S)
+    attr_comment=
     while [ "${2#--}" != "$2" ]; do
 	if [ "$2" = "--comment" ]; then
 	    comment=$3
@@ -330,6 +340,12 @@ _corpus_manage_attr () {
 	elif [ "$2" = "--backup-suffix" ]; then
 	    baksuff=$3
 	    shift 2
+	elif [ "$2" = "--attribute-comment" ]; then
+	    attr_comment=1
+	    shift
+	elif [ "$2" = "--omit-comment" ]; then
+	    comment=
+	    shift
 	else
 	    lib_error "_corpus_manage_attr: Unrecognized option $2"
 	fi
@@ -397,7 +413,21 @@ _corpus_manage_attr () {
 	fi
     fi
     if [ "$comment" = "__DEFAULT" ]; then
-	comment="$(date "+%Y-%m-%d"): $comment_verb $attrname_src"
+	case $attrtype_src in
+	    p* )
+		attrtype_word=positional
+		;;
+	    s* )
+		attrtype_word=structural
+		;;
+	    a* )
+		attrtype_word=alignment
+		;;
+	esac
+	comment="$comment_verb $attrtype_word attribute $attrname_src"
+	if [ "x$attr_comment" != x ]; then
+	    comment="$(date "+%Y-%m-%d"): $comment"
+	fi
 	if [ $mode != "remove" ]; then
 	    comment="$comment to $attrname_dst"
 	    if [ "$attrtype_dst" = "$attrtype_src" ]
@@ -415,9 +445,15 @@ _corpus_manage_attr () {
     if [ "x$baksuff" != x ]; then
 	cp -p "$cwb_regdir/$corpus" "$cwb_regdir/$corpus$baksuff"
     fi
-    # For removal, the comment needs to be added before removing the
-    # information.
-    if [ $mode = "remove" ] && [ "x$comment" != x ]; then
+    # Add comment to the changelog section (default)
+    if [ "x$attr_comment" = x ] && [ "x$comment" != x ]; then
+	cwb_registry_add_change_comment $corpus "$comment"
+    fi
+    # For removal, an attribute comment needs to be added before
+    # removing the information.
+    if [ $mode = "remove" ] && [ "x$attr_comment" != x ] &&
+	   [ "x$comment" != x ]
+    then
 	# Add a blank line after the comment, before the structure
 	# block to be removed, to separate it from the structure block
 	# after removal, as the trailing blank line of a structure
@@ -448,7 +484,9 @@ _corpus_manage_attr () {
 	    $cmd $fname $fname_dst
 	done
     )
-    if [ $mode != "remove" ] && [ "x$comment" != x ]; then
+    if [ $mode != "remove" ] && [ "x$attr_comment" != x ] &&
+	   [ "x$comment" != x ]
+    then
 	cwb_registry_add_attr_comment \
 	    $corpus $attrname_dst "$comment" $attrtype_src
     fi
@@ -464,7 +502,11 @@ _corpus_manage_attr () {
 #     the suffix for the backups of the registry file and possible
 #     existing target data files; use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment; use "" to omit the comment.
+#     of a standard comment ("" to omit the comment).
+# --omit-comment: Omit the comment (an alias of '--comment ""').
+# --attribute-comment: Add comment immediately after the attribute
+#     declaration, instead of to the changelog section at the end of
+#     the registry file.
 corpus_rename_attr () {
     _corpus_manage_attr rename "$@"
 }
@@ -479,7 +521,11 @@ corpus_rename_attr () {
 #     the suffix for the backups of the registry file and possible
 #     existing target data files; use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment; use "" to omit the comment.
+#     of a standard comment ("" to omit the comment).
+# --omit-comment: Omit the comment (an alias of '--comment ""').
+# --attribute-comment: Add comment immediately after the attribute
+#     declaration, instead of to the changelog section at the end of
+#     the registry file.
 corpus_copy_attr () {
     _corpus_manage_attr copy "$@"
 }
@@ -495,7 +541,11 @@ corpus_copy_attr () {
 #     the suffix for the backups of the registry file and possible
 #     existing target data files; use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment; use "" to omit the comment.
+#     of a standard comment ("" to omit the comment).
+# --omit-comment: Omit the comment (an alias of '--comment ""').
+# --attribute-comment: Add comment immediately after the attribute
+#     declaration, instead of to the changelog section at the end of
+#     the registry file.
 corpus_alias_attr () {
     _corpus_manage_attr alias "$@"
 }
@@ -510,7 +560,11 @@ corpus_alias_attr () {
 #     the suffix for the backups of the registry file and data files;
 #     use "" not to make backups.
 # --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment; use "" to omit the comment.
+#     of a standard comment ("" to omit the comment).
+# --omit-comment: Omit the comment (an alias of '--comment ""').
+# --attribute-comment: Add comment immediately after the attribute
+#     declaration, instead of to the changelog section at the end of
+#     the registry file.
 #
 # Note that this function takes only for a single attribute name as an
 # argument, unlike corpus_remove_attrs further above.
@@ -805,6 +859,48 @@ cwb_registry_add_attr_comment () {
 	''
 }
 
+# cwb_registry_add_change_comment corpus comment
+#
+# Add comment as a changelog entry at the end of a registry file of
+# corpus, after the heading "## Changelog". The entry contains the
+# date (YYYY-MM-DD), followed by a colon and the comment. If the
+# changelog heading is absent, it is added. The new entry is added as
+# the topmost one after the changelog heading (most recent first).
+#
+# If comment contains multiple lines, each new line is preceded by a
+# "#", followed by spaces to align it with the first line of the
+# comment text (following the date).
+cwb_registry_add_change_comment () {
+    local comment regfile
+    corpus=$1
+    comment=$2
+    # Convert newlines to \n followed by # and indentation for Awk
+    comment="$(date "+%Y-%m-%d"): $(printf "%s" "$comment" |
+    		    		    tr '\n' '\a' |
+				    sed -e 's/\a/\\n#             /g')"
+    regfile="$cwb_regdir/$corpus"
+    cp -p "$regfile" "$regfile.old" ||
+	error "Could not copy $regfile to $regfile.old"
+    awk '
+        function add_comment() {
+	    print "# '"$comment"'"
+        }
+	insert_comment { add_comment(); insert_comment = 0 }
+	log_heading_seen && /^##/ { insert_comment = 1 }
+        /^## Changelog/ { log_heading_seen = 1 }
+	{ print }
+	END {
+	    if (! log_heading_seen) {
+	        print "\n\n##"
+		print "## Changelog"
+		print "##"
+	        add_comment()
+	    }
+	}
+    ' < "$regfile.old" > "$regfile"
+    ensure_perms "$regfile" "$regfile.old"
+}
+
 
 # corpus_list_attrs [options] corpus attrtypes [attr_regex]
 #
@@ -1001,6 +1097,18 @@ corpus_attr_is_featset_valued () {
 # Return true if corpus exists (cwb-describe-corpus returns true).
 corpus_exists () {
     $cwb_bindir/cwb-describe-corpus $1 > /dev/null 2> /dev/null
+}
+
+# corpus_id_is_valid corpus
+#
+# Return true if corpus is a valid CWB corpus id: contains only ASCII
+# letters and digits, underscores and hyphens, and begins with an
+# ASCII letter or an underscore.
+corpus_id_is_valid () {
+    local corpus
+    corpus=$1
+    test "$corpus" = "${corpus#*[!a-zA-Z0-9_-]}" &&
+	test "$corpus" = "${corpus#[0-9-]}"
 }
 
 # get_corpus_token_count corpus

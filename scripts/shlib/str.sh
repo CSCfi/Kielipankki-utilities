@@ -39,6 +39,16 @@ in_str () {
     [ -z "${str##*$substr*}" ] && [ -z "$substr" -o -n "$str" ]
 }
 
+# str_hasprefix string prefix
+#
+# Returns true if string starts with prefix, false otherwise.
+str_hasprefix () {
+    local str prefix
+    str=$1
+    prefix=$2
+    [ -z "${str##$prefix*}" ] && [ -z "$prefix" -o -n "$str" ]
+}
+
 # word_in word text
 #
 # Return true if text contains word, text words separated by spaces.
@@ -122,6 +132,21 @@ nth_arg () {
     shift
     eval echo "\${$n}"
 }
+
+
+# but_n_first_args n arg ...
+#
+# Output the arguments (starting from the second argument) except for
+# the n first ones. Note that the output loses the distinction between
+# spaces between and within arguments.
+but_n_first_args () {
+    local n
+    n=$1
+    shift
+    shift $n
+    echo "$@"
+}
+
 
 # is_int arg
 #
