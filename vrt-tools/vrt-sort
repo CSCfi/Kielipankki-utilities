@@ -135,6 +135,10 @@ class VrtSorter(InputProcessor):
             for comment in comments:
                 sorter.stdin.write(b'2' + comment_tabs + comment)
         sorter.stdin.close()
+        # Is waiting needed? It is said to block but does it in practice in
+        # this case?
+        for proc in [sorter, cutter]:
+            proc.wait()
 
     def _make_key_single(self, tagline):
         mo = self._key_re.search(tagline)
