@@ -15,7 +15,6 @@ to remove the sort key.
 
 # TODO:
 # - Allow transforming key values
-# - Allow sort options for keys
 # - Allow sorting e.g. paragraphs or sentences within texts
 
 
@@ -23,7 +22,8 @@ import os
 import re
 import sys
 
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, TimeoutExpired
+from time import sleep
 
 from vrtargsoolib import InputProcessor
 
@@ -40,8 +40,15 @@ class VrtSorter(InputProcessor):
         ('--key|attribute = attrlist',
          '''use attributes listed in attrlist (separated by spaces) as
             the sort keys: sort primarily by the first attribute,
-            secondarily by the second and so on''',
-        {'required': True}),
+            secondarily by the second and so on. Each attribute name
+            may be followed by a colon and sort ordering option
+            characters recognized by the "sort" command: often one or
+            more of the following: b (ignore leading blanks), d
+            (dictionary order), f (ignore case), g (general numeric
+            sort), i (ignore nonprinting), M (month sort), h (human
+            numeric sort), R (random sort), r (reverse), V (version
+            sort).''',
+         {'required': True}),
     ]
 
     def __init__(self):
@@ -54,29 +61,42 @@ class VrtSorter(InputProcessor):
 
     def check_args(self, args):
         super().check_args(args)
-        keys = args.key.encode().split()
-        self._key_attrs = keys
+        keys = [key.partition(':') for key in args.key.split()]
+        self._key_attrs = [key[0].encode() for key in keys]
+        key_opts = [key[2] for key in keys]
         self._key_attr_count = len(keys)
         if len(keys) == 1:
             self._make_key = self._make_key_single
-            self._key_re = re.compile(b' ' + args.key.encode() + rb'="(.*?)"')
+            self._key_re = re.compile(b' ' + self._key_attrs[0] + rb'="(.*?)"')
         else:
             self._make_key = self._make_key_multi
             self._key_re = re.compile(rb' ([\w-]+)="(.*?)"')
         # The first key field indicates whether the line is part of the top
         # comments (before the first text), the body or the bottom comments
         # (after the last text). Sorting would be faster if it were prefixed to
-        # the first key field, but it would not work with all sort options
-        # (when support for them is added).
-        self._sorter_key_opts = ['-k{0},{0}'.format(i + 1)
-                                 for i in range(len(keys) + 1)]
+        # the first key field, but it would not work with all sort options.
+        key_opts[0:0] = ['']
+        self._sorter_key_opts = ['-k{0},{0}{1}'.format(i + 1, key_opts[i])
+                                for i in range(len(keys) + 1)]
+        # sys.stderr.write(repr(self._key_attrs) + '\n' + repr(self._sorter_key_opts) + '\n')
 
     def main(self, args, inf, ouf):
         LESS_THAN = '<'.encode('utf-8')[0]
         env = os.environ
         env['LC_ALL'] = 'C'
         sorter = Popen(['sort', '-s', '-t\t'] + self._sorter_key_opts,
-                       stdin=PIPE, stdout=PIPE, bufsize=-1, env=env)
+                       stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=-1,
+                       env=env)
+        # Give sort time to start to see if it produces an error message
+        sleep(0.1)
+        sorter.poll()
+        # TODO: Interpret the sort error message
+        if sorter.returncode is not None:
+            sorter_errmsg = [line.decode()[:-1] for line in sorter.stderr]
+            self.error_exit('Invalid sort option; sort error message:\n'
+                            + ''.join(sorter_errmsg))
+        # tee = Popen(['tee', 'vrt-sort-keys.out'],
+        #             stdin=sorter.stdout, stdout=PIPE, bufsize=-1)
         cutter = Popen(['cut', '-d\t',
                         '-f{0}-'.format(self._key_attr_count + 2)],
                        stdin=sorter.stdout, stdout=ouf, bufsize=-1)
