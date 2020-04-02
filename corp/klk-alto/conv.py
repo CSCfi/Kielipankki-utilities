@@ -77,15 +77,24 @@ def get_string_data(block_elem):
             if atts['SUBS_TYPE'] == 'HypPart1':
                 pairs.append(( atts['SUBS_CONTENT'], atts ))
             if atts['SUBS_TYPE'] == 'HypPart2':
-                # combine CC values from first and second parts
-                # of hyphenated words
+                # combine CC and WC values from first and second parts
+                # of hyphenated words and add attribute HYPH
                 if len(pairs) > 0:
                     previous_cc = pairs[-1][1]['CC']
+                    previous_wc = pairs[-1][1]['WC']
+                    previous_content = pairs[-1][1]['CONTENT']
                     current_cc = atts['CC']
+                    current_wc = atts['WC']
+                    current_content = atts['CONTENT']
                     new_cc = previous_cc + current_cc
+                    new_wc = previous_wc + " " + current_wc
+                    hyphenated = previous_content + "-" + current_content
                     pairs[-1][1]['CC'] = new_cc
+                    pairs[-1][1]['WC'] = new_wc
+                    pairs[-1][1]['HYPH'] = hyphenated
         else:
             pairs.append(( atts['CONTENT'], atts))
+
     return pairs
 
 
@@ -101,7 +110,11 @@ def sentence(sent):
         hpos = atts['HPOS']
         ocr = atts['WC']
         cc = atts['CC']
-        string += '%s\t%s\t%s\t%s\t%s\t%s\n' % (token, s_id, cont, vpos, ocr, cc)
+        if 'HYPH' in atts.keys():
+            hyph = atts['HYPH']
+        else:
+            hyph = atts['CONTENT']
+        string += '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (token, s_id, cont, vpos, ocr, cc, hyph)
     sentence_atts = { 'id' : sentence_id, }
     sentence_id += 1
 
@@ -220,6 +233,6 @@ if __name__ == '__main__':
             date = get_date(mets)
     
     vrt_string = main(page_file, mets, date)
-    print('<!-- #vrt positional-attributes: word id content vpos ocr cc -->')
+    print('<!-- #vrt positional-attributes: word id content vpos ocr cc hyph -->')
     print(vrt_string, end='')
     stderr.write('Done.\n')
