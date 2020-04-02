@@ -1,0 +1,101 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+
+"""
+vrt-sort
+
+Sort text structures within VRT input by creating a sort key from text
+attribute values and using the Unix sort command to sort according to the key.
+
+The script uses the GNU/Unix "sort" command to do the actual sorting and "cut"
+to remove the sort key.
+"""
+
+
+# TODO:
+# - Allow multiple key attributes
+# - Allow transforming key values
+# - Allow sort options for keys
+# - Allow sorting e.g. paragraphs or sentences within texts
+
+
+import os
+import re
+
+from subprocess import Popen, PIPE
+
+from vrtargsoolib import InputProcessor
+
+
+class VrtSorter(InputProcessor):
+
+    """Sort text structures within VRT input."""
+
+    DESCRIPTION = """
+    Sort text structures within the input VRT according to the values
+    of a given attribute.
+    """
+    ARGSPECS = [
+        ('--key|attribute = attr',
+         'use attr as the sort key attribute',
+        {'required': True}),
+    ]
+
+    def __init__(self):
+        super().__init__()
+        self._key_re = None
+
+    def check_args(self, args):
+        super().check_args(args)
+        self._key_re = re.compile(b' ' + args.key.encode() + b'="(.*?)"')
+
+    def main(self, args, inf, ouf):
+        LESS_THAN = '<'.encode('utf-8')[0]
+        env = os.environ
+        env['LC_ALL'] = 'C'
+        sorter = Popen(['sort', '-s', '-t\t', '-k1,1'],
+                       stdin=PIPE, stdout=PIPE, bufsize=-1, env=env)
+        cutter = Popen(['cut', '-d\t', '-f2-'],
+                       stdin=sorter.stdout, stdout=ouf, bufsize=-1)
+        text_seen = False
+        text_open = False
+        comments = []
+        key = ''
+        for line in inf:
+            if text_open:
+                if line[0] == LESS_THAN and line.startswith(b'</text>'):
+                    text_open = False
+                sorter.stdin.write(key + line)
+            else:
+                if line[0] == LESS_THAN:
+                    if line.startswith(b'<text '):
+                        # Preserve comments before the first text at the top of
+                        # the output by using key "0"
+                        if not text_seen and comments:
+                            for comment in comments:
+                                sorter.stdin.write(b'0\t' + comment)
+                            comments = []
+                        key = self._make_key(line)
+                        text_open = text_seen = True
+                        sorter.stdin.write(key + line)
+                    elif line.startswith(b'<!'):
+                        comments.append(line)
+        if comments:
+            # Preserve comments after the last text at the end of the output
+            # (key "2")
+            for comment in comments:
+                sorter.stdin.write(b'2\t' + comment)
+        sorter.stdin.close()
+
+    def _make_key(self, tagline):
+        mo = self._key_re.search(tagline)
+        # Prepend "1" to the key value to sort the data between the top and
+        # bottom comments
+        if mo and mo.group(1) is not None:
+            return b'1' + mo.group(1) + b'\t'
+        return b'1\t'
+
+
+if __name__ == '__main__':
+    VrtSorter().run()
