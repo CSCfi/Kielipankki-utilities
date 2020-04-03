@@ -257,7 +257,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # If the boundary character is the first or the last in the lemma, it
         # should most likely be taken literally.
         if len(lemma) < 3 or boundary_char not in lemma[1:-1]:
-            if boundary_char not in lemma:
+            if (len(lemma) == 1 or boundary_char not in lemma
+                    or (len(lemma) == 2 and lemma[0] == lemma[1])):
                 return lemma_b
             # For example, "tuntinen" and "-tuntinen" get the lemma
             # "|tuntinen": in the first case, drop the boundary, in the second,
