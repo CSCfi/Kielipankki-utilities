@@ -36,6 +36,12 @@ class NoBoundaryLemmaAdder(InputProcessor):
          ' all compound boundary markers (unless thw word form contains them)'),
         ('--compound-boundary-marker=CHAR "|" -> boundary_char',
          'treat CHAR as the compound boundary marker'),
+        ('--no-fix-spurious-boundaries',
+         'do not correct "#" to "|" if the word form contains as many "|" as'
+         ' the lemma contains "#", to fix a deficiency in a UD1 parser;'
+         ' note that even without this option, the character is corrected only'
+         ' in the added lemma without compound boundaries and only if the'
+         ' compound boundary marker is "#"'),
         ('--wordform-name=ATTR "word" -> word_attr',
          'use positional attribute ATTR as the word form'),
         ('--lemma-name=ATTR "lemma" -> lemma_attr',
@@ -173,6 +179,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
     def main(self, args, inf, ouf):
 
         boundary_char = args.boundary_char.encode()
+        fix_spurious_boundaries = (boundary_char == b'#'
+                                   and not args.no_fix_spurious_boundaries)
         # Handle double boundary characters, which occur in for example
         # "neli||siipinen"
         self._lemma_split_re = re.compile('[' + args.boundary_char + '-]')
@@ -236,13 +244,20 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 attrs = vrtdatalib.binasrecord(line)
                 lemma = attrs[lemma_index]
                 word = attrs[word_index]
-                lemma_nobound = (
-                    make_lemma_noboundaries(lemma, word)
-                    # If the word form contains a compound boundary marker, the
-                    # word is unlikely to be a real compound, so keep the lemma
-                    # as is.
-                    if boundary_char in lemma and not boundary_char in word
-                    else lemma)
+                # If the word form contains a compound boundary marker, the
+                # word is unlikely to be a real compound, so keep the lemma as
+                # is.
+                if boundary_char in lemma and not boundary_char in word:
+                    # The Turku UD1 parser pipeline seems to convert literal
+                    # |'s in lemmas to #'s if the wordform (and lemma) contains
+                    # only punctuation characters
+                    if (fix_spurious_boundaries
+                            and lemma.count(boundary_char) == word.count(b'|')):
+                        lemma_nobound = lemma.replace(boundary_char, b'|')
+                    else:
+                        lemma_nobound = make_lemma_noboundaries(lemma, word)
+                else:
+                    lemma_nobound = lemma
                 ouf.write(b'\t'.join(chain(attrs[:insert_after_index],
                                            [lemma_nobound],
                                            attrs[insert_after_index:]))
