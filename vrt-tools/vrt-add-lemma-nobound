@@ -338,7 +338,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # would be to leave it out if the word form has no initial
                 # hyphen.
                 if (nobound_part == ''
-                        or (nobound_part[-1] == lemma_parts[partnum + 2][0]
+                        or (lemma_parts[partnum + 2]
+                            and nobound_part[-1] == lemma_parts[partnum + 2][0]
                             and nobound_part[-1] in self._vowels)
                         or nobound_part[-1].isupper()
                         or nobound_part[-1].isdigit()):
