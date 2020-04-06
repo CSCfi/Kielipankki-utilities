@@ -88,9 +88,11 @@ def get_string_data(block_elem):
                     current_content = atts['CONTENT']
                     new_cc = previous_cc + current_cc
                     new_wc = previous_wc + " " + current_wc
+                    new_content = previous_content + " " + current_content
                     hyphenated = previous_content + "-" + current_content
                     pairs[-1][1]['CC'] = new_cc
                     pairs[-1][1]['WC'] = new_wc
+                    pairs[-1][1]['CONTENT'] = new_content
                     pairs[-1][1]['HYPH'] = hyphenated
         else:
             pairs.append(( atts['CONTENT'], atts))
