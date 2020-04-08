@@ -47,14 +47,39 @@ def align_data(element):
                 ( string, atts ) = string_data.pop(0)
                 string = string.strip()
             if len(token) > len(string):
+                # cases such as:
+                #   token = "400 000"
+                #   sent = [ ..., '400 000', '.']
+                #   string = "400"
                 stderr.write('WARNING: mismatch between token "%s" and original string(s)!\n' % token)
                 stderr.write('%s vs. "%s"\n' % ( sent, string))
+                use_original_strings=False # Use tokenization from hfst-tokenize instead
+                if not use_original_strings:
+                    stderr.write('Using %s as token instead...\n' % token)
+                    new_string = ''
+                    new_atts = {}
                 while token.startswith(string):
-                    stderr.write('Using %s as token instead...\n' % string) 
-                    token = token[len(string):].strip()
-                    aligned_sent.append((string, atts))
-                    ( string, atts ) = string_data.pop(0)
-                    string = string.strip()
+                    if use_original_strings:
+                        stderr.write('Using %s as token instead...\n' % string)
+                        token = token[len(string):].strip()
+                        aligned_sent.append((string, atts))
+                        ( string, atts ) = string_data.pop(0)
+                        string = string.strip()
+                    else:
+                        token = token[len(string):].strip()
+                        if new_string == '':
+                            new_string = str(string)
+                        else:
+                            new_string = new_string + "\u00A0" + string
+                        for key in atts.keys():
+                            if key not in new_atts.keys():
+                                new_atts[key] = atts[key]
+                            else:
+                                new_atts[key] = new_atts[key] + " " + atts[key]
+                        ( string, atts ) = string_data.pop(0)
+                        string = string.strip()
+                if not use_original_strings:
+                    aligned_sent.append((new_string, new_atts))
             if string.startswith(token):
                 aligned_sent.append((token, atts))
                 string = string[len(token):].strip()
