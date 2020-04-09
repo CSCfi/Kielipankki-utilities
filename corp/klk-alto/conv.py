@@ -65,8 +65,9 @@ def align_data(element):
                                 new_atts[key] = atts[key]
                             else:
                                 new_atts[key] = new_atts[key] + " " + atts[key]
-                        ( string, atts ) = string_data.pop(0)
-                        string = string.strip()
+                        if len(string_data) != 0:
+                            ( string, atts ) = string_data.pop(0)
+                            string = string.strip()
                     # match the other way round
                     if token != '' and string.startswith(token):
                         new_string = new_string + "\u00A0" + token
