@@ -6,6 +6,7 @@ from sys import stderr
 import xml.etree.ElementTree as ET
 from vrt_util import *
 from string import punctuation
+from copy import deepcopy
 
 page_tag   = 'Page'
 block_tag  = 'TextBlock'
@@ -75,10 +76,15 @@ def align_data(element):
                         else:
                             new_string = new_string + "\u00A0" + token
                         for key in atts.keys():
+                            value = atts[key]
+                            if key == "CC":
+                                value = value[:len(token)] # only matching part of CC value
+                                if value == '':
+                                    value = '_' # empty value (words that are hyphenated between pages)
                             if key not in new_atts.keys():
-                                new_atts[key] = atts[key]
+                                new_atts[key] = value
                             else:
-                                new_atts[key] = new_atts[key] + " " + atts[key]
+                                new_atts[key] = new_atts[key] + " " + value
                         string = string[len(token):].strip()
                         if string != '':
                             string_data = [ ( string, atts ) ] + string_data
@@ -93,9 +99,15 @@ def align_data(element):
                         ( string, atts ) = string_data.pop(0)
                         string = string.strip()
             if string.startswith(token):
-                aligned_sent.append((token, atts))
+                atts1 = deepcopy(atts)
+                atts1["CC"] = atts["CC"][:len(token)] # only matching part of CC value
+                aligned_sent.append((token, atts1))
                 string = string[len(token):].strip()
                 if string != '':
+                    value = atts["CC"][len(token):] # only matching part of CC value
+                    if value == '':
+                        value = '_' # empty value (words that are hyphenated between pages)
+                    atts["CC"] = value
                     string_data = [ ( string, atts ) ] + string_data
             else:
                 stderr.write('ERROR: unable to find token "%s" in text string "%s"!\n' % (token, string))
