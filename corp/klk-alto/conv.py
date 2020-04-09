@@ -70,9 +70,15 @@ def align_data(element):
                             string = string.strip()
                     # match the other way round
                     if token != '' and string.startswith(token):
-                        new_string = new_string + "\u00A0" + token
+                        if new_string == '':
+                            new_string = str(string)
+                        else:
+                            new_string = new_string + "\u00A0" + token
                         for key in atts.keys():
-                            new_atts[key] = new_atts[key] + " " + atts[key]
+                            if key not in new_atts.keys():
+                                new_atts[key] = atts[key]
+                            else:
+                                new_atts[key] = new_atts[key] + " " + atts[key]
                         string = string[len(token):].strip()
                         if string != '':
                             string_data = [ ( string, atts ) ] + string_data
