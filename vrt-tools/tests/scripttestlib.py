@@ -20,6 +20,7 @@ import re
 import shlex
 import sys
 
+from collections import defaultdict
 from subprocess import Popen, PIPE
 
 import pytest
@@ -85,18 +86,42 @@ def collect_testcases(*filespecs, basedir=None):
 
 def expand_testcases(fname_testcases_dictlist):
     """Convert a list of (filename, test case dict) to a list of tuples."""
+
     testcases = []
+    default_values = {}
+
+    def get_output_value(d):
+        return d.get('output') or d.get('expected', {})
+
+    def get_value(default_val, base_val):
+        return (dict_deep_update(dict(default_val), base_val) if default_val
+                else base_val)
+
     # print(fname_testcases_dictlist)
     for fname, testcases_dictlist in fname_testcases_dictlist:
+        default_input = {}
+        default_output = {}
+        default_status = None
         for tcnum, tc in enumerate(testcases_dictlist):
+            if 'defaults' in tc:
+                # New defaults override (are merged to) possibly existing
+                # defaults
+                defaults = tc['defaults']
+                default_input = dict_deep_update(
+                    default_input, defaults.get('input'))
+                default_output = dict_deep_update(
+                    default_output, get_output_value(defaults))
+                default_status = defaults.get('status')
+                continue
             params = ('{} {:d}: {}'.format(fname, tcnum + 1,
                                            tc.get('name', '')),
-                      tc.get('input', {}),
-                      tc.get('output') or tc.get('expected', {}))
+                      get_value(default_input, tc.get('input', {})),
+                      get_value(default_output, get_output_value(tc)))
             # If status starts with "xfail", "skip" or "skipif", mark the test
             # accordingly.
-            if tc.get('status'):
-                status, _, reason = tc['status'].partition(':')
+            status_value = tc.get('status') or default_status
+            if status_value:
+                status, _, reason = status_value.partition(':')
                 reason = reason.strip() or None
                 if status == 'skipif':
                     mark = pytest.mark.skipif(reason)
@@ -106,6 +131,26 @@ def expand_testcases(fname_testcases_dictlist):
             else:
                 testcases.append(params)
     return testcases
+
+
+def dict_deep_update(a, b):
+    """Recursively update dict `a` from dict `b`.
+    In cases of conflict, values in `b` override those in `a`.
+    Returns updated `a`.
+    Note that contents are not copied deeply, so the result typically
+    contains references to parts of `b`. This needs to be kept in mind
+    if modifying the result.
+    Simplified from https://stackoverflow.com/a/7205107
+    """
+    if b and isinstance(b, dict) and isinstance(a, dict):
+        for key in b:
+            if (key in a and isinstance(a[key], dict)
+                    and isinstance(b[key], dict)):
+                a[key] = dict_deep_update(a[key], b[key])
+            else:
+                a[key] = b[key]
+        return a
+    return b
 
 
 def add_output_test(name, test_fn):
@@ -219,19 +264,52 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
     proc = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env,
                  shell=shell, cwd=tmpdir)
     stdout, stderr = proc.communicate(stdin)
+    options = expected.get('options', {})
+    if options:
+        options = _process_output_options(options)
+        del expected['options']
     _check_output(expected,
                   {'stdout': stdout.decode('UTF-8'),
                    'stderr': stderr.decode('UTF-8'),
                    'returncode': proc.returncode},
+                  options,
                   tmpdir)
 
 
-def _check_output(expected, actual, tmpdir):
+def _process_output_options(options_raw):
+    """Split output option names to name and target
+
+    If an output option name contains a space, the string following the
+    space is considered the target (a subitem of "output", such as
+    "stdout") to which the option is applied. Otherwise, the option is
+    applied to all output items.
+
+    Return `dict((target, list((optfunc, optval)))`: target "*" denotes
+    any target; `optfunc` is mapped from option name via the dictionary
+    `_output_option_funcs`.
+    """
+    options = defaultdict(list)
+    for optname, optvals in options_raw.items():
+        if ' ' in optname:
+            optname, opttarget = optname.split(None, 2)
+        else:
+            opttarget = '*'
+        optfunc = _output_option_funcs.get(optname)
+        if optfunc is None:
+            raise NameError('Unrecognized option name "' + optname + '"')
+        if not isinstance(optvals, list):
+            optvals = [optvals]
+        options[opttarget].append((optfunc, optvals))
+    return options
+
+
+def _check_output(expected, actual, options, tmpdir):
     """Check using an assertion if the actual values match expected.
 
     Arguments:
       `expected`: Expected values (dict or list(dict))
       `actual`: Actual values (dict)
+      `options`: Options for processing the actual values (dict)
       `tmpdir`: The temporary directory (containing output files)
     """
     for key, expected_vals in sorted(expected.items()):
@@ -242,6 +320,11 @@ def _check_output(expected, actual, tmpdir):
             assert os.path.isfile(fname)
             with open(fname, 'r') as f:
                 actual_val = f.read()
+        key_opts = options.get(key, [])
+        key_opts.extend(options.get('*', []))
+        for optfunc, optvals in key_opts:
+            for optval in optvals:
+                actual_val = optfunc(optval, actual_val)
         if expected_vals is None:
             expected_vals = ['']
         elif not isinstance(expected_vals, list):
@@ -267,3 +350,17 @@ def _check_output(expected, actual, tmpdir):
                                 exp_val, actual_val, *opts)
             else:
                 assert actual_val == expected_val
+
+
+def _outputopt_filter_out(opt_value, output_data):
+    """Replace regexp `opt_value` matches with "" `in output_data`."""
+    try:
+        return re.sub(opt_value, '', output_data)
+    except TypeError:
+        return output_data
+
+
+# Map output option names to functions
+_output_option_funcs = {
+    'filter-out': _outputopt_filter_out,
+}
