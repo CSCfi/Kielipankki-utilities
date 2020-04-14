@@ -62,10 +62,14 @@ class NoBoundaryLemmaAdder(InputProcessor):
     # with some later part, such as "uudenkarhea", "uudenveroinen",
     # "vanhanmallinen". Another option might be to special-case them, as they
     # might be specific to certain later parts, such as "lainen", "puoleinen".
+    # Capitalized (proper) nouns have been lowercased, as at least the UD1
+    # variant of the Turku Dependency Parser Pipeline seems to lowercase some
+    # of the lemmas ("tyynimeri").
     _inflected_first_part = {
         ('aava', 'meri'),
         ('hieno', 'sokeri'),
-        ('Iso', 'Britannia'),
+        # ('Iso', 'Britannia'),
+        ('iso', 'britannia'),
         ('iso', 'jako'),
         ('iso', 'koskelo'),
         ('iso', 'kuovi'),
@@ -106,7 +110,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('musta', 'lintu'),
         ('musta', 'maija'),
         ('musta', 'makkara'),
-        ('Musta', 'meri'),
+        # ('Musta', 'meri'),
+        ('musta', 'meri'),
         ('musta', 'mies'),
         ('musta', 'multa'),
         ('musta', 'pekka'),
@@ -134,7 +139,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('pitkä', 'siima'),
         ('pitkä', 'takki'),
         ('pitkät', 'housut'),
-        ('Punainen', 'meri'),
+        # ('Punainen', 'meri'),
+        ('punainen', 'meri'),
         ('puoli', 'kuu'),
         ('puoli', 'matka'),
         ('puoli', 'päivä'),
@@ -150,14 +156,20 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('syvä', 'meri'),
         ('särkynyt', 'sydän'),
         ('tyhjä', 'paino'),
-        ('Tyyni', 'meri'),
+        # ('Tyyni', 'meri'),
+        ('tyyni', 'meri'),
         ('täysi', 'kuu'),
-        ('Uusi', 'kaupunki'),
+        # ('Uusi', 'kaupunki'),
+        ('uusi', 'kaupunki'),
         ('uusi', 'kuu'),
-        ('Uusi', 'maa'),
-        ('Uusi', 'Seelanti'),
+        # ('Uusi', 'maa'),
+        ('uusi', 'maa'),
+        # ('Uusi', 'Seelanti'),
+        ('uusi', 'seelanti'),
         ('uusi', 'vuosi'),
-        ('Uusi', '*'),
+        # ('Uusi', '*'),
+        # Does this overgenerate?
+        ('uusi', '*'),
         ('vanha', 'emäntä'),
         ('vanha', 'isäntä'),
         ('vanha', 'kaupunki'),
@@ -399,8 +411,10 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 return begin_candidates[-1]
 
         hyphen_pos = wordform.find('-', lemma_len - 3, lemma_len + 4)
-        if ((lemmapart_this, lemmapart_next) in self._inflected_first_part
-                or (lemmapart_this, '*') in self._inflected_first_part):
+        lemmapart_this_lower = lemmapart_this.lower()
+        if ((lemmapart_this_lower, lemmapart_next.lower())
+                    in self._inflected_first_part
+                or (lemmapart_this_lower, '*') in self._inflected_first_part):
             # print('INFL FIRST')
             return (lemmapart_this + ('-' if hyphen_pos > -1 else ''),
                     0, len(lemmapart_this))
