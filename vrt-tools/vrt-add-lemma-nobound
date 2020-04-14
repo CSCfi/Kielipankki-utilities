@@ -42,6 +42,15 @@ class NoBoundaryLemmaAdder(InputProcessor):
          ' note that even without this option, the character is corrected only'
          ' in the added lemma without compound boundaries and only if the'
          ' compound boundary marker is "#"'),
+        ('--only-wordform-hyphens',
+         """with --mode=omorfi, do not add a hyphen between same
+         vowels at a compound boundary if the word form does not have
+         it. Omorfi overgenerates compound boundaries so that the word
+         form "ongelmaanne" may get the lemma "ongelma#anne" even
+         though prescriptively, the word form should have been
+         "ongelma-anne". By default, --mode=omorfi then produces the
+         lemma "ongelma-anne", but with this option, "ongelmaanne".
+         """),
         ('--wordform-name=ATTR "word" -> word_attr',
          'use positional attribute ATTR as the word form'),
         ('--lemma-name=ATTR "lemma" -> lemma_attr',
@@ -187,6 +196,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         super().__init__()
         self._lemma_split_re = None
         self._lemma_split_keepsep_re = None
+        self._omorfi_add_hyphens = False
 
     def main(self, args, inf, ouf):
 
@@ -198,6 +208,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         self._lemma_split_re = re.compile('[' + args.boundary_char + '-]')
         self._lemma_split_keepsep_re = re.compile(
             '([' + args.boundary_char + '-]+)')
+        self._omorfi_add_hyphens = not args.only_wordform_hyphens
 
         def make_lemma_noboundaries_simple(lemma, wordform):
             return lemma.replace(boundary_char, b'')
@@ -349,7 +360,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # replaces such a boundary marker with a hyphen; an alternative
                 # would be to leave it out if the word form has no initial
                 # hyphen.
-                if (nobound_part and nobound_part[-1] != '-'
+                if (self._omorfi_add_hyphens
+                        and nobound_part and nobound_part[-1] != '-'
                         and lemma_parts[partnum + 2]
                         and nobound_part[-1] == lemma_parts[partnum + 2][0]
                         and nobound_part[-1] in self._vowels):
