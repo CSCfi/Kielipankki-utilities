@@ -349,12 +349,10 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # replaces such a boundary marker with a hyphen; an alternative
                 # would be to leave it out if the word form has no initial
                 # hyphen.
-                if (nobound_part == ''
-                        or (lemma_parts[partnum + 2]
-                            and nobound_part[-1] == lemma_parts[partnum + 2][0]
-                            and nobound_part[-1] in self._vowels)
-                        or nobound_part[-1].isupper()
-                        or nobound_part[-1].isdigit()):
+                if (nobound_part and nobound_part[-1] != '-'
+                        and lemma_parts[partnum + 2]
+                        and nobound_part[-1] == lemma_parts[partnum + 2][0]
+                        and nobound_part[-1] in self._vowels):
                     lemma_nobound.append('-')
                 wf_prefix_len += len(nobound_part)
         lemma_nobound.append(lemma_parts[-1])
@@ -410,15 +408,19 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # oleske<lu><lu>vista -> oleskelulupa and not oleskelupa)
                 return begin_candidates[-1]
 
-        hyphen_pos = wordform.find('-', lemma_len - 3, lemma_len + 4)
+        hyphen_pos = wordform.find('-', max(0, lemma_len - 3), lemma_len + 4)
+        # print(lemma_len, wordform, hyphen_pos, file=sys.stderr)
+        maybe_hyphen = ('-' if hyphen_pos > -1 else '')
         lemmapart_this_lower = lemmapart_this.lower()
         if ((lemmapart_this_lower, lemmapart_next.lower())
                     in self._inflected_first_part
                 or (lemmapart_this_lower, '*') in self._inflected_first_part):
-            # print('INFL FIRST')
-            return (lemmapart_this + ('-' if hyphen_pos > -1 else ''),
-                    0, len(lemmapart_this))
+            # print('INFL_FIRST', lemmapart_this + maybe_hyphen, 0,
+            #       len(lemmapart_this), file=sys.stderr)
+            return (lemmapart_this + maybe_hyphen, 0, len(lemmapart_this))
         if hyphen_pos > -1:
+            # print('HYPHEN', adjust_case_fn(wordform[:(hyphen_pos + 1)]),
+            #         hyphen_pos - lemma_len, 10, file=sys.stderr)
             return (adjust_case_fn(wordform[:(hyphen_pos + 1)]),
                     hyphen_pos - lemma_len, 10)
         return_vals = find_begin(lemmapart_next)
