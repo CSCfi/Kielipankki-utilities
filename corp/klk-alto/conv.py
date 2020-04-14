@@ -99,9 +99,10 @@ def align_data(element):
                         ( string, atts ) = string_data.pop(0)
                         string = string.strip()
             if string.startswith(token):
-                atts1 = deepcopy(atts)
-                atts1["CC"] = atts["CC"][:len(token)] # only matching part of CC value
-                aligned_sent.append((token, atts1))
+                if token != '':
+                    atts1 = deepcopy(atts)
+                    atts1["CC"] = atts["CC"][:len(token)] # only matching part of CC value
+                    aligned_sent.append((token, atts1))
                 string = string[len(token):].strip()
                 if string != '':
                     value = atts["CC"][len(token):] # only matching part of CC value
