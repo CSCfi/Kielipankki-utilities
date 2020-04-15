@@ -30,6 +30,19 @@ def get_date(mets_dict={}):
     return ''.join([ s.zfill(2) for s in mets['issue_date'].split('.')[::-1] ])
 
 
+# Align tokenizations from the XML file (strings) and hfst-tokenize (tokens)
+# Cases:
+# * Exact match:
+#   - "foo" vs. "foo"
+# * String comprises several tokens: punctuation attached to the word
+#   - "foo." vs. ["foo", "."]
+#   - "(foo)" vs. ["(", "foo", ")"]
+# * Strings combine into one token: numerals
+#   - ["100", "000"] vs. "100 000"
+#   - ["100", "000", "000"] vs. "100 000 000"
+# * Both of the above: punctuation and numerals
+#   - ["100", "000."] vs. ["100 000", "."]
+#   - ["(10", "000)"] vs. ["(", "10 000", ")"]
 def align_data(element):
 
     string_data = get_string_data(element)
@@ -48,6 +61,7 @@ def align_data(element):
             while string == '':
                 ( string, atts ) = string_data.pop(0)
                 string = string.strip()
+            # strings combine into one token
             if len(token) > len(string):
                 stderr.write('WARNING: mismatch between token "%s" and original string(s)!\n' % token)
                 stderr.write('%s vs. "%s"\n' % ( sent, string))
@@ -55,11 +69,13 @@ def align_data(element):
                     stderr.write('Using %s as token instead...\n' % token)
                     new_string = ''
                     new_atts = {}
+                    # append strings while they match
                     while token.startswith(string):
                         token = token[len(string):].strip()
                         if new_string == '':
                             new_string = str(string)
                         else:
+                            # combine parts of token with nbsp
                             new_string = new_string + "\u00A0" + string
                         for key in atts.keys():
                             if key not in new_atts.keys():
@@ -69,7 +85,7 @@ def align_data(element):
                         if len(string_data) != 0:
                             ( string, atts ) = string_data.pop(0)
                             string = string.strip()
-                    # match the other way round
+                    # see if part of the last string matches
                     if token != '' and string.startswith(token):
                         if new_string == '':
                             new_string = str(string)
@@ -86,24 +102,27 @@ def align_data(element):
                             else:
                                 new_atts[key] = new_atts[key] + " " + value
                         string = string[len(token):].strip()
+                        # the part of string that did not match will be processed on next iteration
                         if string != '':
                             string_data = [ ( string, atts ) ] + string_data
                     aligned_sent.append((new_string, new_atts))
                     if token != '':
                         continue
-                else:
+                else: # if not use_original_strings:
                     while token.startswith(string):
                         stderr.write('Using %s as token instead...\n' % string)
                         token = token[len(string):].strip()
                         aligned_sent.append((string, atts))
                         ( string, atts ) = string_data.pop(0)
                         string = string.strip()
+            # exact match or string comprises several tokens
             if string.startswith(token):
                 if token != '':
                     atts1 = deepcopy(atts)
                     atts1["CC"] = atts["CC"][:len(token)] # only matching part of CC value
                     aligned_sent.append((token, atts1))
                 string = string[len(token):].strip()
+                # the part of string that did not match will be processed on next iteration
                 if string != '':
                     value = atts["CC"][len(token):] # only matching part of CC value
                     if value == '':
