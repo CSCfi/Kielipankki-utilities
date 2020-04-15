@@ -36,6 +36,7 @@ def align_data(element):
 
     text = ' '.join([ s for ( s, atts ) in string_data ])
     sents = tokenize(text)
+    use_original_strings=False # prefer result from hfst-tokenize
     
     aligned_para = []
     
@@ -50,7 +51,6 @@ def align_data(element):
             if len(token) > len(string):
                 stderr.write('WARNING: mismatch between token "%s" and original string(s)!\n' % token)
                 stderr.write('%s vs. "%s"\n' % ( sent, string))
-                use_original_strings=False # Use tokenization from hfst-tokenize instead
                 if not use_original_strings:
                     stderr.write('Using %s as token instead...\n' % token)
                     new_string = ''

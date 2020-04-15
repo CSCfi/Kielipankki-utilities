@@ -20,7 +20,9 @@ def run_hfst_tokenize(text, tokenizer='finnish-tokenize'):
     timestamp = datetime.now().isoformat(sep="_").replace(":", '').replace('.', '_')
     filename_in = 'untokenized_%s.txt' % timestamp
     open(filename_in, 'w', encoding='utf8').write(text)
-    out_str = subprocess.getoutput('cat %s | %s' % (filename_in, tokenizer))
+    # Make hfst-tokenize interpret angle brackets as separate tokens by adding newlines to them
+    # Else input of type "<word1 word2 ... wordN>" will be tokenized as a single word
+    out_str = subprocess.getoutput('cat %s | perl -pe "s/</<\n/g; s/>/\n>/g;" | %s' % (filename_in, tokenizer))
     os.remove(filename_in)
     return out_str
 
