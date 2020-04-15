@@ -251,7 +251,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
         names_seen = False
 
         for line in inf:
-            if line[0] == LESS_THAN:
+            if line == b'\n':
+                ouf.write(line)
+            elif line[0] == LESS_THAN:
                 if not names_seen and vrtnamelib.isbinnames(line):
                     word_index, lemma_index, insert_after_index = (
                         vrtnamelib.nameindices(vrtnamelib.binnamelist(line),
