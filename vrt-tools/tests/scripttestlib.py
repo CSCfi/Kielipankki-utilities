@@ -113,6 +113,8 @@ def expand_testcases(fname_testcases_dictlist):
                     default_output, get_output_value(defaults))
                 default_status = defaults.get('status')
                 continue
+            if 'input' not in tc:
+                continue
             params = ('{} {:d}: {}'.format(fname, tcnum + 1,
                                            tc.get('name', '')),
                       get_value(default_input, tc.get('input', {})),
