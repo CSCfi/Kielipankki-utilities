@@ -676,6 +676,26 @@ def test_dict_deep_update():
     check(dbd5, dbe, dbe)
 
 
+def test_empty_values(tmpdir):
+    """Test with empty values for some required items."""
+    with pytest.raises(ValueError) as e_info:
+        check_program_run('Empty cmdline',
+                          {'name': 'Empty cmdline',
+                           'input': {'cmdline': ''}}, {}, tmpdir=str(tmpdir))
+    with pytest.raises(ValueError) as e_info:
+        check_program_run('Empty input info',
+                          {'name': 'Empty input info',
+                           'input': {}}, {}, tmpdir=str(tmpdir))
+    with pytest.raises(ValueError) as e_info:
+        check_program_run('Empty input info',
+                          {'name': 'Empty prog',
+                           'input': {'prog': ''}}, {}, tmpdir=str(tmpdir))
+    with pytest.raises(ValueError) as e_info:
+        check_program_run('Empty input args',
+                          {'name': 'Empty prog',
+                           'input': {'args': []}}, {}, tmpdir=str(tmpdir))
+
+
 @pytest.mark.parametrize("name, input, expected", _testcases)
 def test_check_program_run(name, input, expected, tmpdir):
     """Test scripttestlib.check_program_run with the testcases."""

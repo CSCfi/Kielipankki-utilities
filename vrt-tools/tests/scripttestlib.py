@@ -229,6 +229,8 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
 
     shell = input_.get('shell', False)
     if 'cmdline' in input_:
+        if not input_['cmdline']:
+            raise ValueError('Empty cmdline in test "' + name + '"')
         if shell:
             args = input_['cmdline']
         else:
@@ -241,8 +243,11 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
         prog = input_.get('prog')
         if prog:
             args[0:0] = [prog]
-        else:
+        elif args:
             prog = args[0]
+        else:
+            raise ValueError(
+                'Missing or empty prog and args in test "' + name + '"')
     if 'envvars' in input_ or progpath is not None:
         env = dict(os.environ)
         if 'envvars' in input_:
