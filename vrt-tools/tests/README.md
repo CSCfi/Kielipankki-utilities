@@ -37,10 +37,10 @@ they both help in testing command-line scripts.)*
 
 `scripttestlib` allows specifying the input and expected output of a
 script (shell command) as either (1) a Python data structure (a list
-of dictionaries) in a Python module, or (2) a YAML file with the same
-structure (a sequence of mappings), converted to the Python data
-structure. You can also generate such a YAML file with the
-`make-scripttest` script.
+of dictionaries) named `testcases` in a Python module, or (2) a YAML
+file with the same structure (a sequence of mappings), converted to
+the Python data structure. You can also generate such a YAML file with
+the `make-scripttest` script.
 
 
 ### The structure of a `scripttestlib` test
@@ -170,17 +170,17 @@ specification
 	    output:
           stdout: 'test\n'
 	- name: Test
-	    input:
-	      cmdline: cat
+	  input:
+		cmdline: cat
 
 is equivalent to
 
 	- name: Test
-	    input:
-	      cmdline: cat
-		  stdin: 'test\n'
-	    output:
-          stdout: 'test\n'
+	  input:
+		cmdline: cat
+		stdin: 'test\n'
+	  output:
+		stdout: 'test\n'
 
 Similarly, a default values item overrides the values in a possible
 previous default values. To clear the default values completely, use
