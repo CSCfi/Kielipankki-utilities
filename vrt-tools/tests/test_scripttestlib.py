@@ -171,6 +171,20 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: test with expected dict with only "value"',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'test1\ntest2\n',
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
              'name': 'Test: multiple expected tests (list(dict): test+value)',
              'input': {
                  'cmdline': 'cat',
@@ -317,12 +331,16 @@ _testcase_files_content = [
                  'stdout': [
                      {
                          'test': 'matches',
-                         'opts': 'DOTALL',
+                         'opts': {
+                             'reflags': 'DOTALL',
+                         },
                          'value': 'test1.test2',
                      },
                      {
                          'test': 'matches',
-                         'opts': 'DOTALL|VERBOSE',
+                         'opts': {
+                             'reflags': 'DOTALL|VERBOSE',
+                         },
                          'value': 'test1 . test2',
                      },
                  ],

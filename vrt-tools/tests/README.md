@@ -88,9 +88,11 @@ test case:
 
     1. a simple scalar value, in which case the actual value is
        compared for equality with it;
-    2. a dict of two items: `test` is the test name (one of the values
-       shown below) and `value` the expected value (and possibly
-       `opts` for options; see below);
+    2. a dict of one to three items:
+	   -   `test`: the test name: one of the values shown below; if
+		   omitted, defaults to `==`, that is, equality);
+	   -   `value`: the expected value (obligatory); and
+       -  ``opts`: possible options; see below;
     3. a dict with test names (see below) as keys and expected values
        as values (the value may also be a list, in which case each
        item in the list is treated as a separate value to be tested);
@@ -117,7 +119,7 @@ test case:
 
     For the tests `matches` and `not_matches`, a value for the `flags`
     parameter to the `re.search` function can be passed either via the
-    value of `opts` or appended to the test name, separated by
+    value of `opts: reflags` or appended to the test name, separated by
     whitespace. The value is as in Python, except that the names of
     the flag constants need not be prefixed by `re.`. For example, the
     test name may be `matches DOTALL|VERBOSE`, corresponding to

@@ -338,23 +338,25 @@ def _check_output(expected, actual, options, tmpdir):
             expected_vals = [expected_vals]
         for expected_val in expected_vals:
             if isinstance(expected_val, dict):
-                if 'test' in expected_val:
-                    test, *opts = expected_val['test'].split()
-                    if 'opts' in expected_val:
-                        if isinstance(expected_val['opts'], list):
-                            opts.extend(expected_val['opts'])
-                        else:
-                            opts.extend(expected_val['opts'].split())
-                    assert _output_tests[test](
-                        expected_val['value'], actual_val, *opts)
+                if 'value' in expected_val:
+                    test = expected_val.get('test', '==')
+                    test, *test_opts = test.split()
+                    value_opts = expected_val.get('opts', {})
+                    reflags = value_opts.get('reflags', '')
+                    if isinstance(reflags, list):
+                        test_opts.extend(reflags)
+                    else:
+                        test_opts.extend(reflags.split())
+                    exp_val = expected_val['value']
+                    assert _output_tests[test](exp_val, actual_val, *test_opts)
                 else:
                     for test, exp_vals in expected_val.items():
-                        test, *opts = test.split()
+                        test, *test_opts = test.split()
                         if not isinstance(exp_vals, list):
                             exp_vals = [exp_vals]
                         for exp_val in exp_vals:
                             assert _output_tests[test](
-                                exp_val, actual_val, *opts)
+                                exp_val, actual_val, *test_opts)
             else:
                 assert actual_val == expected_val
 
