@@ -60,8 +60,8 @@ test case:
     -   `args`: a list of command-line arguments, either a single
         string with arguments quoted as in shell, or as a list of
         unquoted strings (`str`)
-    -   `cmdline`: complete command line (str), with arguments quoted
-        as in shell (an alternative to `prog` and `args`)
+    -   `cmdline`: complete command line (`str`), with arguments
+        quoted as in shell (an alternative to `prog` and `args`)
 	-   `shell`: if `True`, pass `cmdline` to shell, allowing the use
         of pipes, redirection and other features. Note that this works
         only with `cmdline`, not with `prog` and `args`.
@@ -86,8 +86,8 @@ test case:
 
     The expected values may have several different forms:
 
-    1. simple scalar value, in which case the actual value is compared
-       for equality with it;
+    1. a simple scalar value, in which case the actual value is
+       compared for equality with it;
     2. a dict of two items: `test` is the test name (one of the values
        shown below) and `value` the expected value (and possibly
        `opts` for options; see below);
@@ -140,8 +140,8 @@ test case:
         option is useful in particular for removing such parts of the
         output that change on each run, such as timestamps.
 
--   `status`: The status of the test (optional). Tests should be pass
-    by default, but `status` can mark otherwise. Allowed values are:
+-   `status`: The status of the test (optional). Tests should pass by
+    default, but `status` can mark otherwise. Allowed values are:
 
 	- `skip`: the test is skipped unconditionally;
 	- `skipif:`*condition*: the test is skipped if *condition*
