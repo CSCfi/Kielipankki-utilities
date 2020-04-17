@@ -72,8 +72,32 @@ test case:
         considers only the value in the original environment, whereas
         other references also consider the added or replaced values. A
         literal `$` is encoded as `$$`.
-    -   `stdin`: the content of standard input (`str`)
-    -   `file:FNAME`: the content of file FNAME (`str`)
+    -   `stdin`: the content of standard input (`str` or `dict`; see below)
+    -   `file:FNAME`: the content of file FNAME (`str` or `dict`; see below)
+
+	`stdin` and `file:FNAME` may be either plain strings containing
+    the content, or dicts of two items:
+
+	-   `value`: the base value, subject to transformations specified
+        in `opts` (`str`)
+	-   `opts`: options for transforming the base value to the actual
+        content (`dict`); currently the following options are
+        supported:
+		-   `prepend`: content to prepend to `value` (`str`)
+		-   `append`: content to append to `value` (`str`)
+		-   `transform[ LANG]`: code to transform `value`, excluding
+            the prepended or appended content. The optional `LANG` is
+            the language of the code: `python` (Python 3, the default)
+            or `shell` (the default shell). For Python, the code is
+            the body of a function of one argument named `value`
+            containing the base value and returning the transformed
+            value. For shell, the code is a shell command line reading
+            `value` from standard input and writing the transformed
+            value to standard output.
+
+	The dict variant of the input is typically used in conjunction
+    with [defining common values that can be reused in multiple
+    places](#reusable-definitions).
 
 -   `output`: Expected output for the test and options affecting the
     output:
@@ -92,7 +116,7 @@ test case:
 	   -   `test`: the test name: one of the values shown below; if
 		   omitted, defaults to `==`, that is, equality);
 	   -   `value`: the expected value (obligatory); and
-       -  ``opts`: possible options; see below;
+       -   `opts`: possible options; see below;
     3. a dict with test names (see below) as keys and expected values
        as values (the value may also be a list, in which case each
        item in the list is treated as a separate value to be tested);
@@ -124,6 +148,10 @@ test case:
     the flag constants need not be prefixed by `re.`. For example, the
     test name may be `matches DOTALL|VERBOSE`, corresponding to
     `re.search(`*expected* `, `*actual* `, re.DOTALL|re.VERBOSE)`.
+
+	In addition to `reflags`, `opts` may contain the same value
+    transformation options as `opts` for input values: `prepend`,
+    `append` and `transform`; see above for more information.
 
     `options` is a dict of options transforming the actual output or
     otherwise affecting matching actual and expected output.

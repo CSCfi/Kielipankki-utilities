@@ -259,7 +259,7 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
     else:
         env = None
     # print(env)
-    stdin = input_.get('stdin', '').encode('UTF-8')
+    stdin = _make_input_value(input_.get('stdin', '')).encode('UTF-8')
     for key, value in input_.items():
         if key.startswith('file:'):
             fname = key.split(':', maxsplit=1)[1]
@@ -267,7 +267,7 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
             if dirname:
                 os.makedirs(os.path.join(tmpdir, dirname), exist_ok=True)
             with open(os.path.join(tmpdir, fname), 'w') as f:
-                f.write(value)
+                f.write(_make_input_value(value))
     proc = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env,
                  shell=shell, cwd=tmpdir)
     stdout, stderr = proc.communicate(stdin)
@@ -281,6 +281,55 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
                    'returncode': proc.returncode},
                   options,
                   tmpdir)
+
+
+def _make_input_value(value):
+    """Apply possible transformation options to the input value."""
+    if isinstance(value, dict):
+        opts = value.get('opts', {})
+        if 'value' not in value:
+            raise ValueError('Missing key "value"')
+        value = value.get('value')
+        return _transform_value(value, opts)
+    else:
+        return value
+
+
+def _transform_value(value, opts):
+    """Return value transformed according to opts.
+
+    opts is a dict that may contain "prepend", "append", "transform",
+    "transform python" and "transform shell".
+    """
+    for optname, optval in opts.items():
+        if optname.startswith('transform'):
+            _, *lang = optname.split(maxsplit=1)
+            lang = lang[0].lower() if lang else 'python'
+            if lang == 'python':
+                value = _transform_value_python(value, optval)
+            elif lang == 'shell':
+                value = _transform_value_shell(value, optval)
+            else:
+                raise ValueError('Only Python and Shell supported as'
+                                 ' transformation languages')
+    value = opts.get('prepend', '') + value
+    value += opts.get('append', '')
+    return value
+
+
+def _transform_value_python(value, code):
+    """Return value transformed with Python code (function body)."""
+    funcdef = ('def transfunc(value):\n '
+               + re.sub(r'^', '    ', code, flags=re.MULTILINE))
+    exec(funcdef, globals())
+    return transfunc(value)
+
+
+def _transform_value_shell(value, code):
+    """Return value transformed with shell commands code."""
+    proc = Popen(code, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+    stdout, stderr = proc.communicate(value.encode('UTF-8'))
+    return stdout.decode('UTF-8')
 
 
 def _process_output_options(options_raw):
@@ -348,6 +397,8 @@ def _check_output(expected, actual, options, tmpdir):
                     else:
                         test_opts.extend(reflags.split())
                     exp_val = expected_val['value']
+                    if len(value_opts) > bool(reflags):
+                        exp_val = _transform_value(exp_val, value_opts)
                     assert _output_tests[test](exp_val, actual_val, *test_opts)
                 else:
                     for test, exp_vals in expected_val.items():

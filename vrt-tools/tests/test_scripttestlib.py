@@ -538,6 +538,155 @@ _testcase_files_content = [
                  'returncode': 0,
               },
          },
+         # Input and output transformation options
+         {
+             'name': 'Test: append and prepend to stdin',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'bar\n',
+                     'opts': {
+                         'prepend': 'foo\n',
+                         'append': 'baz\n',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nbar\nbaz\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: append and prepend to input file',
+             'input': {
+                 'cmdline': 'cat file.in',
+                 'file:file.in': {
+                     'value': 'bar\n',
+                     'opts': {
+                         'prepend': 'foo\n',
+                         'append': 'baz\n',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nbar\nbaz\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: append and prepend to stdout',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n'
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'bar\n',
+                     'opts': {
+                         'prepend': 'foo\n',
+                         'append': 'baz\n',
+                     },
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: append and prepend to output file',
+             'input': {
+                 'cmdline': 'cat > file.out',
+                 'shell': True,
+                 'stdin': 'foo\nbar\nbaz\n'
+             },
+             'output': {
+                 'file:file.out': {
+                     'value': 'bar\n',
+                     'opts': {
+                         'prepend': 'foo\n',
+                         'append': 'baz\n',
+                     },
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: transform stdin with shell (+ append)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\n',
+                     'opts': {
+                         'transform shell': 'head -1 | tr -d "fb"',
+                         'append': 'baz\n',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'oo\nbaz\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: transform stdout with shell (+ append)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'oo\nbaz\n'
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'foo\nbar\n',
+                     'opts': {
+                         'transform shell': 'head -1 | tr -d "fb"',
+                         'append': 'baz\n',
+                     },
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: transform stdin with Python (+ append)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\n',
+                     'opts': {
+                         'transform': ('return re.sub(r"\\n.*", "\\n", value,'
+                                                      ' flags=re.DOTALL)[1:]'),
+                         'append': 'baz\n',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'oo\nbaz\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: transform stdout with shell (+ append)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'oo\nbaz\n'
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'foo\nbar\n',
+                     'opts': {
+                         'transform python': (
+                             'return re.sub(r"\\n.*", "\\n", value,'
+                                            ' flags=re.DOTALL)[1:]\n'),
+                         'append': 'baz\n',
+                     },
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
          # Note that the tests do not really check whether the tests marked to
          # be skipped or xfailing really are skipped or xfail. How could that
          # be tested?
