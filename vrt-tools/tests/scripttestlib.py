@@ -337,45 +337,6 @@ def _transform_value(value, trans):
     return value
 
 
-# Value transformation functions
-
-def _transform_value_prepend(value, prepend_value):
-    """Return value with prepend_value prepended."""
-    return prepend_value + value
-
-
-def _transform_value_append(value, append_value):
-    """Return value with append_value appended."""
-    return value + append_value
-
-
-def _transform_value_filter_out(value, regexps):
-    """Replace regexp `regexp` matches with "" `in `value`."""
-    if not isinstance(regexps, list):
-        regexps = [regexps]
-    for regexp in regexps:
-        try:
-            value = re.sub(regexp, '', value)
-        except TypeError:
-            pass
-    return value
-
-
-def _transform_value_python(value, code):
-    """Return value transformed with Python code (function body)."""
-    funcdef = ('def transfunc(value):\n '
-               + re.sub(r'^', '    ', code, flags=re.MULTILINE))
-    exec(funcdef, globals())
-    return transfunc(value)
-
-
-def _transform_value_shell(value, code):
-    """Return value transformed with shell commands code."""
-    proc = Popen(code, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
-    stdout, stderr = proc.communicate(value.encode('UTF-8'))
-    return stdout.decode('UTF-8')
-
-
 def _check_output(expected, actual, tmpdir):
     """Check using an assertion if the actual values match expected.
 
@@ -434,3 +395,42 @@ def _check_output(expected, actual, tmpdir):
             else:
                 exp_val, act_val = make_values(expected_val, actual_val)
                 assert exp_val == act_val
+
+
+# Value transformation functions
+
+def _transform_value_prepend(value, prepend_value):
+    """Return value with prepend_value prepended."""
+    return prepend_value + value
+
+
+def _transform_value_append(value, append_value):
+    """Return value with append_value appended."""
+    return value + append_value
+
+
+def _transform_value_filter_out(value, regexps):
+    """Replace regexp `regexp` matches with "" `in `value`."""
+    if not isinstance(regexps, list):
+        regexps = [regexps]
+    for regexp in regexps:
+        try:
+            value = re.sub(regexp, '', value)
+        except TypeError:
+            pass
+    return value
+
+
+def _transform_value_python(value, code):
+    """Return value transformed with Python code (function body)."""
+    funcdef = ('def transfunc(value):\n '
+               + re.sub(r'^', '    ', code, flags=re.MULTILINE))
+    exec(funcdef, globals())
+    return transfunc(value)
+
+
+def _transform_value_shell(value, code):
+    """Return value transformed with shell commands code."""
+    proc = Popen(code, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+    stdout, stderr = proc.communicate(value.encode('UTF-8'))
+    return stdout.decode('UTF-8')
