@@ -322,7 +322,7 @@ _testcase_files_content = [
              },
          },
          {
-             'name': 'Test: matches with flags (explicit "opts")',
+             'name': 'Test: matches with flags (explicit "reflags")',
              'input': {
                  'cmdline': 'cat',
                  'stdin': 'test1\ntest2\n'
@@ -331,16 +331,12 @@ _testcase_files_content = [
                  'stdout': [
                      {
                          'test': 'matches',
-                         'opts': {
-                             'reflags': 'DOTALL',
-                         },
+                         'reflags': 'DOTALL',
                          'value': 'test1.test2',
                      },
                      {
                          'test': 'matches',
-                         'opts': {
-                             'reflags': 'DOTALL|VERBOSE',
-                         },
+                         'reflags': 'DOTALL|VERBOSE',
                          'value': 'test1 . test2',
                      },
                  ],
@@ -440,29 +436,31 @@ _testcase_files_content = [
                  'stderr': 'test\n',
              },
          },
-         # Output options
+         # Input and output transformation options
          {
-             'name': 'Test: option filter-out for stdout',
+             'name': 'Test: transform-actual filter-out for stdout',
              'input': {
                  'cmdline': 'printf "foo\nbar\n"',
               },
              'output': {
-                 'options': {
-                     'filter-out stdout': 'o',
+                 'stdout': {
+                     'value': 'f\nbar\n',
+                     'transform-actual': {
+                         'filter-out': 'o',
+                     },
                  },
-                 'stdout': 'f\nbar\n',
                  'stderr': '',
                  'returncode': 0,
               },
          },
          {
-             'name': 'Test: option filter-out for all output',
+             'name': 'Test: transform-actual filter-out for all output',
              'input': {
                  'cmdline': 'printf "foo\nbar\n" | tee /dev/stderr test.out',
                  'shell': True,
               },
              'output': {
-                 'options': {
+                 'transform-actual': {
                      'filter-out': 'o',
                  },
                  'stdout': 'f\nbar\n',
@@ -472,29 +470,31 @@ _testcase_files_content = [
               },
          },
          {
-             'name': 'Test: option filter-out for named output file',
+             'name': 'Test: transform-actual filter-out for named output file',
              'input': {
                  'cmdline': 'printf "foo\nbar\n" > test.out',
                  'shell': True,
               },
              'output': {
-                 'options': {
-                     'filter-out file:test.out': 'o',
-                 },
                  'stdout': '',
                  'stderr': '',
-                 'file:test.out': 'f\nbar\n',
+                 'file:test.out': {
+                     'value': 'f\nbar\n',
+                     'transform-actual': {
+                         'filter-out': 'o',
+                     },
+                 },
                  'returncode': 0,
               },
          },
          {
-             'name': 'Test: option filter-out with a regexp',
+             'name': 'Test: transform-actual filter-out with a regexp',
              'input': {
                  'cmdline': 'printf "aabb\nccdd\neeff\n"',
                  'shell': True,
               },
              'output': {
-                 'options': {
+                 'transform-actual': {
                      'filter-out': 'c.*\n',
                  },
                  'stdout': 'aabb\neeff\n',
@@ -503,31 +503,44 @@ _testcase_files_content = [
               },
          },
          {
-             'name': 'Test: multiple filter-out options',
+             'name': 'Test: multiple transform-actual filter-out transformations',
              'input': {
                  'cmdline': 'printf "foo\nbar\nbaz\n" | tee /dev/stderr test.out',
                  'shell': True,
               },
              'output': {
-                 'options': {
-                     'filter-out': 'b',
-                     'filter-out stdout': 'o',
-                     'filter-out stderr': 'a',
-                     'filter-out file:test.out': 'foo\n',
+                 'transform-actual': {
+                     'filter-out': 'o',
                  },
-                 'stdout': 'f\nar\naz\n',
-                 'stderr': 'foo\nr\nz\n',
-                 'file:test.out': 'ar\naz\n',
+                 'stdout': {
+                     'value': 'f\nar\naz\n',
+                     'transform-actual': {
+                         'filter-out': 'b',
+                     },
+                 },
+                 'stderr': {
+                     'value': 'f\nbr\nbz\n',
+                     'transform-actual': {
+                         'filter-out': 'a',
+                     },
+                 },
+                 'file:test.out':  {
+                     'value': 'f\nbar\nbaz\n',
+                     'transform-actual': {
+                         # "foo" is not found, as "o" is filtered out first
+                         'filter-out': 'foo\n',
+                     },
+                 },
                  'returncode': 0,
               },
          },
          {
-             'name': 'Test: option filter-out with a list value',
+             'name': 'Test: transform-actual filter-out with a list value',
              'input': {
                  'cmdline': 'printf "foo\nbar\nbaz\n"',
               },
              'output': {
-                 'options': {
+                 'transform-actual': {
                      'filter-out': [
                          'o',
                          'b',
@@ -538,14 +551,13 @@ _testcase_files_content = [
                  'returncode': 0,
               },
          },
-         # Input and output transformation options
          {
              'name': 'Test: append and prepend to stdin',
              'input': {
                  'cmdline': 'cat',
                  'stdin': {
                      'value': 'bar\n',
-                     'opts': {
+                     'transform': {
                          'prepend': 'foo\n',
                          'append': 'baz\n',
                      },
@@ -563,7 +575,7 @@ _testcase_files_content = [
                  'cmdline': 'cat file.in',
                  'file:file.in': {
                      'value': 'bar\n',
-                     'opts': {
+                     'transform': {
                          'prepend': 'foo\n',
                          'append': 'baz\n',
                      },
@@ -584,7 +596,7 @@ _testcase_files_content = [
              'output': {
                  'stdout': {
                      'value': 'bar\n',
-                     'opts': {
+                     'transform-expected': {
                          'prepend': 'foo\n',
                          'append': 'baz\n',
                      },
@@ -603,7 +615,7 @@ _testcase_files_content = [
              'output': {
                  'file:file.out': {
                      'value': 'bar\n',
-                     'opts': {
+                     'transform-expected': {
                          'prepend': 'foo\n',
                          'append': 'baz\n',
                      },
@@ -618,8 +630,8 @@ _testcase_files_content = [
                  'cmdline': 'cat',
                  'stdin': {
                      'value': 'foo\nbar\n',
-                     'opts': {
-                         'transform shell': 'head -1 | tr -d "fb"',
+                     'transform': {
+                         'shell': 'head -1 | tr -d "fb"',
                          'append': 'baz\n',
                      },
                  },
@@ -639,10 +651,10 @@ _testcase_files_content = [
              'output': {
                  'stdout': {
                      'value': 'foo\nbar\n',
-                     'opts': {
-                         'transform shell': 'head -1 | tr -d "fb"',
-                         'append': 'baz\n',
-                     },
+                     'transform-expected': [
+                         {'shell': 'head -1 | tr -d "fb"'},
+                         {'append': 'baz\n'},
+                     ],
                  },
                  'stderr': '',
                  'returncode': 0,
@@ -654,9 +666,9 @@ _testcase_files_content = [
                  'cmdline': 'cat',
                  'stdin': {
                      'value': 'foo\nbar\n',
-                     'opts': {
-                         'transform': ('return re.sub(r"\\n.*", "\\n", value,'
-                                                      ' flags=re.DOTALL)[1:]'),
+                     'transform': {
+                         'python': ('return re.sub(r"\\n.*", "\\n", value,'
+                                    ' flags=re.DOTALL)[1:]'),
                          'append': 'baz\n',
                      },
                  },
@@ -676,12 +688,40 @@ _testcase_files_content = [
              'output': {
                  'stdout': {
                      'value': 'foo\nbar\n',
-                     'opts': {
-                         'transform python': (
+                     'transform-expected': {
+                         'python': (
                              'return re.sub(r"\\n.*", "\\n", value,'
                                             ' flags=re.DOTALL)[1:]\n'),
                          'append': 'baz\n',
                      },
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: transformation sequences',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': [
+                         {'prepend': 'foo1\n'},
+                         {'prepend': 'foo0\n'},
+                         {'filter-out': 'o'},
+                     ],
+                 },
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'foo\n',
+                     'transform-expected': [
+                         {'append': 'bar\n'},
+                         {'append': 'baz\n'},
+                         {'prepend': 'foo1\n'},
+                         {'prepend': 'foo0\n'},
+                         {'filter-out': 'o'},
+                     ],
                  },
                  'stderr': '',
                  'returncode': 0,

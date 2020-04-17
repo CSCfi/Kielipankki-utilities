@@ -73,50 +73,77 @@ test case:
         other references also consider the added or replaced values. A
         literal `$` is encoded as `$$`.
     -   `stdin`: the content of standard input (`str` or `dict`; see below)
-    -   `file:FNAME`: the content of file FNAME (`str` or `dict`; see below)
+    -   `file:FNAME`: the content of input file FNAME (`str` or
+        `dict`; see below)
+    -   `transform`: transform the base content of standard input and
+        all input files according to the specified options
+        (`list(dict)` or `dict`). Currently the following options are
+        supported:
+		-   `prepend`: content to prepend to `value` (`str`)
+		-   `append`: content to append to `value` (`str`)
+		-   `filter-out`: remove the substrings matching the regular
+			expression that is the value of the option. The value of
+			the option may also be a list of regular expressions, in
+			which case their matches are removed in order.
+		-   `python`: Python 3 code to transform `value`: the body of
+            a function of one argument named `value` containing the
+            base value and returning the transformed value. The Python
+            regular expression module `re` is available for the code.
+		-   `shell`: shell command line reading `value` from standard
+            input and writing the transformed value to standard
+            output. The shell used is the default shell.
+
+		If the value is a plain dictionary, the order of the
+        transformations is not defined, so they should be independent
+        of each other. If the value is a list of single-item
+        dictionaries, the transformations are applied in the list
+        order, each transformation to the output of the preceding one.
 
 	`stdin` and `file:FNAME` may be either plain strings containing
     the content, or dicts of two items:
 
-	-   `value`: the base value, subject to transformations specified
-        in `opts` (`str`)
-	-   `opts`: options for transforming the base value to the actual
-        content (`dict`); currently the following options are
-        supported:
-		-   `prepend`: content to prepend to `value` (`str`)
-		-   `append`: content to append to `value` (`str`)
-		-   `transform[ LANG]`: code to transform `value`, excluding
-            the prepended or appended content. The optional `LANG` is
-            the language of the code: `python` (Python 3, the default)
-            or `shell` (the default shell). For Python, the code is
-            the body of a function of one argument named `value`
-            containing the base value and returning the transformed
-            value. For shell, the code is a shell command line reading
-            `value` from standard input and writing the transformed
-            value to standard output.
+	-   `value`: the base value (obligatory), subject to
+        transformations specified in `transform` (`str`)
+	-   `transform`: options for transforming the base value to the
+        actual content. The options are those listed above for all
+        inputs. If transformations are defined for both specific
+        inputs and for all inputs, the input-specific transformations
+        are applied after the general ones.
 
-	The dict variant of the input is typically used in conjunction
-    with [defining common values that can be reused in multiple
-    places](#reusable-definitions).
+	The dict variant of the input could be used in conjunction with
+    [defining common values that can be reused in multiple
+    places](#reusable-definitions), for example.
 
--   `output`: Expected output for the test and options affecting the
-    output:
+-   `output`: Expected output for the test and options transforming
+    the output:
     -   `returncode`: program return code (`int`)
-    -   `stdout`: the content of standard output (`str`)
-    -   `stderr`: the content of standard error (`str`)
-    -   `file:FNAME`: the content of file FNAME (`str`)
-    -   `options`: output options (`dict`) (see below for more
-        information)
+    -   `stdout`: the content of standard output (`str`, `dict` or
+        `list`; see below)
+    -   `stderr`: the content of standard error (`str`, `dict` or
+        `list`; see below)
+    -   `file:FNAME`: the content of file FNAME (`str`, `dict` or
+        `list`; see below)
+    -   `transform-expected`: transformations to be applied to all
+        expected output values (except `returncode`) before testing;
+        the same options are supported as for `input: transform`
+    -   `transform-actual`: transformations to be applied to all
+        actual output values (except `returncode`) before testing;
+        the same options are supported as for `input: transform`
 
     The expected values may have several different forms:
 
     1. a simple scalar value, in which case the actual value is
        compared for equality with it;
-    2. a dict of one to three items:
+    2. a dict with `value` and possibly other optional items:
+	   -   `value`: the expected value (obligatory)
 	   -   `test`: the test name: one of the values shown below; if
-		   omitted, defaults to `==`, that is, equality);
-	   -   `value`: the expected value (obligatory); and
-       -   `opts`: possible options; see below;
+		   omitted, defaults to `==`, that is, equality)
+       -   `reflags`: regular expression flags for regular expression
+           match tests
+       -   `transform-expected`: transformations of the expected value
+           (same options as for input transformations above)
+       -   `transform-actual`: transformations of the actual value
+           (same options as for input transformations above)
     3. a dict with test names (see below) as keys and expected values
        as values (the value may also be a list, in which case each
        item in the list is treated as a separate value to be tested);
@@ -143,32 +170,19 @@ test case:
 
     For the tests `matches` and `not_matches`, a value for the `flags`
     parameter to the `re.search` function can be passed either via the
-    value of `opts: reflags` or appended to the test name, separated by
+    value of `reflags` or appended to the test name, separated by
     whitespace. The value is as in Python, except that the names of
     the flag constants need not be prefixed by `re.`. For example, the
     test name may be `matches DOTALL|VERBOSE`, corresponding to
     `re.search(`*expected* `, `*actual* `, re.DOTALL|re.VERBOSE)`.
 
-	In addition to `reflags`, `opts` may contain the same value
-    transformation options as `opts` for input values: `prepend`,
-    `append` and `transform`; see above for more information.
+	Transformaing actual values is useful in particular for removing
+    such parts of the output that change on each run, such as
+    timestamps.
 
-    `options` is a dict of options transforming the actual output or
-    otherwise affecting matching actual and expected output.
-    Currently, only one output option is supported, although it can be
-    used for multiple targets (output items):
-
-    -   `filter-out[ TARGET]`: Remove from actual output (in TARGET)
-        substrings matching the regular expression that is the value
-        of the option. The optional TARGET may be `stdin`, `stdout` or
-        `file:FILE`. If TARGET is omitted, applies to all output.
-        Multiple option values may be specified for different TARGETs.
-        The value of the option may also be a list of regular
-        expressions, in which case their matches are removed in order.
-        If the option is specified both with and without TARGET, the
-        matches with TARGET are removed before those without. The
-        option is useful in particular for removing such parts of the
-        output that change on each run, such as timestamps.
+	If both value-specific `transform-expected` or `transform-actual`
+    and ones affecting all values are specified, the value-specific
+    ones are applied after those affecting all values.
 
 -   `status`: The status of the test (optional). Tests should pass by
     default, but `status` can mark otherwise. Allowed values are:

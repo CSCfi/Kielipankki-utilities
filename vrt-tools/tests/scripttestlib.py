@@ -259,7 +259,9 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
     else:
         env = None
     # print(env)
-    stdin = _make_input_value(input_.get('stdin', '')).encode('UTF-8')
+    input_trans = input_.get('transform', [])
+    stdin = (_make_value(input_.get('stdin', ''), 'transform', input_trans)
+             .encode('UTF-8'))
     for key, value in input_.items():
         if key.startswith('file:'):
             fname = key.split(':', maxsplit=1)[1]
@@ -267,53 +269,95 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
             if dirname:
                 os.makedirs(os.path.join(tmpdir, dirname), exist_ok=True)
             with open(os.path.join(tmpdir, fname), 'w') as f:
-                f.write(_make_input_value(value))
+                f.write(_make_value(value, 'transform', input_trans))
     proc = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env,
                  shell=shell, cwd=tmpdir)
     stdout, stderr = proc.communicate(stdin)
-    options = expected.get('options', {})
-    if options:
-        options = _process_output_options(options)
-        del expected['options']
     _check_output(expected,
                   {'stdout': stdout.decode('UTF-8'),
                    'stderr': stderr.decode('UTF-8'),
                    'returncode': proc.returncode},
-                  options,
                   tmpdir)
 
 
-def _make_input_value(value):
-    """Apply possible transformation options to the input value."""
-    if isinstance(value, dict):
-        opts = value.get('opts', {})
-        if 'value' not in value:
-            raise ValueError('Missing key "value"')
-        value = value.get('value')
-        return _transform_value(value, opts)
-    else:
-        return value
+def _make_value(value, trans_key, global_trans=None, actual_value=None):
+    """Apply possible transformations to value.
 
-
-def _transform_value(value, opts):
-    """Return value transformed according to opts.
-
-    opts is a dict that may contain "prepend", "append", "transform",
-    "transform python" and "transform shell".
+    value is the literal value or a dict containing key "value" and
+    possible transformations. trans_key is the key in value dict whose
+    transformations should be retrieved. global_trans is a dictionary
+    of global transformations (affecting all inputs or outputs) to be
+    applied before the local ones. actual_value overrides value: it is
+    used when processing actual values, whose transformations are
+    defined in the expected value (as actual values cannot be present in
+    the test case).
     """
-    for optname, optval in opts.items():
-        if optname.startswith('transform'):
-            _, *lang = optname.split(maxsplit=1)
-            lang = lang[0].lower() if lang else 'python'
-            if lang == 'python':
-                value = _transform_value_python(value, optval)
-            elif lang == 'shell':
-                value = _transform_value_shell(value, optval)
-            else:
-                raise ValueError('Only Python and Shell supported as'
-                                 ' transformation languages')
-    value = opts.get('prepend', '') + value
-    value += opts.get('append', '')
+    # print('_make_value', repr(value), trans_key, global_trans, repr(actual_value))
+    trans_value = None
+    trans = None
+    if isinstance(value, dict):
+        trans = value.get(trans_key)
+        if actual_value is not None:
+            trans_value = actual_value
+        elif 'value' not in value:
+            raise ValueError('Missing key "value"')
+        else:
+            trans_value = value.get('value')
+    elif actual_value is not None:
+        trans_value = actual_value
+    else:
+        trans_value = value
+    trans_value = _transform_value(trans_value, global_trans)
+    trans_value = _transform_value(trans_value, trans)
+    return trans_value
+
+
+def _transform_value(value, trans):
+    """Return value transformed according to trans.
+
+    trans is a dict whose keys KEY should correspond to functions
+    _transform_value_KEY.
+    """
+    # print('_transform_value', repr(value), repr(trans))
+    if not trans:
+        return value
+    # Convert a dict to a list of single-item dicts
+    if isinstance(trans, dict):
+        trans = (dict([(key, val)]) for key, val in trans.items())
+    for transitem in trans:
+        for transname, transval in transitem.items():
+            # print(transname, transval)
+            try:
+                transfunc = globals()['_transform_value_'
+                                      + transname.replace('-', '_')]
+            except KeyError as e:
+                raise ValueError('Unknown transformation "' + transname + '"')
+            value = transfunc(value, transval)
+    # print('->', repr(value))
+    return value
+
+
+# Value transformation functions
+
+def _transform_value_prepend(value, prepend_value):
+    """Return value with prepend_value prepended."""
+    return prepend_value + value
+
+
+def _transform_value_append(value, append_value):
+    """Return value with append_value appended."""
+    return value + append_value
+
+
+def _transform_value_filter_out(value, regexps):
+    """Replace regexp `regexp` matches with "" `in `value`."""
+    if not isinstance(regexps, list):
+        regexps = [regexps]
+    for regexp in regexps:
+        try:
+            value = re.sub(regexp, '', value)
+        except TypeError:
+            pass
     return value
 
 
@@ -332,42 +376,25 @@ def _transform_value_shell(value, code):
     return stdout.decode('UTF-8')
 
 
-def _process_output_options(options_raw):
-    """Split output option names to name and target
-
-    If an output option name contains a space, the string following the
-    space is considered the target (a subitem of "output", such as
-    "stdout") to which the option is applied. Otherwise, the option is
-    applied to all output items.
-
-    Return `dict((target, list((optfunc, optval)))`: target "*" denotes
-    any target; `optfunc` is mapped from option name via the dictionary
-    `_output_option_funcs`.
-    """
-    options = defaultdict(list)
-    for optname, optvals in options_raw.items():
-        if ' ' in optname:
-            optname, opttarget = optname.split(None, 2)
-        else:
-            opttarget = '*'
-        optfunc = _output_option_funcs.get(optname)
-        if optfunc is None:
-            raise NameError('Unrecognized option name "' + optname + '"')
-        if not isinstance(optvals, list):
-            optvals = [optvals]
-        options[opttarget].append((optfunc, optvals))
-    return options
-
-
-def _check_output(expected, actual, options, tmpdir):
+def _check_output(expected, actual, tmpdir):
     """Check using an assertion if the actual values match expected.
 
     Arguments:
       `expected`: Expected values (dict or list(dict))
       `actual`: Actual values (dict)
-      `options`: Options for processing the actual values (dict)
       `tmpdir`: The temporary directory (containing output files)
     """
+    expected_trans = expected.get('transform-expected', [])
+    actual_trans = expected.get('transform-actual', [])
+
+    def make_values(exp, act):
+        # print('make_values', repr(exp), repr(act))
+        return (_make_value(exp, 'transform-expected', expected_trans),
+                _make_value(exp, 'transform-actual', actual_trans, act))
+
+    def test_values(test, expected, actual, *test_opts):
+        return _output_tests[test](expected, actual, *test_opts)
+
     for key, expected_vals in sorted(expected.items()):
         if key in actual:
             actual_val = actual[key]
@@ -376,11 +403,8 @@ def _check_output(expected, actual, options, tmpdir):
             assert os.path.isfile(fname)
             with open(fname, 'r') as f:
                 actual_val = f.read()
-        key_opts = options.get(key, [])
-        key_opts.extend(options.get('*', []))
-        for optfunc, optvals in key_opts:
-            for optval in optvals:
-                actual_val = optfunc(optval, actual_val)
+        else:
+            continue
         if expected_vals is None:
             expected_vals = ['']
         elif not isinstance(expected_vals, list):
@@ -390,37 +414,23 @@ def _check_output(expected, actual, options, tmpdir):
                 if 'value' in expected_val:
                     test = expected_val.get('test', '==')
                     test, *test_opts = test.split()
-                    value_opts = expected_val.get('opts', {})
-                    reflags = value_opts.get('reflags', '')
+                    reflags = expected_val.get('reflags', '')
                     if isinstance(reflags, list):
                         test_opts.extend(reflags)
                     else:
                         test_opts.extend(reflags.split())
-                    exp_val = expected_val['value']
-                    if len(value_opts) > bool(reflags):
-                        exp_val = _transform_value(exp_val, value_opts)
-                    assert _output_tests[test](exp_val, actual_val, *test_opts)
+                    exp_val, act_val = make_values(expected_val, actual_val)
+                    assert test_values(test, exp_val, act_val, *test_opts)
                 else:
                     for test, exp_vals in expected_val.items():
                         test, *test_opts = test.split()
                         if not isinstance(exp_vals, list):
                             exp_vals = [exp_vals]
                         for exp_val in exp_vals:
-                            assert _output_tests[test](
-                                exp_val, actual_val, *test_opts)
+                            exp_val, act_val = make_values(
+                                exp_val, actual_val)
+                            assert test_values(
+                                test, exp_val, act_val, *test_opts)
             else:
-                assert actual_val == expected_val
-
-
-def _outputopt_filter_out(opt_value, output_data):
-    """Replace regexp `opt_value` matches with "" `in output_data`."""
-    try:
-        return re.sub(opt_value, '', output_data)
-    except TypeError:
-        return output_data
-
-
-# Map output option names to functions
-_output_option_funcs = {
-    'filter-out': _outputopt_filter_out,
-}
+                exp_val, act_val = make_values(expected_val, actual_val)
+                assert exp_val == act_val
