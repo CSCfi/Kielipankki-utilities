@@ -151,30 +151,34 @@ test case:
     4. a list whose items may be any of the other: all tests must
        pass.
 
-    Supported test names are the following (*actual* is the actual
-    value, *expected* the expected value specified as the value,
-    either directly or as the value of `value`):
+    Supported test names are the following, some with aliases
+    (*actual* is the actual value, *expected* the expected value
+    specified as the value, either directly or as the value of
+    `value`):
 
-    -   `==`: *actual* equals *expected*
-    -   `!=`: *actual* is not equal to *expected*
-    -   `<`: *actual* is less than *expected*
-    -   `<=`: *actual* is less than or equal to *expected*
-    -   `>`: *actual* is greater than *expected*
-    -   `>=`: *actual* is greater than or equal to *expected*
+    -   `==`, `equal`: *actual* equals *expected*
+    -   `!=`, `not-equal`: *actual* is not equal to *expected*
+    -   `<`, `less`: *actual* is less than *expected*
+    -   `<=`, `less-equal`: *actual* is less than or equal to
+        *expected*
+    -   `>`, `greater`: *actual* is greater than *expected*
+    -   `>=`, `greater-equal`: *actual* is greater than or equal to
+        *expected*
     -   `in`: *actual* is contained in *expected*
-    -   `not_in`: *actual* is not contained in *expected*
-    -   `matches`: *actual* matches the Python regular expression
-        *expected* (using `re.search`)
-    -   `not_matches`: *actual* does not match the Python regular
+    -   `not-in`: *actual* is not contained in *expected*
+    -   `regex`, `matches`: *actual* matches the Python regular
         expression *expected* (using `re.search`)
+    -   `not-regex`, `not-matches`: *actual* does not match the Python
+        regular expression *expected* (using `re.search`)
 
-    For the tests `matches` and `not_matches`, a value for the `flags`
-    parameter to the `re.search` function can be passed either via the
-    value of `reflags` or appended to the test name, separated by
-    whitespace. The value is as in Python, except that the names of
-    the flag constants need not be prefixed by `re.`. For example, the
-    test name may be `matches DOTALL|VERBOSE`, corresponding to
-    `re.search(`*expected* `, `*actual* `, re.DOTALL|re.VERBOSE)`.
+    For the tests `regex` (`matches`) and `not-regex` (`not-matches`),
+    a value for the `flags` parameter to the `re.search` function can
+    be passed either via the value of `reflags` or appended to the
+    test name, separated by whitespace. The value is as in Python,
+    except that the names of the flag constants need not be prefixed
+    by `re.`. For example, the test name may be `regex
+    DOTALL|VERBOSE`, corresponding to `re.search(`*expected* `,
+    `*actual* `, re.DOTALL|re.VERBOSE)`.
 
 	Transformaing actual values is useful in particular for removing
     such parts of the output that change on each run, such as

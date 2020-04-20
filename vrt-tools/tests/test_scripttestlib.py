@@ -199,11 +199,11 @@ _testcase_files_content = [
                          'value': 'foo',
                      },
                      {
-                         'test': 'matches',
+                         'test': 'regex',
                          'value': 'test1',
                      },
                      {
-                         'test': 'matches',
+                         'test': 'regex',
                          'value': 'test2',
                      },
                  ],
@@ -223,10 +223,10 @@ _testcase_files_content = [
                          '!=': 'foo',
                      },
                      {
-                         'matches': 'test1',
+                         'regex': 'test1',
                      },
                      {
-                         'matches': 'test2',
+                         'regex': 'test2',
                      },
                  ],
                  'stderr': '',
@@ -242,7 +242,7 @@ _testcase_files_content = [
              'output': {
                  'stdout': {
                      '!=': 'foo',
-                     'matches': 'test1',
+                     'regex': 'test1',
                  },
                  'stderr': '',
                  'returncode': 0,
@@ -257,7 +257,7 @@ _testcase_files_content = [
              'output': {
                  'stdout': {
                      '!=': 'foo',
-                     'matches': [
+                     'regex': [
                          'test1',
                          'test2',
                      ],
@@ -267,41 +267,41 @@ _testcase_files_content = [
              },
          },
          {
-             'name': 'Test: matches with flags',
+             'name': 'Test: regex with flags',
              'input': {
                  'cmdline': 'cat',
                  'stdin': 'test1\ntest2\n'
              },
              'output': {
                  'stdout': {
-                     'not_matches': 'test1.test2',
-                     'matches DOTALL': 'test1.test2',
-                     'not_matches DOTALL': 'test1 . test2',
-                     'matches DOTALL|VERBOSE': 'test1 . test2',
+                     'not-regex': 'test1.test2',
+                     'regex DOTALL': 'test1.test2',
+                     'not-regex DOTALL': 'test1 . test2',
+                     'regex DOTALL|VERBOSE': 'test1 . test2',
                  },
                  'stderr': '',
                  'returncode': 0,
              },
          },
          {
-             'name': 'Test: matches with flags (with re. prefix)',
+             'name': 'Test: regex with flags (with re. prefix)',
              'input': {
                  'cmdline': 'cat',
                  'stdin': 'test1\ntest2\n'
              },
              'output': {
                  'stdout': {
-                     'not_matches': 'test1.test2',
-                     'matches re.DOTALL': 'test1.test2',
-                     'not_matches re.DOTALL': 'test1 . test2',
-                     'matches re.DOTALL|re.VERBOSE': 'test1 . test2',
+                     'not-regex': 'test1.test2',
+                     'regex re.DOTALL': 'test1.test2',
+                     'not-regex re.DOTALL': 'test1 . test2',
+                     'regex re.DOTALL|re.VERBOSE': 'test1 . test2',
                  },
                  'stderr': '',
                  'returncode': 0,
              },
          },
          {
-             'name': 'Test: matches with flags (dict with opts in test)',
+             'name': 'Test: regex with flags (dict with opts in test)',
              'input': {
                  'cmdline': 'cat',
                  'stdin': 'test1\ntest2\n'
@@ -309,11 +309,11 @@ _testcase_files_content = [
              'output': {
                  'stdout': [
                      {
-                         'test': 'matches DOTALL',
+                         'test': 'regex DOTALL',
                          'value': 'test1.test2',
                      },
                      {
-                         'test': 'matches DOTALL|VERBOSE',
+                         'test': 'regex DOTALL|VERBOSE',
                          'value': 'test1 . test2',
                      },
                  ],
@@ -322,7 +322,7 @@ _testcase_files_content = [
              },
          },
          {
-             'name': 'Test: matches with flags (explicit "reflags")',
+             'name': 'Test: regex with flags (explicit "reflags")',
              'input': {
                  'cmdline': 'cat',
                  'stdin': 'test1\ntest2\n'
@@ -330,14 +330,111 @@ _testcase_files_content = [
              'output': {
                  'stdout': [
                      {
-                         'test': 'matches',
+                         'test': 'regex',
                          'reflags': 'DOTALL',
                          'value': 'test1.test2',
                      },
                      {
-                         'test': 'matches',
+                         'test': 'regex',
                          'reflags': 'DOTALL|VERBOSE',
                          'value': 'test1 . test2',
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: test <, >, <=, >=',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'test': '>',
+                         'value': 'a',
+                     },
+                     {
+                         'test': '>=',
+                         'value': 'a',
+                     },
+                     {
+                         'test': '<',
+                         'value': 'z',
+                     },
+                     {
+                         'test': '<=',
+                         'value': 'z',
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: test in, not-in',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'test': 'in',
+                         'value': [
+                            'a',
+                            'test1\ntest2\n',
+                         ],
+                     },
+                     {
+                         'test': 'not-in',
+                         'value': [
+                            'a',
+                            'b',
+                         ],
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: test with alternative test names',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'test': 'not-equal',
+                         'value': '',
+                     },
+                     {
+                         'test': 'greater',
+                         'value': 'a',
+                     },
+                     {
+                         'test': 'greater-equal',
+                         'value': 'a',
+                     },
+                     {
+                         'test': 'less',
+                         'value': 'z',
+                     },
+                     {
+                         'test': 'less-equal',
+                         'value': 'z',
+                     },
+                     {
+                         'test': 'matches',
+                         'value': 'test1',
+                     },
+                     {
+                         'test': 'not-matches',
+                         'value': 'foo',
                      },
                  ],
                  'stderr': '',

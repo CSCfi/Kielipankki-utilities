@@ -27,32 +27,6 @@ import pytest
 import yaml
 
 
-def _re_search(patt, val, flags=''):
-    """Wrap re.search: Flags as a string (re. prefixes can be omitted)."""
-    if flags:
-        flags = eval('|'.join(
-            ('re.' if not flag.startswith('re.') else '') + flag
-            for flag in flags.split('|')))
-    return re.search(patt, val, flags=(flags or 0))
-
-
-_output_tests = {
-    # Tests that can be used for testing output values: key is test name, value
-    # is a two-argument boolean function, where the first argument is the
-    # expected and the second the actual value.
-    '==': lambda exp, val, *opts: val == exp,
-    '!=': lambda exp, val, *opts: val != exp,
-    '<': lambda exp, val, *opts: val < exp,
-    '<=': lambda exp, val, *opts: val <= exp,
-    '>': lambda exp, val, *opts: val > exp,
-    '>=': lambda exp, val, *opts: val >= exp,
-    'in': lambda exp, val, *opts: val in exp,
-    'not_in': lambda exp, val, *opts: val not in exp,
-    'matches': lambda exp, val, *opts: _re_search(exp, val, *opts) is not None,
-    'not_matches': lambda exp, val, *opts: _re_search(exp, val, *opts) is None,
-}
-
-
 def collect_testcases(*filespecs, basedir=None):
     """Return a list of tuples (name, input, output) for the test cases
     found in the files matching one of filespecs in the directory
@@ -354,7 +328,8 @@ def _check_output(expected, actual, tmpdir):
                 _make_value(exp, 'transform-actual', actual_trans, act))
 
     def test_values(test, expected, actual, *test_opts):
-        return _output_tests[test](expected, actual, *test_opts)
+        exp_val, act_val = make_values(expected, actual)
+        _assert(test, exp_val, act_val, *test_opts)
 
     for key, expected_vals in sorted(expected.items()):
         if key in actual:
@@ -380,21 +355,88 @@ def _check_output(expected, actual, tmpdir):
                         test_opts.extend(reflags)
                     else:
                         test_opts.extend(reflags.split())
-                    exp_val, act_val = make_values(expected_val, actual_val)
-                    assert test_values(test, exp_val, act_val, *test_opts)
+                    test_values(test, expected_val, actual_val, *test_opts)
                 else:
                     for test, exp_vals in expected_val.items():
                         test, *test_opts = test.split()
                         if not isinstance(exp_vals, list):
                             exp_vals = [exp_vals]
                         for exp_val in exp_vals:
-                            exp_val, act_val = make_values(
-                                exp_val, actual_val)
-                            assert test_values(
-                                test, exp_val, act_val, *test_opts)
+                            test_values(test, exp_val, actual_val, *test_opts)
             else:
-                exp_val, act_val = make_values(expected_val, actual_val)
-                assert exp_val == act_val
+                test_values('==', expected_val, actual_val, [])
+
+
+def _re_search(patt, val, flags=''):
+    """Wrap re.search: Flags as a string (re. prefixes can be omitted)."""
+    if flags:
+        flags = eval('|'.join(
+            ('re.' if not flag.startswith('re.') else '') + flag
+            for flag in flags.split('|')))
+    return re.search(patt, val, flags=(flags or 0))
+
+
+# Map test names to assertion function names (following _assert_)
+_assert_name_map = {
+    '==': 'equal',
+    '!=': 'not_equal',
+    '<': 'less',
+    '<=': 'less_equal',
+    '>': 'greater',
+    '>=': 'greater_equal',
+    'matches': 'regex',
+    'not_matches': 'not_regex',
+}
+
+
+def _assert(test_name, expected, actual, *opts):
+    """Call the assertion function corresponding to test_name with the args."""
+    test_name_orig = test_name
+    # Replace hyphens with underscores in the test name. The test name cannot
+    # contain spaces, as space is used to separate options from the test name.
+    test_name = test_name.replace('-', '_')
+    test_name = _assert_name_map.get(test_name, test_name)
+    try:
+        globals()['_assert_' + test_name](expected, actual, *opts)
+    except KeyError:
+        raise ValueError('Unknown test "' + test_name_orig + '"')
+
+
+# Assertion functions: the first argument is the expected and the second the
+# actual value. *opts may be used to pass options to the function, such as
+# regular expression flags.
+
+def _assert_equal(exp, val, *opts):
+    # This order or values makes the pytest value diff more natural
+    assert exp == val
+
+def _assert_not_equal(exp, val, *opts):
+    # This order or values makes the pytest value diff more natural
+    assert exp != val
+
+def _assert_less(exp, val, *opts):
+    assert val < exp
+
+def _assert_less_equal(exp, val, *opts):
+    assert val <= exp
+
+def _assert_greater(exp, val, *opts):
+    assert val > exp
+
+def _assert_greater_equal(exp, val, *opts):
+    assert val >= exp
+
+def _assert_in(exp, val, *opts):
+    assert val in exp
+
+def _assert_not_in(exp, val, *opts):
+    assert val not in exp
+
+def _assert_regex(exp, val, *opts):
+    assert _re_search(exp, val, *opts) is not None
+
+def _assert_not_regex(exp, val, *opts):
+    assert _re_search(exp, val, *opts) is None
 
 
 # Value transformation functions
