@@ -100,7 +100,7 @@ test case:
         order, each transformation to the output of the preceding one.
 
 	`stdin` and `file:FNAME` may be either plain strings containing
-    the content, or dicts of two items:
+    the content, or dicts of one or two items:
 
 	-   `value`: the base value (obligatory), subject to
         transformations specified in `transform` (`str`)
@@ -147,9 +147,14 @@ test case:
     3. a dict with test names (see below) as keys and expected values
        as values (the value may also be a list, in which case each
        item in the list is treated as a separate value to be tested);
-       or
     4. a list whose items may be any of the other: all tests must
-       pass.
+       pass; or
+	5. a dict with `transform-expected` or `transform-actual` or both
+       (but with no `value`) for specifying file-specific
+       transformations to be applied to all subsequent tests for the
+       file after global but before value-specific transformations;
+       this makes sense on when the expected value is a list with
+       tests specified after the transformation item.
 
     Supported test names are the following, some with aliases
     (*actual* is the actual value, *expected* the expected value
@@ -186,7 +191,13 @@ test case:
 
 	If both value-specific `transform-expected` or `transform-actual`
     and ones affecting all values are specified, the value-specific
-    ones are applied after those affecting all values.
+    ones are applied after those affecting all values. File-specific
+    transformations are applied after those affecting all files but
+    before value-specific transformations. If file-specific
+    transformations are specified in multiple batches for a file, the
+    transformations of a batch are appended to the existing list of
+    transformations, and all those transformations are applied to the
+    tests after the batch.
 
 -   `status`: The status of the test (optional). Tests should pass by
     default, but `status` can mark otherwise. Allowed values are:

@@ -281,8 +281,9 @@ def _make_value(value, trans_key, global_trans=None, actual_value=None):
         trans_value = actual_value
     else:
         trans_value = value
-    trans_value = _transform_value(trans_value, global_trans)
-    trans_value = _transform_value(trans_value, trans)
+    if isinstance(trans_value, str):
+        trans_value = _transform_value(trans_value, global_trans)
+        trans_value = _transform_value(trans_value, trans)
     return trans_value
 
 
@@ -319,8 +320,8 @@ def _check_output(expected, actual, tmpdir):
       `actual`: Actual values (dict)
       `tmpdir`: The temporary directory (containing output files)
     """
-    expected_trans = expected.get('transform-expected', [])
-    actual_trans = expected.get('transform-actual', [])
+    expected_trans = []
+    actual_trans = []
 
     def make_values(exp, act):
         # print('make_values', repr(exp), repr(act))
@@ -345,6 +346,10 @@ def _check_output(expected, actual, tmpdir):
             expected_vals = ['']
         elif not isinstance(expected_vals, list):
             expected_vals = [expected_vals]
+        # Reset the values for each file if file-specific transformations had
+        # been appended
+        expected_trans = expected.get('transform-expected', [])
+        actual_trans = expected.get('transform-actual', [])
         for expected_val_num, expected_val in enumerate(expected_vals):
             item_descr = key + ' ' + str(expected_val_num + 1)
             if isinstance(expected_val, dict):
@@ -358,6 +363,14 @@ def _check_output(expected, actual, tmpdir):
                         test_opts.extend(reflags.split())
                     test_values(test, expected_val, actual_val, item_descr,
                                 *test_opts)
+                elif ('transform-expected' in expected_val
+                      or 'transform-actual' in expected_val):
+                    # File-specific transformations are appended to the global
+                    # ones for all subsequent tests for this file
+                    expected_trans.extend(
+                        expected_val.get('transform-expected', []))
+                    actual_trans.extend(
+                        expected_val.get('transform-actual', []))
                 else:
                     test_num = 0
                     for test, exp_vals in expected_val.items():

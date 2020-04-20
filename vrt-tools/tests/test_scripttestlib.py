@@ -824,6 +824,72 @@ _testcase_files_content = [
                  'returncode': 0,
              },
          },
+         {
+             'name': 'Test: global, file-specific and test-specific transformations',
+             'input': {
+                 'cmdline': 'tee file.out',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\nzoo\n',
+                 },
+             },
+             'output': {
+                 'transform-expected': [
+                     {'append': 'zoo\n'},
+                 ],
+                 'transform-actual': [
+                     {'filter-out': 'b'},
+                 ],
+                 # Actual is now 'foo\nar\naz\nzoo\n'
+                 'stdout': [
+                     {
+                         'regex DOTALL': 'foo\n.*',
+                         # Does not match, as "zoo\n" is appended to the
+                         # expected value
+                         'not-regex': ['foo\n', 'zooz'],
+                     },
+                     {
+                         'transform-expected': [
+                             { 'filter-out': 'z' },
+                         ],
+                         'transform-actual': [
+                             { 'append': 'goo\n' },
+                         ],
+                     },
+                     # Actual is now 'foo\nar\naz\nzoo\ngoo\n'
+                     {
+                         # z's are filtered out from the expected value, so
+                         # "zz" should match
+                         'regex': ['zz', 'g'],
+                     },
+                     {
+                         'transform-expected': [
+                             { 'filter-out': 'b' },
+                             { 'append': 'goo\n' },
+                         ],
+                         'transform-actual': [
+                             # No-op for "bar\n" as "b" has been filtered out
+                             { 'filter-out': ['bar\n', 'z'] },
+                         ],
+                         'value': 'foo\nbar\nbaz\n',
+                     },
+                 ],
+                 'file:file.out': {
+                     # Global transformations apply ("zoo\n" appended to
+                     # expected values)
+                     'regex': 'az\n',
+                     # But transformations specific to stdout do not
+                     'not-regex': ['az', 'zoo', 'goo'],
+                 },
+                 # Global transformations apply
+                 'stderr': {
+                     'value': '',
+                     'transform-actual': [
+                         { 'append': 'zoo\n' },
+                     ],
+                 },
+                 'returncode': 0,
+             },
+         },
          # Note that the tests do not really check whether the tests marked to
          # be skipped or xfailing really are skipped or xfail. How could that
          # be tested?
