@@ -327,9 +327,9 @@ def _check_output(expected, actual, tmpdir):
         return (_make_value(exp, 'transform-expected', expected_trans),
                 _make_value(exp, 'transform-actual', actual_trans, act))
 
-    def test_values(test, expected, actual, *test_opts):
+    def test_values(test, expected, actual, item_descr, *test_opts):
         exp_val, act_val = make_values(expected, actual)
-        _assert(test, exp_val, act_val, *test_opts)
+        _assert(test, exp_val, act_val, item_descr, *test_opts)
 
     for key, expected_vals in sorted(expected.items()):
         if key in actual:
@@ -345,7 +345,8 @@ def _check_output(expected, actual, tmpdir):
             expected_vals = ['']
         elif not isinstance(expected_vals, list):
             expected_vals = [expected_vals]
-        for expected_val in expected_vals:
+        for expected_val_num, expected_val in enumerate(expected_vals):
+            item_descr = key + ' ' + str(expected_val_num + 1)
             if isinstance(expected_val, dict):
                 if 'value' in expected_val:
                     test = expected_val.get('test', '==')
@@ -355,16 +356,22 @@ def _check_output(expected, actual, tmpdir):
                         test_opts.extend(reflags)
                     else:
                         test_opts.extend(reflags.split())
-                    test_values(test, expected_val, actual_val, *test_opts)
+                    test_values(test, expected_val, actual_val, item_descr,
+                                *test_opts)
                 else:
+                    test_num = 0
                     for test, exp_vals in expected_val.items():
+                        test_num += 1
                         test, *test_opts = test.split()
                         if not isinstance(exp_vals, list):
                             exp_vals = [exp_vals]
-                        for exp_val in exp_vals:
-                            test_values(test, exp_val, actual_val, *test_opts)
+                        for exp_val_num, exp_val in enumerate(exp_vals):
+                            test_values(test, exp_val, actual_val,
+                                        ' '.join([item_descr, str(test_num),
+                                                  str(exp_val_num + 1)]),
+                                        *test_opts)
             else:
-                test_values('==', expected_val, actual_val, [])
+                test_values('==', expected_val, actual_val, item_descr, [])
 
 
 def _re_search(patt, val, flags=''):
@@ -403,39 +410,41 @@ def _assert(test_name, expected, actual, *opts):
 
 
 # Assertion functions: the first argument is the expected and the second the
-# actual value. *opts may be used to pass options to the function, such as
-# regular expression flags.
+# actual value. item_descr describes the test item; it is not used in the
+# functions but it shows up in pytest traceback providing more information on
+# the exact test within a single test case. *opts may be used to pass options
+# to the function, such as regular expression flags.
 
-def _assert_equal(exp, val, *opts):
+def _assert_equal(exp, val, item_descr, *opts):
     # This order or values makes the pytest value diff more natural
     assert exp == val
 
-def _assert_not_equal(exp, val, *opts):
+def _assert_not_equal(exp, val, item_descr, *opts):
     # This order or values makes the pytest value diff more natural
     assert exp != val
 
-def _assert_less(exp, val, *opts):
+def _assert_less(exp, val, item_descr, *opts):
     assert val < exp
 
-def _assert_less_equal(exp, val, *opts):
+def _assert_less_equal(exp, val, item_descr, *opts):
     assert val <= exp
 
-def _assert_greater(exp, val, *opts):
+def _assert_greater(exp, val, item_descr, *opts):
     assert val > exp
 
-def _assert_greater_equal(exp, val, *opts):
+def _assert_greater_equal(exp, val, item_descr, *opts):
     assert val >= exp
 
-def _assert_in(exp, val, *opts):
+def _assert_in(exp, val, item_descr, *opts):
     assert val in exp
 
-def _assert_not_in(exp, val, *opts):
+def _assert_not_in(exp, val, item_descr, *opts):
     assert val not in exp
 
-def _assert_regex(exp, val, *opts):
+def _assert_regex(exp, val, item_descr, *opts):
     assert _re_search(exp, val, *opts) is not None
 
-def _assert_not_regex(exp, val, *opts):
+def _assert_not_regex(exp, val, item_descr, *opts):
     assert _re_search(exp, val, *opts) is None
 
 
