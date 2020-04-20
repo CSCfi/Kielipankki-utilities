@@ -1,0 +1,451 @@
+
+- defs:
+  - &output-to-input
+    # Convert the (expected) output of vrt-add-lemma-nobound to input
+    # by removing attribute lemma_nobound and the last column of each
+    # line.
+    - filter-out: ' lemma_nobound'
+    - python: |
+        return re.sub(r'\t[^\t\n]*\n', r'\n', value)
+
+
+- name: 'vrt-add-lemma-nobound: Pass empty lines through'
+  # Python yaml module does not support duplicate anchor names, so
+  # suffix them with a number
+  defs: &output-1 |
+    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+    testipisteessä	testi|piste	testipiste
+
+    tietokoneessa	tieto|kone	tietokone
+  input:
+    cmdline: vrt-add-lemma-nobound
+    stdin: *output-1
+    transform: *output-to-input
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: *output-1
+
+
+# The data in the following tests is from Suomi24 2001–2017 with TDP parses
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with inflected first part'
+  defs: &output-2 |
+    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+    yhteiskunnan	yhteinen|kunta	yhteiskunta
+    keskustelupalstalla	keskustella|palsta	keskustelupalsta
+    ihmiskunnan	ihminen|kunta	ihmiskunta
+    viikonloppuna	viikko|loppu	viikonloppu
+    alunperin	alku|perä	alunperä
+    viranomaiset	virka|omainen	viranomainen
+    maaliskuussa	maalinen|kuu	maaliskuu
+    selvinpäin	selvä|pää	selvinpää
+    opintotukea	opinnot|tuki	opintotuki
+    sisällissota	sisällinen|sota	sisällissota
+    todellisuutta	todellinen|uusi	todellisuusi
+    korkeintaan	korkea|taka	korkeintaka
+    suojatien	suoda|tie	suojatie
+    pienituloisten	piki|itu|loinen	pienituloinen
+    alushousut	alunen|housut	alushousut
+    jyväskylässä	jyvänen|kylä	jyväskylä
+  input:
+    cmdline: vrt-add-lemma-nobound --mode omorfi
+    stdin:
+      value: *output-2
+      transform: *output-to-input
+  output:
+    stdout: *output-2
+    stderr: ''
+    returnvalue: 0
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with inflected or derived first part (unlikely analyses)'
+  defs: &output-3 |
+    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+    yhteiskunnan	yhteinen|kunta	yhteiskunta
+    keskustelupalstalla	keskustella|palsta	keskustelupalsta
+    ihmiskunnan	ihminen|kunta	ihmiskunta
+    viikonloppuna	viikko|loppu	viikonloppu
+    alunperin	alku|perä	alunperä
+    viranomaiset	virka|omainen	viranomainen
+    maaliskuussa	maalinen|kuu	maaliskuu
+    selvinpäin	selvä|pää	selvinpää
+    opintotukea	opinnot|tuki	opintotuki
+    sisällissota	sisällinen|sota	sisällissota
+    todellisuutta	todellinen|uusi	todellisuusi
+    korkeintaan	korkea|taka	korkeintaka
+    suojatien	suoda|tie	suojatie
+    pienituloisten	piki|itu|loinen	pienituloinen
+    alushousut	alunen|housut	alushousut
+    jyväskylässä	jyvänen|kylä	jyväskylä
+    väärinpäin	väärä|pää	väärinpää
+    monikulttuurisuuden	monikulttuurinen|uusi	monikulttuurisuusi
+    entistäkin	entinen|täkki	entistäkki
+    laisinkaan	lainen|inka	laisinka
+    suviseuroissa	suvinen|euro	suviseuro
+    toissijainen	toinen|sijainen	toissijainen
+    yhteensopiva	yhde|sopiva	yhteensopiva
+    rikollisuutta	rikollinen|uusi	rikollisuusi
+    nimenomaa	nimi|oma	nimenoma
+    vähintäin	vähä|täi	vähintäi
+    toisiltaan	toinen|ilta	toisilta
+    huolenpitoa	huoli|pidot	huolenpidot
+    pienimmistä	piki|impi	pienimpi
+    aikuismaisesti	aikuinen|mainen	aikuismainen
+    pienyrittäjä	piki|yrittäjä	pienyrittäjä
+    pienpuolueiden	piki|puolue	pienpuolue
+    asumiskulut	asua|kulku	asumiskulku
+    omaisuutta	omainen|uusi	omaisuusi
+    pururadalla	purra|rata	pururata
+    yhdenvertaisuuden	yhdenvertainen|uusi	yhdenvertaisuusi
+    toisenne	toinen|enne	toisenne
+    yleisimmistä	yleinen|impi	yleisimpi
+    alusasuja	alunen|asu	alusasu
+    kihlasormus	kihlat|sormus	kihlasormus
+    kaltoinkohtelua	kaltto|kohtelu	kaltoinkohtelu
+    pienokainen	piki|okainen	pienokainen
+    paperisota	paperinen|ota	paperisota
+    pienhiukkasia	piki|hiukkanen	pienhiukkanen
+    yhteenmuuttoa	yhde|muutto	yhteenmuutto
+    erilaisuutta	erilainen|uusi	erilaisuusi
+    aikaisintaan	aikainen|taka	aikaisintaka
+    osallistuvan	osallinen|tupa	osallistupa
+    tavanomaista	tapa|omainen	tavanomainen
+    monimutkaisuutta	monimutkainen|uusi	monimutkaisuusi
+    pannukakku	panna|kakku	pannukakku
+    laiskoille	lainen|koi	laiskoi
+    kaikkivoipaisuuteen	kaikkivoipainen|uusi	kaikkivoipaisuusi
+    parinvalinnassa	parka|valinta	parinvalinta
+    moraalisääntöjä	moraalinen|ääntö	moraalisääntö
+    Ruonala	ruko|ala	ruonala
+    parinvaihtoa	parka|vaihto	parinvaihto
+    sisällisodan	sisällinen|ota	sisällinenota
+    tulevaisuutta	tulevainen|uusi	tulevaisuusi
+    kepulaisuuden	kepulainen|uusi	kepulaisuusi
+    pannuhuoneessa	panna|huone	pannuhuone
+    itsetuhoisuutta	itsetuhoinen|uusi	itsetuhoisuusi
+    resurssipula	resurssit|pula	resurssipula
+    lastenkodissa	lapsi|kota	lastenkota
+    parinkympin	parka|kymppi	parinkymppi
+    yhteiskuntaamme	yhteinen|kunta|amme	yhteiskunta-amme
+    pientalojen	piki|talo	pientalo
+    viimeisimmistä	viimeinen|impi	viimeisimpi
+    harhaisuutta	harhainen|uusi	harhaisuusi
+    alisteinen	alinen|teinen	alisteinen
+    muinoin	muu|oka	muuoka
+    tavallistakin	tavallinen|takki	tavallistakki
+    naisiltakin	nainen|ilta	naisilta
+    vertaistaan	vertainen|taka	vertaistaka
+    takaiskarit	takainen|kari	takaiskari
+    kasvoiltani	kasvot|ilta	kasvoilta
+    allergisoiva	allerginen|oiva	allergisoiva
+    maisteriksi	mainen|terä	maisterä
+    uskollisuutta	uskollinen|uusi	uskollisuusi
+    likaisuudesta	likainen|uusi	likaisuusi
+    Toistuvasta	toinen|tupa	toistupa
+    pienyritysten	piki|yritys	pienyritys
+    pieneläkeläiset	piki|eläkeläinen	pieneläkeläinen
+    voisivatkaan	voinen|iva	voisiva
+    paraneminen	parka|emi	paranemi
+    karismaattisuutta	karismaattinen|uusi	karismaattisuusi
+    asiallistakin	asiallinen|takki	asiallistakki
+    naistentautien	nainen|tau|tie	naistentautie
+    Näytönohjain	näyttö|ohja	näytönohja
+    pienimunaisten	piki|imu|nainen	pienimunainen
+    kokonansa	kokko|ansa	kokonansa
+    suomalaisuutta	suomalainen|uusi	suomalaisuusi
+  input:
+    cmdline: vrt-add-lemma-nobound --mode omorfi
+    stdin:
+      value: *output-3
+      transform: *output-to-input
+  output:
+    stdout: *output-3
+    stderr: ''
+    returnvalue: 0
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Possibly problematic cases'
+  defs: &output-4 |
+    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+    oleskeluluvista	oleskella|lupa	oleskelulupa
+    suomalaistutut	suomalainen|tuttu	suomalaistuttu
+    pääsiäisöinä	pääsiäinen|yö	pääsiäisyö
+    askartelutöinä	askarrella|työ	askartelutyö
+    suomalaissoina	suomalainen|suo	suomalaissuo
+    ruotsalaisteinä	ruotsalainen|tie	ruotsalaistie
+  input:
+    cmdline: vrt-add-lemma-nobound --mode omorfi
+    stdin:
+      value: *output-4
+      transform: *output-to-input
+  output:
+    stdout: *output-4
+    stderr: ''
+    returnvalue: 0
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Inflecting first parts'
+  defs: &output-5 |
+    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+    uudenvuoden	uusi|vuosi	uusivuosi
+    Isosta-Britanniasta	Iso-Britannia	Iso-Britannia
+    Isosta-Britanniasta	Iso|Britannia	Iso-Britannia
+    Tyynenmeren	tyyni|meri	tyynimeri
+    Uuteen-Seelantiin	Uusi-Seelanti	Uusi-Seelanti
+    Uuteen-Seelantiin	Uusi|Seelanti	Uusi-Seelanti
+    Uuteen-Kaledoniaan	Uusi-Kaledonia	Uusi-Kaledonia
+    Uuteen-Kaledoniaan	Uusi|Kaledonia	Uusi-Kaledonia
+    Uudenkirkon	Uusikirkko	Uusikirkko
+  input:
+    cmdline: vrt-add-lemma-nobound --mode omorfi
+    stdin:
+      value: *output-5
+      transform: *output-to-input
+  output:
+    stdout: *output-5
+    stderr: ''
+    returnvalue: 0
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphenated words'
+  defs: &output-6 |
+    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+    väärin-päin	väärä|pää	väärin-pää
+    entis-täkin	entinen|täkki	entis-täkki
+    evankelis-luterilaisen	evankelinen|luterilainen	evankelis-luterilainen
+    uuden-vuoden	uusi|vuosi	uusi-vuosi
+    kaupan-päälle	kauppa|pää	kaupan-pää
+    pohjois-korean	pohjoinen|korea	pohjois-korea
+    Kokonais-kerroin	kokonainen|kerto	kokonais-kerto
+    puolen-vuoden	puoli|vuosi	puolen-vuosi
+    kevyen-liikenteen	kevyt|liikenne	kevyen-liikenne
+    puolen-yön	puoli|yö	puoli-yö
+    toden-teolla	tosi|teko	toden-teko
+    pohjois-suomessa	pohjoinen|suomi	pohjois-suomi
+    suomalais-ugrilaisten	suomalainen|ugrilainen	suomalais-ugrilainen
+    pohjois-karjalassa	pohjoinen|karjala	pohjois-karjala
+    pakon-omaisesti	pakko|omaisesti	pakon-omaisesti
+    uuden-liiton	uusi|liitto	uusi-liitto
+    laskettu-aika	laskea|aika	laskettu-aika
+    puolen-tunnin	puoli|tunti	puolen-tunti
+    yhteis-kuntaamme	yhteinen|kunta|amme	yhteis-kunta-amme
+    varsinais-suomessa	varsinainen|suomi	varsinais-suomi
+    pohjois-pohjanmaalla	pohjoinen|pohjan|maa	pohjois-pohjanmaa
+    kipin-kapin	kippi|kappi	kipin-kappi
+    treffi-ilmoitus	treffit|ilmoitus	treffi-ilmoitus
+    Tyynen-meren	tyyni|meri	tyyni-meri
+    Toden-totta	tosi|tosi	toden-tosi
+    maalis-huhtikuussa	maalinen|huhtikuu	maalis-huhtikuu
+    juutalais-kristillisen	juutalainen|kristillinen	juutalais-kristillinen
+    pakolais-statuksella	pakolainen|status	pakolais-status
+    maanis-depressiivinen	maaninen|depressiivinen	maanis-depressiivinen
+    markkina-aseman	markkinat|asema	markkina-asema
+    Uuden-testamentin	uusi|testamentti	uusi-testamentti
+    paavalilais-luterilaisuuden	paavalilainen|luterilaisuus	paavalilais-luterilaisuus
+    kerran-pari	kerta|pari	kerran-pari
+    Väen-väkisin	väki|väkinen	väen-väkinen
+    opinto-oppaasta	opinnot|opas	opinto-opas
+    varmuuden-vuoksi	varmuus|vuo	varmuuden-vuo
+    pohjois-savossa	pohjoinen|savo	pohjois-savo
+    parin-vuoden	parka|vuosi	parin-vuosi
+    ajan-olon	aika|olo	ajan-olo
+    luoja-jumala	luoda|jumala	luoja-jumala
+    seurustelu-mielessä	seurustella|mieli	seurustelu-mieli
+    parin-viikon	parka|viikko	parin-viikko
+    uskonnollis-poliittinen	uskonnollinen|poliittinen	uskonnollis-poliittinen
+    maanis-depressiivisyys	maaninen|depressiivisyys	maanis-depressiivisyys
+    käden-käänteessä	käsi|käänne	käden-käänne
+    raskaan-sarjan	raskas|sarja	raskas-sarja
+    vuoden-parin	vuosi|pari	vuoden-pari
+    viikon-parin	viikko|pari	viikon-pari
+    passiivis-aggressiivinen	passiivinen|aggressiivinen	passiivis-aggressiivinen
+    erityis-suojeluksessa	erityinen|suojelus	erityis-suojelus
+    pohjois-korealaiset	pohjoinen|korea|lainen	pohjois-korealainen
+    matemaattis-looginen	matemaattinen|looginen	matemaattis-looginen
+    matemaattis-luonnontieteellisen	matemaattinen|luonnon|tieteellinen	matemaattis-luonnontieteellinen
+    enemmän-kuin	enempi|kuu	enemmän-kuu
+    helluntailais-karismaattisia	helluntailainen|karismaattinen	helluntailais-karismaattinen
+    opinto-oikeus	opinnot|oikeus	opinto-oikeus
+    olan-takaa	olka|taka	olan-taka
+    suoja-aineita	suoda|aine	suoja-aine
+    suru-uutisen	surra|uutinen	suru-uutinen
+    inttäjä-eksyttäjä	inttää|eksyttää	inttäjä-eksyttää
+    varsinais-suomalainen	varsinainen|suomalainen	varsinais-suomalainen
+    kiikun-kaakun	kiikku|kaakku	kiikun-kaakku
+    suomalais-venäläisen	suomalainen|venäläinen	suomalais-venäläinen
+    kaakkois-suomessa	kaakkoinen|suomi	kaakkois-suomi
+    tieteenkieltäjä-hihhuli	tiede|kieltäjä|hihhuli	tieteenkieltäjä-hihhuli
+    kaupan-tekijäisiksi	kauppa|tekijäinen	kaupan-tekijäinen
+    pohjois-karjalainen	pohjoinen|karjalainen	pohjois-karjalainen
+    kreikkalais-roomalaisen	kreikkalainen|roomalainen	kreikkalais-roomalainen
+    urheilu-uran	urheilla|ura	urheilu-ura
+    aikuis-tyypin	aikuinen|tyyppi	aikuis-tyyppi
+    historiallis-kriittinen	historiallinen|kriittinen	historiallis-kriittinen
+    lounais-suomessa	lounainen|suomi	lounais-suomi
+    netin-kautta	netti|kausi	netin-kausi
+    markkina-ehtoisesti	markkinat|ehtoisesti	markkina-ehtoisesti
+    maalaisliitto-kepu	maalainen|liitto|kepu	maalaisliitto-kepu
+    jatko-opiskelupaikkaa	jatko-opiskella|paikka	jatko-opiskelupaikka
+    kokonaispinta-ala	kokonainen|pinta-ala	kokonaispinta-ala
+    yhteistoiminta-alueen	yhteinen|toiminta-alue	yhteistoiminta-alue
+    kamppailu-urheilua	kamppailla|urheilu	kamppailu-urheilu
+    nais-enemmistö	nainen|enemmistö	nais-enemmistö
+    kuntoilu-mielessä	kuntoilla|mieli	kuntoilu-mieli
+    tois-puoleisesti	toinen|puoleisesti	tois-puoleisesti
+    pohjois-afrikkalaisen	pohjoinen|afrikkalainen	pohjois-afrikkalainen
+    hyvin-hyvin	hyvä|hyvä	hyvin-hyvä
+    urheilu-ohjelmien	urheilla|ohjelma	urheilu-ohjelma
+    ahtaan-portin	ahdas|portti	ahtaan-portti
+    säteily-lämmitin	säteillä|lämmittää	säteily-lämmittää
+    hädän-alaisille	hätä|ala|isä	hädän-alaisä
+    katolisen-kirkon	katolinen|kirkko	katolisen-kirkko
+    lähentely-yritykset	lähennellä|yritys	lähentely-yritys
+    korkein-oikeus	korkea|oikeus	korkein-oikeus
+    raskaan-liikenteen	raskas|liikenne	raskaan-liikenne
+    Suomalais-ruotsalainen	suomalainen|ruotsalainen	suomalais-ruotsalainen
+  input:
+    cmdline: vrt-add-lemma-nobound --mode omorfi
+    stdin:
+      value: *output-6
+      transform: *output-to-input
+  output:
+    stdout: *output-6
+    stderr: ''
+    returnvalue: 0
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi --only-wordform-hyphens: Hyphenated words'
+  defs: &output-6b |
+    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+    yhteiskuntaamme	yhteinen|kunta|amme	yhteiskuntaamme
+  input:
+    cmdline: vrt-add-lemma-nobound --mode omorfi --only-wordform-hyphens
+    stdin:
+      value: *output-6b
+      transform: *output-to-input
+  output:
+    stdout: *output-6b
+    stderr: ''
+    returnvalue: 0
+
+
+# The data in the following tests is from opensubtitles-fi-2017 with UD1 parses
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with hyphens with different letters around the hyphen'
+  defs: &output-7 |
+    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+    ei-mutantti	ei#mutantti	ei-mutantti
+    e-molli	e#molli	e-molli
+    ex-johtaja	ex#johtaja	ex-johtaja
+  input:
+    cmdline: vrt-add-lemma-nobound --mode omorfi --compound-boundary-marker '#'
+    stdin:
+      value: *output-7
+      transform: *output-to-input
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: *output-7
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with previously incorrect
+    results, set 2'
+  defs: &output-8 |
+    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+    ammattilais-valamies	ammatti#vala#mies	ammattilais-valamies
+    aneidenkerääjät	ane#kerääjä	aneidenkerääjä
+    bengalilaisjengejä	bengali#jengi	bengalilaisjengi
+    burgundilaislitkua	burgundi#litku	burgundilaislitku
+    etenemisyritys	edetä#yritys	etenemisyritys
+    hiustensiirto	hius#siirto	hiustensiirto
+    ihmetyksenaihe	ihmetys#aihe	ihmetyksenaihe
+    Jäämaa-kyltti	jää#maa#kyltti	jäämaa-kyltti
+    japanilaispelaajan	japani#pelaaja	japanilaispelaaja
+    jättiläiskalmarilta	jätti#kalmari	jättiläiskalmari
+    joukkojenkuljetusalusta	joukko#kuljetus#alku	joukkojenkuljetusalku
+    joukkojenkuljetuslaivoista	joukko#kuljetus#laiva	joukkojenkuljetuslaiva
+    kansalaispidätyksen	kansa#pidätys	kansalaispidätys
+    Kansalaispidätys	kansa#pidätys	kansalaispidätys
+    kiinalaisgangsterista	kiina#gangsteri	kiinalaisgangsteri
+    kokoamisalueelle	koota#alue	kokoamisalue
+    liikkeentunnistin	liike#tunnistin	liikkeentunnistin
+    luupää-	luu#pää	luupää
+    mannertenvälisine	manner#välinen	mannertenvälinen
+    miestenvaatteita	mies#vaate	miestenvaate
+    ohjustentorjuntasatelliitti	ohjus#torjunta#satelliitti	ohjustentorjuntasatelliitti
+    pakenemisraportin	paeta#raportti	pakenemisraportti
+    Ranskalaisjoukkojen	ranska#joukko	ranskalaisjoukko
+    ranskalaiskylässä	ranska#kylä	ranskalaiskylä
+    Ranskalaisryökäleet	ranska#ryökäle	ranskalaisryökäle
+    siirtolaisvirastosta	siirto#virasto	siirtolaisvirasto
+    sukulaispojan	suku#poika	sukulaispoika
+    Töyssyisen-töyssyistä	töyssy#töyssy	töyssyisen-töyssy
+    turvavyö-merkin	turva#vyö#merkki	turvavyö-merkki
+    tyttärenikään	tytär#ikä	tyttärenikä
+    vanhempienne	vanha#enne	vanhempienne
+    vapautumisenjälkeen	vapautua#jälki	vapautumisenjälki
+    voitontanssianne	voi#tanssi	voitontanssi
+  input:
+    cmdline: vrt-add-lemma-nobound --mode omorfi --compound-boundary-marker '#'
+    stdin:
+      value: *output-8
+      transform: *output-to-input
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: *output-8
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Numerals with "toista"'
+  defs: &output-9 |
+    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+    Kuudentenatoista	kuudes#toista	kuudestoista
+    viidestätoista	viisi#toista	viisitoista
+    viidentoista	viisi#toista	viisitoista
+  input:
+    cmdline: vrt-add-lemma-nobound --mode omorfi --compound-boundary-marker '#'
+    stdin:
+      value: *output-9
+      transform: *output-to-input
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: *output-9
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds which had incorrect double hyphen'
+  defs: &output-10 |
+    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+    Vapaa-ajanohjaajanne	vapaa#aika#ohjaaja	vapaa-ajanohjaaja
+    vapaa-ajanyhdistyksiämme	vapaa#aika#yhdistys	vapaa-ajanyhdistys
+  input:
+    cmdline: vrt-add-lemma-nobound --mode omorfi --compound-boundary-marker '#'
+    stdin:
+      value: *output-10
+      transform: *output-to-input
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: *output-10
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds which had an incorrect part match'
+  defs: &output-11 |
+    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+    erilailla	eri#laki	erilaki
+    päälaellaan	pää#laki	päälaki
+    uimaaltaalle	uima#allas	uima-allas
+    valheisiisi	valhe#isi#isi	valheisi-isi
+    aaveisiisi	aave#isi#isi	aaveisi-isi
+  input:
+    cmdline: vrt-add-lemma-nobound --mode omorfi --compound-boundary-marker '#'
+    stdin:
+      value: *output-11
+      transform: *output-to-input
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: *output-11
