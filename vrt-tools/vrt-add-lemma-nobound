@@ -422,6 +422,10 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # oleske<lu><lu>vista -> oleskelulupa and not oleskelupa)
                 return begin_candidates[-1]
 
+        # Are there other cases like ...toista, in which only the first part
+        # inflects?
+        if lemmapart_next.lower() == 'toista':
+            return lemmapart_this, 0, len(lemmapart_this)
         hyphen_pos = wordform.find('-', max(0, lemma_len - 3), lemma_len + 4)
         # print(lemma_len, wordform, hyphen_pos, file=sys.stderr)
         maybe_hyphen = ('-' if hyphen_pos > -1 else '')
