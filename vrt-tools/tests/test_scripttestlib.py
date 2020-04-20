@@ -171,6 +171,20 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: test with expected dict with only "value"',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'test1\ntest2\n',
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
              'name': 'Test: multiple expected tests (list(dict): test+value)',
              'input': {
                  'cmdline': 'cat',
@@ -185,11 +199,11 @@ _testcase_files_content = [
                          'value': 'foo',
                      },
                      {
-                         'test': 'matches',
+                         'test': 'regex',
                          'value': 'test1',
                      },
                      {
-                         'test': 'matches',
+                         'test': 'regex',
                          'value': 'test2',
                      },
                  ],
@@ -209,10 +223,10 @@ _testcase_files_content = [
                          '!=': 'foo',
                      },
                      {
-                         'matches': 'test1',
+                         'regex': 'test1',
                      },
                      {
-                         'matches': 'test2',
+                         'regex': 'test2',
                      },
                  ],
                  'stderr': '',
@@ -228,7 +242,7 @@ _testcase_files_content = [
              'output': {
                  'stdout': {
                      '!=': 'foo',
-                     'matches': 'test1',
+                     'regex': 'test1',
                  },
                  'stderr': '',
                  'returncode': 0,
@@ -243,7 +257,7 @@ _testcase_files_content = [
              'output': {
                  'stdout': {
                      '!=': 'foo',
-                     'matches': [
+                     'regex': [
                          'test1',
                          'test2',
                      ],
@@ -253,41 +267,41 @@ _testcase_files_content = [
              },
          },
          {
-             'name': 'Test: matches with flags',
+             'name': 'Test: regex with flags',
              'input': {
                  'cmdline': 'cat',
                  'stdin': 'test1\ntest2\n'
              },
              'output': {
                  'stdout': {
-                     'not_matches': 'test1.test2',
-                     'matches DOTALL': 'test1.test2',
-                     'not_matches DOTALL': 'test1 . test2',
-                     'matches DOTALL|VERBOSE': 'test1 . test2',
+                     'not-regex': 'test1.test2',
+                     'regex DOTALL': 'test1.test2',
+                     'not-regex DOTALL': 'test1 . test2',
+                     'regex DOTALL|VERBOSE': 'test1 . test2',
                  },
                  'stderr': '',
                  'returncode': 0,
              },
          },
          {
-             'name': 'Test: matches with flags (with re. prefix)',
+             'name': 'Test: regex with flags (with re. prefix)',
              'input': {
                  'cmdline': 'cat',
                  'stdin': 'test1\ntest2\n'
              },
              'output': {
                  'stdout': {
-                     'not_matches': 'test1.test2',
-                     'matches re.DOTALL': 'test1.test2',
-                     'not_matches re.DOTALL': 'test1 . test2',
-                     'matches re.DOTALL|re.VERBOSE': 'test1 . test2',
+                     'not-regex': 'test1.test2',
+                     'regex re.DOTALL': 'test1.test2',
+                     'not-regex re.DOTALL': 'test1 . test2',
+                     'regex re.DOTALL|re.VERBOSE': 'test1 . test2',
                  },
                  'stderr': '',
                  'returncode': 0,
              },
          },
          {
-             'name': 'Test: matches with flags (dict with opts in test)',
+             'name': 'Test: regex with flags (dict with opts in test)',
              'input': {
                  'cmdline': 'cat',
                  'stdin': 'test1\ntest2\n'
@@ -295,11 +309,11 @@ _testcase_files_content = [
              'output': {
                  'stdout': [
                      {
-                         'test': 'matches DOTALL',
+                         'test': 'regex DOTALL',
                          'value': 'test1.test2',
                      },
                      {
-                         'test': 'matches DOTALL|VERBOSE',
+                         'test': 'regex DOTALL|VERBOSE',
                          'value': 'test1 . test2',
                      },
                  ],
@@ -308,7 +322,7 @@ _testcase_files_content = [
              },
          },
          {
-             'name': 'Test: matches with flags (explicit "opts")',
+             'name': 'Test: regex with flags (explicit "reflags")',
              'input': {
                  'cmdline': 'cat',
                  'stdin': 'test1\ntest2\n'
@@ -316,14 +330,111 @@ _testcase_files_content = [
              'output': {
                  'stdout': [
                      {
-                         'test': 'matches',
-                         'opts': 'DOTALL',
+                         'test': 'regex',
+                         'reflags': 'DOTALL',
                          'value': 'test1.test2',
                      },
                      {
-                         'test': 'matches',
-                         'opts': 'DOTALL|VERBOSE',
+                         'test': 'regex',
+                         'reflags': 'DOTALL|VERBOSE',
                          'value': 'test1 . test2',
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: test <, >, <=, >=',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'test': '>',
+                         'value': 'a',
+                     },
+                     {
+                         'test': '>=',
+                         'value': 'a',
+                     },
+                     {
+                         'test': '<',
+                         'value': 'z',
+                     },
+                     {
+                         'test': '<=',
+                         'value': 'z',
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: test in, not-in',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'test': 'in',
+                         'value': [
+                            'a',
+                            'test1\ntest2\n',
+                         ],
+                     },
+                     {
+                         'test': 'not-in',
+                         'value': [
+                            'a',
+                            'b',
+                         ],
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: test with alternative test names',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'test': 'not-equal',
+                         'value': '',
+                     },
+                     {
+                         'test': 'greater',
+                         'value': 'a',
+                     },
+                     {
+                         'test': 'greater-equal',
+                         'value': 'a',
+                     },
+                     {
+                         'test': 'less',
+                         'value': 'z',
+                     },
+                     {
+                         'test': 'less-equal',
+                         'value': 'z',
+                     },
+                     {
+                         'test': 'matches',
+                         'value': 'test1',
+                     },
+                     {
+                         'test': 'not-matches',
+                         'value': 'foo',
                      },
                  ],
                  'stderr': '',
@@ -422,29 +533,31 @@ _testcase_files_content = [
                  'stderr': 'test\n',
              },
          },
-         # Output options
+         # Input and output transformation options
          {
-             'name': 'Test: option filter-out for stdout',
+             'name': 'Test: transform-actual filter-out for stdout',
              'input': {
                  'cmdline': 'printf "foo\nbar\n"',
               },
              'output': {
-                 'options': {
-                     'filter-out stdout': 'o',
+                 'stdout': {
+                     'value': 'f\nbar\n',
+                     'transform-actual': {
+                         'filter-out': 'o',
+                     },
                  },
-                 'stdout': 'f\nbar\n',
                  'stderr': '',
                  'returncode': 0,
               },
          },
          {
-             'name': 'Test: option filter-out for all output',
+             'name': 'Test: transform-actual filter-out for all output',
              'input': {
                  'cmdline': 'printf "foo\nbar\n" | tee /dev/stderr test.out',
                  'shell': True,
               },
              'output': {
-                 'options': {
+                 'transform-actual': {
                      'filter-out': 'o',
                  },
                  'stdout': 'f\nbar\n',
@@ -454,29 +567,31 @@ _testcase_files_content = [
               },
          },
          {
-             'name': 'Test: option filter-out for named output file',
+             'name': 'Test: transform-actual filter-out for named output file',
              'input': {
                  'cmdline': 'printf "foo\nbar\n" > test.out',
                  'shell': True,
               },
              'output': {
-                 'options': {
-                     'filter-out file:test.out': 'o',
-                 },
                  'stdout': '',
                  'stderr': '',
-                 'file:test.out': 'f\nbar\n',
+                 'file:test.out': {
+                     'value': 'f\nbar\n',
+                     'transform-actual': {
+                         'filter-out': 'o',
+                     },
+                 },
                  'returncode': 0,
               },
          },
          {
-             'name': 'Test: option filter-out with a regexp',
+             'name': 'Test: transform-actual filter-out with a regexp',
              'input': {
                  'cmdline': 'printf "aabb\nccdd\neeff\n"',
                  'shell': True,
               },
              'output': {
-                 'options': {
+                 'transform-actual': {
                      'filter-out': 'c.*\n',
                  },
                  'stdout': 'aabb\neeff\n',
@@ -485,31 +600,44 @@ _testcase_files_content = [
               },
          },
          {
-             'name': 'Test: multiple filter-out options',
+             'name': 'Test: multiple transform-actual filter-out transformations',
              'input': {
                  'cmdline': 'printf "foo\nbar\nbaz\n" | tee /dev/stderr test.out',
                  'shell': True,
               },
              'output': {
-                 'options': {
-                     'filter-out': 'b',
-                     'filter-out stdout': 'o',
-                     'filter-out stderr': 'a',
-                     'filter-out file:test.out': 'foo\n',
+                 'transform-actual': {
+                     'filter-out': 'o',
                  },
-                 'stdout': 'f\nar\naz\n',
-                 'stderr': 'foo\nr\nz\n',
-                 'file:test.out': 'ar\naz\n',
+                 'stdout': {
+                     'value': 'f\nar\naz\n',
+                     'transform-actual': {
+                         'filter-out': 'b',
+                     },
+                 },
+                 'stderr': {
+                     'value': 'f\nbr\nbz\n',
+                     'transform-actual': {
+                         'filter-out': 'a',
+                     },
+                 },
+                 'file:test.out':  {
+                     'value': 'f\nbar\nbaz\n',
+                     'transform-actual': {
+                         # "foo" is not found, as "o" is filtered out first
+                         'filter-out': 'foo\n',
+                     },
+                 },
                  'returncode': 0,
               },
          },
          {
-             'name': 'Test: option filter-out with a list value',
+             'name': 'Test: transform-actual filter-out with a list value',
              'input': {
                  'cmdline': 'printf "foo\nbar\nbaz\n"',
               },
              'output': {
-                 'options': {
+                 'transform-actual': {
                      'filter-out': [
                          'o',
                          'b',
@@ -519,6 +647,248 @@ _testcase_files_content = [
                  'stderr': '',
                  'returncode': 0,
               },
+         },
+         {
+             'name': 'Test: append and prepend to stdin',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'bar\n',
+                     'transform': {
+                         'prepend': 'foo\n',
+                         'append': 'baz\n',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nbar\nbaz\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: append and prepend to input file',
+             'input': {
+                 'cmdline': 'cat file.in',
+                 'file:file.in': {
+                     'value': 'bar\n',
+                     'transform': {
+                         'prepend': 'foo\n',
+                         'append': 'baz\n',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nbar\nbaz\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: append and prepend to stdout',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n'
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'bar\n',
+                     'transform-expected': {
+                         'prepend': 'foo\n',
+                         'append': 'baz\n',
+                     },
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: append and prepend to output file',
+             'input': {
+                 'cmdline': 'cat > file.out',
+                 'shell': True,
+                 'stdin': 'foo\nbar\nbaz\n'
+             },
+             'output': {
+                 'file:file.out': {
+                     'value': 'bar\n',
+                     'transform-expected': {
+                         'prepend': 'foo\n',
+                         'append': 'baz\n',
+                     },
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: transform stdin with shell (+ append)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\n',
+                     'transform': {
+                         'shell': 'head -1 | tr -d "fb"',
+                         'append': 'baz\n',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'oo\nbaz\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: transform stdout with shell (+ append)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'oo\nbaz\n'
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'foo\nbar\n',
+                     'transform-expected': [
+                         {'shell': 'head -1 | tr -d "fb"'},
+                         {'append': 'baz\n'},
+                     ],
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: transform stdin with Python (+ append)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\n',
+                     'transform': {
+                         'python': ('return re.sub(r"\\n.*", "\\n", value,'
+                                    ' flags=re.DOTALL)[1:]'),
+                         'append': 'baz\n',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'oo\nbaz\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: transform stdout with shell (+ append)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'oo\nbaz\n'
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'foo\nbar\n',
+                     'transform-expected': {
+                         'python': (
+                             'return re.sub(r"\\n.*", "\\n", value,'
+                                            ' flags=re.DOTALL)[1:]\n'),
+                         'append': 'baz\n',
+                     },
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: transformation sequences',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': [
+                         {'prepend': 'foo1\n'},
+                         {'prepend': 'foo0\n'},
+                         {'filter-out': 'o'},
+                     ],
+                 },
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'foo\n',
+                     'transform-expected': [
+                         {'append': 'bar\n'},
+                         {'append': 'baz\n'},
+                         {'prepend': 'foo1\n'},
+                         {'prepend': 'foo0\n'},
+                         {'filter-out': 'o'},
+                     ],
+                 },
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: global, file-specific and test-specific transformations',
+             'input': {
+                 'cmdline': 'tee file.out',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\nzoo\n',
+                 },
+             },
+             'output': {
+                 'transform-expected': [
+                     {'append': 'zoo\n'},
+                 ],
+                 'transform-actual': [
+                     {'filter-out': 'b'},
+                 ],
+                 # Actual is now 'foo\nar\naz\nzoo\n'
+                 'stdout': [
+                     {
+                         'regex DOTALL': 'foo\n.*',
+                         # Does not match, as "zoo\n" is appended to the
+                         # expected value
+                         'not-regex': ['foo\n', 'zooz'],
+                     },
+                     {
+                         'transform-expected': [
+                             { 'filter-out': 'z' },
+                         ],
+                         'transform-actual': [
+                             { 'append': 'goo\n' },
+                         ],
+                     },
+                     # Actual is now 'foo\nar\naz\nzoo\ngoo\n'
+                     {
+                         # z's are filtered out from the expected value, so
+                         # "zz" should match
+                         'regex': ['zz', 'g'],
+                     },
+                     {
+                         'transform-expected': [
+                             { 'filter-out': 'b' },
+                             { 'append': 'goo\n' },
+                         ],
+                         'transform-actual': [
+                             # No-op for "bar\n" as "b" has been filtered out
+                             { 'filter-out': ['bar\n', 'z'] },
+                         ],
+                         'value': 'foo\nbar\nbaz\n',
+                     },
+                 ],
+                 'file:file.out': {
+                     # Global transformations apply ("zoo\n" appended to
+                     # expected values)
+                     'regex': 'az\n',
+                     # But transformations specific to stdout do not
+                     'not-regex': ['az', 'zoo', 'goo'],
+                 },
+                 # Global transformations apply
+                 'stderr': {
+                     'value': '',
+                     'transform-actual': [
+                         { 'append': 'zoo\n' },
+                     ],
+                 },
+                 'returncode': 0,
+             },
          },
          # Note that the tests do not really check whether the tests marked to
          # be skipped or xfailing really are skipped or xfail. How could that
@@ -674,6 +1044,26 @@ def test_dict_deep_update():
     check(dbc3, dbc4, dbc4)
     check(dbc3, dbd5, {'b': {'c': 3, 'd': 5}})
     check(dbd5, dbe, dbe)
+
+
+def test_empty_values(tmpdir):
+    """Test with empty values for some required items."""
+    with pytest.raises(ValueError) as e_info:
+        check_program_run('Empty cmdline',
+                          {'name': 'Empty cmdline',
+                           'input': {'cmdline': ''}}, {}, tmpdir=str(tmpdir))
+    with pytest.raises(ValueError) as e_info:
+        check_program_run('Empty input info',
+                          {'name': 'Empty input info',
+                           'input': {}}, {}, tmpdir=str(tmpdir))
+    with pytest.raises(ValueError) as e_info:
+        check_program_run('Empty input info',
+                          {'name': 'Empty prog',
+                           'input': {'prog': ''}}, {}, tmpdir=str(tmpdir))
+    with pytest.raises(ValueError) as e_info:
+        check_program_run('Empty input args',
+                          {'name': 'Empty prog',
+                           'input': {'args': []}}, {}, tmpdir=str(tmpdir))
 
 
 @pytest.mark.parametrize("name, input, expected", _testcases)

@@ -127,7 +127,7 @@ as the expected result, represented in YAML.''')
 
         def reformat_file_content(mo):
             obj = yaml.load(mo.group('key') + mo.group('value'))
-            result = yaml.dump(obj, default_style='|')
+            result = yaml.dump(obj, default_style='|', allow_unicode=True)
             result = re.sub(R'^"(.*?)": ', R'\1: ', result)
             result = indent_multiline(result, 4)
             # print('val:', mo.group('key') + mo.group('value'))
