@@ -65,7 +65,7 @@ def expand_testcases(fname_testcases_dictlist):
     default_values = {}
 
     def get_output_value(d):
-        return d.get('output') or d.get('expected', {})
+        return d.get('output', d.get('expected'))
 
     def get_value(default_val, base_val):
         return (dict_deep_update(dict(default_val), base_val) if default_val
@@ -80,19 +80,31 @@ def expand_testcases(fname_testcases_dictlist):
             if 'defaults' in tc:
                 # New defaults override (are merged to) possibly existing
                 # defaults
+                # print('Defaults:', tc['defaults'])
                 defaults = tc['defaults']
+                # If defaults is empty, clear both input and output; without
+                # this, get for them would return None, so dict_deep_update
+                # would not update the values.
+                if defaults == {}:
+                    defaults = {'input': {}, 'output': {}}
+                    # print('Clear defaults')
+                # print(default_input, end=' -> ')
                 default_input = dict_deep_update(
                     default_input, defaults.get('input'))
+                # print(default_input)
+                # print(default_output, end=' -> ')
                 default_output = dict_deep_update(
                     default_output, get_output_value(defaults))
+                # print(default_output)
                 default_status = defaults.get('status')
                 continue
-            if 'input' not in tc:
+            if 'input' not in tc and not default_input:
                 continue
             params = ('{} {:d}: {}'.format(fname, tcnum + 1,
                                            tc.get('name', '')),
-                      get_value(default_input, tc.get('input', {})),
+                      get_value(default_input, tc.get('input')),
                       get_value(default_output, get_output_value(tc)))
+            # print(params)
             # If status starts with "xfail", "skip" or "skipif", mark the test
             # accordingly.
             status_value = tc.get('status') or default_status
@@ -111,13 +123,16 @@ def expand_testcases(fname_testcases_dictlist):
 
 def dict_deep_update(a, b):
     """Recursively update dict `a` from dict `b`.
-    In cases of conflict, values in `b` override those in `a`.
+
+    In cases of conflict, values in `b` override those in `a`, except
+    that `None` in `b` does not override a value in `a`.
     Returns updated `a`.
     Note that contents are not copied deeply, so the result typically
     contains references to parts of `b`. This needs to be kept in mind
     if modifying the result.
     Simplified from https://stackoverflow.com/a/7205107
     """
+    # print('dict_deep_update', a, b)
     if b and isinstance(b, dict) and isinstance(a, dict):
         for key in b:
             if (key in a and isinstance(a[key], dict)
@@ -126,7 +141,7 @@ def dict_deep_update(a, b):
             else:
                 a[key] = b[key]
         return a
-    return b
+    return b if b is not None else a
 
 
 def add_output_test(name, test_fn):
@@ -203,6 +218,7 @@ def check_program_run(name, input_, expected, tmpdir, progpath=None):
             env[var] = env[var].replace('$$', '$')
         return env
 
+    # print(input_, expected)
     shell = input_.get('shell', False)
     if 'cmdline' in input_:
         if not input_['cmdline']:
