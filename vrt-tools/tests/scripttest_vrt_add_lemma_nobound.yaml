@@ -1,38 +1,56 @@
 
-- defs:
-  - &output-to-input
-    # Convert the (expected) output of vrt-add-lemma-nobound to input
-    # by removing attribute lemma_nobound and the last column of each
-    # line.
-    - filter-out: ' lemma_nobound'
-    - python: |
-        return re.sub(r'\t[^\t\n]*\n', r'\n', value)
+- defaults:
+    input:
+      # With global transformations, we can use a string value for
+      # "stdin" in individual tests. If the default transformation was
+      # defined in "stdin", the individual tests would need to use
+      # "stdin: value: ...".
+      transform: &output-to-input
+        # Convert the (expected) output of vrt-add-lemma-nobound to
+        # input by the last column of each line and adding the
+        # positional attributes line without lemma_nobound.
+      - python: |
+          return re.sub(r'\t[^\t\n]*\n', r'\n', value)
+      - prepend: |
+          <!-- #vrt positional-attributes: word lemma -->
+    output:
+      # Similarly, use a global transformation here.
+      transform-expected:
+        # Add positional attributes line with lemma_nobound
+      - prepend: |
+          <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+      returncode: 0
+      stderr:
+        value: ''
+        transform-expected:
+        # This overrides the global output transformation defined
+        # above for adding the positional attributes comment.
+        - python: 'return ""'
 
 
 - name: 'vrt-add-lemma-nobound: Pass empty lines through'
   # Python yaml module does not support duplicate anchor names, so
   # suffix them with a number
   defs: &output-1 |
-    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
     testipisteessä	testi|piste	testipiste
 
     tietokoneessa	tieto|kone	tietokone
   input:
     cmdline: vrt-add-lemma-nobound
     stdin: *output-1
-    transform: *output-to-input
   output:
-    returncode: 0
-    stderr: ''
     stdout: *output-1
 
 
 # The data in the following tests is from Suomi24 2001–2017 with TDP parses
 
+- defaults:
+    input:
+      cmdline: vrt-add-lemma-nobound --mode omorfi
+
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with inflected first part'
   defs: &output-2 |
-    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
     yhteiskunnan	yhteinen|kunta	yhteiskunta
     keskustelupalstalla	keskustella|palsta	keskustelupalsta
     ihmiskunnan	ihminen|kunta	ihmiskunta
@@ -50,19 +68,13 @@
     alushousut	alunen|housut	alushousut
     jyväskylässä	jyvänen|kylä	jyväskylä
   input:
-    cmdline: vrt-add-lemma-nobound --mode omorfi
-    stdin:
-      value: *output-2
-      transform: *output-to-input
+    stdin: *output-2
   output:
     stdout: *output-2
-    stderr: ''
-    returnvalue: 0
 
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with inflected or derived first part (unlikely analyses)'
   defs: &output-3 |
-    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
     yhteiskunnan	yhteinen|kunta	yhteiskunta
     keskustelupalstalla	keskustella|palsta	keskustelupalsta
     ihmiskunnan	ihminen|kunta	ihmiskunta
@@ -156,19 +168,13 @@
     kokonansa	kokko|ansa	kokonansa
     suomalaisuutta	suomalainen|uusi	suomalaisuusi
   input:
-    cmdline: vrt-add-lemma-nobound --mode omorfi
-    stdin:
-      value: *output-3
-      transform: *output-to-input
+    stdin: *output-3
   output:
     stdout: *output-3
-    stderr: ''
-    returnvalue: 0
 
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Possibly problematic cases'
   defs: &output-4 |
-    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
     oleskeluluvista	oleskella|lupa	oleskelulupa
     suomalaistutut	suomalainen|tuttu	suomalaistuttu
     pääsiäisöinä	pääsiäinen|yö	pääsiäisyö
@@ -176,19 +182,13 @@
     suomalaissoina	suomalainen|suo	suomalaissuo
     ruotsalaisteinä	ruotsalainen|tie	ruotsalaistie
   input:
-    cmdline: vrt-add-lemma-nobound --mode omorfi
-    stdin:
-      value: *output-4
-      transform: *output-to-input
+    stdin: *output-4
   output:
     stdout: *output-4
-    stderr: ''
-    returnvalue: 0
 
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Inflecting first parts'
   defs: &output-5 |
-    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
     uudenvuoden	uusi|vuosi	uusivuosi
     Isosta-Britanniasta	Iso-Britannia	Iso-Britannia
     Isosta-Britanniasta	Iso|Britannia	Iso-Britannia
@@ -199,19 +199,13 @@
     Uuteen-Kaledoniaan	Uusi|Kaledonia	Uusi-Kaledonia
     Uudenkirkon	Uusikirkko	Uusikirkko
   input:
-    cmdline: vrt-add-lemma-nobound --mode omorfi
-    stdin:
-      value: *output-5
-      transform: *output-to-input
+    stdin: *output-5
   output:
     stdout: *output-5
-    stderr: ''
-    returnvalue: 0
 
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphenated words'
   defs: &output-6 |
-    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
     väärin-päin	väärä|pää	väärin-pää
     entis-täkin	entinen|täkki	entis-täkki
     evankelis-luterilaisen	evankelinen|luterilainen	evankelis-luterilainen
@@ -306,55 +300,43 @@
     raskaan-liikenteen	raskas|liikenne	raskaan-liikenne
     Suomalais-ruotsalainen	suomalainen|ruotsalainen	suomalais-ruotsalainen
   input:
-    cmdline: vrt-add-lemma-nobound --mode omorfi
-    stdin:
-      value: *output-6
-      transform: *output-to-input
+    stdin: *output-6
   output:
     stdout: *output-6
-    stderr: ''
-    returnvalue: 0
 
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi --only-wordform-hyphens: Hyphenated words'
   defs: &output-6b |
-    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
     yhteiskuntaamme	yhteinen|kunta|amme	yhteiskuntaamme
   input:
     cmdline: vrt-add-lemma-nobound --mode omorfi --only-wordform-hyphens
-    stdin:
-      value: *output-6b
-      transform: *output-to-input
+    stdin: *output-6b
   output:
     stdout: *output-6b
-    stderr: ''
-    returnvalue: 0
 
 
-# The data in the following tests is from opensubtitles-fi-2017 with UD1 parses
+# Most of the data in the following tests is from
+# opensubtitles-fi-2017 with UD1 parses
+
+- defaults:
+    input:
+      cmdline: vrt-add-lemma-nobound --mode omorfi --compound-boundary-marker '#'
 
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with hyphens with different letters around the hyphen'
   defs: &output-7 |
-    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
     ei-mutantti	ei#mutantti	ei-mutantti
     e-molli	e#molli	e-molli
     ex-johtaja	ex#johtaja	ex-johtaja
   input:
-    cmdline: vrt-add-lemma-nobound --mode omorfi --compound-boundary-marker '#'
-    stdin:
-      value: *output-7
-      transform: *output-to-input
+    stdin: *output-7
   output:
-    returncode: 0
-    stderr: ""
     stdout: *output-7
 
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with previously incorrect
     results, set 2'
   defs: &output-8 |
-    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
     ammattilais-valamies	ammatti#vala#mies	ammattilais-valamies
     aneidenkerääjät	ane#kerääjä	aneidenkerääjä
     bengalilaisjengejä	bengali#jengi	bengalilaisjengi
@@ -389,63 +371,40 @@
     vapautumisenjälkeen	vapautua#jälki	vapautumisenjälki
     voitontanssianne	voi#tanssi	voitontanssi
   input:
-    cmdline: vrt-add-lemma-nobound --mode omorfi --compound-boundary-marker '#'
-    stdin:
-      value: *output-8
-      transform: *output-to-input
+    stdin: *output-8
   output:
-    returncode: 0
-    stderr: ""
     stdout: *output-8
 
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Numerals with "toista"'
   defs: &output-9 |
-    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
     Kuudentenatoista	kuudes#toista	kuudestoista
     viidestätoista	viisi#toista	viisitoista
     viidentoista	viisi#toista	viisitoista
   input:
-    cmdline: vrt-add-lemma-nobound --mode omorfi --compound-boundary-marker '#'
-    stdin:
-      value: *output-9
-      transform: *output-to-input
+    stdin: *output-9
   output:
-    returncode: 0
-    stderr: ""
     stdout: *output-9
 
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds which had incorrect double hyphen'
   defs: &output-10 |
-    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
     Vapaa-ajanohjaajanne	vapaa#aika#ohjaaja	vapaa-ajanohjaaja
     vapaa-ajanyhdistyksiämme	vapaa#aika#yhdistys	vapaa-ajanyhdistys
   input:
-    cmdline: vrt-add-lemma-nobound --mode omorfi --compound-boundary-marker '#'
-    stdin:
-      value: *output-10
-      transform: *output-to-input
+    stdin: *output-10
   output:
-    returncode: 0
-    stderr: ""
     stdout: *output-10
 
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds which had an incorrect part match'
   defs: &output-11 |
-    <!-- #vrt positional-attributes: word lemma lemma_nobound -->
     erilailla	eri#laki	erilaki
     päälaellaan	pää#laki	päälaki
     uimaaltaalle	uima#allas	uima-allas
     valheisiisi	valhe#isi#isi	valheisi-isi
     aaveisiisi	aave#isi#isi	aaveisi-isi
   input:
-    cmdline: vrt-add-lemma-nobound --mode omorfi --compound-boundary-marker '#'
-    stdin:
-      value: *output-11
-      transform: *output-to-input
+    stdin: *output-11
   output:
-    returncode: 0
-    stderr: ""
     stdout: *output-11
