@@ -358,6 +358,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     lemma_parts[partnum], lemma_parts[partnum + 2],
                     wordform[wf_prefix_len:])
                 # print(partnum, part, nobound_part, end_diff, wf_use_len)
+                if (nobound_part and nobound_part[0] == '-'
+                        and lemma_nobound and lemma_nobound[-1] == '-'):
+                    nobound_part = nobound_part[1:]
                 lemma_nobound.append(nobound_part)
                 # print(nobound_part, lemma_parts, partnum, file=sys.stderr)
                 # nobound_part may be empty if the lemma begins with a boundary
