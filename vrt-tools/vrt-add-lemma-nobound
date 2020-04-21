@@ -451,10 +451,12 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # FIXME: Devise a better heuristic than comparing the two characters
         # following the hyphen with the two initial characters of the next
         # lemma part
+        # Strip hyphen to cover cases like "bändi-T-paita"
         # print(hyphen_pos, len(wordform), len(lemmapart_next),
-        #       wordform[hyphen_pos + 1:hyphen_pos + 3], lemmapart_next[:2])
+        #       wordform[hyphen_pos + 1:hyphen_pos + 3].strip('-'),
+        #       lemmapart_next[:2])
         if (hyphen_pos > -1
-                and (wordform[hyphen_pos + 1:hyphen_pos + 3]
+                and (wordform[hyphen_pos + 1:hyphen_pos + 3].strip('-')
                      == lemmapart_next[:2])):
             # print('HYPHEN', adjust_case_fn(wordform[:(hyphen_pos + 1)]),
             #         hyphen_pos - lemma_len, 10, file=sys.stderr)
