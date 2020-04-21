@@ -519,6 +519,34 @@ _testcase_files_content = [
                  'stderr': 'test\n',
              },
          },
+         # Change default values for input only
+         {
+             'defaults': {
+                 'input': {
+                    'file:test.in': 'test2\n',
+                 },
+             },
+         },
+         {
+             'name': 'Test: changed only input defaults',
+             'output': {
+                 'stderr': 'test2\n',
+             },
+         },
+         # Change default values for output only
+         {
+             'defaults': {
+                 'output': {
+                    'stderr': 'test3\n',
+                 },
+             },
+         },
+         {
+             'name': 'Test: changed only output defaults',
+             'input': {
+                 'file:test.in': 'test3\n',
+             },
+         },
          # Clear default values
          {
              'defaults': {},
@@ -978,11 +1006,11 @@ def test_collect_testcases(testcase_files, tmpdir):
     """Test scripttestlib.collect_testcases."""
     fname_testcase_contents, testcase_filespecs = testcase_files
     testcases = collect_testcases(*testcase_filespecs, basedir=str(tmpdir))
+    # print(testcases)
     assert len(testcases) == sum(
         len([tc for tc in tc_conts if 'defaults' not in tc])
         for _, tc_conts in fname_testcase_contents)
     testcase_num = 0
-    # print(testcases)
     for fname, testcase_contents in fname_testcase_contents:
         # print(fname, testcase_contents)
         default_values = {}
@@ -1012,9 +1040,9 @@ def test_collect_testcases(testcase_files, tmpdir):
             assert testcase[0] == '{} {:d}: {}'.format(
                 fname, testcase_cont_num + 1, testcase_cont['name'])
             assert testcase[1] == dict_deep_update(
-                dict(default_values.get('input', {})), testcase_cont['input'])
+                dict(default_values.get('input', {})), testcase_cont.get('input'))
             assert testcase[2] == dict_deep_update(
-                dict(default_values.get('output', {})), testcase_cont['output'])
+                dict(default_values.get('output', {})), testcase_cont.get('output'))
             testcase_num += 1
 
 
@@ -1032,7 +1060,7 @@ def test_dict_deep_update():
     dbe = {'b': {}}
     check(None, None, None)
     check(None, {}, {})
-    check({}, None, None)
+    check({}, None, {})
     check(1, {}, {})
     check({}, da1, da1)
     check(da1, 1, 1)
