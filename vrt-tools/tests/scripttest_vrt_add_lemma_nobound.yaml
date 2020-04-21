@@ -408,3 +408,57 @@
     stdin: *output-11
   output:
     stdout: *output-11
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen missing because of stem change in second part'
+  # Prescriptively, some of these should not have a hyphen, but it
+  # would be difficult if not impossible to distinguish between
+  # "college-aika" and "koe-aika".
+  defs: &output-12 |
+    YK-ajastaan	YK#aika	YK-aika
+    500-ajoissa	500#aika	500-aika
+    college-ajan	college#aika	college-aika
+    A-teille	A#tie	A-tie
+    tv-töiden	tv#työ	tv-työ
+    Kauko-idän	kauko#itä	kauko-itä
+    vauva-iässä	vauva#ikä	vauva-ikä
+    Helium-ytimiä	helium#ydin	helium-ydin
+    PR-edut	PR#etu	PR-etu
+    Ex-parhaita	ex#hyvä	ex-hyvä
+  input:
+    stdin: *output-12
+  output:
+    stdout: *output-12
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen missing because of long first part'
+  defs: &output-13 |
+    etsityimpien-listalla	etsiä#lista	etsityimpien-lista
+    Reiden-järveen	re#järvi	reiden-järvi
+    sekaantumattomuus-takuun	sekaantuma#takuu	sekaantumattomuus-takuu
+  input:
+    stdin: *output-13
+  output:
+    stdout: *output-13
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphens in words with single-letter middle part'
+  defs: &output-14 |
+    Ihmemies-T-paitoja	ihme#mies#T#paita	ihmemies-T-paita
+    bändi-T-paita	bändi#T#paita	bändi-T-paita
+  input:
+    stdin: *output-14
+  output:
+    stdout: *output-14
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphens between two two-letter words (or two- and one-letter words)'
+  defs: &output-15 |
+    go-go	go#go	go-go
+    re-re	re#re	re-re
+    aa-bb	aa#bb	aa-bb
+    aa-b	aa#b	aa-b
+  input:
+    stdin: *output-15
+  output:
+    stdout: *output-15
