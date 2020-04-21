@@ -451,8 +451,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # FIXME: Devise a better heuristic than comparing the two characters
         # following the hyphen with the two initial characters of the next
         # lemma part
-        if (hyphen_pos > -1 and hyphen_pos < len(wordform) - 3
-                and len(lemmapart_next) > 1
+        # print(hyphen_pos, len(wordform), len(lemmapart_next),
+        #       wordform[hyphen_pos + 1:hyphen_pos + 3], lemmapart_next[:2])
+        if (hyphen_pos > -1
                 and (wordform[hyphen_pos + 1:hyphen_pos + 3]
                      == lemmapart_next[:2])):
             # print('HYPHEN', adjust_case_fn(wordform[:(hyphen_pos + 1)]),
