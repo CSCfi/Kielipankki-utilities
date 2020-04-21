@@ -18,7 +18,7 @@ def get_mets(filename):
     element = ET.parse(filename).getroot()
 
     mets = {
-        'label'       : element.get('LABEL'),
+        'label'       : element.get('LABEL').replace('  ',' '),
         'issue_title' : get_val('MODS:title', element, ns, 1),
         'issue_date'  : get_val('MODS:dateIssued', element, ns),
         'issue_no'    : get_val('MODS:partNumber', element, ns),
