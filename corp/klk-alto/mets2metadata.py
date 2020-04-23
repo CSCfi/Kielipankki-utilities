@@ -19,7 +19,15 @@ else:
     if not binding_info.startswith('http'):
         stderr.write('Error: no binding url could be extracted for mets file ' + argv[1] + "\n")
         exit(1)
+    if '/aikakausi/' in binding_info:
+        publ_type = 'aikakausi'
+    elif '/sanomalehti/' in binding_info:
+        publ_type = 'sanomalehti'
+    else:
+        stderr.write('Error: no publication type could be extracted for mets file ' + argv[1] + "\n")
+        exit(1)
 
 mets.update({'date': date})
-mets.update({'binding': binding_info})
+mets.update({'binding_id': binding_info})
+mets.update({'publ_type': publ_type})
 print(mets)
