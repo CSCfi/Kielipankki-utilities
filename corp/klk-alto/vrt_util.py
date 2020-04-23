@@ -27,6 +27,9 @@ def run_hfst_tokenize(text, tokenizer='finnish-tokenize'):
     return out_str
 
 def enclose(string, tag, atts):
+    for (key, value) in atts.items():
+        if atts[key] == '':
+            atts[key] = '_'
     return start_tag(tag, atts) + string + end_tag(tag)
 
 
