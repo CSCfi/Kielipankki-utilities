@@ -9,7 +9,8 @@ def get_val(tag, element, ns={}, i=0):
     try:
         return element.findall('.//'+tag, ns)[i].text
     except IndexError:
-        stderr.write('WARNING: element "%s" not found in METS file!\n' % (tag))
+        if tag != 'MODS:partName':
+            stderr.write('WARNING: element "%s" not found in METS file!\n' % (tag))
         return ''
 
 def get_mets(filename):
