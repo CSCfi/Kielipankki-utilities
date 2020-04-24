@@ -63,8 +63,8 @@ def align_data(element):
                 string = string.strip()
             # strings combine into one token
             if len(token) > len(string):
-                stderr.write('WARNING: mismatch between token "%s" and original string(s)!\n' % token)
-                stderr.write('%s vs. "%s"\n' % ( sent, string))
+                #stderr.write('WARNING: mismatch between token "%s" and original string(s)!\n' % token)
+                #stderr.write('%s vs. "%s"\n' % ( sent, string))
                 if not use_original_strings:
                     stderr.write('Using %s as token instead...\n' % token)
                     new_string = ''
