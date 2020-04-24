@@ -462,3 +462,14 @@
     stdin: *output-15
   output:
     stdout: *output-15
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Two consecutive compound boundary characters'
+  defs: &output-16 |
+    Lepakonsiipinen	lepakko##siipinen	lepakonsiipinen
+    alhaissäätyisen	alhainen##säätyinen	alhaissäätyinen
+    hientunteisuutta	hiki##tunteisuus	hientunteisuus
+  input:
+    stdin: *output-16
+  output:
+    stdout: *output-16
