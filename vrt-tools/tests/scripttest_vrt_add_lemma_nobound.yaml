@@ -132,7 +132,7 @@
     moraalisääntöjä	moraalinen|ääntö	moraalisääntö
     Ruonala	ruko|ala	ruonala
     parinvaihtoa	parka|vaihto	parinvaihto
-    sisällisodan	sisällinen|ota	sisällinenota
+    sisällisodan	sisällinen|ota	sisällisota
     tulevaisuutta	tulevainen|uusi	tulevaisuusi
     kepulaisuuden	kepulainen|uusi	kepulaisuusi
     pannuhuoneessa	panna|huone	pannuhuone
@@ -145,7 +145,7 @@
     viimeisimmistä	viimeinen|impi	viimeisimpi
     harhaisuutta	harhainen|uusi	harhaisuusi
     alisteinen	alinen|teinen	alisteinen
-    muinoin	muu|oka	muuoka
+    muinoin	muu|oka	muinoka
     tavallistakin	tavallinen|takki	tavallistakki
     naisiltakin	nainen|ilta	naisilta
     vertaistaan	vertainen|taka	vertaistaka
@@ -473,3 +473,55 @@
     stdin: *output-16
   output:
     stdout: *output-16
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: "...ei"'
+  defs: &output-17 |
+    ehkemme	ehkä#ei	ehkei
+    ellemme	jos#ei	ellei
+    ettenkö	että#ei	ettei
+    jollet	jos#ei	jollei
+    jottette	jotta#ei	jottei
+    miksenkö	miksi#ei	miksei
+    mutten	mutta#ei	muttei
+    vaikkemme	vaikka#ei	vaikkei
+  input:
+    stdin: *output-17
+  output:
+    stdout: *output-17
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Inflected first part and stem change affecting the second letter in the second part'
+  # Some of the analyses are very unlikely, but the test assumes the
+  # analysis as it is
+  defs: &output-18 |
+    alkamisajan	alkaa#aika	alkamisaika
+    entisajoille	entinen#aika	entisaika
+    vuodenajaksi	vuosi#aika	vuodenaika
+    erityisavuistani	erityinen#apu	erityisapu
+    opintoavusta	opinnot#apu	opintoapu
+    yhteiseduista	yhteinen#etu	yhteisetu
+    parempi-paras	parka#hyvä	parempi-hyvä
+    palkinnonparhaasta	palkinto#hyvä	palkinnonhyvä
+    auringoniällä	aurinko#ikä	auringonikä
+    ihmisiäksi	ihminen#ikä	ihmisikä
+    myöhäisiällä	myöhäinen#ikä	myöhäisikä
+    maisemoidusta	mainen#emo#itu	maisemoitu
+    pavuniduilla	papu#itu	pavunitu
+    pienokaista	piki#oas	pienoas
+    hienoilla	hiki#oka	hienoka
+    lumisodassa	luminen#ota	lumisota
+    jääjäteistä	jäädä#tie	jääjätie
+    maalaisteidenne	maalainen#tie	maalaistie
+    erikoistöihin	erikoinen#työ	erikoistyö
+    rinnakkaistöitä	rinnakkainen#työ	rinnakkaistyö
+    nokisutarin	nokinen#udar	nokisudar
+    luisusta	luinen#uksi	luisuksi
+    luodinhäävoihin	luoti#hää#vuo	luodinhäävuo
+    auringonytimessä	aurinko#ydin	auringonydin
+    ihmisytimestä	ihminen#ydin	ihmisydin
+    entisöin	entinen#yö	entisyö
+  input:
+    stdin: *output-18
+  output:
+    stdout: *output-18

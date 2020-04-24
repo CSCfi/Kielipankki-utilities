@@ -65,7 +65,30 @@ class NoBoundaryLemmaAdder(InputProcessor):
     ]
 
     _lemma_suffix_len_changes = [('nen', -2)]
-    _stem_changes = [('ie', 'ei'), ('uo', 'oi'), ('yö', 'öi')]
+    # Stem changes that affect the second (and possibly first) letter
+    _stem_changes = [
+        ('ie', 'ei'),
+        ('uo', 'oi'),
+        ('yö', 'öi'),
+        ('aika', 'aja'),
+        ('aika', 'ajo'),
+        ('apu', 'avu'),
+        ('etu', 'edu'),
+        ('hyvä', 'paras'),
+        ('hyvä', 'parem'),
+        ('hyvä', 'parha'),
+        ('ikä', 'iä'),
+        ('itu', 'idu'),
+        ('oas', 'oka'),
+        ('oka', 'oi'),
+        ('ota', 'oda'),
+        ('udar', 'utar'),
+        ('uksi', 'ust'),
+        ('ydin', 'ytim'),
+        ('ei', 'em'),
+        ('ei', 'en'),
+        ('ei', 'et'),
+    ]
     _vowels = 'aeiouyäö'
     # We would only need the second part if the first part can occur inflected
     # with some later part, such as "uudenkarhea", "uudenveroinen",
