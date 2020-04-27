@@ -1,10 +1,10 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
-from librelargs import trans_args, trans_main
-from librelargs import BadData
-from librelnames import makenames, fillnames, checknames
-from librel import records
+from librel.args import trans_args, trans_main
+from librel.args import BadData
+from librel.names import makenames, fillnames, checknames
+from librel.data import records
 
 def parsearguments():
     description = '''
