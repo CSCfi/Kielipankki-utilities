@@ -131,10 +131,16 @@ def sibext(arg):
 def inputstream(infile, as_text):
     if infile is None:
         return (sys.stdin if as_text else
-                sys.stdin.buffer)
+                # .detach() appears to be the magic that allows to
+                # read the first line and pass on the rest to a
+                # subprocess (buffering could not even be disabled)
+                sys.stdin.buffer.detach())
     return ( open(infile, mode = 'r', encoding = 'UTF-8')
              if as_text else
-             open(infile, mode = 'br') )
+             # .detach() appears to allow to read the first line and
+             # pass on the rest to a subprocess (disabling buffering
+             # seemed to also work or was anything even needed)
+             open(infile, mode = 'br').detach() )
 
 def outputstream(outfile, as_text):
     if outfile is None:

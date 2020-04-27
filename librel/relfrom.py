@@ -51,7 +51,7 @@ def parsearguments(argv, *, prog = None):
 
 def main(args, ins, ous):
 
-    names = makenames(args)
+    names = makenames(args.names)
 
     if args.unique:
         data = records(ins, unique = True)

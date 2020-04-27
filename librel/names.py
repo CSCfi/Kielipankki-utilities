@@ -4,12 +4,12 @@ import re
 
 from .args import BadData
 
-def makenames(args):
+def makenames(spec):
     ''' '''
 
     # allow commas and spaces in individual arguments, split at runs
     names = (
-        ' '.join(args.names).replace(',', ' ')
+        ' '.join(spec).replace(',', ' ')
         .encode('UTF-8')
         .split()
     )
