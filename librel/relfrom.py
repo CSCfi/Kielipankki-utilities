@@ -7,7 +7,7 @@
 
 import sys
 
-from .args import trans_args, trans_main
+from .args import transput_args
 from .args import BadData
 from .names import makenames, fillnames, checknames
 from .data import records
@@ -23,7 +23,7 @@ def parsearguments(argv, *, prog = None):
 
     '''
 
-    parser = trans_args(description = description)
+    parser = transput_args(description = description)
 
     parser.add_argument('--names', '-n', metavar = 'name(s)',
                         dest = 'names',

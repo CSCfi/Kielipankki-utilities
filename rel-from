@@ -3,8 +3,8 @@
 
 import sys
 
-from librel.args import trans_main
+from librel.args import transput
 from librel.relfrom import parsearguments, main
 
 if __name__ == '__main__':
-    trans_main(parsearguments(sys.argv[1:]), main)
+    transput(parsearguments(sys.argv[1:]), main)

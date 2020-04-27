@@ -33,7 +33,7 @@ def version_args(*, description):
 
     return parser
 
-def trans_args(*, description, inplace = True):
+def transput_args(*, description, inplace = True):
     '''Return an initial argument parser for a command line tool that
     transforms one or two input streams to a single output stream.
 
@@ -144,7 +144,7 @@ def outputstream(outfile, as_text):
              if as_text else
              open(outfile, mode = 'bw') )
 
-def trans_main(args, main, *, in_as_text = False, out_as_text = False):
+def transput(args, main, *, in_as_text = False, out_as_text = False):
 
     infile = args.infile
 
