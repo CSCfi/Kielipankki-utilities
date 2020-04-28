@@ -23,15 +23,27 @@ def sumfile(ins1, ins2, *, rest = (), tag):
 
     '''
 
-    [tag] = makenames([tag]) # sanity clause (and UTF-8)
-
     fd, ouf = mkstemp(prefix = 'relsum', suffix = '.tsv.tmp')
     os.close(fd)
 
-    head1 = readhead(ins1)
-
-    if tag in head1:
-        raise BadData('tag is old: ' + tag.decode('UTF-8'))
+    try:
+        head1 = readhead(ins1)
+        if tag is None:
+            # make up a name that is not in head1
+            # by trying one more candidates than
+            # the names that are in head1
+            # (like rel-union)
+            tag = next(t for k in range(len(head1) + 1)
+                       for t in [b'T' + str(k).encode('UTF-8')]
+                       if t not in head1)
+        else:
+            # tag name was chosen by user (like rel-sum)
+            [tag] = makenames([tag]) # sanity clause (and UTF-8)
+            if tag in head1:
+                raise BadData('tag is old: ' + tag.decode('UTF-8'))
+    except Exception:
+        os.remove(ouf)
+        raise
 
     def checkhead(insk):
         '''Read head from insk ensuring full match with head1.'''
