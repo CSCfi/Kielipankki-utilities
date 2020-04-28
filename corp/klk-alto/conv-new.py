@@ -172,7 +172,7 @@ def get_string_data(block_elem):
 
 def sentence(sent):
 
-    global sentence_id
+    global sentence_id, tokencount
 
     string = ''
     for (token, atts) in sent:
@@ -187,6 +187,7 @@ def sentence(sent):
         else:
             hyph = atts['CONTENT']
         string += '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (token, s_id, cont, vpos, ocr, cc, hyph)
+        tokencount += 1
     sentence_atts = { 'id' : sentence_id, }
     sentence_id += 1
 
@@ -249,7 +250,9 @@ def text(page_file, mets={}, date=''):
         'page_no'  : element.findall('.//'+page_tag, ns)[0].get('PHYSICAL_IMG_NR'),
         'page_id'  : element.findall('.//'+page_tag, ns)[0].get('ID'),
         'filename_orig' : page_file,
-        'filename_metadata' : metadata_file
+        'filename_metadata' : metadata_file,
+        'sentcount' : sentence_id,
+        'tokencount' : tokencount
         }
     text_atts.update(mets)
     
@@ -259,10 +262,11 @@ def text(page_file, mets={}, date=''):
 def main(page_file, mets={}, date=''):
     
     global page_tag, block_tag, line_tag, string_tag 
-    global paragraph_id, sentence_id, ns
+    global paragraph_id, sentence_id, ns, tokencount
 
     paragraph_id = 0
     sentence_id = 0
+    tokencount = 0
     
     # Get XML Namespaces
     ns  = get_namespaces(page_file)
