@@ -14,10 +14,10 @@ from string import ascii_letters, digits as ascii_digits
 from tempfile import mkstemp
 import os, sys, traceback
 
-VERSION = '0.0.0 (2020-04-26)'
+from .bad import BadData, BadCode
+from .datasum import sumfile
 
-class BadData(Exception): pass # stack trace is just noise
-class BadCode(Exception): pass # this cannot happen
+VERSION = '0.0.0 (2020-04-26)'
 
 def version_args(*, description):
     '''Return an initial argument parser for a command line tool that
@@ -33,16 +33,32 @@ def version_args(*, description):
 
     return parser
 
-def transput_args(*, description, inplace = True):
+def transput_args(*, description, inplace = True, summing = False):
     '''Return an initial argument parser for a command line tool that
-    transforms one or two input streams to a single output stream.
+    transforms one or more input streams to a single output stream.
+
+    When "summing" relations, first relation file must be named and
+    the rest can be either further files or default to stdin.
+
+    When "joining" relations [TODO], first relation must be named and
+    the rest can be either further files or default to stdin.
+
+    When "matching" relations [TODO], first relation must be named and
+    the second can be either a file or defaults to stdin.
 
     '''
 
     parser = ArgumentParser(description = description)
 
-    parser.add_argument('infile', nargs = '?', metavar = 'file',
-                        help = 'input file (default stdin)')
+    if summing:
+        parser.add_argument('infile', help = 'first input file')
+        parser.add_argument('inf2', nargs = '?',
+                            help = 'second input file (default stdin)')
+        parser.add_argument('rest', nargs = '*',
+                            help = 'more input files')
+    else:
+        parser.add_argument('infile', nargs = '?', metavar = 'file',
+                            help = 'input file (default stdin)')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--out', '-o',
@@ -128,29 +144,29 @@ def sibext(arg):
 
     raise ArgumentTypeError('bad character in extension')
 
-def inputstream(infile, as_text):
+def inputstream(infile):
     if infile is None:
-        return (sys.stdin if as_text else
-                # .detach() appears to be the magic that allows to
-                # read the first line and pass on the rest to a
-                # subprocess (buffering could not even be disabled)
-                sys.stdin.buffer.detach())
-    return ( open(infile, mode = 'r', encoding = 'UTF-8')
-             if as_text else
-             # .detach() appears to allow to read the first line and
-             # pass on the rest to a subprocess (disabling buffering
-             # seemed to also work or was anything even needed)
-             open(infile, mode = 'br').detach() )
+        # .detach() appears to be the magic that allows to
+        # read the first line and pass on the rest to a
+        # subprocess (buffering could not even be disabled)
+        return sys.stdin.buffer.detach()
 
-def outputstream(outfile, as_text):
-    if outfile is None:
-        return (sys.stdout if as_text else
-                sys.stdout.buffer)
-    return ( open(outfile, mode = 'w', encoding = 'UTF-8')
-             if as_text else
-             open(outfile, mode = 'bw') )
+    # .detach() appears to allow to read the first line and
+    # pass on the rest to a subprocess (disabling buffering
+    # seemed to also work or was anything even needed)
+    return open(infile, mode = 'br').detach()
 
-def transput(args, main, *, in_as_text = False, out_as_text = False):
+def outputstream(outfile):
+    if outfile is None: return sys.stdout.buffer
+    return open(outfile, mode = 'bw')
+
+def transput(args, main, *,
+             summing = False,
+             joining = False,
+             matching = False):
+
+    # TODO that summing, joining, matching are mutually exclusive but
+    # joining and matching are themselves TODO
 
     infile = args.infile
 
@@ -215,32 +231,35 @@ def transput(args, main, *, in_as_text = False, out_as_text = False):
     else:
         temp = None
 
-    def do():
-        status = 1
-        try:
-            status = main(args, inf, ouf)
-        except BadData as exn:
-            print(args.prog + ': error in data:', exn, file = sys.stderr)
-        except BadCode as exn:
-            print(args.prog + ': error in code:', exn, file = sys.stderr)
-        except BrokenPipeError:
-            print(args.prog + ':', 'broken pipe from main',
-                  file = sys.stderr)
-        except Exception as exn:
-            print(traceback.format_exc(), file = sys.stderr)
-
-        return status
-
     status = 1
+    tmpsum = None
     try:
-        with inputstream(infile, in_as_text) as inf, \
-             outputstream(temp, out_as_text) as ouf:
-            status = do()
+        if summing:
+            with inputstream(infile) as ins1, \
+                 inputstream(args.inf2) as ins2:
+                tmpsum = sumfile(ins1, ins2,
+                                 rest = args.rest,
+                                 tag = args.tag)
+
+        with inputstream(tmpsum or infile) as ins, \
+             outputstream(temp) as ous:
+            status = main(args, ins, ous)
+
+    except BadData as exn:
+        print(args.prog + ': data:', exn, file = sys.stderr)
+    except BadCode as exn:
+        print(args.prog + ': code:', exn, file = sys.stderr)
     except BrokenPipeError:
-        print(args.prog + ':', 'broken pipe outside main',
+        print(args.prog + ':', 'broken pipe',
               file = sys.stderr)
     except Exception as exn:
         print(traceback.format_exc(), file = sys.stderr)
+
+    if tmpsum:
+        try:
+            os.remove(tmpsum)
+        except Exception as exn:
+            print(traceback.format_exc(), file = sys.stderr)
 
     if status:
         print(args.prog + ': non-zero status', status, file = sys.stderr)
