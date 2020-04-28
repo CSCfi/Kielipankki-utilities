@@ -240,7 +240,7 @@ def text(page_file, mets={}, date=''):
     element = ET.parse(page_file).getroot()
     
     string = ''.join([ paragraph(block) for block in element.findall('.//'+block_tag, ns) ])
-    datefrom, dateto, timefrom, timeto = timespan(date)
+    datefrom, dateto, timefrom, timeto = timespan(date.replace('-',''))
     
     text_atts = {
         'datefrom' : datefrom,

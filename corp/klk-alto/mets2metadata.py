@@ -5,7 +5,7 @@ from sys import argv, stderr
 
 mets = get_mets(argv[1])
 
-date = ''.join([ s.zfill(2) for s in mets['issue_date'].split('.')[::-1] ])
+date = '-'.join([ s.zfill(2) for s in mets['issue_date'].split('.')[::-1] ])
 if date == '':
     stderr.write('Error: no date found for mets file ' + argv[1] + "\n")
     exit(1)
