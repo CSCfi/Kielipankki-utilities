@@ -11,6 +11,9 @@ from subprocess import Popen, PIPE
 
 import os
 
+from .args import BadData
+from .names import checknames
+
 def record(line):
     '''Split a tab-separated (binary) line into its fields.'''
 
@@ -70,3 +73,23 @@ def groups(ins, *, key):
     '''
 
     return groupby(records(ins, key = key), key = getter(key))
+
+def readhead(ins, *, old = ()):
+    '''Return the assumed-first tab-separated line from binary stream.
+    Raise an exception if the fields are not valid names, or if any of
+    the specified old names is not in the head.
+
+    '''
+
+    head = next(ins, None)
+    if head is None:
+        raise BadData('no head')
+
+    head = record(head)
+    checknames(head)
+
+    bad = [name for name in old if name not in head]
+    if bad:
+        raise BadData('not in head: ' + b' '.join(bad).decode('UTF-8'))
+
+    return head
