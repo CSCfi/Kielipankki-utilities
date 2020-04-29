@@ -1,0 +1,6 @@
+alpha	a
+beta	b
+gamma	c
+alpha	a
+beta	b
+gamma	c
