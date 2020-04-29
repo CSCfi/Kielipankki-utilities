@@ -33,7 +33,7 @@ test002 () {
 
 test002
 
-test002 () {
+test003 () {
     setup $FUNCNAME
     ./rel-rename --maps=pi=half,tau=full < check/tau.tsv \
 	       1> "$DIR/out" \
@@ -43,4 +43,4 @@ test002 () {
     cleanup
 }
 
-test002
+test003

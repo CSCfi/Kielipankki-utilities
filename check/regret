@@ -1,0 +1,23 @@
+#! /bin/bash
+
+# rel tools regression test
+# runs each check/TOPIC.sh
+# call in rel-tools/ like:
+# $ check/regret
+
+bash check/from.sh
+bash check/rename.sh
+
+bash check/sort.sh
+bash check/order.sh
+
+bash check/keep.sh
+bash check/keepc.sh
+bash check/drop.sh
+bash check/dropc.sh
+
+bash check/sum.sh
+bash check/union.sh
+bash check/meet.sh
+bash check/sans.sh
+bash check/symm.sh

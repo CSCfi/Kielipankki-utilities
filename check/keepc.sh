@@ -23,7 +23,7 @@ test001
 
 test002 () {
     setup $FUNCNAME
-    ./rel-keepc check/numero.tsv \
+    ./rel-keepc --count=ct check/numero.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
@@ -35,7 +35,7 @@ test002
 
 test003 () {
     setup $FUNCNAME
-    ./rel-keepc --name=mean check/numero.tsv \
+    ./rel-keepc --name=mean --count=ct check/numero.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
