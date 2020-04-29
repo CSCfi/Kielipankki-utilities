@@ -6,7 +6,7 @@
 
 source check/libtest.sh
 
-TOPIC="${BASH_SOURCE##*/}"
+TOPIC="${0##*/}"
 TOPIC="${TOPIC%.sh}"
 
 test001 () {
