@@ -2,7 +2,7 @@
 
 import re
 
-from .args import BadData
+from .bad import BadData
 
 def makenames(spec):
     ''' '''

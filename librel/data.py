@@ -11,7 +11,7 @@ from subprocess import Popen, PIPE
 
 import os
 
-from .args import BadData
+from .bad import BadData
 from .names import checknames
 
 def record(line):
