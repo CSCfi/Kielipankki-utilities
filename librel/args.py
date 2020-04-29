@@ -33,14 +33,17 @@ def version_args(*, description):
 
     return parser
 
-def transput_args(*, description, inplace = True, summing = False):
+def transput_args(*, description, inplace = True,
+                  summing = False,
+                  joining = False,
+                  matching = False):
     '''Return an initial argument parser for a command line tool that
     transforms one or more input streams to a single output stream.
 
     When "summing" relations, first relation file must be named and
     the rest can be either further files or default to stdin.
 
-    When "joining" relations [TODO], first relation must be named and
+    When "joining" relations, first relation must be named and
     the rest can be either further files or default to stdin.
 
     When "matching" relations [TODO], first relation must be named and
@@ -50,7 +53,7 @@ def transput_args(*, description, inplace = True, summing = False):
 
     parser = ArgumentParser(description = description)
 
-    if summing:
+    if summing or joining:
         parser.add_argument('infile', help = 'first input file')
         parser.add_argument('inf2', nargs = '?',
                             help = 'second input file (default stdin)')
@@ -234,16 +237,27 @@ def transput(args, main, *,
     status = 1
     tmpsum = None
     try:
-        if summing:
+        if joining or matching:
+            with inputstream(infile) as ins1, \
+                 inputstream(args.inf2) as ins2, \
+                 outputstream(temp) as ous:
+                status = main(args, ins1, ins2, ous)
+
+        elif summing:
             with inputstream(infile) as ins1, \
                  inputstream(args.inf2) as ins2:
                 tmpsum = sumfile(ins1, ins2,
                                  rest = args.rest,
                                  tag = args.tag)
 
-        with inputstream(tmpsum or infile) as ins, \
-             outputstream(temp) as ous:
-            status = main(args, ins, ous)
+            with inputstream(tmpsum) as ins, \
+                 outputstream(temp) as ous:
+                status = main(args, ins, ous)
+
+        else:
+            with inputstream(infile) as ins, \
+                 outputstream(temp) as ous:
+                status = main(args, ins, ous)
 
     except BadData as exn:
         print(args.prog + ': data:', exn, file = sys.stderr)
