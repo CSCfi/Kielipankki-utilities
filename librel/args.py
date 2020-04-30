@@ -46,7 +46,7 @@ def transput_args(*, description, inplace = True,
     When "joining" relations, first relation must be named and
     the rest can be either further files or default to stdin.
 
-    When "matching" relations [TODO], first relation must be named and
+    When "matching" relations, first relation must be named and
     the second can be either a file or defaults to stdin.
 
     '''
@@ -59,6 +59,10 @@ def transput_args(*, description, inplace = True,
                             help = 'second input file (default stdin)')
         parser.add_argument('rest', nargs = '*',
                             help = 'more input files')
+    elif matching:
+        parser.add_argument('infile', help = 'first input file')
+        parser.add_argument('inf2', nargs = '?',
+                            help = 'second input file (default stdin)')
     else:
         parser.add_argument('infile', nargs = '?', metavar = 'file',
                             help = 'input file (default stdin)')

@@ -23,3 +23,5 @@ bash check/sans.sh
 bash check/symm.sh
 
 bash check/join.sh
+bash check/match.sh
+bash check/miss.sh
