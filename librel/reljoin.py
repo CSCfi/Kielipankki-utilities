@@ -79,8 +79,8 @@ def join(ins1, ins2, ous, *, many):
     cache2 = Cache(many)
 
     try:
-        body1 = groups(ins1, key = tuple(map(head1.index, key)))
-        body2 = groups(ins2, key = tuple(map(head2.index, key)))
+        body1 = groups(ins1, head = head1, key = tuple(map(head1.index, key)))
+        body2 = groups(ins2, head = head2, key = tuple(map(head2.index, key)))
         k1, g1 = next(body1, (None, None))
         k2, g2 = next(body2, (None, None))
         while k1 is not None is not k2:

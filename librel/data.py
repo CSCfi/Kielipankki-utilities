@@ -34,14 +34,26 @@ def getter(key):
     else:
         return itemgetter(*key)
 
-def records(ins, *, unique = False, key = ()):
+def records(ins, *, head, unique = False, key = ()):
     '''Generate each record from the (binary) input stream.
+
+    Set head to None when not available, as in rel-from.
+    An empty head indicates special reading TODO. Other
+    cases could also support checking that input records
+    are of the expected length TODO? Reading head had to
+    be separate from reading body because head is needed
+    to compute sorting and grouping keys.
 
     Optionally sort the input to generate unique records.
     Optionally sort the input by key fields.
     The key is specified as a tuple of 0-based indices.
 
     '''
+
+    if head is not None and len(head) == 0:
+        # TODO (otherwise an empty input line is taken to be a record
+        # of one field that happens to contain the empty string)
+        return empty_records(ins, unique)
 
     if not unique and not key:
         return (record(line) for line in ins)
@@ -63,16 +75,19 @@ def records(ins, *, unique = False, key = ()):
 
     return (record(line) for line in proc.stdout)
 
-def groups(ins, *, key):
+def groups(ins, *, head, key):
     '''Generate from the binary input stream each tuple of key values
     together with the group of records that agree on the key.
+
+    An empty head indicates special reading. See records.
 
     The records are sorted on the key (stable).
     The key is specified as a tuple of 0-based indices.
 
     '''
 
-    return groupby(records(ins, key = key), key = getter(key))
+    return groupby(records(ins, head = head, key = key),
+                   key = getter(key))
 
 def readhead(ins, *, old = ()):
     '''Return the assumed-first tab-separated line from binary stream.
@@ -81,12 +96,17 @@ def readhead(ins, *, old = ()):
 
     '''
 
-    head = next(ins, None)
-    if head is None:
+    line = next(ins, None)
+    if line is None:
         raise BadData('no head')
 
-    head = record(head)
-    checknames(head)
+    line = line.rstrip(b'\r\n')
+    if line:
+        head = record(line)
+        checknames(head)
+    else:
+        # line.split(b'\t') => [b'']
+        head = []
 
     bad = [name for name in old if name not in head]
     if bad:

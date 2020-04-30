@@ -10,7 +10,7 @@ import sys
 from .args import transput_args
 from .args import BadData
 from .names import makenames, fillnames, checknames
-from .data import record as torecord, records
+from .data import readhead, records
 
 def parsearguments(argv, *, prog = None):
     description = '''
@@ -41,21 +41,15 @@ def main(args, ins, ous):
     key = makenames(args.key)
     checknames(key)
 
-    head = next(ins, None)
-    if head is None:
-        raise BadData('no head')
+    head = readhead(ins, old = key)
 
-    head = torecord(head)
     key = key or head
-    bad = [name for name in key if name not in head]
-    if bad:
-        raise BadData('bad keys: ' + repr(bad))
 
     ous.write(b'\t'.join(head))
     ous.write(b'\n')
 
     key = tuple(map(head.index, key))
-    data = records(ins, key = key)
+    data = records(ins, head = head, key = key)
     for record in data:
         if len(record) == len(head):
             ous.write(b'\t'.join(record))

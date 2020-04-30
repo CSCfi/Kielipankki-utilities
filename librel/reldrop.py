@@ -46,7 +46,7 @@ def main(args, ins, ous):
     ous.write(b'\t'.join(key))
     ous.write(b'\n')
 
-    data = groups(ins, key = tuple(map(head.index, key)))
+    data = groups(ins, head = head, key = tuple(map(head.index, key)))
     for k, g in data:
         ous.write(b'\t'.join(k))
         ous.write(b'\n')

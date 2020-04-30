@@ -54,11 +54,11 @@ def main(args, ins, ous):
     names = makenames(args.names)
 
     if args.unique:
-        data = records(ins, unique = True)
+        data = records(ins, head = None, unique = True)
     else:
         data = (
             [str(k).encode('utf-8')] + r
-            for k, r in enumerate(records(ins), start = 1)
+            for k, r in enumerate(records(ins, head = None, ), start = 1)
         )
 
     first = next(data, None)

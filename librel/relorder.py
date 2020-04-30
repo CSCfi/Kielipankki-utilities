@@ -10,7 +10,7 @@ import sys
 from .args import transput_args
 from .args import BadData
 from .names import makenames, fillnames, checknames
-from .data import getter, record as torecord, records
+from .data import getter, readhead, records
 
 def parsearguments(argv, *, prog = None):
     description = '''
@@ -43,14 +43,7 @@ def main(args, ins, ous):
     order = makenames(args.names)
     checknames(order)
 
-    head = next(ins, None)
-    if head is None:
-        raise BadData('no head')
-
-    head = torecord(head)
-    bad = [name for name in order if name not in head]
-    if bad:
-        raise BadData('bad names: ' + repr(bad))
+    head = readhead(ins, old = order)
 
     order += [name for name in head if name not in order]
 
@@ -58,7 +51,7 @@ def main(args, ins, ous):
     ous.write(b'\n')
 
     permute = getter(tuple(map(head.index, order)))
-    data = records(ins)
+    data = records(ins, head = head)
     for record in data:
         if len(record) == len(head):
             ous.write(b'\t'.join(permute(record)))

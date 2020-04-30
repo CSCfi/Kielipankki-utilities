@@ -54,13 +54,13 @@ def sumfile(ins1, ins2, *, rest = (), tag):
 
         return headk
 
-    def append(ins, ous, permute, tk):
+    def append(ins, ous, permute, tk, *, head):
         '''Append the permuted body from ins to ous with the byte string tk
         appended to each record as a tag of origin.
 
         '''
 
-        for r in records(ins):
+        for r in records(ins, head = head):
             ous.write(b'\t'.join(permute(r)))
             head1 and ous.write(b'\t')
             ous.write(tk)
@@ -75,14 +75,14 @@ def sumfile(ins1, ins2, *, rest = (), tag):
             head1 and ous.write(b'\t')
             ous.write(tag)
             ous.write(b'\n')
-            append(ins1, ous, get1, b'1')
-            append(ins2, ous, get2, b'2')
+            append(ins1, ous, get1, b'1', head = head1)
+            append(ins2, ous, get2, b'2', head = head2)
             for k, path in enumerate(rest, start = 3):
                 with open(path, 'rb') as insk:
                     tk = str(k).encode('UTF-8')
                     headk = checkhead(insk)
                     getk = getter(tuple(map(headk.index, head1)))
-                    append(insk, ous, getk, tk)
+                    append(insk, ous, getk, tk, head = headk)
     except Exception:
         os.remove(ouf)
         raise

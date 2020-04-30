@@ -10,7 +10,7 @@ import sys
 from .args import transput_args
 from .args import BadData
 from .names import makerenames, checknames
-from .data import record as torecord, records
+from .data import readhead, records
 
 def parsearguments(argv, *, prog = None):
     description = '''
@@ -41,12 +41,7 @@ def main(args, ins, ous):
 
     mapping = makerenames(args.maps)
 
-    head = next(ins, None)
-    if head is None:
-        raise BadData('no head')
-
-    head = torecord(head)
-    checknames(head) # sanity clause
+    head = readhead(ins)
 
     bad = [old for old in mapping if old not in head]
     if bad:
@@ -60,7 +55,7 @@ def main(args, ins, ous):
     ous.write(b'\t'.join(newhead))
     ous.write(b'\n')
 
-    data = records(ins)
+    data = records(ins, head = head)
     for record in data:
         # or could just pass it to cat
         # for speed without another
