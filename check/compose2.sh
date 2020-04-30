@@ -23,7 +23,10 @@ test001
 
 test002 () {
     setup $FUNCNAME
-    ./rel-compose2 check/word.tsv check/note.tsv \
+    ./rel-compose2 \
+	--cache 3 \
+	check/word.tsv \
+	check/note.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
@@ -35,7 +38,10 @@ test002
 
 test003 () {
     setup $FUNCNAME
-    ./rel-compose2 check/note.tsv < check/note.tsv \
+    ./rel-compose2 \
+	--cache 3 \
+	check/note.tsv \
+	< check/note.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"

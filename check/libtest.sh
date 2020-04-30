@@ -2,6 +2,7 @@
 # test script provides TOPIC
 
 mkdir --parents tmp
+export TMPDIR=tmp
 
 setup () {
     TEST="$1"

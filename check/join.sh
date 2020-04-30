@@ -23,7 +23,9 @@ test001
 
 test002 () {
     setup $FUNCNAME
-    ./rel-join check/number.tsv check/number.tsv \
+    ./rel-join \
+	--cache 3 \
+	check/number.tsv check/number.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
@@ -35,7 +37,9 @@ test002
 
 test003 () {
     setup $FUNCNAME
-    ./rel-join check/number.tsv check/dee.tsv \
+    ./rel-join \
+	--cache 3 \
+	check/number.tsv check/dee.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
