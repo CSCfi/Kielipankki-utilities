@@ -24,6 +24,16 @@ def parsearguments(argv, *, prog = None):
 
     parser = transput_args(description = description, joining = True)
 
+    parser.add_argument('--cache', metavar = 'limit',
+                        type = int, # want non-negative
+                        default = 10000,
+                        help = '''
+
+                        In-memory record cache limit (default 10000
+                        records, any excess spills to a temp file).
+
+                        ''')
+
     args = parser.parse_args(argv)
     args.prog = prog or parser.prog
 
@@ -50,7 +60,7 @@ def main(args, ins1, ins2, ous):
             ins1 = open(tmp1, 'rb').detach() # magic
             ins2 = open(infk, 'rb').detach() # magic
         else:
-            join(ins1, ins2, ous, many = 3)
+            join(ins1, ins2, ous, many = args.cache)
     except Exception:
         raise
     finally:
