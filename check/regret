@@ -25,3 +25,5 @@ bash check/symm.sh
 bash check/join.sh
 bash check/match.sh
 bash check/miss.sh
+bash check/image.sh
+bash check/compose2.sh
