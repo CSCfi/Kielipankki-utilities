@@ -13,6 +13,7 @@ from tempfile import mkstemp
 
 from .args import transput_args
 from .data import getter, readhead, groups
+from .bins import SORT
 
 def parsearguments(argv, *, prog = None):
     description = '''
@@ -68,7 +69,7 @@ def main(args, ins1, ins2, ous):
         ous.write(b'\t'.join(oth))
         ous.write(b'\n')
         ous.flush()
-        subprocess.run([ 'sort', '--unique', tmp ],
+        subprocess.run([ SORT, '--unique', tmp ],
                        env = dict(os.environ,
                                   LC_ALL = 'C'),
                        stdout = ous,

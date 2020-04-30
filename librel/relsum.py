@@ -42,9 +42,12 @@ def main(args, ins, ous):
     # tags of origin, so ins already is the sum; Boolean tools work
     # more (rel-union, rel-meet, rel-sans, rel-symm).
 
-    Popen([ 'cat' ],
+    Popen([ CAT ],
           stdin = ins,
           stdout = ous,
           stderr = None)
+
+    # presumably that runs to completion by whatever reads ous - or
+    # should one wait for it?
 
     return 0

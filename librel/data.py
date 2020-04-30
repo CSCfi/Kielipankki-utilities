@@ -13,6 +13,7 @@ import os
 
 from .bad import BadData
 from .names import checknames
+from .bins import SORT
 
 def record(line):
     '''Split a tab-separated (binary) line into its fields.'''
@@ -64,14 +65,14 @@ def records(ins, *, head, unique = False, key = ()):
         options.append('--field-separator=\t')
         options.extend('--key={k},{k}'.format(k = k + 1) for k in key)
 
-    proc = Popen([ 'sort' ] + options,
+    proc = Popen([ SORT ] + options,
                  env = dict(os.environ,
                             LC_ALL='C'),
                  stdin = ins,
                  stdout = PIPE,
                  stderr = None)
 
-    # TODO ensure termination how
+    # TODO ensure termination how - run by whatever consumes generator
 
     return (record(line) for line in proc.stdout)
 
