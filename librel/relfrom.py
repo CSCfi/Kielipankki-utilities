@@ -15,34 +15,39 @@ from .data import records
 def parsearguments(argv, *, prog = None):
     description = '''
 
-    Make a relation output from observed values by adding a head of
-    names and either distinguishing the records by a counter (default)
-    or omitting duplicates. Append generated names of the form "vK"
-    with 1-based field number K if more fields than specified names
-    are encountered.
+    Make a relation from observed values by adding a head of names and
+    either tagging the records with a running number or omitting
+    duplicates. Fill out the head with names of the form vK (0-based)
+    to match the first record, if any.
 
     '''
 
     parser = transput_args(description = description)
 
-    parser.add_argument('--names', '-n', metavar = 'name(s)',
-                        dest = 'names',
+    parser.add_argument('--field', '-f', metavar = 'name*',
                         action = 'append', default = [],
                         help = '''
 
                         field names to use, can be separated by commas
-                        or spaces or option repeated, counter name
-                        first, if any
+                        or spaces, or option can be repeated
 
                         ''')
 
-    parser.add_argument('--unique', '-u', action = 'store_true',
-                        help = '''
+    group = parser.add_mutually_exclusive_group(required = True)
+    group.add_argument('--tag', '-t', metavar = 'name',
+                       help = '''
 
-                        ensure unique records by omitting duplicates
-                        (implies sorting)
+                       tag field name (append to each input record a
+                       running number, starting at 1)
 
-                        ''')
+                       ''')
+    group.add_argument('--unique', '-u', action = 'store_true',
+                       help = '''
+
+                       ensure unique records by ignoring duplicates
+                       (implies sorting)
+
+                       ''')
 
     args = parser.parse_args(argv)
     args.prog = prog or parser.prog
@@ -51,37 +56,48 @@ def parsearguments(argv, *, prog = None):
 
 def main(args, ins, ous):
 
-    names = makenames(args.names)
+    head = makenames(args.field)
+    [tag] = (args.tag and makenames([args.tag])) or [None]
 
-    if args.unique:
-        data = records(ins, head = None, unique = True)
-    else:
-        data = (
-            [str(k).encode('utf-8')] + r
-            for k, r in enumerate(records(ins, head = None, ), start = 1)
-        )
+    data = records(ins, head = None, unique = args.unique)
 
     first = next(data, None)
     if first is not None:
-        fillnames(names, len(first))
-        if len(first) < len(names):
+        fillnames(head, len(first))
+        if len(first) < len(head):
             raise BadData('too many names: {} fields, {} names'
-                          .format(len(first), len(names)))
+                          .format(len(first), len(head)))
 
-    checknames(names)
+    checknames(head)
+    if tag and tag in head:
+        raise BadData('tag is in head: ' + tag.decode('UTF-8'))
 
-    ous.write(b'\t'.join(names))
+    ous.write(b'\t'.join(head))
+    tag and ous.write(b'\t')
+    tag and ous.write(tag)
     ous.write(b'\n')
 
     if first is None: return
 
     ous.write(b'\t'.join(first))
+    tag and ous.write(b'\t')
+    tag and ous.write(b'1')
     ous.write(b'\n')
 
-    for record in data:
-        if len(record) == len(names):
-            ous.write(b'\t'.join(record))
+    def check(r, n = len(head)):
+        if len(r) == n: return
+        raise BadData('different number of fields: {} fields, {} names'
+                      .format(len(record), len(head)))
+
+    if args.unique:
+        for r in data:
+            check(r)
+            ous.write(b'\t'.join(r))
             ous.write(b'\n')
-        else:
-            raise BadData('different number of fields: {} fields, {} names'
-                          .format(len(record), len(names)))
+    else:
+        for k, r in enumerate(data, start = 2):
+            check(r)
+            ous.write(b'\t'.join(r))
+            ous.write(b'\t')
+            ous.write(str(k).encode('UTF-8'))
+            ous.write(b'\n')

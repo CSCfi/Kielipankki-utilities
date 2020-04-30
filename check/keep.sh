@@ -35,7 +35,7 @@ test002
 
 test003 () {
     setup $FUNCNAME
-    ./rel-keep --name=mean check/numero.tsv \
+    ./rel-keep --field=mean check/numero.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"

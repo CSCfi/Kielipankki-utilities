@@ -9,7 +9,7 @@ import sys
 
 from .args import transput_args
 from .args import BadData
-from .names import makenames, fillnames, checknames
+from .names import makenames
 from .data import getter, readhead, records
 
 def parsearguments(argv, *, prog = None):
@@ -23,13 +23,13 @@ def parsearguments(argv, *, prog = None):
 
     parser = transput_args(description = description)
 
-    parser.add_argument('--names', '-n', metavar = 'name(s)',
+    parser.add_argument('--field', '-f', metavar = 'name*',
                         action = 'append', default = [],
                         help = '''
 
                         fields desired to be in order before others,
-                        can be separated by commas or spaces or option
-                        repeated
+                        can be separated by commas or spaces, or
+                        option can be repeated
 
                         ''')
 
@@ -40,8 +40,7 @@ def parsearguments(argv, *, prog = None):
 
 def main(args, ins, ous):
 
-    order = makenames(args.names)
-    checknames(order)
+    order = makenames(args.field)
 
     head = readhead(ins, old = order)
 

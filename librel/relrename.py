@@ -21,14 +21,14 @@ def parsearguments(argv, *, prog = None):
 
     parser = transput_args(description = description)
 
-    parser.add_argument('--maps', '-m', metavar = 'mapping(s)',
+    parser.add_argument('--map', '-m', metavar = 'old=new*',
+                        dest = 'mapping',
                         action = 'append', default = [],
                         help = '''
 
                         desired mappings of an old name to new (which
-                        may also be an old name), in the form old=new,
-                        can be separated by commas or spaces or option
-                        repeated
+                        may also be an old name), can be separated by
+                        commas or spaces, or option can be repeated
 
                         ''')
 
@@ -39,13 +39,9 @@ def parsearguments(argv, *, prog = None):
 
 def main(args, ins, ous):
 
-    mapping = makerenames(args.maps)
+    mapping = makerenames(args.mapping)
 
-    head = readhead(ins)
-
-    bad = [old for old in mapping if old not in head]
-    if bad:
-        raise BadData('old not in head: ' + b' '.join(bad).decode('UTF-8'))
+    head = readhead(ins, old = mapping.keys())
 
     newhead = [mapping.get(old, old) for old in head]
     if len(set(newhead)) < len(newhead):

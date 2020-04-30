@@ -35,11 +35,11 @@ test002
 
 test003 () {
     setup $FUNCNAME
-    ./rel-rename --maps=pi=half,tau=full < check/tau.tsv \
+    ./rel-rename --map=pi=half,tau=full < check/tau.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "file/stdout, two fields in one long option"
+    report "file/stdout, double field option"
     cleanup
 }
 

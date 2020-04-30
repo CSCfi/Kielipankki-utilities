@@ -22,12 +22,12 @@ def parsearguments(argv, *, prog = None):
 
     parser = transput_args(description = description)
 
-    parser.add_argument('--key', '-k', metavar = 'name(s)',
+    parser.add_argument('--field', '-f', metavar = 'name*',
                         action = 'append', default = [],
                         help = '''
 
                         fields to sort by, can be separated by commas
-                        or spaces or option repeated
+                        or spaces, or option can be repeated
 
                         ''')
 
@@ -38,8 +38,7 @@ def parsearguments(argv, *, prog = None):
 
 def main(args, ins, ous):
 
-    key = makenames(args.key)
-    checknames(key)
+    key = makenames(args.field)
 
     head = readhead(ins, old = key)
 

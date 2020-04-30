@@ -22,12 +22,12 @@ def parsearguments(argv, *, prog = None):
 
     parser = transput_args(description = description)
 
-    parser.add_argument('--name', '-n', metavar = 'name*',
+    parser.add_argument('--field', '-f', metavar = 'name*',
                         action = 'append', default = [],
                         help = '''
 
                         fields to drop, can be separated by commas or
-                        spaces or option repeated
+                        spaces, or option can be repeated
 
                         ''')
 
@@ -38,7 +38,7 @@ def parsearguments(argv, *, prog = None):
 
 def main(args, ins, ous):
 
-    key = makenames(args.name)
+    key = makenames(args.field)
 
     head = readhead(ins, old = key)
     key = [name for name in head if name not in key]

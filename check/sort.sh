@@ -23,7 +23,7 @@ test001
 
 test002 () {
     setup $FUNCNAME
-    ./rel-sort --key=tau < check/tau.tsv \
+    ./rel-sort --field=tau < check/tau.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"

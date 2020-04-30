@@ -35,11 +35,11 @@ test002
 
 test003 () {
     setup $FUNCNAME
-    ./rel-order --names=pos < check/tau.tsv \
+    ./rel-order --field=pos < check/tau.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "stdin/stdout, name a field"
+    report "stdin/stdout, one field"
     cleanup
 }
 

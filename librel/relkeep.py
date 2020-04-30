@@ -8,8 +8,7 @@
 import sys
 
 from .args import transput_args
-from .args import BadData
-from .names import makenames, fillnames, checknames
+from .names import makenames
 from .data import readhead, groups
 
 def parsearguments(argv, *, prog = None):
@@ -22,12 +21,12 @@ def parsearguments(argv, *, prog = None):
 
     parser = transput_args(description = description)
 
-    parser.add_argument('--name', '-n', metavar = 'name*',
+    parser.add_argument('--field', '-f', metavar = 'name*',
                         action = 'append', default = [],
                         help = '''
 
                         fields to keep, can be separated by commas or
-                        spaces or option repeated
+                        spaces, or option can be repeated
 
                         ''')
 
@@ -38,7 +37,7 @@ def parsearguments(argv, *, prog = None):
 
 def main(args, ins, ous):
 
-    key = makenames(args.name)
+    key = makenames(args.field)
 
     head = readhead(ins, old = key)
 

@@ -23,11 +23,11 @@ test001
 
 test002 () {
     setup $FUNCNAME
-    ./rel-from check/records.txt \
+    ./rel-from --tag=tid check/records.txt \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "file/stdout, no options"
+    report "file/stdout, --tag"
     cleanup
 }
 
