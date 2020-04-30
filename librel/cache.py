@@ -28,7 +28,8 @@ class Cache():
 
     '''
 
-    def __init__(self, limit):
+    def __init__(self, limit, *, head):
+        self._head_ = head
         self._limit_ = limit
         self._cache_ = []
         self._store_ = None
@@ -62,7 +63,7 @@ class Cache():
         def it():
             yield from self._cache_
             if self._count_ < self._limit_: return
-            yield from records(open(self._store_, 'rb'))
+            yield from records(open(self._store_, 'rb'), head = self._head_)
 
         return it()
 

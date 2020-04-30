@@ -21,3 +21,5 @@ bash check/union.sh
 bash check/meet.sh
 bash check/sans.sh
 bash check/symm.sh
+
+bash check/join.sh

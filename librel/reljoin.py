@@ -75,8 +75,8 @@ def join(ins1, ins2, ous, *, many):
     ous.write(b'\t'.join(oth))
     ous.write(b'\n')
 
-    cache1 = Cache(many)
-    cache2 = Cache(many)
+    cache1 = Cache(many, head = head1)
+    cache2 = Cache(many, head = head2)
 
     try:
         body1 = groups(ins1, head = head1, key = tuple(map(head1.index, key)))
