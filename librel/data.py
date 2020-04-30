@@ -53,7 +53,7 @@ def records(ins, *, head, unique = False, key = ()):
     if head is not None and len(head) == 0:
         # TODO (otherwise an empty input line is taken to be a record
         # of one field that happens to contain the empty string)
-        return empty_records(ins, unique)
+        return empty_records(ins)
 
     if not unique and not key:
         return (record(line) for line in ins)
@@ -74,6 +74,13 @@ def records(ins, *, head, unique = False, key = ()):
     # TODO ensure termination how
 
     return (record(line) for line in proc.stdout)
+
+def empty_records(ins):
+    for line in ins:
+        line = line.rstrip(b'\r\n')
+        if line:
+            raise BadData('too many fields')
+        yield []
 
 def groups(ins, *, head, key):
     '''Generate from the binary input stream each tuple of key values
