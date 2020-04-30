@@ -10,8 +10,6 @@ if date == '':
     stderr.write('Error: no date found for mets file ' + argv[1] + "\n")
     exit(1)
 
-#link_info = subprocess.getoutput('grep -m 1 "%s" %s' % (mets['issue_title'], argv[2]))
-print(mets['publ_id'])
 link_info = subprocess.getoutput('grep -m 1 ",\\"%s\\"," %s' % (mets['publ_id'], argv[2]))
 if link_info == '':
     stderr.write('Error: no link info found for mets file ' + argv[1] + "\n")
