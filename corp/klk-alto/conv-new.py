@@ -98,6 +98,10 @@ def align_data(element):
                                 value = value[:len(token)] # only matching part of CC value
                                 if value == '':
                                     value = '_' # empty value (words that are hyphenated between pages)
+                            if key == "HYPH":
+                                value = value[:len(token)+1] # only matching part of HYPH value
+                                if value == '':
+                                    value = '_' # empty value (words that are hyphenated between pages)
                             if key not in new_atts.keys():
                                 new_atts[key] = value
                             else:
@@ -121,6 +125,8 @@ def align_data(element):
                 if token != '':
                     atts1 = deepcopy(atts)
                     atts1["CC"] = atts["CC"][:len(token)] # only matching part of CC value
+                    if "HYPH" in atts1.keys():
+                        atts1["HYPH"] = atts["HYPH"][:len(token)+1] # only matching part of HYPH value
                     aligned_sent.append((token, atts1))
                 string = string[len(token):].strip()
                 # the part of string that did not match will be processed on next iteration
@@ -129,6 +135,11 @@ def align_data(element):
                     if value == '':
                         value = '_' # empty value (words that are hyphenated between pages)
                     atts["CC"] = value
+                    if "HYPH" in atts.keys():
+                        value = atts["HYPH"][len(token)+1:] # only matching part of HYPH value
+                        if value == '':
+                            value = '_' # empty value (words that are hyphenated between pages)
+                        atts["HYPH"] = value
                     string_data = [ ( string, atts ) ] + string_data
             else:
                 stderr.write('ERROR: unable to find token "%s" in text string "%s"!\n' % (token, string))
@@ -185,7 +196,7 @@ def sentence(sent):
         if 'HYPH' in atts.keys():
             hyph = atts['HYPH']
         else:
-            hyph = atts['CONTENT']
+            hyph = token
         string += '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (token, s_id, cont, vpos, ocr, cc, hyph)
         tokencount += 1
     sentence_atts = { 'id' : sentence_id, }
