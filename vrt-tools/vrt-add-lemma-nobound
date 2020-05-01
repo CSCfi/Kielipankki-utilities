@@ -209,6 +209,59 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('vanha', 'poika'),
         ('vieras', 'mies'),
     }
+    _ordinal_lemmas = set(
+        """ensimmäinen
+           toinen
+           kolmas
+           neljäs
+           viides
+           kuudes
+           seitsemäs
+           kahdeksas
+           yhdeksäs
+           kymmenes
+           sadas
+           tuhannes
+           miljoonas
+           miljardis
+           biljoonas
+           toista"""
+        .split())
+    _numeral_lemmas = _ordinal_lemmas | set(
+        """nolla
+           yksi
+           kaksi
+           kolme
+           neljä
+           viisi
+           kuusi
+           seitsemän
+           kahdeksan
+           yhdeksän
+           kymmenen
+           sata
+           tuhat
+           miljoona
+           miljardi
+           biljoona
+           kolmisen
+           nelisen
+           viitisen
+           kuutisen
+           seitsemisen
+           kahdeksisen
+           yhdeksisen
+           kymmenisen
+           pari"""
+        .split())
+    _powers10 = {
+        'kymmenen': (1, 'kymmentä'),
+        'sata': (2, 'sataa'),
+        'tuhat': (3, 'tuhatta'),
+        'miljoona': (6, 'miljoonaa'),
+        'miljardi': (9, 'miljardia'),
+        'biljoona': (12, 'biljoonaa'),
+    }
     _adjust_case_fns = [
         (str.islower, str.lower),
         (str.isupper, str.upper),
@@ -368,6 +421,11 @@ class NoBoundaryLemmaAdder(InputProcessor):
         lemma = lemma.decode()
         wordform = wordform.decode()
         lemma_parts = self._lemma_split_keepsep_re.split(lemma)
+        if all((lemma_part == self._args.boundary_char
+                or lemma_part in self._numeral_lemmas
+                or lemma_part.isdigit())
+               for lemma_part in lemma_parts):
+            return self._lemmatize_numeral(lemma_parts, wordform).encode()
         wf_prefix_len = 0
         lemma_prefix_len = 0
         lemma_nobound = []
@@ -502,6 +560,45 @@ class NoBoundaryLemmaAdder(InputProcessor):
                         return return_vals
         # print('NOT FOUND')
         return lemmapart_this, 0, 0
+
+    def _lemmatize_numeral(self, lemmaparts, wordform):
+        """Lemmatize compound numerals correctly based on compound parts.
+
+        Omorfi lemmatizes all compound parts separately: for example,
+        kahtasataa -> kaksi|sata. This function converts it to
+        "kaksisataa". The wordform is used only for inserting hyphens
+        at the correct places.
+        """
+        lemmaparts = [lemmapart for lemmapart in lemmaparts
+                      if lemmapart != self._args.boundary_char]
+        if all(lemmapart in self._ordinal_lemmas
+               for lemmapart in lemmaparts[:-1]):
+            if lemmaparts[-1] in self._ordinal_lemmas:
+                return ''.join(lemmaparts)
+            else:
+                # Handle kymmenesmiljoonas : kymmenes#miljoona produced by
+                # Omorfi
+                return ''.join(lemmaparts) + 's'
+        wf_posthyphen_prefixes = re.findall(r'-(..)', wordform)
+        hyphens_added = 0
+        result = []
+        for partnum, lemmapart in enumerate(lemmaparts):
+            if (partnum > 0 and hyphens_added < len(wf_posthyphen_prefixes)
+                    and lemmapart.startswith(
+                        wf_posthyphen_prefixes[hyphens_added])):
+                result.append('-')
+                hyphens_added += 1
+            if partnum > 0 and lemmapart in self._powers10:
+                pow10, inflform = self._powers10[lemmapart]
+                if lemmaparts[partnum - 1] in self._powers10:
+                    prev_pow10, _ = self._powers10[lemmaparts[partnum - 1]]
+                    if prev_pow10 > pow10:
+                        result.append(lemmapart)
+                        continue
+                result.append(inflform)
+            else:
+                result.append(lemmapart)
+        return ''.join(result)
 
 
 if __name__ == '__main__':

@@ -525,3 +525,57 @@
     stdin: *output-18
   output:
     stdout: *output-18
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compound numerals'
+  defs: &output-19 |
+    sataneljä	sata#neljä	sataneljä
+    kaksisataakolmekymmentäneljä	kaksi#sata#kolme#kymmenen#neljä	kaksisataakolmekymmentäneljä
+    seitsemänkymmenenneljän	seitsemän#kymmenen#neljä	seitsemänkymmentäneljä
+    10-miljoonan	10#miljoona	10-miljoonaa
+    satojamiljoonia	sata#miljoona	satamiljoonaa
+    neljäsosamiljoonan	neljäsosa#miljoona	neljäsosamiljoona
+    satamiljoonaa	sata#miljoona	satamiljoonaa
+    puolimiljoona	puoli#miljoona	puolimiljoona
+    kahdensadanmiljoonan	kaksi#sata#miljoona	kaksisataamiljoonaa
+    kymmenesmiljoonas	kymmenes#miljoona	kymmenesmiljoonas
+    neljännesmiljoonaa	neljännes#miljoona	neljännesmiljoona
+    neljääsataa	neljä#sata	neljäsataa
+    neljälläsadalla	neljä#sata	neljäsataa
+    pariasataa	pari#sata	parisataa
+    tuhatneljäsataa	tuhat#neljä#sata	tuhatneljäsataa
+    seitsemälläsadalla	seitsemän#sata	seitsemänsataa
+    tuhattaviittäsataa	tuhat#viisi#sata	tuhatviisisataa
+    kolmetuhattaviisisataa	kolme#tuhat#viisi#sata	kolmetuhattaviisisataa
+    nelisensataa	nelisen#sata	nelisensataa
+    pariinsataan	pari#sata	parisataa
+    neljällätoista	neljä#toista	neljätoista
+    sataanviiteentoista	sata#viisi#toista	sataviisitoista
+    neljäntenätoista	neljäs#toista	neljästoista
+    neljäkymmentäkolme	neljä#kymmenen#kolme	neljäkymmentäkolme
+    kahdenkymmenenkolmen	kaksi#kymmenen#kolme	kaksikymmentäkolme
+    tuhatkolme	tuhat#kolme	tuhatkolme
+    sataaviittä	sata#viisi	sataviisi
+    Kahtakymmentäseitsemää	kaksi#kymmenen#seitsemän	kaksikymmentäseitsemän
+    neljääkymmentä	neljä#kymmenen	neljäkymmentä
+    sataakymmentä	sata#kymmenen	satakymmenen
+    pariakymmentä	pari#kymmenen	parikymmentä
+    neljissäkymmenissä	neljä#kymmenen	neljäkymmentä
+    sataakahtakymmentä	sata#kaksi#kymmenen	satakaksikymmentä
+    Tuhatneljäsataaviisikymmentä	tuhat#neljä#sata#viisi#kymmenen	tuhatneljäsataaviisikymmentä
+    kolmekymmentä-viisikymmentä	kolme#kymmenen#viisi#kymmenen	kolmekymmentä-viisikymmentä
+    nelisenkymmentä	nelisen#kymmenen	nelisenkymmentä
+    kaksinkymmenesti	kaksi#kymmenen	kaksikymmentä
+    kuusi-seitsemänvuotiaan	kuusi#seitsemän#vuotias	kuusi-seitsemänvuotias
+    30-tuhannella	30#tuhat	30-tuhatta
+    kahdeksaatuhatta	kahdeksan#tuhat	kahdeksantuhatta
+    sataatuhatta	sata#tuhat	satatuhatta
+    kymmeniätuhansia	kymmenen#tuhat	kymmenentuhatta
+    kahdestasadastatuhannesta	kaksi#sata#tuhat	kaksisataatuhatta
+    kahtakymmentäviittätuhatta	kaksi#kymmenen#viisi#tuhat	kaksikymmentäviisituhatta
+    kolmesataaviisituhatta	kolme#sata#viisi#tuhat	kolmesataaviisituhatta
+    Viisisataakaksikymmentäviisituhatta	viisi#sata#kaksi#kymmenen#viisi#tuhat	viisisataakaksikymmentäviisituhatta
+  input:
+    stdin: *output-19
+  output:
+    stdout: *output-19
