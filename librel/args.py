@@ -1,11 +1,7 @@
 '''Common interface to relation tools (rel tools), including a common
 version number.
 
-Initially a copy of vrt-tools/vrtargslib.py, with any of the problems
-that still plague that about abnormal terminations. Start with the
-only differences being version number and identification as a rel
-tools instead of a vrt tool. Proceed to allow a second input file
-TODO.
+Adapted from vrt-tools (vrtargslib.py) with much hindsight.
 
 '''
 
@@ -17,7 +13,7 @@ import os, sys, traceback
 from .bad import BadData, BadCode
 from .datasum import sumfile
 
-VERSION = '0.0.0 (2020-04-26)'
+VERSION = '0.1.0 (2020-05-01)'
 
 def version_args(*, description):
     '''Return an initial argument parser for a command line tool that
@@ -29,7 +25,8 @@ def version_args(*, description):
 
     parser.add_argument('--version',
                         action = 'version',
-                        version = '%(prog)s: rel tools {}'.format(VERSION))
+                        version = '%(prog)s: FIN-CLARIN rel tools {}'
+                        .format(VERSION))
 
     return parser
 
@@ -104,7 +101,8 @@ def transput_args(*, description, inplace = True,
 
     parser.add_argument('--version',
                         action = 'version',
-                        version = '%(prog)s: rel tools {}'.format(VERSION))
+                        version = '%(prog)s: FIN-CLARIN rel tools {}'
+                        .format(VERSION))
 
     return parser
 
@@ -172,8 +170,7 @@ def transput(args, main, *,
              joining = False,
              matching = False):
 
-    # TODO that summing, joining, matching are mutually exclusive but
-    # joining and matching are themselves TODO
+    # TODO that summing, joining, matching are mutually exclusive
 
     infile = args.infile
 
