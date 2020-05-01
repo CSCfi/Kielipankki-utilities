@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 
 
 # Extract information for the Korp MySQL name database tables from VRT

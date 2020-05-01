@@ -279,9 +279,9 @@ ENTITIES = {
 
 QUOTES = {
     # Two more characters are entified in meta
-    '&quote;' : '&quote;',
+    '&quot;' : '&quot;',
     '&apos;' : '&apos;',
-    '"' : '&quote;',
+    '"' : '&quot;',
     "'" : '&apos;'
 }
 

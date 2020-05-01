@@ -10,9 +10,20 @@
 tab='	'
 
 # Directory for temporary files
-tmpdir=${TMPDIR:-${TEMPDIR:-${TMP:-$TEMP}}}
+tmpdir=${LOCAL_SCRATCH:-${TMPDIR:-${TEMPDIR:-${TMP:-$TEMP}}}}
+# FIXME: This does not always work well, as e.g. $TMPDIR is chosen if
+# it is defined even if it is very small (as by default in Puhti
+# compute nodes). We now rely on the user to set TMPDIR appropriately
+# in such cases. But would we be able to do any better as a filesystem
+# with more space might be much slower?
 if [ "x$tmpdir" = "x" ]; then
-    default_tmpdirs=${default_tmpdirs:-"/tmp /var/tmp"}
+    default_tmpdirs=${default_tmpdirs:-"
+			 /tmp
+			 /var/tmp
+			 .
+			 $HOME/tmp
+			 $HOME
+		      "}
     tmpdir_cands=
     # Find the directories that are writable
     for tmpdir_cand in $default_tmpdirs; do
@@ -22,7 +33,8 @@ if [ "x$tmpdir" = "x" ]; then
     done
     # Find the directory with the most free space: first find the
     # number of the dir in $tmpdir_cands, then choose the dir with
-    # that number.
+    # that number. Note that this does not take any quotas into
+    # account; could it?
     tmpdir_num=$(
 	df $tmpdir_cands |
 	tail -n+2 |

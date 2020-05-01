@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 
@@ -86,7 +86,11 @@ description lines must have. The components are as follows:
   default value is specified, no variable is initialized.
 - description: A description of the option for the usage message; may
   span several lines, each beginning with whitespace; is subject to
-  reformatting (word wrapping).
+  reformatting (word wrapping). If the option has a default value, the
+  string "%(default)s" is replaced with it; if not present and if the
+  description does not contain the string "(default: " or "(Default:
+  ", then "(default: DEFAULT)" is appended to the description (where
+  DEFAULT is the default value).
 
 Empty lines and lines beginning with a # are ignored. A line may be
 continued on the next line by ending in a backslash. This is useful in
@@ -149,7 +153,7 @@ The script generates the following sections:
   configuration file;
 - getopt_opts: getopt option specifications (arguments for -o and -l)
   as shell variable assignments (for 'eval "..."');
-- set_defaults: setting defaul values as shell variable assignments
+- set_defaults: setting default values as shell variable assignments
   (for 'eval "..."');
 - opt_usage: option descriptions for a usage message; and
 - opt_handler: the actual option handler (a case statement, for 'eval
@@ -533,7 +537,17 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         helptext = optspec.get('descr') or ''
         default = optspec.get('default')
         if default:
-            helptext += (' ' if helptext else '') + '(default: ' + default + ')'
+            if '%(default)s' in helptext:
+                helptext = helptext.replace('%(default)s', default)
+            elif not re.search(r'\([Dd]efault: ', helptext):
+                # FIXME: Testing for "(default: " is potentially a bit fragile;
+                # would it be better to have some kind of a directive in the
+                # description to suppress the default value?
+                if helptext and helptext[-1] == '.':
+                    helptext = helptext[:-1] + ' (default: ' + default + ').'
+                else:
+                    helptext += ((' ' if helptext else '')
+                                 + '(default: ' + default + ')')
         if helptext:
             helptext = self._wrap_usage_text(helptext, 'text')
         if len(optlist) <= self._help_indent['text'] - 2:

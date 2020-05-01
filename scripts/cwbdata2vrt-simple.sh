@@ -27,6 +27,9 @@ structural-attributes|struct-attrs=ATTRLIST "text sentence" struct_attrs
     output the structural attributes listed in ATTRLIST, separated by spaces
 all-attributes|all all_attrs
     output all positional and structural attributes in the corpora
+sort-structural-attributes|sort sort_struct_attrs
+    sort structural attribute annotations ("XML attributes") alphabetically,
+    instead of using their order of declaration in the registry file
 include-xml-declaration
     include XML declaration in the output (omitted by default)
 include-corpus-element
@@ -88,7 +91,7 @@ else
 	    process_tags=process_tags_single
 	fi
     else
-	process_tags=cat
+	process_tags=cat_noargs
     fi
 fi
 
@@ -164,20 +167,39 @@ process_tags_single () {
     '
 }
 
+# Perl code snippets depending on whether the structure annotations
+# should be sorted or not. Using a list instead of a string does not
+# seem to be significantly slower, so maybe we could have only the
+# perl_attrs_get different (with or without sorting).
+if [ "x$sort_struct_attrs" = x ]; then
+    perl_attrs_clear='$attrs = ""'
+    perl_attrs_append='$attrs .= " $attrname=\"$attrval\""'
+    perl_attrs_get='$attrs'
+    perl_attrs_isnonempty='$attrs'
+else
+    perl_attrs_clear='@attrs = ()'
+    perl_attrs_append='push(@attrs, "$attrname=\"$attrval\"")'
+    perl_attrs_get='" " . join (" ", sort { substr($a, 0, index($a, "=")) cmp
+                                            substr($b, 0, index($b, "=")) }
+                                          @attrs)'
+    perl_attrs_isnonempty='scalar(@attrs)'
+fi
+
 process_tags_multi () {
     local corp
     corp=$1
     perl -ne '
         BEGIN {
-            $prevtag = $tag = $attrs = "";
+            $prevtag = $tag = "";
+	    '"$perl_attrs_clear"';
 	    $cpos = 0;
         }
         if (/^(<[^\/_\s]*)(?:_([^ ]*)( )?(.*))?>$/) {
 	    # Structure start tag, possibly with an annotation value
             $tag = $1;
-            if ($tag ne $prevtag && $attrs) {
-                print "$prevtag$attrs>\n";
-                $attrs = "";
+            if ($tag ne $prevtag && '"$perl_attrs_isnonempty"') {
+                print "$prevtag" . '"$perl_attrs_get"' . ">\n";
+                '"$perl_attrs_clear"';
             }
             $prevtag = $tag;
 	    if ($2) {
@@ -198,7 +220,7 @@ process_tags_multi () {
 		}
 		$attrval = $4;
 		'"$perl_encode_entities_attrval"'
-		$attrs .= " $attrname=\"$attrval\"";
+		'"$perl_attrs_append"';
 	    }
         } elsif (/^(<\/[^_]*)(_.*)?>/) {
 	    # Structure end tag
@@ -209,10 +231,11 @@ process_tags_multi () {
             $prevtag = $tag;
         } else {
 	    # Token, XML declaration or <corpus> start tag
-            if ($prevtag && $attrs) {
-                print "$prevtag$attrs>\n";
+            if ($prevtag && '"$perl_attrs_isnonempty"') {
+                print "$prevtag" . '"$perl_attrs_get"' . ">\n";
             }
-            $tag = $prevtag = $attrs = "";
+            $tag = $prevtag = "";
+	    '"$perl_attrs_clear"';
 	    if (! /^</) {
 	       	# Token
 	        '"$perl_decode_entities_token"'

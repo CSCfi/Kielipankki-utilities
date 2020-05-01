@@ -2,19 +2,21 @@
 
 # - Mitä on erä?
 # - Riistaa kuten te.
-# (Seen in a Tenavat cartoon that has not be found again.)
+# (Seen in a Tenavat cartoon that has not been found again.)
 
 from argparse import ArgumentParser, REMAINDER
 from itertools import chain
 from shlex import quote
 from subprocess import Popen, PIPE
 from tempfile import mkstemp
-import os
+import os, grp, sys
 
 parser = ArgumentParser(description = '''
 
-Send a single command to the batch system in Taito, with all manner of
+Send a single command to the batch system in Puhti, with all manner of
 defaults, to be run in the current working directory, without waiting.
+
+By default, module kieli is loaded quietly.
 
 ''')
 parser.add_argument('command', help = "an executable command")
@@ -63,19 +65,125 @@ group.add_argument('--GiB', metavar = 'num',
 
 parser.add_argument('--cat', action = 'store_true',
                     help = '''
-                    write the job desciption to standard output
+                    write the job description to standard output
                     instead of sending it to the batch queue
                     (for information only when using temp file)
                     ''')
 
-parser.add_argument('--test', action = 'store_const', const = 'test',
+if os.path.exists('/appl/soft/ling'):
+    parser.add_argument('--cores', '-C',
+                        choices = [
+                            # Puhti nodes have 40 cores, trying to
+                            # allocate all cores in the same node so that
+                            # the communication between them is fast -
+                            # TODO to allow larger multi-node numbers for
+                            # heavier but core-savvy jobs like ffmpeg
+                            '1', '2', '4', '5',
+                            '10', '20', '40'
+                        ],
+                        default = '4', # not sure!
+                        help = '''
+                        how many Puhti cores to use,
+                        all in one node [tentative default is 4]
+                        (nodes have 40 cores)
+                        ''')
+else:
+    parser.add_argument('--cores', '-C',
+                        choices = [
+                            # Taito nodes have 24 cores, trying to
+                            # allocate all cores in the same node so that
+                            # the communication between them is fast
+                            '1', '2', '4', '8', '12', '24'
+                        ],
+                        default = '4', # not sure!
+                        help = '''
+                        how many Taito cores to use,
+                        all in one node [tentative default is 4]
+                        (nodes have 24 cores)
+                        ''')
+
+# default partition is set just before parsing the arguments;
+# Taito defaults to "serial" as always,
+# Puhti will default to "small" (1 node, up to 40 cores).
+group = parser.add_mutually_exclusive_group()
+group.add_argument('--test', dest = 'partition',
+                   action = 'store_const', const = 'test',
+                   help = '''
+                   run in "test" partition
+                   ''')
+group.add_argument('--serial', dest = 'partition',
+                   action = 'store_const', const = 'serial',
+                   help = '''
+                   run in "serial" partition (Taito default)
+                   ''')
+group.add_argument('--small', dest = 'partition',
+                   action = 'store_const', const = 'small',
+                   help = '''
+                   run in "small" partition (Puhti default)
+                   ''')
+group.add_argument('--large', dest = 'partition',
+                   action = 'store_const', const = 'large',
+                   help = '''
+                   run in "large" partition (Puhti)
+                   ''')
+
+# default billing group set below just before parsing
+parser.add_argument('--bill', '-B', metavar = 'group',
                     help = '''
-                    run in test partition instead of serial
+                    bill the project associated with the group
+                    [defaults to clarin if user is in clarin]
+                    ''')
+
+parser.add_argument('--kieli',
+                    choices = [
+                        'yes',
+                        'out',
+                        'err',
+                        'null',
+                        'no'
+                    ],
+                    default = 'null',
+                    help = '''
+                    how to load modules kieli and biojava
+                    (default is null, load quietly;
+                    yes leaves its stdout and stderr as they are,
+                    out redirects stderr to stdout,
+                    err stdout to stderr,
+                    null both to /dev/null, and
+                    no means do not load)
                     ''')
 
 # add options
 
+groupnames = [ grp.getgrgid(k).gr_name for k in os.getgroups() ]
+parser.set_defaults(partition = ('small' # guess this is Puhti
+                                 if os.path.exists('/appl/soft/ling') else
+                                 # guess this is Taito
+                                 'serial'),
+                    bill = ('clarin' if 'clarin' in groupnames else None))
+
 args = parser.parse_args()
+args.prog = parser.prog
+
+if not os.path.exists('/appl/soft/ling'):
+    # Taito does not seem to accept any value for --account
+    # but works as usual when --account is not specified.
+    print('{}: info: ignoring billing group "{}" in Taito'
+          .format(args.prog, args.bill),
+          file = sys.stderr)
+elif args.bill in groupnames:
+    print('{}: info: billing "{}" project'.format(args.prog, args.bill),
+          file = sys.stderr)
+elif args.bill:
+    print('{}: error: billing group "{}" not in:'
+          .format(args.prog, args.bill),
+          *groupnames,
+          file = sys.stderr)
+    exit(1)
+else:
+    print('{}: error: no billing group'.format(args.prog),
+          file = sys.stderr)
+    exit(1)
 
 def simplepath(path):
     '''Normalize path as relative to current directory if under the
@@ -143,6 +251,18 @@ def setup(args):
 
 logdir, outfile, tempfile = setup(args)
 
+# watch out! appending ' biojava' to the command when in Puhti,
+# because otherwise Puhti batch jobs do not have java!
+kieli = ({ 'yes' : 'module load kieli',
+           'out' : '2>&1 module load kieli',
+           'err' : '1>&2 module load kieli',
+           'null' : '1> /dev/null 2>&1 module load kieli',
+           'no' : '# module load kieli' }
+         [args.kieli])
+
+# appending ' biojava' to 'module load kieli' in Puhti
+if os.path.exists('/appl/soft/ling'): kieli += ' biojava'
+
 # Depending on the output options, one of:
 # cmd arg ...
 # cmd arg ... > outfile
@@ -189,22 +309,30 @@ memory = ( '{}M'.format(args.MiB) if args.MiB else
 script = '''\
 #! /bin/bash
 #SBATCH --job-name={job}
+#SBATCH --account={bill}
 #SBATCH --partition={partition}
+#SBATCH --nodes={nodes}
+#SBATCH --ntasks={cores}
 #SBATCH --time={time}
 #SBATCH --mem={memory}
 #SBATCH --out={out}
 #SBATCH --error={err}
-#SBATCH --workdir={workdir}
+#SBATCH --chdir={workdir}
 
 echo command: {logcommand}
 echo outfile: {outfile}
 echo workdir: {workdir}
 echo partition: {partition}
+echo nodes: {nodes}
+echo cores: {cores}
 echo time: {time}
 echo memory: {memory}
+echo load kieli: {whetherkieli}
+echo billing group: {bill}
 echo
 date "+%F %T START"
 
+{kieli}
 {command}
 
 status=$?
@@ -214,7 +342,10 @@ T=$SECONDS
 printf -v time %d:%02d:%02d $((T/3600)) $((T%3600/60)) $((T%60))
 date "+%F %T FINISH IN $time WITH STATUS $status"
 '''.format(job = args.job,
-           partition = args.test or 'serial',
+           bill = args.bill,
+           partition = args.partition,
+           nodes = '1',
+           cores = args.cores,
            time = time,
            memory = memory,
            out = quote(os.path.join(args.log, '%j-{}.out'.format(args.job))),
@@ -222,8 +353,16 @@ date "+%F %T FINISH IN $time WITH STATUS $status"
            workdir = quote(os.getcwd()),
            logcommand = quote(logcommand),
            outfile = quote(outfile or '(stdout)'),
+           kieli = kieli,
+           whetherkieli = args.kieli,
            command = command,
            finish = finish)
+
+if not os.path.exists('/appl/soft/ling'):
+    # Taito does not seem to accept any value for --account,
+    # but works as usual when --account is not specified.
+    script = '\n'.join((line for line in script.split('\n')
+                        if not line.startswith('#SBATCH --account=')))
 
 with Popen(['cat' if args.cat else 'sbatch'], stdin = PIPE) as process:
     process.stdin.write(script.encode('UTF-8'))

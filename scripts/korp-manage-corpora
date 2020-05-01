@@ -1,0 +1,627 @@
+#! /bin/sh
+# -*- coding: utf-8 -*-
+
+# Copy or rename a Korp corpus to another name or remove a Korp
+# corpus: CWB data directory, registry file, data in the Korp MySQL
+# database
+#
+# korp-manage-corpora --help for more information
+#
+# TODO:
+# - Add command "alias": symlink CWB data, copy registry and MySQL
+#   data.
+
+
+progname=`basename $0`
+progdir=`dirname $0`
+
+baksuff_default="-YYYYMMDDhhmmss"
+verbose=1
+
+
+usage_header="Usage: $progname [options] (copy | rename) source target
+       $progname [options] (copy | rename) pattern corpus ...
+       $progname [options] remove corpus ...
+
+Manage (copy, rename or remove) the Korp corpora with the specified
+corpus ids: CWB data directory, registry file, alignment attributes in
+aligned corpora and Korp MySQL data (time data, lemgram index,
+relations tables and authorization data).
+
+The arguments to the copy and rename commands may be specified in two
+different forms: either a literal source and target corpus id (when
+copying only one corpus) or a substitution pattern and a list of
+source corpus ids to which to apply the pattern to get the target
+corpus ids. The substitution pattern can be a Perl substitution
+expression \"s/source/target/\" or semicolon-separated list of them,
+or it can be of the form \"source:target\", which is converted to the
+Perl expression \"s/source/target/\". Note that the \"e\" flag is not
+allowed in the Perl substitution expressions, for security reasons.
+
+For the remove command and when using a pattern in copy or rename, the
+corpus ids may contain shell wildcards that are expanded.
+
+When removing corpora, the script prompts to confirm the removal of
+each corpus unless the option --force is specified.
+
+The commands copy, rename and remove can be abbreviated as cp, mv and
+rm, respectively."
+
+optspecs='
+force
+    With copy or rename, force overwriting the target corpus if it
+    exists. The existing target is backed up by default; use
+    --no-backups to omit backups. With remove, do not prompt for
+    confirming the removal of each corpus.
+backup-suffix|suffix=SUFFIX "'$baksuff_default'" baksuff
+    Use SUFFIX as the suffix for the backup corpus name.
+no-backups !backups
+    Do not make a backup before overwriting an existing target corpus.
+comment=COMMENT
+    Append COMMENT to the standard comment added to the changelog in
+    the corpus registry file.
+omit-comment|no-comment
+    Do not add a changelog comment to the corpus registry file.
+dry-run
+    Output information on what would be done but do not actually do
+    it. (Cancels the effect of a possible --quiet.)
+verbose { verbose=2 }
+    Output more detailed information on what is done (or would be
+    done).
+quiet { verbose= }
+    Suppress warnings and informational messages.
+corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
+    Use DIR as the root directory of corpus files.
+registry=DIR "$cwb_regdir" { set_corpus_registry "$1" }
+    Use DIR as the CWB registry directory.
+'
+
+usage_footer="Note that when copying aligned corpora to a different name, it is
+in general advisable to copy all mutually aligned corpora with the
+same command using the appropriate --pattern, since in that case, the
+alignment attributes in the copies are renamed accordingly. If you
+copy only one corpus at a time, the alignment attribute in the aligned
+corpora are duplicated, with one attribute referring to the new copy,
+whereas the new copy has only the attribute referring to the original
+corpus."
+
+. $progdir/korp-lib.sh
+
+# Process options
+eval "$optinfo_opt_handler"
+
+
+case "$1" in
+    "copy" | "cp" )
+	command="copy"
+	;;
+    "rename" | "mv" )
+	command="rename"
+	;;
+    "remove" | "rm" )
+	command="remove"
+	;;
+    "" )
+	error "Please specify command and corpus or corpora"
+	;;
+    * )
+	error "Unrecognized command \"$1\""
+	;;
+esac
+shift
+
+substpatt=
+if in_str ":" "$1" || str_hasprefix "$1" "s/"; then
+    substpatt=$1
+    shift
+fi
+
+if [ "$command" = "remove" ] && [ "x$substpatt" != x ]; then
+    error "Cannot use substitution pattern with command remove"
+elif [ "$command" = "remove" ] || [ "x$substpatt" != x ]; then
+    if [ "x$1" = x ]; then
+	error "Please specify at least one corpus id"
+    fi
+else
+    if [ "x$2" = x ]; then
+	error "Please specify source and target corpus id, or a pattern and source corpus ids"
+    fi
+fi
+
+cmd_verb_copy="Copying"
+cmd_verb_past_copy="Copied"
+cmd_verb_rename="Renaming"
+cmd_verb_past_rename="Renamed"
+cmd_verb_remove="Removing"
+cmd_verb_past_remove="Removed"
+
+check_perl_syntax () {
+    local perl_msg
+    perl_msg=$(perl -c -e "$1" 2>&1)
+    if [ $? != 0 ]; then
+	perl_msg=${perl_msg% at -e *}
+	error "Perl syntax error in substitution \"$1\": $perl_msg"
+    fi
+}
+
+if [ "x$substpatt" != x ]; then
+    if in_str ":" "$substpatt" && ! str_hasprefix "$substpatt" "s/"; then
+	source=${substpatt%%:*}
+	target=${substpatt#*:}
+	substpatt="s/$source/$target/"
+    else
+	for patt in $(echo "$substpatt" | tr ";" " "); do
+	    if [ "${patt#s/}" = "$patt" ]; then
+		# Require that the Perl expression is s/.../.../, so
+		# that it cannot be e.g. unlink (remove)
+		error "Substitution expression is not of the form \"SOURCE:TARGET\" or \"s/SOURCE/TARGET/\": $patt"
+	    else
+		flags=${patt##*/}
+		if in_str "e" "$flags"; then
+		    # Forbid the "e" (eval) flag, as it could be used for
+		    # e.g. unlink
+		    error "Substitution expression may not contain the flag \"e\": $patt"
+		fi
+	    fi
+	    check_perl_syntax "$patt"
+	done
+    fi
+    check_perl_syntax "$substpatt"
+fi
+
+if [ "$baksuff" = "$baksuff_default" ]; then
+    baksuff=-$(date '+%Y%m%d%H%M%S')
+elif [ "x$baksuff" = x ]; then
+    error "Backup suffix must be non-empty"
+fi
+
+# Only warn on corpora not found, each with a separate message. The
+# function get_error_corpora is called from list_corpora if some of
+# the arguments were not found.
+warn_nonfound_corpora () {
+    local msg corpora corpus
+    msg=$1
+    corpora=${msg##*:}
+    for corpus in $corpora; do
+	verbose warn \
+		"Skipping corpus $corpus: not found in registry $cwb_regdir"
+    done
+}
+
+if [ "$command" = "remove" ] || [ "x$substpatt" != x ]; then
+    # This warns on all non-existent corpora at this point, in
+    # alphabetical order, instead of in the order in which they are on
+    # the command line.
+    corpora=$(list_corpora --on-error warn_nonfound_corpora "$@")
+elif [ "x$3" != x ]; then
+    shift 2
+    # Use $* instead of $@, as the latter would expand to separate
+    # arguments and if the error function is given multiple arguments,
+    # it expects that the first argument is the exit code.
+    error "Spurious argument(s) after source and target: $*"
+else
+    corpora=$1
+    target_corpus=$2
+fi
+
+if [ "x$verbose" = x ] && [ "x$dry_run" != x ]; then
+    warn "--dry-run cancels the effect of --quiet"
+    verbose=1
+fi
+
+
+multicorpus_tables="timedata timedata_date timespans lemgram_index corpus_info"
+multicorpus_tables_auth="auth_license auth_lbr_map auth_allow"
+
+# Set to non-null when renaming an existing target corpus for backup
+backing_up=
+
+
+apply_substpatt () {
+    local corpus patt
+    corpus=$1
+    patt=${2:-$substpatt}
+    echo "$corpus" |
+	perl -pe "$patt"
+}
+
+target_corpora="$(apply_substpatt "$corpora")"
+
+# If --verbose, echo the first argument (preceded by two spaces). If
+# not --dry-run, execute the rest of the arguments as a command.
+run_verb () {
+    local msg
+    msg=$1
+    shift
+    if [ "x$dry_run" != x ]; then
+	msg="Dry run: $msg"
+    fi
+    echo_verb 2 "  $msg"
+    if [ "x$dry_run" = x ]; then
+	"$@"
+    fi
+}
+
+extract_datadir () {
+    local regfile
+    regfile=$1
+    grep '^HOME ' $regfile |
+    cut -d' ' -f2
+}
+
+extract_top_datadir () {
+    local regfile
+    regfile=$1
+    extract_datadir "$regfile" |
+	sed -e 's,\(.*\)/.*,\1,'
+}
+
+manage_data () {
+    local cmd source target source_datadir target_datadir
+    cmd=$1
+    source=$2
+    target=$3
+    source_datadir=$(extract_datadir $cwb_regdir/$source)
+    if [ "$cmd" = "remove" ]; then
+	run_verb "Removing data directory $source_datadir and its contents" \
+		 rm_datadir "$source_datadir"
+    else
+	target_datadir=$top_datadir/$target
+	if [ "$cmd" = "copy" ]; then
+	    run_verb "Copying data directory $source_datadir to $target_datadir" \
+		     cp_datadir "$source_datadir" "$target_datadir"
+	else
+	    run_verb "Renaming data directory $source_datadir to $target_datadir" \
+		     mv_datadir "$source_datadir" "$target_datadir"
+	fi
+    fi
+}
+
+rm_datadir () {
+    rm -rf "$1"
+}
+
+cp_datadir () {
+    cp -dpr "$1" "$2"
+    ensure_perms "$2"
+}
+
+mv_datadir () {
+    mv "$1" "$2"
+    ensure_perms "$1"
+}
+
+manage_registry () {
+    local cmd source target source_u target_u source_reg target_reg comment_text
+    cmd=$1
+    source=$2
+    source_u=$(toupper $source)
+    source_reg=$cwb_regdir/$source
+    if [ "$cmd" != "remove" ]; then
+	target=$3
+	target_u=$(toupper $target)
+	target_reg=$cwb_regdir/$target
+	run_verb "Copying registry file $source_reg to $target_reg, changing corpus id" \
+		 cp_regfile $source $target $source_u $target_u \
+		 "$source_reg" "$target_reg"
+    fi
+    if [ "$cmd" != "copy" ]; then
+	run_verb "Removing registry file $source_reg" \
+		 rm_regfile "$source_reg"
+    fi
+}
+
+cp_regfile () {
+    local source target source_u target_u source_reg target_reg
+    source=$1
+    target=$2
+    source_u=$3
+    target_u=$4
+    source_reg=$5
+    target_reg=$6
+    cat "$source_reg" |
+	sed -e '
+		s,^\(## registry entry for corpus \)'$source_u',\1'$target_u',;
+		s,^\(ID *\)'$source',\1'$target',;
+		s,^\(HOME .*/\)'$source',\1'$target',;
+		s,^\(INFO .*/\)'$source'\(/\.info\),\1'$target'\2,' \
+		    > "$target_reg"
+    ensure_perms "$target_reg"
+    if [ "x$omit_comment" = x ]; then
+	comment_text="$(eval echo "\$cmd_verb_past_$cmd") corpus $source to $target"
+	if [ "x$comment" != x ]; then
+	    comment_text="$comment_text: $comment"
+	fi
+	cwb_registry_add_change_comment $target "$comment_text"
+    fi
+}
+
+rm_regfile () {
+    rm "$1"
+}
+
+manage_aligned () {
+    local cmd source target aligned_corpora aligned omit_cmt
+    cmd=$1
+    source=$2
+    target=$3
+    omit_cmt=
+    if [ "x$omit_comment" != x ]; then
+	omit_cmt=--omit-comment
+    fi
+    # If copying mutually aligned corpora with a substitution pattern
+    # (or if renaming when backing up), the alignment attributes of
+    # all the aligned corpora need to be renamed at the same time to
+    # avoid the duplication of alignment attributes.
+    if [ "x$substpatt" != x ] &&
+	   { [ "$cmd" = "copy" ] ||
+		 { [ "$cmd" = "rename" ] && [ "x$backing_up" != x ]; }; }
+    then
+	if [ "x$dry_run" = x ]; then
+	    rename_align_pattern $target $omit_cmt
+	else
+	    # When dry-running, the target does not exist yet, so to
+	    # see the effect, try it for the source.
+	    rename_align_pattern $source
+	fi
+    else
+	# FIXME: This is somewhat simplistic, as it assumes that the
+	# top data directory is the same for all the aligned corpora.
+	# To be precise, we should take the data directory from the
+	# registry file. In practice, this should suffice for us.
+	aligned_corpora=$(
+	    find "$top_datadir" -name $source.alx |
+		sed -e 's,.*/\([^/]*\)/[^/]*,\1,')
+	for aligned in $aligned_corpora; do
+	    run_verb "$(eval echo "\$cmd_verb_$cmd") alignment attribute in aligned corpus $aligned" \
+		     ${cmd}_align $aligned $source $target $omit_cmt
+	done
+    fi
+}
+
+# Rename the alignment attributes in $corpus according to the
+# substitution pattern if $corpora contains them. This makes renaming
+# work correctly when copying all mutually aligned corpora using the
+# same pattern; otherwise, some alignment attributes would be
+# duplicated with the old and new name.
+rename_align_pattern () {
+    local corpus omit_cmt corpus_list patt align_attr align_attr_new
+    corpus=$1
+    omit_cmt=$2
+    # backing_up is a global variable that is set to a non-null value
+    # when renaming an existing target corpus to a backup name
+    if [ "x$backing_up" = x ]; then
+	corpus_list=$corpora
+	patt=$substpatt
+    else
+	corpus_list=$target_corpora
+	patt="s/\$/$baksuff/"
+    fi
+    for align_attr in $(corpus_list_attrs $corpus "ALIGNED"); do
+	# Use echo to convert newlines to spaces in $corpora
+	if word_in "$align_attr" "$(echo $corpus_list)"; then
+	    align_attr_new=$(apply_substpatt $align_attr "$patt")
+	    if [ "$align_attr_new" != "$align_attr" ]; then
+		run_verb "Renaming alignment attribute $align_attr to $align_attr_new" \
+			 corpus_rename_attr --backup-suffix "" $omit_cmt \
+			 $corpus $align_attr $align_attr_new
+	    fi
+	fi
+    done
+}
+
+copy_align () {
+    local corpus source target omit_cmt
+    corpus=$1
+    source=$2
+    target=$3
+    omit_cmt=$4
+    warn "Aligned corpus $corpus: duplicating alignment attribute $source as $target; please check if that is appropriate"
+    corpus_copy_attr --backup-suffix "" $omit_cmt $corpus $source $target
+}
+
+rename_align () {
+    local corpus source target omit_cmt
+    corpus=$1
+    source=$2
+    target=$3
+    omit_cmt=$4
+    corpus_rename_attr --backup-suffix "" $omit_cmt $corpus $source $target
+}
+
+remove_align () {
+    local corpus source omit_cmt
+    corpus=$1
+    source=$2
+    omit_cmt=$3
+    corpus_remove_attr --backup-suffix "" $omit_cmt $corpus $source
+}
+
+mysql_make_manage_table_rows () {
+    local cmd source_u target_u cols cols_list table sql_stmt
+    cmd=$1
+    source_u=$2
+    target_u=$3
+    shift 3
+    for table in "$@"; do
+	if [ "$cmd" = "remove" ]; then
+	    echo "DELETE FROM \`$table\` WHERE corpus='$source_u';"
+	elif [ "$cmd" = "rename" ]; then
+	    # This assumes that corresponding rows with corpus =
+	    # $target_u do not exist: they would cause an error.
+	    echo "UPDATE \`$table\` SET corpus='$target_u' WHERE corpus='$source_u';"
+	elif [ "$cmd" = "copy" ]; then
+	    cols=$(mysql_list_table_cols $table)
+	    if [ "x$cols" != x ]; then
+		cols_list=$(
+		    echo $cols |
+		    sed -e 's/\([^ ][^ ]*\)/`\1`/g; s/ /, /g;
+			    s/`corpus`/'"'$target_u'/"
+		)
+		if [ "x$force" != x ]; then
+		    sql_stmt="REPLACE"
+		else
+		    sql_stmt="INSERT IGNORE"
+		fi
+		echo "$sql_stmt INTO \`$table\`
+		      SELECT $cols_list FROM \`$table\` WHERE corpus='$source_u';"
+	    fi
+	fi
+    done
+}
+
+mysql_make_manage_rel_tables () {
+    local cmd source_u target_u tabletype source_table target_table
+    cmd=$1
+    source_u=$2
+    target_u=$3
+    for tabletype in "" _dep_rel _head_rel _rel _sentences _strings; do
+	source_table=relations_$source_u$tabletype
+	target_table=relations_$target_u$tabletype
+	if mysql_table_exists $source_table; then
+	    if [ "$cmd" = "remove" ]; then
+		echo "DROP TABLE IF EXISTS \`$source_table\`;"
+	    else
+		echo "DROP TABLE IF EXISTS \`$target_table\`;"
+		if [ "$cmd" = "rename" ]; then
+		    echo "RENAME TABLE \`$source_table\` TO \`$target_table\`;"
+		elif [ "$cmd" = "copy" ]; then
+		    echo "CREATE TABLE IF NOT EXISTS \`$target_table\` LIKE \`$source_table\`;"
+		    echo "INSERT IGNORE INTO \`$target_table\` SELECT * FROM \`$source_table\`;"
+		fi
+	    fi
+	fi
+    done
+}
+
+run_mysql_verb () {
+    local tmpfile dbname
+    tmpfile=$tmpprefix.mysql
+    cat > $tmpfile
+    if [ "x$1" = "x--auth" ]; then
+	dbname=korp_auth
+    else
+	dbname=korp
+    fi
+    run_verb "Executing MySQL statements on database $dbname:
+$(indent_input 4 < $tmpfile)" \
+	     run_mysql "$@" < $tmpfile
+}
+
+manage_database () {
+    local cmd source target source_u target_u
+    cmd=$1
+    source=$2
+    target=$3
+    source_u=$(toupper $source)
+    target_u=$(toupper $target)
+    # $target_u is empty for remove, but mysql_make_manage_table_rows
+    # expects three arguments before table names, so enclose it in
+    # quotes to avoid leaving out the first table name.
+    {
+	mysql_make_manage_table_rows $cmd $source_u "$target_u" \
+				     $multicorpus_tables
+	mysql_make_manage_rel_tables $cmd $source_u $target_u
+    } |
+	run_mysql_verb
+    mysql_make_manage_table_rows $cmd $source_u "$target_u" \
+				 $multicorpus_tables_auth |
+	run_mysql_verb --auth
+}
+
+manage_corpus () {
+    local cmd source target internal_remove target_bak msg
+    cmd=$1
+    source=$2
+    target=$3
+    if ! corpus_exists "$source"; then
+	verbose warn \
+		"Skipping corpus $source: not found in registry $cwb_regdir"
+	return
+    fi
+    if [ "$source" = "$target" ]; then
+	verbose warn "Skipping corpus $source: target is the same"
+	return
+    fi
+    # The command "remove-internal" is used when removing an existing
+    # target corpus, in which case the user should not be prompted for
+    # confirmation.
+    internal_remove=
+    if [ "$cmd" = "remove-internal" ]; then
+	internal_remove=1
+	cmd=remove
+    fi
+    if [ "$cmd" != "remove" ]; then
+        if ! corpus_id_is_valid "$target"; then
+	    verbose warn \
+		    "Skipping corpus $source: invalid target corpus id: $target"
+	    return
+	elif corpus_exists "$target"; then
+	    if [ "x$force" = x ]; then
+		verbose warn \
+			"Skipping corpus $source: target corpus $target already exists; specify --force to overwrite"
+		return
+	    elif [ "x$backups" = x ]; then
+		verbose warn \
+			"Corpus $source: overwriting existing target corpus $target without making a backup as --force and --no-backups were specified"
+		# Removing the existing target is probably needed for
+		# the MySQL database statements to work correctly
+		manage_corpus remove-internal $target
+	    else
+		backing_up=1
+		target_bak=$target$baksuff
+		verbose warn \
+			"Corpus $source: renaming existing target corpus $target to $target_bak before overwriting as --force was specified"
+		manage_corpus rename $target $target_bak
+		backing_up=
+	    fi
+	fi
+    elif [ "x$internal_remove" = x ]; then
+	if [ "x$force" = x ]; then
+	    if ! confirm_yn "Remove corpus $source"; then
+		echo_verb "Not removing corpus $source"
+		return
+	    fi
+	else
+	    verbose warn "Removing corpus $source without confirmation as --force was specified"
+	fi
+    fi
+    if [ "x$verbose" != x ]; then
+	msg="$(eval echo "\$cmd_verb_$cmd") corpus $source"
+	if [ "x$dry_run" != x ]; then
+	    msg="Dry run: $msg"
+	fi
+	if [ "$cmd" != "remove" ]; then
+	    msg="$msg to $target"
+	fi
+	safe_echo "$msg"
+    fi
+    # This is a global variable that is used in the called functions
+    top_datadir=$(extract_top_datadir $cwb_regdir/$source)
+    for type in data registry aligned database; do
+	manage_$type $cmd $source $target
+    done
+}
+
+
+# If $corpora contains shell wildcards (for the single-file copy and
+# rename, for which the arguments have not been expanded using
+# list_corpora), they should not be expanded to file names, so it is
+# easier to use a while loop instead of a for loop, which expands
+# shell wildcards.
+echo "$corpora" |
+    tr ' ' '\n' |
+    while read corpus; do
+	# If $corpora is empty, echo still adds a newline, resulting
+	# in read returning an ampty string, so ignore it.
+	if [ "x$corpus" != x ]; then
+	    if [ "$command" = "remove" ]; then
+		target=
+	    elif [ "x$substpatt" != x ]; then
+		target=$(apply_substpatt $corpus)
+	    else
+		target=$target_corpus
+	    fi
+	    manage_corpus $command "$corpus" "$target"
+	fi
+    done

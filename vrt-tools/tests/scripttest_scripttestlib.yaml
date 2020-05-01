@@ -1,0 +1,32 @@
+
+# Tests in YAML for some scripttestlib features that are difficult to
+# test in test_scripttestlib.py
+
+
+# Reusable definitions
+
+- defs:
+  - &empty_output
+    stdout: ''
+    stderr: ''
+    returncode: 0
+  - &dev_null
+    cmdline: cat /dev/null
+
+- name: 'scripttestlib: Reference a reusable definition in YAML'
+  input: *dev_null
+  output: *empty_output
+
+- name: 'scripttestlib: Reference a reusable definition within a test case in YAML'
+  defs:
+    - &empty ''
+  input: *dev_null
+  output:
+    stdout: *empty
+    stderr: *empty
+
+- name: 'scripttestlib: Reference a reusable definition within another test case in YAML'
+  input: *dev_null
+  output:
+    stdout: *empty
+    stderr: *empty

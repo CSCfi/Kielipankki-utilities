@@ -8,6 +8,11 @@
 #
 # Run "cwb-make-safe -h" to get a usage message.
 
+# TODO:
+# - Use cwb-make also for single-value attributes if available and if
+#   CWB is recent enough to have been fixed in that respect (version
+#   3.4.11 or later).
+
 
 progname=`basename $0`
 progdir=`dirname $0`
@@ -41,6 +46,21 @@ cwb_huffcode=$(find_prog_cwb huffcode error)
 cwb_compress_rdx=$(find_prog_cwb compress-rdx error)
 set +e
 cwb_make=$(find_prog_cwb make warn)
+
+# Try to find the library directory for CWB Perl based on the location
+# of cwb-make (which needs it): replace trailing /bin with
+# /lib/site_perl.
+# FIXME: The library might not always be in that default location.
+# What if it is not found? Should we use find to try to find CWB.pm?
+cwb_perl_libdir=${cwb_make%/bin/*}/lib/site_perl
+if [ -d $cwb_perl_libdir ]; then
+    if [ "x$PERL5LIB" != x ]; then
+	PERL5LIB=$PERL5LIB:$cwb_perl_libdir
+    else
+	PERL5LIB=$cwb_perl_libdir
+    fi
+fi
+export PERL5LIB
 
 
 usage () {

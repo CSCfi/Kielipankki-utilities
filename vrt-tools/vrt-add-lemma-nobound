@@ -28,11 +28,20 @@ class NoBoundaryLemmaAdder(InputProcessor):
     forms and lemmas with compound boundaries.
     """
     ARGSPECS = [
+        ('--mode (*simple-omorfi|omorfi|naive)',
+         'use the specified mode for handling compound boundary markers in'
+         ' lemmas: "simple-omorfi" handles compound boundary markers replacing'
+         ' hyphens as produced by Omorfi; "omorfi" also tries to handle'
+         ' lemmatized non-final compound parts; and "naive" simply removes'
+         ' all compound boundary markers (unless thw word form contains them)'),
         ('--compound-boundary-marker=CHAR "|" -> boundary_char',
          'treat CHAR as the compound boundary marker'),
-        ('--omorfi',
-         'assume that the compound lemmas have been produced by Omorfi'
-         ' and modify the lemmas without boundaries accordingly'),
+        ('--no-fix-spurious-boundaries',
+         'do not correct "#" to "|" if the word form contains as many "|" as'
+         ' the lemma contains "#", to fix a deficiency in a UD1 parser;'
+         ' note that even without this option, the character is corrected only'
+         ' in the added lemma without compound boundaries and only if the'
+         ' compound boundary marker is "#"'),
         ('--wordform-name=ATTR "word" -> word_attr',
          'use positional attribute ATTR as the word form'),
         ('--lemma-name=ATTR "lemma" -> lemma_attr',
@@ -164,11 +173,19 @@ class NoBoundaryLemmaAdder(InputProcessor):
 
     def __init__(self):
         super().__init__()
+        self._lemma_split_re = None
+        self._lemma_split_keepsep_re = None
 
     def main(self, args, inf, ouf):
 
         boundary_char = args.boundary_char.encode()
-        lemma_split_re = re.compile('([' + args.boundary_char + '-])')
+        fix_spurious_boundaries = (boundary_char == b'#'
+                                   and not args.no_fix_spurious_boundaries)
+        # Handle double boundary characters, which occur in for example
+        # "neli||siipinen"
+        self._lemma_split_re = re.compile('[' + args.boundary_char + '-]')
+        self._lemma_split_keepsep_re = re.compile(
+            '([' + args.boundary_char + '-]+)')
 
         def make_lemma_noboundaries_simple(lemma, wordform):
             return lemma.replace(boundary_char, b'')
@@ -192,9 +209,13 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 return None
 
         LESS_THAN = '<'.encode()[0]
-        make_lemma_noboundaries = (
-            self._make_lemma_noboundaries_omorfi if args.omorfi
-            else make_lemma_noboundaries_simple)
+        if args.mode == 'omorfi':
+            make_lemma_noboundaries = self._make_lemma_noboundaries_omorfi
+        elif args.mode == 'naive':
+            make_lemma_noboundaries = make_lemma_noboundaries_simple
+        else:
+            make_lemma_noboundaries = (
+                self._make_lemma_noboundaries_omorfi_simple)
         for arg_name in ['word_attr', 'lemma_attr', 'nobound_attr',
                          'insert_after_attr']:
             setattr(args, arg_name, getattr(args, arg_name).encode())
@@ -223,24 +244,82 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 attrs = vrtdatalib.binasrecord(line)
                 lemma = attrs[lemma_index]
                 word = attrs[word_index]
-                lemma_nobound = (
-                    make_lemma_noboundaries(lemma, word)
-                    # If the word form contains a compound boundary marker, the
-                    # word is unlikely to be a real compound, so keep the lemma
-                    # as is.
-                    if boundary_char in lemma and not boundary_char in word
-                    else lemma)
+                # If the word form contains a compound boundary marker, the
+                # word is unlikely to be a real compound, so keep the lemma as
+                # is.
+                if boundary_char in lemma and not boundary_char in word:
+                    # The Turku UD1 parser pipeline seems to convert literal
+                    # |'s in lemmas to #'s if the wordform (and lemma) contains
+                    # only punctuation characters
+                    if (fix_spurious_boundaries
+                            and lemma.count(boundary_char) == word.count(b'|')):
+                        lemma_nobound = lemma.replace(boundary_char, b'|')
+                    else:
+                        lemma_nobound = make_lemma_noboundaries(lemma, word)
+                else:
+                    lemma_nobound = lemma
                 ouf.write(b'\t'.join(chain(attrs[:insert_after_index],
                                            [lemma_nobound],
                                            attrs[insert_after_index:]))
                           + b'\n')
 
+    def _make_lemma_noboundaries_omorfi_simple(self, lemma_b, wordform_b):
+        # Adapted and slightly improved from vrt-fix-attrs.py
+        # (PosAttrConverter._make_lemma_without_boundaries_tdt)
+        lemma = lemma_b.decode()
+        wordform = wordform_b.decode()
+        boundary_char = self._args.boundary_char
+        # If the boundary character is the first or the last in the lemma, it
+        # should most likely be taken literally.
+        if len(lemma) < 3 or boundary_char not in lemma[1:-1]:
+            if (len(lemma) == 1 or boundary_char not in lemma
+                    or (len(lemma) == 2 and lemma[0] == lemma[1])):
+                return lemma_b
+            # For example, "tuntinen" and "-tuntinen" get the lemma
+            # "|tuntinen": in the first case, drop the boundary, in the second,
+            # replace it with a hyphen.
+            if lemma[0] == boundary_char:
+                lemma = lemma[1:]
+                if wordform[0] == '-':
+                    lemma = '-' + lemma
+            # Do trailing "|" occur?
+            if lemma[-1] == boundary_char:
+                lemma = lemma[:-1]
+                if wordform[-1] == '-':
+                    lemma += '-'
+        elif '-' not in wordform:
+            return lemma.replace(boundary_char, '').encode()
+        # In some cases, the lemma has - replaced with a |; in
+        # other cases not
+        wordform_parts = wordform.split('-')
+        lemma_parts = self._lemma_split_re.split(lemma)
+        if (len(wordform_parts) == len(lemma_parts)
+            and '-' not in lemma):
+            return lemma.replace(boundary_char, '-').encode()
+        else:
+            lemma_without_boundaries = [lemma_parts[0]]
+            lemma_prefix_len = len(lemma_parts[0])
+            wf_prefix_len = len(wordform_parts[0])
+            wf_partnr = 1
+            for lemma_part in lemma_parts[1:]:
+                if wf_partnr >= len(wordform_parts):
+                    lemma_without_boundaries.append(lemma_part)
+                elif (lemma_part[:2] == wordform_parts[wf_partnr][:2]
+                      and abs(wf_prefix_len - lemma_prefix_len) <= 2):
+                    # FIXME: Devise a better heuristic
+                    lemma_without_boundaries.extend(['-', lemma_part])
+                    wf_prefix_len += len(wordform_parts[wf_partnr])
+                    wf_partnr += 1
+                else:
+                    lemma_without_boundaries.append(lemma_part)
+                lemma_prefix_len += len(lemma_part)
+            return ''.join(lemma_without_boundaries).encode()
+
     def _make_lemma_noboundaries_omorfi(self, lemma, wordform):
         # TODO: uudenvuoden -> uusivuosi
-        lemma_split_re = re.compile('([|-])')
         lemma = lemma.decode()
         wordform = wordform.decode()
-        lemma_parts = lemma_split_re.split(lemma)
+        lemma_parts = self._lemma_split_keepsep_re.split(lemma)
         wf_prefix_len = 0
         lemma_prefix_len = 0
         lemma_nobound = []
@@ -252,8 +331,16 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     wordform[wf_prefix_len:])
                 # print(partnum, part, nobound_part, end_diff, wf_use_len)
                 lemma_nobound.append(nobound_part)
-                if ((nobound_part[-1] == lemma_parts[partnum + 2][0]
-                         and nobound_part[-1] in self._vowels)
+                # print(nobound_part, lemma_parts, partnum, file=sys.stderr)
+                # nobound_part may be empty if the lemma begins with a boundary
+                # marker, which has replaced a hyphen ("|tuntinen"). This
+                # replaces such a boundary marker with a hyphen; an alternative
+                # would be to leave it out if the word form has no initial
+                # hyphen.
+                if (nobound_part == ''
+                        or (lemma_parts[partnum + 2]
+                            and nobound_part[-1] == lemma_parts[partnum + 2][0]
+                            and nobound_part[-1] in self._vowels)
                         or nobound_part[-1].isupper()
                         or nobound_part[-1].isdigit()):
                     lemma_nobound.append('-')

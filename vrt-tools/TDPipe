@@ -1,5 +1,9 @@
 #! /bin/bash -e
 
+# ===
+# This version of the pipeline tears early, to also protect Marmot.
+# ===
+
 # This is *one* way to use VRT tools to build a Finnish pipeline.
 # Best run as array jobs in batch, see bin/gamarr for that.
 # For convenience, consider a separate log dir for each such job.
@@ -48,29 +52,30 @@ case "$1" in
 
 	TICK=$SECONDS
 
-	# tag : word -> marmot.in -> marmot.{pos,feat} -> lemma,pos,feat
-
-	bin/vrt-tdp-alpha-lookup -I Alookup "$1"
-	tick "lookup"
-
-	bin/vrt-tdp-alpha-marmot -I Alookup/Bmarmot "$1.Alookup"
-	tick "marmot"
-
-	bin/vrt-tdp-alpha-fillup -I Bmarmot/Cfillup "$1.Bmarmot"
-	tick "fillup"
-
-	# parse : pos,feat -> id + head + rel
-	# tear/mend protect parser and long sentences from each other
+	# tear/mend protect marmot/parser and long sentences from each other
 	# (for a moderate sense of "long")
 	# (and "sentence" can be most anything)
 
-	bin/vrt-simple-tear -i "$1.Cfillup"
+	bin/vrt-simple-tear -I Atear "$1"
 	tick "tear"
 
-	bin/vrt-tdp-alpha-parse -I Cfillup/Dparse "$1.Cfillup"
+	# tag : word -> marmot.in -> marmot.{pos,feat} -> lemma,pos,feat
+
+	bin/vrt-tdp-alpha-lookup -I Atear/Blookup "$1.Atear"
+	tick "lookup"
+
+	bin/vrt-tdp-alpha-marmot -I Blookup/Cmarmot "$1.Blookup"
+	tick "marmot"
+
+	bin/vrt-tdp-alpha-fillup -I Cmarmot/Dfillup "$1.Cmarmot"
+	tick "fillup"
+
+	# parse : pos,feat -> id + head + rel
+
+	bin/vrt-tdp-alpha-parse -I Dfillup/Eparse "$1.Dfillup"
 	tick "parse"
 
-	bin/vrt-conll09-mend -i "$1.Dparse"
+	bin/vrt-conll09-mend -i "$1.Eparse"
 	tick "mend"
 
 	;;
