@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 # -*- mode: Python; -*-
 
 # Implementation of a command-line tool ../rel-head,
