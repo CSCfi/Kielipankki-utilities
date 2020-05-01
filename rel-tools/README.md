@@ -75,8 +75,8 @@ Eventual rel tools
 The most important missing tools are likely to be entire families,
 possibly containing mini-languages of expressions that can refer to
 the values in the records by the field name. Some of these uses are
-straightforward (and already available in the original incarnation of
-these tools in Mylly).
+straightforward (some are already available in the original
+incarnation of these tools in Mylly).
 
 These important missing multi-tools would be these two:
 
