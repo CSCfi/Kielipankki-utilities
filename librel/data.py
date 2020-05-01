@@ -97,10 +97,11 @@ def groups(ins, *, head, key):
     return groupby(records(ins, head = head, key = key),
                    key = getter(key))
 
-def readhead(ins, *, old = ()):
+def readhead(ins, *, old = (), new = ()):
     '''Return the assumed-first tab-separated line from binary stream.
     Raise an exception if the fields are not valid names, or if any of
-    the specified old names is not in the head.
+    the specified old names is not in the head, or if any of the
+    specified new is in the head.
 
     '''
 
@@ -119,5 +120,9 @@ def readhead(ins, *, old = ()):
     bad = [name for name in old if name not in head]
     if bad:
         raise BadData('not in head: ' + b' '.join(bad).decode('UTF-8'))
+
+    bad = [name for name in new if name in head]
+    if bad:
+        raise BadData('already in head: ' + b' '.join(bad).decode('UTF-8'))
 
     return head
