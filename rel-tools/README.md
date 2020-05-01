@@ -1,6 +1,6 @@
 FIN-CLARIN Relation Tools (rel tools)
 =====================================
-/version 0.1.0 (2020-05-01)/
+_version 0.1.0 (2020-05-01)_
 
 Rel tools are command-line tools for the investigation and
 manipulation of relations in the form of files that contain
@@ -21,12 +21,12 @@ Terminology
 -----------
 
 A **relation** is a set of **records** of the same **type**. A type
-consists of field names. The **values** in the fields are character
-strings.  Elsewhere, a record might be called a "tuple" and a field,
-or a field name, might be called an "attribute". Being a **set** means
-that any record (of the given type) either is or is not in the
-relation: there is no uncertainty, or degree, or multiplicity, of
-membership.
+consists of field names. The **values** in the **fields** are
+character strings.  Elsewhere, a record might be called a "tuple" and
+a field, or a field name, might be called an "attribute". Being a
+**set** means that any record (of the given type) either is or is not
+in the relation: there is no uncertainty, or degree, or multiplicity,
+of membership, and no specified position.
 
 A written presentation of a relation has a **head** that consists of
 the field names in some order, followed by a **body** that consists of
@@ -42,7 +42,7 @@ Initial rel tools
   * `rel-rename` is much under-appreciated
 
   * `rel-head` extracts a convenient sample
-  * `rel-tail` extracts a concenient sample
+  * `rel-tail` extracts a convenient sample
   * `rel-sample` extracts a random sample
 
   * `rel-keep` projects to named fields
@@ -57,8 +57,8 @@ Initial rel tools
   * `rel-symm` is symmetric difference (maybe?)
 
   * `rel-join` is (natural) join
-  * `rel-match` matches /some/ record
-  * `rel-miss` matches /no/ record
+  * `rel-match` matches _some_ record
+  * `rel-miss` matches _no_ record
   * `rel-image` drops the match of a match
   * `rel-compose2` drops the match of a join
 
@@ -75,7 +75,7 @@ Eventual rel tools
 The most important missing tools are likely to be entire families,
 possibly containing mini-languages of expressions that can refer to
 the values in the records by the field name. Some of these uses are
-straightforward (and already available in the previous incarnation of
+straightforward (and already available in the original incarnation of
 these tools in Mylly).
 
 These important missing multi-tools would be these two:
@@ -83,8 +83,9 @@ These important missing multi-tools would be these two:
   * `rel-extend` extends each record functionally
   * `rel-select` selects records conditionally
 
-Useful tools like `rel-keepc`, which describes each group of records,
-are quite probably missing and can be easily added once identified.
+Useful tools like `rel-keepc`, which describes each _group_ of
+records, are quite probably missing and can be easily added once
+identified.
 
 And a couple of more minor missing tools seem practically desirable in
 some form, maybe:
