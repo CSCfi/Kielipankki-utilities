@@ -134,7 +134,7 @@ def sibext(arg):
         if all(c in ascii_letters for c in arg):
             return arg
         raise ArgumentTypeError('bad character in extension')
-    
+
     extensions = arg.split('/')
     if len(extensions) != 2:
         raise ArgumentTypeError('old/new must have one slash')

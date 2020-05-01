@@ -22,7 +22,7 @@ def fillnames(names, n):
     number K to have at least n names.
 
     '''
-    
+
     while n > len(names):
         names.append('v{}'.format(len(names) + 1).encode('utf-8'))
 
@@ -68,7 +68,7 @@ def checknames(names):
     like identifiers, or not unambiguous.
 
     '''
-    
+
     bad = [
         name for name in names
         if not re.fullmatch(b'[a-zA-Z_.][a-zA-Z0-9_.]*', name)
