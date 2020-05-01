@@ -12,6 +12,7 @@ from .args import transput_args
 from .args import BadData
 from .names import makenames
 from .data import readhead, groups
+from .bins import CAT
 
 def parsearguments(argv, *, prog = None):
     description = '''

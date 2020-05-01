@@ -10,6 +10,8 @@ bash check/rename.sh
 
 bash check/sort.sh
 bash check/order.sh
+bash check/shuffle.sh
+
 bash check/head.sh
 bash check/tail.sh
 bash check/sample.sh
