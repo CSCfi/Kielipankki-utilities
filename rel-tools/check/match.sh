@@ -46,3 +46,30 @@ test003 () {
 }
 
 test003
+
+test004 () {
+    setup $FUNCNAME
+    ./rel-match check/note.tsv < check/dum.tsv \
+	       1> "$DIR/out" \
+	       2> "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-head --records=0 check/note.tsv |
+	    ./rel-cmp --quiet --eq "$DIR/out"
+    report "file, stdin/stdout, match dum, empty out"
+    cleanup
+}
+
+test004
+
+test005 () {
+    setup $FUNCNAME
+    ./rel-match check/note.tsv < check/dee.tsv \
+	       1> "$DIR/out" \
+	       2> "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/note.tsv
+    report "file, stdin/stdout, match dee, self out"
+    cleanup
+}
+
+test005

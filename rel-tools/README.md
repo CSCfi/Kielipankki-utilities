@@ -1,6 +1,6 @@
 FIN-CLARIN Relation Tools (rel tools)
 =====================================
-_version 0.1.0 (2020-05-01)_
+_version 0.1.1 (2020-05-03)_
 
 Rel tools are command-line tools for the investigation and
 manipulation of relations in the form of files that contain
@@ -36,6 +36,8 @@ file.
 
 Initial rel tools
 -----------------
+
+  * `rel-cmp` compares two relations (since version 0.1.1)
 
   * `rel-from` collects records into a relation
 

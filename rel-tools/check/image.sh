@@ -26,7 +26,9 @@ test002 () {
     ./rel-image check/word.tsv check/note.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-keep --field=word check/word.tsv |
+	    ./rel-cmp --quiet --eq "$DIR/out"
     report "two files/stdout"
     cleanup
 }
@@ -38,8 +40,9 @@ test003 () {
     ./rel-image check/note.tsv < check/note.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "file, stdin/stdout, dee result"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/dee.tsv
+    report "file, stdin/stdout, self-image, dee out"
     cleanup
 }
 
