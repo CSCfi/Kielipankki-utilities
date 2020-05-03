@@ -26,8 +26,9 @@ test002 () {
     ./rel-miss check/note.tsv check/word.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "two files/stdout"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --lt "$DIR/out" check/note.tsv
+    report "two files/stdout, (empty out)"
     cleanup
 }
 
@@ -38,9 +39,23 @@ test003 () {
     ./rel-miss check/note.tsv < check/word.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "file, stdin/stdout"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --lt "$DIR/out" check/note.tsv
+    report "file, stdin/stdout, (empty out)"
     cleanup
 }
 
 test003
+
+test004 () {
+    setup $FUNCNAME
+    ./rel-miss check/note.tsv < check/dum.tsv \
+	       1> "$DIR/out" \
+	       2> "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/note.tsv
+    report "file, stdin/stdout, dum in, self out"
+    cleanup
+}
+
+test004

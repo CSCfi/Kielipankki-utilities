@@ -28,8 +28,9 @@ test002 () {
 	check/number.tsv check/number.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "two files/stdout"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/number.tsv
+    report "two files/stdout, self out"
     cleanup
 }
 
@@ -38,12 +39,13 @@ test002
 test003 () {
     setup $FUNCNAME
     ./rel-join \
-	--cache 3 \
+	--cache 2 \
 	check/number.tsv check/dee.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "two files/stdout, dee"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/number.tsv
+    report "two files/stdout, dee in, self out"
     cleanup
 }
 

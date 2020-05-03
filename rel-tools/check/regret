@@ -4,33 +4,54 @@
 # runs each check/TOPIC.sh
 # call in rel-tools/ like:
 # $ check/regret
+# $ check/regret TOPIC ...
+#
+# TOPIC is quietly ignored if not one of those below
 
-bash check/cmp.sh
+declare -a target=("$@")
 
-bash check/from.sh
-bash check/rename.sh
+consider () {
+    if test "${#target[@]}" = 0
+    then
+	bash "check/$1.sh"
+    else
+	for t in "${target[@]}"
+	do
+	    test "$1" = "$t" && bash "check/$t.sh"
+	done
+    fi
+}
 
-bash check/sort.sh
-bash check/order.sh
-bash check/shuffle.sh
+# consider foo => bash check/foo.sh
+# if no target specified
+# or foo is a target
 
-bash check/head.sh
-bash check/tail.sh
-bash check/sample.sh
+consider cmp
 
-bash check/keep.sh
-bash check/keepc.sh
-bash check/drop.sh
-bash check/dropc.sh
+consider from
+consider rename
 
-bash check/sum.sh
-bash check/union.sh
-bash check/meet.sh
-bash check/sans.sh
-bash check/symm.sh
+consider sort
+consider order
+consider shuffle
 
-bash check/join.sh
-bash check/match.sh
-bash check/miss.sh
-bash check/image.sh
-bash check/compose2.sh
+consider head
+consider tail
+consider sample
+
+consider keep
+consider keepc
+consider drop
+consider dropc
+
+consider sum
+consider union
+consider meet
+consider sans
+consider symm
+
+consider join
+consider match
+consider miss
+consider image
+consider compose2

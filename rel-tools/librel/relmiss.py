@@ -48,10 +48,14 @@ def main(args, ins1, ins2, ous):
         else:
             k2, g2 = next(body2, (None, None))
     else:
+        if g1 is not None:
+            for r1 in g1:
+                ous.write(b'\t'.join(r1))
+                ous.write(b'\n')
         for k1, g1 in body1:
             for r1 in g1:
                 ous.write(b'\t'.join(r1))
                 ous.write(b'\n')
-        # any reason to drain ins2?
+        # any reason to drain g2, body2?
 
     return 0
