@@ -1,0 +1,9 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+import sys
+
+from librel.relcmp import parsearguments, main
+
+if __name__ == '__main__':
+    exit(main(parsearguments(sys.argv[1:])))

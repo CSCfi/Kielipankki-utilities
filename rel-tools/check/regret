@@ -5,6 +5,8 @@
 # call in rel-tools/ like:
 # $ check/regret
 
+bash check/cmp.sh
+
 bash check/from.sh
 bash check/rename.sh
 
