@@ -23,11 +23,11 @@ test001
 
 test002 () {
     setup $FUNCNAME
-    ./rel-from --tag=tid check/records.txt \
+    ./rel-from --tag=id check/abc.txt \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "file/stdout, --tag"
+    report "file/stdout, --tag=id"
     cleanup
 }
 
@@ -35,7 +35,7 @@ test002
 
 test003 () {
     setup $FUNCNAME
-    ./rel-from --unique check/records.txt \
+    ./rel-from --unique check/abc.txt \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
@@ -44,3 +44,16 @@ test003 () {
 }
 
 test003
+
+test004 () {
+    setup $FUNCNAME
+    ./rel-from --unique --field gr,ln check/abc.txt \
+	       1> "$DIR/out" \
+	       2> "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/abc.tsv
+    report "file/stdout, --unique --field gr,ln"
+    cleanup
+}
+
+test004

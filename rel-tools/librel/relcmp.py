@@ -9,7 +9,7 @@ import sys
 from .args import version_args
 from .args import BadData
 from .names import makenames
-from .data import readhead, records
+from .data import readhead, getter, records
 
 def parsearguments(argv, *, prog = None):
     description = '''
@@ -168,11 +168,19 @@ def compare(args, ins1, ins2):
         return 123
 
     ind1 = tuple(map(head1.index, head1))
-    ind2 = tuple(map(head1.index, head2))
+    ind2 = tuple(map(head2.index, head1))
+    
+    # records() produces lists (because .split())
+    # a getter produces tuples
+    # lists and tuples are not comparable
+    # which is awkward so use a getter even on body1
+    get1 = getter(ind1)
+    get2 = getter(ind2)
+
     both = only1 = only2 = 0
     try:
-        body1 = records(ins1, head = head1, key = ind1)
-        body2 = records(ins2, head = head2, key = ind2)
+        body1 = map(get1, records(ins1, head = head1, key = ind1))
+        body2 = map(get2, records(ins2, head = head2, key = ind2))
         r1 = next(body1, None)
         r2 = next(body2, None)
         while r1 is not None is not r2:

@@ -26,7 +26,8 @@ test002 () {
     ./rel-order check/tau.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/tau.tsv
     report "file/stdout, no options"
     cleanup
 }
@@ -38,8 +39,9 @@ test003 () {
     ./rel-order --field=pos < check/tau.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "stdin/stdout, one field"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/tau.tsv
+    report "stdin/stdout, --field=pos"
     cleanup
 }
 

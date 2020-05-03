@@ -23,7 +23,7 @@ test001
 
 test002 () {
     setup $FUNCNAME
-    ./rel-symm check/number.tsv check/luku.tsv \
+    ./rel-symm check/number.tsv check/luku3.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"

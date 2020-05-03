@@ -26,8 +26,9 @@ test002 () {
     ./rel-sort --field=tau < check/tau.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "stdin/stdout, one field in long option"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/tau.tsv
+    report "stdin/stdout, --field=tau"
     cleanup
 }
 
@@ -38,7 +39,8 @@ test003 () {
     ./rel-sort check/tau.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/tau.tsv
     report "file/stdout, no field option"
     cleanup
 }
