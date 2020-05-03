@@ -26,8 +26,9 @@ test002 () {
     ./rel-meet check/number.tsv check/number.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "two files/stdout"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/number.tsv
+    report "two files/stdout, self out"
     cleanup
 }
 
@@ -35,11 +36,13 @@ test002
 
 test003 () {
     setup $FUNCNAME
-    ./rel-meet check/number.tsv < check/number.tsv \
+    ./rel-meet check/number.tsv < check/numero.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "file, stdin/stdout"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --lt "$DIR/out" check/number.tsv &&
+	./rel-cmp --quiet --lt "$DIR/out" check/numero.tsv
+    report "file, stdin/stdout, in both"
     cleanup
 }
 
@@ -50,8 +53,9 @@ test004 () {
     ./rel-meet check/number.tsv check/number.tsv check/number.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "three files/stdout"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/number.tsv
+    report "three files/stdout, self out"
     cleanup
 }
 

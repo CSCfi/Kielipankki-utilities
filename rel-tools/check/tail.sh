@@ -26,7 +26,8 @@ test002 () {
     ./rel-tail < check/tau.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/tau.tsv
     report "stdin/stdout, no option"
     cleanup
 }
@@ -38,7 +39,8 @@ test003 () {
     ./rel-tail --records=3 check/tau.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --lt "$DIR/out" check/tau.tsv
     report "file/stdout, --records=3"
     cleanup
 }

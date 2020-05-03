@@ -26,7 +26,10 @@ test002 () {
     ./rel-union check/number.tsv check/numero.tsv check/luku3.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --gt "$DIR/out" check/number.tsv &&
+	./rel-cmp --quiet --gt "$DIR/out" check/numero.tsv &&
+	./rel-cmp --quiet --gt "$DIR/out" check/luku3.tsv
     report "three files/stdout"
     cleanup
 }

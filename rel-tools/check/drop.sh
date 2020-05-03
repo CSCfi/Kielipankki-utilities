@@ -26,8 +26,9 @@ test002 () {
     ./rel-drop check/numero.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "file/stdout, drop no field"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/numero.tsv
+    report "file/stdout, self out"
     cleanup
 }
 
@@ -38,9 +39,24 @@ test003 () {
     ./rel-drop --field=mean check/numero.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --ne "$DIR/out" check/numero.tsv &&
+	./rel-cmp --quiet --ne "$DIR/out" check/dee.tsv
     report "file/stdout, drop a field"
     cleanup
 }
 
 test003
+
+test004 () {
+    setup $FUNCNAME
+    ./rel-drop --field=mean,word check/numero.tsv \
+	       1> "$DIR/out" \
+	       2> "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/dee.tsv
+    report "file/stdout, --field=mean,word, dee out"
+    cleanup
+}
+
+test004

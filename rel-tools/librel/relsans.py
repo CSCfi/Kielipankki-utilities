@@ -40,7 +40,7 @@ def main(args, ins, ous):
     ous.write(b'\n')
     for k, g in groups(ins, head = head, key = tuple(range(len(head) - 1))):
         r = next(g)
-        if next(g, None) is None and r[-1] == b'0':
+        if next(g, None) is None and r[-1] == b'1':
             ous.write(b'\t'.join(k))
             ous.write(b'\n')
 

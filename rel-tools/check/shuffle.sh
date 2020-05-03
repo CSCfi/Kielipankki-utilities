@@ -26,7 +26,8 @@ test002 () {
     ./rel-shuffle < check/luku8.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/luku8.tsv
     report "stdin/stdout, no option"
     cleanup
 }

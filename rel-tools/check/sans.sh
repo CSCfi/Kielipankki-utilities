@@ -26,9 +26,23 @@ test002 () {
     ./rel-sans check/numero.tsv check/number.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "two files/stdout"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/numero.tsv
+    report "two files/stdout, self out"
     cleanup
 }
 
 test002
+
+test003 () {
+    setup $FUNCNAME
+    ./rel-sans check/numero.tsv check/numero.tsv \
+	       1> "$DIR/out" \
+	       2> "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --lt "$DIR/out" check/numero.tsv
+    report "two files/stdout, (empty out)"
+    cleanup
+}
+
+test003

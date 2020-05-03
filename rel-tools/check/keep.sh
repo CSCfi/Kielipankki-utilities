@@ -26,8 +26,9 @@ test002 () {
     ./rel-keep check/numero.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "file/stdout, keep no field"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/dee.tsv
+    report "file/stdout, dee out"
     cleanup
 }
 
@@ -38,9 +39,24 @@ test003 () {
     ./rel-keep --field=mean check/numero.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
-    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err"
-    report "file/stdout, keep a field"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --ne "$DIR/out" check/dee.tsv
+    report "file/stdout, --field=mean"
     cleanup
 }
 
 test003
+
+test004 () {
+    setup $FUNCNAME
+    ./rel-keep --field=mean,word check/numero.tsv \
+	       1> "$DIR/out" \
+	       2> "$DIR/err"
+    test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
+	./rel-cmp --quiet --eq "$DIR/out" check/numero.tsv
+    report "file/stdout, --field=mean,word, self out"
+    cleanup
+}
+
+test004
+
