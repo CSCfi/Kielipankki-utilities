@@ -79,6 +79,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('hyvä', 'parha'),
         ('ikä', 'iä'),
         ('itu', 'idu'),
+        ('itä', 'idä'),
         ('oas', 'oka'),
         ('oka', 'oi'),
         ('ota', 'oda'),
