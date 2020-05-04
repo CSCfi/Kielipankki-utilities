@@ -472,14 +472,61 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 break
 
         def find_begin(lemmapart_next):
+
+            def common_suffix_len(a, b):
+                ia = len(a) - 1
+                ib = len(b) - 1
+                while ia >= 0 and ib >= 0 and a[ia] == b[ib]:
+                    ia -= 1
+                    ib -= 1
+                # print('CSL', a, b, '->', len(a) - ia - 1, file=sys.stderr)
+                return len(a) - ia - 1
+
+            def make_return_value(value):
+                next_pos, wf_prefix_len, _ = value
+                return (adjust_case_fn(wordform[:next_pos]),
+                        next_pos - lemma_len, wf_prefix_len)
+
+            def choose_candidate(cands):
+                max_num = 0
+                max_prefix_len = cands[0][1]
+                max_suffix_len = cands[0][2]
+                # print('max cand', max_num, max_prefix_len, max_suffix_len,
+                #       file=sys.stderr)
+                for cand_num, cand in enumerate(cands[1:]):
+                    _, prefix_len, suffix_len = cand
+                    # The candidates are ordered by the length of the common
+                    # prefix for the word form part and the next lemma part, so
+                    # prefer the longest common prefix, unless a shorter prefix
+                    # results in a longer common substring consisting of the
+                    # prefix and the suffix of the previous word form part and
+                    # lemma part.
+                    if (prefix_len + suffix_len > max_prefix_len + max_suffix_len):
+                        max_num = cand_num + 1
+                        max_prefix_len = prefix_len
+                        max_suffix_len = suffix_len
+                        # print('max cand', max_num, max_prefix_len, max_suffix_len,
+                        #       file=sys.stderr)
+                return cands[max_num]
+
+            cands = []
             for wf_prefix_len in range(min(len(lemmapart_next), 5), 1, -1):
-                # print('CHECK:', wordform, lemmapart_next, wf_prefix_len, lemmapart_next[:wf_prefix_len], wordform[(lemma_len - 3):], file=sys.stderr)
+                # print('CHECK:', wordform, lemmapart_next, wf_prefix_len,
+                #       lemmapart_next[:wf_prefix_len],
+                #       wordform[(lemma_len - 3):], file=sys.stderr)
                 next_pos = find_next_begin(wf_prefix_len, lemmapart_next)
                 if next_pos:
-                    return (adjust_case_fn(wordform[:next_pos]),
-                            next_pos - lemma_len,
-                            wf_prefix_len)
-            return None
+                    cands.append(
+                        (next_pos, wf_prefix_len,
+                         common_suffix_len(lemmapart_this, wordform[:next_pos])))
+            # print('fnb cands', cands, file=sys.stderr)
+            if not cands:
+                return None
+            elif len(cands) == 1:
+                cand = cands[0]
+            else:
+                cand = choose_candidate(cands)
+            return make_return_value(cand)
 
         def find_next_begin(wf_prefix_len, lemmapart_next):
             # print('find_next_begin', wf_prefix_len, lemmapart_next, lemma_len, file=sys.stderr)
@@ -494,7 +541,11 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 check_len_right = 5 + (int(wordform[next_pos - 1] == '-')
                                        if next_pos > 0 else 0)
                 if -1 < next_pos < lemma_len + check_len_right:
-                    # print('FOUND:', wf_prefix_len, next_pos, lemmapart_next, wordform[:next_pos] + '[' + wordform[next_pos:(next_pos + wf_prefix_len)] + ']' + wordform[next_pos + wf_prefix_len:])
+                    # print('FOUND:', wf_prefix_len, next_pos, lemmapart_next,
+                    #       wordform[:next_pos] + '['
+                    #       + wordform[next_pos:(next_pos + wf_prefix_len)] + ']'
+                    #       + wordform[next_pos + wf_prefix_len:],
+                    #       file=sys.stderr)
                     begin_candidates.append(next_pos)
                 start_pos = next_pos + 1
             if not begin_candidates:
@@ -512,6 +563,13 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     if (lemmapart_this.endswith(suffix) and
                             begin_candidates[0] <= lemma_len + len_change):
                         return begin_candidates[0]
+                # Otherwise, choose the longest prefix with the last two
+                # letters matching the previous lemma (eri|laki, eri<la>il<la>
+                # -> erilaki and not erilaillaki)
+                for i in range(len(begin_candidates) -1, -1, -1):
+                    pos = begin_candidates[i]
+                    if pos >= 2 and wordform[pos - 2:pos] == lemmapart_this[-2:]:
+                        return pos
                 # Otherwise, prefer the longest prefix (oleskella|lupa,
                 # oleske<lu><lu>vista -> oleskelulupa and not oleskelupa)
                 return begin_candidates[-1]
