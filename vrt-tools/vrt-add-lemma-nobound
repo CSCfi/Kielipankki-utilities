@@ -520,7 +520,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # inflects?
         if lemmapart_next.lower() == 'toista':
             return lemmapart_this, 0, len(lemmapart_this)
-        hyphen_pos = wordform.find('-', max(0, lemma_len - 3), lemma_len + 4)
+        # FIXME: We should take into account the consumed prefix of the
+        # wordform and not look for lemmas there
+        hyphen_pos = wordform.find('-', max(0, lemma_len - 3))
         # print(lemma_len, wordform, hyphen_pos, file=sys.stderr)
         maybe_hyphen = ('-' if hyphen_pos > -1 else '')
         lemmapart_this_lower = lemmapart_this.lower()
