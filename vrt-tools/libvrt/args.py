@@ -153,6 +153,12 @@ def transput(args, main, *,
 
     infile = args.infile
 
+    try: args.inplace
+    except AttributeError: args.inplace = None
+
+    try: args.backup
+    except AttributeError: args.backup = None
+
     if args.inplace and (infile is None):
         print(args.prog + ': --in-place requires input filename',
               file = sys.stderr)

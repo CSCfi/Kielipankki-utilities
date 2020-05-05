@@ -75,12 +75,6 @@ def parsearguments(argv, *, prog = None):
     args = parser.parse_args()
     args.prog = prog or parser.prog
 
-    # ==============================================
-    # TODO make *transput* work *without* these !!!! ALREADY
-    # ==============================================
-    args.inplace = None
-    args.backup = None
-
     return args
 
 def main(args, ins, ous):
