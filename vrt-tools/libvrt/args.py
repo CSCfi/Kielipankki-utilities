@@ -220,30 +220,17 @@ def transput(args, main, *,
     else:
         temp = None
 
-    def do():
-        status = 1
-        try:
-            status = main(args, inf, ouf)
-        except BadData as exn:
-            print(args.prog + ': error in data:', exn, file = sys.stderr)
-        except BadCode as exn:
-            print(args.prog + ': error in code:', exn, file = sys.stderr)
-        except BrokenPipeError:
-            print(args.prog + ':', 'broken pipe from main',
-                  file = sys.stderr)
-        except Exception as exn:
-            print(traceback.format_exc(), file = sys.stderr)
-
-        return status
-
     status = 1
     try:
-        with inputstream(infile, in_as_text) as inf, \
-             outputstream(temp, out_as_text) as ouf:
-            status = do()
+        with inputstream(infile, in_as_text) as ins, \
+             outputstream(temp, out_as_text) as ous:
+            status = main(args, ins, ous)
+    except BadData as exn:
+        print(args.prog + ': data:', exn, file = sys.stderr)
+    except BadCode as exn:
+        print(args.prog + ': code:', exn, file = sys.stderr)
     except BrokenPipeError:
-        print(args.prog + ':', 'broken pipe outside main',
-              file = sys.stderr)
+        print(args.prog + ':', 'broken pipe', file = sys.stderr)
     except Exception as exn:
         print(traceback.format_exc(), file = sys.stderr)
 
