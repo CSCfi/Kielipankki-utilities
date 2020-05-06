@@ -579,3 +579,13 @@
     stdin: *output-19
   output:
     stdout: *output-19
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compound ordinal that is not handled correctly as the lemma does not contain ordinal'
+  defs: &output-19b |
+    miljoonasbiljoonas	miljoona#biljoona	miljoonasbiljoonas
+  input:
+    stdin: *output-19b
+  output:
+    stdout: *output-19b
+  status: 'xfail: Difficult to handle (covering all inflected forms) as the lemma does not contain ordinal numbers'

@@ -638,7 +638,10 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 return ''.join(lemmaparts)
             else:
                 # Handle kymmenesmiljoonas : kymmenes#miljoona produced by
-                # Omorfi
+                # Omorfi. NOTE that this does *not* handle miljoonasbiljoonas :
+                # miljoona#biljoona, as "miljoona" is not ordinal. It would
+                # also be difficult to make it a special case and handle all
+                # inflected forms.
                 return ''.join(lemmaparts) + 's'
         wf_posthyphen_prefixes = re.findall(r'-(..)', wordform)
         hyphens_added = 0
