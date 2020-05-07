@@ -204,6 +204,22 @@
     stdout: *output-5
 
 
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Inflecting first part and an extra part'
+  defs: &output-5b |
+    maalaisvanhanpojan	maalainen|vanha|poika	maalaisvanhapoika
+    uudenvuodenlupauksia	uusi|vuosi|lupaus	uudenvuodenlupaus
+    <!-- These would be optimal analyses by TDPP/Omorfi -->
+    nyky-Ison-Britannian	nyky|Iso|Britannia	nyky-Iso-Britannia
+    Ison-Britannian-kävijät	Iso|Britannia|kävijä	Ison-Britannian-kävijä
+    <!-- These are the actual analyses by TDPP/Omorfi -->
+    nyky-Ison-Britannian	nyky-Ison-Britannian	nyky-Ison-Britannian
+    Ison-Britannian-kävijät	Ison-Britannian-kävijät	Ison-Britannian-kävijät
+  input:
+    stdin: *output-5b
+  output:
+    stdout: *output-5b
+
+
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphenated words'
   defs: &output-6 |
     väärin-päin	väärä|pää	väärin-pää
@@ -355,6 +371,8 @@
     kokoamisalueelle	koota#alue	kokoamisalue
     liikkeentunnistin	liike#tunnistin	liikkeentunnistin
     luupää-	luu#pää	luupää
+    <!-- The following does not occur in the data but is for testing -->
+    luu-pää-	luu#pää	luu-pää
     mannertenvälisine	manner#välinen	mannertenvälinen
     miestenvaatteita	mies#vaate	miestenvaate
     ohjustentorjuntasatelliitti	ohjus#torjunta#satelliitti	ohjustentorjuntasatelliitti
@@ -410,6 +428,25 @@
     stdout: *output-11
 
 
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphenated compounds which had an incorrect part match'
+  defs: &output-11b |
+    Erikoispartioryhmä-parka	erikoinen#partio#ryhmä#parka	erikoispartioryhmä-parka
+    jalkapallokannattaja-ajoistani	jalka#pallo#kannattaja#aika	jalkapallokannattaja-aika
+    kakunteko-tekniikkani	kakku#teko#tekniikka	kakunteko-tekniikka
+    Kissantappo-tauti	kissa#tappo#tauti	kissantappo-tauti
+    Koirankakka-katoa	koira#kakka#kato	koirankakka-kato
+    mullinmallin-maanantai	mulli#malli#maanantai	mullinmallin-maanantai
+    pullonavaaja-avaimenperää	pullo#avaaja#avaimen#perä	pullonavaaja-avaimenperä
+    Thaimaan-matka	thai#maa#matka	thaimaan-matka
+    Tyynenmeren-suhteemme	tyyni#meri#suhde	tyynenmeren-suhde
+    ulkomaalais-markettiin	ulko#maalainen#marketti	ulkomaalais-marketti
+    Vapaudenpatsas-pallopää	vapaus#patsas#pallo#pää	vapaudenpatsas-pallopää
+  input:
+    stdin: *output-11b
+  output:
+    stdout: *output-11b
+
+
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen missing because of stem change in second part'
   # Prescriptively, some of these should not have a hyphen, but it
   # would be difficult if not impossible to distinguish between
@@ -446,6 +483,8 @@
   defs: &output-14 |
     Ihmemies-T-paitoja	ihme#mies#T#paita	ihmemies-T-paita
     bändi-T-paita	bändi#T#paita	bändi-T-paita
+    <!-- Does not occur in the data -->
+    uudenvuoden-T-paitoja	uusi#vuosi#T#paita	uudenvuoden-T-paita
   input:
     stdin: *output-14
   output:

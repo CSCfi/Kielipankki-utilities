@@ -98,7 +98,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
     # Capitalized (proper) nouns have been lowercased, as at least the UD1
     # variant of the Turku Dependency Parser Pipeline seems to lowercase some
     # of the lemmas ("tyynimeri").
-    _inflected_first_part = {
+    _inflecting_first_part = {
         ('aava', 'meri'),
         ('hieno', 'sokeri'),
         # ('Iso', 'Britannia'),
@@ -427,6 +427,24 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 or lemma_part.isdigit())
                for lemma_part in lemma_parts):
             return self._lemmatize_numeral(lemma_parts, wordform).encode()
+        # If the word form has the same number of intra-word hyphens as the
+        # lemma has boundaries (and hyphens), use the lemma of the last part
+        # and the word forms of the preceding parts.
+        if (lemma[1:-1].count(self._args.boundary_char) + lemma[1:-1].count('-')
+                == wordform[1:-1].count('-')):
+            result_parts = ([
+                    self._adjust_case(wf_part, lemma_parts[partnum * 2])
+                    for partnum, wf_part
+                    in enumerate(wordform.strip('-').split('-')[:-1])]
+                ) + [lemma_parts[-1]]
+            # If the second-last and last part form a compound in which the
+            # second-last part inflects, use its lemma instead of the inflected
+            # word form (e.g., nyky-Ison-Britannian -> nyky-Iso-Britannia). If
+            # the inflected part is earlier, no changes are needed (e.g.,
+            # Ison-Britannian-kävijät -> Ison-Britannian-kävijä).
+            if self._has_inflecting_first_part(lemma_parts[-3], lemma_parts[-1]):
+                result_parts[-2] = lemma_parts[-3]
+            return '-'.join(result_parts).encode()
         wf_prefix_len = 0
         lemma_prefix_len = 0
         lemma_nobound = []
@@ -436,9 +454,13 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # FIXME: end_diff and wf_use_len are not currently
                 # used, and _get_prefix does not return meaningful
                 # values for them
+                # Inflecting first part should be considered only when
+                # the current part is the second-last one, as for
+                # example, uudenvuodenlupauksia should result in
+                # uudenvuodenlupaus, not uusivuodenlupaus.
                 nobound_part, end_diff, wf_use_len = self._get_prefix(
                     lemma_parts[partnum], lemma_parts[partnum + 2],
-                    wordform[wf_prefix_len:])
+                    wordform[wf_prefix_len:], partnum == len(lemma_parts) - 3)
                 # print(partnum, part, nobound_part, end_diff, wf_use_len)
                 if (nobound_part and nobound_part[0] == '-'
                         and lemma_nobound and lemma_nobound[-1] == '-'):
@@ -460,16 +482,27 @@ class NoBoundaryLemmaAdder(InputProcessor):
         lemma_nobound.append(lemma_parts[-1])
         return (''.join(lemma_nobound)).encode()
 
-    def _get_prefix(self, lemmapart_this, lemmapart_next, wordform):
+    def _get_adjust_case_fn(self, ref_word):
+        for test_fn, adjust_fn in self._adjust_case_fns:
+            if test_fn(ref_word):
+                return adjust_fn
+        return lambda x: x
+
+    def _adjust_case(self, adjust_word, ref_word):
+        return self._get_adjust_case_fn(ref_word)(adjust_word)
+
+    def _has_inflecting_first_part(self, part1, part2):
+        part1_lower = part1.lower()
+        return ((part1_lower, part2.lower()) in self._inflecting_first_part
+                or (part1_lower, '*') in self._inflecting_first_part)
+
+    def _get_prefix(self, lemmapart_this, lemmapart_next, wordform,
+                    consider_inflecting_first_part):
         # yhteinen kunta yhteiskunnan -> yhteis, -2, 3
         # oleskella lupa oleskeluluvista ->
         # print('_get_prefix', lemmapart_this, lemmapart_next, wordform, file=sys.stderr)
         lemma_len = len(lemmapart_this)
-        adjust_case_fn = lambda x: x
-        for test_fn, adjust_fn in self._adjust_case_fns:
-            if test_fn(lemmapart_this):
-                adjust_case_fn = adjust_fn
-                break
+        adjust_case_fn = self._get_adjust_case_fn(lemmapart_this)
 
         def find_begin(lemmapart_next):
 
@@ -583,27 +616,12 @@ class NoBoundaryLemmaAdder(InputProcessor):
         hyphen_pos = wordform.find('-', max(0, lemma_len - 3))
         # print(lemma_len, wordform, hyphen_pos, file=sys.stderr)
         maybe_hyphen = ('-' if hyphen_pos > -1 else '')
-        lemmapart_this_lower = lemmapart_this.lower()
-        if ((lemmapart_this_lower, lemmapart_next.lower())
-                    in self._inflected_first_part
-                or (lemmapart_this_lower, '*') in self._inflected_first_part):
+        if (consider_inflecting_first_part
+                and self._has_inflecting_first_part(
+                        lemmapart_this, lemmapart_next)):
             # print('INFL_FIRST', lemmapart_this + maybe_hyphen, 0,
             #       len(lemmapart_this), file=sys.stderr)
             return (lemmapart_this + maybe_hyphen, 0, len(lemmapart_this))
-        # FIXME: Devise a better heuristic than comparing the two characters
-        # following the hyphen with the two initial characters of the next
-        # lemma part
-        # Strip hyphen to cover cases like "bändi-T-paita"
-        # print(hyphen_pos, len(wordform), len(lemmapart_next),
-        #       wordform[hyphen_pos + 1:hyphen_pos + 3].strip('-'),
-        #       lemmapart_next[:2])
-        if (hyphen_pos > -1
-                and (wordform[hyphen_pos + 1:hyphen_pos + 3].strip('-')
-                     == lemmapart_next[:2])):
-            # print('HYPHEN', adjust_case_fn(wordform[:(hyphen_pos + 1)]),
-            #         hyphen_pos - lemma_len, 10, file=sys.stderr)
-            return (adjust_case_fn(wordform[:(hyphen_pos + 1)]),
-                    hyphen_pos - lemma_len, 10)
         return_vals = find_begin(lemmapart_next)
         if return_vals:
             return return_vals
