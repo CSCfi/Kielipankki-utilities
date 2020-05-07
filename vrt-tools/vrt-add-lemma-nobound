@@ -551,7 +551,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 if next_pos:
                     cands.append(
                         (next_pos, wf_prefix_len,
-                         common_suffix_len(lemmapart_this, wordform[:next_pos])))
+                         common_suffix_len(lemmapart_this,
+                                           wordform[:next_pos].strip('-'))))
             # print('fnb cands', cands, file=sys.stderr)
             if not cands:
                 return None
