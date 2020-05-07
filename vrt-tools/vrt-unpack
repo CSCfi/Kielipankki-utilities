@@ -152,8 +152,10 @@ def makesink(target, targetname, member, sentinel):
         for line in fragment:
             if line.startswith(b'</...>'): continue
             if isbinnames(line):
+                (names is None or not names == line) and out.write(line)
                 names = line
-            out.write(line)
+            else:
+                out.write(line)
 
     return consumer
 
