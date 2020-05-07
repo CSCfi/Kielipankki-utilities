@@ -543,7 +543,10 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 return cands[max_num]
 
             cands = []
-            for wf_prefix_len in range(min(len(lemmapart_next), 5), 1, -1):
+            # Check word form prefix of 5...2 characters (or 1 if the length of
+            # the next lemma part is 1)
+            for wf_prefix_len in range(min(len(lemmapart_next), 5),
+                                       min(len(lemmapart_next) - 1, 1), -1):
                 # print('CHECK:', wordform, lemmapart_next, wf_prefix_len,
                 #       lemmapart_next[:wf_prefix_len],
                 #       wordform[(lemma_len - 3):], file=sys.stderr)
