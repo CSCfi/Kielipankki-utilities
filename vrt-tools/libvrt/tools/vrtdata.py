@@ -1,30 +1,32 @@
 # -*- mode: Python; -*-
 
-'''Implementation of vrt-meta.'''
+'''Implementation of vrt-data.'''
 
 import os
 from subprocess import Popen, PIPE
 
-from .args import BadData
-from .args import transput_args
+from libvrt.args import BadData
+from libvrt.args import transput_args
 
 # TODO here AND rel-tools to RAISE not EXIT on failure
-from .bins import SORT
+from libvrt.bins import SORT
 
-from .metaline import attributes, valuegetter
-from .metaname import nametype, isname
-from .metamark import marktype
+from libvrt.dataline import valuegetter
+
+# remnants of vrt-meta seem good here
+from libvrt.metaname import nametype, isname
+from libvrt.metamark import marktype
 
 def parsearguments(argv, *, prog = None):
 
     description = '''
 
-    Present the attribute values of a specified element (default text)
-    in a VRT document as a relation in the form of a Tab-Separated
-    Values (TSV) document, complete with a head and unique rows in the
-    body. Initially identified attribute names become field names, the
-    corresponding values become the content of records. This is not a
-    VRT validator.
+    Present the annotated tokens in a VRT document as a relation in
+    the form of a Tab-Separated Values (TSV) document, complete with a
+    head and unique rows in the body. Initially identified positional
+    names become field names, or default to v1, v2, up to the
+    initially encountered number of fields, while the corresponding
+    values become the content of records. This is not a VRT validator.
 
     '''
 
@@ -34,19 +36,10 @@ def parsearguments(argv, *, prog = None):
     parser.add_argument('--quiet', '-q', action = 'store_true',
                         help = '''
 
-                        do not warn when an element has different
-                        attributes than the first element (default is
-                        to warn four times)
-
-                        ''')
-
-    parser.add_argument('--element', '-e', metavar = 'name',
-                        type = nametype,
-                        default = b'text',
-                        help = '''
-
-                        name of the VRT element to use (defaults to
-                        text)
+                        do not warn when a token has a different
+                        number of annotations than the first name
+                        comment or the first token (default is to warn
+                        four times)
 
                         ''')
 
@@ -55,8 +48,8 @@ def parsearguments(argv, *, prog = None):
                         default = b'',
                         help = '''
 
-                        a mark to use as the value for any missing
-                        attribute (defaults to the empty string -
+                        a mark to use as the value when there are too
+                        few fields (defaults to the empty string -
                         should the default be visible?)
 
                         ''')
@@ -87,21 +80,33 @@ def parsearguments(argv, *, prog = None):
 def main(args, ins, ous):
     '''Transput VRT (bytes) in ins to TSV (bytes) in ous.'''
 
-    kind = (b''.join((b'<', args.element, b'>')),
-            b''.join((b'<', args.element, b' ')))
-    data = (line for line in ins if line.startswith(kind))
+    data = (
+        line for line in ins
+        if not line.isspace()
+        if (
+                not (line.startswith(b'<')) or
+                line.startswith(b'<!-- #vrt positional attributes: ')
+        )
+    )
 
     line = next(data, None)
     if line is None:
         raise BadData('no data, no head')
 
-    # attribute names and values in head order,
-    # missing attributes default to args.mark
-    head = attributes(line)
+    if line.startswith(b'<'):
+        left, rest = line.rstrip(b'->\r\n').split(b':')
+        head = rest.split()
+    else:
+        head = [
+            'v{}'.format(k).encode('utf-8')
+            for k, v
+            in enumerate(line.rstrip(b'\r\n').split(b'\t'),
+                         start = 1)
+        ]
 
     if (not all(isname(name) for name in head) or
         len(set(head)) < len(head)):
-        raise BadData('bad names (first element)')
+        raise BadData('bad names')
 
     values = valuegetter(head, missing = args.mark,
                          warn = not args.quiet,

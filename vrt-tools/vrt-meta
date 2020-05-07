@@ -4,7 +4,7 @@
 import sys
 
 from libvrt.args import transput
-from libvrt.vrtmeta import parsearguments, main
+from libvrt.tools.vrtmeta import parsearguments, main
 
 if __name__ == '__main__':
     transput(parsearguments(sys.argv[1:]), main,
