@@ -461,7 +461,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 nobound_part, end_diff, wf_use_len = self._get_prefix(
                     lemma_parts[partnum], lemma_parts[partnum + 2],
                     wordform[wf_prefix_len:], partnum == len(lemma_parts) - 3)
-                # print(partnum, part, nobound_part, end_diff, wf_use_len)
+                # print('after _get_prefix', partnum, part, nobound_part,
+                #       end_diff, wf_use_len, file=sys.stderr)
                 if (nobound_part and nobound_part[0] == '-'
                         and lemma_nobound and lemma_nobound[-1] == '-'):
                     nobound_part = nobound_part[1:]
@@ -500,7 +501,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     consider_inflecting_first_part):
         # yhteinen kunta yhteiskunnan -> yhteis, -2, 3
         # oleskella lupa oleskeluluvista ->
-        # print('_get_prefix', lemmapart_this, lemmapart_next, wordform, file=sys.stderr)
+        # print('_get_prefix', lemmapart_this, lemmapart_next, wordform,
+        #       file=sys.stderr)
         lemma_len = len(lemmapart_this)
         adjust_case_fn = self._get_adjust_case_fn(lemmapart_this)
 
@@ -566,12 +568,14 @@ class NoBoundaryLemmaAdder(InputProcessor):
             return make_return_value(cand)
 
         def find_next_begin(wf_prefix_len, lemmapart_next):
-            # print('find_next_begin', wf_prefix_len, lemmapart_next, lemma_len, file=sys.stderr)
+            # print('find_next_begin', wf_prefix_len, lemmapart_next, lemma_len,
+            #       file=sys.stderr)
             begin_candidates = []
             start_pos = max(0, lemma_len - 3)
             next_pos = 0
             while start_pos < lemma_len + 3 and next_pos > -1:
-                # print('fnb loop:', wordform, lemmapart_next[:wf_prefix_len], start_pos, wordform[start_pos:], file=sys.stderr)
+                # print('fnb loop:', wordform, lemmapart_next[:wf_prefix_len],
+                #       start_pos, wordform[start_pos:], file=sys.stderr)
                 next_pos = wordform.find(lemmapart_next[:wf_prefix_len],
                                          start_pos)
                 # print('next_pos', next_pos, file=sys.stderr)
@@ -633,7 +637,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
             lemmapart_next_len = len(lemmapart_next)
             for lemma_stem, infl_stem in self._stem_changes:
                 lemma_stem_len = len(lemma_stem)
-                # print(lemma_stem, infl_stem, lemmapart_next_len, lemma_stem_len + 1, lemmapart_next.endswith(lemma_stem), file=sys.stderr)
+                # print(lemma_stem, infl_stem, lemmapart_next_len,
+                #       lemma_stem_len + 1, lemmapart_next.endswith(lemma_stem),
+                #       file=sys.stderr)
                 if (lemmapart_next_len <= lemma_stem_len + 1
                         and lemmapart_next.endswith(lemma_stem)):
                     return_vals = find_begin(
@@ -641,7 +647,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                         + infl_stem)
                     if return_vals:
                         return return_vals
-        # print('NOT FOUND')
+        # print('NOT FOUND', file=sys.stderr)
         return lemmapart_this, 0, 0
 
     def _lemmatize_numeral(self, lemmaparts, wordform):
