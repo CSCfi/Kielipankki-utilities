@@ -18,7 +18,10 @@ do
 	# extract metadata from mets and linking files
 	metadatafile=`echo $metsfile | perl -pe 's/_mets\.xml/\.metadata/;'`;
 	echo "Generating "$metadatafile;
-	$mets2metadata $metsfile $linkingfile > $metadatafile;
+	if !($mets2metadata $metsfile $linkingfile > $metadatafile); then
+	    echo "Metadata file could not be created, exiting.";
+	    exit 1;
+	fi
 	# extract language used
 	lang="";
 	if [ "$outputdir" != "" ]; then
@@ -34,7 +37,10 @@ do
 	do
 	    vrtfile=`echo $xmlfile | perl -pe 's/\.xml/\.vrt/'`;
 	    echo "Generating "$vrtfile;
-	    $convpy --metadata $metadatafile --metsfilename $metsfile $xmlfile > $vrtfile
+	    if !($convpy --metadata $metadatafile --metsfilename $metsfile $xmlfile > $vrtfile); then
+		echo "VRT file could not be created, exiting.";
+		exit 1;
+	    fi
 	    lines=`cat $vrtfile | wc -l`;
 	    if [ "$lines" = "1" ]; then
 		echo "Empty VRT file, renaming *.vrt -> *.vrt.empty";
