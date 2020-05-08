@@ -8,17 +8,18 @@ token_sep = '\n'
 sent_sep  = '\n\n'
 
 # Tokenize given text, return a list on sentences, which are lists of tokens
-def tokenize(text, lang="fi"):
-    lines = run_hfst_tokenize(text)
+def tokenize(text, page_file, lang="fi"):
+    lines = run_hfst_tokenize(text, page_file)
     sents = [ [ token for token in sent.split(token_sep) if token != '' ]
               for sent in lines.split(sent_sep) if sent != '' ]
     return sents
 
 
 # Run hfst-tokenize for in shell for given text, return output                                                                      
-def run_hfst_tokenize(text, tokenizer='finnish-tokenize'):
+def run_hfst_tokenize(text, page_file, tokenizer='finnish-tokenize'):
     timestamp = datetime.now().isoformat(sep="_").replace(":", '').replace('.', '_')
-    filename_in = 'untokenized_%s.txt' % timestamp
+    directory = '/'.join(page_file.split('/')[:-1])
+    filename_in = '%s/untokenized_%s.txt' % (directory, timestamp)
     open(filename_in, 'w', encoding='utf8').write(text)
     # Make hfst-tokenize interpret angle brackets as separate tokens by adding newlines to them
     # Else input of type "<word1 word2 ... wordN>" will be tokenized as a single word

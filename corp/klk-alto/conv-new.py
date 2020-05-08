@@ -44,12 +44,12 @@ def get_date(mets_dict={}):
 # * Both of the above: punctuation and numerals
 #   - ["100", "000."] vs. ["100 000", "."]
 #   - ["(10", "000)"] vs. ["(", "10 000", ")"]
-def align_data(element):
+def align_data(element, page_file):
 
     string_data = get_string_data(element)
 
     text = ' '.join([ s for ( s, atts ) in string_data ])
-    sents = tokenize(text)
+    sents = tokenize(text, page_file)
     use_original_strings=False # prefer result from hfst-tokenize
     
     aligned_para = []
@@ -234,11 +234,11 @@ def paragraph(element):
     return enclose(string, 'paragraph', paragraph_atts)"""
 
 
-def paragraph(element):
+def paragraph(element, page_file):
 
     global paragraph_id
     
-    string = ''.join([ sentence(sent) for sent in align_data(element) ])
+    string = ''.join([ sentence(sent) for sent in align_data(element, page_file) ])
     
     paragraph_atts = { 'id' : paragraph_id, }
     paragraph_id += 1
@@ -250,7 +250,7 @@ def text(page_file, mets={}, date=''):
 
     element = ET.parse(page_file).getroot()
     
-    string = ''.join([ paragraph(block) for block in element.findall('.//'+block_tag, ns) ])
+    string = ''.join([ paragraph(block, page_file) for block in element.findall('.//'+block_tag, ns) ])
     datefrom, dateto, timefrom, timeto = timespan(date.replace('-',''))
     
     text_atts = {
@@ -323,7 +323,7 @@ if __name__ == '__main__':
 
     if mets_filename != None:
         mets['filename_metadata'] = mets_filename
-        
+
     vrt_string = main(page_file, mets, date)
     print('<!-- #vrt positional-attributes: word id content vpos ocr cc hyph -->')
     print(vrt_string, end='')
