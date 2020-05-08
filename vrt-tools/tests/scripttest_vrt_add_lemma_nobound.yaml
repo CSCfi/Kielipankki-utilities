@@ -493,6 +493,15 @@
     stdout: *output-13
 
 
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Significantly longer first word form part than lemma part'
+  defs: &output-13a |
+    Jätteidenhävittämis-järjestelmästä	jäte#hävittää#järjestelmä	jätteidenhävittämis-järjestelmä
+  input:
+    stdin: *output-13a
+  output:
+    stdout: *output-13a
+
+
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphens in words with single-letter middle part'
   defs: &output-14 |
     Ihmemies-T-paitoja	ihme#mies#T#paita	ihmemies-T-paita

@@ -579,7 +579,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 next_pos = wordform.find(lemmapart_next[:wf_prefix_len],
                                          start_pos)
                 # print('next_pos', next_pos, file=sys.stderr)
-                check_len_right = 5 + (int(wordform[next_pos - 1] == '-')
+                check_len_right = 8 + (int(wordform[next_pos - 1] == '-')
                                        if next_pos > 0 else 0)
                 if -1 < next_pos < lemma_len + check_len_right:
                     # print('FOUND:', wf_prefix_len, next_pos, lemmapart_next,
