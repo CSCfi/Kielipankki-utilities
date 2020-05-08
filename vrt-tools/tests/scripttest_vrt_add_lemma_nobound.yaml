@@ -447,6 +447,20 @@
     stdout: *output-11b
 
 
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with incorrect part match after other fixes'
+  defs: &output-11c |
+    eläinesi-isistä	eläin#esi-isä	eläinesi-isä
+    erämaa-isistä	erä#maa#isä	erämaa-isä
+    esi-isiisi	esi#isi#isi	esi-isi-isi
+    Henry-isoisoisän	henry#iso#isoisä	henry-isoisoisä
+    Roomalais-maailmaan	roomalainen#maa#ilma	roomalais-maailma
+    iso-iso-isoenoni	iso#iso#iso#eno	iso-iso-isoeno
+  input:
+    stdin: *output-11c
+  output:
+    stdout: *output-11c
+
+
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen missing because of stem change in second part'
   # Prescriptively, some of these should not have a hyphen, but it
   # would be difficult if not impossible to distinguish between
