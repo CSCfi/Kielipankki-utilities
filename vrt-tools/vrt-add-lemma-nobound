@@ -64,7 +64,35 @@ class NoBoundaryLemmaAdder(InputProcessor):
          'log output to stderr'),
     ]
 
-    _lemma_suffix_len_changes = [('nen', -2)]
+    # Lemma suffixes that are (typically) associated with a length change in
+    # the word form, typically so that the word form is shorter (e.g. hevonen
+    # -> hevos, häät -> hää). Some of these are peculiar to Omorfi, which may
+    # give verb lemmas for noun derivatives.
+    _lemma_suffix_len_changes = [
+        ('nen', -2),	# hevonen -> hevos
+        ('kset', -3),	# kidukset -> kidus
+        ('set', -2),	# uutiset -> uutis
+        ('lla', -1),	# ajella -> ajelu
+        ('llä', -1),	# kävellä -> kävely
+        ('ehkä', -1),	# ehkä -> ehk
+        ('jotta', -1),	# jotta -> jott
+        ('miksi', -1),	# miksi -> miks
+        ('vaikka', -1),	# vaikka -> vaikk
+        ('utua', -1),   # aiheutua -> aiheudu
+        ('da', -2),     # voida -> voi
+        ('dä', -2),     # entisöidä -> entisöi
+        ('ttaa', -2),   # -ttaa -> -ta
+        ('ttää', -2),   # -ttaa -> -ta
+        ('ttua', -2),   # -ttua -> -tu
+        ('ttyä', -2),   # -ttua -> -tu
+        ('taa', -1),    # -taa -> -ta
+        ('tää', -1),    # -taa -> -ta
+        ('imet', -2),   # elimet -> elin
+        ('kset', -3),	# veljekset -> veljes
+        ('eet', -2),	# bileet -> bile
+        ('aat', -2),	# rattaat -> ratas
+        ('t', -1),		# häät -> hää
+    ]
     # Stem changes that affect the second (and possibly first) letter
     _stem_changes = [
         ('ie', 'ei'),
@@ -418,7 +446,13 @@ class NoBoundaryLemmaAdder(InputProcessor):
             return ''.join(lemma_without_boundaries).encode()
 
     def _make_lemma_noboundaries_omorfi(self, lemma, wordform):
-        # TODO: uudenvuoden -> uusivuosi
+
+        def get_lemma_min_wf_len(lemma):
+            for suffix, len_change in self._lemma_suffix_len_changes:
+                if lemma.endswith(suffix):
+                    return len(lemma) + len_change
+            return len(lemma)
+
         lemma = lemma.decode()
         wordform = wordform.decode()
         lemma_parts = self._lemma_split_keepsep_re.split(lemma)
@@ -448,6 +482,13 @@ class NoBoundaryLemmaAdder(InputProcessor):
         wf_prefix_len = 0
         lemma_prefix_len = 0
         lemma_nobound = []
+        # Calculate the minimum word form length covering a lemma part and the
+        # parts following it
+        min_rest_wf_lens = len(lemma_parts) * [0]
+        rest_len = 0
+        for partnum in range(len(lemma_parts) - 1, -1, -2):
+            rest_len += get_lemma_min_wf_len(lemma_parts[partnum])
+            min_rest_wf_lens[partnum] = rest_len
         for partnum, part in enumerate(lemma_parts[:-2]):
             if partnum % 2 == 0:
                 # Actual compound part
@@ -460,7 +501,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # uudenvuodenlupaus, not uusivuodenlupaus.
                 nobound_part, end_diff, wf_use_len = self._get_prefix(
                     lemma_parts[partnum], lemma_parts[partnum + 2],
-                    wordform[wf_prefix_len:], partnum == len(lemma_parts) - 3)
+                    wordform[wf_prefix_len:], min_rest_wf_lens[partnum + 2],
+                    partnum == len(lemma_parts) - 3)
                 # print('after _get_prefix', partnum, part, nobound_part,
                 #       end_diff, wf_use_len, file=sys.stderr)
                 if (nobound_part and nobound_part[0] == '-'
@@ -480,6 +522,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                         and nobound_part[-1] in self._vowels):
                     lemma_nobound.append('-')
                 wf_prefix_len += len(nobound_part)
+                # print('lemma_nobound:', lemma_nobound, file=sys.stderr)
         lemma_nobound.append(lemma_parts[-1])
         return (''.join(lemma_nobound)).encode()
 
@@ -498,10 +541,14 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 or (part1_lower, '*') in self._inflecting_first_part)
 
     def _get_prefix(self, lemmapart_this, lemmapart_next, wordform,
-                    consider_inflecting_first_part):
+                    min_rest_wf_len, consider_inflecting_first_part):
+        # min_rest_wf_len = the minimum number of (non-hyphen)
+        # characters the word form should have left after the prefix
+        # corresponding to lemmapart_this
         # yhteinen kunta yhteiskunnan -> yhteis, -2, 3
         # oleskella lupa oleskeluluvista ->
         # print('_get_prefix', lemmapart_this, lemmapart_next, wordform,
+        #       min_rest_wf_len, consider_inflecting_first_part,
         #       file=sys.stderr)
         lemma_len = len(lemmapart_this)
         adjust_case_fn = self._get_adjust_case_fn(lemmapart_this)
@@ -553,11 +600,13 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 #       lemmapart_next[:wf_prefix_len],
                 #       wordform[(lemma_len - 3):], file=sys.stderr)
                 next_pos = find_next_begin(wf_prefix_len, lemmapart_next)
+                # print('next_pos', next_pos, file=sys.stderr)
                 if next_pos:
-                    cands.append(
-                        (next_pos, wf_prefix_len,
-                         common_suffix_len(lemmapart_this,
-                                           wordform[:next_pos].strip('-'))))
+                    for np in next_pos:
+                        cands.append(
+                            (np, wf_prefix_len,
+                             common_suffix_len(lemmapart_this,
+                                               wordform[:np].strip('-'))))
             # print('fnb cands', cands, file=sys.stderr)
             if not cands:
                 return None
@@ -579,9 +628,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 next_pos = wordform.find(lemmapart_next[:wf_prefix_len],
                                          start_pos)
                 # print('next_pos', next_pos, file=sys.stderr)
-                check_len_right = 8 + (int(wordform[next_pos - 1] == '-')
-                                       if next_pos > 0 else 0)
-                if -1 < next_pos < lemma_len + check_len_right:
+                # FIXME: min_rest_wf_len does not take into account possible
+                # hyphens in the word form.
+                if 1 < next_pos <= len(wordform) - min_rest_wf_len:
                     # print('FOUND:', wf_prefix_len, next_pos, lemmapart_next,
                     #       wordform[:next_pos] + '['
                     #       + wordform[next_pos:(next_pos + wf_prefix_len)] + ']'
@@ -593,12 +642,12 @@ class NoBoundaryLemmaAdder(InputProcessor):
             if not begin_candidates:
                 return None
             elif len(begin_candidates) == 1:
-                return begin_candidates[0]
+                return [begin_candidates[0]]
             elif (begin_candidates[0] == 0
                   or wordform[begin_candidates[0] - 1] == '-'):
                 # If the first candidate position is at the very beginning of
                 # the word form or if it is preceded by a hyphen, prefer it.
-                return begin_candidates[0]
+                return [begin_candidates[0]]
             else:
                 # If the current lemma part ends with a suffix for which a
                 # length change has been specified and the first candidate for
@@ -609,17 +658,17 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 for suffix, len_change in self._lemma_suffix_len_changes:
                     if (lemmapart_this.endswith(suffix) and
                             begin_candidates[0] <= lemma_len + len_change):
-                        return begin_candidates[0]
+                        return [begin_candidates[0]]
                 # Otherwise, choose the longest prefix with the last two
                 # letters matching the previous lemma (eri|laki, eri<la>il<la>
                 # -> erilaki and not erilaillaki)
-                for i in range(len(begin_candidates) -1, -1, -1):
+                for i in range(len(begin_candidates) - 1, -1, -1):
                     pos = begin_candidates[i]
                     if pos >= 2 and wordform[pos - 2:pos] == lemmapart_this[-2:]:
-                        return pos
-                # Otherwise, prefer the longest prefix (oleskella|lupa,
-                # oleske<lu><lu>vista -> oleskelulupa and not oleskelupa)
-                return begin_candidates[-1]
+                        return [pos]
+                # Otherwise, return all and choose in
+                # find_begin/choose_candidate
+                return begin_candidates
 
         # Are there other cases like ...toista, in which only the first part
         # inflects?

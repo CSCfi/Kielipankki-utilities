@@ -461,6 +461,73 @@
     stdout: *output-11c
 
 
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Multiple lemma prefix matches in word form'
+  defs: &output-11d |
+    alentavalta	ale#tapa	alentapa
+    arvelluttavasta	arvella#tapa	arvelluttapa
+    arvonannostani	arvo#anto	arvonanto
+    hallintavalta	halli#tapa	hallintapa
+    hullunlailla	hullu#laki	hullunlaki
+    isänlailla	isä#laki	isänlaki
+    jäävuorenlailla	jää#vuori#laki	jäävuorenlaki
+    käyttäytymistavoista	käyttäytymis#tapa	käyttäytymistapa
+    kirjastontädiltä	kirjasto#täti	kirjastontäti
+    kurinpitopisteitä	kuri#pidot#piste	kurinpitopiste
+    laitonlaitonlaitonlaitonlaiton	laiton#laitto#laiton#laitto#laitto	laitonlaitonlaitonlaitonlaitto
+    lapsenlapsenlapsenikin	lapsi#lapsenlapsi	lapsenlapsenlapsi
+    Lapsenlapsenlapsenlapsenlapsesi	lapsenlapsi#lapsi#lapsenlapsi	lapsenlapsenlapsenlapsenlapsi
+    lastenaltaalla	lapsi#allas	lastenallas
+    lastenmaailmaan	lapsi#maa#ilma	lastenmaailma
+    lemmenasioitasi	lempi#asia	lemmenasia
+    lisääntymistavoista	lisääntymis#tapa	lisääntymistapa
+    luonnonlailla	luonto#laki	luonnonlaki
+    merkinannostani	merkki#anto	merkinanto
+    mullistavalta	mulli#tapa	mullistapa
+    Nykyajantaide	nyky#aika#taide	nykyajantaide
+    omintakeista	oma#tae	omintae
+    orastavasta	oras#tapa	orastapa
+    Pakastekala-altaalla	pakaste#kala#allas	pakastekala-allas
+    paljastavasta	paljas#tapa	paljastapa
+    Peikonjahtaajahan	peikko#jahdata	peikonjahdata
+    pojanpojanpojan	poika#poika#poika	pojanpojanpoika
+    pojanpojanpojanpojanpojanpojanpoika	poika#poika#poika#poika#pojan#pojan#poika	pojanpojanpojanpojanpojanpojanpoika
+    puvuntakeista	puku#tae	puvuntae
+    rakastavasta	rakas#tapa	rakastapa
+    rekanlavalla	rekka#lapa	rekanlapa
+    ruumissäkeissä	ruumis#säe	ruumissäe
+    seireeninääntään	seireeni#ääni	seireeninääni
+    superiäntiikeri	super#ikä#tiikeri	superiäntiikeri
+    suuntaistahan	suu#tau	suuntau
+    tainnuttavasta	taitaa#tapa	tainnuttapa
+    tarhantädiltä	tarha#täti	tarhantäti
+    tauntauniin	tau#tau#ikä	tauntauikä
+    veljenpojanpojanpojan	veli#poika#poika#poika	veljenpojanpojanpoika
+    kullankaivajankaivaja	kullan#kaivaja#kaivaja	kullankaivajankaivaja
+    Palataanpalataan	pala#taka#pala#taka	palataanpalataka
+    parillisuustarkistuksia	par#tarkistus	parillisuustarkistus
+    sijoittajatapaamistasi	sijoittaa#tavata	sijoittajatavata
+    tähtireporttiremme	tähti#re#portti#re	tähtireporttire
+    tiedonannossaan	tieto#anto	tiedonanto
+    tyttärentyttärentytärtäsi	tyttären#tytär#tytär	tyttärentyttärentytär
+    voisitkovoisitko	voi#sitko#voi#sitko	voisitkovoisitko
+    Voisitko-voisitko	voi#sitko#voi#sitko	voisitko-voisitko
+    yhdentekevyytensä	yksi#tehdä	yhdentehdä
+    vauvanpitelijä-tyyppiä	vauva#pidellä#tyyppi	vauvanpitelijä-tyyppi
+    haaksirikkoudut	haaksi#rikko#utu	haaksirikkoutu
+    Hajaudut	haja#utu	hajautu
+    hävitystöissä	hävitys#työ	hävitystyö
+    hiluhiluhilu	hilut#hilut#hilu	hiluhiluhilu
+    hirttäjäisissä	hirttää#isä	hirttäjäisä
+    Kutikutikuti	kuti#kuti#kuti	kutikutikuti
+    päällystystöiden	päällystys#työ	päällystystyö
+    raitioteillä	raitio#tie	raitiotie
+    Riemuntaita	riemu#tau	riemuntau
+  input:
+    stdin: *output-11d
+  output:
+    stdout: *output-11d
+
+
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen missing because of stem change in second part'
   # Prescriptively, some of these should not have a hyphen, but it
   # would be difficult if not impossible to distinguish between
