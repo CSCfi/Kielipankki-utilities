@@ -70,26 +70,22 @@ class NoBoundaryLemmaAdder(InputProcessor):
     # give verb lemmas for noun derivatives.
     _lemma_suffix_len_changes = [
         ('nen', -2),	# hevonen -> hevos
-        ('kset', -3),	# kidukset -> kidus
+        ('kset', -3),	# veljekset -> veljes
         ('set', -2),	# uutiset -> uutis
-        ('lla', -1),	# ajella -> ajelu
-        ('llä', -1),	# kävellä -> kävely
         ('ehkä', -1),	# ehkä -> ehk
         ('jotta', -1),	# jotta -> jott
         ('miksi', -1),	# miksi -> miks
         ('vaikka', -1),	# vaikka -> vaikk
-        ('utua', -1),   # aiheutua -> aiheudu
         ('da', -2),     # voida -> voi
         ('dä', -2),     # entisöidä -> entisöi
         ('ttaa', -2),   # -ttaa -> -ta
         ('ttää', -2),   # -ttaa -> -ta
         ('ttua', -2),   # -ttua -> -tu
         ('ttyä', -2),   # -ttua -> -tu
-        ('taa', -1),    # -taa -> -ta
-        ('tää', -1),    # -taa -> -ta
+        ('a', -1),      # for other verbal lemmas
+        ('ä', -1),      # for other verbal lemmas
         ('imet', -2),   # elimet -> elin
-        ('kset', -3),	# veljekset -> veljes
-        ('eet', -2),	# bileet -> bile
+        ('eet', -3),	# vaatteet -> vaate
         ('aat', -2),	# rattaat -> ratas
         ('t', -1),		# häät -> hää
     ]

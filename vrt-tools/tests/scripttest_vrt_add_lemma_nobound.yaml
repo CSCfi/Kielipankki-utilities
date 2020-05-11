@@ -537,6 +537,34 @@
     stdout: *output-11e
 
 
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Cases that were broken after fixing some of the above (verbal lemma)'
+  defs: &output-11f |
+    ajattelutapaa	ajatella#tavata	ajattelutavata
+    anniskelulupaa	anniskella#luvata	anniskeluluvata
+    esiintyjälistaa	esiintyä#listata	esiintyjälistata
+    hellittelynimi	hellitellä#imeä	hellittelynimeä
+    Huikenteluaja	huikennella#ajaa	huikenteluajaa
+    Hyvästelyviesti	hyvästellä#viestiä	hyvästelyviestiä
+    juurijajuuri	juuria#juuria	juurijajuuria
+    katselukertaa	katsella#kerrata	katselukerrata
+    katsojamäärää	katsoa#määrätä	katsojamäärätä
+    käyttäjänimi	käyttää#imeä	käyttäjänimeä
+    kuulustelujaan	kuulustella#jakaa	kuulustelujakaa
+    liioitteluaja	liioitella#ajaa	liioitteluajaa
+    näyttelijälistaa	näytellä#listata	näyttelijälistata
+    oleskelulupaa	oleskella#luvata	oleskeluluvata
+    purukumisi	purra#kumista	purukumista
+    seikkailunhalua	seikkailla#haluta	seikkailunhaluta
+    taisteluhenki	taistella#henkiä	taisteluhenkiä
+    Taiteilijanimi	taiteilla#imeä	taiteilijanimeä
+    Tappajahain	tappaa#hakea	tappajahakea
+    tarjoilupöytää	tarjoilla#pöydätä	tarjoilupöydätä
+  input:
+    stdin: *output-11f
+  output:
+    stdout: *output-11f
+
+
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen missing because of stem change in second part'
   # Prescriptively, some of these should not have a hyphen, but it
   # would be difficult if not impossible to distinguish between
