@@ -571,7 +571,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
             # print('find_next_begin', wf_prefix_len, lemmapart_next, lemma_len,
             #       file=sys.stderr)
             begin_candidates = []
-            start_pos = max(0, lemma_len - 3)
+            start_pos = max(0, lemma_len - 2)
             next_pos = 0
             while start_pos < lemma_len + 3 and next_pos > -1:
                 # print('fnb loop:', wordform, lemmapart_next[:wf_prefix_len],
