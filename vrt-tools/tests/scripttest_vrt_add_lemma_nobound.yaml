@@ -489,6 +489,7 @@
     Pakastekala-altaalla	pakaste#kala#allas	pakastekala-allas
     paljastavasta	paljas#tapa	paljastapa
     Peikonjahtaajahan	peikko#jahdata	peikonjahdata
+    perheenjäseniänikään	perheen#jäsen#ikä#ikä	perheenjäseniänikä
     pojanpojanpojan	poika#poika#poika	pojanpojanpoika
     pojanpojanpojanpojanpojanpojanpoika	poika#poika#poika#poika#pojan#pojan#poika	pojanpojanpojanpojanpojanpojanpoika
     puvuntakeista	puku#tae	puvuntae
@@ -537,7 +538,7 @@
     stdout: *output-11e
 
 
-- name: 'vrt-add-lemma-nobound: --mode=omorfi: Cases that were broken after fixing some of the above (verbal lemma)'
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Cases that were broken after fixing some of the above (mutiple lemma prefix match with verbal lemma)'
   defs: &output-11f |
     ajattelutapaa	ajatella#tavata	ajattelutavata
     anniskelulupaa	anniskella#luvata	anniskeluluvata
@@ -555,17 +556,19 @@
     oleskelulupaa	oleskella#luvata	oleskeluluvata
     purukumisi	purra#kumista	purukumista
     seikkailunhalua	seikkailla#haluta	seikkailunhaluta
+    Surukukun	surra#kukkua	surukukkua
     taisteluhenki	taistella#henkiä	taisteluhenkiä
     Taiteilijanimi	taiteilla#imeä	taiteilijanimeä
     Tappajahain	tappaa#hakea	tappajahakea
     tarjoilupöytää	tarjoilla#pöydätä	tarjoilupöydätä
+    ulottuvuusluisu	ulottua#luisua	ulottuvuusluisua
   input:
     stdin: *output-11f
   output:
     stdout: *output-11f
 
 
-- name: 'vrt-add-lemma-nobound: --mode=omorfi: More cases that were broken after fixing some of the above'
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: More multiple lemma prefix matches broken after fixing some others'
   defs: &output-11g |
     Brienien	brie#ien	brienien
     elinkustannuskorotuksen	elin#kustannukset#korotus	elinkustannuskorotus
@@ -618,6 +621,39 @@
   output:
     stdout: *output-11h
   status: 'xfail: Would work if the longest first part match was preferred but that would break other cases'
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Yet more cases with multiple possible part matches'
+  defs: &output-11i |
+    asvalttiteiden	asvaltti#tie	asvalttitie
+    cowboyöiden	cowboy#yö	cowboy-yö
+    edustajaaja	edustaa#ajaa	edustaja-ajaa
+    hänenlaisestaan	hänenlaisensa#taka	hänenlaisensataka
+    isoisoisoäidiltämme	iso#iso#isoäiti	isoisoisoäiti
+    isoisoisovanhempiani	iso#iso#isovanhemmat	isoisoisovanhemmat
+    matkustajaaja	matkustaa#ajaa	matkustaja-ajaa
+    ratsastajaaja	ratsastaa#ajaa	ratsastaja-ajaa
+    Ristiteillä	risti#tie	ristitie
+    säätytöistä	sääty#työ	säätytyö
+    yrttiteistä	yrtti#tie	yrttitie
+  input:
+    stdin: *output-11i
+  output:
+    stdout: *output-11i
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Yet more cases with multiple possible part matches (broken after fixing some others)'
+  defs: &output-11j |
+    isoisoisoisoisoisäni	iso#iso#iso#iso#isoisä	isoisoisoisoisoisä
+    isoisoisoisoisoisoisäsi	iso#iso#iso#iso#iso#isoisä	isoisoisoisoisoisoisä
+    kiusaaavat	kiusa#aapa	kiusa-aapa
+    Saksilaissiat	sakset#sika	saksilaissika
+    seuraaavaksi	seura#aapa	seura-aapa
+    Siksei	siksi#ei	siksei
+  input:
+    stdin: *output-11j
+  output:
+    stdout: *output-11j
 
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen missing because of stem change in second part'
@@ -706,6 +742,8 @@
     miksenkö	miksi#ei	miksei
     mutten	mutta#ei	muttei
     vaikkemme	vaikka#ei	vaikkei
+    koskei	koska#ei	koskei
+    Siksei	siksi#ei	siksei
   input:
     stdin: *output-17
   output:

@@ -70,11 +70,16 @@ class NoBoundaryLemmaAdder(InputProcessor):
     # give verb lemmas for noun derivatives.
     _lemma_suffix_len_changes = [
         ('nen', -2),	# hevonen -> hevos
+        ('sakset', -1), # sakset -> saksi
+        # Would we need more specific length changes (shorter than 3) for other
+        # words ending in -kset?
         ('kset', -3),	# veljekset -> veljes
         ('set', -2),	# uutiset -> uutis
         ('ehkä', -1),	# ehkä -> ehk
         ('jotta', -1),	# jotta -> jott
         ('miksi', -1),	# miksi -> miks
+        ('siksi', -1),	# siksi -> siks
+        ('koska', -1),	# koska -> kosk
         ('vaikka', -1),	# vaikka -> vaikk
         ('da', -2),     # voida -> voi
         ('dä', -2),     # entisöidä -> entisöi
@@ -82,8 +87,31 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('ttää', -2),   # -ttaa -> -ta
         ('ttua', -2),   # -ttua -> -tu
         ('ttyä', -2),   # -ttua -> -tu
-        ('a', -1),      # for other verbal lemmas
-        ('ä', -1),      # for other verbal lemmas
+        ('lla', -1),	# ajella -> ajelu
+        ('llä', -1),	# kävellä -> kävely
+        ('taa', -1),    # -taa -> -ta
+        ('tää', -1),    # -taa -> -ta
+        ('utua', -1),   # aiheutua -> aiheudu
+        ('ytyä', -1),   # peseytyä -> peseydy
+        ('lla', -1),    # tulla -> tuli
+        ('llä', -1),    #
+        ('nna', -1),    #
+        ('nnä', -1),    # mennä -> meni
+        ('rra', -1),    # purra -> puri
+        ('rrä', -1),    #
+        ('aa', -1),     # ajaa -> ajo
+        ('ää', -1),     #
+        ('ta', -1),     # tavata -> tapaa
+        ('tä', -1),     #
+        ('ea', -1),     # imeä -> imi
+        ('eä', -1),     #
+        ('ia', -1),     #
+        ('iä', -1),     # viestiä -> viesti
+        ('ua', -1),     # luisua -> luisu
+        ('yä', -1),     #
+        # The following would be too generic and break other cases
+        # ('a', -1),    # for other verbal lemmas
+        # ('ä', -1),    # for other verbal lemmas
         ('imet', -2),   # elimet -> elin
         ('eet', -3),	# vaatteet -> vaate
         ('aat', -2),	# rattaat -> ratas
