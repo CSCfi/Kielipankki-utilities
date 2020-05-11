@@ -422,27 +422,27 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # In some cases, the lemma has - replaced with a |; in
         # other cases not
         wordform_parts = wordform.split('-')
-        lemma_parts = self._lemma_split_re.split(lemma)
-        if (len(wordform_parts) == len(lemma_parts)
+        lemmaparts = self._lemma_split_re.split(lemma)
+        if (len(wordform_parts) == len(lemmaparts)
             and '-' not in lemma):
             return lemma.replace(boundary_char, '-').encode()
         else:
-            lemma_without_boundaries = [lemma_parts[0]]
-            lemma_prefix_len = len(lemma_parts[0])
+            lemma_without_boundaries = [lemmaparts[0]]
+            lemma_prefix_len = len(lemmaparts[0])
             wf_prefix_len = len(wordform_parts[0])
             wf_partnr = 1
-            for lemma_part in lemma_parts[1:]:
+            for lemmapart in lemmaparts[1:]:
                 if wf_partnr >= len(wordform_parts):
-                    lemma_without_boundaries.append(lemma_part)
-                elif (lemma_part[:2] == wordform_parts[wf_partnr][:2]
+                    lemma_without_boundaries.append(lemmapart)
+                elif (lemmapart[:2] == wordform_parts[wf_partnr][:2]
                       and abs(wf_prefix_len - lemma_prefix_len) <= 2):
                     # FIXME: Devise a better heuristic
-                    lemma_without_boundaries.extend(['-', lemma_part])
+                    lemma_without_boundaries.extend(['-', lemmapart])
                     wf_prefix_len += len(wordform_parts[wf_partnr])
                     wf_partnr += 1
                 else:
-                    lemma_without_boundaries.append(lemma_part)
-                lemma_prefix_len += len(lemma_part)
+                    lemma_without_boundaries.append(lemmapart)
+                lemma_prefix_len += len(lemmapart)
             return ''.join(lemma_without_boundaries).encode()
 
     def _make_lemma_noboundaries_omorfi(self, lemma, wordform):
@@ -457,44 +457,44 @@ class NoBoundaryLemmaAdder(InputProcessor):
         wordform = wordform.decode()
         # CHECK: Do we really need to preserve information on the separators,
         # because of possible hyphens?
-        lemma_parts_boundaries = self._lemma_split_keepsep_re.split(lemma)
-        lemma_parts = [part for partnum, part
-                       in enumerate(lemma_parts_boundaries)
-                       if partnum % 2 == 0]
-        if all((lemma_part in self._numeral_lemmas
-                or lemma_part.isdigit())
-               for lemma_part in lemma_parts):
-            return self._lemmatize_numeral(lemma_parts, wordform).encode()
+        lemmaparts_boundaries = self._lemma_split_keepsep_re.split(lemma)
+        lemmaparts = [part for partnum, part
+                      in enumerate(lemmaparts_boundaries)
+                      if partnum % 2 == 0]
+        if all((lemmapart in self._numeral_lemmas
+                or lemmapart.isdigit())
+               for lemmapart in lemmaparts):
+            return self._lemmatize_numeral(lemmaparts, wordform).encode()
         # If the word form has the same number of intra-word hyphens as the
         # lemma has boundaries (and hyphens), use the lemma of the last part
         # and the word forms of the preceding parts.
         if (lemma[1:-1].count(self._args.boundary_char) + lemma[1:-1].count('-')
                 == wordform[1:-1].count('-')):
             result_parts = ([
-                    self._adjust_case(wf_part, lemma_parts[partnum])
+                    self._adjust_case(wf_part, lemmaparts[partnum])
                     for partnum, wf_part
                     in enumerate(wordform.strip('-').split('-')[:-1])]
-                ) + [lemma_parts[-1]]
+                ) + [lemmaparts[-1]]
             # If the second-last and last part form a compound in which the
             # second-last part inflects, use its lemma instead of the inflected
             # word form (e.g., nyky-Ison-Britannian -> nyky-Iso-Britannia). If
             # the inflected part is earlier, no changes are needed (e.g.,
             # Ison-Britannian-kävijät -> Ison-Britannian-kävijä).
-            if self._has_inflecting_first_part(lemma_parts[-2], lemma_parts[-1]):
-                result_parts[-2] = lemma_parts[-2]
+            if self._has_inflecting_first_part(lemmaparts[-2], lemmaparts[-1]):
+                result_parts[-2] = lemmaparts[-2]
             return '-'.join(result_parts).encode()
         wf_prefix_len = 0
         lemma_prefix_len = 0
         lemma_nobound = []
         # Calculate the minimum word form length covering a lemma part and the
         # parts following it
-        min_rest_wf_lens = len(lemma_parts) * [0]
+        min_rest_wf_lens = len(lemmaparts) * [0]
         rest_len = 0
-        for partnum in range(len(lemma_parts) - 1, -1, -1):
-            rest_len += get_lemma_min_wf_len(lemma_parts[partnum])
+        for partnum in range(len(lemmaparts) - 1, -1, -1):
+            rest_len += get_lemma_min_wf_len(lemmaparts[partnum])
             min_rest_wf_lens[partnum] = rest_len
-        for partnum in range(0, len(lemma_parts) - 1):
-            part = lemma_parts[partnum]
+        for partnum in range(0, len(lemmaparts) - 1):
+            part = lemmaparts[partnum]
             # Actual compound part
             # FIXME: end_diff and wf_use_len are not currently
             # used, and _get_prefix does not return meaningful
@@ -504,7 +504,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
             # example, uudenvuodenlupauksia should result in
             # uudenvuodenlupaus, not uusivuodenlupaus.
             nobound_part, end_diff, wf_use_len = self._get_prefix(
-                lemma_parts[partnum], lemma_parts[partnum + 1],
+                lemmaparts[partnum], lemmaparts[partnum + 1],
                 wordform[wf_prefix_len:], min_rest_wf_lens[partnum + 1],
                 partnum == len(lemma_parts) - 2)
             # print('after _get_prefix', partnum, part, nobound_part,
@@ -513,7 +513,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     and lemma_nobound and lemma_nobound[-1] == '-'):
                 nobound_part = nobound_part[1:]
             lemma_nobound.append(nobound_part)
-            # print(nobound_part, lemma_parts, partnum, file=sys.stderr)
+            # print(nobound_part, lemmaparts, partnum, file=sys.stderr)
             # nobound_part may be empty if the lemma begins with a boundary
             # marker, which has replaced a hyphen ("|tuntinen"). This
             # replaces such a boundary marker with a hyphen; an alternative
@@ -521,13 +521,13 @@ class NoBoundaryLemmaAdder(InputProcessor):
             # hyphen.
             if (self._omorfi_add_hyphens
                     and nobound_part and nobound_part[-1] != '-'
-                    and lemma_parts[partnum + 1]
-                    and nobound_part[-1] == lemma_parts[partnum + 1][0]
+                    and lemmaparts[partnum + 1]
+                    and nobound_part[-1] == lemmaparts[partnum + 1][0]
                     and nobound_part[-1] in self._vowels):
                 lemma_nobound.append('-')
             wf_prefix_len += len(nobound_part)
             # print('lemma_nobound:', lemma_nobound, file=sys.stderr)
-        lemma_nobound.append(lemma_parts[-1])
+        lemma_nobound.append(lemmaparts[-1])
         return (''.join(lemma_nobound)).encode()
 
     def _get_adjust_case_fn(self, ref_word):
@@ -623,7 +623,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         def find_next_begin(wf_prefix_len, lemmapart_next):
             # print('find_next_begin', wf_prefix_len, lemmapart_next, lemma_len,
             #       file=sys.stderr)
-            begin_candidates = []
+            begin_cands = []
             start_pos = max(0, lemma_len - 2)
             next_pos = 0
             while start_pos < lemma_len + 3 and next_pos > -1:
@@ -640,18 +640,17 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     #       + wordform[next_pos:(next_pos + wf_prefix_len)] + ']'
                     #       + wordform[next_pos + wf_prefix_len:],
                     #       file=sys.stderr)
-                    begin_candidates.append(next_pos)
+                    begin_cands.append(next_pos)
                 start_pos = next_pos + 1
-            # print('begin_cands:', begin_candidates, file=sys.stderr)
-            if not begin_candidates:
+            # print('begin_cands:', begin_cands, file=sys.stderr)
+            if not begin_cands:
                 return None
-            elif len(begin_candidates) == 1:
-                return [begin_candidates[0]]
-            elif (begin_candidates[0] == 0
-                  or wordform[begin_candidates[0] - 1] == '-'):
+            elif len(begin_cands) == 1:
+                return [begin_cands[0]]
+            elif begin_cands[0] == 0 or wordform[begin_cands[0] - 1] == '-':
                 # If the first candidate position is at the very beginning of
                 # the word form or if it is preceded by a hyphen, prefer it.
-                return [begin_candidates[0]]
+                return [begin_cands[0]]
             else:
                 # If the current lemma part ends with a suffix for which a
                 # length change has been specified and the first candidate for
@@ -661,18 +660,18 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # suomalaistututtu)
                 for suffix, len_change in self._lemma_suffix_len_changes:
                     if (lemmapart_this.endswith(suffix) and
-                            begin_candidates[0] <= lemma_len + len_change):
-                        return [begin_candidates[0]]
+                            begin_cands[0] <= lemma_len + len_change):
+                        return [begin_cands[0]]
                 # Otherwise, choose the longest prefix with the last two
                 # letters matching the previous lemma (eri|laki, eri<la>il<la>
                 # -> erilaki and not erilaillaki)
-                for i in range(len(begin_candidates) - 1, -1, -1):
-                    pos = begin_candidates[i]
+                for i in range(len(begin_cands) - 1, -1, -1):
+                    pos = begin_cands[i]
                     if pos >= 2 and wordform[pos - 2:pos] == lemmapart_this[-2:]:
                         return [pos]
                 # Otherwise, return all and choose in
                 # find_begin/choose_candidate
-                return begin_candidates
+                return begin_cands
 
         # Are there other cases like ...toista, in which only the first part
         # inflects?
