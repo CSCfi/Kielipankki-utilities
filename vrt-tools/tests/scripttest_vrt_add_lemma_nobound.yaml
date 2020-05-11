@@ -528,6 +528,15 @@
     stdout: *output-11d
 
 
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Even more difficult multiple lemma prefix matches in word form'
+  defs: &output-11e |
+    maailmansodansotaveteraaneille	maa#ilman#sota#sota#veteraani	maailmansodansotaveteraani
+  input:
+    stdin: *output-11e
+  output:
+    stdout: *output-11e
+
+
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen missing because of stem change in second part'
   # Prescriptively, some of these should not have a hyphen, but it
   # would be difficult if not impossible to distinguish between

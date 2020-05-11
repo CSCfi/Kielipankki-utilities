@@ -499,14 +499,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
             # FIXME: end_diff and wf_use_len are not currently
             # used, and _get_prefix does not return meaningful
             # values for them
-            # Inflecting first part should be considered only when
-            # the current part is the second-last one, as for
-            # example, uudenvuodenlupauksia should result in
-            # uudenvuodenlupaus, not uusivuodenlupaus.
             nobound_part, end_diff, wf_use_len = self._get_prefix(
-                lemmaparts[partnum], lemmaparts[partnum + 1],
-                wordform[wf_prefix_len:], min_rest_wf_lens[partnum + 1],
-                partnum == len(lemma_parts) - 2)
+                lemmaparts[partnum:], wordform[wf_prefix_len:],
+                min_rest_wf_lens[partnum + 1:])
             # print('after _get_prefix', partnum, part, nobound_part,
             #       end_diff, wf_use_len, file=sys.stderr)
             if (nobound_part and nobound_part[0] == '-'
@@ -544,17 +539,22 @@ class NoBoundaryLemmaAdder(InputProcessor):
         return ((part1_lower, part2.lower()) in self._inflecting_first_part
                 or (part1_lower, '*') in self._inflecting_first_part)
 
-    def _get_prefix(self, lemmapart_this, lemmapart_next, wordform,
-                    min_rest_wf_len, consider_inflecting_first_part):
+    def _get_prefix(self, lemmaparts, wordform, min_rest_wf_lens):
         # min_rest_wf_len = the minimum number of (non-hyphen)
         # characters the word form should have left after the prefix
         # corresponding to lemmapart_this
         # yhteinen kunta yhteiskunnan -> yhteis, -2, 3
         # oleskella lupa oleskeluluvista ->
-        # print('_get_prefix', lemmapart_this, lemmapart_next, wordform,
-        #       min_rest_wf_len, consider_inflecting_first_part,
-        #       file=sys.stderr)
+        lemmapart_this = lemmaparts[0]
+        lemmapart_next = lemmaparts[1]
+        # Inflecting first part should be considered only when the current part
+        # is the second-last one, as for example, uudenvuodenlupauksia should
+        # result in uudenvuodenlupaus, not uusivuodenlupaus.
+        consider_inflecting_first_part = (len(lemmaparts) == 2)
         lemma_len = len(lemmapart_this)
+        # print('_get_prefix', lemmapart_this, lemmapart_next, wordform,
+        #       min_rest_wf_lens, consider_inflecting_first_part,
+        #       file=sys.stderr)
         adjust_case_fn = self._get_adjust_case_fn(lemmapart_this)
 
         def find_begin(lemmapart_next):
@@ -623,6 +623,26 @@ class NoBoundaryLemmaAdder(InputProcessor):
         def find_next_begin(wf_prefix_len, lemmapart_next):
             # print('find_next_begin', wf_prefix_len, lemmapart_next, lemma_len,
             #       file=sys.stderr)
+
+            def all_parts_have_match(parts, whole):
+                # Test if all the (lemma) parts in parts have a prefix
+                # match of at least two characters in the (word form)
+                # whole, so that each at each match, the remaining
+                # word form is at least min_rest_wf_lens[partnum]
+                # characters long.
+                # TODO: Try to take into account possible stem changes.
+                # print('all_parts_have_match', parts, whole,
+                #       min_rest_wf_lens[1:], file=sys.stderr)
+                pos = prev_pos = 0
+                for partnum, part in enumerate(parts):
+                    pos = whole.find(part[:2], prev_pos)
+                    # print(partnum, part, pos)
+                    if pos == -1 or (
+                        	pos > len(whole) - min_rest_wf_lens[partnum + 1]):
+                        return False
+                    prev_pos = pos
+                return True
+
             begin_cands = []
             start_pos = max(0, lemma_len - 2)
             next_pos = 0
@@ -634,7 +654,17 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # print('next_pos', next_pos, file=sys.stderr)
                 # FIXME: min_rest_wf_len does not take into account possible
                 # hyphens in the word form.
-                if 1 < next_pos <= len(wordform) - min_rest_wf_len:
+                if 1 < next_pos <= len(wordform) - min_rest_wf_lens[0]:
+                    if (begin_cands
+                        and not all_parts_have_match(
+                            lemmaparts[2:],
+                            wordform[next_pos + wf_prefix_len:])):
+                        # Avoid matching in maailmansodansotaveteraaneille :
+                        # maa#ilman#sota#sota#veteraani the first lmma part
+                        # "sota" with "sota" in the word form, as the second
+                        # lemma part "sota" would then have no match in the
+                        # word form.
+                        break
                     # print('FOUND:', wf_prefix_len, next_pos, lemmapart_next,
                     #       wordform[:next_pos] + '['
                     #       + wordform[next_pos:(next_pos + wf_prefix_len)] + ']'
