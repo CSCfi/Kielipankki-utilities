@@ -565,6 +565,61 @@
     stdout: *output-11f
 
 
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: More cases that were broken after fixing some of the above'
+  defs: &output-11g |
+    Brienien	brie#ien	brienien
+    elinkustannuskorotuksen	elin#kustannukset#korotus	elinkustannuskorotus
+    harjoittelulupasi	harjoitella#luvata	harjoitteluluvata
+    huppu-vapaakiduskotiloita	huppu#vapaa#kidukset#kotilo	huppu-vapaakiduskotilo
+    jenkkisinisissä	jenkki#isä	jenkkisinisä
+    jollainlailla	jolla#laki	jollainlaki
+    kampeenne	kamppeet#enne	kampe-enne
+    kampelaisen	kamppeet#lainen	kampelainen
+    kaverusleffassa	kaverukset#leffa	kaverusleffa
+    Kidusjalkainen	kidukset#jalkainen	kidusjalkainen
+    kuolemanmadoista	kuolema#mato	kuolemanmato
+    lastenteon	lapsi#teko	lastenteko
+    lehdessäkin	lehdekset#säkki	lehdessäkki
+    liinavaateale	liina#vaatteet#ale	liinavaateale
+    liittovallanlain	liitto#valta#laki	liittovallanlaki
+    likavaatekorissa	lika#vaatteet#kori	likavaatekori
+    Merenre	meri#re	merenre
+    naapurusvartiota	naapurukset#vartio	naapurusvartio
+    Ompelutarvikekaupan	ompelutarvikkeet#kauppa	ompelutarvikekauppa
+    pitkistäkin	pitkikset#täkki	pitkistäkki
+    poliisikaverussarjoista	poliisi#kaverukset#sarja	poliisikaverussarja
+    puekutua	pukeet#kutu	puekutu
+    Puuvillaladon	puu#villa#lato	puuvillalato
+    pyhäinhäpäisijä	pyhä#häväistä	pyhäinhäväistä
+    sillalailla	silla#laki	sillalaki
+    sisälmyspataa	sisälmykset#pata	sisälmyspata
+    taiteenteon	taide#teko	taiteenteko
+    tuluskiveä	tulukset#kivi	tuluskivi
+    tyttärentyttärentyttärelleni	tyttären#tytär#tytär	tyttärentyttärentytär
+    tyttärentyttärentyttärentyttärentyttären	tyttären#tytär#tyttären#tytär#tytär	tyttärentyttärentyttärentyttärentytär
+    veljesaikaa	veljekset#aika	veljesaika
+    viinaspäissään	viinakset#pää	viinaspää
+    ylipuetaan	yli#pukeet#taka	ylipuetaka
+    ystävyssuhteen	ystävykset#suhde	ystävyssuhde
+  input:
+    stdin: *output-11g
+  output:
+    stdout: *output-11g
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: A case not handled correctly'
+  # This results in "naimisä". It would work if the longest first part
+  # was preferred but that would break other cases, such as
+  # suuntaistahan : suu#tau -> suuntaistau.
+  defs: &output-11h |
+    naimisisiin	naida#isä	naimisisä
+  input:
+    stdin: *output-11h
+  output:
+    stdout: *output-11h
+  status: 'xfail: Would work if the longest first part match was preferred but that would break other cases'
+
+
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen missing because of stem change in second part'
   # Prescriptively, some of these should not have a hyphen, but it
   # would be difficult if not impossible to distinguish between

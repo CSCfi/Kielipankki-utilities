@@ -640,7 +640,12 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 return True
 
             begin_cands = []
-            start_pos = max(0, lemma_len - 2)
+            lemma_len_change = 0
+            for suffix, len_change in self._lemma_suffix_len_changes:
+                if lemmapart_this.endswith(suffix):
+                    lemma_len_change = len_change
+                    break
+            start_pos = max(0, lemma_len + lemma_len_change)
             next_pos = 0
             while start_pos < lemma_len + 3 and next_pos > -1:
                 # print('fnb loop:', wordform, lemmapart_next[:wf_prefix_len],
@@ -684,10 +689,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # length adjusted, prefer that (suomalainen|tuttu,
                 # suomalais<tu><tu>t -> suomalaistuttu and not
                 # suomalaistututtu)
-                for suffix, len_change in self._lemma_suffix_len_changes:
-                    if (lemmapart_this.endswith(suffix) and
-                            begin_cands[0] <= lemma_len + len_change):
-                        return [begin_cands[0]]
+                if (lemma_len_change
+                        and begin_cands[0] <= lemma_len + len_change):
+                    return [begin_cands[0]]
                 # Otherwise, choose the longest prefix with the last two
                 # letters matching the previous lemma (eri|laki, eri<la>il<la>
                 # -> erilaki and not erilaillaki)
@@ -696,7 +700,12 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     if pos >= 2 and wordform[pos - 2:pos] == lemmapart_this[-2:]:
                         return [pos]
                 # Otherwise, return all and choose in
-                # find_begin/choose_candidate
+                # find_begin/choose_candidate.
+                # Preferring the furthest match by reversing
+                # begin_cands would fix some cases (naimisisiin :
+                # naima#isä -> naimisisä instead of naimisä) but break
+                # others (suuntaistahan : suu#tau -> suuntaistau).
+                # begin_cands.reverse()
                 return begin_cands
 
         # Are there other cases like ...toista, in which only the first part
