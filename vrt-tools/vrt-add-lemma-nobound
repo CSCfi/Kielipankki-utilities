@@ -455,9 +455,13 @@ class NoBoundaryLemmaAdder(InputProcessor):
 
         lemma = lemma.decode()
         wordform = wordform.decode()
-        lemma_parts = self._lemma_split_keepsep_re.split(lemma)
-        if all((lemma_part == self._args.boundary_char
-                or lemma_part in self._numeral_lemmas
+        # CHECK: Do we really need to preserve information on the separators,
+        # because of possible hyphens?
+        lemma_parts_boundaries = self._lemma_split_keepsep_re.split(lemma)
+        lemma_parts = [part for partnum, part
+                       in enumerate(lemma_parts_boundaries)
+                       if partnum % 2 == 0]
+        if all((lemma_part in self._numeral_lemmas
                 or lemma_part.isdigit())
                for lemma_part in lemma_parts):
             return self._lemmatize_numeral(lemma_parts, wordform).encode()
@@ -467,7 +471,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         if (lemma[1:-1].count(self._args.boundary_char) + lemma[1:-1].count('-')
                 == wordform[1:-1].count('-')):
             result_parts = ([
-                    self._adjust_case(wf_part, lemma_parts[partnum * 2])
+                    self._adjust_case(wf_part, lemma_parts[partnum])
                     for partnum, wf_part
                     in enumerate(wordform.strip('-').split('-')[:-1])]
                 ) + [lemma_parts[-1]]
@@ -476,8 +480,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
             # word form (e.g., nyky-Ison-Britannian -> nyky-Iso-Britannia). If
             # the inflected part is earlier, no changes are needed (e.g.,
             # Ison-Britannian-kävijät -> Ison-Britannian-kävijä).
-            if self._has_inflecting_first_part(lemma_parts[-3], lemma_parts[-1]):
-                result_parts[-2] = lemma_parts[-3]
+            if self._has_inflecting_first_part(lemma_parts[-2], lemma_parts[-1]):
+                result_parts[-2] = lemma_parts[-2]
             return '-'.join(result_parts).encode()
         wf_prefix_len = 0
         lemma_prefix_len = 0
@@ -486,43 +490,43 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # parts following it
         min_rest_wf_lens = len(lemma_parts) * [0]
         rest_len = 0
-        for partnum in range(len(lemma_parts) - 1, -1, -2):
+        for partnum in range(len(lemma_parts) - 1, -1, -1):
             rest_len += get_lemma_min_wf_len(lemma_parts[partnum])
             min_rest_wf_lens[partnum] = rest_len
-        for partnum, part in enumerate(lemma_parts[:-2]):
-            if partnum % 2 == 0:
-                # Actual compound part
-                # FIXME: end_diff and wf_use_len are not currently
-                # used, and _get_prefix does not return meaningful
-                # values for them
-                # Inflecting first part should be considered only when
-                # the current part is the second-last one, as for
-                # example, uudenvuodenlupauksia should result in
-                # uudenvuodenlupaus, not uusivuodenlupaus.
-                nobound_part, end_diff, wf_use_len = self._get_prefix(
-                    lemma_parts[partnum], lemma_parts[partnum + 2],
-                    wordform[wf_prefix_len:], min_rest_wf_lens[partnum + 2],
-                    partnum == len(lemma_parts) - 3)
-                # print('after _get_prefix', partnum, part, nobound_part,
-                #       end_diff, wf_use_len, file=sys.stderr)
-                if (nobound_part and nobound_part[0] == '-'
-                        and lemma_nobound and lemma_nobound[-1] == '-'):
-                    nobound_part = nobound_part[1:]
-                lemma_nobound.append(nobound_part)
-                # print(nobound_part, lemma_parts, partnum, file=sys.stderr)
-                # nobound_part may be empty if the lemma begins with a boundary
-                # marker, which has replaced a hyphen ("|tuntinen"). This
-                # replaces such a boundary marker with a hyphen; an alternative
-                # would be to leave it out if the word form has no initial
-                # hyphen.
-                if (self._omorfi_add_hyphens
-                        and nobound_part and nobound_part[-1] != '-'
-                        and lemma_parts[partnum + 2]
-                        and nobound_part[-1] == lemma_parts[partnum + 2][0]
-                        and nobound_part[-1] in self._vowels):
-                    lemma_nobound.append('-')
-                wf_prefix_len += len(nobound_part)
-                # print('lemma_nobound:', lemma_nobound, file=sys.stderr)
+        for partnum in range(0, len(lemma_parts) - 1):
+            part = lemma_parts[partnum]
+            # Actual compound part
+            # FIXME: end_diff and wf_use_len are not currently
+            # used, and _get_prefix does not return meaningful
+            # values for them
+            # Inflecting first part should be considered only when
+            # the current part is the second-last one, as for
+            # example, uudenvuodenlupauksia should result in
+            # uudenvuodenlupaus, not uusivuodenlupaus.
+            nobound_part, end_diff, wf_use_len = self._get_prefix(
+                lemma_parts[partnum], lemma_parts[partnum + 1],
+                wordform[wf_prefix_len:], min_rest_wf_lens[partnum + 1],
+                partnum == len(lemma_parts) - 2)
+            # print('after _get_prefix', partnum, part, nobound_part,
+            #       end_diff, wf_use_len, file=sys.stderr)
+            if (nobound_part and nobound_part[0] == '-'
+                    and lemma_nobound and lemma_nobound[-1] == '-'):
+                nobound_part = nobound_part[1:]
+            lemma_nobound.append(nobound_part)
+            # print(nobound_part, lemma_parts, partnum, file=sys.stderr)
+            # nobound_part may be empty if the lemma begins with a boundary
+            # marker, which has replaced a hyphen ("|tuntinen"). This
+            # replaces such a boundary marker with a hyphen; an alternative
+            # would be to leave it out if the word form has no initial
+            # hyphen.
+            if (self._omorfi_add_hyphens
+                    and nobound_part and nobound_part[-1] != '-'
+                    and lemma_parts[partnum + 1]
+                    and nobound_part[-1] == lemma_parts[partnum + 1][0]
+                    and nobound_part[-1] in self._vowels):
+                lemma_nobound.append('-')
+            wf_prefix_len += len(nobound_part)
+            # print('lemma_nobound:', lemma_nobound, file=sys.stderr)
         lemma_nobound.append(lemma_parts[-1])
         return (''.join(lemma_nobound)).encode()
 
@@ -713,8 +717,6 @@ class NoBoundaryLemmaAdder(InputProcessor):
         "kaksisataa". The wordform is used only for inserting hyphens
         at the correct places.
         """
-        lemmaparts = [lemmapart for lemmapart in lemmaparts
-                      if lemmapart != self._args.boundary_char]
         if all(lemmapart in self._ordinal_lemmas
                for lemmapart in lemmaparts[:-1]):
             if lemmaparts[-1] in self._ordinal_lemmas:
