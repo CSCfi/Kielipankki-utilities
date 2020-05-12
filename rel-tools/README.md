@@ -1,6 +1,6 @@
 FIN-CLARIN Relation Tools (rel tools)
 =====================================
-_version 0.1.2 (2020-05-12)_
+_version 0.1.3 (2020-05-12)_
 
 Rel tools are command-line tools for the investigation and
 manipulation of relations in the form of files that contain
@@ -15,7 +15,7 @@ Fields are identified by name and records by content.
 
 The tools are implemented in Python (version 3.5 or newer) in
 GNU/Linux environments, using `sort(1)` much and `cat(1)`, `head(1)`,
-and `tail(1)` some.
+and `tail(1)` some, and `shuf(1)` for random permutation and sampling.
 
 Terminology
 -----------

@@ -13,7 +13,7 @@ import os, sys, traceback
 from .bad import BadData, BadCode
 from .datasum import sumfile
 
-VERSION = '0.1.2 (2020-05-12)'
+VERSION = '0.1.3 (2020-05-12)'
 
 def version_args(*, description):
     '''Return an initial argument parser for a command line tool that
