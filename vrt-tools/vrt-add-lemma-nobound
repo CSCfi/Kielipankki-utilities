@@ -61,8 +61,6 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('--insert-noboundaries-after-name|insert-after=ATTR "lemma"'
          ' -> insert_after_attr',
          'insert the lemma without boundaries after positional attribute ATTR'),
-        ('--verbose',
-         'log output to stderr'),
     ]
 
     # functools.lru_cache size for _make_lemma_noboundaries_omorfi; lru_cache
@@ -346,16 +344,6 @@ class NoBoundaryLemmaAdder(InputProcessor):
 
         def make_lemma_noboundaries_simple(lemma, wordform):
             return lemma.replace(boundary_char, b'')
-
-        # def log(before, kind, after):
-        #     if args.verbose:
-        #         print('#',
-        #               *chain((w.decode().rstrip('\n')
-        #                       for w in ([b'##'] + before)[-4:]),
-        #                      [kind],
-        #                      (w.decode().rstrip('\n')
-        #                       for w in (after + [b'##'])[:6])),
-        #               file=sys.stderr)
 
         def attr_index(s):
             """Convert numeric 1-based attribute index strings to 0-based ints,
