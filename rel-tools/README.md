@@ -1,6 +1,6 @@
 FIN-CLARIN Relation Tools (rel tools)
 =====================================
-_version 0.1.1 (2020-05-03)_
+_version 0.1.2 (2020-05-12)_
 
 Rel tools are command-line tools for the investigation and
 manipulation of relations in the form of files that contain
