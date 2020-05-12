@@ -65,6 +65,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('--insert-noboundaries-after-name|insert-after=ATTR "lemma"'
          ' -> insert_after_attr',
          'insert the lemma without boundaries after positional attribute ATTR'),
+        ('--quiet',
+         'suppress warnings'),
         ('--cache-size=SIZE :int "{dft}"'.format(dft=DEFAULT_LRU_CACHE_SIZE),
          """cache at most SIZE compounds without boundaries with
          --mode=omorfi; SIZE should be a power of two; use -1 for
@@ -352,7 +354,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         if args.cache_size < 0:
             args.cache_size = None
 
-        def make_lemma_noboundaries_simple(lemma, wordform):
+        def make_lemma_noboundaries_simple(lemma, wordform, linenr):
             return lemma.replace(boundary_char, b'')
 
         def attr_index(s):
@@ -388,8 +390,10 @@ class NoBoundaryLemmaAdder(InputProcessor):
         if insert_after_index:
             insert_after_index += 1
         names_seen = False
+        linenr = 0
 
         for line in inf:
+            linenr += 1
             if line == b'\n':
                 ouf.write(line)
             elif line[0] == LESS_THAN:
@@ -419,7 +423,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
                             and lemma.count(boundary_char) == word.count(b'|')):
                         lemma_nobound = lemma.replace(boundary_char, b'|')
                     else:
-                        lemma_nobound = make_lemma_noboundaries(lemma, word)
+                        lemma_nobound = make_lemma_noboundaries(
+                            lemma, word, linenr)
                 else:
                     lemma_nobound = lemma
                 ouf.write(b'\t'.join(chain(attrs[:insert_after_index],
@@ -429,7 +434,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # if args.cache_size != 0:
         #     print(make_lemma_noboundaries.cache_info(), file=sys.stderr)
 
-    def _make_lemma_noboundaries_omorfi_simple(self, lemma_b, wordform_b):
+    def _make_lemma_noboundaries_omorfi_simple(self, lemma_b, wordform_b,
+                                               linenr):
         # Adapted and slightly improved from vrt-fix-attrs.py
         # (PosAttrConverter._make_lemma_without_boundaries_tdt)
         lemma = lemma_b.decode()
@@ -481,7 +487,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 lemma_prefix_len += len(lemmapart)
             return ''.join(lemma_without_boundaries).encode()
 
-    def _make_lemma_noboundaries_omorfi(self, lemma, wordform):
+    def _make_lemma_noboundaries_omorfi(self, lemma, wordform, linenr):
 
         def get_lemma_min_wf_len(lemma):
             for suffix, len_change in self._lemma_suffix_len_changes:
@@ -536,6 +542,19 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 min_rest_wf_lens[partnum + 1:])
             # print('after _get_prefix', partnum, part, nobound_part,
             #       end_diff, wf_use_len, file=sys.stderr)
+            if wf_use_len == 0:
+                wf_use_len = len(nobound_part)
+                if not self._args.quiet:
+                    self.warn(
+                        'input line {linenr}: No match found for compound'
+                        ' lemma boundary "{lemmapart1}{boundary}{lemmapart2}"'
+                        ' in suffix "{suffix}" of word form "{wordform}"'
+                        .format(linenr=linenr,
+                                lemmapart1=lemmaparts[partnum],
+                                lemmapart2=lemmaparts[partnum + 1],
+                                boundary=self._args.boundary_char,
+                                suffix=wordform[wf_prefix_len:],
+                                wordform=wordform))
             if (nobound_part and nobound_part[0] == '-'
                     and lemma_nobound and lemma_nobound[-1] == '-'):
                 nobound_part = nobound_part[1:]
