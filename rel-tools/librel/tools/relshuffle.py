@@ -1,10 +1,10 @@
 # -*- mode: Python; -*-
 
-# Implementation of a command-line tool ../rel-shuffle,
+# Implementation of a command-line tool rel-tools/rel-shuffle,
 # hopefully also usable with synthetic arguments in
 # a Mylly (Chipster) tool, to be tested.
 
-import os
+# import os
 import subprocess
 
 from librel.args import transput_args
@@ -14,7 +14,7 @@ from librel.bins import SHUF
 def parsearguments(argv, *, prog = None):
     description = '''
 
-    Shuffle the records in a relation.
+    Permute the records in a relation.
 
     '''
 

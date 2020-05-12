@@ -49,12 +49,12 @@ test003
 
 test004 () {
     setup $FUNCNAME
-    ./rel-sample --records=3 --tag=org check/tau.tsv \
+    ./rel-sample --records=31 check/tau.tsv \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&
-	./rel-cmp --quiet --ne "$DIR/out" check/tau.tsv
-    report "file/stdout, --records=3 --tag=org"
+	./rel-cmp --quiet --eq "$DIR/out" check/tau.tsv
+    report "file/stdout, --records=31"
     cleanup
 }
 

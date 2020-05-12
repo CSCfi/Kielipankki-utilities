@@ -1,5 +1,9 @@
 '''Rel tools support library.
 
+Performance turned out to be *prohibitively* low. Moved to shuf(1),
+which apparently does reservoir sampling since many years. Giving up
+on both repeatability and the tracking of input positions. Nice try.
+
 '''
 
 from itertools import islice, repeat
