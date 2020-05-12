@@ -1,15 +1,15 @@
 # -*- mode: Python; -*-
 
-# Implementation of a command-line tool ../rel-from,
+# Implementation of a command-line tool rel-tools/rel-from,
 # hopefully also usable with synthetic arguments in
 # a Mylly (Chipster) tool, to be tested.
 
 import sys
 
-from .args import transput_args
-from .args import BadData
-from .names import makenames, fillnames, checknames
-from .data import records
+from librel.args import transput_args
+from librel.args import BadData
+from librel.names import makenames, fillnames, checknames
+from librel.data import records
 
 def parsearguments(argv, *, prog = None):
     description = '''
