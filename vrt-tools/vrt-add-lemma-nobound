@@ -82,6 +82,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # words ending in -kset?
         ('kset', -3),	# veljekset -> veljes
         ('set', -2),	# uutiset -> uutis
+        ('nsa', -2),    # laisensa -> laises
         ('ehkä', -1),	# ehkä -> ehk
         ('jotta', -1),	# jotta -> jott
         ('miksi', -1),	# miksi -> miks
@@ -136,6 +137,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('hyvä', 'paras'),
         ('hyvä', 'parem'),
         ('hyvä', 'parha'),
+        ('ikä', 'ii'),		# "iin" is recognized by Omorfi as a form of "ikä"
         ('ikä', 'iä'),
         ('itu', 'idu'),
         ('itä', 'idä'),
@@ -144,6 +146,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('ota', 'oda'),
         ('udar', 'utar'),
         ('uksi', 'ust'),
+        ('utu', 'udu'),
         ('ydin', 'ytim'),
         ('ei', 'em'),
         ('ei', 'en'),
