@@ -24,6 +24,10 @@ from vrtargsoolib import InputProcessor
 
 class NoBoundaryLemmaAdder(InputProcessor):
 
+    # Default functools.lru_cache size for _make_lemma_noboundaries_omorfi;
+    # lru_cache works best if the size is a power of two.
+    DEFAULT_LRU_CACHE_SIZE = 262144
+
     DESCRIPTION = """
     Add lemmas without compound boundaries to the input VRT with word
     forms and lemmas with compound boundaries.
@@ -61,11 +65,11 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('--insert-noboundaries-after-name|insert-after=ATTR "lemma"'
          ' -> insert_after_attr',
          'insert the lemma without boundaries after positional attribute ATTR'),
+        ('--cache-size=SIZE :int "{dft}"'.format(dft=DEFAULT_LRU_CACHE_SIZE),
+         """cache at most SIZE compounds without boundaries with
+         --mode=omorfi; SIZE should be a power of two; use -1 for
+         unlimited caching, 0 for no caching"""),
     ]
-
-    # functools.lru_cache size for _make_lemma_noboundaries_omorfi; lru_cache
-    # works best if the size is a power of two.
-    LRU_CACHE_SIZE = 262144
 
     # Lemma suffixes that are (typically) associated with a length change in
     # the word form, typically so that the word form is shorter (e.g. hevonen
@@ -341,6 +345,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
         self._lemma_split_keepsep_re = re.compile(
             '([' + args.boundary_char + '-]+)')
         self._omorfi_add_hyphens = not args.only_wordform_hyphens
+        # Negative cache size is translated to None (unlimited)
+        if args.cache_size < 0:
+            args.cache_size = None
 
         def make_lemma_noboundaries_simple(lemma, wordform):
             return lemma.replace(boundary_char, b'')
@@ -356,11 +363,18 @@ class NoBoundaryLemmaAdder(InputProcessor):
         LESS_THAN = '<'.encode()[0]
         if args.mode == 'omorfi':
             make_lemma_noboundaries = self._make_lemma_noboundaries_omorfi
-        elif args.mode == 'naive':
-            make_lemma_noboundaries = make_lemma_noboundaries_simple
+            if args.cache_size != 0:
+                make_lemma_noboundaries = lru_cache(maxsize=args.cache_size)(
+                    make_lemma_noboundaries)
         else:
-            make_lemma_noboundaries = (
-                self._make_lemma_noboundaries_omorfi_simple)
+            if args.mode == 'naive':
+                make_lemma_noboundaries = make_lemma_noboundaries_simple
+            else:
+                make_lemma_noboundaries = (
+                    self._make_lemma_noboundaries_omorfi_simple)
+            # simple-omorfi and naive are so fast that caching would
+            # slow them down slightly
+            args.cache_size = 0
         for arg_name in ['word_attr', 'lemma_attr', 'nobound_attr',
                          'insert_after_attr']:
             setattr(args, arg_name, getattr(args, arg_name).encode())
@@ -409,8 +423,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
                                            [lemma_nobound],
                                            attrs[insert_after_index:]))
                           + b'\n')
-        # print(self._make_lemma_noboundaries_omorfi.cache_info(),
-        #       file=sys.stderr)
+        # if args.cache_size != 0:
+        #     print(make_lemma_noboundaries.cache_info(), file=sys.stderr)
 
     def _make_lemma_noboundaries_omorfi_simple(self, lemma_b, wordform_b):
         # Adapted and slightly improved from vrt-fix-attrs.py
@@ -464,7 +478,6 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 lemma_prefix_len += len(lemmapart)
             return ''.join(lemma_without_boundaries).encode()
 
-    @lru_cache(maxsize=LRU_CACHE_SIZE)
     def _make_lemma_noboundaries_omorfi(self, lemma, wordform):
 
         def get_lemma_min_wf_len(lemma):
