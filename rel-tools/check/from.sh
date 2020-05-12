@@ -47,7 +47,7 @@ test003
 
 test004 () {
     setup $FUNCNAME
-    ./rel-from --unique --field gr,ln check/abc.txt \
+    ./rel-from --unique --map v1=gr,v2=ln check/abc.txt \
 	       1> "$DIR/out" \
 	       2> "$DIR/err"
     test $? = 0 -a -s "$DIR/out" -a ! -s "$DIR/err" &&

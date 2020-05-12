@@ -4,11 +4,12 @@
 # hopefully also usable with synthetic arguments in
 # a Mylly (Chipster) tool, to be tested.
 
+import re
 import sys
 
 from librel.args import transput_args
 from librel.args import BadData
-from librel.names import makenames, fillnames, checknames
+from librel.names import makerenames, makenames, fillnames, checknames
 from librel.data import records
 
 def parsearguments(argv, *, prog = None):
@@ -16,19 +17,21 @@ def parsearguments(argv, *, prog = None):
 
     Make a relation from observed values by adding a head of names and
     either tagging the records with a running number or omitting
-    duplicates. Fill out the head with names of the form vK (0-based)
+    duplicates. Fill out the head with names of the form vK (1-based)
     to match the first record, if any.
 
     '''
 
     parser = transput_args(description = description)
 
-    parser.add_argument('--field', '-f', metavar = 'name*',
+    parser.add_argument('--map', '-m', metavar = 'old=new*',
+                        dest = 'renames',
                         action = 'append', default = [],
                         help = '''
 
-                        field names to use, can be separated by commas
-                        or spaces, or option can be repeated
+                        map any default field names v1 and so on to a
+                        desired name, can be separated by commas or
+                        spaces, or option can be repeated
 
                         ''')
 
@@ -55,7 +58,25 @@ def parsearguments(argv, *, prog = None):
 
 def main(args, ins, ous):
 
-    head = makenames(args.field)
+    rens = makerenames(args.renames) # vk => whatever, k > 0
+
+    bad = sorted(old for old in rens if not re.match(b'v[1-9][0-9]*', old))
+    if bad:
+        raise BadData('"old" names not vk: ' +
+                      b' '.join(bad).encode('UTF-8'))
+
+    high = max((int(old.strip(b'v')) for old in rens), default = 0)
+    head = [
+        rens.get(vk, vk)
+        for k in range(1, high + 1)
+        for vk in ['v{}'.format(k).encode('UTF-8')]
+    ]
+
+    # at this point head is ['word', 'v2', 'ref']
+    # if rens maps 'v3' to 'ref' and 'v1' to 'word'
+    # ([] if rens is {})
+    # extended with more 'vk' at any first record
+
     [tag] = (args.tag and makenames([args.tag])) or [None]
 
     data = records(ins, head = None, unique = args.unique)
