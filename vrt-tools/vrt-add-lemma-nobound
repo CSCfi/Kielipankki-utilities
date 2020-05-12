@@ -13,6 +13,7 @@ forms and lemmas with compound boundaries.
 import re
 import sys
 
+from functools import lru_cache
 from itertools import chain
 
 import vrtdatalib
@@ -63,6 +64,10 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('--verbose',
          'log output to stderr'),
     ]
+
+    # functools.lru_cache size for _make_lemma_noboundaries_omorfi; lru_cache
+    # works best if the size is a power of two.
+    LRU_CACHE_SIZE = 262144
 
     # Lemma suffixes that are (typically) associated with a length change in
     # the word form, typically so that the word form is shorter (e.g. hevonen
@@ -416,6 +421,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
                                            [lemma_nobound],
                                            attrs[insert_after_index:]))
                           + b'\n')
+        # print(self._make_lemma_noboundaries_omorfi.cache_info(),
+        #       file=sys.stderr)
 
     def _make_lemma_noboundaries_omorfi_simple(self, lemma_b, wordform_b):
         # Adapted and slightly improved from vrt-fix-attrs.py
@@ -469,6 +476,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 lemma_prefix_len += len(lemmapart)
             return ''.join(lemma_without_boundaries).encode()
 
+    @lru_cache(maxsize=LRU_CACHE_SIZE)
     def _make_lemma_noboundaries_omorfi(self, lemma, wordform):
 
         def get_lemma_min_wf_len(lemma):
