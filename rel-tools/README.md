@@ -83,7 +83,7 @@ incarnation of these tools in Mylly).
 These important missing multi-tools would be these two:
 
   * `rel-extend` extends each record functionally
-  * `rel-select` selects records conditionally
+  * `~rel-select~` `rel-filter` selects records conditionally
 
 Useful tools like `rel-keepc`, which describes each _group_ of
 records, are quite probably missing and can be easily added once
