@@ -4,7 +4,7 @@
 import sys
 
 from librel.args import transput
-from librel.relshuffle import parsearguments, main
+from librel.tools.relshuffle import parsearguments, main
 
 if __name__ == '__main__':
     transput(parsearguments(sys.argv[1:]), main)

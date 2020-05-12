@@ -8,6 +8,14 @@ elif SORT not in { '/usr/bin/sort', '/bin/sort' }:
     print('"sort" not trusted:', SORT, file = sys.stderr)
     exit(3)
 
+SHUF = shutil.which('shuf')
+if SHUF is None:
+    print('"shuf" not found', file = sys.stderr)
+    exit(3)
+elif SHUF not in { '/usr/bin/shuf', '/bin/shuf' }:
+    print('"shuf" not trusted:', SHUF, file = sys.stderr)
+    exit(3)
+
 CAT = shutil.which('cat')
 if CAT is None:
     print('"cat" not found', file = sys.stderr)

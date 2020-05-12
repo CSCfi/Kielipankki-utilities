@@ -7,9 +7,9 @@
 import os
 import subprocess
 
-from .args import transput_args
-from .data import readhead
-from .bins import SORT
+from librel.args import transput_args
+from librel.data import readhead
+from librel.bins import SHUF
 
 def parsearguments(argv, *, prog = None):
     description = '''
@@ -33,9 +33,7 @@ def main(args, ins, ous):
     ous.write(b'\n')
     ous.flush()
 
-    subprocess.run([ SORT, '--random-sort' ],
-                   env = dict(os.environ,
-                              LC_ALL = 'C'),
+    subprocess.run([ SHUF ],
                    stdin = ins,
                    stdout = ous,
                    stderr = None)
