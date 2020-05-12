@@ -82,7 +82,18 @@ def main(args, ins, ous):
     data = records(ins, head = None, unique = args.unique)
 
     first = next(data, None)
-    if first is not None:
+    if head == [] and first == [b'']:
+        # with empty head, [b''] means [],
+        # every incoming record must be [b'']
+        # to be interpreted as []
+        pass
+    elif first is None:
+        # any head is compatible with an empty relation
+        pass
+    else:
+        # with non-empty first field, or more than one field,
+        # an empty head needs filled;
+        # with non-empty head, even [b''] means [b'']
         fillnames(head, len(first))
         if len(first) < len(head):
             raise BadData('too many names: {} fields, {} names'
@@ -93,31 +104,55 @@ def main(args, ins, ous):
         raise BadData('tag is in head: ' + tag.decode('UTF-8'))
 
     ous.write(b'\t'.join(head))
-    tag and ous.write(b'\t')
+    head and tag and ous.write(b'\t')
     tag and ous.write(tag)
     ous.write(b'\n')
 
     if first is None: return
 
     ous.write(b'\t'.join(first))
-    tag and ous.write(b'\t')
+    head and tag and ous.write(b'\t')
     tag and ous.write(b'1')
     ous.write(b'\n')
 
     def check(r, n = len(head)):
         if len(r) == n: return
-        raise BadData('different number of fields: {} fields, {} names'
-                      .format(len(record), len(head)))
+        raise BadData('record length: expected {}: observed {}: {}'
+                      .format(n, len(r),
+                              repr([v.decode('UTF-8')
+                                    for v in r])))
 
-    if args.unique:
+    if head and args.unique:
         for r in data:
             check(r)
             ous.write(b'\t'.join(r))
             ous.write(b'\n')
-    else:
+    elif head:
         for k, r in enumerate(data, start = 2):
             check(r)
             ous.write(b'\t'.join(r))
             ous.write(b'\t')
             ous.write(str(k).encode('UTF-8'))
             ous.write(b'\n')
+    elif args.unique:
+        for r in data:
+            # no field names specified,
+            # first record was [b''],
+            # interpreted as empty,
+            # now another record in a *unique* stream
+            raise BadData('no specified names, an empty record: '
+                          'record should be empty: ' +
+                          repr([v.decode('UTF-8') for v in r]))
+    elif True:
+        # no field names specified,
+        # first record was [b''],
+        # interpreted as empty (no fields),
+        # so every record must be interpretable as empty
+        for k, r in enumerate(data, start = 2):
+            if r == [b'']:
+                ous.write(str(k).encode('UTF-8'))
+                ous.write(b'\n')
+            else:
+                raise BadData('no specified names, empty first record: '
+                              'record should be empty: ' +
+                              repr([v.decode('UTF-8') for v in r]))
