@@ -21,6 +21,7 @@ import shlex
 import sys
 
 from collections import defaultdict
+from copy import deepcopy
 from subprocess import Popen, PIPE
 
 import pytest
@@ -68,8 +69,15 @@ def expand_testcases(fname_testcases_dictlist):
         return d.get('output', d.get('expected'))
 
     def get_value(default_val, base_val):
-        return (dict_deep_update(dict(default_val), base_val) if default_val
-                else base_val)
+        if default_val:
+            if base_val:
+                # Make a deep copy of the default value so that overriding
+                # defaults does not update the defaults themselves.
+                return dict_deep_update(deepcopy(default_val), base_val)
+            else:
+                return default_val
+        else:
+            return base_val
 
     # print(fname_testcases_dictlist)
     for fname, testcases_dictlist in fname_testcases_dictlist:
@@ -94,7 +102,7 @@ def expand_testcases(fname_testcases_dictlist):
                 # print(default_input)
                 # print(default_output, end=' -> ')
                 default_output = dict_deep_update(
-                    default_output, get_output_value(defaults))
+                    deepcopy(default_output), get_output_value(defaults))
                 # print(default_output)
                 default_status = defaults.get('status')
                 continue

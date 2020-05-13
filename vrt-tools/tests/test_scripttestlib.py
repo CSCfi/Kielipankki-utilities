@@ -547,6 +547,66 @@ _testcase_files_content = [
                  'file:test.in': 'test3\n',
              },
          },
+         {
+             'name': 'Test: override default with a dict value',
+             'input': {
+                 'file:test.in': 'test4\n',
+             },
+             'output': {
+                 'stderr': 'test4\n',
+             },
+         },
+         # Default value with a dict and local override
+         {
+             'defaults': {
+                 'output': {
+                    'stderr': {
+                        'value': 'test5\n',
+                    },
+                 },
+             },
+         },
+         {
+             'name': 'Test: default output with a dict value',
+             'input': {
+                 'file:test.in': 'test5\n',
+             },
+         },
+         {
+             'defaults': {
+                 'output': {
+                    'stderr': {
+                        'value': 'test6\n',
+                    },
+                 },
+             },
+         },
+         {
+             'name': 'Test: default output with a changed dict value',
+             'input': {
+                 'file:test.in': 'test6\n',
+             },
+         },
+         {
+             'name': 'Test: overriding default output with a dict value',
+             'input': {
+                 'file:test.in': 'test7\n',
+             },
+             'output': {
+                 'stderr': {
+                     'value': 'test7\n',
+                 },
+             },
+         },
+         {
+             'name': 'Test: overriding default output with a scalar value',
+             'input': {
+                 'file:test.in': 'test8\n',
+             },
+             'output': {
+                 'stderr': 'test8\n',
+             },
+         },
          # Clear default values
          {
              'defaults': {},
@@ -1040,9 +1100,11 @@ def test_collect_testcases(testcase_files, tmpdir):
             assert testcase[0] == '{} {:d}: {}'.format(
                 fname, testcase_cont_num + 1, testcase_cont['name'])
             assert testcase[1] == dict_deep_update(
-                dict(default_values.get('input', {})), testcase_cont.get('input'))
+                deepcopy(default_values.get('input', {})),
+                testcase_cont.get('input'))
             assert testcase[2] == dict_deep_update(
-                dict(default_values.get('output', {})), testcase_cont.get('output'))
+                deepcopy(default_values.get('output', {})),
+                testcase_cont.get('output'))
             testcase_num += 1
 
 
