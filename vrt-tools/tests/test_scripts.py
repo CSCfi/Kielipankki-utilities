@@ -5,8 +5,9 @@
 test_scripts.py
 
 A pytest test that collects and runs all the testcases specified in
-scripttest_*.py and scripttest_*.yaml files in this directory, using
-the scripttestlib module.
+scripttest_*.py and scripttest_*.yaml files in this directory and *.py
+and *.yaml in the scripttests subdirectory, using the scripttestlib
+module.
 """
 
 
@@ -22,7 +23,12 @@ _filedir = os.path.dirname(os.path.abspath(__file__))
 # Collect testcases to a list of triples (descr, input, expected) to be used
 # with @pytest.mark.parametrize below.
 testcases = collect_testcases(
-    'scripttest_*.py', 'scripttest_*.yaml', 'scripttest_*.yml',
+    'scripttest_*.py',
+    'scripttest_*.yaml',
+    'scripttest_*.yml',
+    'scripttests/*.py',
+    'scripttests/*.yaml',
+    'scripttests/*.yml',
     basedir=_filedir)
 
 

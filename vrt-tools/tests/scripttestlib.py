@@ -45,11 +45,15 @@ def collect_testcases(*filespecs, basedir=None):
             filespec = os.path.join(basedir, filespec)
         for fname in glob.iglob(filespec):
             fname_rel = os.path.relpath(fname, basedir)
+            # print(basedir, filespec, fname, fname_rel)
             if fname.endswith('.py'):
-                # print(basedir, sys.path)
+                modulename = os.path.basename(fname)[:-3]
+                pkgname = os.path.dirname(fname_rel).replace('/', '.')
+                if pkgname:
+                    modulename = pkgname + '.' + modulename
                 testcases.append(
                     (fname_rel,
-                     importlib.import_module(os.path.basename(fname)[:-3])
+                     importlib.import_module(modulename)
                      .testcases))
             elif fname.endswith(('.yaml', '.yml')):
                 with open(fname, 'r') as yf:
