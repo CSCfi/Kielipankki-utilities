@@ -27,6 +27,8 @@ perl -pe 's/(<paragraph[^>]*>)(<sentence[^>]*>)(<section[^>]*>)/\3\1\2/;' | \
 perl -pe 's/<\/section><\/sentence><\/paragraph>/<\/sentence><\/paragraph><\/section>/;' | \
 perl -pe 's/></>\n</g;' > semfinlex_asd_fi_2018.VRT.nolinks.fixed
 
+# Also fix cases where "section" is "chapter" instead.
+
 # Fix double spaces in section titles:
 
 cat semfinlex_asd_fi_2018.VRT.nolinks.fixed | perl -pe 's/  / /g;' > semfinlex_asd_fi_2018.VRT.nolinks.fixed.fixed
