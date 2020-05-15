@@ -1,5 +1,7 @@
 from subprocess import Popen, PIPE, TimeoutExpired
 
+import fake # sibling library module to provide fake data
+
 def test_000(tmpdir):
     proc = Popen([ './vrt-name', '--help' ],
                  stdin = None,
@@ -52,3 +54,36 @@ def test_deprecated_004(tmpdir):
     assert out == b'<!-- #vrt positional-attributes: v1 v2 v3 -->\n'
     assert not err
     assert proc.returncode == 0
+
+def test_005(tmpdir):
+    '''New ./vrt-name looks for data (a token line) in the first 100 input
+    lines. Test that nothing happens at that.
+
+    '''
+    data = tuple(fake.nameloop(120))
+    send = b''.join(data)
+    want = b''.join((b'<!-- #vrt positional-attributes: word line loop -->\n',
+                     *fake.nameloop(120, sans = True)))
+    proc = Popen([ './vrt-name', '-m', 'v1=word,v2=line,v3=loop' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0
+
+def test_006(tmpdir):
+    '''New ./vrt-name looks for the actual number of fields in a token
+    line (in the first 100 input lines). Test that it fails with an
+    error message when the number does not match.
+
+    '''
+    send = b''.join(fake.nameloop(20)) # 3 fields
+    proc = Popen([ './vrt-name', '-m', 'v2=v2' ], # specify 2 fields
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert err
+    assert proc.returncode
