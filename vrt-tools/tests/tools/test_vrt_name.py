@@ -1,5 +1,7 @@
 from subprocess import Popen, PIPE, TimeoutExpired
 
+from libvrt.nameline import makenameline
+
 import fake # sibling library module to provide fake data
 
 def test_000(tmpdir):
@@ -21,7 +23,7 @@ def test_001(tmpdir):
                  stdout = PIPE,
                  stderr = PIPE)
     out, err = proc.communicate(timeout = 5)
-    assert out == b'<!-- #vrt positional-attributes: v2 v1 lemon -->\n'
+    assert out == makenameline(b'v2 v1 lemon'.split())
     assert not err
     assert proc.returncode == 0
 
@@ -31,7 +33,7 @@ def test_002(tmpdir):
                  stdout = PIPE,
                  stderr = PIPE)
     out, err = proc.communicate(timeout = 5)
-    assert out == b'<!-- #vrt positional-attributes: v1 v2 v3 v4 -->\n'
+    assert out == makenameline(b'v1 v2 v3 v4'.split())
     assert not err
     assert proc.returncode == 0
 
@@ -41,7 +43,7 @@ def test_deprecated_003(tmpdir):
                  stdout = PIPE,
                  stderr = PIPE)
     out, err = proc.communicate(timeout = 5)
-    assert out == b'<!-- #vrt positional-attributes: word lemon -->\n'
+    assert out == makenameline(b'word lemon'.split())
     assert not err
     assert proc.returncode == 0
 
@@ -51,7 +53,7 @@ def test_deprecated_004(tmpdir):
                  stdout = PIPE,
                  stderr = PIPE)
     out, err = proc.communicate(timeout = 5)
-    assert out == b'<!-- #vrt positional-attributes: v1 v2 v3 -->\n'
+    assert out == makenameline(b'v1 v2 v3'.split())
     assert not err
     assert proc.returncode == 0
 
@@ -60,10 +62,11 @@ def test_005(tmpdir):
     lines. Test that nothing happens at that.
 
     '''
-    data = tuple(fake.nameloop(120))
+    old = b'word line loop'.split()
+    data = tuple(fake.nameloop(120, old))
     send = b''.join(data)
-    want = b''.join((b'<!-- #vrt positional-attributes: word line loop -->\n',
-                     *fake.nameloop(120, sans = True)))
+    want = b''.join((makenameline(b'word line loop'.split()),
+                     *fake.nameloop(120, old, sans = True)))
     proc = Popen([ './vrt-name', '-m', 'v1=word,v2=line,v3=loop' ],
                  stdin = PIPE,
                  stdout = PIPE,
@@ -79,7 +82,8 @@ def test_006(tmpdir):
     error message when the number does not match.
 
     '''
-    send = b''.join(fake.nameloop(20)) # 3 fields
+    old = b'word line loop'.split()
+    send = b''.join(fake.nameloop(20, old)) # 3 fields
     proc = Popen([ './vrt-name', '-m', 'v2=v2' ], # specify 2 fields
                  stdin = PIPE,
                  stdout = PIPE,

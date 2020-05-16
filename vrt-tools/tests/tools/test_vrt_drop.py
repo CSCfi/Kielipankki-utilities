@@ -1,8 +1,8 @@
 from subprocess import Popen, PIPE, TimeoutExpired
 
-import pytest
+from libvrt.nameline import makenameline
 
-import fake # sibling library module to provide fake data
+import fake # sibling library module to provide fake test data
 
 def test_000(tmpdir):
     proc = Popen([ './vrt-drop', '--help' ],
@@ -14,18 +14,29 @@ def test_000(tmpdir):
     assert not err
     assert proc.returncode == 0
 
-@pytest.mark.skip(reason = 'need to rewrite both test and implementation')
+def test_001(tmpdir):
+    old = b'word line loop'.split()
+    new = b'line'.split()
+    send = b''.join(fake.nameloop(120, old))
+    want = b''.join(fake.nameloop(120, new, keep = (1,), once = True))
+    proc = Popen([ './vrt-drop', '-f', 'loop,word' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0
+
 def test_deprecated_001(tmpdir):
-    send = b''.join(fake.nameloop(20))
-    # is meant to replace first name comment
-    # and drop the rest TODO
-    # but fake.nameloop() does not even have name-comment *first*
-    want = b''.join((b'!<-- #vrt positional-attributes: line -->\n',
-                     *(( line
-                         if line.startswith(b'<')
-                         else line.split(b'\t')[1] + b'\n' )
-                       for line in fake.nameloop(2)
-                       if not line.startswith(b'<!-- #vrt positional-attributes: '))))
+    '''Deprecated -n is alias to newly favoured -f, so testing the same
+    thing as test_001.
+
+    '''
+    old = b'word line loop'.split()
+    new = b'line'.split()
+    send = b''.join(fake.nameloop(20, old))
+    want = b''.join(fake.nameloop(20, new, keep = (1,), once = True))
     proc = Popen([ './vrt-drop', '-n', 'loop,word' ],
                  stdin = PIPE,
                  stdout = PIPE,
@@ -35,8 +46,16 @@ def test_deprecated_001(tmpdir):
     assert not err
     assert proc.returncode == 0
 
-# TODO
-# deprecate -names/-n in favour of --field/-f
-# see that -n/-f takes comma-separated groups
-# drop further name comments
-# librarify in libvrt/.
+def test_002(tmpdir):
+    old = b'word line.x loop.x'.split()
+    new = b'word'.split()
+    send = b''.join(fake.nameloop(20, old))
+    want = b''.join(fake.nameloop(20, new, keep = (0,), once = True))
+    proc = Popen([ './vrt-drop', '--dots' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out.decode('UTF-8') == want.decode('UTF-8')
+    assert not err
+    assert proc.returncode == 0

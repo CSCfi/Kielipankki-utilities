@@ -2,7 +2,7 @@
 # -*- mode: Python; -*-
 
 from libvrt.args import transput
-from libvrt.tools.vrtname import parsearguments, main
+from libvrt.tools.vrt_name import parsearguments, main
 
 transput(parsearguments(), main,
          in_as_text = False,

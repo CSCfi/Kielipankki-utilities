@@ -16,15 +16,20 @@ def maptype(text):
                     '|[, ])*',
                     text):
         return text.encode('UTF-8')
-    raise ArgumentTypeError('malformed name pairs: {}'
+    raise ArgumentTypeError('not name mappings: {}'
                             .format(repr(text)))
 
+def bagtype(text):
+    if re.fullmatch('([a-zA-Z_][a-zA-Z0-9_.]*|[, ])*', text):
+        return text.encode('UTF-8')
+    raise ArgumentTypeError('not field names: {}'.format(repr(text)))
+
 def parsemaps(option, *, default = False):
-    '''Parse an option value that specifies mappings from old names to new
-    names. The argument is a list of byte strings that consist of any
-    number of pairs in the form b'old=new' separated by any number
-    commas or spaces (or both). If default is True, every "old" must
-    be of the form "vk" where "k" is the canonical written
+    '''Parse an option value that specifies mappings from old field names
+    to field new names. The argument is a list of byte strings that
+    consist of any number of pairs in the form b'old=new' separated by
+    any number commas or spaces (or both). If default is True, every
+    "old" must be of the form "vk" where "k" is the canonical written
     representation of a positive integer.
 
     An empty mapping is allowed. Duplicate "old" are not allowed.
@@ -50,3 +55,22 @@ def parsemaps(option, *, default = False):
                       .format(b' '.join(bad).decode('UTF-8')))
 
     return mapping
+
+def parsenames(option):
+    '''Parse an option value that specifies field names. The argument is a
+    list of byte strings that consist of any number of field names
+    separated by any number of commas or spaces (or both).
+
+    An empty list is allowed. Duplicates are not allowed.
+
+    Used in vrt-keep and vrt-drop.
+
+    '''
+    names = b' '.join(option).replace(b',', b' ').split()
+
+    if len(set(names)) < len(names):
+        bad = [ name for name in names if names.count(name) > 1 ]
+        raise BadData('named more than once: {}'
+                      .format(b' '.join(bad).decode('UTF-8')))
+
+    return names

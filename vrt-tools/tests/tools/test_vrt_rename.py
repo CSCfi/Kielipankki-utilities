@@ -29,8 +29,10 @@ def test_001(tmpdir):
     assert proc.returncode == 0
 
 def test_002(tmpdir):
-    send = b''.join(fake.nameloop(120))
-    want = b''.join(fake.nameloop(120, once = True))
+    old = b'word line loop'.split()
+    new = b'word line loop'.split()
+    send = b''.join(fake.nameloop(120, old))
+    want = b''.join(fake.nameloop(120, new, once = True))
     proc = Popen([ './vrt-rename',
                    '-m' 'line=line',
                    '-m', 'word=word, loop=loop' ],
