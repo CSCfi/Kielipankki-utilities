@@ -66,7 +66,7 @@ def main(args, ins, ous):
                        # *and* *not* (--dots and dotted)
                        if name.rstrip(b'/') not in drop
                        if not (args.dots and (b'.' in name)))
-            if len(ix) == len(names):
+            if len(ix) == 0:
                 raise BadData('not allowed to drop all fields')
             keep = keeper(*ix)
             ous.write(makenameline(keep(names)))

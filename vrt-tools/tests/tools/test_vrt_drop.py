@@ -59,3 +59,16 @@ def test_002(tmpdir):
     assert out.decode('UTF-8') == want.decode('UTF-8')
     assert not err
     assert proc.returncode == 0
+
+def test_003(tmpdir):
+    old = b'word line loop'.split()
+    send = b''.join(fake.nameloop(120, old))
+    want = b''.join(fake.nameloop(120, old, once = True))
+    proc = Popen([ './vrt-drop' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0
