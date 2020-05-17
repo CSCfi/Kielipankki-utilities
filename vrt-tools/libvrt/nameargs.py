@@ -69,7 +69,7 @@ def parsenames(option):
     names = b' '.join(option).replace(b',', b' ').split()
 
     if len(set(names)) < len(names):
-        bad = [ name for name in names if names.count(name) > 1 ]
+        bad = sorted(set(name for name in names if names.count(name) > 1))
         raise BadData('named more than once: {}'
                       .format(b' '.join(bad).decode('UTF-8')))
 
