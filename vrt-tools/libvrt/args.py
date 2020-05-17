@@ -226,11 +226,18 @@ def transput(args, main, *,
              outputstream(temp, out_as_text) as ous:
             status = main(args, ins, ous)
     except BadData as exn:
-        print(args.prog + ': data:', exn, file = sys.stderr)
+        # used to differentiate BadData and BadCode in the message but
+        # that may not have been appropriate from user point of view
+        print(args.prog + ':', exn, file = sys.stderr)
     except BadCode as exn:
-        print(args.prog + ': code:', exn, file = sys.stderr)
+        # this should never happen
+        print(args.prog + ':', exn, file = sys.stderr)
     except BrokenPipeError:
+        # might want to direct remaining output to /dev/null:
+        # https://docs.python.org/3/library/signal.html#note-on-sigpipe
         print(args.prog + ':', 'broken pipe', file = sys.stderr)
+    except KeyboardInterrupt:
+        print(args.prog + ':', 'keyboard interrupt', file = sys.stderr)
     except Exception as exn:
         print(traceback.format_exc(), file = sys.stderr)
 
