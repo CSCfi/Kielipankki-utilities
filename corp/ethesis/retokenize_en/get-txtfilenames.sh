@@ -42,22 +42,22 @@ do
     # English marked with "en"
     txtfilename=`echo "$line" | ./pdfurl-date-to-txtfilename.pl "en"`;
     if [ "$txtfilename" != "" ]; then
-	if (ls -l $corpusdir/$txtfilename 2> /dev/null); then found=$((found + 1)); fi
+	if (ls $corpusdir/$txtfilename 2> /dev/null); then found=$((found + 1)); fi
     fi
     # English marked with "eng"
     txtfilename=`echo "$line" | ./pdfurl-date-to-txtfilename.pl "eng"`;
     if [ "$txtfilename" != "" ]; then
-	if (ls -l $corpusdir/$txtfilename 2> /dev/null); then found=$((found + 1)); fi
+	if (ls $corpusdir/$txtfilename 2> /dev/null); then found=$((found + 1)); fi
     fi
     # Language not marked
     txtfilename=`echo "$line" | ./pdfurl-date-to-txtfilename.pl ""`;
     if [ "$txtfilename" != "" ]; then
-	if (ls -l $corpusdir/$txtfilename 2> /dev/null); then found=$((found + 1)); fi
+	if (ls $corpusdir/$txtfilename 2> /dev/null); then found=$((found + 1)); fi
     fi
     # No date or language marked
     txtfilename=`echo "$line" | ./pdfurl-to-txtfilename.pl`;
     if [ "$txtfilename" != "" ]; then
-	if (ls -l $corpusdir/$txtfilename 2> /dev/null); then found=$((found + 1)); fi
+	if (ls $corpusdir/$txtfilename 2> /dev/null); then found=$((found + 1)); fi
     fi
 
     if [ "$found" -gt "1" ]; then echo "Warning: ^^^ several txtfiles found for $line ^^^"; fi
@@ -65,7 +65,7 @@ do
 	# Try any language
 	txtfilename=`echo "$line" | ./pdfurl-date-to-txtfilename.pl "*"`;
 	if [ "$txtfilename" != "" ]; then
-	    if (ls -l $corpusdir/$txtfilename 2> /dev/null); then
+	    if (ls $corpusdir/$txtfilename 2> /dev/null); then
 		echo "Warning: ^^^ txtfile(s) found, but language is not English ^^^";
 		found=$((found + 1));
 	    else
@@ -80,8 +80,10 @@ do
     if [ "$vrtfile" != "" -a  "$found" -gt "0" ]; then
 	expr=`echo $line | cut -f1 -d' '`;
 	start=`grep --line-number $expr $vrtfile | cut -f1 -d':'`;
+	metadataline=`grep $expr $vrtfile`;
 	lines=`tail -n +$start $vrtfile | egrep -m 1 --line-number '^</text>' | cut -f1 -d':'`;
-	echo $lines;
+	# echo $lines;
+	echo $metadataline;
     fi
 
 done < ${tsvfile};
