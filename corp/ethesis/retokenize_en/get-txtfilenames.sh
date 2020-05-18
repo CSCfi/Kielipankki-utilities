@@ -1,7 +1,11 @@
 #!/bin/sh
 
-# get-textfilenames.sh CORPUSDIR TSVFILE [VRTFILE]
-# E.g. get-textfilenames.sh ethesis_en_ma_beh ethesis_en_ma_beh_pdfurls_dates.tsv [ethesis_en_ma_beh.VRT]
+# How to generate VRTFILE and TSVFILE from a corpus (e.g. ethesis_en_ma_beh) on korp:
+#
+# VRTFILE: /v/korp/scripts/cwbdata2vrt-simple.sh -all --output-file ethesis_en_ma_beh.VRT ethesis_en_ma_beh
+# TSVFILE: /v/util/cwb/utils/cwb-s-decode -r /v/corpora/registry -n ethesis_en_ma_beh -S text_pdfurl | /v/korp/scripts/vrt-convert-chars.py --decode > pdfurls
+#          /v/util/cwb/utils/cwb-s-decode -r /v/corpora/registry -n ethesis_en_ma_beh -S text_date | /v/korp/scripts/vrt-convert-chars.py --decode > dates
+#          paste pdfurls dates > ethesis_en_ma_beh_pdfurls_dates.tsv
 
 if [ "$1" = "--help" -o "$1" = "-h" ]; then
     echo """
