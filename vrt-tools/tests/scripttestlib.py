@@ -28,7 +28,12 @@ import pytest
 import yaml
 
 
-def collect_testcases(*filespecs, basedir=None):
+def _get_granularity():
+    """Return the value of the custom --scripttest-granularity option"""
+    return pytest.config.getoption('--scripttest-granularity')
+
+
+def collect_testcases(*filespecs, basedir=None, granularity=None):
     """Return a list of tuples for the test cases in `filespecs`
 
     Collect the test cases found in the files matching one of
@@ -38,8 +43,20 @@ def collect_testcases(*filespecs, basedir=None):
 
     The output tuples have the items (name, input, outputitem,
     expected, options), and they can be used as parameters to
-    check_program_run.
+    `check_program_run`.
+
+    In general, each item in the output tuples is a list or tuple,
+    containing the values to be tested in a single pytest test,
+    determined by `granularity`: ``value`` (each value to be tested is
+    made its own test), ``outputitem`` (each output item of a program
+    run) or ``programrunrun`` (each program run). If `granularity` is
+    `None`, the value `_test_granularity` of the custom
+    --scripttest-granularity command-line option is used. If all the
+    values for name or input are the same in a tuple, the single value
+    is used instead of the tuple.
     """
+    if granularity is None:
+        granularity = _get_granularity()
     testcases = []
     if basedir is not None:
         sys.path[0:0] = [basedir]
@@ -66,19 +83,27 @@ def collect_testcases(*filespecs, basedir=None):
                     testcases.append(
                         (fname_rel, [item for items in yaml.safe_load_all(yf)
                                      for item in items]))
-    return expand_testcases(testcases)
+    return expand_testcases(testcases, granularity=granularity)
 
 
-def expand_testcases(fname_testcases_dictlist):
+def expand_testcases(fname_testcases_dictlist, granularity=None):
     """Convert a list of (filename, test case dict) to a list of tuples.
 
     The returned tuples have the items (name, input, outputitem,
     expected, options), and they can be used as parameters to
-    check_program_run.
+    check_program_run. `granularity` is the granularity of the
+    generated pytest tests, as explained in `collect_testcases`.
     """
 
+    if granularity is None:
+        granularity = _get_granularity()
     testcases = []
     default_values = {}
+    item_descr_format = {
+        'value': '{name}: {key}{num}',
+        'outputitem': '{name}: {key}',
+        'programrun': '{name}',
+        }[granularity]
 
     def get_output_value(d):
         return d.get('output', d.get('expected'))
@@ -106,6 +131,18 @@ def expand_testcases(fname_testcases_dictlist):
         base.extend(add)
         return base
 
+    def make_subcase_tuple(subcases):
+        """Convert a list of tuples to a tuple of lists (tuples)
+
+        If all the values of the first or second item of the tuple are
+        the same, make it a single value.
+        """
+        result = list(zip(*subcases))
+        for i in range(2):
+            if all(val == result[i][0] for val in result[i][1:]):
+                result[i] = result[i][0]
+        return result
+
     def make_subcases(name, input_, output):
         """Generate sub-testcases, expanding `output`
 
@@ -115,6 +152,7 @@ def expand_testcases(fname_testcases_dictlist):
         `check_program_run`.
         """
         # print('make_subcases', name, input_, output)
+        result = []
         subcases = []
         for key, expected_vals in sorted(output.items()):
             # Transformations are handled below
@@ -133,7 +171,7 @@ def expand_testcases(fname_testcases_dictlist):
             # print('trans', expected_trans, actual_trans)
             expected_val_count = len(expected_vals)
             for expected_val_num, expected_val in enumerate(expected_vals):
-                item_descr = '{name}: {key}{num}'.format(
+                item_descr = item_descr_format.format(
                     name=name, key=key,
                     num=(' ' + str(expected_val_num + 1)
                          if expected_val_count > 1 else ''))
@@ -186,9 +224,11 @@ def expand_testcases(fname_testcases_dictlist):
                                     'transform-expected': expected_trans,
                                     'transform-actual': actual_trans,
                                 }
-                                subcases.append(
-                                    (item_descr + ' ' + str(test_num), input_,
-                                     key, exp_val, options))
+                                subitem_descr = item_descr
+                                if granularity == 'value':
+                                    subitem_descr += ' ' + str(test_num)
+                                subcases.append((subitem_descr, input_, key,
+                                                 exp_val, options))
                 else:
                     options = {
                         'test': '==',
@@ -197,8 +237,19 @@ def expand_testcases(fname_testcases_dictlist):
                     }
                     subcases.append(
                         (item_descr, input_, key, expected_val, options))
-        # print('return subcases:', subcases)
-        return subcases
+            if subcases and granularity != 'programrun':
+                if granularity == 'value':
+                    result.extend(subcases)
+                elif granularity == 'outputitem':
+                    result.append(make_subcase_tuple(subcases))
+                subcases = []
+        if subcases and granularity == 'programrun':
+            result.append(make_subcase_tuple(subcases))
+        # print('return subcases:', len(result), result)
+        # for i in range(len(result)):
+        #     print(len(result[i]), result[i])
+        # print(len(result))
+        return result
 
     # print(fname_testcases_dictlist)
     for fname, testcases_dictlist in fname_testcases_dictlist:
@@ -249,6 +300,7 @@ def expand_testcases(fname_testcases_dictlist):
             else:
                 for subcase in subcases:
                     testcases.append(subcase)
+    # print(len(testcases))
     return testcases
 
 
@@ -440,6 +492,12 @@ def check_program_run(name, input_, outputitem, expected, options, tmpdir,
           separated with colons and `{PATH}` is replaced with the current
           value of `$PATH`. If None, use the current `$PATH`.
 
+    Alternatively, the values of `name`, `input_`, `outputitem`,
+    `expected` and `options` may be lists or tuples containing
+    information for tests grouped together. For `name` and `input`, all
+    the values of a list or tuple are expected to be the same and only
+    the first value is used.
+
     Please see README.md for more details on the values of `input_` and
     `expected` (output).
 
@@ -447,8 +505,22 @@ def check_program_run(name, input_, outputitem, expected, options, tmpdir,
     """
     # TODO: Possible enhancements:
     # - Allow specifying input and output encodings.
-    output = ProgramRunner.run(name, input_, tmpdir, progpath)
-    _check_output(name, output, outputitem, expected, options)
+
+    def is_list_or_tuple(value):
+        return isinstance(value, list) or isinstance(value, tuple)
+
+    def getfirst(value):
+        return value[0] if is_list_or_tuple(value) else value
+
+    output = ProgramRunner.run(
+        getfirst(name), getfirst(input_), tmpdir, progpath)
+    if not is_list_or_tuple(outputitem):
+        outputitem = [outputitem]
+        expected = [expected]
+        options = [options]
+    for itemnum, outputitem_item in enumerate(outputitem):
+        _check_output(
+            name, output, outputitem_item, expected[itemnum], options[itemnum])
 
 
 def _make_value(value, trans_key, global_trans=None, actual_value=None):

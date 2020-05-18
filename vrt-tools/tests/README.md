@@ -153,7 +153,7 @@ test case:
        (but with no `value`) for specifying file-specific
        transformations to be applied to all subsequent tests for the
        file after global but before value-specific transformations;
-       this makes sense on when the expected value is a list with
+       this makes sense only when the expected value is a list with
        tests specified after the transformation item.
 
     Supported test names are the following, some with aliases
@@ -301,6 +301,17 @@ places in the actual test cases. For example:
             'output': _defs['empty_output'],
         },
     ]
+
+
+### Test granularity
+
+By default, each single output value generates a pytest test of its
+own, with a single value assertion. Alternatively, you can group in
+the same test all the value tests for an output item (such as
+`stdout`) of a program run or all the tests for all output items of a
+program run (test item). The granularity is specified with the custom
+pytest command-line option `--scripttest-granularity`, whose value can
+be `value` (default), `inputitem` or `programrun`.
 
 
 ### Generating a test case with `make-scripttest`

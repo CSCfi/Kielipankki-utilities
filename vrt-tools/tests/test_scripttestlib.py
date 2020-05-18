@@ -1110,6 +1110,12 @@ def test_collect_testcases(testcase_files, tmpdir):
                 # print(count)
         return count
 
+    def getitem(value):
+        if isinstance(value, list) or isinstance(value, tuple):
+            return value[0]
+        else:
+            return value
+
     fname_testcase_contents, testcase_filespecs = testcase_files
     testcases = collect_testcases(*testcase_filespecs, basedir=str(tmpdir))
     # print(testcases)
@@ -1143,7 +1149,8 @@ def test_collect_testcases(testcase_files, tmpdir):
             except AttributeError:
                 pass
             assert len(testcase) == 5
-            name, input_, inputitem, expected, options = testcase
+            name, input_, inputitem, expected, options = (
+                getitem(item) for item in testcase)
             # TODO: Test the values more thoroughly
             assert isinstance(name, str)
             assert isinstance(input_, dict)
