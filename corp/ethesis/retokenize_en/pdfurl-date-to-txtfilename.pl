@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
-# e.g. https://helda.helsinki.fi/bitstream/2457625/192345/5/PDFNAME.pdf 2010-05 -> [en|eng||*]_P_2010-05DFNAME.txt
+# e.g. "https://helda.helsinki.fi/bitstream/2457625/192345/5/PDFNAME.pdf 2010-05" -> "[en|eng||*]_P_2010-05DFNAME.txt"
+# where [en|eng||*] is defined in first command line parameter
 
 use strict;
 use warnings;

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# E.g. https://helda.helsinki.fi/bitstream/43215/94540/5/PDFNAME.pdf      2013-04 -> en_PDFNAME.txt
+# E.g. "https://helda.helsinki.fi/bitstream/43215/94540/5/PDFNAME.pdf      2013-04" -> "en_PDFNAME.txt"
 
 use strict;
 use warnings;

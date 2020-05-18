@@ -3,6 +3,22 @@
 # get-textfilenames.sh CORPUSDIR TSVFILE [VRTFILE]
 # E.g. get-textfilenames.sh ethesis_en_ma_beh ethesis_en_ma_beh_pdfurls_dates.tsv [ethesis_en_ma_beh.VRT]
 
+if [ "$1" = "--help" -o "$1" = "-h" ]; then
+    echo """
+get-txtfilenames.sh CORPUSDIR TSVFILE [VRTFILE]
+
+For each pdfurl and date given in TSVFILE, find the corresponding
+text file in directory CORPUSDIR. If VRTFILE is given, print the
+number of lines for the text in that file.
+
+CORPUSDIR: The directory that contains the text files.
+TSVFILE:   A file that contains the pdfurls and dates of the texts,
+           each pdfurl and date on its own line separated by a tab.
+VRTFILE:   A VRT file that has been generated from the text files.
+    """
+    exit 0;
+fi
+
 for script in "pdfurl-date-to-txtfilename.pl" "pdfurl-to-txtfilename.pl";
 do
     if !(ls $script > /dev/null 2> /dev/null); then
