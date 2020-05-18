@@ -223,23 +223,23 @@ test cases can override the values individually. For example, the YAML
 specification
 
     - defaults:
-	    input:
-		  cmdline: echo 'test\n'
-		  stdin: 'test\n'
-	    output:
+        input:
+          cmdline: echo 'test\n'
+          stdin: 'test\n'
+        output:
           stdout: 'test\n'
-	- name: Test
-	  input:
-		cmdline: cat
+    - name: Test
+      input:
+        cmdline: cat
 
 is equivalent to
 
-	- name: Test
-	  input:
-		cmdline: cat
-		stdin: 'test\n'
-	  output:
-		stdout: 'test\n'
+    - name: Test
+      input:
+        cmdline: cat
+        stdin: 'test\n'
+      output:
+        stdout: 'test\n'
 
 Similarly, a default values item overrides the values in a possible
 previous default values. To clear the default values completely, use
@@ -257,50 +257,50 @@ test case itself may contain `defs` with similar content.
 
 For example:
 
-	- defs:
-	  - &empty_output
-		  stdout: ''
-		  stderr: ''
-		  returncode: 0
+    - defs:
+      - &empty_output
+          stdout: ''
+          stderr: ''
+          returncode: 0
 
 This can be referenced in a test as follows:
 
     - name: Test
-	  input:
-	    cmdline: cat /dev/null
-	  output:
-		*empty_output
+      input:
+        cmdline: cat /dev/null
+      output:
+        *empty_output
 
 This is equivalent to:
 
     - name: Test
-	  input:
-	    cmdline: cat /dev/null
-	  output:
-		stdout: ''
-		stderr: ''
-		returncode: 0
+      input:
+        cmdline: cat /dev/null
+      output:
+        stdout: ''
+        stderr: ''
+        returncode: 0
 
 In Python code, reusable definitions need to be defined in a separate
 variable (or separate variables) that can be referenced in multiple
 places in the actual test cases. For example:
 
     _defs = {
-	    'empty_output': {
-		    'stdout': '',
-			'stderr': '',
-			'returncode': 0,
-		},
-	}
-	testcases = [
-	    {
-		    'name': 'Test',
-			'input': {
-			    'cmdline': 'cat /dev/null',
-			},
-			'output': _defs['empty_output'],
-		},
-	]
+        'empty_output': {
+            'stdout': '',
+            'stderr': '',
+            'returncode': 0,
+        },
+    }
+    testcases = [
+        {
+            'name': 'Test',
+            'input': {
+                'cmdline': 'cat /dev/null',
+            },
+            'output': _defs['empty_output'],
+        },
+    ]
 
 
 ### Generating a test case with `make-scripttest`
