@@ -865,3 +865,15 @@
       # global transformation.
       - python: |
           return re.sub(r'^<!--.*?\n', '', value)
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Upper-case and capitalized word forms'
+  defs: &output-21 |
+    AAMIAISRUOKAA	aamiainen#ruoka	aamiaisruoka
+    AALTOMUODOT	aalto#muoto	aaltomuoto
+    Aamiaisruokaa	aamiainen#ruoka	aamiaisruoka
+    Aaltomuodot	aalto#muoto	aaltomuoto
+  input:
+    stdin: *output-21
+  output:
+    stdout: *output-21

@@ -590,14 +590,15 @@ class NoBoundaryLemmaAdder(InputProcessor):
         return ((part1_lower, part2.lower()) in self._inflecting_first_part
                 or (part1_lower, '*') in self._inflecting_first_part)
 
-    def _get_prefix(self, lemmaparts, wordform, min_rest_wf_lens):
+    def _get_prefix(self, lemmaparts, wordform_orig, min_rest_wf_lens):
         # min_rest_wf_len = the minimum number of (non-hyphen)
         # characters the word form should have left after the prefix
         # corresponding to lemmapart_this
         # [yhteinen, kunta] yhteiskunnan -> yhteis, 6
         # [oleskella, lupa] oleskeluluvista -> oleskelu, 8
-        lemmapart_this = lemmaparts[0]
-        lemmapart_next = lemmaparts[1]
+        lemmapart_this = lemmaparts[0].lower()
+        lemmapart_next = lemmaparts[1].lower()
+        wordform = wordform_orig.lower()
         # Inflecting first part should be considered only when the current part
         # is the second-last one, as for example, uudenvuodenlupauksia should
         # result in uudenvuodenlupaus, not uusivuodenlupaus.
@@ -606,7 +607,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # print('_get_prefix', lemmapart_this, lemmapart_next, wordform,
         #       min_rest_wf_lens, consider_inflecting_first_part,
         #       file=sys.stderr)
-        adjust_case_fn = self._get_adjust_case_fn(lemmapart_this)
+        adjust_case_fn = self._get_adjust_case_fn(lemmaparts[0])
 
         def find_begin(lemmapart_next):
 
@@ -621,7 +622,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
 
             def make_return_value(value):
                 next_pos, wf_prefix_len, _ = value
-                return (adjust_case_fn(wordform[:next_pos]), next_pos)
+                return (adjust_case_fn(wordform_orig[:next_pos]), next_pos)
 
             def choose_candidate(cands):
                 max_num = 0
