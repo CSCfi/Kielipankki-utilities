@@ -17,7 +17,7 @@ import pytest
 import yaml
 
 from scripttestlib import (collect_testcases, check_program_run,
-                           expand_testcases, dict_deep_update)
+                           expand_testcases, dict_deep_update, make_param_id)
 
 
 # TODO: Test more scripttestlib features, also failing tests.
@@ -1223,7 +1223,7 @@ def test_empty_values(tmpdir):
 
 
 @pytest.mark.parametrize("name, input, outputitem, expected",
-                         _testcases)
+                         _testcases, ids=make_param_id)
 def test_check_program_run(name, input, outputitem, expected, tmpdir):
     """Test scripttestlib.check_program_run with the testcases."""
     check_program_run(name, input, outputitem, expected, tmpdir=str(tmpdir))

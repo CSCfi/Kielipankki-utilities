@@ -15,7 +15,7 @@ import os.path
 
 import pytest
 
-from scripttestlib import collect_testcases, check_program_run
+from scripttestlib import collect_testcases, check_program_run, make_param_id
 
 
 _filedir = os.path.dirname(os.path.abspath(__file__))
@@ -35,9 +35,8 @@ testcases = collect_testcases(
 # Run all the test cases
 
 @pytest.mark.parametrize("name, input, outputitem, expected",
-                         testcases)
+                         testcases, ids=make_param_id)
 def test_scripts(name, input, outputitem, expected, tmpdir):
     check_program_run(
         name, input, outputitem, expected, str(tmpdir),
         progpath='{filedir}/..:{filedir}:{{PATH}}'.format(filedir=_filedir))
-

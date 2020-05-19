@@ -33,6 +33,29 @@ def _get_granularity():
     return pytest.config.getoption('--scripttest-granularity')
 
 
+def make_param_id(val):
+    """Return a parameter id string for value `val`
+
+    To be used as the value of the `ids` argument of
+    `pytest.mark.parametrize` for generating more readable parameter
+    values in test ids.
+    """
+    # If all values of a list or tuple are the same, use only one of them
+    if (isinstance(val, (list, tuple))
+            and all(item == val[0] for item in val[1:])):
+        val = val[0]
+    if isinstance(val, dict) and 'value' in val and 'test' in val:
+        # Generate a more readable representation for the expected value
+        value = val['value']
+        if isinstance(value, (int, bool)) or value is None:
+            value = str(value)
+        # Abridge long values
+        if len(value) > 80:
+            value = value[:60] + '[...]' + value[-20:]
+        return val['test'] + ':' + value
+    return val if isinstance(val, str) else None
+
+
 def collect_testcases(*filespecs, basedir=None, granularity=None):
     """Return a list of tuples for the test cases in `filespecs`
 
