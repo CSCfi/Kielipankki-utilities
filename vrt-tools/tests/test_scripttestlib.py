@@ -1148,20 +1148,21 @@ def test_collect_testcases(testcase_files, tmpdir):
                         .startswith(('skip', 'skipif', 'xfail')))
             except AttributeError:
                 pass
-            assert len(testcase) == 5
-            name, input_, inputitem, expected, options = (
+            assert len(testcase) == 4
+            name, input_, inputitem, expected = (
                 getitem(item) for item in testcase)
             # TODO: Test the values more thoroughly
             assert isinstance(name, str)
             assert isinstance(input_, dict)
             assert (inputitem in ['stdout', 'stderr', 'returncode']
                     or inputitem.startswith('file:'))
-            assert ((isinstance(expected, str) and inputitem != 'returncode')
-                    or (isinstance(expected, int)
+            assert isinstance(expected, dict)
+            exp_val = expected.get('value')
+            assert ((isinstance(exp_val, str) and inputitem != 'returncode')
+                    or (isinstance(exp_val, int)
                         and inputitem == 'returncode')
-                    or (isinstance(expected, list)
-                        and options['test'] in ['in', 'not-in']))
-            assert isinstance(options, dict)
+                    or (isinstance(exp_val, list)
+                        and expected['test'] in ['in', 'not-in']))
             testcase_num += 1
 
 
@@ -1199,31 +1200,30 @@ def test_empty_values(tmpdir):
         check_program_run('Empty cmdline',
                           {'name': 'Empty cmdline',
                            'input': {'cmdline': ''}},
-                          '', None, None,
+                          '', None,
                           tmpdir=str(tmpdir))
     with pytest.raises(ValueError) as e_info:
         check_program_run('Empty input info',
                           {'name': 'Empty input info',
                            'input': {}},
-                          '', None, None,
+                          '', None,
                           tmpdir=str(tmpdir))
     with pytest.raises(ValueError) as e_info:
         check_program_run('Empty input info',
                           {'name': 'Empty prog',
                            'input': {'prog': ''}},
-                          '', None, None,
+                          '', None,
                           tmpdir=str(tmpdir))
     with pytest.raises(ValueError) as e_info:
         check_program_run('Empty input args',
                           {'name': 'Empty prog',
                            'input': {'args': []}},
-                          '', None, None,
+                          '', None,
                           tmpdir=str(tmpdir))
 
 
-@pytest.mark.parametrize("name, input, outputitem, expected, options",
+@pytest.mark.parametrize("name, input, outputitem, expected",
                          _testcases)
-def test_check_program_run(name, input, outputitem, expected, options, tmpdir):
+def test_check_program_run(name, input, outputitem, expected, tmpdir):
     """Test scripttestlib.check_program_run with the testcases."""
-    check_program_run(
-        name, input, outputitem, expected, options, tmpdir=str(tmpdir))
+    check_program_run(name, input, outputitem, expected, tmpdir=str(tmpdir))

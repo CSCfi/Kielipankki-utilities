@@ -42,7 +42,7 @@ def collect_testcases(*filespecs, basedir=None, granularity=None):
     files.
 
     The output tuples have the items (name, input, outputitem,
-    expected, options), and they can be used as parameters to
+    expected), and they can be used as parameters to
     `check_program_run`.
 
     In general, each item in the output tuples is a list or tuple,
@@ -90,8 +90,8 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
     """Convert a list of (filename, test case dict) to a list of tuples.
 
     The returned tuples have the items (name, input, outputitem,
-    expected, options), and they can be used as parameters to
-    check_program_run. `granularity` is the granularity of the
+    expected), and they can be used as parameters to
+    `check_program_run`. `granularity` is the granularity of the
     generated pytest tests, as explained in `collect_testcases`.
     """
 
@@ -196,15 +196,14 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                         # exp_trans1.extend(exp_trans)
                         # act_trans1 = actual_trans.copy()
                         # act_trans1.extend(act_trans)
-                        options = {
+                        exp_output = {
+                            'value': expected_val['value'],
                             'test': test,
                             'test-opts': test_opts,
                             'transform-expected': exp_trans1,
                             'transform-actual': act_trans1,
                         }
-                        subcases.append(
-                            (item_descr, input_, key, expected_val['value'],
-                             options))
+                        subcases.append((item_descr, input_, key, exp_output))
                     elif exp_trans or act_trans:
                         # File-specific transformations are appended to the
                         # global ones for all subsequent tests for this file
@@ -218,7 +217,8 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                             if not isinstance(exp_vals, list):
                                 exp_vals = [exp_vals]
                             for exp_val_num, exp_val in enumerate(exp_vals):
-                                options = {
+                                exp_output = {
+                                    'value': exp_val,
                                     'test': test,
                                     'test-opts': test_opts,
                                     'transform-expected': expected_trans,
@@ -227,16 +227,16 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                                 subitem_descr = item_descr
                                 if granularity == 'value':
                                     subitem_descr += ' ' + str(test_num)
-                                subcases.append((subitem_descr, input_, key,
-                                                 exp_val, options))
+                                subcases.append(
+                                    (subitem_descr, input_, key, exp_output))
                 else:
-                    options = {
+                    exp_output = {
+                        'value': expected_val,
                         'test': '==',
                         'transform-expected': expected_trans,
                         'transform-actual': actual_trans,
                     }
-                    subcases.append(
-                        (item_descr, input_, key, expected_val, options))
+                    subcases.append((item_descr, input_, key, exp_output))
             if subcases and granularity != 'programrun':
                 if granularity == 'value':
                     result.extend(subcases)
@@ -467,7 +467,7 @@ class ProgramRunner:
         return cls._output
 
 
-def check_program_run(name, input_, outputitem, expected, options, tmpdir,
+def check_program_run(name, input_, outputitem, expected, tmpdir,
                       progpath=None):
     """Check a program run: execute a single test case.
 
@@ -475,8 +475,10 @@ def check_program_run(name, input_, outputitem, expected, options, tmpdir,
       `name`: A name or description of the test (str)
       `input_`: A dict containing input information for the test
       `outputitem`: The output item to be tested (str)
-      `expected`: The expected output for the test (dict)
-      `options`: Test options: dict with the following keys:
+      `expected`: The expected output for the test and associated
+          information (dict):
+         ``value``: the actual expected value (str or int, or list for
+             tests ``in`` and ``not-in``)
          ``test``: the test condition (str)
          ``test-opts``: test condition options (list): currently
              only regular expression flags
@@ -492,11 +494,11 @@ def check_program_run(name, input_, outputitem, expected, options, tmpdir,
           separated with colons and `{PATH}` is replaced with the current
           value of `$PATH`. If None, use the current `$PATH`.
 
-    Alternatively, the values of `name`, `input_`, `outputitem`,
-    `expected` and `options` may be lists or tuples containing
-    information for tests grouped together. For `name` and `input`, all
-    the values of a list or tuple are expected to be the same and only
-    the first value is used.
+    Alternatively, the values of `name`, `input_`, `outputitem` and
+    `expected` may be lists or tuples containing information for tests
+    grouped together. For `name` and `input`, all the values of a list
+    or tuple are expected to be the same and only the first value is
+    used.
 
     Please see README.md for more details on the values of `input_` and
     `expected` (output).
@@ -517,10 +519,8 @@ def check_program_run(name, input_, outputitem, expected, options, tmpdir,
     if not is_list_or_tuple(outputitem):
         outputitem = [outputitem]
         expected = [expected]
-        options = [options]
     for itemnum, outputitem_item in enumerate(outputitem):
-        _check_output(
-            name, output, outputitem_item, expected[itemnum], options[itemnum])
+        _check_output(name, output, outputitem_item, expected[itemnum])
 
 
 def _make_value(value, trans_key, global_trans=None, actual_value=None):
@@ -582,23 +582,24 @@ def _transform_value(value, trans):
     return value
 
 
-def _check_output(name, output, outputitem, expected, options):
+def _check_output(name, output, outputitem, expected):
     """Check using an assertion if the actual values match expected.
 
     Arguments:
       `name`: Test name
       `output`: Actual values (ProgramRunner._Output)
-      `outputitem`: The output item to be tested
-      `expected`: Expected value (str, int or list)
-      `options`: Test options, including the test condition
+      `outputitem`: The output item to be tested (str)
+      `expected`: Expected value, test condition and possible options,
+          and possible transformations (dict)
     """
     actual = output.get(outputitem)
-    exp_val = _transform_value(expected, options.get('transform-expected'))
-    act_val = _transform_value(actual, options.get('transform-actual'))
-    # print('_check_output', options, repr(expected), repr(actual),
+    exp_val = _transform_value(expected.get('value'),
+                               expected.get('transform-expected'))
+    act_val = _transform_value(actual, expected.get('transform-actual'))
+    # print('_check_output', repr(expected), repr(actual),
     #       repr(exp_val), repr(act_val))
-    _assert(options.get('test'), exp_val, act_val, name,
-            options.get('test-opts'))
+    _assert(expected.get('test'), exp_val, act_val, name,
+            expected.get('test-opts'))
 
 
 def _re_search(patt, val, flags=''):

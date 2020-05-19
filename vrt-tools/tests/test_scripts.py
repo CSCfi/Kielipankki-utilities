@@ -34,10 +34,10 @@ testcases = collect_testcases(
 
 # Run all the test cases
 
-@pytest.mark.parametrize(
-    "name, input, outputitem, expected, options", testcases)
-def test_scripts(name, input, outputitem, expected, options, tmpdir):
+@pytest.mark.parametrize("name, input, outputitem, expected",
+                         testcases)
+def test_scripts(name, input, outputitem, expected, tmpdir):
     check_program_run(
-        name, input, outputitem, expected, options, str(tmpdir),
+        name, input, outputitem, expected, str(tmpdir),
         progpath='{filedir}/..:{filedir}:{{PATH}}'.format(filedir=_filedir))
 
