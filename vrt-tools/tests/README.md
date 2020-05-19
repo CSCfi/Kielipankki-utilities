@@ -153,7 +153,7 @@ test case:
        (but with no `value`) for specifying file-specific
        transformations to be applied to all subsequent tests for the
        file after global but before value-specific transformations;
-       this makes sense on when the expected value is a list with
+       this makes sense only when the expected value is a list with
        tests specified after the transformation item.
 
     Supported test names are the following, some with aliases
@@ -223,23 +223,23 @@ test cases can override the values individually. For example, the YAML
 specification
 
     - defaults:
-	    input:
-		  cmdline: echo 'test\n'
-		  stdin: 'test\n'
-	    output:
+        input:
+          cmdline: echo 'test\n'
+          stdin: 'test\n'
+        output:
           stdout: 'test\n'
-	- name: Test
-	  input:
-		cmdline: cat
+    - name: Test
+      input:
+        cmdline: cat
 
 is equivalent to
 
-	- name: Test
-	  input:
-		cmdline: cat
-		stdin: 'test\n'
-	  output:
-		stdout: 'test\n'
+    - name: Test
+      input:
+        cmdline: cat
+        stdin: 'test\n'
+      output:
+        stdout: 'test\n'
 
 Similarly, a default values item overrides the values in a possible
 previous default values. To clear the default values completely, use
@@ -257,50 +257,66 @@ test case itself may contain `defs` with similar content.
 
 For example:
 
-	- defs:
-	  - &empty_output
-		  stdout: ''
-		  stderr: ''
-		  returncode: 0
+    - defs:
+      - &empty_output
+          stdout: ''
+          stderr: ''
+          returncode: 0
 
 This can be referenced in a test as follows:
 
     - name: Test
-	  input:
-	    cmdline: cat /dev/null
-	  output:
-		*empty_output
+      input:
+        cmdline: cat /dev/null
+      output:
+        *empty_output
 
 This is equivalent to:
 
     - name: Test
-	  input:
-	    cmdline: cat /dev/null
-	  output:
-		stdout: ''
-		stderr: ''
-		returncode: 0
+      input:
+        cmdline: cat /dev/null
+      output:
+        stdout: ''
+        stderr: ''
+        returncode: 0
+
+**Note** that anchor names must be unique within a YAML file: even
+though the YAML specification allows non-unique anchor names (an alias
+node would refer to the nearest preceding anchor of the name), the
+Python `yaml` module used in `scripttestlib` does not.
 
 In Python code, reusable definitions need to be defined in a separate
 variable (or separate variables) that can be referenced in multiple
 places in the actual test cases. For example:
 
     _defs = {
-	    'empty_output': {
-		    'stdout': '',
-			'stderr': '',
-			'returncode': 0,
-		},
-	}
-	testcases = [
-	    {
-		    'name': 'Test',
-			'input': {
-			    'cmdline': 'cat /dev/null',
-			},
-			'output': _defs['empty_output'],
-		},
-	]
+        'empty_output': {
+            'stdout': '',
+            'stderr': '',
+            'returncode': 0,
+        },
+    }
+    testcases = [
+        {
+            'name': 'Test',
+            'input': {
+                'cmdline': 'cat /dev/null',
+            },
+            'output': _defs['empty_output'],
+        },
+    ]
+
+
+### Test granularity
+
+By default, each single output value generates a pytest test of its
+own, with a single value assertion. Alternatively, you can group in
+the same test all the value tests for an output item (such as
+`stdout`) of a program run or all the tests for all output items of a
+program run (test item). The granularity is specified with the custom
+pytest command-line option `--scripttest-granularity`, whose value can
+be `value` (default), `inputitem` or `programrun`.
 
 
 ### Generating a test case with `make-scripttest`
