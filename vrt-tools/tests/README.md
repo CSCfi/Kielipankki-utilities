@@ -281,6 +281,11 @@ This is equivalent to:
         stderr: ''
         returncode: 0
 
+**Note** that anchor names must be unique within a YAML file: even
+though the YAML specification allows non-unique anchor names (an alias
+node would refer to the nearest preceding anchor of the name), the
+Python `yaml` module used in `scripttestlib` does not.
+
 In Python code, reusable definitions need to be defined in a separate
 variable (or separate variables) that can be referenced in multiple
 places in the actual test cases. For example:
