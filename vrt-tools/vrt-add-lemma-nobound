@@ -10,6 +10,11 @@ forms and lemmas with compound boundaries.
 """
 
 
+# TODO:
+# - Support inserted noboundaries attributes in --insert-after when
+#   adding multiple attributes
+
+
 import re
 import sys
 
@@ -28,18 +33,41 @@ class NoBoundaryLemmaAdder(InputProcessor):
     # lru_cache works best if the size is a power of two.
     DEFAULT_LRU_CACHE_SIZE = 262144
 
+    # TODO (vrtargsoolib, modifying appropriately the code below):
+    # - Support usage epilog
+    # - Support action='append' in the argspec
+
     DESCRIPTION = """
     Add lemmas without compound boundaries to the input VRT with word
     forms and lemmas with compound boundaries.
+
+    Multiple lemma attributes (e.g., for different annotation schemes) can be
+    handled by specifying multiple times the options --mode,
+    --compound-boundary-marker, --lemma-name, --noboundaries-name and
+    --insert-noboundaries-after-name, in which case the first values are used
+    for the lemma of the first value for --lemma-name, the second values for
+    the second and so on. If some of the options is specified fewer times than
+    --lemma-name appears, its last values is used for the rest of the lemma
+    attributes.
     """
-    ARGSPECS = [
-        ('--mode (*simple-omorfi|omorfi|naive)',
-         'use the specified mode for handling compound boundary markers in'
-         ' lemmas: "simple-omorfi" handles compound boundary markers replacing'
-         ' hyphens as produced by Omorfi; "omorfi" also tries to handle'
-         ' lemmatized non-final compound parts; and "naive" simply removes'
-         ' all compound boundary markers (unless thw word form contains them)'),
-        ('--compound-boundary-marker=CHAR "|" -> boundary_char',
+    # Specify default values separately for options that may be specified
+    # multiple times and thus get list values.
+    _multi_arg_defaults = {
+        'mode': 'simple-omorfi',
+        'boundary_char': '|',
+        'lemma_attr': 'lemma',
+        'nobound_attr': 'lemma_nobound',
+        'insert_after_attr': 'lemma',
+    }
+    _argspecs_base = [
+        ('--mode (simple-omorfi|omorfi|naive) -> mode',
+         """use the specified mode for handling compound boundary markers in
+         lemmas: "simple-omorfi" handles compound boundary markers replacing
+         hyphens as produced by Omorfi; "omorfi" also tries to handle
+         lemmatized non-final compound parts; and "naive" simply removes
+         all compound boundary markers (unless the word form contains them)
+         """),
+        ('--compound-boundary-marker|boundary-marker=CHAR -> boundary_char',
          'treat CHAR as the compound boundary marker'),
         ('--no-fix-spurious-boundaries',
          'do not correct "#" to "|" if the word form contains as many "|" as'
@@ -58,11 +86,11 @@ class NoBoundaryLemmaAdder(InputProcessor):
          """),
         ('--wordform-name=ATTR "word" -> word_attr',
          'use positional attribute ATTR as the word form'),
-        ('--lemma-name=ATTR "lemma" -> lemma_attr',
+        ('--lemma-name=ATTR -> lemma_attr',
          'use positional attribute ATTR as the lemma'),
-        ('--noboundaries-name=ATTR "lemma_nobound" -> nobound_attr',
+        ('--noboundaries-name=ATTR -> nobound_attr',
          'output the lemma without boundaries as positional attribute ATTR'),
-        ('--insert-noboundaries-after-name|insert-after=ATTR "lemma"'
+        ('--insert-noboundaries-after-name|insert-after=ATTR'
          ' -> insert_after_attr',
          'insert the lemma without boundaries after positional attribute ATTR'),
         ('--quiet',
@@ -72,6 +100,27 @@ class NoBoundaryLemmaAdder(InputProcessor):
          --mode=omorfi; SIZE should be a power of two; use -1 for
          unlimited caching, 0 for no caching"""),
     ]
+
+    def _make_argspecs(argspecs_base, defaults):
+
+        def get_default(argspec):
+            mo = re.search(r'->\s*(.+)$', argspec)
+            if mo:
+                return defaults.get(mo.group(1))
+            else:
+                return None
+
+        return [
+            ((spec,
+              (descr + ' (default: "{dft}")').format(dft=default),
+              dict(action='append', default=[]))
+             if default is not None
+             else (spec, descr))
+            for (spec, descr) in argspecs_base
+            for default in [get_default(spec)]
+            ]
+
+    ARGSPECS = _make_argspecs(_argspecs_base, _multi_arg_defaults)
 
     # Lemma suffixes that are (typically) associated with a length change in
     # the word form, typically so that the word form is shorter (e.g. hevonen
@@ -339,22 +388,52 @@ class NoBoundaryLemmaAdder(InputProcessor):
         self._lemma_split_keepsep_re = None
         self._omorfi_add_hyphens = False
 
-    def main(self, args, inf, ouf):
-
-        boundary_char = args.boundary_char.encode()
-        fix_spurious_boundaries = (boundary_char == b'#'
-                                   and not args.no_fix_spurious_boundaries)
-        # Handle double boundary characters, which occur in for example
-        # "neli||siipinen"
-        self._lemma_split_re = re.compile('[' + args.boundary_char + '-]')
-        self._lemma_split_keepsep_re = re.compile(
-            '([' + args.boundary_char + '-]+)')
-        self._omorfi_add_hyphens = not args.only_wordform_hyphens
+    def check_args(self, args):
+        # print(args)
+        for argname, default in self._multi_arg_defaults.items():
+            if getattr(args, argname) == []:
+                setattr(args, argname, [default])
+        for argval, argname in [
+                (args.nobound_attr, 'noboundaries-name'),
+                ]:
+            if len(set(argval)) != len(argval):
+                self.error_exit(
+                    'Non-unique values for --' + optname + ':' + repr(argval))
+        nobound_attr_count = len(args.nobound_attr)
+        # if len(args.lemma_attr) != nobound_attr_count:
+        #     self.error_exit(
+        #         'You must specify the same number of options --lemma-name and'
+        #         ' --noboundaries-name')
+        for argname in self._multi_arg_defaults:
+            argval = getattr(args, argname)
+            if len(argval) < nobound_attr_count:
+                # TODO: Warn that the last value for attribute is used for
+                # missing values
+                argval.extend((nobound_attr_count - len(argval)) * [argval[-1]])
+                setattr(args, argname, argval)
+        for argname in ['lemma_attr',
+                        'nobound_attr',
+                        'insert_after_attr']:
+            setattr(args, argname,
+                    [val.encode() for val in getattr(args, argname)])
+        args.word_attr = args.word_attr.encode()
+        # print(args)
         # Negative cache size is translated to None (unlimited)
         if args.cache_size < 0:
             args.cache_size = None
+        super().check_args(args)
 
-        def make_lemma_noboundaries_simple(lemma, wordform, linenr):
+    def main(self, args, inf, ouf):
+
+        # print(args)
+        self._omorfi_add_hyphens = not args.only_wordform_hyphens
+        boundary_chars = [char.encode() for char in args.boundary_char]
+        fix_spurious_boundaries = [
+            (boundary_char == b'#' and not args.no_fix_spurious_boundaries)
+            for boundary_char in boundary_chars]
+
+        def make_lemma_noboundaries_simple(lemma, wordform, linenr,
+                                           boundary_char, *rest):
             return lemma.replace(boundary_char, b'')
 
         def attr_index(s):
@@ -366,29 +445,39 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 return None
 
         LESS_THAN = '<'.encode()[0]
-        if args.mode == 'omorfi':
-            make_lemma_noboundaries = self._make_lemma_noboundaries_omorfi
-            if args.cache_size != 0:
-                make_lemma_noboundaries = lru_cache(maxsize=args.cache_size)(
-                    make_lemma_noboundaries)
-        else:
-            if args.mode == 'naive':
-                make_lemma_noboundaries = make_lemma_noboundaries_simple
+        make_lemma_noboundaries = []
+        lemma_split_re = []
+        for num, mode in enumerate(args.mode):
+            if mode == 'omorfi':
+                make_lemma_noboundaries.append(
+                    self._make_lemma_noboundaries_omorfi)
+                if args.cache_size != 0:
+                    make_lemma_noboundaries[-1] = (
+                        lru_cache(maxsize=args.cache_size)(
+                            make_lemma_noboundaries[-1]))
+                # Handle double boundary characters, which occur in for example
+                # "neli||siipinen"; keep boundary characters
+                lemma_split_re.append(
+                    re.compile('([' + boundary_chars[num].decode() + '-]+)'))
             else:
-                make_lemma_noboundaries = (
-                    self._make_lemma_noboundaries_omorfi_simple)
-            # simple-omorfi and naive are so fast that caching would
-            # slow them down slightly
-            args.cache_size = 0
-        for arg_name in ['word_attr', 'lemma_attr', 'nobound_attr',
-                         'insert_after_attr']:
-            setattr(args, arg_name, getattr(args, arg_name).encode())
-        # print(args)
+                if mode == 'naive':
+                    make_lemma_noboundaries.append(
+                        make_lemma_noboundaries_simple)
+                else:
+                    make_lemma_noboundaries.append(
+                        self._make_lemma_noboundaries_omorfi_simple)
+                # Boundary character information is not needed here, so discard
+                # them
+                lemma_split_re.append(
+                    re.compile('[' + boundary_chars[num].decode() + '-]'))
+                # simple-omorfi and naive are so fast that caching would
+                # slow them down slightly
+                args.cache_size = 0
         word_index = attr_index(args.word_attr)
-        lemma_index = attr_index(args.lemma_attr)
-        insert_after_index = attr_index(args.insert_after_attr)
-        if insert_after_index:
-            insert_after_index += 1
+        lemma_indexes = [attr_index(attr) for attr in args.lemma_attr]
+        insert_after_indexes = [index + 1 if index is not None else None
+                                for attr in args.insert_after_attr
+                                for index in [attr_index(attr)]]
         names_seen = False
         linenr = 0
 
@@ -398,49 +487,60 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 ouf.write(line)
             elif line[0] == LESS_THAN:
                 if not names_seen and vrtnamelib.isbinnames(line):
-                    word_index, lemma_index, insert_after_index = (
-                        vrtnamelib.nameindices(vrtnamelib.binnamelist(line),
-                                               args.word_attr,
-                                               args.lemma_attr,
-                                               args.insert_after_attr))
-                    insert_after_index += 1
-                    ouf.write(vrtnamelib.bininsertnames(
-                        line, args.insert_after_attr, args.nobound_attr))
-                else:
-                    ouf.write(line)
+                    namelist = vrtnamelib.binnamelist(line)
+                    word_index = vrtnamelib.nameindices(
+                        namelist, args.word_attr)[0]
+                    lemma_indices = vrtnamelib.nameindices(
+                        namelist, *args.lemma_attr)
+                    insert_after_indices = [
+                        index + 1 for index in vrtnamelib.nameindices(
+                            namelist, *args.insert_after_attr)]
+                    for num, nobound_attr in enumerate(args.nobound_attr):
+                        line = vrtnamelib.bininsertnames(
+                            line, args.insert_after_attr[num], nobound_attr)
+                ouf.write(line)
             else:
                 attrs = vrtdatalib.binasrecord(line)
-                lemma = attrs[lemma_index]
                 word = attrs[word_index]
-                # If the word form contains a compound boundary marker, the
-                # word is unlikely to be a real compound, so keep the lemma as
-                # is.
-                if boundary_char in lemma and not boundary_char in word:
-                    # The Turku UD1 parser pipeline seems to convert literal
-                    # |'s in lemmas to #'s if the wordform (and lemma) contains
-                    # only punctuation characters
-                    if (fix_spurious_boundaries
-                            and lemma.count(boundary_char) == word.count(b'|')):
-                        lemma_nobound = lemma.replace(boundary_char, b'|')
+                lemma_nobounds = []
+                for lemma_num, lemma_index in enumerate(lemma_indices):
+                    lemma = attrs[lemma_index]
+                    boundary_char = boundary_chars[lemma_num]
+                    # If the word form contains a compound boundary marker, the
+                    # word is unlikely to be a real compound, so keep the lemma
+                    # as is.
+                    if boundary_char in lemma and not boundary_char in word:
+                        # The Turku UD1 parser pipeline seems to convert
+                        # literal |'s in lemmas to #'s if the wordform (and
+                        # lemma) contains only punctuation characters
+                        if (fix_spurious_boundaries[lemma_num]
+                                and (lemma.count(boundary_char)
+                                     == word.count(b'|'))):
+                            lemma_nobound = lemma.replace(boundary_char, b'|')
+                        else:
+                            lemma_nobound = make_lemma_noboundaries[lemma_num](
+                                lemma, word, linenr, boundary_char,
+                                lemma_split_re[lemma_num])
                     else:
-                        lemma_nobound = make_lemma_noboundaries(
-                            lemma, word, linenr)
-                else:
-                    lemma_nobound = lemma
-                ouf.write(b'\t'.join(chain(attrs[:insert_after_index],
-                                           [lemma_nobound],
-                                           attrs[insert_after_index:]))
-                          + b'\n')
+                        lemma_nobound = lemma
+                    lemma_nobounds.append(lemma_nobound)
+                for nobound_num, lemma_nobound in enumerate(lemma_nobounds):
+                    insert_after_index = insert_after_indices[nobound_num]
+                    attrs[insert_after_index:insert_after_index] = (
+                        [lemma_nobound])
+                # print(attrs)
+                ouf.write(b'\t'.join(attrs) + b'\n')
         # if args.cache_size != 0:
-        #     print(make_lemma_noboundaries.cache_info(), file=sys.stderr)
+        #     print(make_lemma_noboundaries[0].cache_info(), file=sys.stderr)
 
     def _make_lemma_noboundaries_omorfi_simple(self, lemma_b, wordform_b,
-                                               linenr):
+                                               linenr, boundary_char,
+                                               lemma_split_re):
         # Adapted and slightly improved from vrt-fix-attrs.py
         # (PosAttrConverter._make_lemma_without_boundaries_tdt)
         lemma = lemma_b.decode()
         wordform = wordform_b.decode()
-        boundary_char = self._args.boundary_char
+        boundary_char = boundary_char.decode()
         # If the boundary character is the first or the last in the lemma, it
         # should most likely be taken literally.
         if len(lemma) < 3 or boundary_char not in lemma[1:-1]:
@@ -464,7 +564,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # In some cases, the lemma has - replaced with a |; in
         # other cases not
         wordform_parts = wordform.split('-')
-        lemmaparts = self._lemma_split_re.split(lemma)
+        lemmaparts = lemma_split_re.split(lemma)
         if (len(wordform_parts) == len(lemmaparts)
             and '-' not in lemma):
             return lemma.replace(boundary_char, '-').encode()
@@ -487,7 +587,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 lemma_prefix_len += len(lemmapart)
             return ''.join(lemma_without_boundaries).encode()
 
-    def _make_lemma_noboundaries_omorfi(self, lemma, wordform, linenr):
+    def _make_lemma_noboundaries_omorfi(self, lemma, wordform, linenr,
+                                        boundary_char, lemma_split_re):
 
         def get_lemma_min_wf_len(lemma):
             for suffix, len_change in self._lemma_suffix_len_changes:
@@ -497,9 +598,10 @@ class NoBoundaryLemmaAdder(InputProcessor):
 
         lemma = lemma.decode()
         wordform = wordform.decode()
+        boundary_char = boundary_char.decode()
         # CHECK: Do we really need to preserve information on the separators,
         # because of possible hyphens?
-        lemmaparts_boundaries = self._lemma_split_keepsep_re.split(lemma)
+        lemmaparts_boundaries = lemma_split_re.split(lemma)
         lemmaparts = [part for partnum, part
                       in enumerate(lemmaparts_boundaries)
                       if partnum % 2 == 0]
@@ -510,7 +612,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # If the word form has the same number of intra-word hyphens as the
         # lemma has boundaries (and hyphens), use the lemma of the last part
         # and the word forms of the preceding parts.
-        if (lemma[1:-1].count(self._args.boundary_char) + lemma[1:-1].count('-')
+        if (lemma[1:-1].count(boundary_char) + lemma[1:-1].count('-')
                 == wordform[1:-1].count('-')):
             result_parts = ([
                     self._adjust_case(wf_part, lemmaparts[partnum])
@@ -552,7 +654,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                         .format(linenr=linenr,
                                 lemmapart1=lemmaparts[partnum],
                                 lemmapart2=lemmaparts[partnum + 1],
-                                boundary=self._args.boundary_char,
+                                boundary=boundary_char,
                                 suffix=wordform[wf_prefix_len:],
                                 wordform=wordform))
             if (nobound_part and nobound_part[0] == '-'
