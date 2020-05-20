@@ -152,8 +152,6 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('tää', -1),    # -taa -> -ta
         ('utua', -1),   # aiheutua -> aiheudu
         ('ytyä', -1),   # peseytyä -> peseydy
-        ('lla', -1),    # tulla -> tuli
-        ('llä', -1),    #
         ('nna', -1),    #
         ('nnä', -1),    # mennä -> meni
         ('rra', -1),    # purra -> puri
@@ -171,6 +169,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # The following would be too generic and break other cases
         # ('a', -1),    # for other verbal lemmas
         # ('ä', -1),    # for other verbal lemmas
+        ('kimet', -3),  # pukimet -> puin
+        ('ttimet', -3), # synnyttimet -> synnytin
         ('imet', -2),   # elimet -> elin
         ('eet', -3),	# vaatteet -> vaate
         ('aat', -2),	# rattaat -> ratas
@@ -187,24 +187,30 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('aika', 'aja'),
         ('aika', 'ajo'),
         ('apu', 'avu'),
+        ('ei', 'em'),
+        ('ei', 'en'),
+        ('ei', 'et'),
+        ('ede', 'ete'),
         ('etu', 'edu'),
         ('hyvä', 'paras'),
         ('hyvä', 'parem'),
         ('hyvä', 'parha'),
+        ('ien', 'ike'),
         ('ikä', 'ii'),		# "iin" is recognized by Omorfi as a form of "ikä"
         ('ikä', 'iä'),
         ('itu', 'idu'),
         ('itä', 'idä'),
         ('oas', 'oka'),
+        ('oka', 'oa'),
         ('oka', 'oi'),
+        ('olla', 'on'),
         ('ota', 'oda'),
         ('udar', 'utar'),
         ('uksi', 'ust'),
         ('utu', 'udu'),
         ('ydin', 'ytim'),
-        ('ei', 'em'),
-        ('ei', 'en'),
-        ('ei', 'et'),
+        ('yty', 'ydy'),
+        ('äes', 'äke'),
     ]
     _vowels = 'aeiouyäö'
     # We would only need the second part if the first part can occur inflected

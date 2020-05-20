@@ -877,3 +877,18 @@
     stdin: *output-21
   output:
     stdout: *output-21
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Lemma part beginning with a stem change'
+  defs: &output-22 |
+    laiminlöisimme	laimin#lyödä	laiminlyödä
+    sanoaksemme	san#oka	sanoka
+    hajaudumme	haja#utua	hajautua
+    siistiydyin	siisti#ytyä	siistiytyä
+    lempisäkeeni	lempi#äes	lempisäes
+    puintiin	pukimet#tii	puintii
+    parakiitin	para#kiittimet	parakiittimet
+  input:
+    stdin: *output-22
+  output:
+    stdout: *output-22
