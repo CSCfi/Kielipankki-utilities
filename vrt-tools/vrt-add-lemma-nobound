@@ -176,11 +176,14 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('aat', -2),	# rattaat -> ratas
         ('t', -1),		# häät -> hää
     ]
-    # Stem changes that affect the second (and possibly first) letter
-    _stem_changes = [
+    # Stme changes that may have a preceding consonant
+    _stem_changes_2 = [
         ('ie', 'ei'),
         ('uo', 'oi'),
         ('yö', 'öi'),
+    ]
+    # Stem changes that affect the second (and possibly first) letter
+    _stem_changes = _stem_changes_2 + [
         ('aika', 'aja'),
         ('aika', 'ajo'),
         ('apu', 'avu'),
@@ -903,6 +906,19 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     return_val = find_begin(
                         lemmapart_next[:(lemmapart_next_len - lemma_stem_len)]
                         + infl_stem)
+                    if return_val:
+                        return return_val
+                if lemmapart_next.startswith(lemma_stem):
+                    return_val = find_begin(
+                        infl_stem + lemmapart_next[lemma_stem_len:])
+                    if return_val:
+                        return return_val
+            # Stem changes that may have a preceding consonant
+            for lemma_stem, infl_stem in self._stem_changes_2:
+                if (len(lemmapart_next) >= 3
+                        and lemmapart_next[1:3] == lemma_stem):
+                    return_val = find_begin(
+                        lemmapart_next[0] + infl_stem + lemmapart_next[3:])
                     if return_val:
                         return return_val
         # print('NOT FOUND', file=sys.stderr)
