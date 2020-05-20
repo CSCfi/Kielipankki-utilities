@@ -432,8 +432,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
             (boundary_char == b'#' and not args.no_fix_spurious_boundaries)
             for boundary_char in boundary_chars]
 
-        def make_lemma_noboundaries_simple(lemma, wordform, linenr,
-                                           boundary_char, *rest):
+        def make_lemma_noboundaries_simple(lemma, wordform, boundary_char,
+                                           *rest):
             return lemma.replace(boundary_char, b'')
 
         def attr_index(s):
@@ -481,6 +481,17 @@ class NoBoundaryLemmaAdder(InputProcessor):
         names_seen = False
         linenr = 0
 
+        def warn(msg):
+            """Output warning msg, with line number information prepended
+
+            This function is passed to the make_lemma_noboundaries
+            functions instead of the line number, so that lru_cache
+            works. (A changing line number would mean that the cache
+            would never get hits.)
+            """
+            self.warn('input line {linenr}: {msg}'.format(
+                linenr=linenr, msg=msg))
+
         for line in inf:
             linenr += 1
             if line == b'\n':
@@ -519,8 +530,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
                             lemma_nobound = lemma.replace(boundary_char, b'|')
                         else:
                             lemma_nobound = make_lemma_noboundaries[lemma_num](
-                                lemma, word, linenr, boundary_char,
-                                lemma_split_re[lemma_num])
+                                lemma, word, boundary_char,
+                                lemma_split_re[lemma_num], warn)
                     else:
                         lemma_nobound = lemma
                     lemma_nobounds.append(lemma_nobound)
@@ -534,8 +545,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
         #     print(make_lemma_noboundaries[0].cache_info(), file=sys.stderr)
 
     def _make_lemma_noboundaries_omorfi_simple(self, lemma_b, wordform_b,
-                                               linenr, boundary_char,
-                                               lemma_split_re):
+                                               boundary_char, lemma_split_re,
+                                               warn_fn):
         # Adapted and slightly improved from vrt-fix-attrs.py
         # (PosAttrConverter._make_lemma_without_boundaries_tdt)
         lemma = lemma_b.decode()
@@ -587,8 +598,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 lemma_prefix_len += len(lemmapart)
             return ''.join(lemma_without_boundaries).encode()
 
-    def _make_lemma_noboundaries_omorfi(self, lemma, wordform, linenr,
-                                        boundary_char, lemma_split_re):
+    def _make_lemma_noboundaries_omorfi(self, lemma, wordform,
+                                        boundary_char, lemma_split_re,
+                                        warn_fn):
 
         def get_lemma_min_wf_len(lemma):
             for suffix, len_change in self._lemma_suffix_len_changes:
@@ -647,12 +659,11 @@ class NoBoundaryLemmaAdder(InputProcessor):
             if wf_use_len == 0:
                 wf_use_len = len(nobound_part)
                 if not self._args.quiet:
-                    self.warn(
-                        'input line {linenr}: No match found for compound'
-                        ' lemma boundary "{lemmapart1}{boundary}{lemmapart2}"'
+                    warn_fn(
+                        'No match found for compound lemma boundary'
+                        ' "{lemmapart1}{boundary}{lemmapart2}"'
                         ' in suffix "{suffix}" of word form "{wordform}"'
-                        .format(linenr=linenr,
-                                lemmapart1=lemmaparts[partnum],
+                        .format(lemmapart1=lemmaparts[partnum],
                                 lemmapart2=lemmaparts[partnum + 1],
                                 boundary=boundary_char,
                                 suffix=wordform[wf_prefix_len:],
