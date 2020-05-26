@@ -2,7 +2,7 @@
 
 if [ "$1" = "-h" -o "$1" = "--help" ]; then
 echo """
-txt-and-metadata-to-tnpp.sh SOURCEDIR LIMIT
+text-and-metadata-to-tnpp.sh SOURCEDIR LIMIT
 
 For each *.txt and corresponding *.metadata file in SOURCEDIR,
 append the metadata (inside comments) and text to file
