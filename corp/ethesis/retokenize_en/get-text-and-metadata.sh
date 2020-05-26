@@ -9,7 +9,8 @@
 
 if [ "$1" = "--help" -o "$1" = "-h" ]; then
     echo """
-get-txtfilenames.sh CORPUSDIR TSVFILE VRTFILE TARGETDIR [--dry-run]
+get-text-and-metadata.sh CORPUSDIR TSVFILE VRTFILE TARGETDIR
+  [--dry-run|--ignore-language|--skip-missing]
 
 For each pdfurl and date given in TSVFILE, find the corresponding
 text file (TXTFILE.txt) in directory CORPUSDIR and the line in
@@ -21,6 +22,7 @@ CORPUSDIR: The directory that contains the text files.
 TSVFILE:   A file that contains the pdfurls and dates of the texts,
            each pdfurl and date on its own line separated by a tab.
 VRTFILE:   A VRT file that has been generated from the text files.
+TARGETDIR: The directory where files are copied.
     """
     exit 0;
 fi
@@ -38,9 +40,19 @@ tsvfile=$2;
 vrtfile=$3;
 targetdir=$4;
 dry_run="false";
-if [ "$5" = "--dry-run" ]; then
-    dry_run="true";
-fi
+skip_missing="false";
+ignore_language="false";
+
+for arg in $@;
+do
+    if [ "$arg" = "--dry-run" ]; then
+	dry_run="true";
+    elif [ "$arg" = "--skip-missing" ]; then
+	skip_missing="true";
+    elif [ "$arg" = "--ignore-language" ]; then
+	ignore_language="true";
+    fi;
+done
 
 if [ -d "$targetdir" -a "$dry_run" = "false" ]; then
     echo "Error: TARGETDIR $targetdir exists.";
@@ -54,25 +66,26 @@ fi
 while read line
 do
     found=0;
+    txtfilename="";
     # English marked with "en"
-    txtfilename=`echo "$line" | ./pdfurl-date-to-txtfilename.pl "en"`;
-    if [ "$txtfilename" != "" ]; then
-	if [ -f "$corpusdir/$txtfilename" ]; then found=$((found + 1)); fi
+    txtfilename_=`echo "$line" | ./pdfurl-date-to-txtfilename.pl "en"`;
+    if [ "$txtfilename_" != "" ]; then
+	if [ -f "$corpusdir/$txtfilename_" ]; then found=$((found + 1)); txtfilename=$txtfilename_; fi
     fi
     # English marked with "eng"
-    txtfilename=`echo "$line" | ./pdfurl-date-to-txtfilename.pl "eng"`;
-    if [ "$txtfilename" != "" ]; then
-	if [ -f "$corpusdir/$txtfilename" ]; then found=$((found + 1)); fi
+    txtfilename_=`echo "$line" | ./pdfurl-date-to-txtfilename.pl "eng"`;
+    if [ "$txtfilename_" != "" ]; then
+	if [ -f "$corpusdir/$txtfilename_" ]; then found=$((found + 1)); txtfilename=$txtfilename_; fi
     fi
     # Language not marked
-    txtfilename=`echo "$line" | ./pdfurl-date-to-txtfilename.pl ""`;
-    if [ "$txtfilename" != "" ]; then
-	if [ -f "$corpusdir/$txtfilename" ]; then found=$((found + 1)); fi
+    txtfilename_=`echo "$line" | ./pdfurl-date-to-txtfilename.pl ""`;
+    if [ "$txtfilename_" != "" ]; then
+	if [ -f "$corpusdir/$txtfilename_" ]; then found=$((found + 1)); txtfilename=$txtfilename_; fi
     fi
     # No date or language marked
-    txtfilename=`echo "$line" | ./pdfurl-to-txtfilename.pl`;
-    if [ "$txtfilename" != "" ]; then
-	if [ -f "$corpusdir/$txtfilename" ]; then found=$((found + 1)); fi
+    txtfilename_=`echo "$line" | ./pdfurl-to-txtfilename.pl`;
+    if [ "$txtfilename_" != "" ]; then
+	if [ -f "$corpusdir/$txtfilename_" ]; then found=$((found + 1)); txtfilename=$txtfilename_; fi
     fi
 
     if [ "$found" -gt "1" ]; then
@@ -81,19 +94,24 @@ do
     fi
     if [ "$found" -eq "0" ]; then
 	# Try any language
-	txtfilename=`echo "$line" | ./pdfurl-date-to-txtfilename.pl "*"`;
-	if [ "$txtfilename" != "" ]; then
-	    if [ -f "$corpusdir/$txtfilename" ]; then
-		echo "Error: txtfile(s) found, but language is not English:";
-		ls $corpusdir/$txtfilename;
-		if [ "$dry_run" = "false" ]; then exit 1; fi;
-	    else
-		echo "Error: txtfile not found for $line.";
+	txtfilename_=`echo "$line" | ./pdfurl-date-to-txtfilename.pl "*"`;
+	if [ "$txtfilename_" != "" ]; then
+	    found=`ls $corpusdir/$txtfilename_ 2> /dev/null | wc -l`;
+	    if [ "$found" -gt "1" ]; then
+		echo "Error: several txtfiles found for $line.";
 		if [ "$dry_run" = "false" ]; then exit 1; fi;
 	    fi
+	    if [ "$found" -eq "1" ]; then
+		txtfilename=`ls $corpusdir/$txtfilename_ | cut -f2 -d'/'`;
+		echo "Warning: txtfile found, but language is not English: $txtfilename";
+		if [ "$dry_run" = "false" -a "$ignore_language" = "false" ]; then exit 1; fi;
+	    else
+		echo "Warning: txtfile not found for $line.";
+		if [ "$dry_run" = "false" -a "$skip_missing" = "false" ]; then exit 1; fi;
+	    fi
 	else
-	    echo "Error: txtfile not found for $line.";
-	    if [ "$dry_run" = "false" ]; then exit 1; fi;
+	    echo "Warning: txtfile not found for $line.";
+	    if [ "$dry_run" = "false" -a "$skip_missing" = "false" ]; then exit 1; fi;
 	fi
     fi
 
@@ -103,14 +121,16 @@ do
     if [ "$dry_run" = "true" ]; then
 	metadatafile=/dev/null;
     fi
-    if ! (grep --fixed-strings $expr $vrtfile > $metadatafile); then
-	echo "Error: no metadata found for file $corpusdir/$txtfilename.";
-	if [ "$dry_run" = "false" ]; then exit 1; fi;
-    fi
-    if [ "$dry_run" = "false" ]; then
-	if ! (cp $corpusdir/$txtfilename $targetdir/$corpusdir/$txtfilename); then
-	    echo "Error: could not copy file $corpusdir/$txtfilename.";
-	    exit !;
+    if [ "$found" -eq "1" ]; then
+	if ! (grep --fixed-strings $expr $vrtfile > $metadatafile); then
+	    echo "Error: no metadata found for file $corpusdir/$txtfilename.";
+	    if [ "$dry_run" = "false" ]; then exit 1; fi;
+	fi
+	if [ "$dry_run" = "false" ]; then
+	    if ! (cp $corpusdir/$txtfilename $targetdir/$corpusdir/$txtfilename); then
+		echo "Error: could not copy file $corpusdir/$txtfilename.";
+		exit 1;
+	    fi
 	fi
     fi
     # start=`grep --line-number $expr $vrtfile | cut -f1 -d':'`;
