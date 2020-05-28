@@ -35,7 +35,7 @@ def test_002a(tmp_path):
                  stderr = PIPE)
     out, err = proc.communicate(timeout = 3)
     assert out
-    assert not err
+    assert b'billing' in err
     assert proc.returncode == 0
     assert b'#SBATCH --job-name=game' in out
     assert b'#SBATCH --out=gamelog/%A-%a-game.out' in out
@@ -55,7 +55,7 @@ def test_002b(tmp_path):
                  stderr = PIPE)
     out, err = proc.communicate(timeout = 3)
     assert out
-    assert not err
+    assert b'billing' in err
     assert proc.returncode == 0
     assert b'#SBATCH --job-name=regret' in out
     assert b'#SBATCH --partition=test' in out
@@ -73,7 +73,7 @@ def test_003a(tmp_path):
                  stderr = PIPE)
     out, err = proc.communicate(timeout = 3)
     assert out
-    assert not err
+    assert b'billing' in err
     assert proc.returncode == 0
     assert b'#SBATCH --array=1-1' in out
     assert b'echo nth arg: NA' in out
@@ -86,7 +86,7 @@ def test_003b(tmp_path):
                  stderr = PIPE)
     out, err = proc.communicate(timeout = 3)
     assert out
-    assert not err
+    assert b'billing' in err
     assert proc.returncode == 0
     assert b'#SBATCH --array=1-3' in out
     assert b'echo nth arg:' in out
@@ -100,7 +100,7 @@ def test_003c(tmp_path):
                  stderr = PIPE)
     out, err = proc.communicate(timeout = 3)
     assert out
-    assert not err
+    assert b'billing' in err
     assert proc.returncode == 0
     assert b'#SBATCH --array=1-2' in out
     assert b'echo nth arg:' in out
@@ -114,6 +114,7 @@ def test_003d(tmp_path):
                  stderr = PIPE)
     out, err = proc.communicate(timeout = 3)
     assert not out
+    # now there should be an actual error message in err
     assert err
     assert proc.returncode
 

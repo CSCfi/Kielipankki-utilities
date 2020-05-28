@@ -250,7 +250,7 @@ def gibitype(arg):
         raise ArgumentTypeError('invalid gibibytes: {}'.format(arg))
 
 def checkbill(args):
-    if host == 'taito':
+    if guesshost() == 'taito':
         # Taito does not seem to accept any value for --account
         # but works as usual when --account is not specified.
         print('{}: info: ignoring billing group "{}" in Taito'
@@ -260,10 +260,7 @@ def checkbill(args):
         print('{}: info: billing "{}" project'.format(args.prog, args.bill),
               file = sys.stderr)
     else:
-        print('{}: error: no billing group'.format(args.prog),
-              file = sys.stderr)
-        # TODO raise instead
-        exit(1)
+        raise BadData('{}: error: no billing group'.format(args.prog))
 
 def guesshost():
     if os.path.exists('/appl/soft/ling'):
