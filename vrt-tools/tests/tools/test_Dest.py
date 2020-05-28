@@ -1,5 +1,4 @@
 import os
-import pathlib2 # needs? anyway, that be where tmp_path is
 from subprocess import Popen, PIPE, STDOUT, TimeoutExpired
 
 from tests.tools import fake # sibling library module to provide fake data
