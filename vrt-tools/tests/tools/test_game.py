@@ -130,10 +130,10 @@ def test_004a(tmp_path):
     # from a sinteractive session - and that must be made so that it
     # works)
     assert tmp_path.exists()
-    result = str(tmp_path / 'result.out')
+    result = tmp_path / 'result.out'
     proc = run([ './game', '--test', '-M5',
                  '--log', str(tmp_path / 'log'),
-                 'touch', result ],
+                 'touch', str(result) ],
                env = dict(os.environ,
                           SBATCH_WAIT = 'please'),
                capture_output = True,
