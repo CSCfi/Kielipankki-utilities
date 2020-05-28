@@ -15,7 +15,7 @@ is, other attempts failed, while this attempt worked at least once.
 
 from subprocess import Popen, PIPE, STDOUT, TimeoutExpired
 
-import fake # sibling library module to provide fake data
+from tests.tools import fake # sibling library module to provide fake data
 
 def test_001(tmpdir):
     old = b'word line loop'.split()

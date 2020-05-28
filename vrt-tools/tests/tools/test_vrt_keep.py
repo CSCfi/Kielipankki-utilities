@@ -2,7 +2,7 @@ from subprocess import Popen, PIPE, TimeoutExpired
 
 from libvrt.nameline import makenameline
 
-import fake # sibling library module to provide fake data
+from tests.tools import fake # sibling library module to provide fake data
 
 def test_000(tmpdir):
     proc = Popen([ './vrt-keep', '--help' ],

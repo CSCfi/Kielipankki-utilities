@@ -12,7 +12,7 @@ is expected. (A Python traceback is not expected.)
 from subprocess import Popen, PIPE, TimeoutExpired
 from time import sleep
 
-import fake # sibling library module to provide fake data
+from tests.tools import fake # sibling library module to provide fake data
 
 def test_001(tmpdir):
     old = b'word line loop'.split()
