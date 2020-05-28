@@ -28,6 +28,8 @@ todo
 # Convert output from TNPP into VRT
 
 cat TNPPFILE | ./conllu-to-vrt.pl > VRTFILE
+vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' VRTFILE
+vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos VRTFILE
 
 # Compile the VRT files for korp
 
