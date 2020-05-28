@@ -54,13 +54,13 @@ do
     fi;
 done
 
-if [ -d "$targetdir" -a "$dry_run" = "false" ]; then
-    echo "Error: TARGETDIR $targetdir exists.";
-    exit 1;
-fi
 if [ "$dry_run" = "false" ]; then
-    mkdir $targetdir;
-    mkdir $targetdir/$corpusdir;
+    if ! [ -d "$targetdir" ]; then
+	mkdir $targetdir;
+    fi
+    if ! [ -d "$targetdir/$corpusdir" ]; then
+	mkdir $targetdir/$corpusdir;
+    fi
 fi
 
 while read line
