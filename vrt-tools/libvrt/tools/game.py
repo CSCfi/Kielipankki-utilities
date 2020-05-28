@@ -11,11 +11,12 @@ from subprocess import run
 import os, grp, sys
 
 from libvrt.bad import BadData
-from libvrt.gameargs import parsearguments
+from libvrt.gameargs import parsearguments, checkbill
 from libvrt.slurmjob import jobscript
 
 def submit(args):
     try:
+        checkbill(args)
         script = jobscript(args)
         proc = run([ 'cat' if args.cat else 'sbatch' ],
                    input = script.encode('UTF-8'),
