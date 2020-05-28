@@ -9,8 +9,9 @@ E-thesis_vaitokset_TXT_2016-10-17.zip under directory
 # Then copy and rename files from the source packages:
 
 ./copy-and-rename-files.sh COPIED
+for dir in COPIED/*; do mv $dir . ; done
 
-# Then for each CORPUSDIR in COPIED/*:
+# Then for each CORPUSDIR:
 
 ./get-text-and-metadata.sh CORPUSDIR TSVFILE VRTFILE TARGETDIR
   --ignore-language --skip-missing
@@ -26,7 +27,7 @@ todo
 
 # Convert output from TNPP into VRT
 
-todo
+cat TNPPFILE | ./conllu-to-vrt.pl > VRTFILE
 
 # Compile the VRT files for korp
 
