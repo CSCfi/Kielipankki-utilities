@@ -7,7 +7,7 @@
 #
 # This is the new game now and subsumes array jobs.
 
-from subprocess import Popen, PIPE
+from subprocess import run
 import os, grp, sys
 
 from libvrt.bad import BadData
@@ -17,9 +17,9 @@ from libvrt.slurmjob import jobscript
 def submit(args):
     try:
         script = jobscript(args)
-        with Popen([ 'cat' if args.cat else 'sbatch'],
-                   stdin = PIPE) as proc:
-            proc.stdin.write(script.encode('UTF-8'))
+        proc = run([ 'cat' if args.cat else 'sbatch' ],
+                   input = script.encode('UTF-8'),
+                   timeout = 20)
     except BadData as exn:
         print('{}:'.format(args.prog), exn,
               file = sys.stderr)
