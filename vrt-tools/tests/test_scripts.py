@@ -14,7 +14,7 @@ import os.path
 
 import pytest
 
-from scripttestlib import collect_testcases, check_program_run
+from tests.scripttestlib import collect_testcases, check_program_run
 
 
 _filedir = os.path.dirname(os.path.abspath(__file__))

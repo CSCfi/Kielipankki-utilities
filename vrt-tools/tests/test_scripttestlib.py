@@ -16,8 +16,8 @@ from copy import deepcopy
 import pytest
 import yaml
 
-from scripttestlib import (collect_testcases, check_program_run,
-                           expand_testcases, dict_deep_update)
+from tests.scripttestlib import (collect_testcases, check_program_run,
+                                 expand_testcases, dict_deep_update)
 
 
 # TODO: Test more scripttestlib features, also failing tests.
