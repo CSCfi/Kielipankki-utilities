@@ -9,7 +9,18 @@
 # have --test (to submit to the test partition). Having both is, of
 # course, all right.
 
-# Tests with --test wait for ./game, ./game waits for sbatch.
+# Tests with --test wait for ./game, ./game waits for sbatch. In
+# tests, SBATCH_WAIT=1 *or any non-zero number* seems to be effective,
+# and 0 or *any non-number* not. The document where one learned about
+# SBATCH_WAIT does not say anything about what *value* works.
+
+# Finally, so that the actual jobs see the tmp_path directory at all:
+#
+# $ pytest --basetemp=./whatever
+#
+# Because the job runs in a different computer, as it were. It dies
+# without a trace when it does not have the directory for its log
+# files, let alone the result file.
 
 import os
 from subprocess import run, Popen, PIPE, TimeoutExpired
@@ -120,22 +131,13 @@ def test_003d(tmp_path):
 
 @have_sbatch
 def test_004a(tmp_path):
-    # TODO work out how to make tmp_path so that it exists also to the
-    # computer that actually runs the submitted job, and one more
-    # thing! Log directory also needs to be in a temporary location!
-    # Hm, job will die silently if it cannot access log directory.
-    # WHERE DOES ONE TEMP?
-    #
-    # (BACKGROUND: could not touch the result file in a job submitted
-    # from a sinteractive session - and that must be made so that it
-    # works)
     assert tmp_path.exists()
     result = tmp_path / 'result.out'
     proc = run([ './game', '--test', '-M5',
                  '--log', str(tmp_path / 'log'),
                  'touch', str(result) ],
                env = dict(os.environ,
-                          SBATCH_WAIT = 'please'),
+                          SBATCH_WAIT = '1'),
                capture_output = True,
                timeout = 30)
     assert proc.returncode == 0
