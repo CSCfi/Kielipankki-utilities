@@ -53,7 +53,6 @@ def test_002a(tmp_path):
     assert b'#SBATCH --error=gamelog/%A-%a-game.err' in out
     assert b'#SBATCH --nodes=1' in out
     assert b'#SBATCH --array=1-1' in out
-    assert b'echo nth arg: NA' in out
 
 def test_002b(tmp_path):
     proc = Popen([ './game', '--cat',
@@ -74,7 +73,6 @@ def test_002b(tmp_path):
     assert b'#SBATCH --error=log/test/%A-%a-regret.err' in out
     assert b'#SBATCH --nodes=1' in out
     assert b'#SBATCH --array=1-1' in out
-    assert b'echo nth arg: NA' in out
 
 def test_003a(tmp_path):
     proc = Popen([ './game', '--cat',
@@ -87,7 +85,6 @@ def test_003a(tmp_path):
     assert b'billing' in err
     assert proc.returncode == 0
     assert b'#SBATCH --array=1-1' in out
-    assert b'echo nth arg: NA' in out
 
 def test_003b(tmp_path):
     proc = Popen([ './game', '--cat',
@@ -100,8 +97,6 @@ def test_003b(tmp_path):
     assert b'billing' in err
     assert proc.returncode == 0
     assert b'#SBATCH --array=1-3' in out
-    assert b'echo nth arg:' in out
-    assert b'echo nth arg: NA' not in out
 
 def test_003c(tmp_path):
     proc = Popen([ './game', '--cat',
@@ -114,8 +109,6 @@ def test_003c(tmp_path):
     assert b'billing' in err
     assert proc.returncode == 0
     assert b'#SBATCH --array=1-2' in out
-    assert b'echo nth arg:' in out
-    assert b'echo nth arg: NA' not in out
 
 def test_003d(tmp_path):
     proc = Popen([ './game', '--cat',
