@@ -143,8 +143,8 @@ def test_004a(tmp_path):
     assert proc.returncode == 0
     assert b'Submitted batch job' in proc.stdout
     assert b'billing' in proc.stderr
-    assert len(logpath.glob('*-*-game.err')) == 1
-    assert len(logpath.glob('*-*-game.out')) == 1
+    assert len(tuple(logpath.glob('*-*-game.err'))) == 1
+    assert len(tuple(logpath.glob('*-*-game.out'))) == 1
     assert result0.exists()
 
 @have_sbatch
@@ -162,22 +162,21 @@ def test_004b(tmp_path):
     assert proc.returncode == 0
     assert b'Submitted batch job' in proc.stdout
     assert b'billing' in proc.stderr
-    assert len(logpath.glob('*-*-game.err')) == 1
-    assert len(logpath.glob('*-*-game.out')) == 1
+    assert len(tuple(logpath.glob('*-*-game.err'))) == 1
+    assert len(tuple(logpath.glob('*-*-game.out'))) == 1
     assert result1.exists()
 
 @have_sbatch
 def test_004c(tmp_path):
     logpath = tmp_path / 'log'
+    # test partition has a 2-node limit
     result1 = tmp_path / 'result1.out'
     result2 = tmp_path / 'result2.out'
-    result3 = tmp_path / 'result3.out'
     proc = run([ './game', '--test', '-M5',
                  '--log', str(logpath),
                  'touch', '//',
                  str(result1),
-                 str(result2),
-                 str(result3) ],
+                 str(result2) ],
                env = dict(os.environ,
                           SBATCH_WAIT = '1'),
                capture_output = True,
@@ -185,8 +184,7 @@ def test_004c(tmp_path):
     assert proc.returncode == 0
     assert b'Submitted batch job' in proc.stdout
     assert b'billing' in proc.stderr
-    assert len(logpath.glob('*-*-game.err')) == 3
-    assert len(logpath.glob('*-*-game.out')) == 3
+    assert len(tuple(logpath.glob('*-*-game.err'))) == 2
+    assert len(tuple(logpath.glob('*-*-game.out'))) == 2
     assert result1.exists()
     assert result2.exists()
-    assert result3.exists()
