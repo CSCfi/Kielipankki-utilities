@@ -24,7 +24,7 @@ def submit(args):
         script = jobscript(args)
         proc = run([ 'cat' if args.cat else 'sbatch' ],
                    input = script.encode('UTF-8'),
-                   timeout = 20)
+                   timeout = 60)
     except BadData as exn:
         print('{}:'.format(args.prog), exn,
               file = sys.stderr)
