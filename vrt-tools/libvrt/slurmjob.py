@@ -189,7 +189,7 @@ date "+%F %T FINISH IN $time WITH STATUS $status"
                       last = len(tailargs) or 1,
                       workdir = quote(os.getcwd()),
                       logcommand = quote(logcommand),
-                      ntharg = ( '"${{args[$SLURM_ARRAY_TASK_ID]}}"'
+                      ntharg = ( '"${args[$SLURM_ARRAY_TASK_ID]}"'
                                  if tailargs else 'NA' ),
                       kieli = moduleloader(args),
                       whetherkieli = args.kieli,
