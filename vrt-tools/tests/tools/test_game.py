@@ -173,7 +173,7 @@ def test_004c(tmp_path):
                env = dict(os.environ,
                           SBATCH_WAIT = '1'),
                capture_output = True,
-               timeout = 30)
+               timeout = 60)
     assert proc.returncode == 0
     assert b'Submitted batch job' in proc.stdout
     assert b'billing' in proc.stderr
