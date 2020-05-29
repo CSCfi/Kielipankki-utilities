@@ -90,7 +90,6 @@ def arraylines(tailargs):
 def jobscript(args):
 
     # If not really an array job:
-    # - 'echo nth arg:' line is removed after filling;
     # - "args" contains an unused placeholder '(none)'
     #
     # If on taito:
@@ -114,9 +113,15 @@ args=(:
 {args}
 )
 
+infile="${{args[$SLURM_ARRAY_TASK_ID]}}"
+outfile={outfile}
+outstem="${{infile##*/}}"
+outstem="${{outstem%%.*}}"
+outfile="${{outfile//<>/$outstem}}"
+
 echo command: {logcommand}
-echo nth arg: {ntharg}
-echo outfile: {outfile}
+echo nth arg: "$infile"
+echo outfile: {outinfo}
 echo workdir: {workdir}
 echo partition: {partition}
 echo nodes: {nodes}
@@ -129,6 +134,7 @@ echo
 date "+%F %T START"
 
 {kieli}
+{mktemp}
 {command}
 
 status=$?
@@ -139,18 +145,21 @@ printf -v time %d:%02d:%02d $((T/3600)) $((T%3600/60)) $((T%60))
 date "+%F %T FINISH IN $time WITH STATUS $status"
 '''
 
-    logdir, outfile, tempfile = setup(args)
+    logdir, outfile = setup(args)
+
+    mktemp = (
+        ''
+        if outfile is None else
+        ( 'mkdir --parents "${{outfile%/*}}"\n'
+          'tmpfile=$(mktemp "$outfile.XXXXXX.tmp")' )
+    )
 
     finish = (
-        # also no outfile, or accept outfile as is
         ''
-        if tempfile is None else
-        # on success status, move output to outfile;
-        # on error status, leave output in tempfile
-        (( 'test $status -eq 0 &&\n'
-           'mv {temp} {out}' )
-         .format(temp = quote(tempfile),
-                 out = quote(outfile)))
+        if outfile is None else
+        'mv "$tmpfile" "$outfile"'
+        if args.accept else
+        'test $status -eq 0 && mv "$tmpfile" "$outfile"'
     )
 
     headargs, tailargs = separate(args)
@@ -159,14 +168,12 @@ date "+%F %T FINISH IN $time WITH STATUS $status"
 
     command = ' '.join(chain([quote(args.command)],
                              map(quote, headargs),
-                             ( [ '"${args[$SLURM_ARRAY_TASK_ID]}"' ]
+                             ( [ '"$infile"' ]
                                if tailargs else
                                [] ),
                              ( []
                                if outfile is None else
-                               ['>', quote(outfile)]
-                               if tempfile is None else
-                               ['>', quote(tempfile)] )))
+                               ['> "$tmpfile"' ] )))
 
     logcommand = ' '.join(chain([quote(args.command)],
                                 map(quote, headargs),
@@ -189,11 +196,11 @@ date "+%F %T FINISH IN $time WITH STATUS $status"
                       last = len(tailargs) or 1,
                       workdir = quote(os.getcwd()),
                       logcommand = quote(logcommand),
-                      ntharg = ( '"${args[$SLURM_ARRAY_TASK_ID]}"'
-                                 if tailargs else 'NA' ),
                       kieli = moduleloader(args),
                       whetherkieli = args.kieli,
                       outfile = quote(outfile or '(stdout)'),
+                      outinfo = quote(args.out or '(stdout)'),
+                      mktemp = mktemp,
                       command = command,
                       args = ''.join(arraylines(tailargs)),
                       finish = finish)

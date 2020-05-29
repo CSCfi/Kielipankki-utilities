@@ -55,25 +55,23 @@ def parsearguments(argv):
     parser.add_argument('--job', default = 'game', metavar = 'name',
                         help = '''a short name [game] for the job''')
 
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--out', '-o', metavar = 'file',
-                       help = '''
+    parser.add_argument('--out', '-o', metavar = 'file',
+                        help = '''
 
-                       ((TODO needs redesigned for array job!))
-                       standard output from command on zero exit
-                       status; on non-zero status leave standard
-                       output in a sibling temporary file named
-                       file.<random>
-
-                       ''')
-    group.add_argument('--accept', '-a', metavar = 'file',
-                       help = '''
-
-                       ((TODO see --out))
-                       standard output from command regardless of exit
-                       status
+                       standard output from the command on zero exit
+                       status; replace any "{}" in the pathname with
+                       the actual stem of the input file; on non-zero
+                       status, without --accept leave standard output
+                       in a sibling file with suffix ".<random>.tmp"
 
                        ''')
+    parser.add_argument('--accept', '-a', action = 'store_true',
+                        help = '''
+
+                        (with --out) accept standard output from
+                        command regardless of exit status
+
+                        ''')
 
     # time group - either specify hours or specify minutes (default one
     # hour is probably good for the purpose)
