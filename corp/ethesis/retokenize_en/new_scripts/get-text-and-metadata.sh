@@ -103,7 +103,7 @@ do
 	    fi
 	    if [ "$found" -eq "1" ]; then
 		txtfilename=`ls $corpusdir/$txtfilename_ | cut -f2 -d'/'`;
-		echo "Warning: txtfile found, but language is not English: $txtfilename";
+		echo "Warning: txtfile found, but language is not marked as English: $corpusdir/$txtfilename";
 		if [ "$dry_run" = "false" -a "$ignore_language" = "false" ]; then exit 1; fi;
 	    else
 		echo "Warning: txtfile not found for $line.";
@@ -131,6 +131,14 @@ do
 		echo "Error: could not copy file $corpusdir/$txtfilename.";
 		exit 1;
 	    fi
+	fi
+	# simple language detection
+	cat $corpusdir/$txtfilename | ./fix-special-characters.pl | tr ' ' '\n' > tmp;
+	fi=`cat tmp | egrep -c '^(että|ja|ei)$'`;
+	en=`cat tmp | egrep -c '^(that|and|is|not)$'`;
+	if [ "$fi" -gt "$en" ]; then
+	    echo "Warning: txtfile seems to be Finnish: $corpusdir/$txtfilename";
+	    if [ "$dry_run" = "false" -a "$ignore_language" = "false" ]; then exit 1; fi;
 	fi
     fi
     # start=`grep --line-number $expr $vrtfile | cut -f1 -d':'`;
