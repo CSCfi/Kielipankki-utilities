@@ -1,6 +1,6 @@
 import os
-from tempfile import mkstemp
 
+from libvrt.bad import BadData
 
 def simplepath(path):
     '''Normalize path as relative to current directory if under the
@@ -18,7 +18,6 @@ def ensuredir(path):
     particular can write in the directory.
 
     '''
-    path = simplepath(path)
     try:
         os.makedirs(path, exist_ok = True)
     except OSError as exn:
@@ -27,43 +26,36 @@ def ensuredir(path):
         if os.path.isdir(path): return
         raise exn
 
-def ensuretempfile(outdir, outfile):
-    handle, tmppath = mkstemp(prefix = outfile + '.', dir = outdir)
-    os.close(handle)
-    return tmppath
-
 def setup(args):
-    '''Make sure the relevant directories exist. Return suitable pathnames
-    for the log dir, outfile (or None), and tempfile (or None). If
-    there is to be a tempfile, create the tempfile in advance to claim
-    the name. Except with the --cat option only output pathnames (a
-    placeholder name for a tempfile) without creating any filesystem
-    entries.
+    '''Make sure the log directory exists. Return suitable pathnames for
+    the log directory and the outfile (or None).
+
+    Except with the --cat option only output pathnames without
+    creating any filesystem entries. TODO reconsider
 
     '''
 
-    args.cat or ensuredir(args.log)
+    logpath = simplepath(args.log)
+    args.cat or ensuredir(logpath)
 
-    if args.out or args.accept:
-        outfile = simplepath(args.out or args.accept)
-        head, tail = os.path.split(outfile)
-        if not tail:
-            print(args.prog + ':gamarray: not a filename: {}'
-                  .format(args.out or args.accept),
-                  file = sys.stderr)
-            exit(1)
-    else:
-        outfile = None
+    if args.out is None:
+        return logpath, None
+    
+    outfile = simplepath(args.out)
+    if '<' in outfile or '>' in outfile:
+        raise BadData('cannot have "<" or ">" in outfile: {}'
+                      .format(outfile))
 
-    if args.out and args.cat:
-        # no good way out
-        tempfile = os.path.join(head, tail + '.[random]')
-    elif args.out:
-        tempfile = ensuretempfile(head, tail)
-    elif args.accept:
-        tempfile = None
-    else:
-        tempfile = None
+    head, tail = os.path.split(outfile)
+    if not tail:
+        raise BadData('no basename part for outfile: {}'
+                      .format(args.out))
 
-    return simplepath(args.log), outfile, tempfile
+    # ensure a "/" for "${outfile%/*}" in shell;
+    # do not use any smart high-level operation
+    # that might know to omit that './'
+    if '/' not in outfile: outfile = './' + outfile
+
+    # for "${outfile/<>/$stem}" in shell
+    return logpath, outfile.replace('{}', '<>')
 
