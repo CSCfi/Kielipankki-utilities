@@ -131,11 +131,11 @@ def test_003d(tmp_path):
 
 @have_sbatch
 def test_004a(tmp_path):
-    assert tmp_path.exists()
-    result = tmp_path / 'result.out'
+    logpath = tmp_path / 'log'
+    result0 = tmp_path / 'result0.out'
     proc = run([ './game', '--test', '-M5',
-                 '--log', str(tmp_path / 'log'),
-                 'touch', str(result) ],
+                 '--log', str(logpath),
+                 'touch', str(result0) ],
                env = dict(os.environ,
                           SBATCH_WAIT = '1'),
                capture_output = True,
@@ -143,4 +143,50 @@ def test_004a(tmp_path):
     assert proc.returncode == 0
     assert b'Submitted batch job' in proc.stdout
     assert b'billing' in proc.stderr
-    assert result.exists()
+    assert len(logpath.glob('*-*-game.err')) == 1
+    assert len(logpath.glob('*-*-game.out')) == 1
+    assert result0.exists()
+
+@have_sbatch
+def test_004b(tmp_path):
+    logpath = tmp_path / 'log'
+    result1 = tmp_path / 'result1.out'
+    proc = run([ './game', '--test', '-M5',
+                 '--log', str(logpath),
+                 'touch', '//',
+                 str(result1) ],
+               env = dict(os.environ,
+                          SBATCH_WAIT = '1'),
+               capture_output = True,
+               timeout = 30)
+    assert proc.returncode == 0
+    assert b'Submitted batch job' in proc.stdout
+    assert b'billing' in proc.stderr
+    assert len(logpath.glob('*-*-game.err')) == 1
+    assert len(logpath.glob('*-*-game.out')) == 1
+    assert result1.exists()
+
+@have_sbatch
+def test_004c(tmp_path):
+    logpath = tmp_path / 'log'
+    result1 = tmp_path / 'result1.out'
+    result2 = tmp_path / 'result2.out'
+    result3 = tmp_path / 'result3.out'
+    proc = run([ './game', '--test', '-M5',
+                 '--log', str(logpath),
+                 'touch', '//',
+                 str(result1),
+                 str(result2),
+                 str(result3) ],
+               env = dict(os.environ,
+                          SBATCH_WAIT = '1'),
+               capture_output = True,
+               timeout = 30)
+    assert proc.returncode == 0
+    assert b'Submitted batch job' in proc.stdout
+    assert b'billing' in proc.stderr
+    assert len(logpath.glob('*-*-game.err')) == 3
+    assert len(logpath.glob('*-*-game.out')) == 3
+    assert result1.exists()
+    assert result2.exists()
+    assert result3.exists()
