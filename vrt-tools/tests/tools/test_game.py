@@ -201,6 +201,7 @@ def test_005a(tmp_path):
     # sub/data1.txt contains 'yksi' => grep status 0
     # data2.txt does not contain it => grep status 1
     # - without --accept data2.txt is left in *.tmp
+    # - output pattern {}.out had no path
 
     (tmp_path / 'sub').mkdir()
     ((tmp_path / 'sub' / 'data1.txt')
@@ -231,3 +232,83 @@ def test_005a(tmp_path):
     assert (tmp_path / 'data1.out').exists()
     assert tmp_path.glob('data2.out.*.tmp')
     assert not (tmp_path / 'data2.out').exists()
+
+@have_sbatch
+def test_005b(tmp_path):
+    logpath = tmp_path / 'log'
+    # test partition has a 2-node limit
+
+    # sub/data1.txt contains 'yksi' => grep status 0
+    # data2.txt does not contain it => grep status 1
+    # - with --accept, produce out/data2.txt anyway
+    # - output pattern out/{}.out has constant path
+
+    (tmp_path / 'sub').mkdir()
+    ((tmp_path / 'sub' / 'data1.txt')
+     .write_bytes( b'kolme\n'
+                   b'yksi\n' ))
+    ((tmp_path / 'data2.txt')
+     .write_bytes( b'kuusi\n'
+                   b'kaksi\n'
+                   b'kahdeksan\n' ))
+    proc = run([ str(tmp_path.cwd() / 'game'),
+                 '--test', '-M5',
+                 '--log', 'log',
+                 '--out', 'out/{}.out',
+                 '--accept',
+                 'grep', 'yksi', '//',
+                 'sub/data1.txt',
+                 'data2.txt' ],
+               cwd = str(tmp_path),
+               env = dict(os.environ,
+                          SBATCH_WAIT = '1'),
+               capture_output = True,
+               timeout = 60)
+
+    assert proc.returncode == 0
+    assert b'Submitted batch job' in proc.stdout
+    assert b'billing' in proc.stderr
+    assert len(tuple(logpath.glob('*-*-game.err'))) == 2
+    assert len(tuple(logpath.glob('*-*-game.out'))) == 2
+    assert (tmp_path / 'out' / 'data1.out').exists()
+    assert (tmp_path / 'out' / 'data2.out').exists()
+
+@have_sbatch
+def test_005c(tmp_path):
+    logpath = tmp_path / 'log'
+    # test partition has a 2-node limit
+
+    # sub/data1.txt contains 'yksi' => grep status 0
+    # data2.txt does not contain it => grep status 1
+    # - with --accept, produce out/data2.txt anyway
+    # - output pattern out-{}/{}.out has pattern path
+
+    (tmp_path / 'sub').mkdir()
+    ((tmp_path / 'sub' / 'data1.txt')
+     .write_bytes( b'kolme\n'
+                   b'yksi\n' ))
+    ((tmp_path / 'data2.txt')
+     .write_bytes( b'kuusi\n'
+                   b'kaksi\n'
+                   b'kahdeksan\n' ))
+    proc = run([ str(tmp_path.cwd() / 'game'),
+                 '--test', '-M5',
+                 '--log', 'log',
+                 '--out', 'out-{}/{}.out',
+                 '--accept',
+                 'grep', 'yksi', '//',
+                 'sub/data1.txt',
+                 'data2.txt' ],
+               cwd = str(tmp_path),
+               env = dict(os.environ,
+                          SBATCH_WAIT = '1'),
+               capture_output = True,
+               timeout = 60)
+
+    assert proc.returncode == 0
+    assert b'Submitted batch job' in proc.stdout
+    assert b'billing' in proc.stderr
+    assert len(tuple(logpath.glob('*-*-game.err'))) == 2
+    assert len(tuple(logpath.glob('*-*-game.out'))) == 2
+    assert (tmp_path / 'out-data1' / 'data1.out').exists()
+    assert (tmp_path / 'out-data2' / 'data2.out').exists()
