@@ -156,7 +156,7 @@ def test_004b(tmp_path):
                  '--log', 'log',
                  'touch', '//',
                  'result1.out' ],
-               cwd = str(tmp_path.cwd()),
+               cwd = str(tmp_path),
                env = dict(os.environ,
                           SBATCH_WAIT = '1'),
                capture_output = True,
