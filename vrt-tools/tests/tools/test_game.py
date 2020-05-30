@@ -22,6 +22,10 @@
 # without a trace when it does not have the directory for its log
 # files, let alone the result file.
 
+# Post-finally, run (some) tests *in* the tmp_path directory! Refer to
+# ./game as tmp_path.cwd() / 'game' with the subprocess cwd set to
+# tmp_path. (Actually Path.cwd() but tmp_path serves as a handle.)
+
 import os
 from subprocess import run, Popen, PIPE, TimeoutExpired
 
@@ -29,7 +33,8 @@ from subprocess import run, Popen, PIPE, TimeoutExpired
 from tests.tools.skippers import have_sbatch
 
 def test_001(tmp_path):
-    proc = Popen([ './game', '--help' ],
+    proc = Popen([ str(tmp_path.cwd() / 'game'),
+                   '--help' ],
                  stdin = None,
                  stdout = PIPE,
                  stderr = PIPE)
@@ -126,9 +131,11 @@ def test_003d(tmp_path):
 def test_004a(tmp_path):
     logpath = tmp_path / 'log'
     result0 = tmp_path / 'result0.out'
-    proc = run([ './game', '--test', '-M5',
-                 '--log', str(logpath),
-                 'touch', str(result0) ],
+    proc = run([ str(tmp_path.cwd() / 'game'),
+                 '--test', '-M5',
+                 '--log', 'log',
+                 'touch', 'result0.out' ],
+               cwd = str(tmp_path),
                env = dict(os.environ,
                           SBATCH_WAIT = '1'),
                capture_output = True,
@@ -144,10 +151,12 @@ def test_004a(tmp_path):
 def test_004b(tmp_path):
     logpath = tmp_path / 'log'
     result1 = tmp_path / 'result1.out'
-    proc = run([ './game', '--test', '-M5',
-                 '--log', str(logpath),
+    proc = run([ str(tmp_path.cwd() / 'game'),
+                 '--test', '-M5',
+                 '--log', 'log',
                  'touch', '//',
-                 str(result1) ],
+                 'result1.out' ],
+               cwd = str(tmp_path.cwd()),
                env = dict(os.environ,
                           SBATCH_WAIT = '1'),
                capture_output = True,
@@ -165,11 +174,13 @@ def test_004c(tmp_path):
     # test partition has a 2-node limit
     result1 = tmp_path / 'result1.out'
     result2 = tmp_path / 'result2.out'
-    proc = run([ './game', '--test', '-M5',
-                 '--log', str(logpath),
+    proc = run([ str(tmp_path.cwd() / 'game'),
+                 '--test', '-M5',
+                 '--log', 'log',
                  'touch', '//',
-                 str(result1),
-                 str(result2) ],
+                 'result1.out',
+                 'result2.out' ],
+               cwd = str(tmp_path),
                env = dict(os.environ,
                           SBATCH_WAIT = '1'),
                capture_output = True,
