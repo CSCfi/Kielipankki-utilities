@@ -202,7 +202,7 @@ def test_005a(tmp_path):
     # data2.txt does not contain it => grep status 1
     # - without --accept data2.txt is left in *.tmp
 
-    tmp_path.mkdir('sub')
+    (tmp_path / 'sub').mkdir()
     ((tmp_path / 'sub' / 'data1.txt')
      .write_bytes( b'kolme\n'
                    b'yksi\n' ))
