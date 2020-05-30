@@ -150,7 +150,7 @@ date "+%F %T FINISH IN $time WITH STATUS $status"
     mktemp = (
         ''
         if outfile is None else
-        ( 'mkdir --parents "${{outfile%/*}}"\n'
+        ( 'mkdir --parents "${outfile%/*}"\n'
           'tmpfile=$(mktemp "$outfile.XXXXXX.tmp")' )
     )
 
