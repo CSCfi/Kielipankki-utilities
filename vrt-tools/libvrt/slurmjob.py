@@ -104,6 +104,7 @@ def jobscript(args):
 #SBATCH --ntasks={cores}
 #SBATCH --time={time}
 #SBATCH --mem={memory}
+#SBATCH --gres=nvme:{scratch}
 #SBATCH --out={out}
 #SBATCH --error={err}
 #SBATCH --chdir={workdir}
@@ -189,6 +190,7 @@ date "+%F %T FINISH IN $time WITH STATUS $status"
                       cores = args.cores,
                       time = args.time,
                       memory = args.memory,
+                      scratch = args.scratch,
                       out = quote(os.path.join(args.log, '%A-%a-{}.out'
                                                .format(args.job))),
                       err = quote(os.path.join(args.log, '%A-%a-{}.err'
@@ -211,5 +213,8 @@ date "+%F %T FINISH IN $time WITH STATUS $status"
         # but works as usual when --account is not specified.
         script = '\n'.join((line for line in script.split('\n')
                             if not line.startswith('#SBATCH --account=')))
+
+    script = '\n'.join((line for line in script.split('\n')
+                        if not line == '#SBATCH --gres=nvme:None'))
 
     return script

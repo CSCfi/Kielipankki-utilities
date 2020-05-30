@@ -99,6 +99,17 @@ def parsearguments(argv):
                        dest = 'memory', type = mebitype,
                        help = 'mebibytes [4096] to reserve')
 
+    parser.add_argument('--scratch', '-S', metavar = 'size',
+                        type = int,
+                        help = '''
+
+                        amount of fast local storage per node, in GB,
+                        max 3600, accessed in jobs through the
+                        environment variable LOCAL_SCRATCH (may be
+                        only allowed/meaningful in Puhti)
+
+                        ''')
+
     parser.add_argument('--cat', action = 'store_true',
                         help = '''
                         write the job description to standard output
@@ -160,6 +171,7 @@ def parsearguments(argv):
                            help = '''
                            run in "large" partition (Puhti)
                            ''')
+
     elif host == 'taito':
         defaults['partition'] = 'serial'
         group.add_argument('--serial', dest = 'partition',
