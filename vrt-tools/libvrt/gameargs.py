@@ -160,16 +160,18 @@ def parsearguments(argv):
                        run in "test" partition
                        ''')
     if host == 'puhti':
-        defaults['partition'] = 'small'
+        defaults['partition'] = 'puhti-default'
         group.add_argument('--small', dest = 'partition',
                            action = 'store_const', const = 'small',
                            help = '''
-                           run in "small" partition (Puhti default)
+                           run in "small" partition (default when
+                           at most 30 tasks)
                            ''')
         group.add_argument('--large', dest = 'partition',
                            action = 'store_const', const = 'large',
                            help = '''
-                           run in "large" partition (Puhti)
+                           run in "large" partition (default when
+                           more than 30 task)
                            ''')
 
     elif host == 'taito':
