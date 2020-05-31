@@ -61,7 +61,7 @@ def separate(args):
         # TODO understand what that means and what is the actual limit
         raise BadData(('way too many array arguments: {}: '
                        'even puhti "large" partition limit is 4000 cores'
-                      .format(len(tailargs)))
+                      .format(len(tailargs))))
 
     return headargs, tailargs
 
