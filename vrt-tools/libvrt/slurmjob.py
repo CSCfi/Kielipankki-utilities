@@ -182,10 +182,16 @@ date "+%F %T FINISH IN $time WITH STATUS $status"
                                   if tailargs else
                                   [] )))
 
+    partition = (
+        ['small', 'large'][len(tailargs) > 30]
+        if args.partition == 'puhti-default'
+        else args.partition
+    )
+
     script = (template
               .format(job = args.job,
                       bill = args.bill,
-                      partition = args.partition,
+                      partition = partition,
                       nodes = '1',
                       cores = args.cores,
                       time = args.time,
