@@ -54,9 +54,13 @@ def separate(args):
     if len(tailargs) == 0:
         raise BadData('at least one array argument must follow //')
 
-    if len(tailargs) > 1000:
+    if len(tailargs) > 4000:
         # https://research.csc.fi/taito-array-jobs
-        raise BadData('too many array arguments: {}: limit is 1000'
+        # https://docs.csc.fi/computing/running/batch-job-partitions/
+        # TODO a task is a core, a task is not a core
+        # TODO understand what that means and what is the actual limit
+        raise BadData(('way too many array arguments: {}: '
+                       'even puhti "large" partition limit is 4000 cores'
                       .format(len(tailargs)))
 
     return headargs, tailargs

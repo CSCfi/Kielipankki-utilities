@@ -37,7 +37,9 @@ def parsearguments(argv):
                         command, optionally followed by '//' followed
                         by a sequence of arguments, each of which is
                         passed to the command as a last argument in an
-                        array job
+                        array job (and partitions have limits - but
+                        does a "task" mean a task, or does a "task"
+                        mean a core, and what is the difference?)
 
                         ''')
     parser.add_argument('--log', default = 'gamelog', metavar = 'dir',
