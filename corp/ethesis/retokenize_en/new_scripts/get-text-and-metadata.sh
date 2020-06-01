@@ -10,7 +10,7 @@
 if [ "$1" = "--help" -o "$1" = "-h" ]; then
     echo """
 get-text-and-metadata.sh CORPUSDIR TSVFILE VRTFILE TARGETDIR
-  [--dry-run|--ignore-language|--skip-missing]
+  [--dry-run|--skip-missing|--min-words N|--min-english-words N]
 
 For each pdfurl and date given in TSVFILE, find the corresponding
 text file (TXTFILE.txt) in directory CORPUSDIR and the line in
@@ -41,7 +41,8 @@ vrtfile=$3;
 targetdir=$4;
 dry_run="false";
 skip_missing="false";
-ignore_language="false";
+min_words="";
+min_english_words="";
 
 for arg in $@;
 do
@@ -49,8 +50,14 @@ do
 	dry_run="true";
     elif [ "$arg" = "--skip-missing" ]; then
 	skip_missing="true";
-    elif [ "$arg" = "--ignore-language" ]; then
-	ignore_language="true";
+    elif [ "$arg" = "--min-words" ]; then
+	min_words="<next>";
+    elif [ "$min_words" = "<next>" ]; then
+	min_words=$arg;
+    elif [ "$arg" = "--min-english-words" ]; then
+	min_english_words="<next>";
+    elif [ "$min_english_words" = "<next>" ]; then
+	min_english_words=$arg;
     fi;
 done
 
@@ -104,7 +111,6 @@ do
 	    if [ "$found" -eq "1" ]; then
 		txtfilename=`ls $corpusdir/$txtfilename_ | cut -f2 -d'/'`;
 		echo "Warning: txtfile found, but language is not marked as English: $corpusdir/$txtfilename";
-		if [ "$dry_run" = "false" -a "$ignore_language" = "false" ]; then exit 1; fi;
 	    else
 		echo "Warning: txtfile not found for $line.";
 		if [ "$dry_run" = "false" -a "$skip_missing" = "false" ]; then exit 1; fi;
@@ -132,13 +138,23 @@ do
 		exit 1;
 	    fi
 	fi
-	# simple language detection
+
+	# Simple length and language detection
+	warning_issued="false";
 	cat $corpusdir/$txtfilename | ./fix-special-characters.pl | tr ' ' '\n' > tmp;
-	fi=`cat tmp | egrep -c '^(että|ja|ei)$'`;
-	en=`cat tmp | egrep -c '^(that|and|is|not)$'`;
-	if [ "$fi" -gt "$en" ]; then
-	    echo "Warning: txtfile seems to be Finnish: $corpusdir/$txtfilename";
-	    if [ "$dry_run" = "false" -a "$ignore_language" = "false" ]; then exit 1; fi;
+	if [ "$min_words" != "" ]; then
+	    words=`cat tmp | wc -w`;
+	    if [ "$words" -lt "$min_words" ]; then
+		echo "Warning: too few words in txtfile: $corpusdir/$txtfilename: $words";
+		warning_issued="true";
+	    fi
+	fi
+	# If there are too few words, there is no use in checking the number of English words.
+	if [ "$warning_issued" = "false" -a "$min_english_words" != "" ]; then
+	    english_words=`cat tmp | egrep -c '^(that|and|is|not)$'`;
+	    if [ "$english_words" -lt "$min_english_words" ]; then
+		echo "Warning: too few English words in txtfile: $corpusdir/$txtfilename: $english_words";
+	    fi
 	fi
     fi
     # start=`grep --line-number $expr $vrtfile | cut -f1 -d':'`;
