@@ -242,7 +242,7 @@ def hourstype(arg):
     try:
         hours = int(arg)
         if hours < 1: raise ValueError('invalid hours')
-        time = '{d}:00:00'.format(hours)
+        time = '{:d}:00:00'.format(hours)
         return time
     except ValueError:
         raise ArgumentTypeError('invalid hours: {}'.format(arg))
