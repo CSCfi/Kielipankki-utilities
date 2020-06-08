@@ -48,6 +48,10 @@ foreach my $line ( <STDIN> ) {
 	$line =~ s/>/&gt;/g;
 	$line =~ s/</&lt;/g;
     }
+    else
+    {
+	$line =~ s/'/&apos;/g;
+    }
     unless ($line =~ /^\n$/)
     {
 	print $line;
