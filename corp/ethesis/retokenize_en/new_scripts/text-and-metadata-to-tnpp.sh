@@ -41,7 +41,7 @@ do
     echo "###C: " | tr -d '\n' >> $targetfile;
     cat $metadatafile | ./fix-special-characters.pl >> $targetfile;
     echo "" >> $targetfile;
-    cat $sourcefile | ./fix-special-characters.pl >> $targetfile;
+    cat $sourcefile | ./fix-special-characters.pl | perl -pe 's/<BR>/\n/g;' | perl -pe 's/ +/ /g;' >> $targetfile;
     echo "" >> $targetfile;
     echo "" >> $targetfile;
     echo "###C: </text>" >> $targetfile;
