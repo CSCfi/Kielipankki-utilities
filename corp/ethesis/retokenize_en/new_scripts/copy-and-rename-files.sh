@@ -70,6 +70,12 @@ mv valtiotiede ethesis_en_phd_valt;
 # UnicodeDecodeError: 'ascii' codec can't decode byte 0xd0 in position 47: ordinal not in range(128)
 mv ethesis_en_phd_mm/en_a_hammaslДДkmmoniae.txt ethesis_en_phd_mm/en_a_hammaslaakmmoniae.txt;
 
+# rename some files that actually contain English
+mv ethesis_en_ma_sci/fi_e_2011-05-31xactbou.txt ethesis_en_ma_sci/en_e_2011-05-31xactbou.txt
+mv ethesis_en_ma_sci/fi_e_2011-06-08ffectof.txt ethesis_en_ma_sci/en_e_2011-06-08ffectof.txt # Finnish abstract
+# mv ethesis_en_phd_hum/other_s_2006-12-02ubstrat.txt ethesis_en_phd_hum/en_s_2006-12-02ubstrat.txt ?
+mv ethesis_en_ma_valt/fi_r_2013-06-10esident.txt ethesis_en_ma_valt/en_r_2013-06-10esident.txt
+
 # Remove " (2)" from filenames in */*.txt and append ".orig"
 # to the filenames without " (2)":
 # "FILENAME.txt" -> "FILENAME.txt.orig"
