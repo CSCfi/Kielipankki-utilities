@@ -111,6 +111,7 @@ do
 	    if [ "$found" -eq "1" ]; then
 		txtfilename=`ls $corpusdir/$txtfilename_ | cut -f2 -d'/'`;
 		echo "Warning: txtfile found, but language is not marked as English: $corpusdir/$txtfilename";
+		found=0;
 	    else
 		echo "Warning: txtfile not found for $line.";
 		if [ "$dry_run" = "false" -a "$skip_missing" = "false" ]; then exit 1; fi;
@@ -128,16 +129,6 @@ do
 	metadatafile=/dev/null;
     fi
     if [ "$found" -eq "1" ]; then
-	if ! (grep --fixed-strings $expr $vrtfile > $metadatafile); then
-	    echo "Error: no metadata found for file $corpusdir/$txtfilename.";
-	    if [ "$dry_run" = "false" ]; then exit 1; fi;
-	fi
-	if [ "$dry_run" = "false" ]; then
-	    if ! (cp $corpusdir/$txtfilename $targetdir/$corpusdir/$txtfilename); then
-		echo "Error: could not copy file $corpusdir/$txtfilename.";
-		exit 1;
-	    fi
-	fi
 
 	# Simple length and language detection
 	warning_issued="false";
@@ -151,11 +142,25 @@ do
 	fi
 	# If there are too few words, there is no use in checking the number of English words.
 	if [ "$warning_issued" = "false" -a "$min_english_words" != "" ]; then
-	    english_words=`cat tmp | egrep -c '^(that|and|is|not)$'`;
+	    english_words=`cat tmp | egrep -c '^(that|and|is|not|which|for|by)$'`;
 	    if [ "$english_words" -lt "$min_english_words" ]; then
 		echo "Warning: too few English words in txtfile: $corpusdir/$txtfilename: $english_words";
 	    fi
 	fi
+
+	if [ "$warning_issued" = "false" ]; then
+	    if ! (grep --fixed-strings $expr $vrtfile > $metadatafile); then
+		echo "Error: no metadata found for file $corpusdir/$txtfilename.";
+		if [ "$dry_run" = "false" ]; then exit 1; fi;
+	    fi
+	    if [ "$dry_run" = "false" ]; then
+		if ! (cp $corpusdir/$txtfilename $targetdir/$corpusdir/$txtfilename); then
+		    echo "Error: could not copy file $corpusdir/$txtfilename.";
+		    exit 1;
+		fi
+	    fi
+	fi
+
     fi
     # start=`grep --line-number $expr $vrtfile | cut -f1 -d':'`;
     # lines=`tail -n +$start $vrtfile | egrep -m 1 --line-number '^</text>' | cut -f1 -d':'`;
