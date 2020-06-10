@@ -60,4 +60,6 @@ foreach my $line ( <STDIN> ) {
 
 print "</sentence>\n";
 print "</paragraph>\n";
+# Append </text> to the last <text> that will intentionally miss </text>
+# as TNPP cannot have a comment line at the end of input.
 print "</text>\n";
