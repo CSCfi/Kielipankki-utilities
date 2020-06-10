@@ -12,25 +12,37 @@ E-thesis_vaitokset_TXT_2016-10-17.zip under directory
 for dir in COPIED/*; do mv $dir . ; done
 
 # Then for each CORPUSDIR:
+# todo: missing datefrom, dateto, timefrom and timeto in some metadata
+#       (see missing_year.txt)
+# todo: extra spaces in attribute values in some metadata
 
 ./get-text-and-metadata.sh CORPUSDIR TSVFILE VRTFILE TARGETDIR
-  --ignore-language --skip-missing
+  --skip-missing --min-words 1000 --min-english-words 50
 
 # For each DIR in TARGETDIR/*, combine the text and metadata
-# and split them into files containing up to LIMIT texts each:
+# and split them into files containing up to 50 texts each:
 
-text-and-metadata-to-tnpp.sh DIR LIMIT
+text-and-metadata-to-tnpp.sh DIR 50
 
 # Analyze each file in TARGETDIR/*/TEXT_*.TXT with TNPP
 
-todo
+source venv-parser-neural/bin/activate
+cat TEXTFILE | python3 full_pipeline_stream.py --gpu -1 --conf models_en_ewt/pipelines.yaml parse_plaintext > TNPPFILE
 
 # Convert output from TNPP into VRT
 
 cat TNPPFILE | ./conllu-to-vrt.pl > VRTFILE
 vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' VRTFILE
 vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos VRTFILE
+vrt-validate VRTFILE
 
 # Compile the VRT files for korp
+# For each SUBCORPUS, concatenate the vrt files,
+# skipping the initial comment lines:
+
+echo '<!-- #vrt positional-attributes: word ref lemma pos xpos msd dephead deprel deps misc -->' > SUBCORPUS.vrt
+for subcorpusfile in subcorpusfiles; do tail -n +2 $subcorpusfile >> SUBCORPUS.vrt done;
+
+# Run korp-make for each SUBCORPUS
 
 todo
