@@ -14,11 +14,6 @@ for dir in COPIED/*; do mv $dir . ; done
 # Then for each CORPUSDIR:
 # todo: missing date, datefrom, dateto, timefrom and timeto in some metadata
 #       (see missing_year.txt)
-# todo: extra spaces in attribute values in some metadata
-# todo: empty attribute values should be marked as "_"
-# todo: change lang="en" for metadata that had wrong language marked
-# todo: use either "en" or "eng" as value of attribute lang
-# todo: add attribute corpus_shortname
 
 ./get-text-and-metadata.sh CORPUSDIR TSVFILE VRTFILE TARGETDIR
   --skip-missing --min-words 1000 --min-english-words 50
@@ -40,7 +35,7 @@ vrt-keep -i -n 'word,id,lemma,upos,xpos,feats,head,deprel,deps,misc' VRTFILE
 vrt-rename -i -m id=ref -m head=dephead -m feats=msd -m upos=pos VRTFILE
 vrt-validate VRTFILE
 
-# todo: add word and sentence count for each text
+# todo: add word and sentence count for each text as well as corpus shortname
 
 # Compile the VRT files for korp
 # For each SUBCORPUS, concatenate the vrt files,
