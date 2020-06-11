@@ -149,7 +149,7 @@ do
 	fi
 
 	if [ "$warning_issued" = "false" ]; then
-	    if ! (grep --fixed-strings $expr $vrtfile > $metadatafile); then
+	    if ! (grep --fixed-strings $expr $vrtfile | ./fix-metadata.pl > $metadatafile); then
 		echo "Error: no metadata found for file $corpusdir/$txtfilename.";
 		if [ "$dry_run" = "false" ]; then exit 1; fi;
 	    fi
