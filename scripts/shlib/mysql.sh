@@ -107,9 +107,14 @@ korpdb=korp
 # Korp MySQL database for authorization
 korpdb_auth=korp_auth
 # Unless specified via environment variables, assume that the Korp
-# MySQL database user and password are specified in a MySQL option
-# file
+# MySQL database host, user and password are specified in a MySQL
+# option file
 mysql_opts=
+if [ "x$KORP_MYSQL_HOST" != "x" ]; then
+    mysql_opts="$mysql_opts --host=$KORP_MYSQL_HOST"
+elif [ "x$MYSQL_HOST" != "x" ]; then
+    mysql_opts="$mysql_opts --host=$MYSQL_HOST"
+fi
 if [ "x$KORP_MYSQL_USER" != "x" ]; then
     mysql_opts="$mysql_opts --user=$KORP_MYSQL_USER"
 elif [ "x$MYSQL_USER" != "x" ]; then
