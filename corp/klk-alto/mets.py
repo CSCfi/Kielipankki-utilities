@@ -24,7 +24,7 @@ def get_mets(filename):
         'issue_date'  : get_val('MODS:dateIssued', element, ns),
         'issue_no'    : get_val('MODS:partNumber', element, ns),
         'part_name'   : get_val('MODS:partName', element, ns),
-        'publ_title'  : get_val('MODS:identifier', element, ns),
+        'publ_title'  : get_val('MODS:title', element, ns),
         'publ_id'     : get_val('MODS:identifier', element, ns),
         'language'    : get_val('MODS:languageTerm', element, ns),
         'elec_date'   : get_val('MODS:dateCreated', element, ns),
