@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-import hfst, random, subprocess, re, os
+import random, subprocess, re, os
 from datetime import datetime
 from string import whitespace
 from sys import stderr
