@@ -45,6 +45,9 @@ f|force
 delay-database-import delay_db
     begin importing database data only after all corpus packages have
     been extracted
+n|dry-run
+    only report corpus packages that would be installed, but do not
+    actually install them
 '
 
 usage_footer="Note: The backup copy of a corpus is overwritten by subsequent updates of the
@@ -360,14 +363,19 @@ convert_timedata () {
 }
 
 install_corpus () {
-    local corp corpus_pkg pkgtime pkgsize pkghost
+    local corp corpus_pkg pkgtime pkgsize pkghost install_base_msg
     corp=$1
     corpus_pkg=$2
     pkgtime=$3
     pkgsize=$4
     pkghost=$5
+    install_base_msg="$corp from $(format_package_name_host $corpus_pkg $pkghost) (compressed size $(human_readable_size $pkgsize))"
     echo
-    echo "Installing $corp from $(format_package_name_host $corpus_pkg $pkghost) (compressed size $(human_readable_size $pkgsize))"
+    if [ "x$dry_run" != x ]; then
+	echo "Would install $install_base_msg (dry run)"
+	return
+    fi
+    echo "Installing $install_base_msg"
     if [ "x$backups" != x ]; then
 	backup_corpus $corpus_pkg $pkghost
     fi
@@ -420,17 +428,21 @@ install_corpus_step2 () {
 }
 
 install_corpora () {
-    local pkglistfile corpname pkghost pkgfile pkgtime pkgsize
+    local pkglistfile dry_run_msg corpname pkghost pkgfile pkgtime pkgsize
     pkglistfile=$1
+    dry_run_msg=
+    if [ "x$dry_run" != x ]; then
+	dry_run_msg=" (dry run)"
+    fi
     echo
-    echo Installing Korp corpora:
+    echo "Installing Korp corpora$dry_run_msg:"
     for corp in $corpora_to_install; do
 	echo "  $corp"
     done
     while read corpname pkghost pkgfile pkgtime pkgsize; do
 	install_corpus $corpname "$pkgfile" $pkgtime $pkgsize $pkghost
     done < $pkglistfile
-    if [ "x$delay_db" != x ]; then
+    if [ "x$delay_db" != x ] && [ "x$dry_run" = x ]; then
 	echo
 	echo Installing database files
 	while read corpname pkghost pkgfile pkgtime pkgsize; do
@@ -439,7 +451,7 @@ install_corpora () {
 	done < $pkglistfile
     fi
     echo
-    echo Installation complete
+    echo "Installation complete$dry_run_msg"
 }
 
 
