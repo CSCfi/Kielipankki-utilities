@@ -112,9 +112,6 @@ class DuplicateStructureRemover(InputProcessor):
                      else re.sub(r'@(\w+)', r'attrs.get("\1")',
                                  self._args.attr_cond))
 
-        def is_struct_begin(line):
-            return 
-
         def identify_line(line):
             if line[0] == LESS_THAN:
                 if in_within:
