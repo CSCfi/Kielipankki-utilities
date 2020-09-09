@@ -60,7 +60,8 @@ class DuplicateStructureRemover(InputProcessor):
         # Try to stay safe with the attribute condition to be
         # evaluated by forbidding other Python attribute references
         # than "re." (for accessing regexp functions).
-        if contains_python_attr_refs(args.attr_cond, ignore=['re']):
+        if (args.attr_cond
+                and contains_python_attr_refs(args.attr_cond, ignore=['re'])):
             self.error_exit(
                 'Attribute condition may not contain the Python attribute'
                 ' references "primary.identifier" except for "re." at the'
