@@ -158,7 +158,10 @@ find_corpus_packages () {
 	    pkgname_cond="-name ${pkgspec}_korp_20\*.t?z -o -name ${pkgspec}_korp_20\*.tar.\* -o -name $pkg_prefix$pkgspec.t?z -o -name $pkg_prefix$pkgspec.tar.*"
 	    ;;
     esac
-    ls_cmd="ls -lt --time-style=$timestamp_format --dereference"
+    # Use -v "natural sort of (version) numbers" of GNU ls to use the
+    # latest package by the timestamp in the package name, as the
+    # timestamp of the file may have changed e.g. in copying.
+    ls_cmd="ls -lvr --time-style=$timestamp_format --dereference"
     if [ "x$use_find" = x ]; then
 	cmd="$ls_cmd $pkgdir/$pkgspec $pkgspec 2> /dev/null"
     else
@@ -193,31 +196,55 @@ format_package_name_host () {
     printf "%s\n" $1
 }
 
+get_package_name_date () {
+    # Get package date with the possible running number suffix of up
+    # to 9999
+    local date suffix
+    date=$1
+    # Remove everything up to and including the last underscore
+    date=${date##*_}
+    # Remove extension(s)
+    date=${date%%.*}
+    # Separate suffix
+    suffix=${date#*-}
+    date=${date%-*}
+    printf "%s%04d" "$date" "$suffix"
+}
+
+package_is_not_newer () {
+    [ "$(get_package_name_date $1)" -le "$(get_package_name_date $2)" ]
+}
+
 filter_corpora () {
-    local listfile corpname_prev corp_pkgfile
+    local listfile corpname_prev corp_pkgfile \
+	  corpname pkghost pkgfile timestamp pkgsize installed_pkg \
+	  formatted_pkgname not_newer_msg
     listfile=$1
     corpname_prev=
     corp_pkgfile=
+    # global corpora_to_install
     corpora_to_install=
     # The following cannot be a pipeline because the values of the
     # variables would not be retained.
-    sort -t"	" -s -k1,1 -k4,4r $listfile > $listfile.srt
+    sort -t"	" -s -k1,1 -k3,3Vr $listfile > $listfile.srt
     while read corpname pkghost pkgfile timestamp pkgsize; do
 	if [ "x$corpname" = "x$corpname_prev" ]; then
 	    :
 	    # TODO: Show this only with --verbose
 	    # echo "  $corpname: skipping $pkgfile as older than $corp_pkgfile" >> /dev/stderr
 	else
-	    installed_date=$(grep -E "^[^	]+	$corpname	" $installed_list \
-		| cut -d'	' -f4 \
-		| sort -r \
+	    installed_pkg=$(grep -E "^[^	]+	$corpname	" $installed_list \
+		| cut -d'	' -f3 \
+		| sort -Vr \
 		| head -1)
 	    corpname_prev=$corpname
-	    if expr "$timestamp" "<=" "$installed_date" > /dev/null; then
+	    if package_is_not_newer "$pkgfile" "$installed_pkg"; then
+		formatted_pkgname="$(format_package_name_host $pkgfile $pkghost)"
+		not_newer_msg="not newer than the installed package ($installed_pkg)"
 		if [ "x$force" != x ]; then
-		    echo "  $corpname: installing $(format_package_name_host $pkgfile $pkghost) because of --force, even though not newer than the installed package ($timestamp <= $installed_date)" >> /dev/stderr
+		    echo "  $corpname: installing $formatted_pkgname because of --force, even though $not_newer_msg" >> /dev/stderr
 		else
-		    echo "  $corpname: skipping $(format_package_name_host $pkgfile $pkghost) as not newer than the installed package ($timestamp <= $installed_date)" >> /dev/stderr
+		    echo "  $corpname: skipping $formatted_pkgname as $not_newer_msg" >> /dev/stderr
 		    continue
 		fi
 	    fi
