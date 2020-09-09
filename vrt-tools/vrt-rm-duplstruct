@@ -18,6 +18,7 @@ from enum import Enum
 from itertools import groupby
 
 from scriptutil import InputProcessor, contains_python_attr_refs
+from vrtcommentlib import makebinvrtcomment
 
 
 class DuplicateStructureRemover(InputProcessor):
@@ -145,9 +146,11 @@ class DuplicateStructureRemover(InputProcessor):
 
         def log_duplicate(text):
             if comments:
-                ouf.write(b'<!-- ' + text.encode() + b' -->\n')
+                ouf.write(
+                    makebinvrtcomment(b'omitted-duplicate', text.encode()))
             if verbose:
-                sys.stderr.write(self.argparser.prog + ': ' + text + '\n')
+                sys.stderr.write(
+                    self.argparser.prog + ': Duplicate: ' + text + '\n')
 
         def extract_attrs(struct_line):
             # print(struct_line)
@@ -174,7 +177,7 @@ class DuplicateStructureRemover(InputProcessor):
             if key in structs_info:
                 other_attrs, other_begin, other_end = structs_info[key]
                 log_duplicate(
-                    'DUPLICATE: Omitted structure "{name}" on lines'
+                    'Omitted structure "{name}" on lines'
                     ' {this_begin}...{this_end} (attributes: {this_attrs})'
                     ' with {target_descr} equal to "{name}" on lines '
                     ' {other_begin}...{other_end} (attributes: {other_attrs}).'
