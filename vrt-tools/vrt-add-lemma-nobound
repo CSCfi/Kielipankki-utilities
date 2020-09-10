@@ -46,8 +46,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
     --compound-boundary-marker, --lemma-name, --noboundaries-name and
     --insert-noboundaries-after-name, in which case the first values are used
     for the lemma of the first value for --lemma-name, the second values for
-    the second and so on. If some of the options is specified fewer times than
-    --lemma-name appears, its last values is used for the rest of the lemma
+    the second and so on. If some of the options are specified fewer times than
+    --lemma-name appears, their last values are used for the rest of the lemma
     attributes.
     """
     # Specify default values separately for options that may be specified
