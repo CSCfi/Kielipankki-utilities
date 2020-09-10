@@ -46,6 +46,9 @@ class DuplicateStructureRemover(InputProcessor):
          ' "all" (both attributes and content)',
          dict(choices=['attributes', 'attrs', 'content', 'all'],
               default='content')),
+        ('--ignore-attributes = ATTRLIST -> ignore_attrs',
+         'when comparing the attributes of structures for equality, ignore the'
+         ' values of those listed in ATTRLIST (separated by spaces)'),
         ('--comments',
          'add an XML comment for each omitted duplicate'),
         ('--verbose',
@@ -111,6 +114,11 @@ class DuplicateStructureRemover(InputProcessor):
         attr_cond = (None if self._args.attr_cond is None
                      else re.sub(r'@(\w+)', r'attrs.get("\1")',
                                  self._args.attr_cond))
+        ignore_attrs_list = (self._args.ignore_attrs or '').encode().split()
+        ignore_attrs = set(ignore_attrs_list)
+        if check_attrs and ignore_attrs:
+            target_descr += (' (ignoring '
+                             + (b', '.join(ignore_attrs_list)).decode() + ')')
 
         def identify_line(line):
             if line[0] == LESS_THAN:
@@ -137,9 +145,19 @@ class DuplicateStructureRemover(InputProcessor):
                                 .format(self._args.attr_cond),
                                 e)
 
+        def make_attrlist(attrstr):
+            return [(name, val) for name, _, val
+                    in re.findall(b'(\\w+?)=(["\'])(.*?)\\2', attrstr)]
+
         def make_attrdict(attrstr):
-            return dict((name, val) for name, _, val
-                        in re.findall('(\\w+?)=(["\'])(.*?)\\2', attrstr))
+            return dict(make_attrlist(attrstr))
+
+        def make_attrs_test_value(attrstr):
+            return b'\n'.join(
+                name + b' ' + val
+                for name, val in
+                sorted((name, val) for name, val in make_attrlist(attrstr)
+                       if name not in ignore_attrs))
 
         def log_duplicate(text):
             if comments:
@@ -153,16 +171,21 @@ class DuplicateStructureRemover(InputProcessor):
             # print(struct_line)
             attr_end = struct_line.find(b'>')
             attr_begin = (struct_line.find(b' ') + 1) or attr_end
-            return struct_line[attr_begin:attr_end].decode()
+            return struct_line[attr_begin:attr_end]
 
         def check_if_duplicate(lines):
 
             def calc_key(lines, attrs):
-                # NOTE: Attributes are considered equal only if they
-                # occur in the same order. Should that be made more
-                # flexible?
-                hash = hashlib.md5(lines).digest() if check_content else None
-                return (attrs if check_attrs else None, hash)
+                lines_hash = (
+                    hashlib.md5(lines).digest() if check_content else None)
+                # This recognizes attribute value equality even if the order of
+                # the attributes is different, but it is slower than simply
+                # comparing the start tag string values. (But how much slower?
+                # Would we need an option to use a faster comparison?)
+                attrs_hash = (
+                    hashlib.md5(make_attrs_test_value(attrs)).digest()
+                    if check_attrs else None)
+                return (attrs_hash, lines_hash)
 
             nonlocal linenum, target_descr
             linecount = len(lines)
@@ -178,7 +201,14 @@ class DuplicateStructureRemover(InputProcessor):
                     ' {this_begin}...{this_end} (attributes: {this_attrs})'
                     ' with {target_descr} equal to "{name}" on lines '
                     ' {other_begin}...{other_end} (attributes: {other_attrs}).'
-                    .format(name=struct_name, **locals()))
+                    .format(name=struct_name,
+                            this_begin=this_begin,
+                            this_end=this_end,
+                            this_attrs=this_attrs.decode(),
+                            other_begin=other_begin,
+                            other_end=other_end,
+                            other_attrs=other_attrs.decode(),
+                            target_descr=target_descr))
             else:
                 structs_info[key] = (
                     this_attrs,
