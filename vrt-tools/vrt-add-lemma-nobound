@@ -441,14 +441,6 @@ class NoBoundaryLemmaAdder(InputProcessor):
                                            *rest):
             return lemma.replace(boundary_char, b'')
 
-        def attr_index(s):
-            """Convert numeric 1-based attribute index strings to 0-based ints,
-            or return None for non-numeric."""
-            try:
-                return int(s) - 1
-            except ValueError:
-                return None
-
         LESS_THAN = '<'.encode()[0]
         make_lemma_noboundaries = []
         lemma_split_re = []
@@ -478,11 +470,6 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # simple-omorfi and naive are so fast that caching would
                 # slow them down slightly
                 args.cache_size = 0
-        word_index = attr_index(args.word_attr)
-        lemma_indexes = [attr_index(attr) for attr in args.lemma_attr]
-        insert_after_indexes = [index + 1 if index is not None else None
-                                for attr in args.add_after_attr
-                                for index in [attr_index(attr)]]
         names_seen = False
         linenr = 0
 
