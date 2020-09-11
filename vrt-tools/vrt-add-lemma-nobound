@@ -113,10 +113,12 @@ class NoBoundaryLemmaAdder(InputProcessor):
         return [
             ((spec,
               (descr + ' (default: "{dft}")').format(dft=default),
-              dict(action='append', default=[]))
+              dict(opts[0] if opts else {}, action='append', default=[]))
              if default is not None
-             else (spec, descr))
-            for (spec, descr) in argspecs_base
+             else (spec, descr, opts[0] if opts else {}))
+            # Use *opts to support a dict as the optional third item in the
+            # argspecs_base tuple (currently not needed)
+            for spec, descr, *opts in argspecs_base
             for default in [get_default(spec)]
             ]
 
