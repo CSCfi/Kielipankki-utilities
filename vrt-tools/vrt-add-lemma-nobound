@@ -11,7 +11,7 @@ forms and lemmas with compound boundaries.
 
 
 # TODO:
-# - Support inserted noboundaries attributes in --insert-after when
+# - Support inserted noboundaries attributes in --add-after-name when
 #   adding multiple attributes
 
 
@@ -43,12 +43,11 @@ class NoBoundaryLemmaAdder(InputProcessor):
 
     Multiple lemma attributes (e.g., for different annotation schemes) can be
     handled by specifying multiple times the options --mode,
-    --compound-boundary-marker, --lemma-name, --noboundaries-name and
-    --insert-noboundaries-after-name, in which case the first values are used
-    for the lemma of the first value for --lemma-name, the second values for
-    the second and so on. If some of the options are specified fewer times than
-    --lemma-name appears, their last values are used for the rest of the lemma
-    attributes.
+    --compound-boundary-marker, --lemma-name, --add-name and --add-after-name,
+    in which case the first values are used for the lemma of the first value
+    for --lemma-name, the second values for the second and so on. If some of
+    the options are specified fewer times than --lemma-name appears, their
+    last values are used for the rest of the lemma attributes.
     """
     # Specify default values separately for options that may be specified
     # multiple times and thus get list values.
@@ -56,8 +55,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
         'mode': 'simple-omorfi',
         'boundary_char': '|',
         'lemma_attr': 'lemma',
-        'nobound_attr': 'lemma_nobound',
-        'insert_after_attr': 'lemma',
+        'add_attr': 'lemma_nobound',
+        'add_after_attr': 'lemma',
     }
     _argspecs_base = [
         ('--mode (simple-omorfi|omorfi|naive) -> mode',
@@ -88,10 +87,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
          'use positional attribute ATTR as the word form'),
         ('--lemma-name=ATTR -> lemma_attr',
          'use positional attribute ATTR as the lemma'),
-        ('--noboundaries-name=ATTR -> nobound_attr',
+        ('--add-name=ATTR -> add_attr',
          'output the lemma without boundaries as positional attribute ATTR'),
-        ('--insert-noboundaries-after-name|insert-after=ATTR'
-         ' -> insert_after_attr',
+        ('--add-after-name=ATTR -> add_after_attr',
          'insert the lemma without boundaries after positional attribute ATTR'),
         ('--quiet',
          'suppress warnings'),
@@ -405,26 +403,22 @@ class NoBoundaryLemmaAdder(InputProcessor):
             if getattr(args, argname) == []:
                 setattr(args, argname, [default])
         for argval, argname in [
-                (args.nobound_attr, 'noboundaries-name'),
+                (args.add_attr, 'add-name'),
                 ]:
             if len(set(argval)) != len(argval):
                 self.error_exit(
                     'Non-unique values for --' + optname + ':' + repr(argval))
-        nobound_attr_count = len(args.nobound_attr)
-        # if len(args.lemma_attr) != nobound_attr_count:
-        #     self.error_exit(
-        #         'You must specify the same number of options --lemma-name and'
-        #         ' --noboundaries-name')
+        add_attr_count = len(args.add_attr)
         for argname in self._multi_arg_defaults:
             argval = getattr(args, argname)
-            if len(argval) < nobound_attr_count:
+            if len(argval) < add_attr_count:
                 # TODO: Warn that the last value for attribute is used for
                 # missing values
-                argval.extend((nobound_attr_count - len(argval)) * [argval[-1]])
+                argval.extend((add_attr_count - len(argval)) * [argval[-1]])
                 setattr(args, argname, argval)
         for argname in ['lemma_attr',
-                        'nobound_attr',
-                        'insert_after_attr']:
+                        'add_attr',
+                        'add_after_attr']:
             setattr(args, argname,
                     [val.encode() for val in getattr(args, argname)])
         args.word_attr = args.word_attr.encode()
@@ -487,7 +481,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         word_index = attr_index(args.word_attr)
         lemma_indexes = [attr_index(attr) for attr in args.lemma_attr]
         insert_after_indexes = [index + 1 if index is not None else None
-                                for attr in args.insert_after_attr
+                                for attr in args.add_after_attr
                                 for index in [attr_index(attr)]]
         names_seen = False
         linenr = 0
@@ -516,10 +510,10 @@ class NoBoundaryLemmaAdder(InputProcessor):
                         namelist, *args.lemma_attr)
                     insert_after_indices = [
                         index + 1 for index in vrtnamelib.nameindices(
-                            namelist, *args.insert_after_attr)]
-                    for num, nobound_attr in enumerate(args.nobound_attr):
+                            namelist, *args.add_after_attr)]
+                    for num, add_attr in enumerate(args.add_attr):
                         line = vrtnamelib.bininsertnames(
-                            line, args.insert_after_attr[num], nobound_attr)
+                            line, args.add_after_attr[num], add_attr)
                 ouf.write(line)
             else:
                 attrs = vrtdatalib.binasrecord(line)
