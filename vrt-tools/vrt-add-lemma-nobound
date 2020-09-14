@@ -10,11 +10,6 @@ forms and lemmas with compound boundaries.
 """
 
 
-# TODO:
-# - Support inserted noboundaries attributes in --add-after-name when
-#   adding multiple attributes
-
-
 import re
 import sys
 
@@ -56,6 +51,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         'boundary_char': '|',
         'lemma_attr': 'lemma',
         'add_attr': 'lemma_nobound',
+        'add_type': 'n',
         'add_after_attr': 'lemma',
     }
     _argspecs_base = [
@@ -88,9 +84,16 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('--lemma-name=ATTR -> lemma_attr',
          'use positional attribute ATTR as the lemma'),
         ('--add-name=ATTR -> add_attr',
-         'output the lemma without boundaries as positional attribute ATTR'),
+         'add attribute ATTR'),
+        ('--add-type=TYPE -> add_type',
+         """if TYPE is "noboundaries", the attribute specified with
+         --add-name is the lemma without compound boundaries; if TYPE
+         is "boundaries", the existing lemma is moved to the added
+         attribute and the lemma without compound boundaries replaces
+         the existing lemma; the value of TYPE can be abbreviated to a
+         prefix"""),
         ('--add-after-name=ATTR -> add_after_attr',
-         'insert the lemma without boundaries after positional attribute ATTR'),
+         'insert the attribute specified with --add-name after ATTR'),
         ('--quiet',
          'suppress warnings'),
         ('--cache-size=SIZE :int "{dft}"'.format(dft=DEFAULT_LRU_CACHE_SIZE),
@@ -409,6 +412,14 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 self.error_exit(
                     'Non-unique values for --' + optname + ':' + repr(argval))
         add_attr_count = len(args.add_attr)
+        type_values = ['noboundaries', 'boundaries']
+        for type_ in args.add_type:
+            if not any((type_val and type_val.startswith(type_))
+                       for type_val in type_values):
+                self.error_exit(
+                    'invalid --add-type value "' + type_ + '": the value must'
+                    ' be (a prefix of) one of ' + ', '.join(type_values))
+        args.add_type = [type_[0] for type_ in args.add_type]
         for argname in self._multi_arg_defaults:
             argval = getattr(args, argname)
             if len(argval) < add_attr_count:
@@ -470,11 +481,14 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # simple-omorfi and naive are so fast that caching would
                 # slow them down slightly
                 args.cache_size = 0
+        add_nobounds = [add_type == 'n' for add_type in args.add_type]
         names_seen = False
         linenr = 0
         word_index = None
         lemma_indices = []
-        insert_after_indices = []
+        insert_indices = []
+        lemma_source_indices = []
+        lemma_target_indices = []
 
         def warn(msg):
             """Output warning msg, with line number information prepended
@@ -499,12 +513,32 @@ class NoBoundaryLemmaAdder(InputProcessor):
                         namelist, args.word_attr)[0]
                     lemma_indices = vrtnamelib.nameindices(
                         namelist, *args.lemma_attr)
-                    insert_after_indices = [
-                        index + 1 for index in vrtnamelib.nameindices(
-                            namelist, *args.add_after_attr)]
                     for num, add_attr in enumerate(args.add_attr):
-                        line = vrtnamelib.bininsertnames(
-                            line, args.add_after_attr[num], add_attr)
+                        insert_index = vrtnamelib.nameindex(
+                            namelist, args.add_after_attr[num]) + 1
+                        insert_indices.append(insert_index)
+                        # When inserting a new attribute and when replacing the
+                        # original lemma with one with compound boundaries
+                        # removed, take into account possible attributes
+                        # inserted before. Separate source and target indices
+                        # are used to get the original lemma for inserting
+                        # (before inserting the new attribute, but possibly
+                        # after inserting prveious attributes) and to access
+                        # the lemma to be replaced after inserting the new
+                        # attribute.
+                        lemma_source_indices.append(
+                            vrtnamelib.nameindex(
+                                namelist, args.lemma_attr[num]))
+                        namelist[insert_index:insert_index] = [add_attr]
+                        # print(namelist, num, add_attr, args.lemma_attr[num],
+                        #       vrtnamelib.nameindex(namelist, args.lemma_attr[num]),
+                        #       file=sys.stderr)
+                        lemma_target_indices.append(
+                            vrtnamelib.nameindex(
+                                namelist, args.lemma_attr[num]))
+                    line = vrtnamelib.binmakenames(*namelist)
+                    # print(lemma_indices, insert_indices, lemma_source_indices,
+                    #       lemma_target_indices, file=sys.stderr)
                 ouf.write(line)
             elif not names_seen:
                 self.error_exit(
@@ -536,9 +570,24 @@ class NoBoundaryLemmaAdder(InputProcessor):
                         lemma_nobound = lemma
                     lemma_nobounds.append(lemma_nobound)
                 for nobound_num, lemma_nobound in enumerate(lemma_nobounds):
-                    insert_after_index = insert_after_indices[nobound_num]
-                    attrs[insert_after_index:insert_after_index] = (
-                        [lemma_nobound])
+                    insert_index = insert_indices[nobound_num]
+                    # print(nobound_num, lemma_nobound, insert_index,
+                    #       lemma_indices[nobound_num],
+                    #       lemma_source_indices[nobound_num],
+                    #       lemma_target_indices[nobound_num],
+                    #       attrs,
+                    #       file=sys.stderr, end=' -> ')
+                    if add_nobounds[nobound_num]:
+                        attrs[insert_index:insert_index] = [lemma_nobound]
+                    else:
+                        # Copy the original lemma to the new attribute
+                        attrs[insert_index:insert_index] = [
+                            attrs[lemma_source_indices[nobound_num]]]
+                        # Replace the original lemma with the one without
+                        # compound boundaries; use here lemma_target_indices in
+                        # case the value above was inserted before the lemma
+                        attrs[lemma_target_indices[nobound_num]] = lemma_nobound
+                    # print(attrs, file=sys.stderr)
                 # print(attrs)
                 ouf.write(b'\t'.join(attrs) + b'\n')
         # if args.cache_size != 0:

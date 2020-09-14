@@ -19,6 +19,163 @@
     returncode: 1
 
 
+# Replacing the original lemma with the one without compound
+# boundaries
+
+- name: 'vrt-add-lemma-nobound: Replace original lemma'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type boundaries --add-name lemmacomp --add-after lemma
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma pos -->
+      testipisteessä	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma lemmacomp pos -->
+      testipisteessä	testipiste	testi|piste	N
+    stderr: ''
+    returncode: 0
+
+
+# Multiple lemmas and added attributes
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: add lemma_nobound'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-name lemma_nobound --lemma-name lemma --add-after lemma
+      --add-name lemma_nobound2 --lemma-name lemma2 --add-after lemma2
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma lemma_nobound lemma2 lemma_nobound2 pos -->
+      testipisteessä	testi|piste	testipiste	testi|piste	testipiste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: replace original'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type boundaries --add-name lemmacomp --lemma-name lemma --add-after lemma
+      --add-name lemmacomp2 --lemma-name lemma2 --add-after lemma2
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma lemmacomp lemma2 lemmacomp2 pos -->
+      testipisteessä	testipiste	testi|piste	testipiste	testi|piste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: add lemma_nobound + replace original'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type noboundaries --add-name lemma_nobound --lemma-name lemma --add-after lemma
+      --add-type boundaries --add-name lemmacomp2 --lemma-name lemma2 --add-after lemma2
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma lemma_nobound lemma2 lemmacomp2 pos -->
+      testipisteessä	testi|piste	testipiste	testipiste	testi|piste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: second specified before first'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type boundaries --add-name lemmacomp2 --lemma-name lemma2 --add-after lemma2
+      --add-type noboundaries --add-name lemma_nobound --lemma-name lemma --add-after lemma
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma lemma_nobound lemma2 lemmacomp2 pos -->
+      testipisteessä	testi|piste	testipiste	testipiste	testi|piste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: replace original + add lemma_nobound'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type boundaries --add-name lemmacomp --lemma-name lemma --add-after lemma
+      --add-type noboundaries --add-name lemma_nobound2 --lemma-name lemma2 --add-after lemma2
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma lemmacomp lemma2 lemma_nobound2 pos -->
+      testipisteessä	testipiste	testi|piste	testi|piste	testipiste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: replace original, insert before original lemma'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type boundaries --add-name lemmacomp --lemma-name lemma --add-after word
+      --add-name lemmacomp2 --lemma-name lemma2 --add-after word
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemmacomp2 lemmacomp lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	testipiste	testipiste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: insert after another added attribute'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type boundaries --add-name lemmacomp --lemma-name lemma --add-after word
+      --add-name lemmacomp2 --lemma-name lemma2 --add-after lemmacomp
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemmacomp lemmacomp2 lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	testipiste	testipiste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: insert after another added attribute, add lemmas without boundaries'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type noboundaries --add-name lemma_nobound --lemma-name lemma --add-after word
+      --add-name lemma_nobound2 --lemma-name lemma2 --add-after lemma_nobound
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma_nobound lemma_nobound2 lemma lemma2 pos -->
+      testipisteessä	testipiste	testipiste	testi|piste	testi|piste	N
+    stderr: ''
+    returncode: 0
+
+
 # Tests with input and output
 
 
