@@ -626,6 +626,12 @@ check_input_attrs () {
 	fi
 	preprocess_posattrs="$preprocess_posattrs reorder"
     fi
+    # filter_and_reorder_posattrs adds a positional attributes comment
+    # if it is missing, so if it will be run, do not do it here.
+    if [ "x$stage2_fn" = x ] && [ "x$initial_vrt_posattrs" = x ]; then
+	process_vrt vrt_replace_posattr_names "$initial_input_attrs"
+	initial_vrt_posattrs=$initial_input_attrs
+    fi
     stages[2]=$stage2_fn
     stages[3]=$stage2_descr
     input_attrs=$initial_input_attrs
@@ -635,6 +641,7 @@ filter_and_reorder_posattrs () {
     local attrs_names=
     local attrs_nums=
     local word_filter=true
+    local add_posattr_comment=
     # set -vx
     if word_in reorder "$preprocess_posattrs"; then
 	attrs_names=word
@@ -655,9 +662,18 @@ filter_and_reorder_posattrs () {
     done
     attrs_names=${attrs_names# }
     attrs_nums=${attrs_nums#,}
+    # CHECK: Would filtering and reordering attributes ever be needed
+    # if the input VRT has a positional attributes comment?
+    if [ "x$initial_vrt_posattrs" = x ]; then
+	add_posattr_comment="print \"$(vrt_make_posattr_comment "$attrs_names")\""
+	initial_vrt_posattrs=$attrs_names
+    fi
     # set +vx
     process_vrt awk -F"$tab" '
-		BEGIN { OFS = "\t" }
+		BEGIN {
+		    OFS = "\t"
+		    '"$add_posattr_comment"'
+	        }
 		/^</ { print }
 		/^[^<]/ { print '"$attrs_nums"' }'
     initial_input_attrs=$attrs_names
@@ -665,6 +681,7 @@ filter_and_reorder_posattrs () {
 }
 
 generate_input () {
+    # TODO: Set initial_vrt_posattrs here too
     existing_token_count=$(get_corpus_token_count $corpus)
     echo_verb "  $existing_token_count tokens in the existing data"
     run_cmd $cwbdata2vrt $corpus > $vrt_file
