@@ -1,0 +1,1074 @@
+
+# scripttest_vrt_add_lemma_nobound.yaml
+#
+# Tests for the script vrt-add-lemma-nobound using the scripttestlib
+# library
+
+
+# Tests not concerning the actual input and output
+
+- name: 'vrt-add-lemma-nobound: No positional-attributes comment'
+  input:
+    cmdline: vrt-add-lemma-nobound
+    stdin: |
+      yhdyssanan	yhdys|sana
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-lemma-nobound: No positional-attributes comment before the first token line
+    returncode: 1
+
+
+# Replacing the original lemma with the one without compound
+# boundaries
+
+- name: 'vrt-add-lemma-nobound: Replace original lemma'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type boundaries --add-name lemmacomp --add-after lemma
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma pos -->
+      testipisteessä	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma lemmacomp pos -->
+      testipisteessä	testipiste	testi|piste	N
+    stderr: ''
+    returncode: 0
+
+
+# Multiple lemmas and added attributes
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: add lemma_nobound'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-name lemma_nobound --lemma-name lemma --add-after lemma
+      --add-name lemma_nobound2 --lemma-name lemma2 --add-after lemma2
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma lemma_nobound lemma2 lemma_nobound2 pos -->
+      testipisteessä	testi|piste	testipiste	testi|piste	testipiste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: replace original'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type boundaries --add-name lemmacomp --lemma-name lemma --add-after lemma
+      --add-name lemmacomp2 --lemma-name lemma2 --add-after lemma2
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma lemmacomp lemma2 lemmacomp2 pos -->
+      testipisteessä	testipiste	testi|piste	testipiste	testi|piste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: add lemma_nobound + replace original'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type noboundaries --add-name lemma_nobound --lemma-name lemma --add-after lemma
+      --add-type boundaries --add-name lemmacomp2 --lemma-name lemma2 --add-after lemma2
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma lemma_nobound lemma2 lemmacomp2 pos -->
+      testipisteessä	testi|piste	testipiste	testipiste	testi|piste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: second specified before first'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type boundaries --add-name lemmacomp2 --lemma-name lemma2 --add-after lemma2
+      --add-type noboundaries --add-name lemma_nobound --lemma-name lemma --add-after lemma
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma lemma_nobound lemma2 lemmacomp2 pos -->
+      testipisteessä	testi|piste	testipiste	testipiste	testi|piste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: replace original + add lemma_nobound'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type boundaries --add-name lemmacomp --lemma-name lemma --add-after lemma
+      --add-type noboundaries --add-name lemma_nobound2 --lemma-name lemma2 --add-after lemma2
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma lemmacomp lemma2 lemma_nobound2 pos -->
+      testipisteessä	testipiste	testi|piste	testi|piste	testipiste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: replace original, insert before original lemma'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type boundaries --add-name lemmacomp --lemma-name lemma --add-after word
+      --add-name lemmacomp2 --lemma-name lemma2 --add-after word
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemmacomp2 lemmacomp lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	testipiste	testipiste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: insert after another added attribute'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type boundaries --add-name lemmacomp --lemma-name lemma --add-after word
+      --add-name lemmacomp2 --lemma-name lemma2 --add-after lemmacomp
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemmacomp lemmacomp2 lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	testipiste	testipiste	N
+    stderr: ''
+    returncode: 0
+
+
+- name: 'vrt-add-lemma-nobound: Two lemmas: insert after another added attribute, add lemmas without boundaries'
+  input:
+    cmdline: >-
+      vrt-add-lemma-nobound
+      --add-type noboundaries --add-name lemma_nobound --lemma-name lemma --add-after word
+      --add-name lemma_nobound2 --lemma-name lemma2 --add-after lemma_nobound
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma lemma2 pos -->
+      testipisteessä	testi|piste	testi|piste	N
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma_nobound lemma_nobound2 lemma lemma2 pos -->
+      testipisteessä	testipiste	testipiste	testi|piste	testi|piste	N
+    stderr: ''
+    returncode: 0
+
+
+# Tests with input and output
+
+
+- defaults:
+    input:
+      # With global transformations, we can use a string value for
+      # "stdin" in individual tests. If the default transformation was
+      # defined in "stdin", the individual tests would need to use
+      # "stdin: value: ...".
+      transform: &output-to-input
+        # Convert the (expected) output of vrt-add-lemma-nobound to
+        # input by the last column of each line and adding the
+        # positional attributes line without lemma_nobound.
+      - python: |
+          return re.sub(r'\t[^\t\n]*\n', r'\n', value)
+      - prepend: |
+          <!-- #vrt positional-attributes: word lemma -->
+    output:
+      # Similarly, use a global transformation here.
+      transform-expected:
+        # Add positional attributes line with lemma_nobound
+      - prepend: |
+          <!-- #vrt positional-attributes: word lemma lemma_nobound -->
+      returncode: 0
+      stderr:
+        value: ''
+        transform-expected:
+        # This overrides the global output transformation defined
+        # above for adding the positional attributes comment.
+        - python: 'return ""'
+
+
+- name: 'vrt-add-lemma-nobound: Pass empty lines through'
+  # Python yaml module does not support duplicate anchor names, so
+  # suffix them with a number
+  defs: &output-1 |
+    testipisteessä	testi|piste	testipiste
+
+    tietokoneessa	tieto|kone	tietokone
+  input:
+    cmdline: vrt-add-lemma-nobound
+    stdin: *output-1
+  output:
+    stdout: *output-1
+
+
+# The data in the following tests is from Suomi24 2001–2017 with TDP parses
+
+- defaults:
+    input:
+      cmdline: vrt-add-lemma-nobound --mode omorfi
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with inflected first part'
+  defs: &output-2 |
+    yhteiskunnan	yhteinen|kunta	yhteiskunta
+    keskustelupalstalla	keskustella|palsta	keskustelupalsta
+    ihmiskunnan	ihminen|kunta	ihmiskunta
+    viikonloppuna	viikko|loppu	viikonloppu
+    alunperin	alku|perä	alunperä
+    viranomaiset	virka|omainen	viranomainen
+    maaliskuussa	maalinen|kuu	maaliskuu
+    selvinpäin	selvä|pää	selvinpää
+    opintotukea	opinnot|tuki	opintotuki
+    sisällissota	sisällinen|sota	sisällissota
+    todellisuutta	todellinen|uusi	todellisuusi
+    korkeintaan	korkea|taka	korkeintaka
+    suojatien	suoda|tie	suojatie
+    pienituloisten	piki|itu|loinen	pienituloinen
+    alushousut	alunen|housut	alushousut
+    jyväskylässä	jyvänen|kylä	jyväskylä
+  input:
+    stdin: *output-2
+  output:
+    stdout: *output-2
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with inflected or derived first part (unlikely analyses)'
+  defs: &output-3 |
+    yhteiskunnan	yhteinen|kunta	yhteiskunta
+    keskustelupalstalla	keskustella|palsta	keskustelupalsta
+    ihmiskunnan	ihminen|kunta	ihmiskunta
+    viikonloppuna	viikko|loppu	viikonloppu
+    alunperin	alku|perä	alunperä
+    viranomaiset	virka|omainen	viranomainen
+    maaliskuussa	maalinen|kuu	maaliskuu
+    selvinpäin	selvä|pää	selvinpää
+    opintotukea	opinnot|tuki	opintotuki
+    sisällissota	sisällinen|sota	sisällissota
+    todellisuutta	todellinen|uusi	todellisuusi
+    korkeintaan	korkea|taka	korkeintaka
+    suojatien	suoda|tie	suojatie
+    pienituloisten	piki|itu|loinen	pienituloinen
+    alushousut	alunen|housut	alushousut
+    jyväskylässä	jyvänen|kylä	jyväskylä
+    väärinpäin	väärä|pää	väärinpää
+    monikulttuurisuuden	monikulttuurinen|uusi	monikulttuurisuusi
+    entistäkin	entinen|täkki	entistäkki
+    laisinkaan	lainen|inka	laisinka
+    suviseuroissa	suvinen|euro	suviseuro
+    toissijainen	toinen|sijainen	toissijainen
+    yhteensopiva	yhde|sopiva	yhteensopiva
+    rikollisuutta	rikollinen|uusi	rikollisuusi
+    nimenomaa	nimi|oma	nimenoma
+    vähintäin	vähä|täi	vähintäi
+    toisiltaan	toinen|ilta	toisilta
+    huolenpitoa	huoli|pidot	huolenpidot
+    pienimmistä	piki|impi	pienimpi
+    aikuismaisesti	aikuinen|mainen	aikuismainen
+    pienyrittäjä	piki|yrittäjä	pienyrittäjä
+    pienpuolueiden	piki|puolue	pienpuolue
+    asumiskulut	asua|kulku	asumiskulku
+    omaisuutta	omainen|uusi	omaisuusi
+    pururadalla	purra|rata	pururata
+    yhdenvertaisuuden	yhdenvertainen|uusi	yhdenvertaisuusi
+    toisenne	toinen|enne	toisenne
+    yleisimmistä	yleinen|impi	yleisimpi
+    alusasuja	alunen|asu	alusasu
+    kihlasormus	kihlat|sormus	kihlasormus
+    kaltoinkohtelua	kaltto|kohtelu	kaltoinkohtelu
+    pienokainen	piki|okainen	pienokainen
+    paperisota	paperinen|ota	paperisota
+    pienhiukkasia	piki|hiukkanen	pienhiukkanen
+    yhteenmuuttoa	yhde|muutto	yhteenmuutto
+    erilaisuutta	erilainen|uusi	erilaisuusi
+    aikaisintaan	aikainen|taka	aikaisintaka
+    osallistuvan	osallinen|tupa	osallistupa
+    tavanomaista	tapa|omainen	tavanomainen
+    monimutkaisuutta	monimutkainen|uusi	monimutkaisuusi
+    pannukakku	panna|kakku	pannukakku
+    laiskoille	lainen|koi	laiskoi
+    kaikkivoipaisuuteen	kaikkivoipainen|uusi	kaikkivoipaisuusi
+    parinvalinnassa	parka|valinta	parinvalinta
+    moraalisääntöjä	moraalinen|ääntö	moraalisääntö
+    Ruonala	ruko|ala	ruonala
+    parinvaihtoa	parka|vaihto	parinvaihto
+    sisällisodan	sisällinen|ota	sisällisota
+    tulevaisuutta	tulevainen|uusi	tulevaisuusi
+    kepulaisuuden	kepulainen|uusi	kepulaisuusi
+    pannuhuoneessa	panna|huone	pannuhuone
+    itsetuhoisuutta	itsetuhoinen|uusi	itsetuhoisuusi
+    resurssipula	resurssit|pula	resurssipula
+    lastenkodissa	lapsi|kota	lastenkota
+    parinkympin	parka|kymppi	parinkymppi
+    yhteiskuntaamme	yhteinen|kunta|amme	yhteiskunta-amme
+    pientalojen	piki|talo	pientalo
+    viimeisimmistä	viimeinen|impi	viimeisimpi
+    harhaisuutta	harhainen|uusi	harhaisuusi
+    alisteinen	alinen|teinen	alisteinen
+    muinoin	muu|oka	muinoka
+    tavallistakin	tavallinen|takki	tavallistakki
+    naisiltakin	nainen|ilta	naisilta
+    vertaistaan	vertainen|taka	vertaistaka
+    takaiskarit	takainen|kari	takaiskari
+    kasvoiltani	kasvot|ilta	kasvoilta
+    allergisoiva	allerginen|oiva	allergisoiva
+    maisteriksi	mainen|terä	maisterä
+    uskollisuutta	uskollinen|uusi	uskollisuusi
+    likaisuudesta	likainen|uusi	likaisuusi
+    Toistuvasta	toinen|tupa	toistupa
+    pienyritysten	piki|yritys	pienyritys
+    pieneläkeläiset	piki|eläkeläinen	pieneläkeläinen
+    voisivatkaan	voinen|iva	voisiva
+    paraneminen	parka|emi	paranemi
+    karismaattisuutta	karismaattinen|uusi	karismaattisuusi
+    asiallistakin	asiallinen|takki	asiallistakki
+    naistentautien	nainen|tau|tie	naistentautie
+    Näytönohjain	näyttö|ohja	näytönohja
+    pienimunaisten	piki|imu|nainen	pienimunainen
+    kokonansa	kokko|ansa	kokonansa
+    suomalaisuutta	suomalainen|uusi	suomalaisuusi
+  input:
+    stdin: *output-3
+  output:
+    stdout: *output-3
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Possibly problematic cases'
+  defs: &output-4 |
+    oleskeluluvista	oleskella|lupa	oleskelulupa
+    suomalaistutut	suomalainen|tuttu	suomalaistuttu
+    pääsiäisöinä	pääsiäinen|yö	pääsiäisyö
+    askartelutöinä	askarrella|työ	askartelutyö
+    suomalaissoina	suomalainen|suo	suomalaissuo
+    ruotsalaisteinä	ruotsalainen|tie	ruotsalaistie
+  input:
+    stdin: *output-4
+  output:
+    stdout: *output-4
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Inflecting first parts'
+  defs: &output-5 |
+    uudenvuoden	uusi|vuosi	uusivuosi
+    Isosta-Britanniasta	Iso-Britannia	Iso-Britannia
+    Isosta-Britanniasta	Iso|Britannia	Iso-Britannia
+    Tyynenmeren	tyyni|meri	tyynimeri
+    Uuteen-Seelantiin	Uusi-Seelanti	Uusi-Seelanti
+    Uuteen-Seelantiin	Uusi|Seelanti	Uusi-Seelanti
+    Uuteen-Kaledoniaan	Uusi-Kaledonia	Uusi-Kaledonia
+    Uuteen-Kaledoniaan	Uusi|Kaledonia	Uusi-Kaledonia
+    Uudenkirkon	Uusikirkko	Uusikirkko
+  input:
+    stdin: *output-5
+  output:
+    stdout: *output-5
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Inflecting first part and an extra part'
+  defs: &output-5b |
+    maalaisvanhanpojan	maalainen|vanha|poika	maalaisvanhapoika
+    uudenvuodenlupauksia	uusi|vuosi|lupaus	uudenvuodenlupaus
+    <!-- These would be optimal analyses by TDPP/Omorfi -->
+    nyky-Ison-Britannian	nyky|Iso|Britannia	nyky-Iso-Britannia
+    Ison-Britannian-kävijät	Iso|Britannia|kävijä	Ison-Britannian-kävijä
+    <!-- These are the actual analyses by TDPP/Omorfi -->
+    nyky-Ison-Britannian	nyky-Ison-Britannian	nyky-Ison-Britannian
+    Ison-Britannian-kävijät	Ison-Britannian-kävijät	Ison-Britannian-kävijät
+  input:
+    stdin: *output-5b
+  output:
+    stdout: *output-5b
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphenated words'
+  defs: &output-6 |
+    väärin-päin	väärä|pää	väärin-pää
+    entis-täkin	entinen|täkki	entis-täkki
+    evankelis-luterilaisen	evankelinen|luterilainen	evankelis-luterilainen
+    uuden-vuoden	uusi|vuosi	uusi-vuosi
+    kaupan-päälle	kauppa|pää	kaupan-pää
+    pohjois-korean	pohjoinen|korea	pohjois-korea
+    Kokonais-kerroin	kokonainen|kerto	kokonais-kerto
+    puolen-vuoden	puoli|vuosi	puolen-vuosi
+    kevyen-liikenteen	kevyt|liikenne	kevyen-liikenne
+    puolen-yön	puoli|yö	puoli-yö
+    toden-teolla	tosi|teko	toden-teko
+    pohjois-suomessa	pohjoinen|suomi	pohjois-suomi
+    suomalais-ugrilaisten	suomalainen|ugrilainen	suomalais-ugrilainen
+    pohjois-karjalassa	pohjoinen|karjala	pohjois-karjala
+    pakon-omaisesti	pakko|omaisesti	pakon-omaisesti
+    uuden-liiton	uusi|liitto	uusi-liitto
+    laskettu-aika	laskea|aika	laskettu-aika
+    puolen-tunnin	puoli|tunti	puolen-tunti
+    yhteis-kuntaamme	yhteinen|kunta|amme	yhteis-kunta-amme
+    varsinais-suomessa	varsinainen|suomi	varsinais-suomi
+    pohjois-pohjanmaalla	pohjoinen|pohjan|maa	pohjois-pohjanmaa
+    kipin-kapin	kippi|kappi	kipin-kappi
+    treffi-ilmoitus	treffit|ilmoitus	treffi-ilmoitus
+    Tyynen-meren	tyyni|meri	tyyni-meri
+    Toden-totta	tosi|tosi	toden-tosi
+    maalis-huhtikuussa	maalinen|huhtikuu	maalis-huhtikuu
+    juutalais-kristillisen	juutalainen|kristillinen	juutalais-kristillinen
+    pakolais-statuksella	pakolainen|status	pakolais-status
+    maanis-depressiivinen	maaninen|depressiivinen	maanis-depressiivinen
+    markkina-aseman	markkinat|asema	markkina-asema
+    Uuden-testamentin	uusi|testamentti	uusi-testamentti
+    paavalilais-luterilaisuuden	paavalilainen|luterilaisuus	paavalilais-luterilaisuus
+    kerran-pari	kerta|pari	kerran-pari
+    Väen-väkisin	väki|väkinen	väen-väkinen
+    opinto-oppaasta	opinnot|opas	opinto-opas
+    varmuuden-vuoksi	varmuus|vuo	varmuuden-vuo
+    pohjois-savossa	pohjoinen|savo	pohjois-savo
+    parin-vuoden	parka|vuosi	parin-vuosi
+    ajan-olon	aika|olo	ajan-olo
+    luoja-jumala	luoda|jumala	luoja-jumala
+    seurustelu-mielessä	seurustella|mieli	seurustelu-mieli
+    parin-viikon	parka|viikko	parin-viikko
+    uskonnollis-poliittinen	uskonnollinen|poliittinen	uskonnollis-poliittinen
+    maanis-depressiivisyys	maaninen|depressiivisyys	maanis-depressiivisyys
+    käden-käänteessä	käsi|käänne	käden-käänne
+    raskaan-sarjan	raskas|sarja	raskas-sarja
+    vuoden-parin	vuosi|pari	vuoden-pari
+    viikon-parin	viikko|pari	viikon-pari
+    passiivis-aggressiivinen	passiivinen|aggressiivinen	passiivis-aggressiivinen
+    erityis-suojeluksessa	erityinen|suojelus	erityis-suojelus
+    pohjois-korealaiset	pohjoinen|korea|lainen	pohjois-korealainen
+    matemaattis-looginen	matemaattinen|looginen	matemaattis-looginen
+    matemaattis-luonnontieteellisen	matemaattinen|luonnon|tieteellinen	matemaattis-luonnontieteellinen
+    enemmän-kuin	enempi|kuu	enemmän-kuu
+    helluntailais-karismaattisia	helluntailainen|karismaattinen	helluntailais-karismaattinen
+    opinto-oikeus	opinnot|oikeus	opinto-oikeus
+    olan-takaa	olka|taka	olan-taka
+    suoja-aineita	suoda|aine	suoja-aine
+    suru-uutisen	surra|uutinen	suru-uutinen
+    inttäjä-eksyttäjä	inttää|eksyttää	inttäjä-eksyttää
+    varsinais-suomalainen	varsinainen|suomalainen	varsinais-suomalainen
+    kiikun-kaakun	kiikku|kaakku	kiikun-kaakku
+    suomalais-venäläisen	suomalainen|venäläinen	suomalais-venäläinen
+    kaakkois-suomessa	kaakkoinen|suomi	kaakkois-suomi
+    tieteenkieltäjä-hihhuli	tiede|kieltäjä|hihhuli	tieteenkieltäjä-hihhuli
+    kaupan-tekijäisiksi	kauppa|tekijäinen	kaupan-tekijäinen
+    pohjois-karjalainen	pohjoinen|karjalainen	pohjois-karjalainen
+    kreikkalais-roomalaisen	kreikkalainen|roomalainen	kreikkalais-roomalainen
+    urheilu-uran	urheilla|ura	urheilu-ura
+    aikuis-tyypin	aikuinen|tyyppi	aikuis-tyyppi
+    historiallis-kriittinen	historiallinen|kriittinen	historiallis-kriittinen
+    lounais-suomessa	lounainen|suomi	lounais-suomi
+    netin-kautta	netti|kausi	netin-kausi
+    markkina-ehtoisesti	markkinat|ehtoisesti	markkina-ehtoisesti
+    maalaisliitto-kepu	maalainen|liitto|kepu	maalaisliitto-kepu
+    jatko-opiskelupaikkaa	jatko-opiskella|paikka	jatko-opiskelupaikka
+    kokonaispinta-ala	kokonainen|pinta-ala	kokonaispinta-ala
+    yhteistoiminta-alueen	yhteinen|toiminta-alue	yhteistoiminta-alue
+    kamppailu-urheilua	kamppailla|urheilu	kamppailu-urheilu
+    nais-enemmistö	nainen|enemmistö	nais-enemmistö
+    kuntoilu-mielessä	kuntoilla|mieli	kuntoilu-mieli
+    tois-puoleisesti	toinen|puoleisesti	tois-puoleisesti
+    pohjois-afrikkalaisen	pohjoinen|afrikkalainen	pohjois-afrikkalainen
+    hyvin-hyvin	hyvä|hyvä	hyvin-hyvä
+    urheilu-ohjelmien	urheilla|ohjelma	urheilu-ohjelma
+    ahtaan-portin	ahdas|portti	ahtaan-portti
+    säteily-lämmitin	säteillä|lämmittää	säteily-lämmittää
+    hädän-alaisille	hätä|ala|isä	hädän-alaisä
+    katolisen-kirkon	katolinen|kirkko	katolisen-kirkko
+    lähentely-yritykset	lähennellä|yritys	lähentely-yritys
+    korkein-oikeus	korkea|oikeus	korkein-oikeus
+    raskaan-liikenteen	raskas|liikenne	raskaan-liikenne
+    Suomalais-ruotsalainen	suomalainen|ruotsalainen	suomalais-ruotsalainen
+  input:
+    stdin: *output-6
+  output:
+    stdout: *output-6
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi --only-wordform-hyphens: Hyphenated words'
+  defs: &output-6b |
+    yhteiskuntaamme	yhteinen|kunta|amme	yhteiskuntaamme
+  input:
+    cmdline: vrt-add-lemma-nobound --mode omorfi --only-wordform-hyphens
+    stdin: *output-6b
+  output:
+    stdout: *output-6b
+
+
+# Most of the data in the following tests is from
+# opensubtitles-fi-2017 with UD1 parses
+
+- defaults:
+    input:
+      cmdline: vrt-add-lemma-nobound --mode omorfi --compound-boundary-marker '#'
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with hyphens with different letters around the hyphen'
+  defs: &output-7 |
+    ei-mutantti	ei#mutantti	ei-mutantti
+    e-molli	e#molli	e-molli
+    ex-johtaja	ex#johtaja	ex-johtaja
+  input:
+    stdin: *output-7
+  output:
+    stdout: *output-7
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with previously incorrect
+    results, set 2'
+  defs: &output-8 |
+    ammattilais-valamies	ammatti#vala#mies	ammattilais-valamies
+    aneidenkerääjät	ane#kerääjä	aneidenkerääjä
+    bengalilaisjengejä	bengali#jengi	bengalilaisjengi
+    burgundilaislitkua	burgundi#litku	burgundilaislitku
+    etenemisyritys	edetä#yritys	etenemisyritys
+    hiustensiirto	hius#siirto	hiustensiirto
+    ihmetyksenaihe	ihmetys#aihe	ihmetyksenaihe
+    Jäämaa-kyltti	jää#maa#kyltti	jäämaa-kyltti
+    japanilaispelaajan	japani#pelaaja	japanilaispelaaja
+    jättiläiskalmarilta	jätti#kalmari	jättiläiskalmari
+    joukkojenkuljetusalusta	joukko#kuljetus#alku	joukkojenkuljetusalku
+    joukkojenkuljetuslaivoista	joukko#kuljetus#laiva	joukkojenkuljetuslaiva
+    kansalaispidätyksen	kansa#pidätys	kansalaispidätys
+    Kansalaispidätys	kansa#pidätys	kansalaispidätys
+    kiinalaisgangsterista	kiina#gangsteri	kiinalaisgangsteri
+    kokoamisalueelle	koota#alue	kokoamisalue
+    liikkeentunnistin	liike#tunnistin	liikkeentunnistin
+    luupää-	luu#pää	luupää
+    <!-- The following does not occur in the data but is for testing -->
+    luu-pää-	luu#pää	luu-pää
+    mannertenvälisine	manner#välinen	mannertenvälinen
+    miestenvaatteita	mies#vaate	miestenvaate
+    ohjustentorjuntasatelliitti	ohjus#torjunta#satelliitti	ohjustentorjuntasatelliitti
+    pakenemisraportin	paeta#raportti	pakenemisraportti
+    Ranskalaisjoukkojen	ranska#joukko	ranskalaisjoukko
+    ranskalaiskylässä	ranska#kylä	ranskalaiskylä
+    Ranskalaisryökäleet	ranska#ryökäle	ranskalaisryökäle
+    siirtolaisvirastosta	siirto#virasto	siirtolaisvirasto
+    sukulaispojan	suku#poika	sukulaispoika
+    Töyssyisen-töyssyistä	töyssy#töyssy	töyssyisen-töyssy
+    turvavyö-merkin	turva#vyö#merkki	turvavyö-merkki
+    tyttärenikään	tytär#ikä	tyttärenikä
+    vanhempienne	vanha#enne	vanhempienne
+    vapautumisenjälkeen	vapautua#jälki	vapautumisenjälki
+    voitontanssianne	voi#tanssi	voitontanssi
+  input:
+    stdin: *output-8
+  output:
+    stdout: *output-8
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Numerals with "toista"'
+  defs: &output-9 |
+    Kuudentenatoista	kuudes#toista	kuudestoista
+    viidestätoista	viisi#toista	viisitoista
+    viidentoista	viisi#toista	viisitoista
+  input:
+    stdin: *output-9
+  output:
+    stdout: *output-9
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds which had incorrect double hyphen'
+  defs: &output-10 |
+    Vapaa-ajanohjaajanne	vapaa#aika#ohjaaja	vapaa-ajanohjaaja
+    vapaa-ajanyhdistyksiämme	vapaa#aika#yhdistys	vapaa-ajanyhdistys
+  input:
+    stdin: *output-10
+  output:
+    stdout: *output-10
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds which had an incorrect part match'
+  defs: &output-11 |
+    erilailla	eri#laki	erilaki
+    päälaellaan	pää#laki	päälaki
+    uimaaltaalle	uima#allas	uima-allas
+    valheisiisi	valhe#isi#isi	valheisi-isi
+    aaveisiisi	aave#isi#isi	aaveisi-isi
+  input:
+    stdin: *output-11
+  output:
+    stdout: *output-11
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphenated compounds which had an incorrect part match'
+  defs: &output-11b |
+    Erikoispartioryhmä-parka	erikoinen#partio#ryhmä#parka	erikoispartioryhmä-parka
+    jalkapallokannattaja-ajoistani	jalka#pallo#kannattaja#aika	jalkapallokannattaja-aika
+    kakunteko-tekniikkani	kakku#teko#tekniikka	kakunteko-tekniikka
+    Kissantappo-tauti	kissa#tappo#tauti	kissantappo-tauti
+    Koirankakka-katoa	koira#kakka#kato	koirankakka-kato
+    mullinmallin-maanantai	mulli#malli#maanantai	mullinmallin-maanantai
+    pullonavaaja-avaimenperää	pullo#avaaja#avaimen#perä	pullonavaaja-avaimenperä
+    Thaimaan-matka	thai#maa#matka	thaimaan-matka
+    Tyynenmeren-suhteemme	tyyni#meri#suhde	tyynenmeren-suhde
+    ulkomaalais-markettiin	ulko#maalainen#marketti	ulkomaalais-marketti
+    Vapaudenpatsas-pallopää	vapaus#patsas#pallo#pää	vapaudenpatsas-pallopää
+  input:
+    stdin: *output-11b
+  output:
+    stdout: *output-11b
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compounds with incorrect part match after other fixes'
+  defs: &output-11c |
+    eläinesi-isistä	eläin#esi-isä	eläinesi-isä
+    erämaa-isistä	erä#maa#isä	erämaa-isä
+    esi-isiisi	esi#isi#isi	esi-isi-isi
+    Henry-isoisoisän	henry#iso#isoisä	henry-isoisoisä
+    Roomalais-maailmaan	roomalainen#maa#ilma	roomalais-maailma
+    iso-iso-isoenoni	iso#iso#iso#eno	iso-iso-isoeno
+  input:
+    stdin: *output-11c
+  output:
+    stdout: *output-11c
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Multiple lemma prefix matches in word form'
+  defs: &output-11d |
+    alentavalta	ale#tapa	alentapa
+    arvelluttavasta	arvella#tapa	arvelluttapa
+    arvonannostani	arvo#anto	arvonanto
+    hallintavalta	halli#tapa	hallintapa
+    hullunlailla	hullu#laki	hullunlaki
+    isänlailla	isä#laki	isänlaki
+    jäävuorenlailla	jää#vuori#laki	jäävuorenlaki
+    käyttäytymistavoista	käyttäytymis#tapa	käyttäytymistapa
+    kirjastontädiltä	kirjasto#täti	kirjastontäti
+    kurinpitopisteitä	kuri#pidot#piste	kurinpitopiste
+    laitonlaitonlaitonlaitonlaiton	laiton#laitto#laiton#laitto#laitto	laitonlaitonlaitonlaitonlaitto
+    lapsenlapsenlapsenikin	lapsi#lapsenlapsi	lapsenlapsenlapsi
+    Lapsenlapsenlapsenlapsenlapsesi	lapsenlapsi#lapsi#lapsenlapsi	lapsenlapsenlapsenlapsenlapsi
+    lastenaltaalla	lapsi#allas	lastenallas
+    lastenmaailmaan	lapsi#maa#ilma	lastenmaailma
+    lemmenasioitasi	lempi#asia	lemmenasia
+    lisääntymistavoista	lisääntymis#tapa	lisääntymistapa
+    luonnonlailla	luonto#laki	luonnonlaki
+    merkinannostani	merkki#anto	merkinanto
+    mullistavalta	mulli#tapa	mullistapa
+    Nykyajantaide	nyky#aika#taide	nykyajantaide
+    omintakeista	oma#tae	omintae
+    orastavasta	oras#tapa	orastapa
+    Pakastekala-altaalla	pakaste#kala#allas	pakastekala-allas
+    paljastavasta	paljas#tapa	paljastapa
+    Peikonjahtaajahan	peikko#jahdata	peikonjahdata
+    perheenjäseniänikään	perheen#jäsen#ikä#ikä	perheenjäseniänikä
+    pojanpojanpojan	poika#poika#poika	pojanpojanpoika
+    pojanpojanpojanpojanpojanpojanpoika	poika#poika#poika#poika#pojan#pojan#poika	pojanpojanpojanpojanpojanpojanpoika
+    puvuntakeista	puku#tae	puvuntae
+    rakastavasta	rakas#tapa	rakastapa
+    rekanlavalla	rekka#lapa	rekanlapa
+    ruumissäkeissä	ruumis#säe	ruumissäe
+    seireeninääntään	seireeni#ääni	seireeninääni
+    superiäntiikeri	super#ikä#tiikeri	superiäntiikeri
+    suuntaistahan	suu#tau	suuntau
+    tainnuttavasta	taitaa#tapa	tainnuttapa
+    tarhantädiltä	tarha#täti	tarhantäti
+    tauntauniin	tau#tau#ikä	tauntaunikä
+    veljenpojanpojanpojan	veli#poika#poika#poika	veljenpojanpojanpoika
+    kullankaivajankaivaja	kullan#kaivaja#kaivaja	kullankaivajankaivaja
+    Palataanpalataan	pala#taka#pala#taka	palataanpalataka
+    parillisuustarkistuksia	par#tarkistus	parillisuustarkistus
+    sijoittajatapaamistasi	sijoittaa#tavata	sijoittajatavata
+    tähtireporttiremme	tähti#re#portti#re	tähtireporttire
+    tiedonannossaan	tieto#anto	tiedonanto
+    tyttärentyttärentytärtäsi	tyttären#tytär#tytär	tyttärentyttärentytär
+    voisitkovoisitko	voi#sitko#voi#sitko	voisitkovoisitko
+    Voisitko-voisitko	voi#sitko#voi#sitko	voisitko-voisitko
+    yhdentekevyytensä	yksi#tehdä	yhdentehdä
+    vauvanpitelijä-tyyppiä	vauva#pidellä#tyyppi	vauvanpitelijä-tyyppi
+    haaksirikkoudut	haaksi#rikko#utu	haaksirikkoutu
+    Hajaudut	haja#utu	hajautu
+    hävitystöissä	hävitys#työ	hävitystyö
+    hiluhiluhilu	hilut#hilut#hilu	hiluhiluhilu
+    hirttäjäisissä	hirttää#isä	hirttäjäisä
+    Kutikutikuti	kuti#kuti#kuti	kutikutikuti
+    päällystystöiden	päällystys#työ	päällystystyö
+    raitioteillä	raitio#tie	raitiotie
+    Riemuntaita	riemu#tau	riemuntau
+  input:
+    stdin: *output-11d
+  output:
+    stdout: *output-11d
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Even more difficult multiple lemma prefix matches in word form'
+  defs: &output-11e |
+    maailmansodansotaveteraaneille	maa#ilman#sota#sota#veteraani	maailmansodansotaveteraani
+  input:
+    stdin: *output-11e
+  output:
+    stdout: *output-11e
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Cases that were broken after fixing some of the above (mutiple lemma prefix match with verbal lemma)'
+  defs: &output-11f |
+    ajattelutapaa	ajatella#tavata	ajattelutavata
+    anniskelulupaa	anniskella#luvata	anniskeluluvata
+    esiintyjälistaa	esiintyä#listata	esiintyjälistata
+    hellittelynimi	hellitellä#imeä	hellittelynimeä
+    Huikenteluaja	huikennella#ajaa	huikenteluajaa
+    Hyvästelyviesti	hyvästellä#viestiä	hyvästelyviestiä
+    juurijajuuri	juuria#juuria	juurijajuuria
+    katselukertaa	katsella#kerrata	katselukerrata
+    katsojamäärää	katsoa#määrätä	katsojamäärätä
+    käyttäjänimi	käyttää#imeä	käyttäjänimeä
+    kuulustelujaan	kuulustella#jakaa	kuulustelujakaa
+    liioitteluaja	liioitella#ajaa	liioitteluajaa
+    näyttelijälistaa	näytellä#listata	näyttelijälistata
+    oleskelulupaa	oleskella#luvata	oleskeluluvata
+    purukumisi	purra#kumista	purukumista
+    seikkailunhalua	seikkailla#haluta	seikkailunhaluta
+    Surukukun	surra#kukkua	surukukkua
+    taisteluhenki	taistella#henkiä	taisteluhenkiä
+    Taiteilijanimi	taiteilla#imeä	taiteilijanimeä
+    Tappajahain	tappaa#hakea	tappajahakea
+    tarjoilupöytää	tarjoilla#pöydätä	tarjoilupöydätä
+    ulottuvuusluisu	ulottua#luisua	ulottuvuusluisua
+  input:
+    stdin: *output-11f
+  output:
+    stdout: *output-11f
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: More multiple lemma prefix matches broken after fixing some others'
+  defs: &output-11g |
+    Brienien	brie#ien	brienien
+    elinkustannuskorotuksen	elin#kustannukset#korotus	elinkustannuskorotus
+    harjoittelulupasi	harjoitella#luvata	harjoitteluluvata
+    huppu-vapaakiduskotiloita	huppu#vapaa#kidukset#kotilo	huppu-vapaakiduskotilo
+    jenkkisinisissä	jenkki#isä	jenkkisinisä
+    jollainlailla	jolla#laki	jollainlaki
+    kampeenne	kamppeet#enne	kampe-enne
+    kampelaisen	kamppeet#lainen	kampelainen
+    kaverusleffassa	kaverukset#leffa	kaverusleffa
+    Kidusjalkainen	kidukset#jalkainen	kidusjalkainen
+    kuolemanmadoista	kuolema#mato	kuolemanmato
+    lastenteon	lapsi#teko	lastenteko
+    lehdessäkin	lehdekset#säkki	lehdessäkki
+    liinavaateale	liina#vaatteet#ale	liinavaateale
+    liittovallanlain	liitto#valta#laki	liittovallanlaki
+    likavaatekorissa	lika#vaatteet#kori	likavaatekori
+    Merenre	meri#re	merenre
+    naapurusvartiota	naapurukset#vartio	naapurusvartio
+    Ompelutarvikekaupan	ompelutarvikkeet#kauppa	ompelutarvikekauppa
+    pitkistäkin	pitkikset#täkki	pitkistäkki
+    poliisikaverussarjoista	poliisi#kaverukset#sarja	poliisikaverussarja
+    puekutua	pukeet#kutu	puekutu
+    Puuvillaladon	puu#villa#lato	puuvillalato
+    pyhäinhäpäisijä	pyhä#häväistä	pyhäinhäväistä
+    sillalailla	silla#laki	sillalaki
+    sisälmyspataa	sisälmykset#pata	sisälmyspata
+    taiteenteon	taide#teko	taiteenteko
+    tuluskiveä	tulukset#kivi	tuluskivi
+    tyttärentyttärentyttärelleni	tyttären#tytär#tytär	tyttärentyttärentytär
+    tyttärentyttärentyttärentyttärentyttären	tyttären#tytär#tyttären#tytär#tytär	tyttärentyttärentyttärentyttärentytär
+    veljesaikaa	veljekset#aika	veljesaika
+    viinaspäissään	viinakset#pää	viinaspää
+    ylipuetaan	yli#pukeet#taka	ylipuetaka
+    ystävyssuhteen	ystävykset#suhde	ystävyssuhde
+  input:
+    stdin: *output-11g
+  output:
+    stdout: *output-11g
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: A case not handled correctly'
+  # This results in "naimisä". It would work if the longest first part
+  # was preferred but that would break other cases, such as
+  # suuntaistahan : suu#tau -> suuntaistau.
+  defs: &output-11h |
+    naimisisiin	naida#isä	naimisisä
+  input:
+    stdin: *output-11h
+  output:
+    stdout: *output-11h
+  status: 'xfail: Would work if the longest first part match was preferred but that would break other cases'
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Yet more cases with multiple possible part matches'
+  defs: &output-11i |
+    asvalttiteiden	asvaltti#tie	asvalttitie
+    cowboyöiden	cowboy#yö	cowboy-yö
+    edustajaaja	edustaa#ajaa	edustaja-ajaa
+    hänenlaisestaan	hänenlaisensa#taka	hänenlaisestaka
+    isoisoisoäidiltämme	iso#iso#isoäiti	isoisoisoäiti
+    isoisoisovanhempiani	iso#iso#isovanhemmat	isoisoisovanhemmat
+    matkustajaaja	matkustaa#ajaa	matkustaja-ajaa
+    ratsastajaaja	ratsastaa#ajaa	ratsastaja-ajaa
+    Ristiteillä	risti#tie	ristitie
+    säätytöistä	sääty#työ	säätytyö
+    yrttiteistä	yrtti#tie	yrttitie
+  input:
+    stdin: *output-11i
+  output:
+    stdout: *output-11i
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Yet more cases with multiple possible part matches (broken after fixing some others)'
+  defs: &output-11j |
+    isoisoisoisoisoisäni	iso#iso#iso#iso#isoisä	isoisoisoisoisoisä
+    isoisoisoisoisoisoisäsi	iso#iso#iso#iso#iso#isoisä	isoisoisoisoisoisoisä
+    kiusaaavat	kiusa#aapa	kiusa-aapa
+    Saksilaissiat	sakset#sika	saksilaissika
+    seuraaavaksi	seura#aapa	seura-aapa
+    Siksei	siksi#ei	siksei
+  input:
+    stdin: *output-11j
+  output:
+    stdout: *output-11j
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen missing because of stem change in second part'
+  # Prescriptively, some of these should not have a hyphen, but it
+  # would be difficult if not impossible to distinguish between
+  # "college-aika" and "koe-aika".
+  defs: &output-12 |
+    YK-ajastaan	YK#aika	YK-aika
+    500-ajoissa	500#aika	500-aika
+    college-ajan	college#aika	college-aika
+    A-teille	A#tie	A-tie
+    tv-töiden	tv#työ	tv-työ
+    Kauko-idän	kauko#itä	kauko-itä
+    vauva-iässä	vauva#ikä	vauva-ikä
+    Helium-ytimiä	helium#ydin	helium-ydin
+    PR-edut	PR#etu	PR-etu
+    Ex-parhaita	ex#hyvä	ex-hyvä
+  input:
+    stdin: *output-12
+  output:
+    stdout: *output-12
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen missing because of long first part'
+  defs: &output-13 |
+    etsityimpien-listalla	etsiä#lista	etsityimpien-lista
+    Reiden-järveen	re#järvi	reiden-järvi
+    sekaantumattomuus-takuun	sekaantuma#takuu	sekaantumattomuus-takuu
+  input:
+    stdin: *output-13
+  output:
+    stdout: *output-13
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Significantly longer first word form part than lemma part'
+  defs: &output-13a |
+    Jätteidenhävittämis-järjestelmästä	jäte#hävittää#järjestelmä	jätteidenhävittämis-järjestelmä
+  input:
+    stdin: *output-13a
+  output:
+    stdout: *output-13a
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphens in words with single-letter middle part'
+  defs: &output-14 |
+    Ihmemies-T-paitoja	ihme#mies#T#paita	ihmemies-T-paita
+    bändi-T-paita	bändi#T#paita	bändi-T-paita
+    <!-- Does not occur in the data -->
+    uudenvuoden-T-paitoja	uusi#vuosi#T#paita	uudenvuoden-T-paita
+  input:
+    stdin: *output-14
+  output:
+    stdout: *output-14
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphens between two two-letter words (or two- and one-letter words)'
+  defs: &output-15 |
+    go-go	go#go	go-go
+    re-re	re#re	re-re
+    aa-bb	aa#bb	aa-bb
+    aa-b	aa#b	aa-b
+  input:
+    stdin: *output-15
+  output:
+    stdout: *output-15
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Two consecutive compound boundary characters'
+  defs: &output-16 |
+    Lepakonsiipinen	lepakko##siipinen	lepakonsiipinen
+    alhaissäätyisen	alhainen##säätyinen	alhaissäätyinen
+    hientunteisuutta	hiki##tunteisuus	hientunteisuus
+  input:
+    stdin: *output-16
+  output:
+    stdout: *output-16
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: "...ei"'
+  defs: &output-17 |
+    ehkemme	ehkä#ei	ehkei
+    ellemme	jos#ei	ellei
+    ettenkö	että#ei	ettei
+    jollet	jos#ei	jollei
+    jottette	jotta#ei	jottei
+    miksenkö	miksi#ei	miksei
+    mutten	mutta#ei	muttei
+    vaikkemme	vaikka#ei	vaikkei
+    koskei	koska#ei	koskei
+    Siksei	siksi#ei	siksei
+  input:
+    stdin: *output-17
+  output:
+    stdout: *output-17
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Inflected first part and stem change affecting the second letter in the second part'
+  # Some of the analyses are very unlikely, but the test assumes the
+  # analysis as it is
+  defs: &output-18 |
+    alkamisajan	alkaa#aika	alkamisaika
+    entisajoille	entinen#aika	entisaika
+    vuodenajaksi	vuosi#aika	vuodenaika
+    erityisavuistani	erityinen#apu	erityisapu
+    opintoavusta	opinnot#apu	opintoapu
+    yhteiseduista	yhteinen#etu	yhteisetu
+    parempi-paras	parka#hyvä	parempi-hyvä
+    palkinnonparhaasta	palkinto#hyvä	palkinnonhyvä
+    auringoniällä	aurinko#ikä	auringonikä
+    ihmisiäksi	ihminen#ikä	ihmisikä
+    myöhäisiällä	myöhäinen#ikä	myöhäisikä
+    maisemoidusta	mainen#emo#itu	maisemoitu
+    pavuniduilla	papu#itu	pavunitu
+    pienokaista	piki#oas	pienoas
+    hienoilla	hiki#oka	hienoka
+    lumisodassa	luminen#ota	lumisota
+    jääjäteistä	jäädä#tie	jääjätie
+    maalaisteidenne	maalainen#tie	maalaistie
+    erikoistöihin	erikoinen#työ	erikoistyö
+    rinnakkaistöitä	rinnakkainen#työ	rinnakkaistyö
+    nokisutarin	nokinen#udar	nokisudar
+    luisusta	luinen#uksi	luisuksi
+    luodinhäävoihin	luoti#hää#vuo	luodinhäävuo
+    auringonytimessä	aurinko#ydin	auringonydin
+    ihmisytimestä	ihminen#ydin	ihmisydin
+    entisöin	entinen#yö	entisyö
+  input:
+    stdin: *output-18
+  output:
+    stdout: *output-18
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compound numerals'
+  defs: &output-19 |
+    sataneljä	sata#neljä	sataneljä
+    kaksisataakolmekymmentäneljä	kaksi#sata#kolme#kymmenen#neljä	kaksisataakolmekymmentäneljä
+    seitsemänkymmenenneljän	seitsemän#kymmenen#neljä	seitsemänkymmentäneljä
+    10-miljoonan	10#miljoona	10-miljoonaa
+    satojamiljoonia	sata#miljoona	satamiljoonaa
+    neljäsosamiljoonan	neljäsosa#miljoona	neljäsosamiljoona
+    satamiljoonaa	sata#miljoona	satamiljoonaa
+    puolimiljoona	puoli#miljoona	puolimiljoona
+    kahdensadanmiljoonan	kaksi#sata#miljoona	kaksisataamiljoonaa
+    kymmenesmiljoonas	kymmenes#miljoona	kymmenesmiljoonas
+    neljännesmiljoonaa	neljännes#miljoona	neljännesmiljoona
+    neljääsataa	neljä#sata	neljäsataa
+    neljälläsadalla	neljä#sata	neljäsataa
+    pariasataa	pari#sata	parisataa
+    tuhatneljäsataa	tuhat#neljä#sata	tuhatneljäsataa
+    seitsemälläsadalla	seitsemän#sata	seitsemänsataa
+    tuhattaviittäsataa	tuhat#viisi#sata	tuhatviisisataa
+    kolmetuhattaviisisataa	kolme#tuhat#viisi#sata	kolmetuhattaviisisataa
+    nelisensataa	nelisen#sata	nelisensataa
+    pariinsataan	pari#sata	parisataa
+    neljällätoista	neljä#toista	neljätoista
+    sataanviiteentoista	sata#viisi#toista	sataviisitoista
+    neljäntenätoista	neljäs#toista	neljästoista
+    neljäkymmentäkolme	neljä#kymmenen#kolme	neljäkymmentäkolme
+    kahdenkymmenenkolmen	kaksi#kymmenen#kolme	kaksikymmentäkolme
+    tuhatkolme	tuhat#kolme	tuhatkolme
+    sataaviittä	sata#viisi	sataviisi
+    Kahtakymmentäseitsemää	kaksi#kymmenen#seitsemän	kaksikymmentäseitsemän
+    neljääkymmentä	neljä#kymmenen	neljäkymmentä
+    sataakymmentä	sata#kymmenen	satakymmenen
+    pariakymmentä	pari#kymmenen	parikymmentä
+    neljissäkymmenissä	neljä#kymmenen	neljäkymmentä
+    sataakahtakymmentä	sata#kaksi#kymmenen	satakaksikymmentä
+    Tuhatneljäsataaviisikymmentä	tuhat#neljä#sata#viisi#kymmenen	tuhatneljäsataaviisikymmentä
+    kolmekymmentä-viisikymmentä	kolme#kymmenen#viisi#kymmenen	kolmekymmentä-viisikymmentä
+    nelisenkymmentä	nelisen#kymmenen	nelisenkymmentä
+    kaksinkymmenesti	kaksi#kymmenen	kaksikymmentä
+    kuusi-seitsemänvuotiaan	kuusi#seitsemän#vuotias	kuusi-seitsemänvuotias
+    30-tuhannella	30#tuhat	30-tuhatta
+    kahdeksaatuhatta	kahdeksan#tuhat	kahdeksantuhatta
+    sataatuhatta	sata#tuhat	satatuhatta
+    kymmeniätuhansia	kymmenen#tuhat	kymmenentuhatta
+    kahdestasadastatuhannesta	kaksi#sata#tuhat	kaksisataatuhatta
+    kahtakymmentäviittätuhatta	kaksi#kymmenen#viisi#tuhat	kaksikymmentäviisituhatta
+    kolmesataaviisituhatta	kolme#sata#viisi#tuhat	kolmesataaviisituhatta
+    Viisisataakaksikymmentäviisituhatta	viisi#sata#kaksi#kymmenen#viisi#tuhat	viisisataakaksikymmentäviisituhatta
+  input:
+    stdin: *output-19
+  output:
+    stdout: *output-19
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compound ordinal that is not handled correctly as the lemma does not contain ordinal'
+  defs: &output-19b |
+    miljoonasbiljoonas	miljoona#biljoona	miljoonasbiljoonas
+  input:
+    stdin: *output-19b
+  output:
+    stdout: *output-19b
+  status: 'xfail: Difficult to handle (covering all inflected forms) as the lemma does not contain ordinal numbers'
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Warning on non-match'
+  defs: &output-20 |
+    keinotekoinen	keino#teko#teko	keinotekoteko
+  input:
+    stdin: *output-20
+  output:
+    stdout: *output-20
+    stderr:
+      value: |
+        vrt-add-lemma-nobound: Warning: input line 2: No match found for compound lemma boundary "teko#teko" in suffix "tekoinen" of word form "keinotekoinen"
+      transform-expected:
+      # This removes the positional attributes comment added by a
+      # global transformation.
+      - python: |
+          return re.sub(r'^<!--.*?\n', '', value)
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Upper-case and capitalized word forms'
+  defs: &output-21 |
+    AAMIAISRUOKAA	aamiainen#ruoka	aamiaisruoka
+    AALTOMUODOT	aalto#muoto	aaltomuoto
+    Aamiaisruokaa	aamiainen#ruoka	aamiaisruoka
+    Aaltomuodot	aalto#muoto	aaltomuoto
+  input:
+    stdin: *output-21
+  output:
+    stdout: *output-21
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Lemma part beginning with a stem change'
+  defs: &output-22 |
+    laiminlöisimme	laimin#lyödä	laiminlyödä
+    sanoaksemme	san#oka	sanoka
+    hajaudumme	haja#utua	hajautua
+    siistiydyin	siisti#ytyä	siistiytyä
+    lempisäkeeni	lempi#äes	lempisäes
+    puintiin	pukimet#tii	puintii
+    parakiitin	para#kiittimet	parakiittimet
+  input:
+    stdin: *output-22
+  output:
+    stdout: *output-22

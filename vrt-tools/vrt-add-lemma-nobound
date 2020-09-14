@@ -13,6 +13,7 @@ forms and lemmas with compound boundaries.
 import re
 import sys
 
+from functools import lru_cache
 from itertools import chain
 
 import vrtdatalib
@@ -23,18 +24,45 @@ from vrtargsoolib import InputProcessor
 
 class NoBoundaryLemmaAdder(InputProcessor):
 
+    # Default functools.lru_cache size for _make_lemma_noboundaries_omorfi;
+    # lru_cache works best if the size is a power of two.
+    DEFAULT_LRU_CACHE_SIZE = 262144
+
+    # TODO (vrtargsoolib, modifying appropriately the code below):
+    # - Support usage epilog
+    # - Support action='append' in the argspec
+
     DESCRIPTION = """
     Add lemmas without compound boundaries to the input VRT with word
     forms and lemmas with compound boundaries.
+
+    Multiple lemma attributes (e.g., for different annotation schemes) can be
+    handled by specifying multiple times the options --mode,
+    --compound-boundary-marker, --lemma-name, --add-name and --add-after-name,
+    in which case the first values are used for the lemma of the first value
+    for --lemma-name, the second values for the second and so on. If some of
+    the options are specified fewer times than --lemma-name appears, their
+    last values are used for the rest of the lemma attributes.
     """
-    ARGSPECS = [
-        ('--mode (*simple-omorfi|omorfi|naive)',
-         'use the specified mode for handling compound boundary markers in'
-         ' lemmas: "simple-omorfi" handles compound boundary markers replacing'
-         ' hyphens as produced by Omorfi; "omorfi" also tries to handle'
-         ' lemmatized non-final compound parts; and "naive" simply removes'
-         ' all compound boundary markers (unless thw word form contains them)'),
-        ('--compound-boundary-marker=CHAR "|" -> boundary_char',
+    # Specify default values separately for options that may be specified
+    # multiple times and thus get list values.
+    _multi_arg_defaults = {
+        'mode': 'simple-omorfi',
+        'boundary_char': '|',
+        'lemma_attr': 'lemma',
+        'add_attr': 'lemma_nobound',
+        'add_type': 'n',
+        'add_after_attr': 'lemma',
+    }
+    _argspecs_base = [
+        ('--mode (simple-omorfi|omorfi|naive) -> mode',
+         """use the specified mode for handling compound boundary markers in
+         lemmas: "simple-omorfi" handles compound boundary markers replacing
+         hyphens as produced by Omorfi; "omorfi" also tries to handle
+         lemmatized non-final compound parts; and "naive" simply removes
+         all compound boundary markers (unless the word form contains them)
+         """),
+        ('--compound-boundary-marker|boundary-marker=CHAR -> boundary_char',
          'treat CHAR as the compound boundary marker'),
         ('--no-fix-spurious-boundaries',
          'do not correct "#" to "|" if the word form contains as many "|" as'
@@ -42,30 +70,164 @@ class NoBoundaryLemmaAdder(InputProcessor):
          ' note that even without this option, the character is corrected only'
          ' in the added lemma without compound boundaries and only if the'
          ' compound boundary marker is "#"'),
+        ('--only-wordform-hyphens',
+         """with --mode=omorfi, do not add a hyphen between same
+         vowels at a compound boundary if the word form does not have
+         it. Omorfi overgenerates compound boundaries so that the word
+         form "ongelmaanne" may get the lemma "ongelma#anne" even
+         though prescriptively, the word form should have been
+         "ongelma-anne". By default, --mode=omorfi then produces the
+         lemma "ongelma-anne", but with this option, "ongelmaanne".
+         """),
         ('--wordform-name=ATTR "word" -> word_attr',
          'use positional attribute ATTR as the word form'),
-        ('--lemma-name=ATTR "lemma" -> lemma_attr',
+        ('--lemma-name=ATTR -> lemma_attr',
          'use positional attribute ATTR as the lemma'),
-        ('--noboundaries-name=ATTR "lemma_nobound" -> nobound_attr',
-         'output the lemma without boundaries as positional attribute ATTR'),
-        ('--insert-noboundaries-after-name|insert-after=ATTR "lemma"'
-         ' -> insert_after_attr',
-         'insert the lemma without boundaries after positional attribute ATTR'),
-        ('--verbose',
-         'log output to stderr'),
+        ('--add-name=ATTR -> add_attr',
+         'add attribute ATTR'),
+        ('--add-type=TYPE -> add_type',
+         """if TYPE is "noboundaries", the attribute specified with
+         --add-name is the lemma without compound boundaries; if TYPE
+         is "boundaries", the existing lemma is moved to the added
+         attribute and the lemma without compound boundaries replaces
+         the existing lemma; the value of TYPE can be abbreviated to a
+         prefix"""),
+        ('--add-after-name=ATTR -> add_after_attr',
+         'insert the attribute specified with --add-name after ATTR'),
+        ('--quiet',
+         'suppress warnings'),
+        ('--cache-size=SIZE :int "{dft}"'.format(dft=DEFAULT_LRU_CACHE_SIZE),
+         """cache at most SIZE compounds without boundaries with
+         --mode=omorfi; SIZE should be a power of two; use -1 for
+         unlimited caching, 0 for no caching"""),
     ]
 
-    _lemma_suffix_len_changes = [('nen', -2)]
-    _stem_changes = [('ie', 'ei'), ('uo', 'oi'), ('yö', 'öi')]
+    def _make_argspecs(argspecs_base, defaults):
+
+        def get_default(argspec):
+            mo = re.search(r'->\s*(.+)$', argspec)
+            if mo:
+                return defaults.get(mo.group(1))
+            else:
+                return None
+
+        return [
+            ((spec,
+              (descr + ' (default: "{dft}")').format(dft=default),
+              dict(opts[0] if opts else {}, action='append', default=[]))
+             if default is not None
+             else (spec, descr, opts[0] if opts else {}))
+            # Use *opts to support a dict as the optional third item in the
+            # argspecs_base tuple (currently not needed)
+            for spec, descr, *opts in argspecs_base
+            for default in [get_default(spec)]
+            ]
+
+    ARGSPECS = _make_argspecs(_argspecs_base, _multi_arg_defaults)
+
+    # Lemma suffixes that are (typically) associated with a length change in
+    # the word form, typically so that the word form is shorter (e.g. hevonen
+    # -> hevos, häät -> hää). Some of these are peculiar to Omorfi, which may
+    # give verb lemmas for noun derivatives.
+    _lemma_suffix_len_changes = [
+        ('nen', -2),	# hevonen -> hevos
+        ('sakset', -1), # sakset -> saksi
+        # Would we need more specific length changes (shorter than 3) for other
+        # words ending in -kset?
+        ('kset', -3),	# veljekset -> veljes
+        ('set', -2),	# uutiset -> uutis
+        ('nsa', -2),    # laisensa -> laises
+        ('ehkä', -1),	# ehkä -> ehk
+        ('jotta', -1),	# jotta -> jott
+        ('miksi', -1),	# miksi -> miks
+        ('siksi', -1),	# siksi -> siks
+        ('koska', -1),	# koska -> kosk
+        ('vaikka', -1),	# vaikka -> vaikk
+        ('da', -2),     # voida -> voi
+        ('dä', -2),     # entisöidä -> entisöi
+        ('ttaa', -2),   # -ttaa -> -ta
+        ('ttää', -2),   # -ttaa -> -ta
+        ('ttua', -2),   # -ttua -> -tu
+        ('ttyä', -2),   # -ttua -> -tu
+        ('lla', -1),	# ajella -> ajelu
+        ('llä', -1),	# kävellä -> kävely
+        ('taa', -1),    # -taa -> -ta
+        ('tää', -1),    # -taa -> -ta
+        ('utua', -1),   # aiheutua -> aiheudu
+        ('ytyä', -1),   # peseytyä -> peseydy
+        ('nna', -1),    #
+        ('nnä', -1),    # mennä -> meni
+        ('rra', -1),    # purra -> puri
+        ('rrä', -1),    #
+        ('aa', -1),     # ajaa -> ajo
+        ('ää', -1),     #
+        ('ta', -1),     # tavata -> tapaa
+        ('tä', -1),     #
+        ('ea', -1),     # imeä -> imi
+        ('eä', -1),     #
+        ('ia', -1),     #
+        ('iä', -1),     # viestiä -> viesti
+        ('ua', -1),     # luisua -> luisu
+        ('yä', -1),     #
+        # The following would be too generic and break other cases
+        # ('a', -1),    # for other verbal lemmas
+        # ('ä', -1),    # for other verbal lemmas
+        ('kimet', -3),  # pukimet -> puin
+        ('ttimet', -3), # synnyttimet -> synnytin
+        ('imet', -2),   # elimet -> elin
+        ('eet', -3),	# vaatteet -> vaate
+        ('aat', -2),	# rattaat -> ratas
+        ('t', -1),		# häät -> hää
+    ]
+    # Stme changes that may have a preceding consonant
+    _stem_changes_2 = [
+        ('ie', 'ei'),
+        ('uo', 'oi'),
+        ('yö', 'öi'),
+    ]
+    # Stem changes that affect the second (and possibly first) letter
+    _stem_changes = _stem_changes_2 + [
+        ('aika', 'aja'),
+        ('aika', 'ajo'),
+        ('apu', 'avu'),
+        ('ei', 'em'),
+        ('ei', 'en'),
+        ('ei', 'et'),
+        ('ede', 'ete'),
+        ('etu', 'edu'),
+        ('hyvä', 'paras'),
+        ('hyvä', 'parem'),
+        ('hyvä', 'parha'),
+        ('ien', 'ike'),
+        ('ikä', 'ii'),		# "iin" is recognized by Omorfi as a form of "ikä"
+        ('ikä', 'iä'),
+        ('itu', 'idu'),
+        ('itä', 'idä'),
+        ('oas', 'oka'),
+        ('oka', 'oa'),
+        ('oka', 'oi'),
+        ('olla', 'on'),
+        ('ota', 'oda'),
+        ('udar', 'utar'),
+        ('uksi', 'ust'),
+        ('utu', 'udu'),
+        ('ydin', 'ytim'),
+        ('yty', 'ydy'),
+        ('äes', 'äke'),
+    ]
     _vowels = 'aeiouyäö'
     # We would only need the second part if the first part can occur inflected
     # with some later part, such as "uudenkarhea", "uudenveroinen",
     # "vanhanmallinen". Another option might be to special-case them, as they
     # might be specific to certain later parts, such as "lainen", "puoleinen".
-    _inflected_first_part = {
+    # Capitalized (proper) nouns have been lowercased, as at least the UD1
+    # variant of the Turku Dependency Parser Pipeline seems to lowercase some
+    # of the lemmas ("tyynimeri").
+    _inflecting_first_part = {
         ('aava', 'meri'),
         ('hieno', 'sokeri'),
-        ('Iso', 'Britannia'),
+        # ('Iso', 'Britannia'),
+        ('iso', 'britannia'),
         ('iso', 'jako'),
         ('iso', 'koskelo'),
         ('iso', 'kuovi'),
@@ -106,7 +268,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('musta', 'lintu'),
         ('musta', 'maija'),
         ('musta', 'makkara'),
-        ('Musta', 'meri'),
+        # ('Musta', 'meri'),
+        ('musta', 'meri'),
         ('musta', 'mies'),
         ('musta', 'multa'),
         ('musta', 'pekka'),
@@ -134,7 +297,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('pitkä', 'siima'),
         ('pitkä', 'takki'),
         ('pitkät', 'housut'),
-        ('Punainen', 'meri'),
+        # ('Punainen', 'meri'),
+        ('punainen', 'meri'),
         ('puoli', 'kuu'),
         ('puoli', 'matka'),
         ('puoli', 'päivä'),
@@ -150,20 +314,79 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('syvä', 'meri'),
         ('särkynyt', 'sydän'),
         ('tyhjä', 'paino'),
-        ('Tyyni', 'meri'),
+        # ('Tyyni', 'meri'),
+        ('tyyni', 'meri'),
         ('täysi', 'kuu'),
-        ('Uusi', 'kaupunki'),
+        # ('Uusi', 'kaupunki'),
+        ('uusi', 'kaupunki'),
         ('uusi', 'kuu'),
-        ('Uusi', 'maa'),
-        ('Uusi', 'Seelanti'),
+        # ('Uusi', 'maa'),
+        ('uusi', 'maa'),
+        # ('Uusi', 'Seelanti'),
+        ('uusi', 'seelanti'),
         ('uusi', 'vuosi'),
-        ('Uusi', '*'),
+        # ('Uusi', '*'),
+        # Does this overgenerate?
+        ('uusi', '*'),
         ('vanha', 'emäntä'),
         ('vanha', 'isäntä'),
         ('vanha', 'kaupunki'),
         ('vanha', 'piika'),
         ('vanha', 'poika'),
         ('vieras', 'mies'),
+    }
+    _ordinal_lemmas = set(
+        """ensimmäinen
+           toinen
+           kolmas
+           neljäs
+           viides
+           kuudes
+           seitsemäs
+           kahdeksas
+           yhdeksäs
+           kymmenes
+           sadas
+           tuhannes
+           miljoonas
+           miljardis
+           biljoonas
+           toista"""
+        .split())
+    _numeral_lemmas = _ordinal_lemmas | set(
+        """nolla
+           yksi
+           kaksi
+           kolme
+           neljä
+           viisi
+           kuusi
+           seitsemän
+           kahdeksan
+           yhdeksän
+           kymmenen
+           sata
+           tuhat
+           miljoona
+           miljardi
+           biljoona
+           kolmisen
+           nelisen
+           viitisen
+           kuutisen
+           seitsemisen
+           kahdeksisen
+           yhdeksisen
+           kymmenisen
+           pari"""
+        .split())
+    _powers10 = {
+        'kymmenen': (1, 'kymmentä'),
+        'sata': (2, 'sataa'),
+        'tuhat': (3, 'tuhatta'),
+        'miljoona': (6, 'miljoonaa'),
+        'miljardi': (9, 'miljardia'),
+        'biljoona': (12, 'biljoonaa'),
     }
     _adjust_case_fns = [
         (str.islower, str.lower),
@@ -175,100 +398,209 @@ class NoBoundaryLemmaAdder(InputProcessor):
         super().__init__()
         self._lemma_split_re = None
         self._lemma_split_keepsep_re = None
+        self._omorfi_add_hyphens = False
+
+    def check_args(self, args):
+        # print(args)
+        for argname, default in self._multi_arg_defaults.items():
+            if getattr(args, argname) == []:
+                setattr(args, argname, [default])
+        for argval, argname in [
+                (args.add_attr, 'add-name'),
+                ]:
+            if len(set(argval)) != len(argval):
+                self.error_exit(
+                    'Non-unique values for --' + optname + ':' + repr(argval))
+        add_attr_count = len(args.add_attr)
+        type_values = ['noboundaries', 'boundaries']
+        for type_ in args.add_type:
+            if not any((type_val and type_val.startswith(type_))
+                       for type_val in type_values):
+                self.error_exit(
+                    'invalid --add-type value "' + type_ + '": the value must'
+                    ' be (a prefix of) one of ' + ', '.join(type_values))
+        args.add_type = [type_[0] for type_ in args.add_type]
+        for argname in self._multi_arg_defaults:
+            argval = getattr(args, argname)
+            if len(argval) < add_attr_count:
+                # TODO: Warn that the last value for attribute is used for
+                # missing values
+                argval.extend((add_attr_count - len(argval)) * [argval[-1]])
+                setattr(args, argname, argval)
+        for argname in ['lemma_attr',
+                        'add_attr',
+                        'add_after_attr']:
+            setattr(args, argname,
+                    [val.encode() for val in getattr(args, argname)])
+        args.word_attr = args.word_attr.encode()
+        # print(args)
+        # Negative cache size is translated to None (unlimited)
+        if args.cache_size < 0:
+            args.cache_size = None
+        super().check_args(args)
 
     def main(self, args, inf, ouf):
 
-        boundary_char = args.boundary_char.encode()
-        fix_spurious_boundaries = (boundary_char == b'#'
-                                   and not args.no_fix_spurious_boundaries)
-        # Handle double boundary characters, which occur in for example
-        # "neli||siipinen"
-        self._lemma_split_re = re.compile('[' + args.boundary_char + '-]')
-        self._lemma_split_keepsep_re = re.compile(
-            '([' + args.boundary_char + '-]+)')
+        # print(args)
+        self._omorfi_add_hyphens = not args.only_wordform_hyphens
+        boundary_chars = [char.encode() for char in args.boundary_char]
+        fix_spurious_boundaries = [
+            (boundary_char == b'#' and not args.no_fix_spurious_boundaries)
+            for boundary_char in boundary_chars]
 
-        def make_lemma_noboundaries_simple(lemma, wordform):
+        def make_lemma_noboundaries_simple(lemma, wordform, boundary_char,
+                                           *rest):
             return lemma.replace(boundary_char, b'')
 
-        # def log(before, kind, after):
-        #     if args.verbose:
-        #         print('#',
-        #               *chain((w.decode().rstrip('\n')
-        #                       for w in ([b'##'] + before)[-4:]),
-        #                      [kind],
-        #                      (w.decode().rstrip('\n')
-        #                       for w in (after + [b'##'])[:6])),
-        #               file=sys.stderr)
-
-        def attr_index(s):
-            """Convert numeric 1-based attribute index strings to 0-based ints,
-            or return None for non-numeric."""
-            try:
-                return int(s) - 1
-            except ValueError:
-                return None
-
         LESS_THAN = '<'.encode()[0]
-        if args.mode == 'omorfi':
-            make_lemma_noboundaries = self._make_lemma_noboundaries_omorfi
-        elif args.mode == 'naive':
-            make_lemma_noboundaries = make_lemma_noboundaries_simple
-        else:
-            make_lemma_noboundaries = (
-                self._make_lemma_noboundaries_omorfi_simple)
-        for arg_name in ['word_attr', 'lemma_attr', 'nobound_attr',
-                         'insert_after_attr']:
-            setattr(args, arg_name, getattr(args, arg_name).encode())
-        # print(args)
-        word_index = attr_index(args.word_attr)
-        lemma_index = attr_index(args.lemma_attr)
-        insert_after_index = attr_index(args.insert_after_attr)
-        if insert_after_index:
-            insert_after_index += 1
+        make_lemma_noboundaries = []
+        lemma_split_re = []
+        for num, mode in enumerate(args.mode):
+            if mode == 'omorfi':
+                make_lemma_noboundaries.append(
+                    self._make_lemma_noboundaries_omorfi)
+                if args.cache_size != 0:
+                    make_lemma_noboundaries[-1] = (
+                        lru_cache(maxsize=args.cache_size)(
+                            make_lemma_noboundaries[-1]))
+                # Handle double boundary characters, which occur in for example
+                # "neli||siipinen"; keep boundary characters
+                lemma_split_re.append(
+                    re.compile('([' + boundary_chars[num].decode() + '-]+)'))
+            else:
+                if mode == 'naive':
+                    make_lemma_noboundaries.append(
+                        make_lemma_noboundaries_simple)
+                else:
+                    make_lemma_noboundaries.append(
+                        self._make_lemma_noboundaries_omorfi_simple)
+                # Boundary character information is not needed here, so discard
+                # them
+                lemma_split_re.append(
+                    re.compile('[' + boundary_chars[num].decode() + '-]'))
+                # simple-omorfi and naive are so fast that caching would
+                # slow them down slightly
+                args.cache_size = 0
+        add_nobounds = [add_type == 'n' for add_type in args.add_type]
         names_seen = False
+        linenr = 0
+        word_index = None
+        lemma_indices = []
+        insert_indices = []
+        lemma_source_indices = []
+        lemma_target_indices = []
+
+        def warn(msg):
+            """Output warning msg, with line number information prepended
+
+            This function is passed to the make_lemma_noboundaries
+            functions instead of the line number, so that lru_cache
+            works. (A changing line number would mean that the cache
+            would never get hits.)
+            """
+            self.warn('input line {linenr}: {msg}'.format(
+                linenr=linenr, msg=msg))
 
         for line in inf:
-            if line[0] == LESS_THAN:
+            linenr += 1
+            if line == b'\n':
+                ouf.write(line)
+            elif line[0] == LESS_THAN:
                 if not names_seen and vrtnamelib.isbinnames(line):
-                    word_index, lemma_index, insert_after_index = (
-                        vrtnamelib.nameindices(vrtnamelib.binnamelist(line),
-                                               args.word_attr,
-                                               args.lemma_attr,
-                                               args.insert_after_attr))
-                    insert_after_index += 1
-                    ouf.write(vrtnamelib.bininsertnames(
-                        line, args.insert_after_attr, args.nobound_attr))
-                else:
-                    ouf.write(line)
+                    names_seen = True
+                    namelist = vrtnamelib.binnamelist(line)
+                    word_index = vrtnamelib.nameindices(
+                        namelist, args.word_attr)[0]
+                    lemma_indices = vrtnamelib.nameindices(
+                        namelist, *args.lemma_attr)
+                    for num, add_attr in enumerate(args.add_attr):
+                        insert_index = vrtnamelib.nameindex(
+                            namelist, args.add_after_attr[num]) + 1
+                        insert_indices.append(insert_index)
+                        # When inserting a new attribute and when replacing the
+                        # original lemma with one with compound boundaries
+                        # removed, take into account possible attributes
+                        # inserted before. Separate source and target indices
+                        # are used to get the original lemma for inserting
+                        # (before inserting the new attribute, but possibly
+                        # after inserting prveious attributes) and to access
+                        # the lemma to be replaced after inserting the new
+                        # attribute.
+                        lemma_source_indices.append(
+                            vrtnamelib.nameindex(
+                                namelist, args.lemma_attr[num]))
+                        namelist[insert_index:insert_index] = [add_attr]
+                        # print(namelist, num, add_attr, args.lemma_attr[num],
+                        #       vrtnamelib.nameindex(namelist, args.lemma_attr[num]),
+                        #       file=sys.stderr)
+                        lemma_target_indices.append(
+                            vrtnamelib.nameindex(
+                                namelist, args.lemma_attr[num]))
+                    line = vrtnamelib.binmakenames(*namelist)
+                    # print(lemma_indices, insert_indices, lemma_source_indices,
+                    #       lemma_target_indices, file=sys.stderr)
+                ouf.write(line)
+            elif not names_seen:
+                self.error_exit(
+                    'No positional-attributes comment before the first token'
+                    ' line')
             else:
                 attrs = vrtdatalib.binasrecord(line)
-                lemma = attrs[lemma_index]
                 word = attrs[word_index]
-                # If the word form contains a compound boundary marker, the
-                # word is unlikely to be a real compound, so keep the lemma as
-                # is.
-                if boundary_char in lemma and not boundary_char in word:
-                    # The Turku UD1 parser pipeline seems to convert literal
-                    # |'s in lemmas to #'s if the wordform (and lemma) contains
-                    # only punctuation characters
-                    if (fix_spurious_boundaries
-                            and lemma.count(boundary_char) == word.count(b'|')):
-                        lemma_nobound = lemma.replace(boundary_char, b'|')
+                lemma_nobounds = []
+                for lemma_num, lemma_index in enumerate(lemma_indices):
+                    lemma = attrs[lemma_index]
+                    boundary_char = boundary_chars[lemma_num]
+                    # If the word form contains a compound boundary marker, the
+                    # word is unlikely to be a real compound, so keep the lemma
+                    # as is.
+                    if boundary_char in lemma and not boundary_char in word:
+                        # The Turku UD1 parser pipeline seems to convert
+                        # literal |'s in lemmas to #'s if the wordform (and
+                        # lemma) contains only punctuation characters
+                        if (fix_spurious_boundaries[lemma_num]
+                                and (lemma.count(boundary_char)
+                                     == word.count(b'|'))):
+                            lemma_nobound = lemma.replace(boundary_char, b'|')
+                        else:
+                            lemma_nobound = make_lemma_noboundaries[lemma_num](
+                                lemma, word, boundary_char,
+                                lemma_split_re[lemma_num], warn)
                     else:
-                        lemma_nobound = make_lemma_noboundaries(lemma, word)
-                else:
-                    lemma_nobound = lemma
-                ouf.write(b'\t'.join(chain(attrs[:insert_after_index],
-                                           [lemma_nobound],
-                                           attrs[insert_after_index:]))
-                          + b'\n')
+                        lemma_nobound = lemma
+                    lemma_nobounds.append(lemma_nobound)
+                for nobound_num, lemma_nobound in enumerate(lemma_nobounds):
+                    insert_index = insert_indices[nobound_num]
+                    # print(nobound_num, lemma_nobound, insert_index,
+                    #       lemma_indices[nobound_num],
+                    #       lemma_source_indices[nobound_num],
+                    #       lemma_target_indices[nobound_num],
+                    #       attrs,
+                    #       file=sys.stderr, end=' -> ')
+                    if add_nobounds[nobound_num]:
+                        attrs[insert_index:insert_index] = [lemma_nobound]
+                    else:
+                        # Copy the original lemma to the new attribute
+                        attrs[insert_index:insert_index] = [
+                            attrs[lemma_source_indices[nobound_num]]]
+                        # Replace the original lemma with the one without
+                        # compound boundaries; use here lemma_target_indices in
+                        # case the value above was inserted before the lemma
+                        attrs[lemma_target_indices[nobound_num]] = lemma_nobound
+                    # print(attrs, file=sys.stderr)
+                # print(attrs)
+                ouf.write(b'\t'.join(attrs) + b'\n')
+        # if args.cache_size != 0:
+        #     print(make_lemma_noboundaries[0].cache_info(), file=sys.stderr)
 
-    def _make_lemma_noboundaries_omorfi_simple(self, lemma_b, wordform_b):
+    def _make_lemma_noboundaries_omorfi_simple(self, lemma_b, wordform_b,
+                                               boundary_char, lemma_split_re,
+                                               warn_fn):
         # Adapted and slightly improved from vrt-fix-attrs.py
         # (PosAttrConverter._make_lemma_without_boundaries_tdt)
         lemma = lemma_b.decode()
         wordform = wordform_b.decode()
-        boundary_char = self._args.boundary_char
+        boundary_char = boundary_char.decode()
         # If the boundary character is the first or the last in the lemma, it
         # should most likely be taken literally.
         if len(lemma) < 3 or boundary_char not in lemma[1:-1]:
@@ -292,97 +624,281 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # In some cases, the lemma has - replaced with a |; in
         # other cases not
         wordform_parts = wordform.split('-')
-        lemma_parts = self._lemma_split_re.split(lemma)
-        if (len(wordform_parts) == len(lemma_parts)
+        lemmaparts = lemma_split_re.split(lemma)
+        if (len(wordform_parts) == len(lemmaparts)
             and '-' not in lemma):
             return lemma.replace(boundary_char, '-').encode()
         else:
-            lemma_without_boundaries = [lemma_parts[0]]
-            lemma_prefix_len = len(lemma_parts[0])
+            lemma_without_boundaries = [lemmaparts[0]]
+            lemma_prefix_len = len(lemmaparts[0])
             wf_prefix_len = len(wordform_parts[0])
             wf_partnr = 1
-            for lemma_part in lemma_parts[1:]:
+            for lemmapart in lemmaparts[1:]:
                 if wf_partnr >= len(wordform_parts):
-                    lemma_without_boundaries.append(lemma_part)
-                elif (lemma_part[:2] == wordform_parts[wf_partnr][:2]
+                    lemma_without_boundaries.append(lemmapart)
+                elif (lemmapart[:2] == wordform_parts[wf_partnr][:2]
                       and abs(wf_prefix_len - lemma_prefix_len) <= 2):
                     # FIXME: Devise a better heuristic
-                    lemma_without_boundaries.extend(['-', lemma_part])
+                    lemma_without_boundaries.extend(['-', lemmapart])
                     wf_prefix_len += len(wordform_parts[wf_partnr])
                     wf_partnr += 1
                 else:
-                    lemma_without_boundaries.append(lemma_part)
-                lemma_prefix_len += len(lemma_part)
+                    lemma_without_boundaries.append(lemmapart)
+                lemma_prefix_len += len(lemmapart)
             return ''.join(lemma_without_boundaries).encode()
 
-    def _make_lemma_noboundaries_omorfi(self, lemma, wordform):
-        # TODO: uudenvuoden -> uusivuosi
+    def _make_lemma_noboundaries_omorfi(self, lemma, wordform,
+                                        boundary_char, lemma_split_re,
+                                        warn_fn):
+
+        def get_lemma_min_wf_len(lemma):
+            for suffix, len_change in self._lemma_suffix_len_changes:
+                if lemma.endswith(suffix):
+                    return len(lemma) + len_change
+            return len(lemma)
+
         lemma = lemma.decode()
         wordform = wordform.decode()
-        lemma_parts = self._lemma_split_keepsep_re.split(lemma)
+        boundary_char = boundary_char.decode()
+        # CHECK: Do we really need to preserve information on the separators,
+        # because of possible hyphens?
+        lemmaparts_boundaries = lemma_split_re.split(lemma)
+        lemmaparts = [part for partnum, part
+                      in enumerate(lemmaparts_boundaries)
+                      if partnum % 2 == 0]
+        if all((lemmapart in self._numeral_lemmas
+                or lemmapart.isdigit())
+               for lemmapart in lemmaparts):
+            return self._lemmatize_numeral(lemmaparts, wordform).encode()
+        # If the word form has the same number of intra-word hyphens as the
+        # lemma has boundaries (and hyphens), use the lemma of the last part
+        # and the word forms of the preceding parts.
+        if (lemma[1:-1].count(boundary_char) + lemma[1:-1].count('-')
+                == wordform[1:-1].count('-')):
+            result_parts = ([
+                    self._adjust_case(wf_part, lemmaparts[partnum])
+                    for partnum, wf_part
+                    in enumerate(wordform.strip('-').split('-')[:-1])]
+                ) + [lemmaparts[-1]]
+            # If the second-last and last part form a compound in which the
+            # second-last part inflects, use its lemma instead of the inflected
+            # word form (e.g., nyky-Ison-Britannian -> nyky-Iso-Britannia). If
+            # the inflected part is earlier, no changes are needed (e.g.,
+            # Ison-Britannian-kävijät -> Ison-Britannian-kävijä).
+            if self._has_inflecting_first_part(lemmaparts[-2], lemmaparts[-1]):
+                result_parts[-2] = lemmaparts[-2]
+            return '-'.join(result_parts).encode()
         wf_prefix_len = 0
-        lemma_prefix_len = 0
         lemma_nobound = []
-        for partnum, part in enumerate(lemma_parts[:-2]):
-            if partnum % 2 == 0:
-                # Actual compound part
-                nobound_part, end_diff, wf_use_len = self._get_prefix(
-                    lemma_parts[partnum], lemma_parts[partnum + 2],
-                    wordform[wf_prefix_len:])
-                # print(partnum, part, nobound_part, end_diff, wf_use_len)
-                lemma_nobound.append(nobound_part)
-                # print(nobound_part, lemma_parts, partnum, file=sys.stderr)
-                # nobound_part may be empty if the lemma begins with a boundary
-                # marker, which has replaced a hyphen ("|tuntinen"). This
-                # replaces such a boundary marker with a hyphen; an alternative
-                # would be to leave it out if the word form has no initial
-                # hyphen.
-                if (nobound_part == ''
-                        or (lemma_parts[partnum + 2]
-                            and nobound_part[-1] == lemma_parts[partnum + 2][0]
-                            and nobound_part[-1] in self._vowels)
-                        or nobound_part[-1].isupper()
-                        or nobound_part[-1].isdigit()):
-                    lemma_nobound.append('-')
-                wf_prefix_len += len(nobound_part)
-        lemma_nobound.append(lemma_parts[-1])
-        return (''.join(lemma_nobound)).encode()
+        # Calculate the minimum word form length covering a lemma part and the
+        # parts following it
+        min_rest_wf_lens = len(lemmaparts) * [0]
+        rest_len = 0
+        for partnum in range(len(lemmaparts) - 1, -1, -1):
+            rest_len += get_lemma_min_wf_len(lemmaparts[partnum])
+            min_rest_wf_lens[partnum] = rest_len
+        for partnum in range(0, len(lemmaparts) - 1):
+            part = lemmaparts[partnum]
+            # Actual compound part
+            nobound_part, wf_use_len = self._get_prefix(
+                lemmaparts[partnum:], wordform[wf_prefix_len:],
+                min_rest_wf_lens[partnum + 1:])
+            # print('after _get_prefix', partnum, part, nobound_part,
+            #       end_diff, wf_use_len, file=sys.stderr)
+            if wf_use_len == 0:
+                wf_use_len = len(nobound_part)
+                if not self._args.quiet:
+                    warn_fn(
+                        'No match found for compound lemma boundary'
+                        ' "{lemmapart1}{boundary}{lemmapart2}"'
+                        ' in suffix "{suffix}" of word form "{wordform}"'
+                        .format(lemmapart1=lemmaparts[partnum],
+                                lemmapart2=lemmaparts[partnum + 1],
+                                boundary=boundary_char,
+                                suffix=wordform[wf_prefix_len:],
+                                wordform=wordform))
+            if (nobound_part and nobound_part[0] == '-'
+                    and lemma_nobound and lemma_nobound[-1] == '-'):
+                nobound_part = nobound_part[1:]
+            lemma_nobound.append(nobound_part)
+            # print(nobound_part, lemmaparts, partnum, file=sys.stderr)
+            # nobound_part may be empty if the lemma begins with a boundary
+            # marker, which has replaced a hyphen ("|tuntinen"). This
+            # replaces such a boundary marker with a hyphen; an alternative
+            # would be to leave it out if the word form has no initial
+            # hyphen.
+            if (self._omorfi_add_hyphens
+                    and nobound_part and nobound_part[-1] != '-'
+                    and lemmaparts[partnum + 1]
+                    and nobound_part[-1] == lemmaparts[partnum + 1][0]
+                    and nobound_part[-1] in self._vowels):
+                lemma_nobound.append('-')
+            wf_prefix_len += wf_use_len
+            # print('lemma_nobound:', lemma_nobound, file=sys.stderr)
+        lemma_nobound.append(lemmaparts[-1])
+        return ''.join(lemma_nobound).encode()
 
-    def _get_prefix(self, lemmapart_this, lemmapart_next, wordform):
-        # yhteinen kunta yhteiskunnan -> yhteis, -2, 3
-        # oleskella lupa oleskeluluvista ->
-        lemma_len = len(lemmapart_this)
-        adjust_case_fn = lambda x: x
+    def _get_adjust_case_fn(self, ref_word):
         for test_fn, adjust_fn in self._adjust_case_fns:
-            if test_fn(lemmapart_this):
-                adjust_case_fn = adjust_fn
-                break
+            if test_fn(ref_word):
+                return adjust_fn
+        return lambda x: x
+
+    def _adjust_case(self, adjust_word, ref_word):
+        return self._get_adjust_case_fn(ref_word)(adjust_word)
+
+    def _has_inflecting_first_part(self, part1, part2):
+        part1_lower = part1.lower()
+        return ((part1_lower, part2.lower()) in self._inflecting_first_part
+                or (part1_lower, '*') in self._inflecting_first_part)
+
+    def _get_prefix(self, lemmaparts, wordform_orig, min_rest_wf_lens):
+        # min_rest_wf_len = the minimum number of (non-hyphen)
+        # characters the word form should have left after the prefix
+        # corresponding to lemmapart_this
+        # [yhteinen, kunta] yhteiskunnan -> yhteis, 6
+        # [oleskella, lupa] oleskeluluvista -> oleskelu, 8
+        lemmapart_this = lemmaparts[0].lower()
+        lemmapart_next = lemmaparts[1].lower()
+        wordform = wordform_orig.lower()
+        # Inflecting first part should be considered only when the current part
+        # is the second-last one, as for example, uudenvuodenlupauksia should
+        # result in uudenvuodenlupaus, not uusivuodenlupaus.
+        consider_inflecting_first_part = (len(lemmaparts) == 2)
+        lemma_len = len(lemmapart_this)
+        # print('_get_prefix', lemmapart_this, lemmapart_next, wordform,
+        #       min_rest_wf_lens, consider_inflecting_first_part,
+        #       file=sys.stderr)
+        adjust_case_fn = self._get_adjust_case_fn(lemmaparts[0])
 
         def find_begin(lemmapart_next):
-            for wf_prefix_len in range(min(len(lemmapart_next), 5), 1, -1):
-                # print('CHECK:', wordform, lemmapart_next, wf_prefix_len, lemmapart_next[:wf_prefix_len], wordform[(lemma_len - 3):])
+
+            def common_suffix_len(a, b):
+                ia = len(a) - 1
+                ib = len(b) - 1
+                while ia >= 0 and ib >= 0 and a[ia] == b[ib]:
+                    ia -= 1
+                    ib -= 1
+                # print('CSL', a, b, '->', len(a) - ia - 1, file=sys.stderr)
+                return len(a) - ia - 1
+
+            def make_return_value(value):
+                next_pos, wf_prefix_len, _ = value
+                return (adjust_case_fn(wordform_orig[:next_pos]), next_pos)
+
+            def choose_candidate(cands):
+                max_num = 0
+                max_prefix_len = cands[0][1]
+                max_suffix_len = cands[0][2]
+                # print('max cand', max_num, max_prefix_len, max_suffix_len,
+                #       file=sys.stderr)
+                for cand_num, cand in enumerate(cands[1:]):
+                    _, prefix_len, suffix_len = cand
+                    # The candidates are ordered by the length of the common
+                    # prefix for the word form part and the next lemma part, so
+                    # prefer the longest common prefix, unless a shorter prefix
+                    # results in a longer common substring consisting of the
+                    # prefix and the suffix of the previous word form part and
+                    # lemma part.
+                    if (prefix_len + suffix_len > max_prefix_len + max_suffix_len):
+                        max_num = cand_num + 1
+                        max_prefix_len = prefix_len
+                        max_suffix_len = suffix_len
+                        # print('max cand', max_num, max_prefix_len, max_suffix_len,
+                        #       file=sys.stderr)
+                return cands[max_num]
+
+            cands = []
+            # Check word form prefix of 5...2 characters (or 1 if the length of
+            # the next lemma part is 1)
+            for wf_prefix_len in range(min(len(lemmapart_next), 5),
+                                       min(len(lemmapart_next) - 1, 1), -1):
+                # print('CHECK:', wordform, lemmapart_next, wf_prefix_len,
+                #       lemmapart_next[:wf_prefix_len],
+                #       wordform[(lemma_len - 3):], file=sys.stderr)
                 next_pos = find_next_begin(wf_prefix_len, lemmapart_next)
+                # print('next_pos', next_pos, file=sys.stderr)
                 if next_pos:
-                    return (adjust_case_fn(wordform[:next_pos]),
-                            next_pos - lemma_len,
-                            wf_prefix_len)
-            return None
+                    for np in next_pos:
+                        cands.append(
+                            (np, wf_prefix_len,
+                             common_suffix_len(lemmapart_this,
+                                               wordform[:np].strip('-'))))
+            # print('fnb cands', cands, file=sys.stderr)
+            if not cands:
+                return None
+            elif len(cands) == 1:
+                cand = cands[0]
+            else:
+                cand = choose_candidate(cands)
+            return make_return_value(cand)
 
         def find_next_begin(wf_prefix_len, lemmapart_next):
-            begin_candidates = []
-            start_pos = lemma_len - 3
+            # print('find_next_begin', wf_prefix_len, lemmapart_next, lemma_len,
+            #       file=sys.stderr)
+
+            def all_parts_have_match(parts, whole):
+                # Test if all the (lemma) parts in parts have a prefix
+                # match of at least two characters in the (word form)
+                # whole, so that each at each match, the remaining
+                # word form is at least min_rest_wf_lens[partnum]
+                # characters long.
+                # TODO: Try to take into account possible stem changes.
+                # print('all_parts_have_match', parts, whole,
+                #       min_rest_wf_lens[1:], file=sys.stderr)
+                pos = prev_pos = 0
+                for partnum, part in enumerate(parts):
+                    pos = whole.find(part[:2], prev_pos)
+                    # print(partnum, part, pos)
+                    if pos == -1 or (
+                        	pos > len(whole) - min_rest_wf_lens[partnum + 1]):
+                        return False
+                    prev_pos = pos
+                return True
+
+            begin_cands = []
+            lemma_len_change = 0
+            for suffix, len_change in self._lemma_suffix_len_changes:
+                if lemmapart_this.endswith(suffix):
+                    lemma_len_change = len_change
+                    break
+            start_pos = max(0, lemma_len + lemma_len_change)
             next_pos = 0
             while start_pos < lemma_len + 3 and next_pos > -1:
+                # print('fnb loop:', wordform, lemmapart_next[:wf_prefix_len],
+                #       start_pos, wordform[start_pos:], file=sys.stderr)
                 next_pos = wordform.find(lemmapart_next[:wf_prefix_len],
                                          start_pos)
-                if -1 < next_pos < lemma_len + 3:
-                    # print('FOUND:', wf_prefix_len, next_pos, lemmapart_next, wordform[:next_pos] + '[' + wordform[next_pos:(next_pos + wf_prefix_len)] + ']' + wordform[next_pos + wf_prefix_len:])
-                    begin_candidates.append(next_pos)
+                # print('next_pos', next_pos, file=sys.stderr)
+                # FIXME: min_rest_wf_len does not take into account possible
+                # hyphens in the word form.
+                if 1 < next_pos <= len(wordform) - min_rest_wf_lens[0]:
+                    if (begin_cands
+                        and not all_parts_have_match(
+                            lemmaparts[2:],
+                            wordform[next_pos + wf_prefix_len:])):
+                        # Avoid matching in maailmansodansotaveteraaneille :
+                        # maa#ilman#sota#sota#veteraani the first lmma part
+                        # "sota" with "sota" in the word form, as the second
+                        # lemma part "sota" would then have no match in the
+                        # word form.
+                        break
+                    # print('FOUND:', wf_prefix_len, next_pos, lemmapart_next,
+                    #       wordform[:next_pos] + '['
+                    #       + wordform[next_pos:(next_pos + wf_prefix_len)] + ']'
+                    #       + wordform[next_pos + wf_prefix_len:],
+                    #       file=sys.stderr)
+                    begin_cands.append(next_pos)
                 start_pos = next_pos + 1
-            if not begin_candidates:
+            # print('begin_cands:', begin_cands, file=sys.stderr)
+            if not begin_cands:
                 return None
-            elif len(begin_candidates) == 1:
-                return begin_candidates[0]
+            elif len(begin_cands) == 1:
+                return [begin_cands[0]]
+            elif begin_cands[0] == 0 or wordform[begin_cands[0] - 1] == '-':
+                # If the first candidate position is at the very beginning of
+                # the word form or if it is preceded by a hyphen, prefer it.
+                return [begin_cands[0]]
             else:
                 # If the current lemma part ends with a suffix for which a
                 # length change has been specified and the first candidate for
@@ -390,251 +906,110 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # length adjusted, prefer that (suomalainen|tuttu,
                 # suomalais<tu><tu>t -> suomalaistuttu and not
                 # suomalaistututtu)
-                for suffix, len_change in self._lemma_suffix_len_changes:
-                    if (lemmapart_this.endswith(suffix) and
-                            begin_candidates[0] <= lemma_len + len_change):
-                        return begin_candidates[0]
-                # Otherwise, prefer the longest prefix (oleskella|lupa,
-                # oleske<lu><lu>vista -> oleskelulupa and not oleskelupa)
-                return begin_candidates[-1]
+                if (lemma_len_change
+                        and begin_cands[0] <= lemma_len + len_change):
+                    return [begin_cands[0]]
+                # Otherwise, choose the longest prefix with the last two
+                # letters matching the previous lemma (eri|laki, eri<la>il<la>
+                # -> erilaki and not erilaillaki)
+                for i in range(len(begin_cands) - 1, -1, -1):
+                    pos = begin_cands[i]
+                    if pos >= 2 and wordform[pos - 2:pos] == lemmapart_this[-2:]:
+                        return [pos]
+                # Otherwise, return all and choose in
+                # find_begin/choose_candidate.
+                # Preferring the furthest match by reversing
+                # begin_cands would fix some cases (naimisisiin :
+                # naima#isä -> naimisisä instead of naimisä) but break
+                # others (suuntaistahan : suu#tau -> suuntaistau).
+                # begin_cands.reverse()
+                return begin_cands
 
-        hyphen_pos = wordform.find('-', lemma_len - 3, lemma_len + 4)
-        if ((lemmapart_this, lemmapart_next) in self._inflected_first_part
-                or (lemmapart_this, '*') in self._inflected_first_part):
-            # print('INFL FIRST')
-            return (lemmapart_this + ('-' if hyphen_pos > -1 else ''),
-                    0, len(lemmapart_this))
-        if hyphen_pos > -1:
-            return (adjust_case_fn(wordform[:(hyphen_pos + 1)]),
-                    hyphen_pos - lemma_len, 10)
-        return_vals = find_begin(lemmapart_next)
-        if return_vals:
-            return return_vals
+        # FIXME: We should take into account the consumed prefix of the
+        # wordform and not look for lemmas there
+        hyphen_pos = wordform.find('-', max(0, lemma_len - 3))
+        # print(lemma_len, wordform, hyphen_pos, file=sys.stderr)
+        maybe_hyphen = ('-' if hyphen_pos > -1 else '')
+        if (consider_inflecting_first_part
+                and self._has_inflecting_first_part(
+                        lemmapart_this, lemmapart_next)):
+            # print('INFL_FIRST', lemmapart_this + maybe_hyphen, 0,
+            #       len(lemmapart_this), file=sys.stderr)
+            lemmapart_this += maybe_hyphen
+            return lemmapart_this, len(lemmapart_this)
+        return_val = find_begin(lemmapart_next)
+        if return_val:
+            return return_val
         else:
             lemmapart_next_len = len(lemmapart_next)
             for lemma_stem, infl_stem in self._stem_changes:
                 lemma_stem_len = len(lemma_stem)
-                # print(lemma_stem, infl_stem, lemmapart_next_len, lemma_stem_len + 1, lemmapart_next.endswith(lemma_stem))
+                # print(lemma_stem, infl_stem, lemmapart_next_len,
+                #       lemma_stem_len + 1, lemmapart_next.endswith(lemma_stem),
+                #       file=sys.stderr)
                 if (lemmapart_next_len <= lemma_stem_len + 1
                         and lemmapart_next.endswith(lemma_stem)):
-                    return_vals = find_begin(
+                    return_val = find_begin(
                         lemmapart_next[:(lemmapart_next_len - lemma_stem_len)]
                         + infl_stem)
-                    if return_vals:
-                        return return_vals
-        # print('NOT FOUND')
-        return lemmapart_this, 0, 0
+                    if return_val:
+                        return return_val
+                if lemmapart_next.startswith(lemma_stem):
+                    return_val = find_begin(
+                        infl_stem + lemmapart_next[lemma_stem_len:])
+                    if return_val:
+                        return return_val
+            # Stem changes that may have a preceding consonant
+            for lemma_stem, infl_stem in self._stem_changes_2:
+                if (len(lemmapart_next) >= 3
+                        and lemmapart_next[1:3] == lemma_stem):
+                    return_val = find_begin(
+                        lemmapart_next[0] + infl_stem + lemmapart_next[3:])
+                    if return_val:
+                        return return_val
+        # print('NOT FOUND', file=sys.stderr)
+        return lemmapart_this, 0
 
-    def test(self, lemma_wf_pairs=[]):
-        for lemma, wf in lemma_wf_pairs:
-            print(lemma, wf, '->', self._make_lemma_noboundaries_omorfi(lemma.encode(), wf.encode()).decode())
+    def _lemmatize_numeral(self, lemmaparts, wordform):
+        """Lemmatize compound numerals correctly based on compound parts.
+
+        Omorfi lemmatizes all compound parts separately: for example,
+        kahtasataa -> kaksi|sata. This function converts it to
+        "kaksisataa". The wordform is used only for inserting hyphens
+        at the correct places.
+        """
+        if all(lemmapart in self._ordinal_lemmas
+               for lemmapart in lemmaparts[:-1]):
+            if lemmaparts[-1] in self._ordinal_lemmas:
+                return ''.join(lemmaparts)
+            else:
+                # Handle kymmenesmiljoonas : kymmenes#miljoona produced by
+                # Omorfi. NOTE that this does *not* handle miljoonasbiljoonas :
+                # miljoona#biljoona, as "miljoona" is not ordinal. It would
+                # also be difficult to make it a special case and handle all
+                # inflected forms.
+                return ''.join(lemmaparts) + 's'
+        wf_posthyphen_prefixes = re.findall(r'-(..)', wordform)
+        hyphens_added = 0
+        result = []
+        for partnum, lemmapart in enumerate(lemmaparts):
+            if (partnum > 0 and hyphens_added < len(wf_posthyphen_prefixes)
+                    and lemmapart.startswith(
+                        wf_posthyphen_prefixes[hyphens_added])):
+                result.append('-')
+                hyphens_added += 1
+            if partnum > 0 and lemmapart in self._powers10:
+                pow10, inflform = self._powers10[lemmapart]
+                if lemmaparts[partnum - 1] in self._powers10:
+                    prev_pow10, _ = self._powers10[lemmaparts[partnum - 1]]
+                    if prev_pow10 > pow10:
+                        result.append(lemmapart)
+                        continue
+                result.append(inflform)
+            else:
+                result.append(lemmapart)
+        return ''.join(result)
 
 
 if __name__ == '__main__':
     NoBoundaryLemmaAdder().run()
-    exit(1)
-    NoBoundaryLemmaAdder().test(
-        [('yhteinen|kunta', 'yhteiskunnan'),
-         ('keskustella|palsta', 'keskustelupalstalla'),
-         ('ihminen|kunta', 'ihmiskunnan'),
-         ('viikko|loppu', 'viikonloppuna'),
-         ('alku|perä', 'alunperin'),
-         ('virka|omainen', 'viranomaiset'),
-         ('maalinen|kuu', 'maaliskuussa'),
-         ('selvä|pää', 'selvinpäin'),
-         ('opinnot|tuki', 'opintotukea'),
-         ('sisällinen|sota', 'sisällissota'),
-         ('todellinen|uusi', 'todellisuutta'),
-         ('korkea|taka', 'korkeintaan'),
-         ('suoda|tie', 'suojatien'),
-         ('piki|itu|loinen', 'pienituloisten'),
-         ('alunen|housut', 'alushousut'),
-         ('jyvänen|kylä', 'jyväskylässä'),
-         ('väärä|pää', 'väärinpäin'),
-         ('monikulttuurinen|uusi', 'monikulttuurisuuden'),
-         ('entinen|täkki', 'entistäkin'),
-         ('lainen|inka', 'laisinkaan'),
-         ('suvinen|euro', 'suviseuroissa'),
-         ('toinen|sijainen', 'toissijainen'),
-         ('yhde|sopiva', 'yhteensopiva'),
-         ('rikollinen|uusi', 'rikollisuutta'),
-         ('nimi|oma', 'nimenomaa'),
-         ('vähä|täi', 'vähintäin'),
-         ('toinen|ilta', 'toisiltaan'),
-         ('huoli|pidot', 'huolenpitoa'),
-         ('piki|impi', 'pienimmistä'),
-         ('aikuinen|mainen', 'aikuismaisesti'),
-         ('piki|yrittäjä', 'pienyrittäjä'),
-         ('piki|puolue', 'pienpuolueiden'),
-         ('asua|kulku', 'asumiskulut'),
-         ('omainen|uusi', 'omaisuutta'),
-         ('purra|rata', 'pururadalla'),
-         ('yhdenvertainen|uusi', 'yhdenvertaisuuden'),
-         ('toinen|enne', 'toisenne'),
-         ('yleinen|impi', 'yleisimmistä'),
-         ('alunen|asu', 'alusasuja'),
-         ('kihlat|sormus', 'kihlasormus'),
-         ('kaltto|kohtelu', 'kaltoinkohtelua'),
-         ('piki|okainen', 'pienokainen'),
-         ('paperinen|ota', 'paperisota'),
-         ('piki|hiukkanen', 'pienhiukkasia'),
-         ('yhde|muutto', 'yhteenmuuttoa'),
-         ('erilainen|uusi', 'erilaisuutta'),
-         ('aikainen|taka', 'aikaisintaan'),
-         ('osallinen|tupa', 'osallistuvan'),
-         ('tapa|omainen', 'tavanomaista'),
-         ('monimutkainen|uusi', 'monimutkaisuutta'),
-         ('panna|kakku', 'pannukakku'),
-         ('lainen|koi', 'laiskoille'),
-         ('kaikkivoipainen|uusi', 'kaikkivoipaisuuteen'),
-         ('parka|valinta', 'parinvalinnassa'),
-         ('moraalinen|ääntö', 'moraalisääntöjä'),
-         ('ruko|ala', 'Ruonala'),
-         ('parka|vaihto', 'parinvaihtoa'),
-         ('sisällinen|ota', 'sisällisodan'),
-         ('tulevainen|uusi', 'tulevaisuutta'),
-         ('kepulainen|uusi', 'kepulaisuuden'),
-         ('panna|huone', 'pannuhuoneessa'),
-         ('itsetuhoinen|uusi', 'itsetuhoisuutta'),
-         ('resurssit|pula', 'resurssipula'),
-         ('lapsi|kota', 'lastenkodissa'),
-         ('parka|kymppi', 'parinkympin'),
-         ('yhteinen|kunta|amme', 'yhteiskuntaamme'),
-         ('piki|talo', 'pientalojen'),
-         ('viimeinen|impi', 'viimeisimmistä'),
-         ('harhainen|uusi', 'harhaisuutta'),
-         ('alinen|teinen', 'alisteinen'),
-         ('muu|oka', 'muinoin'),
-         ('tavallinen|takki', 'tavallistakin'),
-         ('nainen|ilta', 'naisiltakin'),
-         ('vertainen|taka', 'vertaistaan'),
-         ('takainen|kari', 'takaiskarit'),
-         ('kasvot|ilta', 'kasvoiltani'),
-         ('allerginen|oiva', 'allergisoiva'),
-         ('mainen|terä', 'maisteriksi'),
-         ('uskollinen|uusi', 'uskollisuutta'),
-         ('likainen|uusi', 'likaisuudesta'),
-         ('toinen|tupa', 'Toistuvasta'),
-         ('piki|yritys', 'pienyritysten'),
-         ('piki|eläkeläinen', 'pieneläkeläiset'),
-         ('voinen|iva', 'voisivatkaan'),
-         ('parka|emi', 'paraneminen'),
-         ('karismaattinen|uusi', 'karismaattisuutta'),
-         ('asiallinen|takki', 'asiallistakin'),
-         ('nainen|tau|tie', 'naistentautien'),
-         ('näyttö|ohja', 'Näytönohjain'),
-         ('piki|imu|nainen', 'pienimunaisten'),
-         ('kokko|ansa', 'kokonansa'),
-         ('suomalainen|uusi', 'suomalaisuutta'),
-         ('menkat|mainen', 'menkkamaisia'),
-
-         ('oleskella|lupa', 'oleskeluluvista'),
-         ('suomalainen|tuttu', 'suomalaistutut'),
-         ('pääsiäinen|yö', 'pääsiäisöinä'),
-         ('askarrella|työ', 'askartelutöinä'),
-         ('suomalainen|suo', 'suomalaissoina'),
-         ('ruotsalainen|tie', 'ruotsalaisteinä'),
-
-         ('uusi|vuosi', 'uudenvuoden'),
-         ('Iso-Britannia', 'Isosta-Britanniasta'),
-         ('Iso|Britannia', 'Isosta-Britanniasta'),
-         ('Uusi-Seelanti', 'Uuteen-Seelantiin'),
-         ('Uusi|Seelanti', 'Uuteen-Seelantiin'),
-         ('Uusi-Kaledonia', 'Uuteen-Kaledoniaan'),
-         ('Uusi|Kaledonia', 'Uuteen-Kaledoniaan'),
-         ('Uusikirkko', 'Uudenkirkon'),
-
-         ('väärä|pää', 'väärin-päin'),
-         ('entinen|täkki', 'entis-täkin'),
-         ('evankelinen|luterilainen', 'evankelis-luterilaisen'),
-         ('uusi|vuosi', 'uuden-vuoden'),
-         ('kauppa|pää', 'kaupan-päälle'),
-         ('pohjoinen|korea', 'pohjois-korean'),
-         ('kokonainen|kerto', 'Kokonais-kerroin'),
-         ('puoli|vuosi', 'puolen-vuoden'),
-         ('kevyt|liikenne', 'kevyen-liikenteen'),
-         ('puoli|yö', 'puolen-yön'),
-         ('tosi|teko', 'toden-teolla'),
-         ('pohjoinen|suomi', 'pohjois-suomessa'),
-         ('suomalainen|ugrilainen', 'suomalais-ugrilaisten'),
-         ('pohjoinen|karjala', 'pohjois-karjalassa'),
-         ('pakko|omaisesti', 'pakon-omaisesti'),
-         ('uusi|liitto', 'uuden-liiton'),
-         ('laskea|aika', 'laskettu-aika'),
-         ('puoli|tunti', 'puolen-tunnin'),
-         ('yhteinen|kunta|amme', 'yhteis-kuntaamme'),
-         ('varsinainen|suomi', 'varsinais-suomessa'),
-         ('pohjoinen|pohjan|maa', 'pohjois-pohjanmaalla'),
-         ('kippi|kappi', 'kipin-kapin'),
-         ('treffit|ilmoitus', 'treffi-ilmoitus'),
-         ('tyyni|meri', 'Tyynen-meren'),
-         ('tosi|tosi', 'Toden-totta'),
-         ('maalinen|huhtikuu', 'maalis-huhtikuussa'),
-         ('juutalainen|kristillinen', 'juutalais-kristillisen'),
-         ('pakolainen|status', 'pakolais-statuksella'),
-         ('maaninen|depressiivinen', 'maanis-depressiivinen'),
-         ('markkinat|asema', 'markkina-aseman'),
-         ('uusi|testamentti', 'Uuden-testamentin'),
-         ('paavalilainen|luterilaisuus', 'paavalilais-luterilaisuuden'),
-         ('kerta|pari', 'kerran-pari'),
-         ('väki|väkinen', 'Väen-väkisin'),
-         ('opinnot|opas', 'opinto-oppaasta'),
-         ('varmuus|vuo', 'varmuuden-vuoksi'),
-         ('pohjoinen|savo', 'pohjois-savossa'),
-         ('parka|vuosi', 'parin-vuoden'),
-         ('aika|olo', 'ajan-olon'),
-         ('luoda|jumala', 'luoja-jumala'),
-         ('seurustella|mieli', 'seurustelu-mielessä'),
-         ('parka|viikko', 'parin-viikon'),
-         ('uskonnollinen|poliittinen', 'uskonnollis-poliittinen'),
-         ('maaninen|depressiivisyys', 'maanis-depressiivisyys'),
-         ('käsi|käänne', 'käden-käänteessä'),
-         ('raskas|sarja', 'raskaan-sarjan'),
-         ('vuosi|pari', 'vuoden-parin'),
-         ('viikko|pari', 'viikon-parin'),
-         ('passiivinen|aggressiivinen', 'passiivis-aggressiivinen'),
-         ('erityinen|suojelus', 'erityis-suojeluksessa'),
-         ('pohjoinen|korea|lainen', 'pohjois-korealaiset'),
-         ('matemaattinen|looginen', 'matemaattis-looginen'),
-         ('matemaattinen|luonnon|tieteellinen', 'matemaattis-luonnontieteellisen'),
-         ('enempi|kuu', 'enemmän-kuin'),
-         ('helluntailainen|karismaattinen', 'helluntailais-karismaattisia'),
-         ('opinnot|oikeus', 'opinto-oikeus'),
-         ('olka|taka', 'olan-takaa'),
-         ('suoda|aine', 'suoja-aineita'),
-         ('surra|uutinen', 'suru-uutisen'),
-         ('inttää|eksyttää', 'inttäjä-eksyttäjä'),
-         ('varsinainen|suomalainen', 'varsinais-suomalainen'),
-         ('kiikku|kaakku', 'kiikun-kaakun'),
-         ('suomalainen|venäläinen', 'suomalais-venäläisen'),
-         ('kaakkoinen|suomi', 'kaakkois-suomessa'),
-         ('tiede|kieltäjä|hihhuli', 'tieteenkieltäjä-hihhuli'),
-         ('kauppa|tekijäinen', 'kaupan-tekijäisiksi'),
-         ('pohjoinen|karjalainen', 'pohjois-karjalainen'),
-         ('kreikkalainen|roomalainen', 'kreikkalais-roomalaisen'),
-         ('urheilla|ura', 'urheilu-uran'),
-         ('aikuinen|tyyppi', 'aikuis-tyypin'),
-         ('historiallinen|kriittinen', 'historiallis-kriittinen'),
-         ('lounainen|suomi', 'lounais-suomessa'),
-         ('netti|kausi', 'netin-kautta'),
-         ('markkinat|ehtoisesti', 'markkina-ehtoisesti'),
-         ('maalainen|liitto|kepu', 'maalaisliitto-kepu'),
-         ('jatko-opiskella|paikka', 'jatko-opiskelupaikkaa'),
-         ('kokonainen|pinta-ala', 'kokonaispinta-ala'),
-         ('yhteinen|toiminta-alue', 'yhteistoiminta-alueen'),
-         ('kamppailla|urheilu', 'kamppailu-urheilua'),
-         ('nainen|enemmistö', 'nais-enemmistö'),
-         ('kuntoilla|mieli', 'kuntoilu-mielessä'),
-         ('toinen|puoleisesti', 'tois-puoleisesti'),
-         ('pohjoinen|afrikkalainen', 'pohjois-afrikkalaisen'),
-         ('hyvä|hyvä', 'hyvin-hyvin'),
-         ('urheilla|ohjelma', 'urheilu-ohjelmien'),
-         ('ahdas|portti', 'ahtaan-portin'),
-         ('säteillä|lämmittää', 'säteily-lämmitin'),
-         ('hätä|ala|isä', 'hädän-alaisille'),
-         ('katolinen|kirkko', 'katolisen-kirkon'),
-         ('lähennellä|yritys', 'lähentely-yritykset'),
-         ('korkea|oikeus', 'korkein-oikeus'),
-         ('raskas|liikenne', 'raskaan-liikenteen'),
-         ('suomalainen|ruotsalainen', 'Suomalais-ruotsalainen'),
-    ])
