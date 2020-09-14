@@ -472,6 +472,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 args.cache_size = 0
         names_seen = False
         linenr = 0
+        word_index = None
+        lemma_indices = []
+        insert_after_indices = []
 
         def warn(msg):
             """Output warning msg, with line number information prepended
@@ -490,6 +493,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 ouf.write(line)
             elif line[0] == LESS_THAN:
                 if not names_seen and vrtnamelib.isbinnames(line):
+                    names_seen = True
                     namelist = vrtnamelib.binnamelist(line)
                     word_index = vrtnamelib.nameindices(
                         namelist, args.word_attr)[0]
@@ -502,6 +506,10 @@ class NoBoundaryLemmaAdder(InputProcessor):
                         line = vrtnamelib.bininsertnames(
                             line, args.add_after_attr[num], add_attr)
                 ouf.write(line)
+            elif not names_seen:
+                self.error_exit(
+                    'No positional-attributes comment before the first token'
+                    ' line')
             else:
                 attrs = vrtdatalib.binasrecord(line)
                 word = attrs[word_index]

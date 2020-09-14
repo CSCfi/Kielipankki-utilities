@@ -1,4 +1,27 @@
 
+# scripttest_vrt_add_lemma_nobound.yaml
+#
+# Tests for the script vrt-add-lemma-nobound using the scripttestlib
+# library
+
+
+# Tests not concerning the actual input and output
+
+- name: 'vrt-add-lemma-nobound: No positional-attributes comment'
+  input:
+    cmdline: vrt-add-lemma-nobound
+    stdin: |
+      yhdyssanan	yhdys|sana
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-lemma-nobound: No positional-attributes comment before the first token line
+    returncode: 1
+
+
+# Tests with input and output
+
+
 - defaults:
     input:
       # With global transformations, we can use a string value for
