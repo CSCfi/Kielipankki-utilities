@@ -12,6 +12,9 @@
 # - Generate a VRT file containing all the added information: in
 #   particular, add the name attributes to the VRT before
 #   cwb-encoding.
+# - Support different (or multiple) lemma attributes for generating
+#   lemmas without compound boundaries, lemgrams and word picture
+#   data.
 # - Run stages based on checksums of previous stage's output.
 # - Make multiple (related) corpora in the same package.
 # - Make parallel corpora.
@@ -305,6 +308,7 @@ config_file_optname=config-file
 
 vrt_rename_struct_attrs=$progdir/vrt-rename-struct-attrs.pl
 vrt_fix_attrs=$progdir/vrt-fix-attrs.py
+vrt_add_lemma_nobound=$progdir/../vrt-tools/vrt-add-lemma-nobound
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
 vrt_sort_texts=$progdir/vrt-sort-texts.sh
 vrt_add_struct_ids=$progdir/vrt-add-struct-ids.sh
@@ -721,10 +725,14 @@ test_skip_omit_structures () {
 }
 
 add_lemmas_without_boundaries () {
-    process_vrt $vrt_fix_attrs --input-fields "$input_attrs" \
-	--output-fields "$(suffix_word "$input_attrs" lemma ":noboundaries lemma")" \
-	--compound-boundary-marker="$compound_boundary_marker" \
-	--compound-boundary-can-replace-hyphen
+    # TODO: Recognize lemma attributes suffixed with annotation scheme
+    # (lemma_ud1) and add the corresponding lemmas without compound
+    # boundaries
+    process_vrt $vrt_add_lemma_nobound \
+		--mode=omorfi \
+		--compound-boundary-marker="$compound_boundary_marker" \
+		--add-name=lemmacomp --add-type=boundaries \
+		--add-after-name=lemma
     input_attrs=$(suffix_word "$input_attrs" lemma " lemmacomp")
     # process_vrt vrt_replace_posattr_names "$input_attrs"
 }
