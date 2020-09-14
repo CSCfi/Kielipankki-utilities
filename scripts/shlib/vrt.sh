@@ -55,6 +55,26 @@ vrt_get_posattr_names () {
             }'
 }
 
+# vrt_get_posattr_count [vrt_file]
+#
+# Print the number of positional attributes (including the word form)
+# in vrt_file, based on its first token line. vrt_file may be
+# compressed. If vrt_file is not specified, read from stdin. If the
+# input does not contain a positional attributes comment, print
+# nothing.
+vrt_get_posattr_count () {
+    comprcat "$@" |
+	awk -F"$tab" '/^[^<]/ { print NF; exit }'
+}
+
+# vrt_make_posattr_comment posattr_names
+#
+# Output a positional attributes comment with posattr_names as the
+# attribute names.
+vrt_make_posattr_comment () {
+    safe_echo "<!-- #vrt positional-attributes: $1 -->"
+}
+
 # vrt_replace_posattr_names posattr_names [vrt_file]
 #
 # Output the input VRT with the positional attributes comment replaced
@@ -63,7 +83,7 @@ vrt_get_posattr_names () {
 # not specified, read from stdin. If the input VRT has no positional
 # attributes comment, add one at the beginning.
 vrt_replace_posattr_names () {
-    safe_echo "<!-- #vrt positional-attributes: $1 -->"
+    vrt_make_posattr_comment "$1"
     shift
     comprcat "$@" |
 	grep -vE '^<!--\s*(#vrt\spositional-attributes|Positional attributes):'
