@@ -575,6 +575,8 @@ check_input_attrs () {
     local stage2_fn=
     local stage2_descr=
     local attrnum_word=
+    local attrcount=
+    local vrt_attrcount=
     initial_vrt_posattrs=$(vrt_get_posattr_names $vrt_file)
     if [ "x$initial_vrt_posattrs" != x ]; then
 	if [ "x$override_vrt_attrs" = x ]; then
@@ -596,6 +598,15 @@ check_input_attrs () {
 	keep_attr_order=1
 	no_word_attr=1
     fi
+    attrnum_word="$(word_index word $initial_input_attrs)"
+    if [ "x$no_word_attr" = x ] && [ "$attrnum_word" = "-1" ]; then
+	initial_input_attrs="word $initial_input_attrs"
+    fi
+    attrcount=$(count_words $initial_input_attrs)
+    vrt_attrcount=$(vrt_get_posattr_count $vrt_file)
+    if [ "$attrcount" != "$vrt_attrcount" ]; then
+	error "Error: the input VRT has $vrt_attrcount positional attributes, but $attrcount were specified"
+    fi
     if word_in _ "$initial_input_attrs" ||
 	    [ "${initial_input_attrs#*-}" != "$initial_input_attrs" ]
     then
@@ -603,7 +614,6 @@ check_input_attrs () {
 	stage2_descr="Filtering out positional attributes with name \"_\" or starting with \"-\""
 	preprocess_posattrs=filter
     fi
-    attrnum_word="$(word_index word $initial_input_attrs)"
     if [ "x$keep_attr_order" = x ] &&
 	   [ "$attrnum_word" != "-1" ] && [ "$attrnum_word" != "1" ]
     then
@@ -618,9 +628,6 @@ check_input_attrs () {
     fi
     stages[2]=$stage2_fn
     stages[3]=$stage2_descr
-    if [ "x$no_word_attr" = x ] && [ "$attrnum_word" = "-1" ]; then
-	initial_input_attrs="word $initial_input_attrs"
-    fi
     input_attrs=$initial_input_attrs
 }
 
