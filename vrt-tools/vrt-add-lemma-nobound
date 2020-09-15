@@ -860,7 +860,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # print('next_pos', next_pos, file=sys.stderr)
                 # FIXME: min_rest_wf_len does not take into account possible
                 # hyphens in the word form.
-                if 1 < next_pos <= len(wordform) - min_rest_wf_lens[0]:
+                # print('len(wf) - min_rest_wf_lens[0]',
+                #       len(wordform) - min_rest_wf_lens[0], file=sys.stderr)
+                if 0 < next_pos <= len(wordform) - min_rest_wf_lens[0]:
                     if (begin_cands
                         and not all_parts_have_match(
                             lemmaparts[2:],

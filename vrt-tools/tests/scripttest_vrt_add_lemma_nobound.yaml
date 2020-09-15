@@ -901,6 +901,16 @@
     stdout: *output-15
 
 
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: A single-letter first part without hyphen'
+  defs: &output-15a |
+    yakselin	y#akseli	yakseli
+    Tpaita	T#paita	Tpaita
+  input:
+    stdin: *output-15a
+  output:
+    stdout: *output-15a
+
+
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Two consecutive compound boundary characters'
   defs: &output-16 |
     Lepakonsiipinen	lepakko##siipinen	lepakonsiipinen
