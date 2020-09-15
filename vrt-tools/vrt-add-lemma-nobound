@@ -787,26 +787,14 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 return (adjust_case_fn(wordform_orig[:next_pos]), next_pos)
 
             def choose_candidate(cands):
-                max_num = 0
-                max_prefix_len = cands[0][1]
-                max_suffix_len = cands[0][2]
-                # print('max cand', max_num, max_prefix_len, max_suffix_len,
-                #       file=sys.stderr)
-                for cand_num, cand in enumerate(cands[1:]):
-                    _, prefix_len, suffix_len = cand
-                    # The candidates are ordered by the length of the common
-                    # prefix for the word form part and the next lemma part, so
-                    # prefer the longest common prefix, unless a shorter prefix
-                    # results in a longer common substring consisting of the
-                    # prefix and the suffix of the previous word form part and
-                    # lemma part.
-                    if (prefix_len + suffix_len > max_prefix_len + max_suffix_len):
-                        max_num = cand_num + 1
-                        max_prefix_len = prefix_len
-                        max_suffix_len = suffix_len
-                        # print('max cand', max_num, max_prefix_len, max_suffix_len,
-                        #       file=sys.stderr)
-                return cands[max_num]
+                # The candidates are ordered by the length of the common prefix
+                # for the word form part and the next lemma part, so prefer the
+                # longest common prefix, unless a shorter prefix results in a
+                # longer common substring consisting of the prefix and the
+                # suffix of the previous word form part and lemma part.
+                return sorted(
+                    cands,
+                    key=lambda cand: (- cand[1] - cand[2], - cand[1]))[0]
 
             cands = []
             # Check word form prefix of 5...2 characters (or 1 if the length of
