@@ -742,6 +742,10 @@
     Tappajahain	tappaa#hakea	tappajahakea
     tarjoilupöytää	tarjoilla#pöydätä	tarjoilupöydätä
     ulottuvuusluisu	ulottua#luisua	ulottuvuusluisua
+    menettelytapa	menetellä#tappaa	menettelytappaa
+    Palvelukatko	palvella#katkoa	palvelukatkoa
+    soveltuvuuskoe	soveltua#kokea	soveltuvuuskokea
+    surukuku	surra#kukkua	surukukkua
   input:
     stdin: *output-11f
   output:
@@ -970,6 +974,7 @@
     auringonytimessä	aurinko#ydin	auringonydin
     ihmisytimestä	ihminen#ydin	ihmisydin
     entisöin	entinen#yö	entisyö
+    venäläisikeen	venäläinen#ies	venäläisies
   input:
     stdin: *output-18
   output:
@@ -1078,7 +1083,18 @@
     lempisäkeeni	lempi#äes	lempisäes
     puintiin	pukimet#tii	puintii
     parakiitin	para#kiittimet	parakiittimet
+    keisarinkruunu-uteluuni	keisari#kruunu#udella	keisarinkruunu-udella
+    avunepääjänä	avu#evätä	avunevätä
   input:
     stdin: *output-22
   output:
     stdout: *output-22
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Inflected form shorter than lemma'
+  defs: &output-23 |
+    A-oikeuspaikkaan	A-oikeudet#paikka	A-oikeuspaikka
+  input:
+    stdin: *output-23
+  output:
+    stdout: *output-23

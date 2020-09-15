@@ -149,12 +149,15 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('ttää', -2),   # -ttaa -> -ta
         ('ttua', -2),   # -ttua -> -tu
         ('ttyä', -2),   # -ttua -> -tu
+        # Specifying "olla" as follows would break jollainlailla + jolla#laki
+        # -> jollainlaki (would become jollaki) ('olla', -2), # olla -> on
         ('lla', -1),	# ajella -> ajelu
         ('llä', -1),	# kävellä -> kävely
         ('taa', -1),    # -taa -> -ta
         ('tää', -1),    # -taa -> -ta
         ('utua', -1),   # aiheutua -> aiheudu
         ('ytyä', -1),   # peseytyä -> peseydy
+        ('ppaa', -2),   # tappaa -> tapa
         ('nna', -1),    #
         ('nnä', -1),    # mennä -> meni
         ('rra', -1),    # purra -> puri
@@ -163,10 +166,15 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('ää', -1),     #
         ('ta', -1),     # tavata -> tapaa
         ('tä', -1),     #
+        ('kokea', -2),  # kokea -> koe
+        ('sukia', -2),  # sukia -> sui
         ('ea', -1),     # imeä -> imi
         ('eä', -1),     #
         ('ia', -1),     #
         ('iä', -1),     # viestiä -> viesti
+        ('oa', -1),     # katkoa -> katko
+        ('öä', -1),     #
+        ('kkua', -2),   # kukkua -> kuku
         ('ua', -1),     # luisua -> luisu
         ('yä', -1),     #
         # The following would be too generic and break other cases
@@ -174,7 +182,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # ('ä', -1),    # for other verbal lemmas
         ('kimet', -3),  # pukimet -> puin
         ('ttimet', -3), # synnyttimet -> synnytin
+        ('udet', -2),   # oikeudet -> oikeus
         ('imet', -2),   # elimet -> elin
+        ('net', -2),    # höyhenet -> höyhen
         ('eet', -3),	# vaatteet -> vaate
         ('aat', -2),	# rattaat -> ratas
         ('t', -1),		# häät -> hää
@@ -195,10 +205,12 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('ei', 'et'),
         ('ede', 'ete'),
         ('etu', 'edu'),
+        ('evä', 'epä'),
         ('hyvä', 'paras'),
         ('hyvä', 'parem'),
         ('hyvä', 'parha'),
         ('ien', 'ike'),
+        ('ies', 'ike'),
         ('ikä', 'ii'),		# "iin" is recognized by Omorfi as a form of "ikä"
         ('ikä', 'iä'),
         ('itu', 'idu'),
@@ -209,6 +221,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('olla', 'on'),
         ('ota', 'oda'),
         ('udar', 'utar'),
+        ('ude', 'ute'),
         ('uksi', 'ust'),
         ('utu', 'udu'),
         ('ydin', 'ytim'),
