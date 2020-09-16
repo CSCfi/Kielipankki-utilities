@@ -710,14 +710,15 @@ class NoBoundaryLemmaAdder(InputProcessor):
         for partnum in range(len(lemmaparts) - 1, -1, -1):
             rest_len += get_lemma_min_wf_len(lemmaparts[partnum])
             min_rest_wf_lens[partnum] = rest_len
-        for partnum in range(0, len(lemmaparts) - 1):
+        partnum = 0
+        while partnum < len(lemmaparts) - 1:
             part = lemmaparts[partnum]
             # Actual compound part
             nobound_part, wf_use_len = self._get_prefix(
                 lemmaparts[partnum:], wordform[wf_prefix_len:],
-                min_rest_wf_lens[partnum + 1:])
+                min_rest_wf_lens[partnum + 1:])[0]
             # print('after _get_prefix', partnum, part, nobound_part,
-            #       end_diff, wf_use_len, file=sys.stderr)
+            #       wf_use_len, file=sys.stderr)
             if wf_use_len == 0:
                 wf_use_len = len(nobound_part)
                 if not self._args.quiet:
@@ -747,6 +748,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     and nobound_part[-1] in self._vowels):
                 lemma_nobound.append('-')
             wf_prefix_len += wf_use_len
+            partnum += 1
             # print('lemma_nobound:', lemma_nobound, file=sys.stderr)
         lemma_nobound.append(lemmaparts[-1])
         return ''.join(lemma_nobound).encode()
@@ -795,11 +797,16 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # print('CSL', a, b, '->', len(a) - ia - 1, file=sys.stderr)
                 return len(a) - ia - 1
 
-            def make_return_value(value):
-                next_pos, wf_prefix_len, _ = value
-                return (adjust_case_fn(wordform_orig[:next_pos]), next_pos)
+            def make_return_value(value_list):
+                result = []
+                for i, (next_pos, wf_prefix_len, _) in enumerate(value_list):
+                    if i == 0 or next_pos != value_list[i - 1][0]:
+                        result.append(
+                            (adjust_case_fn(wordform_orig[:next_pos]),
+                             next_pos))
+                return result
 
-            def choose_candidate(cands):
+            def sort_candidates(cands):
                 # The candidates are ordered by the length of the common prefix
                 # for the word form part and the next lemma part, so prefer the
                 # longest common prefix, unless a shorter prefix results in a
@@ -807,7 +814,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # suffix of the previous word form part and lemma part.
                 return sorted(
                     cands,
-                    key=lambda cand: (- cand[1] - cand[2], - cand[1]))[0]
+                    key=lambda cand: (- cand[1] - cand[2], - cand[1]))
 
             cands = []
             # Check word form prefix of 5...2 characters (or 1 if the length of
@@ -825,14 +832,12 @@ class NoBoundaryLemmaAdder(InputProcessor):
                             (np, wf_prefix_len,
                              common_suffix_len(lemmapart_this,
                                                wordform[:np].strip('-'))))
-            # print('fnb cands', cands, file=sys.stderr)
             if not cands:
                 return None
-            elif len(cands) == 1:
-                cand = cands[0]
-            else:
-                cand = choose_candidate(cands)
-            return make_return_value(cand)
+            elif len(cands) > 1:
+                cands = sort_candidates(cands)
+            # print('fnb cands', cands, file=sys.stderr)
+            return make_return_value(cands)
 
         def find_next_begin(wf_prefix_len, lemmapart_next):
             # print('find_next_begin', wf_prefix_len, lemmapart_next, lemma_len,
@@ -939,7 +944,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
             # print('INFL_FIRST', lemmapart_this + maybe_hyphen, 0,
             #       len(lemmapart_this), file=sys.stderr)
             lemmapart_this += maybe_hyphen
-            return lemmapart_this, len(lemmapart_this)
+            return [(lemmapart_this, len(lemmapart_this))]
         return_val = find_begin(lemmapart_next)
         if return_val:
             return return_val
@@ -971,7 +976,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     if return_val:
                         return return_val
         # print('NOT FOUND', file=sys.stderr)
-        return lemmapart_this, 0
+        return [(lemmapart_this, 0)]
 
     def _lemmatize_numeral(self, lemmaparts, wordform):
         """Lemmatize compound numerals correctly based on compound parts.
