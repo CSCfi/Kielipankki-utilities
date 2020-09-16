@@ -860,6 +860,19 @@
     stdout: *output-11j
 
 
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: More cases with multiple possible part matches, fixed when fixing function all_parts_have_match'
+  defs: &output-11k |
+    alkualkualkualkualkualkuseurakunnalla	alku#alku#alku#alku#alku#alku#seura#kunta	alkualkualkualkualkualkuseurakunta
+    isoisoisoisiämme	iso#iso#iso#isi	isoisoisoisi
+    isoisoisoiso-mummotkaan	iso#iso#iso#iso#mummo	isoisoisoiso-mummo
+    höpöhöpöhöpöhöpöhöpö-olionne	höpö#höpö#höpö#höpö#höpö#olio	höpöhöpöhöpöhöpöhöpö-olio
+    jääjääjääjääjääjääjääjääjääjääjääjääjääjääjääjääjääjääjää	jää#jää#jää#jää#jää#jää#jää#jää#jää#jää#jää#jää#jää#jää#jää#jää#jää#jäädä	jääjääjääjääjääjääjääjääjääjääjääjääjääjääjääjääjääjääjäädä
+  input:
+    stdin: *output-11k
+  output:
+    stdout: *output-11k
+
+
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen missing because of stem change in second part'
   # Prescriptively, some of these should not have a hyphen, but it
   # would be difficult if not impossible to distinguish between

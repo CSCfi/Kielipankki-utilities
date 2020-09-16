@@ -862,14 +862,21 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # TODO: Try to take into account possible stem changes.
                 # print('all_parts_have_match', parts, whole,
                 #       min_rest_wf_lens[1:], file=sys.stderr)
-                pos = prev_pos = 0
+                pos = search_pos = 0
                 for partnum, part in enumerate(parts):
-                    pos = whole.find(part[:2], prev_pos)
-                    # print(partnum, part, pos)
+                    pos = whole.find(part[:2], search_pos)
+                    # print(partnum, part, pos, search_pos)
                     if pos == -1 or (
                         	pos > len(whole) - min_rest_wf_lens[partnum + 1]):
+                        # print('-> False', file=sys.stderr)
                         return False
-                    prev_pos = pos
+                    # Start the next search at the expected minimum length of
+                    # the word form (calculated from the difference in
+                    # min_rest_wf_lens values) after the found position,
+                    search_pos = (pos + (min_rest_wf_lens[partnum]
+                                         - (min_rest_wf_lens[partnum + 1]
+                                            if partnum < len(parts) else 0)))
+                # print('-> True', file=sys.stderr)
                 return True
 
             begin_cands = []
