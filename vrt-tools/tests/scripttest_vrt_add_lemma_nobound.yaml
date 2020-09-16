@@ -873,6 +873,15 @@
     stdout: *output-11k
 
 
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: More cases with multiple possible part matches, fixed after adding a form of backtracking'
+  defs: &output-11l |
+    hutuntutunjuttuihinne	huttu#tuttu#juttu	hutuntutunjuttu
+  input:
+    stdin: *output-11l
+  output:
+    stdout: *output-11l
+
+
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen missing because of stem change in second part'
   # Prescriptively, some of these should not have a hyphen, but it
   # would be difficult if not impossible to distinguish between

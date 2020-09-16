@@ -720,27 +720,57 @@ class NoBoundaryLemmaAdder(InputProcessor):
         for partnum in range(len(lemmaparts) - 1, -1, -1):
             rest_len += get_lemma_min_wf_len(lemmaparts[partnum])
             min_rest_wf_lens[partnum] = rest_len
+        # Alternative compound parts for the lemma without compound boundaries
+        nobound_part_alts = []
         partnum = 0
         while partnum < len(lemmaparts) - 1:
             part = lemmaparts[partnum]
             # Actual compound part
-            nobound_part, wf_use_len = self._get_prefix(
+            prefix_alts = self._get_prefix(
                 lemmaparts[partnum:], wordform[wf_prefix_len:],
-                min_rest_wf_lens[partnum + 1:])[0]
+                min_rest_wf_lens[partnum + 1:])
+            nobound_part, wf_use_len = prefix_alts[0]
+            del(prefix_alts[0])
             # print('after _get_prefix', partnum, part, nobound_part,
-            #       wf_use_len, file=sys.stderr)
-            if wf_use_len == 0:
-                wf_use_len = len(nobound_part)
-                if not self._args.quiet:
-                    warn_fn(
-                        'No match found for compound lemma boundary'
-                        ' "{lemmapart1}{boundary}{lemmapart2}"'
-                        ' in suffix "{suffix}" of word form "{wordform}"'
-                        .format(lemmapart1=lemmaparts[partnum],
-                                lemmapart2=lemmaparts[partnum + 1],
-                                boundary=boundary_char,
-                                suffix=wordform[wf_prefix_len:],
-                                wordform=wordform))
+            #       wf_use_len, prefix_alts, file=sys.stderr)
+            if prefix_alts:
+                # Save state
+                nobound_part_alts.append(
+                    (partnum, len(lemma_nobound), wf_prefix_len, prefix_alts))
+                # print('nobound_part_alts', nobound_part_alts)
+            elif wf_use_len == 0:
+                if nobound_part_alts:
+                    # If alternative boundaries have been recorded previously,
+                    # reset the state and try the first of them for the latest
+                    # boundary
+                    partnum, lemma_nobound_len, wf_prefix_len, prefix_alts = (
+                        nobound_part_alts[-1])
+                    nobound_part, wf_use_len = prefix_alts[0]
+                    # print('reset state', partnum, lemma_nobound_len,
+                    #       wf_prefix_len, nobound_part, wf_use_len,
+                    #       file=sys.stderr)
+                    if len(prefix_alts) == 1:
+                        # This was the last alternative at this position, so
+                        # delete the position
+                        del(nobound_part_alts[-1])
+                    else:
+                        # Delete the first alternative at this position
+                        del(nobound_part_alts[-1][-1][0])
+                    lemma_nobound[lemma_nobound_len:] = []
+                else:
+                    # Fall back to using the lemma parts as they are
+                    wf_use_len = len(nobound_part)
+                    if not self._args.quiet:
+                        warn_fn(
+                            'No match found for compound lemma boundary'
+                            ' "{lemmapart1}{boundary}{lemmapart2}"'
+                            ' in suffix "{suffix}" of word form "{wordform}"'
+                            .format(lemmapart1=lemmaparts[partnum],
+                                    lemmapart2=lemmaparts[partnum + 1],
+                                    boundary=boundary_char,
+                                    suffix=wordform[wf_prefix_len:],
+                                    wordform=wordform))
+                    return ''.join(lemmaparts).encode()
             if (nobound_part and nobound_part[0] == '-'
                     and lemma_nobound and lemma_nobound[-1] == '-'):
                 nobound_part = nobound_part[1:]
