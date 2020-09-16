@@ -498,6 +498,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
         names_seen = False
         linenr = 0
         word_index = None
+        attrcount_min = 2
         lemma_indices = []
         insert_indices = []
         lemma_source_indices = []
@@ -550,6 +551,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                             vrtnamelib.nameindex(
                                 namelist, args.lemma_attr[num]))
                     line = vrtnamelib.binmakenames(*namelist)
+                    attrcount_min = max(word_index, *lemma_indices) + 1
                     # print(lemma_indices, insert_indices, lemma_source_indices,
                     #       lemma_target_indices, file=sys.stderr)
                 ouf.write(line)
@@ -559,6 +561,14 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     ' line')
             else:
                 attrs = vrtdatalib.binasrecord(line)
+                if len(attrs) < attrcount_min:
+                    self.warn(
+                        'Input line {:d}: Only {:d} positional attribute{}'
+                        ' (at least {:d} required); keeping line intact'
+                        .format(linenr, len(attrs),
+                                's' if len(attrs) > 1 else '', attrcount_min))
+                    ouf.write(line)
+                    continue
                 word = attrs[word_index]
                 lemma_nobounds = []
                 for lemma_num, lemma_index in enumerate(lemma_indices):

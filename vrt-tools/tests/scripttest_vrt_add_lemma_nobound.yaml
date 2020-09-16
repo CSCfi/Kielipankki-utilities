@@ -5,7 +5,7 @@
 # library
 
 
-# Tests not concerning the actual input and output
+# Tests not concerning the actual lemmas
 
 - name: 'vrt-add-lemma-nobound: No positional-attributes comment'
   input:
@@ -17,6 +17,26 @@
     stderr: |
       vrt-add-lemma-nobound: No positional-attributes comment before the first token line
     returncode: 1
+
+
+- name: 'vrt-add-lemma-nobound: Too few attributes on input line'
+  input:
+    cmdline: vrt-add-lemma-nobound
+    stdin: |
+      <!-- #vrt positional-attributes: id word lemma -->
+      1
+      2	testi
+      3	yhdyssanan	yhdys|sana
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: id word lemma lemma_nobound -->
+      1
+      2	testi
+      3	yhdyssanan	yhdys|sana	yhdyssana
+    stderr: |
+      vrt-add-lemma-nobound: Warning: Input line 2: Only 1 positional attribute (at least 3 required); keeping line intact
+      vrt-add-lemma-nobound: Warning: Input line 3: Only 2 positional attributes (at least 3 required); keeping line intact
+    returncode: 0
 
 
 # Replacing the original lemma with the one without compound
