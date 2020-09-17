@@ -189,45 +189,50 @@ class NoBoundaryLemmaAdder(InputProcessor):
         ('aat', -2),	# rattaat -> ratas
         ('t', -1),		# häät -> hää
     ]
-    # Stme changes that may have a preceding consonant
-    _stem_changes_2 = [
-        ('ie', 'ei'),
-        ('uo', 'oi'),
-        ('yö', 'öi'),
-    ]
+    # Stem changes that may have a preceding consonant
+    _stem_changes_2 = {
+        'ie': ['ei'],
+        'uo': ['oi'],
+        'yö': ['öi'],
+    }
+    _stem_change_2_lemma_lens = sorted(set(len(k) for k in _stem_changes_2),
+                                       reverse=True)
     # Stem changes that affect the second (and possibly first) letter
-    _stem_changes = _stem_changes_2 + [
-        ('aika', 'aja'),
-        ('aika', 'ajo'),
-        ('apu', 'avu'),
-        ('ei', 'em'),
-        ('ei', 'en'),
-        ('ei', 'et'),
-        ('ede', 'ete'),
-        ('etu', 'edu'),
-        ('evä', 'epä'),
-        ('hyvä', 'paras'),
-        ('hyvä', 'parem'),
-        ('hyvä', 'parha'),
-        ('ien', 'ike'),
-        ('ies', 'ike'),
-        ('ikä', 'ii'),		# "iin" is recognized by Omorfi as a form of "ikä"
-        ('ikä', 'iä'),
-        ('itu', 'idu'),
-        ('itä', 'idä'),
-        ('oas', 'oka'),
-        ('oka', 'oa'),
-        ('oka', 'oi'),
-        ('olla', 'on'),
-        ('ota', 'oda'),
-        ('udar', 'utar'),
-        ('ude', 'ute'),
-        ('uksi', 'ust'),
-        ('utu', 'udu'),
-        ('ydin', 'ytim'),
-        ('yty', 'ydy'),
-        ('äes', 'äke'),
-    ]
+    _stem_changes = {
+        'aika': ['aja',
+                 'ajo'],
+        'apu': ['avu'],
+        'ei': ['em',
+               'en',
+               'et'],
+        'ede': ['ete'],
+        'etu': ['edu'],
+        'evä': ['epä'],
+        'hyvä': ['paras',
+                 'parem',
+                 'parha'],
+        'ien': ['ike'],
+        'ies': ['ike'],
+        'ikä': ['ii',    # "iin" is recognized by Omorfi as a form of "ikä"
+                'iä'],
+        'itu': ['idu'],
+        'itä': ['idä'],
+        'oas': ['oka'],
+        'oka': ['oa',
+                'oi'],
+        'olla': ['on'],
+        'ota': ['oda'],
+        'udar': ['utar'],
+        'ude': ['ute'],
+        'uksi': ['ust'],
+        'utu': ['udu'],
+        'ydin': ['ytim'],
+        'yty': ['ydy'],
+        'äes': ['äke'],
+    }
+    _stem_changes.update(_stem_changes_2)
+    _stem_change_lemma_lens = sorted(set(len(k) for k in _stem_changes),
+                                     reverse=True)
     _vowels = 'aeiouyäö'
     # We would only need the second part if the first part can occur inflected
     # with some later part, such as "uudenkarhea", "uudenveroinen",
@@ -807,6 +812,17 @@ class NoBoundaryLemmaAdder(InputProcessor):
         return ((part1_lower, part2.lower()) in self._inflecting_first_part
                 or (part1_lower, '*') in self._inflecting_first_part)
 
+    def _get_infl_stem_candidates(self, lemma):
+        # At the beginning
+        for lemma_stem_len in self._stem_change_lemma_lens:
+            for infl_stem in self._stem_changes.get(lemma[:lemma_stem_len], []):
+                yield infl_stem + lemma[lemma_stem_len:]
+        # After an initial consonant
+        for lemma_stem_len in self._stem_change_2_lemma_lens:
+            for infl_stem in self._stem_changes_2.get(lemma[1:lemma_stem_len+1],
+                                                      []):
+                yield lemma[0] + infl_stem + lemma[lemma_stem_len + 1:]
+
     def _get_prefix(self, lemmaparts, wordform_orig, min_rest_wf_lens):
         # min_rest_wf_len = the minimum number of (non-hyphen)
         # characters the word form should have left after the prefix
@@ -997,31 +1013,14 @@ class NoBoundaryLemmaAdder(InputProcessor):
             return return_val
         else:
             lemmapart_next_len = len(lemmapart_next)
-            for lemma_stem, infl_stem in self._stem_changes:
-                lemma_stem_len = len(lemma_stem)
-                # print(lemma_stem, infl_stem, lemmapart_next_len,
-                #       lemma_stem_len + 1, lemmapart_next.endswith(lemma_stem),
-                #       file=sys.stderr)
-                if (lemmapart_next_len <= lemma_stem_len + 1
-                        and lemmapart_next.endswith(lemma_stem)):
-                    return_val = find_begin(
-                        lemmapart_next[:(lemmapart_next_len - lemma_stem_len)]
-                        + infl_stem)
-                    if return_val:
-                        return return_val
-                if lemmapart_next.startswith(lemma_stem):
-                    return_val = find_begin(
-                        infl_stem + lemmapart_next[lemma_stem_len:])
-                    if return_val:
-                        return return_val
-            # Stem changes that may have a preceding consonant
-            for lemma_stem, infl_stem in self._stem_changes_2:
-                if (len(lemmapart_next) >= 3
-                        and lemmapart_next[1:3] == lemma_stem):
-                    return_val = find_begin(
-                        lemmapart_next[0] + infl_stem + lemmapart_next[3:])
-                    if return_val:
-                        return return_val
+            # Previously, the code also tested for lemma stem changes at the
+            # end of lemmapart_next, but this would seem to work at least as
+            # well, if not better (in words ending with a form of "ies"), with
+            # testing lemma changes only at its beginning.
+            for infl_stem in self._get_infl_stem_candidates(lemmapart_next):
+                return_val = find_begin(infl_stem)
+                if return_val:
+                    return return_val
         # print('NOT FOUND', file=sys.stderr)
         return [(lemmapart_this, 0)]
 

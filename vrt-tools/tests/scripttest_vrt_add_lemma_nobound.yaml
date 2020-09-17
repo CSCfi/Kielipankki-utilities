@@ -1017,6 +1017,7 @@
     ihmisytimestä	ihminen#ydin	ihmisydin
     entisöin	entinen#yö	entisyö
     venäläisikeen	venäläinen#ies	venäläisies
+    puuikeissä	puu#ies	puuies
   input:
     stdin: *output-18
   output:
