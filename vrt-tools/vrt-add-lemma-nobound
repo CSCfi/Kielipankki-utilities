@@ -812,7 +812,9 @@ class NoBoundaryLemmaAdder(InputProcessor):
         return ((part1_lower, part2.lower()) in self._inflecting_first_part
                 or (part1_lower, '*') in self._inflecting_first_part)
 
-    def _get_infl_stem_candidates(self, lemma):
+    def _get_infl_stem_candidates(self, lemma, include_unchanged=False):
+        if include_unchanged:
+            yield lemma
         # At the beginning
         for lemma_stem_len in self._stem_change_lemma_lens:
             for infl_stem in self._stem_changes.get(lemma[:lemma_stem_len], []):
@@ -905,15 +907,20 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 # whole, so that each at each match, the remaining
                 # word form is at least min_rest_wf_lens[partnum]
                 # characters long.
-                # TODO: Try to take into account possible stem changes.
                 # print('all_parts_have_match', parts, whole,
                 #       min_rest_wf_lens[1:], file=sys.stderr)
                 pos = search_pos = 0
                 for partnum, part in enumerate(parts):
-                    pos = whole.find(part[:2], search_pos)
-                    # print(partnum, part, pos, search_pos)
-                    if pos == -1 or (
-                        	pos > len(whole) - min_rest_wf_lens[partnum + 1]):
+                    for infl_part in self._get_infl_stem_candidates(
+                            part, include_unchanged=True):
+                        # Take into account only the first two letters as the
+                        # stem changes cover only changes within them
+                        pos = whole.find(infl_part[:2], search_pos)
+                        # print(partnum, part, infl_part, pos, search_pos)
+                        if (0 <= pos
+                              <= len(whole) - min_rest_wf_lens[partnum + 1]):
+                            break
+                    else:
                         # print('-> False', file=sys.stderr)
                         return False
                     # Start the next search at the expected minimum length of
@@ -934,32 +941,36 @@ class NoBoundaryLemmaAdder(InputProcessor):
             start_pos = max(0, lemma_len + lemma_len_change)
             next_pos = 0
             while start_pos < lemma_len + 3 and next_pos > -1:
-                # print('fnb loop:', wordform, lemmapart_next[:wf_prefix_len],
-                #       start_pos, wordform[start_pos:], file=sys.stderr)
-                next_pos = wordform.find(lemmapart_next[:wf_prefix_len],
-                                         start_pos)
-                # print('next_pos', next_pos, file=sys.stderr)
-                # FIXME: min_rest_wf_len does not take into account possible
-                # hyphens in the word form.
-                # print('len(wf) - min_rest_wf_lens[0]',
-                #       len(wordform) - min_rest_wf_lens[0], file=sys.stderr)
-                if 0 < next_pos <= len(wordform) - min_rest_wf_lens[0]:
-                    if (begin_cands
-                        and not all_parts_have_match(
-                            lemmaparts[2:],
-                            wordform[next_pos + wf_prefix_len:])):
-                        # Avoid matching in maailmansodansotaveteraaneille :
-                        # maa#ilman#sota#sota#veteraani the first lmma part
-                        # "sota" with "sota" in the word form, as the second
-                        # lemma part "sota" would then have no match in the
-                        # word form.
-                        break
-                    # print('FOUND:', wf_prefix_len, next_pos, lemmapart_next,
-                    #       wordform[:next_pos] + '['
-                    #       + wordform[next_pos:(next_pos + wf_prefix_len)] + ']'
-                    #       + wordform[next_pos + wf_prefix_len:],
-                    #       file=sys.stderr)
-                    begin_cands.append(next_pos)
+                for lemmapart_next_infl in self._get_infl_stem_candidates(
+                        lemmapart_next, include_unchanged=True):
+                    # print('fnb loop:', wordform,
+                    #       lemmapart_next_infl[:wf_prefix_len],
+                    #       start_pos, wordform[start_pos:], file=sys.stderr)
+                    next_pos = wordform.find(
+                        lemmapart_next_infl[:wf_prefix_len], start_pos)
+                    # print('next_pos', next_pos, file=sys.stderr)
+                    # FIXME: min_rest_wf_len does not take into account
+                    # possible hyphens in the word form.
+                    # print('len(wf) - min_rest_wf_lens[0]',
+                    #       len(wordform) - min_rest_wf_lens[0], file=sys.stderr)
+                    if 0 < next_pos <= len(wordform) - min_rest_wf_lens[0]:
+                        if (begin_cands
+                            and not all_parts_have_match(
+                                lemmaparts[2:],
+                                wordform[next_pos + wf_prefix_len:])):
+                            # Avoid matching in maailmansodansotaveteraaneille
+                            # : maa#ilman#sota#sota#veteraani the first lmma
+                            # part "sota" with "sota" in the word form, as the
+                            # second lemma part "sota" would then have no match
+                            # in the word form.
+                            break
+                        # print('FOUND:', wf_prefix_len, next_pos,
+                        #       lemmapart_next_infl,
+                        #       wordform[:next_pos] + '['
+                        #       + wordform[next_pos:(next_pos + wf_prefix_len)] + ']'
+                        #       + wordform[next_pos + wf_prefix_len:],
+                        #       file=sys.stderr)
+                        begin_cands.append(next_pos)
                 start_pos = next_pos + 1
             # print('begin_cands:', begin_cands, file=sys.stderr)
             if not begin_cands:

@@ -1018,6 +1018,11 @@
     entisöin	entinen#yö	entisyö
     venäläisikeen	venäläinen#ies	venäläisies
     puuikeissä	puu#ies	puuies
+    pedonajan-vaivanajan-ahdistuksenajan	peto#aika#vaiva#aika#ahdistus#aika	pedonajan-vaivanajan-ahdistuksenaika
+    vapaa-ajanpaikkakiusaamiseen	vapaa#aika#paikka#kiusata	vapaa-ajanpaikkakiusata
+    etuuduttomuudet	etu#utu	etu-utu
+    hätäydytkö	hätä#yty	hätäyty
+    kappaleiiksi	kappale#ikä	kappaleikä
   input:
     stdin: *output-18
   output:
