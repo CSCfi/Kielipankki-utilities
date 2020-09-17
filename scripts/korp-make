@@ -556,6 +556,9 @@ combine_input () {
     comprcat "${input_files[@]}" |
     grep -v '^$' > $vrt_file
     input_token_count=$(vrt_get_token_count "$vrt_file")
+    if [ "$input_token_count" = 0 ]; then
+	error "No tokens in the input"
+    fi
     echo_verb "  $input_token_count tokens in the input VRT"
     if [ "x$augment_data" != x ]; then
 	existing_token_count=$(get_corpus_token_count $corpus)
