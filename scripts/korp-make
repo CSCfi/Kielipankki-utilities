@@ -142,6 +142,13 @@ wordpict-relmap|wordpicture-relation-map=RELMAP_FILE \
 compound-boundary-marker=MARKER "|"
     the string MARKER marks compound boundaries in lemmas and will be
     removed from lemmas without compound boundaries
+remove-compound-boundary-algorithm=ALGORITHM "omorfi" compound_boundary_alg
+    use ALGORITHM for adding lemmas without compound boundaries, one
+    of "omorfi", "old" (alias "simple-omorfi") and "naive": "omorfi"
+    handles some idiosyncrasies of Omorfi, "old" produces results
+    (mostly) compatible with the algorithm used previously (handling
+    hyphens replaced with compound boundary markers), and "naive"
+    simply removes compound boundary markers
 
 @ Structure ids
 
@@ -415,6 +422,21 @@ if [ "x$omit_structures" != x ]; then
     # Convert to a regexp for grep -Ev
     omit_structures="^</?(${omit_structures// /|})[ >]"
 fi
+
+# Convert to lowercase
+compound_boundary_alg=${compound_boundary_alg,,}
+case $compound_boundary_alg in
+    old )
+	compound_boundary_alg=simple-omorfi
+	;;
+    omorfi | naive | simple-omorfi )
+	# Use the value as is
+	:
+	;;
+    * )
+	error 'Invalid algorithm in --remove-compound-boundary-algorithm: allowed values are "omorfi", "legacy" and "naive".'
+	;;
+esac
 
 echo_verb "Running: $cmdline_orig"
 echo_verb "Processed arguments: $cmdline_args_processed"
@@ -732,7 +754,7 @@ add_lemmas_without_boundaries () {
     # (lemma_ud1) and add the corresponding lemmas without compound
     # boundaries
     process_vrt $vrt_add_lemma_nobound \
-		--mode=omorfi \
+		--mode=$compound_boundary_alg \
 		--compound-boundary-marker="$compound_boundary_marker" \
 		--add-name=lemmacomp --add-type=boundaries \
 		--add-after-name=lemma
