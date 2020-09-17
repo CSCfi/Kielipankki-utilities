@@ -10,6 +10,15 @@ forms and lemmas with compound boundaries.
 """
 
 
+# TODO/FIXME:
+# - Completely rethink and reimplement the code for --mode=omorfi
+#   (_make_lemma_noboundaries_omorfi and the methods it uses), as it
+#   is currently rather kludgy, complicated and poorly documented, and
+#   thus rather difficult to understand, as it has mostly developed by
+#   fixing one issue after another. Reimplementing it might also
+#   improve its performance.
+
+
 import re
 import sys
 
