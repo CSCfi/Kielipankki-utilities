@@ -234,6 +234,16 @@ class NoBoundaryLemmaAdder(InputProcessor):
     _stem_change_lemma_lens = sorted(set(len(k) for k in _stem_changes),
                                      reverse=True)
     _vowels = 'aeiouyäö'
+    # Letters that can end an inflected word in Finnish (in general) + ASCII
+    # hyphen and UNICODE HYPHEN U+2010
+    _word_end_letters = _vowels + 'lnrst-‐'
+    # Words (compound parts) that end in a letter not in _word_end_letters
+    _word_end_except_words = {
+        # Suffixed with a form of "ei"
+        'ehk',
+        'kosk',
+        'vaikk',
+    }
     # We would only need the second part if the first part can occur inflected
     # with some later part, such as "uudenkarhea", "uudenveroinen",
     # "vanhanmallinen". Another option might be to special-case them, as they
@@ -812,18 +822,27 @@ class NoBoundaryLemmaAdder(InputProcessor):
         return ((part1_lower, part2.lower()) in self._inflecting_first_part
                 or (part1_lower, '*') in self._inflecting_first_part)
 
-    def _get_infl_stem_candidates(self, lemma, include_unchanged=False):
+    def _get_infl_stem_candidates(self, lemma, include_unchanged=False,
+                                  min_length=0):
         if include_unchanged:
             yield lemma
+        lemma_len = len(lemma)
         # At the beginning
         for lemma_stem_len in self._stem_change_lemma_lens:
-            for infl_stem in self._stem_changes.get(lemma[:lemma_stem_len], []):
-                yield infl_stem + lemma[lemma_stem_len:]
+            if min_length <= lemma_stem_len <= lemma_len:
+                for infl_stem in self._stem_changes.get(
+                        lemma[:lemma_stem_len], []):
+                    # print('yield1', lemma_stem_len, min_length, infl_stem,
+                    #       file=sys.stderr)
+                    yield infl_stem
         # After an initial consonant
         for lemma_stem_len in self._stem_change_2_lemma_lens:
-            for infl_stem in self._stem_changes_2.get(lemma[1:lemma_stem_len+1],
-                                                      []):
-                yield lemma[0] + infl_stem + lemma[lemma_stem_len + 1:]
+            if min_length + 1 <= lemma_stem_len <= lemma_len + 1:
+                for infl_stem in self._stem_changes_2.get(
+                        lemma[1:lemma_stem_len+1], []):
+                    # print('yield2', lemma_stem_len, min_length, infl_stem,
+                    #       file=sys.stderr)
+                    yield lemma[0] + infl_stem
 
     def _get_prefix(self, lemmaparts, wordform_orig, min_rest_wf_lens):
         # min_rest_wf_len = the minimum number of (non-hyphen)
@@ -938,22 +957,47 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 if lemmapart_this.endswith(suffix):
                     lemma_len_change = len_change
                     break
-            start_pos = max(0, lemma_len + lemma_len_change)
-            next_pos = 0
-            while start_pos < lemma_len + 3 and next_pos > -1:
-                for lemmapart_next_infl in self._get_infl_stem_candidates(
-                        lemmapart_next, include_unchanged=True):
-                    # print('fnb loop:', wordform,
+            for lemmapart_next_infl in self._get_infl_stem_candidates(
+                    lemmapart_next, include_unchanged=True,
+                    min_length=wf_prefix_len):
+                start_pos = max(0, lemma_len + lemma_len_change)
+                # print('lemma_len + change', lemma_len, lemma_len_change,
+                #       start_pos, file=sys.stderr)
+                next_pos = 0
+                while start_pos < lemma_len + 3 and next_pos > -1:
+                    # print('fnb loop:', wordform, lemmapart_next_infl,
                     #       lemmapart_next_infl[:wf_prefix_len],
                     #       start_pos, wordform[start_pos:], file=sys.stderr)
-                    next_pos = wordform.find(
-                        lemmapart_next_infl[:wf_prefix_len], start_pos)
+                    found_cand = False
+                    while not found_cand and next_pos != -1:
+                        next_pos = wordform.find(
+                            lemmapart_next_infl[:wf_prefix_len], start_pos)
+                        # print(start_pos, next_pos, wordform[start_pos:next_pos])
+                        # This would be handled by the loop condition,
+                        # but exiting the loop early simplifies the
+                        # following code
+                        if next_pos == -1:
+                            break
+                        # Check that the part preceding the match
+                        # either ends in one of the letters in which
+                        # an inflected word can end in Finnish or in
+                        # the same letter as the lemma
+                        found_cand = (
+                            next_pos == 0
+                            or wordform[next_pos - 1] in self._word_end_letters
+                            or (lemmapart_this and (wordform[next_pos - 1]
+                                                    == lemmapart_this[-1]))
+                            or (wordform[:next_pos]
+                                in self._word_end_except_words))
+                        start_pos = next_pos + 1
                     # print('next_pos', next_pos, file=sys.stderr)
                     # FIXME: min_rest_wf_len does not take into account
                     # possible hyphens in the word form.
                     # print('len(wf) - min_rest_wf_lens[0]',
                     #       len(wordform) - min_rest_wf_lens[0], file=sys.stderr)
-                    if 0 < next_pos <= len(wordform) - min_rest_wf_lens[0]:
+                    # print(wordform[next_pos - 1])
+                    if found_cand and (0 <= next_pos
+                                       <= len(wordform) - min_rest_wf_lens[0]):
                         if (begin_cands
                             and not all_parts_have_match(
                                 lemmaparts[2:],
@@ -971,7 +1015,6 @@ class NoBoundaryLemmaAdder(InputProcessor):
                         #       + wordform[next_pos + wf_prefix_len:],
                         #       file=sys.stderr)
                         begin_cands.append(next_pos)
-                start_pos = next_pos + 1
             # print('begin_cands:', begin_cands, file=sys.stderr)
             if not begin_cands:
                 return None

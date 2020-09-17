@@ -814,17 +814,17 @@
     stdout: *output-11g
 
 
-- name: 'vrt-add-lemma-nobound: --mode=omorfi: A case not handled correctly'
-  # This results in "naimisä". It would work if the longest first part
-  # was preferred but that would break other cases, such as
-  # suuntaistahan : suu#tau -> suuntaistau.
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: A case previously not handled correctly'
+  # Previously, this resulted in "naimisä". It was fixed as a
+  # side-effect of other changes, without breaking at least
+  # suuntaistahan : suu#tau -> suuntaistau, that would have been
+  # broken by generally preferring the longest match.
   defs: &output-11h |
     naimisisiin	naida#isä	naimisisä
   input:
     stdin: *output-11h
   output:
     stdout: *output-11h
-  status: 'xfail: Would work if the longest first part match was preferred but that would break other cases'
 
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Yet more cases with multiple possible part matches'
@@ -1146,3 +1146,43 @@
     stdin: *output-23
   output:
     stdout: *output-23
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Too long match when taking stem changes into account'
+  defs: &output-24 |
+    Kalkkistentie	kalkkis#tie	kalkkistentie
+    esimiestentietoon	esi#mies#tieto	esimiestentieto
+    yleistieteiden	yleinen#tiede	yleistiede
+    valtiotietieteiden	valtio#tie#tiede	valtiotietiede
+    valuisikiin	valu#ikä	valuisikä
+    viattomienien	viaton#ien	viattomienien
+  input:
+    stdin: *output-24
+  output:
+    stdout: *output-24
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compound part ending in a letter not typical in Finnish'
+  defs: &output-25 |
+    golfkenttää	golf#kenttä	golfkenttä
+    popniitti	pop#niitti	popniitti
+    aerobicharjoituksen	aerobic#harjoitus	aerobicharjoitus
+  input:
+    stdin: *output-25
+  output:
+    stdout: *output-25
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphenated compound with a Unicode HYPHEN U+2020'
+  defs: &output-26 |
+    2000‐luvun	2000#luku	2000‐luku
+    A‐rajan	A#raja	A‐raja
+    DNA‐kokeet	DNA#koe	DNA‐koe
+    Capital‐talouslehti	capital#talous#lehti	capital‐talouslehti
+    ei‐falsifioitavilla	ei#falsifioida	ei‐falsifioida
+    myynti‐innostuksen	myynti#innostus	myynti‐innostus
+    y‐tunnus	y#tunnus	y‐tunnus
+  input:
+    stdin: *output-26
+  output:
+    stdout: *output-26
