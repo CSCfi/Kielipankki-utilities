@@ -1093,6 +1093,12 @@
   status: 'xfail: Difficult to handle (covering all inflected forms) as the lemma does not contain ordinal numbers'
 
 
+- defs: &rm-posattrs-comment
+  # Remove the positional-attributes comment
+  - python: |
+      return re.sub(r'^<!--.*?\n', '', value)
+
+
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Warning on non-match'
   defs: &output-20 |
     keinotekoinen	keino#teko#teko	keinotekoteko
@@ -1103,11 +1109,27 @@
     stderr:
       value: |
         vrt-add-lemma-nobound: Warning: input line 2: No match found for compound lemma boundary "teko#teko" in suffix "tekoinen" of word form "keinotekoinen"
-      transform-expected:
-      # This removes the positional attributes comment added by a
-      # global transformation.
-      - python: |
-          return re.sub(r'^<!--.*?\n', '', value)
+      # Remove the positional-attributes comment added by a global
+      # transformation.
+      transform-expected: *rm-posattrs-comment
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Fall back to simple-omorfi on non-match'
+  # Artificial examples
+  defs: &output-20b |
+    kahdenkerranmoni	kaksi#kerta#koni	kahdenkertakoni
+    kahdenkerran-moni	kaksi#kerta#koni	kahdenkerta-koni
+  input:
+    stdin: *output-20b
+  output:
+    stdout: *output-20b
+    stderr:
+      value: |
+        vrt-add-lemma-nobound: Warning: input line 2: No match found for compound lemma boundary "kerta#koni" in suffix "kerranmoni" of word form "kahdenkerranmoni"
+        vrt-add-lemma-nobound: Warning: input line 3: No match found for compound lemma boundary "kerta#koni" in suffix "kerran-moni" of word form "kahdenkerran-moni"
+      # Remove the positional-attributes comment added by a global
+      # transformation.
+      transform-expected: *rm-posattrs-comment
 
 
 - name: 'vrt-add-lemma-nobound: --mode=omorfi: Upper-case and capitalized word forms'

@@ -498,6 +498,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
         make_lemma_noboundaries = []
         lemma_split_re = []
         for num, mode in enumerate(args.mode):
+            lemma_split_nobounds_re = re.compile(
+                '[' + boundary_chars[num].decode() + '-]')
             if mode == 'omorfi':
                 make_lemma_noboundaries.append(
                     self._make_lemma_noboundaries_omorfi)
@@ -506,9 +508,12 @@ class NoBoundaryLemmaAdder(InputProcessor):
                         lru_cache(maxsize=args.cache_size)(
                             make_lemma_noboundaries[-1]))
                 # Handle double boundary characters, which occur in for example
-                # "neli||siipinen"; keep boundary characters
+                # "neli||siipinen"; keep boundary characters.
+                # The second item is used when falling back to "simple-omorfi"
+                # in _make_lemma_noboundaries_omorfi.
                 lemma_split_re.append(
-                    re.compile('([' + boundary_chars[num].decode() + '-]+)'))
+                    (re.compile('([' + boundary_chars[num].decode() + '-]+)'),
+                     lemma_split_nobounds_re))
             else:
                 if mode == 'naive':
                     make_lemma_noboundaries.append(
@@ -518,8 +523,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                         self._make_lemma_noboundaries_omorfi_simple)
                 # Boundary character information is not needed here, so discard
                 # them
-                lemma_split_re.append(
-                    re.compile('[' + boundary_chars[num].decode() + '-]'))
+                lemma_split_re.append(lemma_split_nobounds_re)
                 # simple-omorfi and naive are so fast that caching would
                 # slow them down slightly
                 args.cache_size = 0
@@ -650,6 +654,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
                                                warn_fn):
         # Adapted and slightly improved from vrt-fix-attrs.py
         # (PosAttrConverter._make_lemma_without_boundaries_tdt)
+        # print(lemma_b, wordform_b, file=sys.stderr)
         lemma = lemma_b.decode()
         wordform = wordform_b.decode()
         boundary_char = boundary_char.decode()
@@ -699,8 +704,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
                 lemma_prefix_len += len(lemmapart)
             return ''.join(lemma_without_boundaries).encode()
 
-    def _make_lemma_noboundaries_omorfi(self, lemma, wordform,
-                                        boundary_char, lemma_split_re,
+    def _make_lemma_noboundaries_omorfi(self, lemma_b, wordform_b,
+                                        boundary_char_b, lemma_split_res,
                                         warn_fn):
 
         def get_lemma_min_wf_len(lemma):
@@ -709,12 +714,12 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     return len(lemma) + len_change
             return len(lemma)
 
-        lemma = lemma.decode()
-        wordform = wordform.decode()
-        boundary_char = boundary_char.decode()
+        lemma = lemma_b.decode()
+        wordform = wordform_b.decode()
+        boundary_char = boundary_char_b.decode()
         # CHECK: Do we really need to preserve information on the separators,
         # because of possible hyphens?
-        lemmaparts_boundaries = lemma_split_re.split(lemma)
+        lemmaparts_boundaries = lemma_split_res[0].split(lemma)
         lemmaparts = [part for partnum, part
                       in enumerate(lemmaparts_boundaries)
                       if partnum % 2 == 0]
@@ -787,8 +792,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
                         del(nobound_part_alts[-1][-1][0])
                     lemma_nobound[lemma_nobound_len:] = []
                 else:
-                    # Fall back to using the lemma parts as they are
-                    wf_use_len = len(nobound_part)
+                    # If no boundary position found, warn and fall back to
+                    # using "simple-omorfi" for the rest of the lemma parts
                     if not self._args.quiet:
                         warn_fn(
                             'No match found for compound lemma boundary'
@@ -799,7 +804,16 @@ class NoBoundaryLemmaAdder(InputProcessor):
                                     boundary=boundary_char,
                                     suffix=wordform[wf_prefix_len:],
                                     wordform=wordform))
-                    return ''.join(lemmaparts).encode()
+                    # return ''.join(lemmaparts).encode()
+                    # print((wordform[:wf_prefix_len] + ':'
+                    #        + wordform[wf_prefix_len:]),
+                    #       lemmaparts, lemmaparts_boundaries, partnum,
+                    #       lemmaparts_boundaries[partnum * 2:], file=sys.stderr)
+                    return (wordform[:wf_prefix_len].encode()
+                            + self._make_lemma_noboundaries_omorfi_simple(
+                                (''.join(lemmaparts_boundaries[partnum * 2:])
+                                 .encode()), wordform[wf_prefix_len:].encode(),
+                                boundary_char_b, lemma_split_res[1], warn_fn))
             if (nobound_part and nobound_part[0] == '-'
                     and lemma_nobound and lemma_nobound[-1] == '-'):
                 nobound_part = nobound_part[1:]
