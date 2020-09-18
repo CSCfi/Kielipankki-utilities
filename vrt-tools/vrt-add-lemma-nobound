@@ -222,8 +222,13 @@ class NoBoundaryLemmaAdder(InputProcessor):
                  'parha'],
         'ien': ['ike'],
         'ies': ['ike'],
-        'ikä': ['ii',    # "iin" is recognized by Omorfi as a form of "ikä"
-                'iä'],
+        'ikä': ['iä',
+                'i\'ä',  # "i'ä" is recognized by Omorfi as a form of "ikä"
+                'i’ä',
+                'i\'ii',
+                'i’i',
+                'ii',    # "iin" is recognized by Omorfi as a form of "ikä"
+                'i&apos;i'],
         'itu': ['idu'],
         'itä': ['idä'],
         'oas': ['oka'],

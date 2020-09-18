@@ -1186,3 +1186,20 @@
     stdin: *output-26
   output:
     stdout: *output-26
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Stem changes of "ikä"'
+  # The analyses produced by Omorfi are a bit strange if not
+  # incorrect, in particular i'ä : ikä.
+  defs: &output-27 |
+    kopioi'iksi	kopio#ikä	kopioikä
+    kopioi’iksi	kopio#ikä	kopioikä
+    kopioi&apos;iksi	kopio#ikä	kopioikä
+    kopioiiksi	kopio#ikä	kopioikä
+    ylimääräisi'ä	yli#määräinen#ikä	ylimääräisikä
+    ylimääräisi’ä	yli#määräinen#ikä	ylimääräisikä
+    ylimääräisi&apos;ä	yli#määräinen#ikä	ylimääräisikä
+  input:
+    stdin: *output-27
+  output:
+    stdout: *output-27
