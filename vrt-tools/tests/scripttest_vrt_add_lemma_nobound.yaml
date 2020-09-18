@@ -1225,3 +1225,75 @@
     stdin: *output-27
   output:
     stdout: *output-27
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Lemma-initial compound boundary'
+  # Artificial examples: some of these might never be returned by
+  # Omorfi
+  defs: &output-28 |
+    -portaisissa	#portainen	-portainen
+    portaisissa	#portainen	portainen
+    -portaistoistoissa	#portainen#toisto	-portaistoisto
+    portaistoistoissa	#portainen#toisto	portaistoisto
+    -portais-toistoissa	#portainen#toisto	-portais-toisto
+    portais-toistoissa	#portainen#toisto	portais-toisto
+    -portaisissa	-portainen	-portainen
+    -portaistoistoissa	-portainen#toisto	-portaistoisto
+    portaistoistoissa	-portainen#toisto	portaistoisto
+    -portais-toistoissa	-portainen#toisto	-portais-toisto
+    portais-toistoissa	-portainen#toisto	portais-toisto
+  input:
+    stdin: *output-28
+  output:
+    stdout: *output-28
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Lemma-final compound boundary'
+  # Artificial examples: some of these might never be returned by
+  # Omorfi
+  defs: &output-29 |
+    yleis-	yleis#	yleis-
+    yleis	yleis#	yleis
+    puoliyleis-	puoli#yleis#	puoliyleis-
+    puoliyleis	puoli#yleis#	puoliyleis
+    puoli-yleis-	puoli#yleis#	puoli-yleis-
+    puoli-yleis	puoli#yleis#	puoli-yleis
+    yleis-	yleis-	yleis-
+    puoliyleis-	puoli#yleis-	puoliyleis-
+    puoliyleis	puoli#yleis-	puoliyleis
+    puoli-yleis-	puoli#yleis-	puoli-yleis-
+    puoli-yleis	puoli#yleis-	puoli-yleis
+  input:
+    stdin: *output-29
+  output:
+    stdout: *output-29
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Hyphen at the beginning or end of a lemma but not in the word form'
+  # These would seem to work correctly when the script is run from the
+  # command line, but in the tests the result contains the hyphen from
+  # the original lemma. Why?
+  # Artificial examples: some of these might never be returned by
+  # Omorfi
+  defs: &output-30 |
+    portaisissa	-portainen	portainen
+    yleis	yleis-	yleis
+  input:
+    stdin: *output-30
+  output:
+    stdout: *output-30
+  status: 'xfail: Would appear to work from the command line but not in the tests'
+
+
+- name: 'vrt-add-lemma-nobound: --mode=omorfi: Compound boundary characters in the word form (also with an initial or final hyphen)'
+  defs: &output-31 |
+    foo#bar	foo#bar	foo#bar
+    -foo#bar	-foo#bar	-foo#bar
+    foo#bar-	foo#bar-	foo#bar-
+    #foo#bar#	#foo#bar#	#foo#bar#
+    -#foo#bar#	-#foo#bar#	-#foo#bar#
+    #foo#bar#-	#foo#bar#-	#foo#bar#-
+  input:
+    stdin: *output-31
+  output:
+    stdout: *output-31

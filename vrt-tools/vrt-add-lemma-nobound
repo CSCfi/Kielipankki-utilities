@@ -495,6 +495,7 @@ class NoBoundaryLemmaAdder(InputProcessor):
             return lemma.replace(boundary_char, b'')
 
         LESS_THAN = '<'.encode()[0]
+        HYPHEN = '-'.encode()[0]
         make_lemma_noboundaries = []
         lemma_split_re = []
         for num, mode in enumerate(args.mode):
@@ -610,7 +611,12 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     # If the word form contains a compound boundary marker, the
                     # word is unlikely to be a real compound, so keep the lemma
                     # as is.
-                    if boundary_char in lemma and not boundary_char in word:
+                    # If the lemma begins or ends with a hyphen, add the hyphen
+                    # only if it occurs in the word form (handled for mode
+                    # "omorfi" in make_lemma_noboundaries)
+                    if ((boundary_char in lemma
+                             or lemma[0] == HYPHEN or lemma[-1] == HYPHEN)
+                            and not boundary_char in word):
                         # The Turku UD1 parser pipeline seems to convert
                         # literal |'s in lemmas to #'s if the wordform (and
                         # lemma) contains only punctuation characters
@@ -717,6 +723,18 @@ class NoBoundaryLemmaAdder(InputProcessor):
         lemma = lemma_b.decode()
         wordform = wordform_b.decode()
         boundary_char = boundary_char_b.decode()
+        # Preserve information on whether the lemma begins or ends with a
+        # boundary character (or hyphen) and the word form begins or ends with
+        # a hyphen, in which case the hyphen is added to the end of the
+        # resulting lemma at the end.
+        lemma_ends = (lemma[0] if lemma[0] in [boundary_char, '-'] else '',
+                      lemma[-1] if lemma[-1] in [boundary_char, '-'] else '')
+        wordform_ends = ('-' if wordform[0] == '-' and lemma_ends[0] else '',
+                         '-' if wordform[-1] == '-' and lemma_ends[1] else '')
+        lemma = lemma.strip(boundary_char + '-')
+        wordform = wordform.strip('-')
+        if boundary_char not in lemma:
+            return (wordform_ends[0] + lemma + wordform_ends[1]).encode()
         # CHECK: Do we really need to preserve information on the separators,
         # because of possible hyphens?
         lemmaparts_boundaries = lemma_split_res[0].split(lemma)
@@ -730,12 +748,12 @@ class NoBoundaryLemmaAdder(InputProcessor):
         # If the word form has the same number of intra-word hyphens as the
         # lemma has boundaries (and hyphens), use the lemma of the last part
         # and the word forms of the preceding parts.
-        if (lemma[1:-1].count(boundary_char) + lemma[1:-1].count('-')
-                == wordform[1:-1].count('-')):
+        if (lemma.count(boundary_char) + lemma.count('-')
+                == wordform.count('-')):
             result_parts = ([
                     self._adjust_case(wf_part, lemmaparts[partnum])
                     for partnum, wf_part
-                    in enumerate(wordform.strip('-').split('-')[:-1])]
+                    in enumerate(wordform.split('-')[:-1])]
                 ) + [lemmaparts[-1]]
             # If the second-last and last part form a compound in which the
             # second-last part inflects, use its lemma instead of the inflected
@@ -744,7 +762,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
             # Ison-Britannian-kävijät -> Ison-Britannian-kävijä).
             if self._has_inflecting_first_part(lemmaparts[-2], lemmaparts[-1]):
                 result_parts[-2] = lemmaparts[-2]
-            return '-'.join(result_parts).encode()
+            return (wordform_ends[0] + '-'.join(result_parts)
+                    + wordform_ends[1]).encode()
         wf_prefix_len = 0
         lemma_nobound = []
         # Calculate the minimum word form length covering a lemma part and the
@@ -809,10 +828,10 @@ class NoBoundaryLemmaAdder(InputProcessor):
                     #        + wordform[wf_prefix_len:]),
                     #       lemmaparts, lemmaparts_boundaries, partnum,
                     #       lemmaparts_boundaries[partnum * 2:], file=sys.stderr)
-                    return (wordform[:wf_prefix_len].encode()
+                    return ((wordform_ends[0] + wordform[:wf_prefix_len]).encode()
                             + self._make_lemma_noboundaries_omorfi_simple(
-                                (''.join(lemmaparts_boundaries[partnum * 2:])
-                                 .encode()), wordform[wf_prefix_len:].encode(),
+                                (''.join(lemmaparts_boundaries[partnum * 2:]) + lemma_ends[1])
+                                 .encode(), (wordform[wf_prefix_len:] + wordform_ends[1]).encode(),
                                 boundary_char_b, lemma_split_res[1], warn_fn))
             if (nobound_part and nobound_part[0] == '-'
                     and lemma_nobound and lemma_nobound[-1] == '-'):
@@ -834,7 +853,8 @@ class NoBoundaryLemmaAdder(InputProcessor):
             partnum += 1
             # print('lemma_nobound:', lemma_nobound, file=sys.stderr)
         lemma_nobound.append(lemmaparts[-1])
-        return ''.join(lemma_nobound).encode()
+        return (wordform_ends[0] + ''.join(lemma_nobound)
+                + wordform_ends[1]).encode()
 
     def _get_adjust_case_fn(self, ref_word):
         for test_fn, adjust_fn in self._adjust_case_fns:
