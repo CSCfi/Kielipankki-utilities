@@ -25,6 +25,9 @@ do
 	# extract language used
 	lang="";
 	if [ "$outputdir" != "" ]; then
+	    if ! [ -d "$outputdir" ]; then
+		mkdir $outputdir;
+	    fi
 	    lang=`grep 'language' $metadatafile | perl -pe "s/^.*'language'\: '([^']+)'.*$/\1/;"`;
 	    echo "Language: "$lang;
 	    if ! [ -d "$outputdir/$lang" ]; then
@@ -32,7 +35,13 @@ do
 	    fi
 	fi
 	# process all xml files that use the current mets file
+	# concatenate the resulting vrt files into a single file
 	xmlfiles=`echo $metsfile | perl -pe 's/_mets\.xml/_page-*.xml/;'`
+	single_vrtfile=`echo $metsfile | perl -pe 's/_mets\.xml/.VRT/;'`
+	if [ -f "$single_vrtfile" ]; then
+	    echo "Error: file "$single_vrtfile" exists, exiting.";
+	    exit 1;
+	fi
 	for xmlfile in $xmlfiles;
 	do
 	    vrtfile=`echo $xmlfile | perl -pe 's/\.xml/\.vrt/'`;
@@ -55,10 +64,20 @@ do
 		    echo "Not valid VRT format, exiting.";
 		    exit 1;
 		fi
+		# concatenate into single vrt file
+		if ! [ -f "$single_vrtfile" ]; then
+		    cp $vrtfile $single_vrtfile;
+		else
+		    # skip "<!--" vrt line
+		    cat $vrtfile | tail --lines=+2 >> $single_vrtfile;
+		fi
 	    fi
 	    if [ "$outputdir" != "" ]; then
 		cp --parents $vrtfile $outputdir/$lang/;
 	    fi
 	done
+	if [ "$outputdir" != "" ]; then
+	    cp --parents $single_vrtfile $outputdir/$lang/;
+	fi
     done
 done
