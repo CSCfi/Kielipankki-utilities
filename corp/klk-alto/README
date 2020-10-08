@@ -1,0 +1,38 @@
+
+Set variables in file alto-xml2vrt-dirs-new.sh:
+ - scriptdir
+ - outputdir
+ - copy_all_vrtfiles
+ - linkingfile
+
+Dependencies of alto-xml2vrt-dirs-new.sh:
+
+alto-xml2vrt-dirs-new.sh
+  - conv-new.py
+    - vrt_util.py
+      - finnish-tokenize command line tool
+    - mets.py
+  - mets2metadata.py
+    - mets.py
+
+Run command:
+
+  alto-xml2vrt-dirs-new.sh "DIR_1 DIR_2 ... DIR_N"
+
+e.g.
+
+  alto-xml2vrt-dirs-new.sh "0025-5149/1937/alto 0025-5149/1938/alto"
+
+which will create
+
+- outputdir/0025-5149/1937/alto/FILE_1.VRT
+- outputdir/0025-5149/1937/alto/FILE_2.VRT
+- ...
+- outputdir/0025-5149/1937/alto/FILE_N.VRT
+
+- outputdir/0025-5149/1938/alto/FILE_1.VRT
+- outputdir/0025-5149/1938/alto/FILE_2.VRT
+- ...
+- outputdir/0025-5149/1938/alto/FILE_N.VRT
+
+Each VRT file will be a concatenation of files that use the same metadata file.
