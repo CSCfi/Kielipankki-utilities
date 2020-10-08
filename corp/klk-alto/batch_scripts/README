@@ -1,0 +1,13 @@
+
+In the directory that contains the alto XML and metadata files, run command:
+
+  list-dirs.sh | combine-dirs.sh THRESHOLD1 | dirs-into-game-commands.sh GAMESCRIPT ALTOSCRIPT THRESHOLD2
+
+where
+
+  - THRESHOLD1: how big chunks directories can be combined into, in kilobytes
+  - GAMESCRIPT: the batch script
+  - ALTOSCRIPT: the XML-to-VRT script (alto-xml2vrt-dirs-new.sh)
+  - THRESHOLD2: defines the number of hours reserved for the batch job:
+                (SIZE / THRESHOLD2 + 1), where SIZE is the total size of the XML
+		files processed by the job, in kilobytes (inferred from output of combine-dirs.sh)
