@@ -4,12 +4,15 @@
 scriptdir="."
 # Where VRT files are copied. If empty, no copying is done.
 outputdir=""
+# Whether all VRT files are copied or just the single file
+# (a concatenation of all VRT files that use the same metadata file)
+copy_all_vrtfiles="false"
 # The linking file in csv format.
 linkingfile="FILENAME.csv"
 
-convpy=$scriptdir"/Kielipankki-utilities/corp/klk-alto/conv-new.py";
-mets2metadata=$scriptdir"/Kielipankki-utilities/corp/klk-alto/mets2metadata.py";
-vrtvalidate=$scriptdir"/Kielipankki-utilities/vrt-tools/vrt-validate";
+convpy=$scriptdir"/corp/klk-alto/conv-new.py";
+mets2metadata=$scriptdir"/corp/klk-alto/mets2metadata.py";
+vrtvalidate=$scriptdir"/vrt-tools/vrt-validate";
 
 for dir in $1;
 do
@@ -72,7 +75,7 @@ do
 		    cat $vrtfile | tail --lines=+2 >> $single_vrtfile;
 		fi
 	    fi
-	    if [ "$outputdir" != "" ]; then
+	    if [ "$outputdir" != "" -a "$copy_all_vrtfiles" = "true" ]; then
 		cp --parents $vrtfile $outputdir/$lang/;
 	    fi
 	done
