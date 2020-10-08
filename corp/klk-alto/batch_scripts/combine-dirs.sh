@@ -32,12 +32,18 @@ do
     if [ "$total_size" -gt "$threshold" ]; then
 	total_size=$((total_size-size))
 	# Print the previous dirs
-	echo $total_size"\t"$all_dirs;
+	if [ "$all_dirs" != "" ]; then
+	    echo $total_size"\t"$all_dirs;
+	fi
 	# and leave the current dir to the next batch job.
 	all_dirs=$dir;
 	total_size=$size;
     else
-	all_dirs=$all_dirs" "$dir;
+	if [ "$all_dirs" = "" ]; then
+	    all_dirs=$dir;
+	else
+	    all_dirs=$all_dirs" "$dir;
+	fi
     fi
 done <&0;
 
