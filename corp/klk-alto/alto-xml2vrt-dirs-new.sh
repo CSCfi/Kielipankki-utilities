@@ -41,10 +41,7 @@ do
 	# concatenate the resulting vrt files into a single file
 	xmlfiles=`echo $metsfile | perl -pe 's/_mets\.xml/_page-*.xml/;'`
 	single_vrtfile=`echo $metsfile | perl -pe 's/_mets\.xml/.VRT/;'`
-	if [ -f "$single_vrtfile" ]; then
-	    echo "Error: file "$single_vrtfile" exists, exiting.";
-	    exit 1;
-	fi
+	first_vrtfile="true";
 	for xmlfile in $xmlfiles;
 	do
 	    vrtfile=`echo $xmlfile | perl -pe 's/\.xml/\.vrt/'`;
@@ -68,8 +65,9 @@ do
 		    exit 1;
 		fi
 		# concatenate into single vrt file
-		if ! [ -f "$single_vrtfile" ]; then
+		if [ "$first_vrtfile" = "true" ]; then
 		    cp $vrtfile $single_vrtfile;
+		    first_vrtfile="false";
 		else
 		    # skip "<!--" vrt line
 		    cat $vrtfile | tail --lines=+2 >> $single_vrtfile;
