@@ -9,7 +9,7 @@ and name, separated by a tab, in ascending order.
     exit 0;
 fi
 
-for dir in */*/alto;
+for dir in */*/alto*;
 do
     kbytes=`du -c -k -d 0 $dir/*.xml | tail -1 | cut -f1`;
     echo $kbytes"\t"$dir;
