@@ -32,7 +32,7 @@ kbytes=0;
 subdir=$1"/../"$subdir_prefix$subdir_N"/";
 echo "Copying to directory $subdir";
 if ! [ -d "$subdir" ]; then
-    if [ "dry_run" != "true" ]; then mkdir $subdir; fi;
+    if [ "$dry_run" != "true" ]; then mkdir $subdir; fi;
 fi
 
 for metsfile in $1/*_mets.xml;
@@ -47,12 +47,12 @@ do
 	subdir=$1"/../"$subdir_prefix$subdir_N"/";
 	echo "Copying to directory $subdir";
 	if ! [ -d "$subdir" ]; then
-	    if [ "dry_run" != "true" ]; then mkdir $subdir; fi;
+	    if [ "$dry_run" != "true" ]; then mkdir $subdir; fi;
 	fi
 	kbytes=$more_kbytes;
     fi
 
-    if [ "dry_run" != "true" ]; then
+    if [ "$dry_run" != "true" ]; then
 	cp $metsfile $subdir;
 	for xmlfile in $xmlfiles;
 	do
@@ -64,6 +64,6 @@ done
 
 orig_alto=`echo $1 | perl -pe 's/\/alto/\/orig_alto/;'`;
 echo "Renaming $1 to $orig_alto";
-if [ "dry_run" != "true" ]; then
+if [ "$dry_run" != "true" ]; then
     mv $1 $orig_alto;
 fi
