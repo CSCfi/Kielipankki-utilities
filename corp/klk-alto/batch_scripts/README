@@ -1,10 +1,10 @@
-
 In the directory that contains the alto XML and metadata files, run command:
 
-  list-dirs.sh | combine-dirs.sh THRESHOLD1 | dirs-into-game-commands.sh GAMESCRIPT ALTOSCRIPT THRESHOLD2
+  list-dirs.sh [DIR] | combine-dirs.sh THRESHOLD1 | dirs-into-game-commands.sh GAMESCRIPT ALTOSCRIPT THRESHOLD2
 
 where
 
+  -        DIR: the directory where alto files are (finclarin_siirto)
   - THRESHOLD1: how big chunks directories can be combined into, in kilobytes
   - GAMESCRIPT: the batch script
   - ALTOSCRIPT: the XML-to-VRT script (alto-xml2vrt-dirs-new.sh)
