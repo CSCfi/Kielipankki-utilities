@@ -325,6 +325,6 @@ if __name__ == '__main__':
         mets['filename_metadata'] = mets_filename
 
     vrt_string = main(page_file, mets, date)
-    print('<!-- #vrt positional-attributes: word id content vpos ocr cc hyph -->')
+    print('<!-- #vrt positional-attributes: word wid content vpos ocr cc hyph -->')
     print(vrt_string, end='')
     stderr.write('Done.\n')

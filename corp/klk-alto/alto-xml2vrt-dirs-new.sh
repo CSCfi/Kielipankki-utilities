@@ -39,8 +39,10 @@ do
 	fi
 	# process all xml files that use the current mets file
 	# concatenate the resulting vrt files into a single file
+	# (named *.VRT and renamed to *.vrt when copied)
 	xmlfiles=`echo $metsfile | perl -pe 's/_mets\.xml/_page-*.xml/;'`
 	single_vrtfile=`echo $metsfile | perl -pe 's/_mets\.xml/.VRT/;'`
+	single_vrtfile_copied=`echo $metsfile | perl -pe 's/_mets\.xml/.vrt/;'`
 	first_vrtfile="true";
 	for xmlfile in $xmlfiles;
 	do
@@ -79,6 +81,8 @@ do
 	done
 	if [ "$outputdir" != "" ]; then
 	    cp --parents $single_vrtfile $outputdir/$lang/;
+	    # rename *.VRT to *.vrt
+	    mv $outputdir/$lang/$single_vrtfile $outputdir/$lang/$single_vrtfile_copied;
 	fi
     done
 done
