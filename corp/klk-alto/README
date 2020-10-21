@@ -1,9 +1,11 @@
-
 Set variables in file alto-xml2vrt-dirs-new.sh:
  - scriptdir
  - outputdir
  - copy_all_vrtfiles
  - linkingfile
+
+Set variables in check-and-renumber-sentences.sh:
+ - vrt_validate
 
 Dependencies of alto-xml2vrt-dirs-new.sh:
 
@@ -15,7 +17,13 @@ alto-xml2vrt-dirs-new.sh
   - mets2metadata.py
     - mets.py
 
-Run command:
+Process all source directories with alto-xml2vrt-dirs-new.sh. It is probably
+easiest first to split large directories into smaller ones and then generate
+commands for batch scripts that should terminate within one hour. For more
+information, see batch_scripts/README.
+
+Basically, VRT files are generated from XML files for a given set of directories
+with the command:
 
   alto-xml2vrt-dirs-new.sh "DIR_1 DIR_2 ... DIR_N"
 
@@ -25,14 +33,26 @@ e.g.
 
 which will create
 
-- outputdir/0025-5149/1937/alto/FILE_1.VRT
-- outputdir/0025-5149/1937/alto/FILE_2.VRT
+- outputdir/0025-5149/1937/alto/FILE_1.vrt
+- outputdir/0025-5149/1937/alto/FILE_2.vrt
 - ...
-- outputdir/0025-5149/1937/alto/FILE_N.VRT
+- outputdir/0025-5149/1937/alto/FILE_N.vrt
 
-- outputdir/0025-5149/1938/alto/FILE_1.VRT
-- outputdir/0025-5149/1938/alto/FILE_2.VRT
+- outputdir/0025-5149/1938/alto/FILE_1.vrt
+- outputdir/0025-5149/1938/alto/FILE_2.vrt
 - ...
-- outputdir/0025-5149/1938/alto/FILE_N.VRT
+- outputdir/0025-5149/1938/alto/FILE_N.vrt
 
 Each VRT file will be a concatenation of files that use the same metadata file.
+
+Then analyze the VRT files. Splitting long sentences is advisable. For example
+vrt-conll09-mend does this by default after the limit of 1 000 words is reached.
+
+After analyzing, search for possible splitted sentences and rename their
+ids with command
+
+  ./check-and-renumber-sentences.sh outputdir
+
+Then generate the corpus package for each year YEAR with command
+
+  ... outputdir/*/YEAR/*/*.vrt
