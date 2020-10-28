@@ -1,8 +1,7 @@
 import os
-import pathlib2 # needs? anyway, that be where tmp_path is
 from subprocess import Popen, PIPE, STDOUT, TimeoutExpired
 
-import fake # sibling library module to provide fake data
+from tests.tools import fake # sibling library module to provide fake data
 
 # ./vrt-drop maps "send" to "want" but fails on "fail"
 # (omitting redundant names but requiring initial names)
