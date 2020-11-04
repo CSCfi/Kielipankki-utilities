@@ -33,7 +33,7 @@ do
 	total_size=$((total_size-size))
 	# Print the previous dirs
 	if [ "$all_dirs" != "" ]; then
-	    echo -e $total_size"\t"$all_dirs;
+	    printf '%s\t%s\n' "$total_size" "$all_dirs";
 	fi
 	# and leave the current dir to the next batch job.
 	all_dirs=$dir;
@@ -48,5 +48,5 @@ do
 done <&0;
 
 if [ "$all_dirs" != "" ]; then
-    echo -e $total_size"\t"$all_dirs;
+    printf '%s\t%s\n' "$total_size" "$all_dirs";
 fi

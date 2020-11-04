@@ -23,5 +23,5 @@ fi
 for dir in $DIR/*/*/alto*;
 do
     kbytes=`du -c -k -d 0 $dir/*.xml | tail -1 | cut -f1`;
-    echo -e $kbytes"\t"$dir;
+    printf '%s\t%s\n' "$kbytes" "$dir";
 done | sort -n;
