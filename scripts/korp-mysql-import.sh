@@ -500,7 +500,7 @@ create_table() {
     run_mysql --table $_tablename "
 CREATE TABLE IF NOT EXISTS \`$_tablename\` (
     $_colspec
-    ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8 DEFAULT COLLATE=utf8_bin
+    ) ENGINE=InnoDB
       ROW_FORMAT=COMPRESSED;
 "
 }
@@ -653,7 +653,7 @@ mysql_import_main () {
 	    set unique_checks = 0;
             set foreign_key_checks = 0;
             set session tx_isolation = 'READ-UNCOMMITTED';
-	    load data local infile '$fifo' into table \`$tablename\` character set utf8 fields escaped by '';"
+	    load data local infile '$fifo' into table \`$tablename\` fields escaped by '';"
     if [ "x$show_warnings" != x ]; then
 	echo '  MySQL output:'
 	mysql_cmds="$mysql_cmds
