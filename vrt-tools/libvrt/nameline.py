@@ -16,8 +16,7 @@ def makenameline(names):
 def parsenameline(line, *, required = ()):
     '''Parse a nameline (a byte string) into a list of the names.
     Optionally require that the required names are among the names
-    found in the line, possibly with a trailing slash (no trailing
-    slashes in required but they may occur with one in line).
+    found in the line.
 
     Return the name list, or raise a BadData exception.
 
@@ -29,8 +28,7 @@ def parsenameline(line, *, required = ()):
     names = re.findall(b'[a-zA-Z_][a-zA-Z0-9_.]*/?', line)[3:]
 
     # require the required
-    bad = sorted(set(required) -
-                 set(name.rstrip(b'/') for name in names))
+    bad = sorted(set(required) - set(names))
     if bad:
         raise BadData('required {}: {}'
                       .format(b' '.join(bad).decode('UTF-8'),
@@ -39,10 +37,9 @@ def parsenameline(line, *, required = ()):
     return names
 
 def rename(names, mapping):
-    '''Replace any of the old names (that may have a trailing slash) with
-    those specified in the mapping. The old names come in a list. The
-    mapping comes as a dict (and may specify a trailing slash for any
-    new name).
+    '''Replace any of the old names with those specified in the
+    mapping. The old names come in a list. The mapping comes as a
+    dict.
 
     Do not allow duplicates in the new names, ignoring any trailing
     slash.
@@ -51,10 +48,8 @@ def rename(names, mapping):
 
     '''
 
-    new = [ mapping.get(key.rstrip(b'/'), key) for key in names ]
-
-    bar = [ key.rstrip(b'/') for key in new ]
-    bad = sorted(set(key for key in bar if new.count(key) > 1))
+    new = [ mapping.get(key, key) for key in names ]
+    bad = sorted(set(key for key in new if new.count(key) > 1))
     if bad:
         raise BadData('duplicate new names: {}: {}'
                       .format(b' '.join(bad).decode('UTF-8'),

@@ -11,7 +11,7 @@ import re
 from libvrt.bad import BadData
 
 def maptype(text):
-    if re.fullmatch('([a-zA-Z_][a-zA-Z0-9_.]*'
+    if re.fullmatch('([a-zA-Z_][a-zA-Z0-9_.]*/?'
                     '=[a-zA-Z_][a-zA-Z0-9_.]*/?'
                     '|[, ])*',
                     text):
@@ -20,13 +20,13 @@ def maptype(text):
                             .format(repr(text)))
 
 def bagtype(text):
-    if re.fullmatch('([a-zA-Z_][a-zA-Z0-9_.]*|[, ])*', text):
+    if re.fullmatch('([a-zA-Z_][a-zA-Z0-9_.]*/?|[, ])*', text):
         return text.encode('UTF-8')
     raise ArgumentTypeError('not field names: {}'.format(repr(text)))
 
 def parsemaps(option, *, default = False):
     '''Parse an option value that specifies mappings from old field names
-    to field new names. The argument is a list of byte strings that
+    to new field names. The argument is a list of byte strings that
     consist of any number of pairs in the form b'old=new' separated by
     any number commas or spaces (or both). If default is True, every
     "old" must be of the form "vk" where "k" is the canonical written

@@ -69,3 +69,19 @@ def test_003(tmpdir):
     assert out.decode() == want.decode()
     assert not err
     assert proc.returncode == 0
+
+def test_004(tmpdir):
+    '''Test slash-ending names: keep one, dropping one.'''
+
+    old = b'word line/ loop/'.split()
+    new = b'line/'.split()
+    send = b''.join(fake.nameloop(120, old))
+    want = b''.join(fake.nameloop(120, new, keep = (1,), once = True))
+    proc = Popen([ './vrt-keep', '-f', 'line/' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert not err
+    assert proc.returncode == 0
+    assert out.decode() == want.decode()

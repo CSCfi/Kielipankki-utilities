@@ -72,3 +72,19 @@ def test_003(tmpdir):
     assert out == want
     assert not err
     assert proc.returncode == 0
+
+def test_004(tmpdir):
+    '''Test slash-ending names: drop one, keeping one.'''
+
+    old = b'word line/ loop/'.split()
+    new = b'line/'.split()
+    send = b''.join(fake.nameloop(20, old))
+    want = b''.join(fake.nameloop(20, new, keep = (1,), once = True))
+    proc = Popen([ './vrt-drop', '-f', 'loop/,word' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert not err
+    assert proc.returncode == 0
+    assert out == want

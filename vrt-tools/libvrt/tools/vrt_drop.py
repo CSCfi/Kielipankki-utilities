@@ -64,7 +64,7 @@ def main(args, ins, ous):
             ix = tuple(k for k, name in enumerate(names)
                        # *keep* the field if not -f name
                        # *and* *not* (--dots and dotted)
-                       if name.rstrip(b'/') not in drop
+                       if name not in drop
                        if not (args.dots and (b'.' in name)))
             if len(ix) == 0:
                 raise BadData('not allowed to drop all fields')

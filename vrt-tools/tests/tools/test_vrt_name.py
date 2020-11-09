@@ -91,3 +91,17 @@ def test_006(tmpdir):
     out, err = proc.communicate(input = send, timeout = 5)
     assert err
     assert proc.returncode
+
+def test_007(tmpdir):
+    '''Test slash-ending names: name one such.'''
+
+    proc = Popen([ './vrt-name',
+                   '--map',
+                   'v3=lemon/, v1=word' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(timeout = 5)
+    assert not err
+    assert proc.returncode == 0
+    assert out == makenameline(b'word v2 lemon/'.split())

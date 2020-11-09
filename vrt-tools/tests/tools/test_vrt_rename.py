@@ -43,3 +43,37 @@ def test_002(tmpdir):
     assert out == want
     assert not err
     assert proc.returncode == 0
+
+def test_003a(tmpdir):
+    '''Test slash-ending names: add one.'''
+
+    old = b'word line loop'.split()
+    new = b'word line loop/'.split()
+    send = b''.join(fake.nameloop(120, old))
+    want = b''.join(fake.nameloop(120, new, once = True))
+    proc = Popen([ './vrt-rename',
+                   '-m' 'loop=loop/' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert not err
+    assert proc.returncode == 0
+    assert out == want
+
+def test_003b(tmpdir):
+    '''Test slash-ending names: remove one.'''
+
+    old = b'word line loop/'.split()
+    new = b'word line loop'.split()
+    send = b''.join(fake.nameloop(120, old))
+    want = b''.join(fake.nameloop(120, new, once = True))
+    proc = Popen([ './vrt-rename',
+                   '-m' 'loop/=loop' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert not err
+    assert proc.returncode == 0
+    assert out == want
