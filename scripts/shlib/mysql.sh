@@ -100,6 +100,17 @@ mysql_list_table_cols () {
 }
 
 
+# mysql_get_database_charset [--auth | --table table_name]
+#
+# Get the default character set for the Korp database (or the
+# authorization database if --auth is specified or if table_name
+# begins with "auth_").
+mysql_get_database_charset () {
+    run_mysql "$@" "SELECT @@character_set_database;" |
+        tail -n1
+}
+
+
 # Initialize variables
 
 # Korp MySQL database
