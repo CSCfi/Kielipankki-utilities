@@ -19,8 +19,36 @@ alto-xml2vrt-dirs-new.sh
 
 Process all source directories with alto-xml2vrt-dirs-new.sh. It is probably
 easiest first to split large directories into smaller ones and then generate
-commands for batch scripts that should terminate within one hour. For more
-information, see batch_scripts/README.
+commands for batch scripts that should terminate within a given number of hours.
+
+An example:
+
+Split all directories with:
+
+for dir in finclarin_siirto/*/*/alto;
+do
+    ./split-dir.sh $dir 200000;
+done
+for dir in finclarin_siirto/*/*/orig_alto/;
+do
+    rm -r $dir;
+done
+
+Then generate batch commands with:
+
+list-dirs.sh finclarin_siirto | \
+combine-dirs.sh 200000 | \
+dirs-into-game-commands.sh "game --cores=1" "alto-xml2vrt-dirs-new.sh" 100000 > COMMANDS
+
+For more information, see batch_scripts/README.
+
+Then zip the source files:
+
+zip -r finclarin_siirto.zip finclarin_siirto
+
+Copy finclarin_siirto.zip and COMMANDS, extract finclarin_siirto.zip
+and run all batch commands in COMMANDS.
+
 
 Basically, VRT files are generated from XML files for a given set of directories
 with the command:
