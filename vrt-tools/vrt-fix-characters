@@ -743,6 +743,16 @@ CONTROLS = {
     '\x9D' : '{Cc:C1:9D-OSC}',
     '\x9E' : '{Cc:C1:9E-PM}',
     '\x9F' : '{Cc:C1:9F-APC}',
+
+    # LINE SEPARATOR is the only character in its category
+    # so technically not control so may should not be *here*
+    # (in a 'general whitespace' block)
+    '\u2028' : '{Zl:2028-LS}',
+
+    # PARAGRAPH SEPARATOR is the only character in its category
+    # so technically not control so may should not be *here*
+    # (in a 'general whitespace' block)
+    '\u2029' : '{Zp:2029-PS}',
 }
 
 def catPrivate(c):
