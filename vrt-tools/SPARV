@@ -1,0 +1,83 @@
+#! /bin/bash -e
+
+# This is *one* way to use VRT tools to build a Swedish pipeline.
+# Best run as array jobs in batch, see bin/game for that.
+# For convenience, consider a separate log dir for each such job.
+
+# Assuming
+# (1) VRT tools in bin/ (e.g., a symbolic link to a repo clone)
+# (2) data/ as produced by bin/vrt-pack, q.v.
+# (3) default field names
+# fills data/ with siblings to *.vrf found there,
+# in successive stages of analysis.
+
+case $# in
+    1) ;;
+    *)
+	>&2 echo "$0: want 1 argument: got $#:"
+	for arg in "$@"
+	do
+	    >&2 echo "argument: $arg"
+	done
+	exit 2
+	;;
+esac
+
+tick () {
+    now=$SECONDS
+    add=$((now - TICK))
+    printf -v FULL "%d:%02d:%02d" $((now/3600)) $((now/60%60)) $((now%60))
+    printf -v TIME "%d:%02d:%02d" $((add/3600)) $((add/60%60)) $((add%60))
+    date "+%F %T IN $TIME OF $FULL PAST $1"
+    TICK=$now
+}
+
+case "$1" in
+    data/a???/m???.vrf)
+
+	# huntag and swemalt are so old that they lack the now
+	# standard sibling output option; keep original input
+	# by working in-place on a copy until finishing another
+	# sibling.
+
+	cp "$1" "$1.Copy"
+
+	TICK=$SECONDS
+
+	# tag : word -> msd
+
+	bin/vrt-sparv-huntag -i "$1.Copy"
+	tick "tag"
+
+	# parse : msd -> id + head + rel
+
+	bin/vrt-sparv-swemalt -i "$1.Copy"
+	tick "parse"
+
+	# lemma : word + msd -> lemma
+	# wonder if --strict is worse than no --strict here,
+	# need to work out all manner of things eventually.
+
+	bin/vrt-sparv-cstlemma -i --strict "$1.Copy"
+	tick "lemma"
+
+	# Finish: msd, id, head, rel => feat, ref, dephead, deprel,
+	# with ref nee id pre-fronted.
+
+	bin/vrt-rename -I Copy/Final \
+		       -m msd=feat,id=ref,head=dephead,rel=deprel \
+		       "$1.Copy"
+
+	bin/vrt-keep -i -f word,ref --rest "$1.Final"
+
+	tick "finish"
+
+	;;
+
+    *)
+	>&2 echo "$0: want argument in data/a???/m???.vrf"
+	>&2 echo "$0: got argument: $1"
+	exit 2
+	;;
+
+esac

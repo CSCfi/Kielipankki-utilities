@@ -78,6 +78,18 @@ case "$1" in
 	bin/vrt-conll09-mend -i "$1.Eparse"
 	tick "mend"
 
+	# Finish: id, head, rel => ref, dephead, deprel,
+	# with ref nee id pre-fronted.
+
+	bin/vrt-rename -I Eparse/Final \
+		       -m id=ref,head=dephead,rel=deprel \
+		       "$1.Eparse"
+
+	bin/vrt-drop -i --dots "$1.Final"
+	bin/vrt-keep -i -f word,ref --rest "$1.Final"
+
+	tick "finish"
+
 	;;
 
     *)
