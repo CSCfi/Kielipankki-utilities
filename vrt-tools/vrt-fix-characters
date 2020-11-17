@@ -51,7 +51,10 @@ def parsearguments():
 
     parser.add_argument('--entities',
                         action = 'store_true',
-                        help = 'repair character entities')
+                        help = '''repair character entity references:
+                        leave the standard few as such, replacing the
+                        rest with an actual character (or an identifying
+                        string when the character is not allowed)''')
 
     parser.add_argument('--control',
                         action = 'store_true',
@@ -178,7 +181,6 @@ def implement_main(args, ins, ous):
             record = asrecord(line)
 
             for ix in fix:
-                # intentionally do not unescape entities yet
                 record[ix] = fixdata(args, record[ix])
 
             print(*record, sep = '\t', file = ous)
@@ -208,13 +210,13 @@ def fixdata(args, value):
     '''Return fixed positional-field value'''
     if args.entities: value = re.sub(entitylike, unbreakity, value)
     if args.identify or args.abuse: value = miscode(args, value)
-    if args.control: value = ''.join(fixchar(args, value, catControl)) or '_'
-    if args.private: value = ''.join(fixchar(args, value, catPrivate)) or '_'
-    if args.nonchar: value = ''.join(fixchar(args, value, catNonchar)) or '_'
-    if args.reservd: value = ''.join(fixchar(args, value, catReservd)) or '_'
-    if args.surrogt: value = ''.join(fixchar(args, value, catSurrogt)) or '_'
+    if args.control: value = ''.join(fixchar(args, value, catControl))
+    if args.private: value = ''.join(fixchar(args, value, catPrivate))
+    if args.nonchar: value = ''.join(fixchar(args, value, catNonchar))
+    if args.reservd: value = ''.join(fixchar(args, value, catReservd))
+    if args.surrogt: value = ''.join(fixchar(args, value, catSurrogt))
     # return '[{}]'.format(value) # testing
-    return value
+    return value or '_'
 
 def unbreakity(match, quote = False):
     '''Consider any &\w+; an attempted named entity (ASCII only), also
@@ -238,8 +240,16 @@ def unbreakity(match, quote = False):
         )
     else:
         # ents looks like an entity sequence: undo and redo
+        #print('*** un-breaking {} ***'.format(ents))
+        #for mo in re.finditer('&[^&]+', ents):
+        #    part = html.unescape(mo.group())
+        #    print(mo.group(), '=>', repr(part))
+        #    ENTITIES.get(part) and print('*** ENTITIES ***')
+        #    QUOTES.get(part) and print('*** QUOTES ***')
+        #    TANKEROES.get(part) and print('*** TANKEROES ***')
         result = ''.join([
             (
+                misabuse(ent) or
                 ENTITIES.get(part) or
                 (quote and QUOTES.get(part)) or
                 TANKEROES.get(part) or
@@ -248,7 +258,7 @@ def unbreakity(match, quote = False):
                 escape(part)
             )
             for mo in re.finditer('&[^&]+', ents)
-            for part in [ html.unescape(mo.group()) ]
+            for ent, part in [ (mo.group(), html.unescape(mo.group())) ]
         ])
     # value = '[{} => {}]'.format(ents, result)
     return result
@@ -289,62 +299,134 @@ TANKEROES = {
     # The characters that absolutely must not be allowed
     # because they would formally break lines or fields,
     # and something is trying to smuggle them in through
-    # a nentity. Substitute basically anything at all.
-
-    # Many other control characters are merely annoying.
-
-    # TODO make these replacements depend on args.replace!
-    # But then it can also happen that even entities may
-    # lead to the vanishment of the whole value! Which
-    # must then be handled so this is not quite so simple.
+    # an entity reference. Replace with identification.
+    # These should simply not happen.
 
     # U+0009 CHARACTER TABULATION
     # aka HT, HORIZONTAL TAB
-    # ==> SYMBOL FOR HORIZONTAL TABULATION
-    '\t' : '\u2409',
+    '\t' : '{ref=Cc:C0:09-HT}',
 
     # U+000a LINE FEED
-    # ==> SYMBOL FOR LINE FEED
-    '\n' : '\u240a',
+    # aka LF? or is that something else?
+    '\n' : '{ref=Cc:C0:0a-LF}',
 
     # U+000b LINE TABULATION
     # aka VT, VERTICAL TAB
-    # ==> SYMBOL FOR VERTICAL TABULATION 
-    '\v' : '\u240b',
+    # but &#xb; vanishes in html.unescape (python 3.5.2)
+    # so caught with MISABUSE instead
+    '\v' : '{ref=Cc:C0:0b-VT}',
 
-    # U+000b FORM FEED
+    # U+000c FORM FEED
     # aka FF
-    # ==> SYMBOL FOR FORM FEED
-    '\0x0c' : '\u240c',
+    '\x0c' : '{ref=Cc:C0:0c-FF}',
 
     # U+000d CARRIAGE RETURN
     # aka CR
-    # ==> SYMBOL FOR CARRIAGE RETURN
-    '\r' : '\u240d',
+    '\r' : '{ref=Cc:C0:0d-CR}',
+
+    # TODO &#xe; &#xf; vanish, ...
 
     # U+001c INFORMATION SEPARATOR FOUR
     # aka FS, FILE SEPARATOR
-    '\x1c' : '(FS)',
+    # vanishes so caught with MISABUSE instead
+    '\x1c' : '{ref=Cc:C0:1c-FS}',
 
     # U+001d INFORMATION SEPARATOR THREE
     # aka GS, GROUP SEPARATOR
-    '\x1d' : '(GS)',
+    # vanishes so caught with MISABUSE instead
+    '\x1d' : '{ref=Cc:C0:1d-GS}',
 
     # U+001e INFORMATION SEPARATOR TWO
     # aka RS, RECORD SEPARATOR
-    '\x1e' : '(RS)',
+    # vanishes so caught with MISABUSE instead
+    '\x1e' : '{ref=Cc:C0:1e-RS}',
+
+    # 0x1f US vanishes see MISABUSE
 
     # U+0085 NEXT LINE
     # aka NEL
-    # ==> SYMBOL FOR NEWLINE (ok?)
-    '\x85' : '\u2424',
+    # but html.unescape appears to abuse &#x85; for
+    # a horizontal ellipsis (in python 3.5.2), so
+    # caught with MISABUSE instead
+    '\x85' : '{ref=Cc:C1:85-NEL}',
 
     # U+2028 LINE SEPARATOR
-    '\u2028' : '(LS)',
+    '\u2028' : '{ref=Zl:2028-LS}',
 
     # U+2029 PARAGRAPH SEPARATOR
-    '\u2029' : '(PS)',
+    '\u2029' : '{ref=Zp:2029-PS}',
 }
+
+MISABUSE = {
+    # Some of the character entity reference codes that html.unescape
+    # appears to abuse somehow (including vanishing them without a
+    # trace).
+
+    # U+0000
+    # aka NUL
+    # &#x0; becomes ... something?
+    0x00 : '{ref=Cc:C0:00-NUL}',
+
+    # U+0008
+    # aka BS
+    # but &#x8; vanishes
+    0x08 : '{ref=Cc:C0:08-BS}',
+
+    # U+000b LINE TABULATION
+    # aka VT, VERTICAL TAB
+    # but &#xb; vanishes in html.unescape (python 3.5.2)
+    0x0b : '{ref=Cc:C0:0b-VT}',
+
+    # U+001b (what should this be?)
+    # aka ESC
+    # but &#x1b; vanishes
+    0x1b : '{ref=Cc:C0:1b-ESC}',
+
+    # U+001c INFORMATION SEPARATOR FOUR
+    # aka FS, FILE SEPARATOR
+    # vanishes
+    0x1c : '{ref=Cc:C0:1c-FS}',
+
+    # U+001d INFORMATION SEPARATOR THREE
+    # aka GS, GROUP SEPARATOR
+    # vanishes
+    0x1d : '{ref=Cc:C0:1d-GS}',
+
+    # U+001e INFORMATION SEPARATOR TWO
+    # aka RS, RECORD SEPARATOR
+    # vanishes
+    0x1e : '{ref=Cc:C0:1e-RS}',
+
+    # U+001f (what should this even be?)
+    # aka US, UNIT SEPARATOR
+    # vanishes
+    0x1f : '{ref=Cc:C0:1f-US}',
+
+    # U+0085 NEXT LINE
+    # aka NEL
+    # but html.unescape appears to abuse &#x85; for
+    # a horizontal ellipsis (in python 3.5.2)
+    0x85 : '{ref=Cc:C1:85-NEL}',
+}
+
+def misabuse(entity):
+    '''Return an abuse identifier for a character entity reference that
+    html.unescape (python 3.5.2) appears to abuse somehow, and None
+    for others. These are presumably all numeric, either in decimal or
+    in hexadecimal, but there may be any number of leading zeroes and
+    there may or may not be a trailing semicolon.
+
+    '''
+
+    entity = entity.rstrip(';')
+    if entity.startswith('&#x'):
+        code, base = entity[3:], 16
+    elif entity.startswith('&#'):
+        code, base = entity[2:], 10
+    else:
+        return None
+
+    return MISABUSE.get(int(code, base))
 
 TODO = str.maketrans({
 
