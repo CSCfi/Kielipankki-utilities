@@ -8,6 +8,7 @@
 # TODO:
 # - An option to read multiple functions and their arguments from
 #   stdin, to be called in sequence.
+# - Extract and show usage information from function comments.
 
 
 progname=$(basename $0)
@@ -41,7 +42,8 @@ eval "$optinfo_opt_handler"
 
 
 if [ "x$list_functions" != x ]; then
-    grep -h '^[^ ]* () {' $_shlibdir/*.sh |
+    # Omit internal functions whose names begin with an underscore
+    grep -h '^[^_#][^ ]* () {' $_shlibdir/*.sh |
     sed -e 's/ ().*//' |
     sort
     exit
