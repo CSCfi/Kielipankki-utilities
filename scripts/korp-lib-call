@@ -18,8 +18,9 @@ progdir=$(dirname $0)
 usage_header="Usage: $progname [options] function_name [arguments ...]
        $progname -l | --list-functions
 
-Call function function_name in the korp-lib.sh library with the given
-arguments.
+Call function function_name in the korp-lib.sh (shlib/*.sh) library
+with the given arguments. Dashes in function_name are replaced with
+underscores.
 
 The exit code is the return value of the function."
 
@@ -49,12 +50,15 @@ if [ "x$list_functions" != x ]; then
     exit
 fi
 
-echo_verb "Calling korp-lib.sh function: $(echo_quoted "$@")"
+func=${1//-/_}
+shift
+
+echo_verb "Calling korp-lib.sh function: $func $(echo_quoted "$@")"
 echo_verb "Output:"
 if [ "x$trace" != x ]; then
     set -vx
 fi
-"$@"
+$func "$@"
 return_value=$?
 set +vx
 echo_verb "Return value: $return_value"
