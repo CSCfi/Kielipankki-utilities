@@ -1081,8 +1081,11 @@ corpus_attr_is_featset_valued () {
     errfile=$tmp_prefix.corpus_attr_is_featset_valued.err
     case $attrtype in
 	[pP]* )
+            # If the attribute has no values which do not begin or end
+            # in a vertical bar or are not lone vertical bars, assume
+            # that it is feature-set-valued
 	    result=$(
-		$cwb_bindir/cwb-lexdecode -P $attrname -p '[^|].*[^|]' \
+		$cwb_bindir/cwb-lexdecode -P $attrname -p '[^|].*[^|]|[^|]' \
 					    $corpus 2> "$errfile" |
 		    head -1 | wc -l
 		)
@@ -1094,7 +1097,7 @@ corpus_attr_is_featset_valued () {
 	    fi
 	    ;;
 	[sS]* )
-	    # Structure without annotated values cannot have be
+	    # Structure without annotated values cannot be
 	    # feature-set-valued
 	    if [ "${attrname##*_}" = "$attrname" ]; then
 		return 1
