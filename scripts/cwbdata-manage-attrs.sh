@@ -37,8 +37,11 @@ backup-suffix|suffix=SUFFIX "__DEFAULT" baksuff
     backups of the registry file and possible existing destination
     data files; use "" to make no backups.
 comment=COMMENT "__DEFAULT"
-    Add comment COMMENT to the registry file instead of a standard
-    comment describing the change; use "" to omit the comment.
+    Append comment COMMENT to the standard comment describing the
+    change, to be added to the registry file. If COMMENT begins with
+    an exclamation mark, omit the standard comment and add only
+    COMMENT (with the leading exclamation mark removed). If COMMENT is
+    empty (""), omit the comment altogether.
 quiet !verbose
     Suppress informational and warning messages.
 '
