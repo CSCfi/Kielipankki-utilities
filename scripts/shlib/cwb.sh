@@ -297,8 +297,11 @@ corpus_remove_attrs () {
 # --backup-suffix SUFFIX: Use SUFFIX instead of .bak-YYYYMMDDhhmmss as
 #     the suffix for the backups of the registry file and possible
 #     existing destination data files; use "" not to make backups.
-# --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment ("" to omit the comment).
+# --comment COMMENT: Append comment COMMENT to the standard comment to
+#     be added to the registry file. If COMMENT begins with an
+#     exclamation mark, omit the standard comment and add only COMMENT
+#     (with the leading exclamation mark removed). If COMMENT is
+#     empty, omit the comment altogether.
 # --omit-comment: Omit the comment (an alias of '--comment ""').
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
@@ -328,14 +331,18 @@ corpus_remove_attrs () {
 _corpus_manage_attr () {
     local mode comment comment_verb corpus attrname_src attrname_dst \
 	  attrname_bak cmd attrtype_src attrtype_dst baksuff fnames fname \
-	  fname_dst attrtype_word attr_comment
+	  fname_dst attrtype_word attr_comment comment_extra
     mode=$1
     comment="__DEFAULT"
+    comment_extra=
     baksuff=.bak-$(date +%Y%m%d%H%M%S)
     attr_comment=
     while [ "${2#--}" != "$2" ]; do
 	if [ "$2" = "--comment" ]; then
-	    comment=$3
+	    comment_extra=$3
+            if [ "x$comment_extra" = x ]; then
+                comment=
+            fi
 	    shift 2
 	elif [ "$2" = "--backup-suffix" ]; then
 	    baksuff=$3
@@ -412,6 +419,10 @@ _corpus_manage_attr () {
 	    return 1
 	fi
     fi
+    if [ "${comment_extra#\!}" != "$comment_extra" ]; then
+        comment=${comment_extra#\!}
+        comment_extra=
+    fi
     if [ "$comment" = "__DEFAULT" ]; then
 	case $attrtype_src in
 	    p* )
@@ -441,6 +452,9 @@ _corpus_manage_attr () {
 	elif [ "x$baksuff" != x ]; then
 	    comment="$comment; data backed up with suffix $baksuff"
 	fi
+    fi
+    if [ "x$comment_extra" != x ]; then
+        comment="$comment: $comment_extra"
     fi
     if [ "x$baksuff" != x ]; then
 	cp -p "$cwb_regdir/$corpus" "$cwb_regdir/$corpus$baksuff"
@@ -501,8 +515,11 @@ _corpus_manage_attr () {
 # --backup-suffix SUFFIX: Use SUFFIX instead of .bak-YYYYMMDDhhmmss as
 #     the suffix for the backups of the registry file and possible
 #     existing target data files; use "" not to make backups.
-# --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment ("" to omit the comment).
+# --comment COMMENT: Append comment COMMENT to the standard comment to
+#     be added to the registry file. If COMMENT begins with an
+#     exclamation mark, omit the standard comment and add only COMMENT
+#     (with the leading exclamation mark removed). If COMMENT is
+#     empty, omit the comment altogether.
 # --omit-comment: Omit the comment (an alias of '--comment ""').
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
@@ -520,8 +537,11 @@ corpus_rename_attr () {
 # --backup-suffix SUFFIX: Use SUFFIX instead of .bak-YYYYMMDDhhmmss as
 #     the suffix for the backups of the registry file and possible
 #     existing target data files; use "" not to make backups.
-# --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment ("" to omit the comment).
+# --comment COMMENT: Append comment COMMENT to the standard comment to
+#     be added to the registry file. If COMMENT begins with an
+#     exclamation mark, omit the standard comment and add only COMMENT
+#     (with the leading exclamation mark removed). If COMMENT is
+#     empty, omit the comment altogether.
 # --omit-comment: Omit the comment (an alias of '--comment ""').
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
@@ -540,8 +560,11 @@ corpus_copy_attr () {
 # --backup-suffix SUFFIX: Use SUFFIX instead of .bak-YYYYMMDDhhmmss as
 #     the suffix for the backups of the registry file and possible
 #     existing target data files; use "" not to make backups.
-# --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment ("" to omit the comment).
+# --comment COMMENT: Append comment COMMENT to the standard comment to
+#     be added to the registry file. If COMMENT begins with an
+#     exclamation mark, omit the standard comment and add only COMMENT
+#     (with the leading exclamation mark removed). If COMMENT is
+#     empty, omit the comment altogether.
 # --omit-comment: Omit the comment (an alias of '--comment ""').
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
@@ -559,8 +582,11 @@ corpus_alias_attr () {
 # --backup-suffix SUFFIX: Use SUFFIX instead of .bak-YYYYMMDDhhmmss as
 #     the suffix for the backups of the registry file and data files;
 #     use "" not to make backups.
-# --comment COMMENT: Add comment COMMENT to the registry file instead
-#     of a standard comment ("" to omit the comment).
+# --comment COMMENT: Append comment COMMENT to the standard comment to
+#     be added to the registry file. If COMMENT begins with an
+#     exclamation mark, omit the standard comment and add only COMMENT
+#     (with the leading exclamation mark removed). If COMMENT is
+#     empty, omit the comment altogether.
 # --omit-comment: Omit the comment (an alias of '--comment ""').
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
