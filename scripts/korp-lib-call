@@ -8,7 +8,6 @@
 # TODO:
 # - An option to read multiple functions and their arguments from
 #   stdin, to be called in sequence.
-# - Extract and show usage information from function comments.
 
 
 progname=$(basename $0)
@@ -33,6 +32,10 @@ t|trace
 l|list-functions
     List the available functions. Please note that some functions are
     not designed to be run in isolation.
+u|usage
+    Show usage information for function_name. With --verbose, show the
+    whole usage comment, otherwise only the synopsis. Please note that
+    not all functions have a usage comment.
 '
 
 
@@ -58,6 +61,50 @@ fi
 if [ "${func#*[!a-z0-9_-]}" != "$func" ]; then
     error "Invalid function name: $func"
 fi
+
+if [ "x$usage" != x ]; then
+    if [ "x$verbose" = x ]; then
+        verbose=0
+    fi
+    # FIXME: The following also finds other than function usage
+    # comments that follow a blank line. Maybe we should first save
+    # the output and make sure that the comment is followed by a
+    # function definition.
+    awk '
+        # Blank line (or spaces or tabs only)
+        /^[ \t]*$/ {
+            empty = 1
+            next
+        }
+        # If a comment beginning with the function name follows an
+        # empty line, treat it as the beginning of a usage comment
+        empty && /^# '"$func"'( |$)/ {
+            found = 1
+            print
+            next
+        }
+        # Print the usage comment until a line with only a comment
+        # character (possibly followed by spaces) if not verbose, or
+        # until a non-comment line if verbose
+        found && (/^[^#]/ || (/^#[ \t]*$/ && ! '"$verbose"')) {
+            exit
+        }
+        found {
+            print
+            next
+        }
+        /^[^ \t]/ {
+            empty = 0
+        }
+    ' $_shlibdir/*.sh |
+        cut -c3- |
+        tee $tmp_prefix.out
+    if [ ! -s $tmp_prefix.out ]; then
+        warn "No usage information found for function \"$func\""
+    fi
+    exit
+fi
+
 
 echo_verb "Calling korp-lib.sh function: $func $(echo_quoted "$@")"
 echo_verb "Output:"
