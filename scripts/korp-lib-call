@@ -66,10 +66,21 @@ if [ "x$usage" != x ]; then
     if [ "x$verbose" = x ]; then
         verbose=0
     fi
-    # FIXME: The following also finds other than function usage
-    # comments that follow a blank line. Maybe we should first save
-    # the output and make sure that the comment is followed by a
-    # function definition.
+    # Assume that a function usage comment immediately precedes the
+    # function definition, is preceded by a blank line and is of the
+    # following form:
+    #
+    # # function_name [args]
+    # #
+    # # Function description
+    # function_name () {
+    # ...
+    #
+    # The synopsis "function_name [args]" may span multiple lines, but
+    # it ends in the first line with only a # or a non-comment line.
+    # Function description may contain multiple paragraphs but each
+    # line must begin with a #. The usage comment may be separated
+    # from the function definition by blank lines.
     awk '
         # Blank line (or spaces or tabs only)
         /^[ \t]*$/ {
@@ -77,23 +88,36 @@ if [ "x$usage" != x ]; then
             next
         }
         # If a comment beginning with the function name follows an
-        # empty line, treat it as the beginning of a usage comment
+        # empty line, begin collecting a usage comment
         empty && /^# '"$func"'( |$)/ {
-            found = 1
-            print
+            collect = 1
+            comment = $0
             next
         }
-        # Print the usage comment until a line with only a comment
+        # Collect the usage comment until a line with only a comment
         # character (possibly followed by spaces) if not verbose, or
         # until a non-comment line if verbose
-        found && (/^[^#]/ || (/^#[ \t]*$/ && ! '"$verbose"')) {
-            exit
+        collect && (/^[^#]/ || (/^#[ \t]*$/ && ! '"$verbose"')) {
+            collect = 0
         }
-        found {
-            print
+        # Add the line to the comment
+        collect {
+            comment = comment "\n" $0
             next
         }
-        /^[^ \t]/ {
+        # The definition of the specified function follows, so print
+        # the comment and exit
+        comment && /^'"$func"' \(\)/ {
+            print comment
+            exit
+        }
+        # A collected comment is followed by something else than the
+        # definition of the specified function, so discard the comment
+        comment && /^[ \t]*[^# \t]/ {
+            comment = ""
+        }
+        # Non-empty line
+        empty && /^[^ \t]/ {
             empty = 0
         }
     ' $_shlibdir/*.sh |
