@@ -52,6 +52,12 @@ fi
 
 func=${1//-/_}
 shift
+if [ "x$func" = x ]; then
+    error "Please specify function name"
+fi
+if [ "${func#*[!a-z0-9_-]}" != "$func" ]; then
+    error "Invalid function name: $func"
+fi
 
 echo_verb "Calling korp-lib.sh function: $func $(echo_quoted "$@")"
 echo_verb "Output:"
