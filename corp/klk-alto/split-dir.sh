@@ -22,7 +22,7 @@ if [ "$3" = "--dry-run" ]; then
 fi
 
 # total size of directory
-kbytes=`du -c -k -d 0 $1/*.xml | tail -1 | cut -f1`;
+kbytes=`du -c -k -d 0 $1 | tail -1 | cut -f1`;
 if ! [ "$kbytes" -gt "$threshold" ]; then
     echo "No need to split directory";
     exit 0;
