@@ -19,15 +19,15 @@ def get_mets(filename):
     element = ET.parse(filename).getroot()
 
     mets = {
-        'label'       : element.get('LABEL').replace('  ',' '),
-        'issue_title' : get_val('MODS:title', element, ns, 1),
-        'issue_date'  : get_val('MODS:dateIssued', element, ns),
-        'issue_no'    : get_val('MODS:partNumber', element, ns),
-        'part_name'   : get_val('MODS:partName', element, ns),
-        'publ_title'  : get_val('MODS:title', element, ns),
-        'publ_id'     : get_val('MODS:identifier', element, ns),
-        'language'    : get_val('MODS:languageTerm', element, ns),
-        'elec_date'   : get_val('MODS:dateCreated', element, ns),
+        'label'       : " ".join(element.get('LABEL').split()),
+        'issue_title' : " ".join(get_val('MODS:title', element, ns, 1).split()),
+        'issue_date'  : " ".join(get_val('MODS:dateIssued', element, ns).split()),
+        'issue_no'    : " ".join(get_val('MODS:partNumber', element, ns).split()),
+        'part_name'   : " ".join(get_val('MODS:partName', element, ns).split()),
+        'publ_title'  : " ".join(get_val('MODS:title', element, ns).split()),
+        'publ_id'     : " ".join(get_val('MODS:identifier', element, ns).split()),
+        'language'    : " ".join(get_val('MODS:languageTerm', element, ns).split()),
+        'elec_date'   : " ".join(get_val('MODS:dateCreated', element, ns).split()),
         }
 
     return mets
