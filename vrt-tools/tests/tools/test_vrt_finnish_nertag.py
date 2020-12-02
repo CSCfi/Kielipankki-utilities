@@ -6,6 +6,9 @@ first VRT tool to use pr1 in anger.
 
 '''
 
+# Decorate with @have_finnish_nertag to be able to run finnish-nertag.
+from tests.tools.skippers import have_finnish_nertag
+
 # tests can detect tokens of SENT1 and SENT2 by the start of the line
 
 DATA1 = "Francis Bacon oli komitea IBM:n lakimiehiä .".split()
@@ -54,7 +57,7 @@ import pytest, re
 from subprocess import run, PIPE
 
 def test_help():
-    proc = run([ './vrt-new-finnish-nertag', '--help' ],
+    proc = run([ './vrt-finnish-nertag', '--help' ],
                stdin = None,
                stdout = PIPE,
                stderr = PIPE,
@@ -63,6 +66,7 @@ def test_help():
     assert proc.stdout
     assert not proc.stderr
 
+@have_finnish_nertag
 def test_defaults():
     '''Tag first sentence with default format (set-valued field). Skip
     second sentence.
@@ -77,7 +81,7 @@ def test_defaults():
                       sentence(SENT2, skip = True),
                       b'</paragraph>',
                       b'</text>\n'))
-    proc = run([ './vrt-new-finnish-nertag' ],
+    proc = run([ './vrt-finnish-nertag' ],
                input = inf,
                stdout = PIPE,
                stderr = PIPE,
@@ -109,6 +113,7 @@ def test_defaults():
         sen, ref, word, tag = line.split('\t')
         assert tag == '|'
 
+@have_finnish_nertag
 def test_ne_markup():
     '''Ignore internal structure in both sentences. Skip first
     sentence. Tag second sentence with set-valued field by explicit
@@ -124,7 +129,7 @@ def test_ne_markup():
                       sentence(SENT2_ne),
                       b'</paragraph>',
                       b'</text>\n'))
-    proc = run([ './vrt-new-finnish-nertag', '--all', '--tag=xnertag/' ],
+    proc = run([ './vrt-finnish-nertag', '--all', '--tag=xnertag/' ],
                input = inf,
                stdout = PIPE,
                stderr = PIPE,
@@ -156,6 +161,7 @@ def test_ne_markup():
         sen, ref, word, tag = line.split('\t')
         assert re.fullmatch('\|([^\|]+\|)*', tag)
 
+@have_finnish_nertag
 def test_middle_skip():
     '''Skip middle sentence. Tag maximal names. Use non-default input
     field name.
@@ -170,7 +176,7 @@ def test_middle_skip():
                       sentence(SENT2_ne, skip = True),
                       sentence(SENT1),
                       b'</text>\n'))
-    proc = run([ './vrt-new-finnish-nertag', '--max', '--word=data' ],
+    proc = run([ './vrt-finnish-nertag', '--max', '--word=data' ],
                input = inf,
                stdout = PIPE,
                stderr = PIPE,
@@ -202,6 +208,7 @@ def test_middle_skip():
         sen, ref, word, tag = line.split('\t')
         assert tag == '_'
 
+@have_finnish_nertag
 def test_biotags():
     '''Skip middle sentence. BIO-tag maximal names.
 
@@ -211,7 +218,7 @@ def test_biotags():
                       sentence(SENT1),
                       sentence(SENT2, skip = True),
                       b'</text>\n'))
-    proc = run([ './vrt-new-finnish-nertag', '--bio' ],
+    proc = run([ './vrt-finnish-nertag', '--bio' ],
                input = inf,
                stdout = PIPE,
                stderr = PIPE,
