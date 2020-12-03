@@ -81,6 +81,7 @@ def main(args, ins, ous):
                   all = '--all',
                   bio = '--bio')[args.form] ]
     real = [ 'finnish-nertag',
+             '--no-tokenize',
              *dict(max = [],
                    all = [ '--show-nested' ],
                    bio = [ '--bio' ])[args.form] ]
