@@ -208,6 +208,10 @@ def sentence(sent):
         else:
             hyph = token
         hyph = hyph.strip()
+        cont = cont.replace('\t', ' ')
+        cont = cont.strip()
+        if cont == '':
+            cont = '_'
         string += '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (token, s_id, cont, vpos, ocr, cc, hyph)
         tokencount += 1
     sentence_atts = { 'id' : sentence_id, }
