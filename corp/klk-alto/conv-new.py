@@ -154,6 +154,10 @@ def get_string_data(block_elem):
     pairs = []
     for string_elem in block_elem.findall('.//'+string_tag, ns):
         atts = string_elem.attrib
+        if not 'CC' in atts:
+            atts['CC'] = '_'
+        if not 'WC' in atts:
+            atts['WC'] = '_'
         if 'SUBS_CONTENT' in atts:
             if atts['SUBS_TYPE'] == 'HypPart1':
                 pairs.append(( atts['SUBS_CONTENT'], atts ))
@@ -167,8 +171,14 @@ def get_string_data(block_elem):
                     current_cc = atts['CC']
                     current_wc = atts['WC']
                     current_content = atts['CONTENT']
-                    new_cc = previous_cc + current_cc
-                    new_wc = previous_wc + " " + current_wc
+                    if (previous_cc == '_' or current_cc == '_'):
+                        new_cc = '_'
+                    else:
+                        new_cc = previous_cc + current_cc
+                    if (previous_wc == '_' or current_wc == '_'):
+                        new_wc = '_'
+                    else:
+                        new_wc = previous_wc + " " + current_wc
                     new_content = previous_content + " " + current_content
                     hyphenated = previous_content + "-" + current_content
                     pairs[-1][1]['CC'] = new_cc
