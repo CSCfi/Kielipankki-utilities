@@ -1,0 +1,53 @@
+# -*- mode: Shell-script; -*-
+
+# Repack a fragment file in smaller fragments to facilitate ocular
+# inspection of whichever data may have made a tool to malfunction,
+# because it is becoming so that it is tedious.
+
+shopt -s extglob
+
+usage () {
+    1>&2 echo "usage: bash -e bin/REPACK <N> DIR/a000/mwww.vrf ==> DIR.XXXX/"
+    1>&2 echo "- <N> = 10, 20, 50, 100, 200, 500, 1000, 2000, 5000 (tokens)"
+    1>&2 echo "- fragment file must exist, bin/vrt-pack must exist"
+    1>&2 echo "[failed with $1]"
+    exit 2
+}
+
+case "$#" in
+    2) ;;
+    *) usage nargs ;;
+esac
+
+case "$1" in
+    10 | 20 | 50 | 100 | 200 | 500 | 1000 | 2000 | 5000) ;;
+    *) usage number ;;
+esac
+
+case "$2" in
+    [a-zA-Z]*([a-zA-z0-9.-])/a000/m[0-9][0-9][0-9].vrf) ;;
+    *) usage path ;;
+esac
+
+: keep moving this line to the left margin again and again
+: because the extended glob pattern confuses the indenter
+
+test -e "$2" || usage exist
+test -e "bin/vrt-pack" || usage bin/vrt-pack
+
+VRF="$2"
+MAIN="${VRF%%/*}"
+HIVE="${VRF#*/}"
+HIVE="${HIVE%/*}"
+FRAG="${VRF##*/}"
+FRAG="${FRAG%.vrf}"
+DIR="$(mktemp --directory ${MAIN}.XXXX)"
+VRT="${DIR}/temp/${HIVE}/${FRAG}.vrt"
+mkdir --parents "${DIR}/temp/${HIVE}"
+
+echo "make ${VRT}"
+cp "${VRF}" "${VRT}"
+sed -i -E '\=^</?[.][.][.]=d' "${VRT}"
+
+echo "pack ${DIR}/temp in ${DIR}/data at $1 tokens"
+bin/vrt-pack "--tokens=$1" --out="${DIR}/data" "${DIR}/temp"
