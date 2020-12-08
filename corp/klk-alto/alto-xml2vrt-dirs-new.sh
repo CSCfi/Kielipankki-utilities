@@ -12,6 +12,9 @@ linkingfile="FILENAME.csv"
 
 convpy=$scriptdir"/corp/klk-alto/conv-new.py";
 mets2metadata=$scriptdir"/corp/klk-alto/mets2metadata.py";
+vrtfix=$scriptdir"/vrt-tools/vrt-fix-characters --control --private --nonchar --reserved --surrogate";
+vrtfix_1="$vrtfix --replace=vanish --field=word --field=hyph"; # remove problematic characters for word and hyph
+vrtfix_2="$vrtfix --field=content"; # replace problematic characters with '_' for content
 vrtvalidate=$scriptdir"/vrt-tools/vrt-validate";
 
 for dir in $1;
@@ -58,6 +61,8 @@ do
 		mv $vrtfile $vrtfile.empty;
 		vrtfile=$vrtfile.empty
 	    else
+		$vrtfix_1 $vrtfile > tmp;
+		$vrtfix_2 tmp > $vrtfile;
 		echo "Validating result";
 		$vrtvalidate $vrtfile -o tmp;
 		lines=`cat tmp | wc -l`;

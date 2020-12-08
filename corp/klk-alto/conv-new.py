@@ -154,8 +154,10 @@ def get_string_data(block_elem):
     pairs = []
     for string_elem in block_elem.findall('.//'+string_tag, ns):
         atts = string_elem.attrib
+        # character confidence not defined
         if not 'CC' in atts:
             atts['CC'] = '_'
+        # word confidence or not defined
         if not 'WC' in atts:
             atts['WC'] = '_'
         if 'SUBS_CONTENT' in atts:
@@ -207,11 +209,24 @@ def sentence(sent):
             hyph = atts['HYPH']
         else:
             hyph = token
-        hyph = hyph.strip()
-        cont = cont.replace('\t', ' ')
+        # Handle whitespace:
+        #
+        # represent tabs in content as underscores as tab is reserved
+        # for field separator in VRT format
+        cont = cont.replace('\t', '_')
+        # sometimes content has an empty value, so value combined from hyphenated parts
+        # might contain spaces in the beginning or end
         cont = cont.strip()
         if cont == '':
             cont = '_'
+        # do not show tabs in hyphenated form
+        hyph = hyph.replace('\t', '')
+        if hyph == '':
+            hyph = '_'
+        # 'token' doesn't have any whitespace other than nbps
+        # Any problematic characters in 'token' and hyphenated form are removed later using vrt-fix-character
+        # Any problematic characters in content are later replaced with '_' using vrt-fix-characters
+        #  (in order to preserve alignment of ocr value)
         string += '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (token, s_id, cont, vpos, ocr, cc, hyph)
         tokencount += 1
     sentence_atts = { 'id' : sentence_id, }
