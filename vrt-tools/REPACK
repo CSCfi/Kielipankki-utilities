@@ -4,10 +4,17 @@
 # inspection of whichever data may have made a tool to malfunction,
 # because it is becoming so that it is tedious.
 
+# Allow DIR/data/a000/www.vrf for hunting further in the output,
+# because repacking DIR/a000/nwww.vrf results in
+# - DIR.XXXX/temp/a000/mwww.vrt
+# - DIR.XXXX/data/a000/*.vrf
+# where "data/" has been inserted in the relevant output path.
+
 shopt -s extglob
 
 usage () {
     1>&2 echo "usage: bash -e bin/REPACK <N> DIR/a000/mwww.vrf ==> DIR.XXXX/"
+    1>&2 echo "- also allow data/ as in DIR/data/a000/mwww.vrf"
     1>&2 echo "- <N> = 10, 20, 50, 100, 200, 500, 1000, 2000, 5000 (tokens)"
     1>&2 echo "- fragment file must exist, bin/vrt-pack must exist"
     1>&2 echo "[failed with $1]"
@@ -25,7 +32,7 @@ case "$1" in
 esac
 
 case "$2" in
-    [a-zA-Z]*([a-zA-z0-9.-])/a000/m[0-9][0-9][0-9].vrf) ;;
+    [a-zA-Z]*([a-zA-z0-9.-])/?(data/)a000/m[0-9][0-9][0-9].vrf) ;;
     *) usage path ;;
 esac
 
@@ -35,10 +42,10 @@ esac
 test -e "$2" || usage exist
 test -e "bin/vrt-pack" || usage bin/vrt-pack
 
-VRF="$2"
-MAIN="${VRF%%/*}"
-HIVE="${VRF#*/}"
-HIVE="${HIVE%/*}"
+VRF="$2"          # DIR/a000/mwww.vrf OR DIR/data/a000/mwww.vrf
+MAIN="${VRF%%/*}" # DIR
+HIVE="${VRF#*/}"  # a000/mwww.vrf OR data/a000/mwww.vrf
+HIVE="${HIVE%/*}" # a000 OR data/a000
 FRAG="${VRF##*/}"
 FRAG="${FRAG%.vrf}"
 DIR="$(mktemp --directory ${MAIN}.XXXX)"
