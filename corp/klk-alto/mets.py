@@ -7,7 +7,10 @@ def get_namespaces(xml_file):
 
 def get_val(tag, element, ns={}, i=0):
     try:
-        return element.findall('.//'+tag, ns)[i].text
+        retval = element.findall('.//'+tag, ns)[i].text
+        if retval is None:
+            return ''
+        return retval
     except IndexError:
         if tag != 'MODS:partName':
             stderr.write('WARNING: element "%s" not found in METS file!\n' % (tag))
