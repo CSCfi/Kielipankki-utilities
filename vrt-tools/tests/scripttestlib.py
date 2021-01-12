@@ -27,10 +27,12 @@ from subprocess import Popen, PIPE
 import pytest
 import yaml
 
+from .conftest import option_scripttest_granularity
+
 
 def _get_granularity():
     """Return the value of the custom --scripttest-granularity option"""
-    return pytest.config.getoption('--scripttest-granularity')
+    return option_scripttest_granularity
 
 
 def make_param_id(val):
