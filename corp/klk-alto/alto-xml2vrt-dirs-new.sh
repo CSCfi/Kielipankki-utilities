@@ -61,13 +61,13 @@ do
 		mv $vrtfile $vrtfile.empty;
 		vrtfile=$vrtfile.empty
 	    else
-		$vrtfix_1 $vrtfile > tmp;
-		$vrtfix_2 tmp > $vrtfile;
+		$vrtfix_1 $vrtfile > $dir/tmp;
+		$vrtfix_2 $dir/tmp > $vrtfile;
 		echo "Validating result";
-		$vrtvalidate $vrtfile -o tmp;
-		lines=`cat tmp | wc -l`;
+		$vrtvalidate $vrtfile -o $dir/tmp;
+		lines=`cat $dir/tmp | wc -l`;
 		if [ "$lines" -gt "1" ]; then
-		    cat tmp;
+		    cat $dir/tmp;
 		    echo "Not valid VRT format, exiting.";
 		    exit 1;
 		fi
