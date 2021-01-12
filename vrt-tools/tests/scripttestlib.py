@@ -413,7 +413,7 @@ class ProgramRunner:
             # Replace self-references with values from the original environment
             for var, value in new_vars.items():
                 new_vars[var] = re.sub(
-                    r'(?<!\$)\$(?:' + var + r'\b|\{' + var + '\})',
+                    r'(?<!\$)\$(?:' + var + r'\b|\{' + var + r'\})',
                     env.get(var, ''),
                     value)
             env.update(new_vars)
