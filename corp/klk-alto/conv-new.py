@@ -215,12 +215,14 @@ def sentence(sent):
         # for field separator in VRT format
         cont = cont.replace('\t', '_')
         # sometimes content has an empty value, so value combined from hyphenated parts
-        # might contain spaces in the beginning or end
+        # might contain spaces in the beginning or end or double spaces in the middle
         cont = cont.strip()
+        cont = cont.replace('  ',' ')
         if cont == '':
             cont = '_'
         # do not show tabs in hyphenated form
         hyph = hyph.replace('\t', '')
+        hyph = hyph.strip()
         if hyph == '':
             hyph = '_'
         # 'token' doesn't have any whitespace other than nbps
