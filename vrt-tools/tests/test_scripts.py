@@ -15,7 +15,8 @@ import os.path
 
 import pytest
 
-from scripttestlib import collect_testcases, check_program_run, make_param_id
+from tests.scripttestlib import (
+    collect_testcases, check_program_run, make_param_id)
 
 
 _filedir = os.path.dirname(os.path.abspath(__file__))

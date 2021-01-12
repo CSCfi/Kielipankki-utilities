@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+# -*- mode: Python; -*-
 
 
 import pytest
@@ -7,7 +7,7 @@ import pytest
 # Make pytest rewrite assertions in scripttestlib
 # https://docs.pytest.org/en/latest/writing_plugins.html#assertion-rewriting
 
-pytest.register_assert_rewrite('scripttestlib')
+pytest.register_assert_rewrite('tests.scripttestlib')
 
 
 def pytest_addoption(parser):
@@ -23,3 +23,11 @@ def pytest_addoption(parser):
             "%(default)s")
         """
         )
+
+
+# Make tests find libraries in ../libvrt/ (and here in ../tests/).
+
+import os.path
+import sys
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__) + '/..'))
