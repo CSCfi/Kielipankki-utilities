@@ -51,6 +51,8 @@ def make_param_id(val):
         value = val['value']
         if isinstance(value, (int, bool)) or value is None:
             value = str(value)
+        if not isinstance(value, str):
+            value = repr(value)
         # Abridge long values
         if len(value) > 80:
             value = value[:60] + '[...]' + value[-20:]
