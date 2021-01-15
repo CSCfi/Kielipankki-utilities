@@ -1,0 +1,176 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+
+"""
+vrt-rm-structs
+
+Remove from VRT structures matching given criteria (annotation values) either
+completely or by replacing their content with fixed strings.
+"""
+
+
+# TODO:
+# - Support multiple attribute conditions, conjunctive or disjunctive,
+#   or with full Boolean operations
+# - Make attribute condition more flexible as regards value quoting
+# - Produce values wrapped in |...| for feature-set-valued attributes
+# - Retain values of specified attributes
+# - Add tests
+
+
+import re
+import sys
+
+from collections import defaultdict
+from itertools import chain
+
+from vrtargsoolib import InputProcessor
+
+
+class StructureRemover(InputProcessor):
+
+    DESCRIPTION = """
+    Remove from VRT structures matching given criteria (annotation
+    values) either completely or by replacing their content with fixed
+    strings.
+    """
+
+    ARGSPECS = [
+        ('--structure-name=STRUCT "text" -> struct_name',
+         'remove structures STRUCT matching the given criteria'),
+        ('--attribute-condition=ATTR_REGEXP -> attr_regex',
+         """remove structures whose annotation attributes match regular
+         expression ATTR_REGEXP; note that attribute values in ATTR_REGEXP
+         need to be enclosed in double quotes and that an unescaped "."
+         is replaced with '[^"]', so that the regular expression matches
+         within a single annotation attribute value
+         """,
+         dict(required=True)),
+        ('--replace|hide',
+         """replace the content of the matching structures with fixed
+         strings, instead of removing them completely
+         """),
+        ('--positional-attribute-replacement|posattr=STR "_" -> repl_posattr',
+         """replace positional attribute values of the removed structures
+         with STR
+         """),
+        (('--structural-attribute-replacement|structattr=STR "removed" ->'
+          ' repl_structattr'),
+         """replace structural attribute (annotation) values of the removed
+         structures with STR
+         """),
+        ('--add-attribute=ATTR_VALUE -> add_attr',
+         """add annotation attribute ATTR_VALUE to structures whose content
+         has been replaced with fixed strings; ATTR_VALUE is of the form
+         ATTRNAME="VALUE"
+         """),
+        ('--verbose',
+         """print information about the removed structures to stderr"""),
+    ]
+
+    def __init__(self):
+        super().__init__()
+
+    def main(self, args, inf, ouf):
+
+        def make_attrcond_re(attr_regex):
+            # Replace unescaped "." with [^"]
+
+            def repl_fullstop(mo):
+                # If the full stop is preceded by an even number of
+                # backslashes, replace it
+                start = mo.start()
+                if (start - len(mo.string[:start].rstrip('\\'))) % 2 == 0:
+                    return '[^"]'
+                else:
+                    return mo.group()
+
+            attr_regex = re.sub('\.', repl_fullstop, attr_regex)
+            # print(attr_regex, file=sys.stderr)
+            return re.compile(' ' + attr_regex)
+
+        LESS_THAN = '<'.encode()[0]
+        SLASH = '/'.encode()[0]
+        EXCLAM = '!'.encode()[0]
+        struct_name = args.struct_name
+        struct_begin = ('<' + struct_name + ' ').encode()
+        struct_end = ('</' + struct_name + '>').encode()
+        remove = not args.replace
+        verbose = args.verbose
+        attrcond_re = make_attrcond_re(args.attr_regex)
+        attrsubst_re = re.compile(
+            r' (?P<name>\w+)=(?P<quote>["\'])(?:.*?)(?P=quote)')
+        attrsubst_repl = (r' \g<name>=\g<quote>'
+                          + args.repl_structattr + r'\g<quote>')
+        repl_posattr = (args.repl_posattr + '\t').encode()
+        if args.add_attr:
+            name, val = args.add_attr.split('=', 1)
+            if val[0] in '"\'' and val[0] == val[-1] and len(val) > 1:
+                val = val[1:-1]
+            add_attr = ' ' + name + '="' + val + '">\n'
+        else:
+            add_attr = None
+        remove_counts = defaultdict(int)
+        matched = False
+        linenr = 0
+        for line in inf:
+            linenr += 1
+            if line == b'\n':
+                ouf.write(line)
+            elif line[0] == LESS_THAN:
+                line_s = line.decode()
+                if matched:
+                    if line.startswith(struct_end):
+                        matched = False
+                    elif line[1] not in [SLASH, EXCLAM]:
+                        line_s = attrsubst_re.sub(attrsubst_repl, line_s)
+                        if verbose:
+                            this_struct_name = line_s[1:].partition(' ')[0]
+                            remove_counts[this_struct_name] += 1
+                        line = line_s.encode()
+                    if remove:
+                        continue
+                elif (line.startswith(struct_begin)
+                      and attrcond_re.search(line_s)):
+                    remove_counts[struct_name] += 1
+                    if verbose:
+                        print(('{verb} structure {struct} beginning on line'
+                               ' {linenr}: {line}').format(
+                                   verb=('Removing' if remove
+                                         else 'Hiding the content of'),
+                                   struct=struct_name, linenr=linenr,
+                                   line=line_s[:-1]),
+                               file=sys.stderr)
+                    matched = True
+                    if remove:
+                        continue
+                    line_s = attrsubst_re.sub(attrsubst_repl, line_s)
+                    if add_attr:
+                        line_s = line_s.rstrip()[:-1] + add_attr
+                    line = line_s.encode()
+            elif matched:
+                remove_counts['TOKEN'] += 1
+                if remove:
+                    continue
+                line = (repl_posattr * line.count(b'\t'))[:-1] + b'\n'
+            ouf.write(line)
+        if verbose:
+            if remove_counts:
+                print('Removed:' if remove else 'Hid the content of:',
+                      file=sys.stderr)
+                for structname, count in remove_counts.items():
+                    if structname != 'TOKEN':
+                        print('  {count:8d} {struct} structures'
+                              .format(count=count, struct=structname),
+                              file=sys.stderr)
+                print('  {count:8d} tokens'
+                      .format(count=remove_counts['TOKEN']),
+                      file=sys.stderr)
+            else:
+                print('No structures matching the condition were found',
+                      file=sys.stderr)
+
+
+if __name__ == '__main__':
+    StructureRemover().run()
