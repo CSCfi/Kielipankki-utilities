@@ -169,9 +169,7 @@ class StructureRemover(InputProcessor):
         linenr = 0
         for line in inf:
             linenr += 1
-            if line == b'\n':
-                ouf.write(line)
-            elif line[0] == LESS_THAN:
+            if line[0] == LESS_THAN:
                 line_s = line.decode()
                 if matched:
                     if line.startswith(struct_end):
@@ -202,7 +200,7 @@ class StructureRemover(InputProcessor):
                     if add_attr:
                         line_s = line_s.rstrip()[:-1] + add_attr
                     line = line_s.encode()
-            elif matched:
+            elif matched and line != b'\n':
                 remove_counts['TOKEN'] += 1
                 if remove:
                     continue
