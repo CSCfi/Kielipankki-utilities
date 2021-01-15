@@ -14,7 +14,9 @@ completely or by replacing their content with fixed strings.
 # - Support multiple attribute conditions, conjunctive or disjunctive,
 #   or with full Boolean operations
 # - Make attribute condition more flexible as regards value quoting
-# - Retain values of specified attributes
+# - Retain values of specified positional attributes (requires processing
+#   the positional-attributes comment)
+# - Replace different attributes with different values
 # - Add tests
 
 
@@ -59,6 +61,14 @@ class StructureRemover(InputProcessor):
          """replace structural attribute (annotation) values of the removed
          structures with STR
          """),
+        ('--keep-structural-attributes=ATTRLIST -> keep_structattr',
+         """keep the values of structural attributes (annotations)
+         listed in ATTRLIST intact; ATTRLIST is a space-separated list
+         of attribute specifications that are either of the form
+         STRUCT_ATTRNAME or STRUCT:ATTRNAMELIST where STRUCT is the
+         structure (such as "text"), ATTRNAME is a an annotation
+         attribute of STRUCT and ATTRNAMELIST is a comma-separated
+         list of them"""),
         ('--add-attribute=ATTR_VALUE -> add_attr',
          """add annotation attribute ATTR_VALUE to structures whose content
          has been replaced with fixed strings; ATTR_VALUE is of the form
@@ -89,6 +99,38 @@ class StructureRemover(InputProcessor):
             # print(attr_regex, file=sys.stderr)
             return re.compile(' ' + attr_regex)
 
+        def make_keep_structattr(attrlist):
+            result = defaultdict(set)
+            for attrspec in attrlist.split():
+                if ':' in attrspec:
+                    struct, _, attrnames = attrspec.partition(':')
+                    result[struct] |= set(attrnames.split(','))
+                elif '_' in attrspec:
+                    struct, _, attrname = attrspec.partition('_')
+                    result[struct].add(attrname)
+                else:
+                    self.error_exit(
+                        'Attribute specification "' + attrspec
+                        + '" is not of the form STRUCT:ATTR[,ATTR...] nor'
+                        + ' STRUCT_ATTR')
+            return result
+
+        def replace_structattrs(line_s, struct_name):
+
+            def attrsubst_repl_func(mo):
+                name, value, quote, vbar = mo.group(
+                    'name', 'value', 'quote', 'vbar')
+                if name in keep_structattr[struct_name]:
+                    repl = value
+                else:
+                    repl = vbar + repl_structattr + vbar
+                return ' ' + name + '=' + quote + repl + quote
+
+            if struct_name not in keep_structattr:
+                return attrsubst_re.sub(attrsubst_repl, line_s)
+            else:
+                return attrsubst_re.sub(attrsubst_repl_func, line_s)
+
         LESS_THAN = '<'.encode()[0]
         SLASH = '/'.encode()[0]
         EXCLAM = '!'.encode()[0]
@@ -105,11 +147,16 @@ class StructureRemover(InputProcessor):
         # replacement expression (as opposed to a function). Exactness is not
         # so important here.
         attrsubst_re = re.compile(
-            r' (?P<name>\w+)=(?P<quote>["\'])(?P<vbar>\|?)(?:.*?)(?P=quote)')
+            r'''\s (?P<name> \w+) = (?P<quote> ["\'])
+                                    (?P<value> (?P<vbar> \|?) (?:.*?) )
+                                    (?P=quote)''',
+            re.VERBOSE)
+        repl_structattr = args.repl_structattr
         attrsubst_repl = (r' \g<name>=\g<quote>\g<vbar>'
                           + args.repl_structattr + r'\g<vbar>\g<quote>')
         repl_posattr = args.repl_posattr.encode()
         repl_posattr_tab = (args.repl_posattr + '\t').encode()
+        keep_structattr = make_keep_structattr(args.keep_structattr or '')
         if args.add_attr:
             name, val = args.add_attr.split('=', 1)
             if val[0] in '"\'' and val[0] == val[-1] and len(val) > 1:
@@ -130,9 +177,9 @@ class StructureRemover(InputProcessor):
                     if line.startswith(struct_end):
                         matched = False
                     elif line[1] not in [SLASH, EXCLAM]:
-                        line_s = attrsubst_re.sub(attrsubst_repl, line_s)
+                        this_struct_name = line_s[1:].partition(' ')[0]
+                        line_s = replace_structattrs(line_s, this_struct_name)
                         if verbose:
-                            this_struct_name = line_s[1:].partition(' ')[0]
                             remove_counts[this_struct_name] += 1
                         line = line_s.encode()
                     if remove:
@@ -151,7 +198,7 @@ class StructureRemover(InputProcessor):
                     matched = True
                     if remove:
                         continue
-                    line_s = attrsubst_re.sub(attrsubst_repl, line_s)
+                    line_s = replace_structattrs(line_s, struct_name)
                     if add_attr:
                         line_s = line_s.rstrip()[:-1] + add_attr
                     line = line_s.encode()
