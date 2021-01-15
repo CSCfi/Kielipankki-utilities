@@ -14,7 +14,6 @@ completely or by replacing their content with fixed strings.
 # - Support multiple attribute conditions, conjunctive or disjunctive,
 #   or with full Boolean operations
 # - Make attribute condition more flexible as regards value quoting
-# - Produce values wrapped in |...| for feature-set-valued attributes
 # - Retain values of specified attributes
 # - Add tests
 
@@ -93,17 +92,24 @@ class StructureRemover(InputProcessor):
         LESS_THAN = '<'.encode()[0]
         SLASH = '/'.encode()[0]
         EXCLAM = '!'.encode()[0]
+        VBAR = '|'.encode()[0]
         struct_name = args.struct_name
         struct_begin = ('<' + struct_name + ' ').encode()
         struct_end = ('</' + struct_name + '>').encode()
         remove = not args.replace
         verbose = args.verbose
         attrcond_re = make_attrcond_re(args.attr_regex)
+        # This considers all attribute values beginning with a vertical bar as
+        # feature-set-valued attributes, even though they should also have a
+        # trailing vertical bar; however, this is easier to implement with a
+        # replacement expression (as opposed to a function). Exactness is not
+        # so important here.
         attrsubst_re = re.compile(
-            r' (?P<name>\w+)=(?P<quote>["\'])(?:.*?)(?P=quote)')
-        attrsubst_repl = (r' \g<name>=\g<quote>'
-                          + args.repl_structattr + r'\g<quote>')
-        repl_posattr = (args.repl_posattr + '\t').encode()
+            r' (?P<name>\w+)=(?P<quote>["\'])(?P<vbar>\|?)(?:.*?)(?P=quote)')
+        attrsubst_repl = (r' \g<name>=\g<quote>\g<vbar>'
+                          + args.repl_structattr + r'\g<vbar>\g<quote>')
+        repl_posattr = args.repl_posattr.encode()
+        repl_posattr_tab = (args.repl_posattr + '\t').encode()
         if args.add_attr:
             name, val = args.add_attr.split('=', 1)
             if val[0] in '"\'' and val[0] == val[-1] and len(val) > 1:
@@ -153,7 +159,16 @@ class StructureRemover(InputProcessor):
                 remove_counts['TOKEN'] += 1
                 if remove:
                     continue
-                line = (repl_posattr * line.count(b'\t'))[:-1] + b'\n'
+                if b'\t|' in line:
+                    # If the line contains an attribute value beginning with a
+                    # vertical bar, replace such values with a value wrapped in
+                    # vertical bars. For speed, only test the first character.
+                    line = b'\t'.join(
+                        (b'|' + repl_posattr + b'|' if posattr[0] == VBAR
+                         else repl_posattr)
+                        for posattr in line[:-1].split(b'\t')) + b'\n'
+                else:
+                    line = (repl_posattr_tab * line.count(b'\t'))[:-1] + b'\n'
             ouf.write(line)
         if verbose:
             if remove_counts:
