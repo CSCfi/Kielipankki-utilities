@@ -53,26 +53,27 @@ class StructureRemover(InputProcessor):
          strings, instead of removing them completely
          """),
         ('--positional-attribute-replacement|posattr=STR "_" -> repl_posattr',
-         """replace positional attribute values of the removed structures
-         with STR
+         """with --replace, replace positional attribute values of the matching
+         structures with STR
          """),
         (('--structural-attribute-replacement|structattr=STR "removed" ->'
           ' repl_structattr'),
-         """replace structural attribute (annotation) values of the removed
-         structures with STR
+         """with --replace, replace structural attribute (annotation) values of
+         the matching structures with STR
          """),
         ('--keep-structural-attributes=ATTRLIST -> keep_structattr',
-         """keep the values of structural attributes (annotations)
-         listed in ATTRLIST intact; ATTRLIST is a space-separated list
+         """with --replace, keep the values of structural attributes
+         (annotations) listed in ATTRLIST intact instead of replacing
+         them with a fixed string; ATTRLIST is a space-separated list
          of attribute specifications that are either of the form
          STRUCT_ATTRNAME or STRUCT:ATTRNAMELIST where STRUCT is the
          structure (such as "text"), ATTRNAME is a an annotation
          attribute of STRUCT and ATTRNAMELIST is a comma-separated
          list of them"""),
         ('--add-attribute=ATTR_VALUE -> add_attr',
-         """add annotation attribute ATTR_VALUE to structures whose content
-         has been replaced with fixed strings; ATTR_VALUE is of the form
-         ATTRNAME="VALUE"
+         """with --replace, add annotation attribute ATTR_VALUE to
+         structures whose content has been replaced with fixed
+         strings; ATTR_VALUE is of the form ATTRNAME="VALUE"
          """),
         ('--verbose',
          """print information about the removed structures to stderr"""),
