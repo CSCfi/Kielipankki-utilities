@@ -1,0 +1,413 @@
+
+# Tests for vrt-rm-structs
+
+
+# Base cases
+
+- name: 'vrt-rm-structs: No attribute condition'
+  input:
+    cmdline: vrt-rm-structs
+    stdin: ''
+  output:
+    returncode: 2
+    stderr:
+      regex: ".*the following arguments are required: --attribute-condition.*"
+    stdout: ''
+
+
+- name: 'vrt-rm-structs: Empty input'
+  input:
+    cmdline: vrt-rm-structs --attribute-condition 'x="y"'
+    stdin: ''
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: ''
+
+
+- name: 'vrt-rm-structs: Empty input, verbose output'
+  input:
+    cmdline: vrt-rm-structs --attribute-condition 'x="y"' --verbose
+    stdin: ''
+  output:
+    returncode: 0
+    stderr: |
+      No structures matching the condition were found
+    stdout: ''
+
+
+- name: 'vrt-rm-structs: Empty lines in input passed through'
+  input:
+    cmdline: vrt-rm-structs --attribute-condition 'x="y"'
+    stdin: '\n'
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: '\n'
+
+
+# Use the same input for most of the the rest of the tests
+
+- defaults:
+    input:
+      stdin: &input-1 |
+        <!-- #vrt positional-attributes: word lemma pos -->
+        <text n="1" x="zz" xx="a">
+        <paragraph n="1" y="xx">
+        <sentence n="1" z="yy">
+        First	first	n
+        .	.	p
+        </sentence>
+        <sentence n="2" z="yx">
+        Second	second	n
+        </sentence>
+        </paragraph>
+        </text>
+        <text n="2" x="zz2" xx="b">
+        <paragraph n="2" y="xx2">
+        <sentence n="3" z="yy2">
+        Third	third	n
+        </sentence>
+        </paragraph>
+        </text>
+
+
+- name: 'vrt-rm-structs: Default option values'
+  input:
+    cmdline: vrt-rm-structs --attribute-condition 'x="zz"'
+  output:
+    returncode: 0
+    stdout: &output-1 |
+      <!-- #vrt positional-attributes: word lemma pos -->
+      <text n="2" x="zz2" xx="b">
+      <paragraph n="2" y="xx2">
+      <sentence n="3" z="yy2">
+      Third	third	n
+      </sentence>
+      </paragraph>
+      </text>
+    stderr: ''
+
+
+- name: 'vrt-rm-structs: Default option values, verbose output'
+  input:
+    cmdline: vrt-rm-structs --attribute-condition 'x="zz"' --verbose
+  output:
+    returncode: 0
+    stdout: *output-1
+    stderr: |
+      Removing structure text beginning on line 2: <text n="1" x="zz" xx="a">
+      Removed:
+               1 text structures
+               1 paragraph structures
+               2 sentence structures
+               3 tokens
+
+
+- name: 'vrt-rm-structs: Default option values, regexp in condition'
+  input:
+    cmdline: vrt-rm-structs --attribute-condition 'x="z.*"'
+  output:
+    returncode: 0
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma pos -->
+    stderr: ''
+
+
+- name: 'vrt-rm-structs: Default option values, regexp full stop only within single attribute value'
+  input:
+    cmdline: vrt-rm-structs --attribute-condition 'x="z.*a"'
+  output:
+    returncode: 0
+    # The condition does not match, so the output is the same as input
+    stdout: *input-1
+    stderr: ''
+
+
+- name: 'vrt-rm-structs: Default option values, regexp with multiple attributes values (ordered)'
+  input:
+    cmdline: vrt-rm-structs --attribute-condition 'n="[12]"(.|")* xx="a"'
+  output:
+    returncode: 0
+    # The condition does not match, so the output is the same as input
+    stdout: |
+        <!-- #vrt positional-attributes: word lemma pos -->
+        <text n="2" x="zz2" xx="b">
+        <paragraph n="2" y="xx2">
+        <sentence n="3" z="yy2">
+        Third	third	n
+        </sentence>
+        </paragraph>
+        </text>
+    stderr: ''
+
+
+- name: 'vrt-rm-structs: --replace, default option values'
+  input:
+    cmdline: vrt-rm-structs --attribute-condition 'x="zz"' --replace
+  output:
+    returncode: 0
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma pos -->
+      <text n="removed" x="removed" xx="removed">
+      <paragraph n="removed" y="removed">
+      <sentence n="removed" z="removed">
+      _	_	_
+      _	_	_
+      </sentence>
+      <sentence n="removed" z="removed">
+      _	_	_
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" x="zz2" xx="b">
+      <paragraph n="2" y="xx2">
+      <sentence n="3" z="yy2">
+      Third	third	n
+      </sentence>
+      </paragraph>
+      </text>
+    stderr: ''
+
+
+- name: 'vrt-rm-structs: --replace, non-default replacement values'
+  input:
+    cmdline: >-
+      vrt-rm-structs --attribute-condition 'x="zz"' --replace
+      --positional-attribute-replacement '-'
+      --structural-attribute-replacement 'hidden'
+  output:
+    returncode: 0
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma pos -->
+      <text n="hidden" x="hidden" xx="hidden">
+      <paragraph n="hidden" y="hidden">
+      <sentence n="hidden" z="hidden">
+      -	-	-
+      -	-	-
+      </sentence>
+      <sentence n="hidden" z="hidden">
+      -	-	-
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" x="zz2" xx="b">
+      <paragraph n="2" y="xx2">
+      <sentence n="3" z="yy2">
+      Third	third	n
+      </sentence>
+      </paragraph>
+      </text>
+    stderr: ''
+
+
+- name: 'vrt-rm-structs: --replace --keep-structural-attributes'
+  input:
+    cmdline: >-
+      vrt-rm-structs --attribute-condition 'x="zz"' --replace
+      --keep-structural-attributes "text_n paragraph:n,y"
+  output:
+    returncode: 0
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma pos -->
+      <text n="1" x="removed" xx="removed">
+      <paragraph n="1" y="xx">
+      <sentence n="removed" z="removed">
+      _	_	_
+      _	_	_
+      </sentence>
+      <sentence n="removed" z="removed">
+      _	_	_
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" x="zz2" xx="b">
+      <paragraph n="2" y="xx2">
+      <sentence n="3" z="yy2">
+      Third	third	n
+      </sentence>
+      </paragraph>
+      </text>
+    stderr: ''
+
+
+- name: 'vrt-rm-structs: --replace, --add-attribute (no space nor quotes)'
+  input:
+    cmdline: >-
+      vrt-rm-structs --attribute-condition 'x="zz"' --replace
+      --add-attribute 'foo=bar'
+  output:
+    returncode: 0
+    stdout: &output-2 |
+      <!-- #vrt positional-attributes: word lemma pos -->
+      <text n="removed" x="removed" xx="removed" foo="bar">
+      <paragraph n="removed" y="removed">
+      <sentence n="removed" z="removed">
+      _	_	_
+      _	_	_
+      </sentence>
+      <sentence n="removed" z="removed">
+      _	_	_
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" x="zz2" xx="b">
+      <paragraph n="2" y="xx2">
+      <sentence n="3" z="yy2">
+      Third	third	n
+      </sentence>
+      </paragraph>
+      </text>
+    stderr: ''
+
+
+- name: 'vrt-rm-structs: --replace, --add-attribute (double quotes)'
+  input:
+    cmdline: >-
+      vrt-rm-structs --attribute-condition 'x="zz"' --replace
+      --add-attribute 'foo="bar"'
+  output:
+    returncode: 0
+    stdout: *output-2
+    stderr: ''
+
+
+- name: 'vrt-rm-structs: --replace, --add-attribute (spaces)'
+  input:
+    cmdline: >-
+      vrt-rm-structs --attribute-condition 'x="zz"' --replace
+      --add-attribute 'foo=bar baz'
+  output:
+    returncode: 0
+    stdout: &output-3 |
+      <!-- #vrt positional-attributes: word lemma pos -->
+      <text n="removed" x="removed" xx="removed" foo="bar baz">
+      <paragraph n="removed" y="removed">
+      <sentence n="removed" z="removed">
+      _	_	_
+      _	_	_
+      </sentence>
+      <sentence n="removed" z="removed">
+      _	_	_
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" x="zz2" xx="b">
+      <paragraph n="2" y="xx2">
+      <sentence n="3" z="yy2">
+      Third	third	n
+      </sentence>
+      </paragraph>
+      </text>
+    stderr: ''
+
+
+- name: 'vrt-rm-structs: --replace, --add-attribute (spaces and double quotes)'
+  input:
+    cmdline: >-
+      vrt-rm-structs --attribute-condition 'x="zz"' --replace
+      --add-attribute 'foo="bar baz"'
+  output:
+    returncode: 0
+    stdout: *output-3
+    stderr: ''
+
+
+- name: 'vrt-rm-structs: --replace, default option values, feature-set attribute values'
+  input:
+    cmdline: vrt-rm-structs --attribute-condition 'x="zz"' --replace
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma pos/ -->
+      <text n="1" x="zz" a="|a|b|c|" b="|">
+      <paragraph n="1" y="|xx|">
+      <sentence n="1" z="|">
+      First	first	|n|
+      .	.	|p|
+      </sentence>
+      <sentence n="2" z="|yx|x|">
+      Second	second	|n|
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" x="zz2" a="|d|" b="|e|f|">
+      <paragraph n="2" y="|xx2|">
+      <sentence n="3" z="yy2">
+      Third	third	|n|
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma pos/ -->
+      <text n="removed" x="removed" a="|removed|" b="|removed|">
+      <paragraph n="removed" y="|removed|">
+      <sentence n="removed" z="|removed|">
+      _	_	|_|
+      _	_	|_|
+      </sentence>
+      <sentence n="removed" z="|removed|">
+      _	_	|_|
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" x="zz2" a="|d|" b="|e|f|">
+      <paragraph n="2" y="|xx2|">
+      <sentence n="3" z="yy2">
+      Third	third	|n|
+      </sentence>
+      </paragraph>
+      </text>
+    stderr: ''
+
+
+- name: 'vrt-rm-structs: --replace, default option values, values with initial vertical bar'
+  # NOTE: The replacement values are currently output as feature-set
+  # values even though the original values are not. If that behaviour
+  # is changed, the exepected output of this test should also be
+  # changed.
+  input:
+    cmdline: vrt-rm-structs --attribute-condition 'x="zz"' --replace
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma pos/ -->
+      <text n="1" x="zz" a="|abc" b="|x">
+      <paragraph n="1" y="|xx">
+      <sentence n="1" z="|">
+      First	first	|n
+      .	.	|p
+      </sentence>
+      <sentence n="2" z="|yxx">
+      Second	second	|n
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" x="zz2" a="|d" b="|ef">
+      <paragraph n="2" y="|xx2">
+      <sentence n="3" z="yy2">
+      Third	third	|n
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    returncode: 0
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma pos/ -->
+      <text n="removed" x="removed" a="|removed|" b="|removed|">
+      <paragraph n="removed" y="|removed|">
+      <sentence n="removed" z="|removed|">
+      _	_	|_|
+      _	_	|_|
+      </sentence>
+      <sentence n="removed" z="|removed|">
+      _	_	|_|
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" x="zz2" a="|d" b="|ef">
+      <paragraph n="2" y="|xx2">
+      <sentence n="3" z="yy2">
+      Third	third	|n
+      </sentence>
+      </paragraph>
+      </text>
+    stderr: ''

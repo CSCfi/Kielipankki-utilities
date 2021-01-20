@@ -17,7 +17,6 @@ completely or by replacing their content with fixed strings.
 # - Retain values of specified positional attributes (requires processing
 #   the positional-attributes comment)
 # - Replace different attributes with different values
-# - Add tests
 
 
 import re
