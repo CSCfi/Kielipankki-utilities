@@ -213,7 +213,8 @@ class StructureRemover(InputProcessor):
                          else repl_posattr)
                         for posattr in line[:-1].split(b'\t')) + b'\n'
                 else:
-                    line = (repl_posattr_tab * line.count(b'\t'))[:-1] + b'\n'
+                    line = ((repl_posattr_tab * (line.count(b'\t') + 1))[:-1]
+                            + b'\n')
             ouf.write(line)
         if verbose:
             if remove_counts:
