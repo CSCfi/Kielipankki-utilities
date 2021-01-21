@@ -51,12 +51,14 @@ def align_data(element, page_file):
     text = ' '.join([ s for ( s, atts ) in string_data ])
     sents = tokenize(text, page_file)
     use_original_strings=False # prefer result from hfst-tokenize
-    
+
     aligned_para = []
     
     for sent in sents:
         aligned_sent = []
         for token in sent:
+            if token == '\xa0' or token == '\x85' or token == '\u2003\u2003':
+                continue
             ( string, atts ) = string_data.pop(0)
             string = string.strip()
             while string == '':
@@ -214,6 +216,9 @@ def sentence(sent):
         # represent tabs in content as underscores as tab is reserved
         # for field separator in VRT format
         cont = cont.replace('\t', '_')
+        # the same for newlines
+        cont = cont.replace('\n', '_')
+        cont = cont.replace('\r', '_')
         # sometimes content has an empty value, so value combined from hyphenated parts
         # might contain spaces in the beginning or end or double spaces in the middle
         cont = cont.strip()
@@ -275,7 +280,10 @@ def paragraph(element, page_file):
     paragraph_atts = { 'id' : paragraph_id, }
     paragraph_id += 1
 
-    return enclose(string, 'paragraph', paragraph_atts)
+    if string is "":
+        return ""
+    else:
+        return enclose(string, 'paragraph', paragraph_atts)
 
 
 def text(page_file, mets={}, date=''):
