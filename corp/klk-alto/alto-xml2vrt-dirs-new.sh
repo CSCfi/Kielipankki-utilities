@@ -19,6 +19,7 @@ vrtvalidate=$scriptdir"/vrt-tools/vrt-validate";
 
 for dir in $1;
 do
+    xml_format_checked="false";
     for metsfile in $dir/*_mets.xml;
     do
 	# extract metadata from mets and linking files
@@ -49,6 +50,15 @@ do
 	first_vrtfile="true";
 	for xmlfile in $xmlfiles;
 	do
+	    # Check format of first XML file in directory
+	    if [ "$xml_format_checked" = "false" ]; then
+		if (grep -m 1 '<root>' $xmlfile > /dev/null); then
+		    echo 'Error: $xmlfile has wrong XML format, skipping directory $dir.';
+		    break;
+		else
+		    xml_format_checked="true";
+		fi
+	    fi
 	    vrtfile=`echo $xmlfile | perl -pe 's/\.xml/\.vrt/'`;
 	    echo "Generating "$vrtfile;
 	    if !($convpy --metadata $metadatafile --metsfilename $metsfile $xmlfile > $vrtfile); then
@@ -84,6 +94,10 @@ do
 		cp --parents $vrtfile $outputdir/$lang/;
 	    fi
 	done
+	# If first XML file in directory had wrong format, skip the whole directory
+	if [ "$xml_format_checked" = "false" ]; then
+	    break;
+	fi
 	if [ "$outputdir" != "" ]; then
 	    cp --parents $single_vrtfile $outputdir/$lang/;
 	    # rename *.VRT to *.vrt
