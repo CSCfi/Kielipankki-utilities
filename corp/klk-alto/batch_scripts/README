@@ -1,6 +1,6 @@
 In the directory that contains the alto XML and metadata files, run command:
 
-  list-dirs.sh [DIR] | combine-dirs.sh THRESHOLD1 | dirs-into-game-commands.sh GAMESCRIPT ALTOSCRIPT THRESHOLD2
+  list-dirs.sh [DIR] | combine-dirs.sh THRESHOLD1 | dirs-into-game-commands.sh GAMESCRIPT ALTOSCRIPT THRESHOLD2 THRESHOLD3
 
 where
 
@@ -10,4 +10,6 @@ where
   - ALTOSCRIPT: the XML-to-VRT script (alto-xml2vrt-dirs-new.sh)
   - THRESHOLD2: defines the number of hours reserved for the batch job:
                 (SIZE / THRESHOLD2 + 1), where SIZE is the total size of the XML
-		files processed by the job, in kilobytes (inferred from output of combine-dirs.sh)
+                files processed by the job, in kilobytes (inferred from output of combine-dirs.sh)
+  - THRESHOLD3: the same as THRESHOLD2, but the total number of TextBlock elements
+                in XML files is used instead of SIZE
