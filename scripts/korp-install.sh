@@ -239,10 +239,8 @@ git_get () {
 	# local. This apparently cannot be done with git pull alone.
 	warn "Local branch $_branch was outdated; updating from the repository"
 	git reset --hard HEAD &&
-	    # You cannot fetch to the current branch, so change to
-	    # another branch.
-	    # FIXME: Do not assume any other branch is available.
-	    git checkout $(git branch | grep -v '^\*' | head -1) &&
+	    # You cannot fetch to the current branch, so detach head
+	    git checkout --detach &&
 	    git fetch --force origin $_branch:$_branch &&
 	    git checkout $_branch ||
 		error "Could not pull origin/$_branch"
