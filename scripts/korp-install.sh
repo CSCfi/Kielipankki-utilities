@@ -65,7 +65,7 @@ Arguments:
                   install the new version: if \"/\", install to the top
                   directory (main production version) (default: \"$default_target\");
                   note that you can install to the top directory only from
-                  master or its direct descendants specified as \"master~N\""
+                  master or its direct ancestors specified as \"master~N\""
 
 optspecs='
 revert
