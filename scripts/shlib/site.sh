@@ -16,7 +16,7 @@ get_host_env () {
 	taito* | c[0-9] | c[0-9][0-9] | c[0-9][0-9][0-9] )
 	    echo taito
 	    ;;
-	korp*.csc.fi )
+	korp*.csc.fi | korp*.novalocal )
 	    echo korp
 	    ;;
 	nyklait-09-01* )
