@@ -32,8 +32,8 @@ progname=$(basename $0)
 progdir=$(dirname $0)
 
 remote_git_repo_pattern=git@github.com:CSCfi/Kielipankki-korp-%s.git
-local_git_root=/v/korp/git
-local_git_prefix=$local_git_root/korp-
+local_git_root=/v/appl/korp
+local_git_prefix=$local_git_root/Kielipankki-korp-
 backup_root=/v/korp/backup
 log_file=/v/korp/log/korp-install.log
 
@@ -41,8 +41,13 @@ log_file=/v/korp/log/korp-install.log
 default_target=test
 default_refspec=master
 
-root_frontend=/var/www/html
-root_backend=/v/korp/cgi-bin
+default_subdir=korp-test
+root_frontend=/var/www/html/$default_subdir
+root_backend=/var/www/cgi-bin/$korp-test
+# The production Korp directory relative to $root_{frontend,backend}
+target_main=../korp
+# Backup directory for the production Korp, relative to $backup_root
+backup_target_main=korp
 
 rsync_opts="-uacR --omit-dir-times"
 
@@ -108,7 +113,7 @@ error_hook='log ERROR "$msg"'
 log INFO Run: $0 "$@"
 
 if [ $(get_host_env) != "korp" ]; then
-    error "This script currently only works on korp.csc.fi and korp-test.csc.fi"
+    error "This script currently only works on korp.csc.fi"
 fi
 
 
@@ -157,9 +162,11 @@ if [ "x$target" = x ]; then
     target=$default_target
 fi
 orig_target=$target
+backup_target=$default_subdir/$target
 case $target in
     / )
-	target=.
+	target=$target_main
+        backup_target=$backup_target_main
 	;;
 esac
 
@@ -176,9 +183,8 @@ case $comp in
 	targetdir=$root_backend
 	;;
 esac
-if [ "$target" != . ]; then
-    targetdir=$targetdir/$target
-fi
+# Canonicalize $targetdir
+targetdir=$(readlink -f $targetdir/$target)
 
 
 run_rsync () {
@@ -285,24 +291,24 @@ install_backend () {
 }
 
 backup_frontend () {
-    run_rsync $root_frontend/$target $backup_root/frontend/$target \
+    run_rsync $root_frontend/$target $backup_root/frontend/$backup_target \
 	--delete \
 	$(make_rsync_filter exclude $excludes_frontend)
 }
 
 backup_backend () {
-    run_rsync $root_backend/$target $backup_root/backend/$target \
+    run_rsync $root_backend/$target $backup_root/backend/$backup_target \
 	--delete \
 	$(make_rsync_filter exclude $excludes_backend)
 }
 
 revert_frontend () {
-    run_rsync $backup_root/frontend/$target $root_frontend/$target \
+    run_rsync $backup_root/frontend/$backup_target $root_frontend/$target \
 	$(make_rsync_filter exclude $excludes_frontend)
 }
 
 revert_backend () {
-    run_rsync $backup_root/backend/$target $root_backend/$target \
+    run_rsync $backup_root/backend/$backup_target $root_backend/$target \
 	$(make_rsync_filter exclude $excludes_backend)
 }
 
