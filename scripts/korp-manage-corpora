@@ -496,7 +496,7 @@ mysql_make_manage_rel_tables () {
 
 run_mysql_verb () {
     local tmpfile dbname
-    tmpfile=$tmpprefix.mysql
+    tmpfile=$tmp_prefix.mysql
     cat > $tmpfile
     if [ "x$1" = "x--auth" ]; then
 	dbname=korp_auth
