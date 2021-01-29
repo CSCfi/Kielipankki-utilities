@@ -192,17 +192,38 @@ run_rsync () {
     dst=$2
     shift 2
     mkdir -p "$dst"
+    # rsync stderr output unfiltered
+    errfile1=$tmp_prefix.rsync.err1
+    # rsync stderr output filtered
+    errfile2=$tmp_prefix.rsync.err2
     (
 	cd "$src" &> /dev/null &&
 	{
-	    fifo=/tmp/$progname.$$.rsync.fifo
+            # Filter out "failed to set (times|permissions)" warnings
+            # from rsync stderr output as they are not fatal
+	    fifo=$tmp_prefix.rsync.fifo
+            if [ -e $fifo ]; then
+                rm $fifo
+            fi
 	    mkfifo $fifo
-	    grep -v 'failed to set times on' < $fifo >&2 &
+	    tee $errfile1 < $fifo |
+                grep -E -v '(failed to set (times|permissions) on|some files/attrs were not transferred)' |
+                tee $errfile2 >&2 &
 	    rsync $rsync_opts "$@" . "$dst/" 2> $fifo
+            # Output the "some files/attrs were not transferred" error
+            # message at the end only if the filtered error output is
+            # non-empty, that is, there were other errors besides
+            # "failed to set" warnings.
+            if [ -s $errfile2 ]; then
+                grep 'some files/attrs were not transferred' $errfile1 >&2
+            fi
 	    rm $fifo
 	}
 	ensure_perms "$dst"
     )
+    if [ -s $errfile2 ]; then
+        error "Please chceck the permissions in the target directory $dst; see the above error messages for hints"
+    fi
 }
 
 make_rsync_filter () {
