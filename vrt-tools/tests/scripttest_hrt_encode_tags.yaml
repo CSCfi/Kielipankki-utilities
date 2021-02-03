@@ -369,3 +369,84 @@
       ef  gh
       ijkl
       </text>
+
+- name: 'hrt-encode-tags: Ignore hyphens followed by spaces in contexts'
+  input:
+    cmdline: hrt-encode-tags
+    stdin: |-
+      <a>Hyph-
+      enated</a> text; word-internal <a>hyp-
+      hens</a> <a>pre‐</a>
+      served.
+      Lone <a>-</a> hyphens <a> - </a> preserved.
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <!-- #vrt structure-tag: a|0  Hyphenated -->
+      <!-- #vrt structure-tag: /a|10 Hyphenated text;word- -->
+      <!-- #vrt structure-tag: a|28 d-internal hyphenspre -->
+      <!-- #vrt structure-tag: /a|35 nalhyphens preserved. -->
+      <!-- #vrt structure-tag: a|35 nalhyphens preserved. -->
+      <!-- #vrt structure-tag: /a|38 hyphenspre served.Lon -->
+      <!-- #vrt structure-tag: a|49 erved.Lone -hyphens-p -->
+      <!-- #vrt structure-tag: /a|50 rved.Lone- hyphens-pr -->
+      <!-- #vrt structure-tag: a|57 ne-hyphens -preserved -->
+      <!-- #vrt structure-tag: /a|58 e-hyphens- preserved. -->
+      Hyph-
+      enated text; word-internal hyp-
+      hens pre‐
+      served.
+      Lone - hyphens  -  preserved.
+
+- name: 'hrt-encode-tags: Do not ignore hyphens followed by spaces'
+  input:
+    cmdline: hrt-encode-tags --hyphens=''
+    stdin: |-
+      <a>Hyph-
+      enated</a> text; word-internal <a>hyp-
+      hens</a> <a>pre‐</a>
+      served.
+      Lone <a>-</a> hyphens <a> - </a> preserved.
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <!-- #vrt structure-tag: a|0  Hyph-enate -->
+      <!-- #vrt structure-tag: /a|11 yph-enated text;word- -->
+      <!-- #vrt structure-tag: a|29 d-internal hyp-henspr -->
+      <!-- #vrt structure-tag: /a|37 alhyp-hens pre‐served -->
+      <!-- #vrt structure-tag: a|37 alhyp-hens pre‐served -->
+      <!-- #vrt structure-tag: /a|41 p-henspre‐ served.Lon -->
+      <!-- #vrt structure-tag: a|52 erved.Lone -hyphens-p -->
+      <!-- #vrt structure-tag: /a|53 rved.Lone- hyphens-pr -->
+      <!-- #vrt structure-tag: a|60 ne-hyphens -preserved -->
+      <!-- #vrt structure-tag: /a|61 e-hyphens- preserved. -->
+      Hyph-
+      enated text; word-internal hyp-
+      hens pre‐
+      served.
+      Lone - hyphens  -  preserved.
+
+- name: 'hrt-encode-tags: Do not encode special VRT comments'
+  input:
+    cmdline: hrt-encode-tags
+    stdin: |
+      <!-- #vrt info: test -->
+      <text>
+      <!-- #vrt info: test 2 -->
+      abc
+      <!-- #vrt info: test 3 -->
+      </text>
+      <!-- #vrt info: test 4 -->
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <!-- #vrt info: test -->
+      <text>
+      <!-- #vrt info: test 2 -->
+      abc
+      <!-- #vrt info: test 3 -->
+      </text>
+      <!-- #vrt info: test 4 -->

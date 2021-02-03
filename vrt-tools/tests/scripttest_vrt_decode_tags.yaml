@@ -2181,3 +2181,310 @@
       <a x="|x||" y="||y|" test_num="|1|2|" test_charspan="|2-3|8-9|" test_tokens="|bc|hi|" test_tokens_all="|bc|hi|" test_partnum="|1/1|" test_continues="||">
       abcdefghij
       </a>
+
+- name: 'vrt-decode-tags: Offset past the end of the region'
+  # Previously, this crashed the script with IndexError
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0  abcd -->
+      <!-- #vrt structure-tag: /a|10 abcdefghi  -->
+      abcdefghi
+  output:
+    returncode: 0
+    stderr: |
+      vrt-decode-tags: Warning: Tag </a> (contexts abcdefghi, ): expected offset 10, got 9: possibly intra-word spaces
+    stdout: |
+      <a struct_num="|1|">
+      abcdefghi
+      </a>
+
+- name: 'vrt-decode-tags: Tag with an attribute converted to feature set and the same tag without the attribute'
+  # hrt-encode-tags input: <a n="1">abc</a><a n="2">def</a> <a>ghi</a>
+  # Previously, this crashed the script with a KeyError
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a n="1"|0  abcdefghi -->
+      <!-- #vrt structure-tag: /a|3 abc defghi -->
+      <!-- #vrt structure-tag: a n="2"|3 abc defghi -->
+      <!-- #vrt structure-tag: /a|6 abcdef ghi -->
+      <!-- #vrt structure-tag: a|6 abcdef ghi -->
+      <!-- #vrt structure-tag: /a|9 abcdefghi  -->
+      abcdef
+      ghi
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a n="|1|2|" struct_num="|1|2|" struct_charspan="|1-3|4-6|" struct_tokens="|abc|def|" struct_tokens_all="|abc|def|" struct_partnum="|1/1|" struct_continues="||">
+      abcdef
+      </a>
+      <a struct_num="|3|" n="|">
+      ghi
+      </a>
+
+- name: 'vrt-decode-tags: Empty XML elements'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a/|0  abcdef -->
+      <!-- #vrt structure-tag: b n="1"/|6 abcdef  -->
+      abcdef
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a/>
+      abcdef
+      <b n="1"/>
+
+- name: 'vrt-decode-tags: Empty and non-empty XML elements'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a n="1"/|0  abcdef -->
+      <!-- #vrt structure-tag: b|0  abcdef -->
+      <!-- #vrt structure-tag: a n="2"/|0  abcdef -->
+      <!-- #vrt structure-tag: a n="3"/|6 abcdef  -->
+      <!-- #vrt structure-tag: /b|6 abcdef  -->
+      <!-- #vrt structure-tag: a n="4"/|6 abcdef  -->
+      abcdef
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a n="1"/>
+      <a n="2"/>
+      <b struct_num="|1|">
+      abcdef
+      </b>
+      <a n="3"/>
+      <a n="4"/>
+
+- name: 'vrt-decode-tags: Empty XML element mid-token'
+  status: >-
+    xfail:Not implemented yet: Mid-token empty XML elements should
+    have an attribute indicating the character offset of the tag
+    within the token.
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a n="1"/|3 abc def -->
+      abcdef
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a n="1" tag_charoffset="3"/>
+      abcdef
+
+- name: 'vrt-decode-tags: Malformed structure-tag comments'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0 abcdef -->
+      <!-- #vrt structure-tag: -->
+      <!-- #vrt structure-tag: a -->
+      <!-- #vrt structure-tag: a| -->
+      <!-- #vrt structure-tag: a| abcdef -->
+      <!-- #vrt structure-tag: a|-1 abcdef -->
+      <!-- #vrt structure-tag: /a|6 abcdef -->
+      abc
+      def
+  output:
+    returncode: 0
+    stderr: |
+      vrt-decode-tags: Warning: Ignoring malformed structure-tag comment: <!-- #vrt structure-tag: a|0 abcdef -->
+      vrt-decode-tags: Warning: Ignoring malformed structure-tag comment: <!-- #vrt structure-tag: a -->
+      vrt-decode-tags: Warning: Ignoring malformed structure-tag comment: <!-- #vrt structure-tag: a| -->
+      vrt-decode-tags: Warning: Ignoring malformed structure-tag comment: <!-- #vrt structure-tag: a| abcdef -->
+      vrt-decode-tags: Warning: Ignoring malformed structure-tag comment: <!-- #vrt structure-tag: a|-1 abcdef -->
+      vrt-decode-tags: Warning: Ignoring malformed structure-tag comment: <!-- #vrt structure-tag: /a|6 abcdef -->
+    stdout: |
+      <!-- #vrt structure-tag: -->
+      abc
+      def
+
+- name: 'vrt-decode-tags: Offset past the end of a chunk'
+  # This caused previously an IndexError. Causing the error required a
+  # preserved tag to be present after the content, and the offset of
+  # the start tag also needed to be past the last token. Cases like
+  # this may result from extra characters having been removed from the
+  # encoded input.
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <text>
+      <!-- #vrt structure-tag: p|2  ab -->
+      <!-- #vrt structure-tag: /p|3 ab  -->
+      a
+      b
+      </text>
+  output:
+    returncode: 0
+    stderr: |
+      vrt-decode-tags: Warning: Tag </p> (contexts ab, ): expected offset 3, got 2: possibly intra-word spaces
+    # The order of tags in the output is not logical, but VRT should
+    # not contain structures without content, so it probably does not
+    # matter.
+    stdout: |
+      <text>
+      a
+      b
+      </p>
+      <p struct_num="|1|">
+      </text>
+
+- name: 'vrt-decode-tags: Ignore hyphens at the end of words'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|0  Hyphenated -->
+      <!-- #vrt structure-tag: /a|10 Hyphenated text;word- -->
+      <!-- #vrt structure-tag: a|28 d-internal hyphenspre -->
+      <!-- #vrt structure-tag: /a|35 nalhyphens preserved. -->
+      <!-- #vrt structure-tag: a|35 nalhyphens preserved. -->
+      <!-- #vrt structure-tag: /a|38 hyphenspre served.Lon -->
+      <!-- #vrt structure-tag: a|49 erved.Lone -hyphens-p -->
+      <!-- #vrt structure-tag: /a|50 rved.Lone- hyphens-pr -->
+      <!-- #vrt structure-tag: a|57 ne-hyphens -preserved -->
+      <!-- #vrt structure-tag: /a|58 e-hyphens- preserved. -->
+      Hyphenated
+      text
+      ;
+      word-internal
+      hyphens
+      preserved.
+      Lone
+      -
+      hyphens
+      -
+      preserved
+      .
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a struct_num="|1|">
+      Hyphenated
+      </a>
+      text
+      ;
+      word-internal
+      <a struct_num="|2|">
+      hyphens
+      </a>
+      <a struct_num="|3|" struct_charspan="|1-3|" struct_tokens="|pre|" struct_tokens_all="|pre|" struct_partnum="|1/1|" struct_continues="||">
+      preserved.
+      </a>
+      Lone
+      <a struct_num="|4|">
+      -
+      </a>
+      hyphens
+      <a struct_num="|5|">
+      -
+      </a>
+      preserved
+      .
+
+- name: 'vrt-decode-tags: Do not ignore hyphens at the end of words'
+  input:
+    cmdline: vrt-decode-tags --hyphens=''
+    stdin: |
+      <!-- #vrt structure-tag: a|0  Hyph-enate -->
+      <!-- #vrt structure-tag: /a|11 yph-enated text;word- -->
+      <!-- #vrt structure-tag: a|29 d-internal hyp-henspr -->
+      <!-- #vrt structure-tag: /a|37 alhyp-hens pre‐served -->
+      <!-- #vrt structure-tag: a|37 alhyp-hens pre‐served -->
+      <!-- #vrt structure-tag: /a|41 p-henspre‐ served.Lon -->
+      <!-- #vrt structure-tag: a|52 erved.Lone -hyphens-p -->
+      <!-- #vrt structure-tag: /a|53 rved.Lone- hyphens-pr -->
+      <!-- #vrt structure-tag: a|60 ne-hyphens -preserved -->
+      <!-- #vrt structure-tag: /a|61 e-hyphens- preserved. -->
+      Hyph-
+      enated
+      text
+      ;
+      word-internal
+      hyp-
+      hens
+      pre‐
+      served.
+      Lone
+      -
+      hyphens
+      -
+      preserved
+      .
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a struct_num="|1|">
+      Hyph-
+      enated
+      </a>
+      text
+      ;
+      word-internal
+      <a struct_num="|2|">
+      hyp-
+      hens
+      </a>
+      <a struct_num="|3|">
+      pre‐
+      </a>
+      served.
+      Lone
+      <a struct_num="|4|">
+      -
+      </a>
+      hyphens
+      <a struct_num="|5|">
+      -
+      </a>
+      preserved
+      .
+
+- name: 'vrt-decode-tags: Intra-word spaces'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|3 abc defghi -->
+      <!-- #vrt structure-tag: /a|6 abcdef ghi -->
+      a
+      b c
+      d e
+      f
+      g h
+      i
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      a
+      b c
+      <a struct_num="|1|">
+      d e
+      f
+      </a>
+      g h
+      i
+
+- name: 'vrt-decode-tags: Intra-word markup within a word with intra-word spaces'
+  status: 'xfail:Not implemented yet: intra-word attributes should take intra-word spaces into account'
+  input:
+    cmdline: vrt-decode-tags
+    stdin: |
+      <!-- #vrt structure-tag: a|3 abc defghi -->
+      <!-- #vrt structure-tag: /a|6 abcdef ghi -->
+      a b c d e f g h i
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <a struct_num="|1|" struct_charspan="|7-11|" struct_tokens="|d e f|" struct_tokens_all="|d e f|" struct_partnum="|1/1|" struct_continues="||">
+      a b c d e f g h i
+      </a>

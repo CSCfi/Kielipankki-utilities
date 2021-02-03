@@ -87,10 +87,18 @@ class TagEncoder(InputProcessor):
          'preserve tags of XML elements listed in taglist if they occur at the'
          ' beginning of a line; taglist is a list of element names separated'
          ' by spaces'),
-        ('--spaces = regexp "\\s"',
-         'remove characters matching regexp when computing the tag offset and'
+        # CHECK: By default, the following also matches Unicode spaces,
+        # including non-break space. Should it? It might depend on the
+        # tokenizer what is most useful.
+        ('--spaces|ignore-spaces = regexp "\\s"',
+         'ignore characters matching regexp when computing the tag offset and'
          ' context strings; regexp is a Python string (Unicode) regular'
          ' expression'),
+        # The following default matches ASCII hyphen-minus and Unicode HYPHEN.
+        ('--hyphens|ignore-hyphens = regexp "[-\\u2010]"',
+         'ignore characters matching regexp at the end of a word (when'
+         ' followed by ignored space or a tag) but not as a word by itself;'
+         ' regexp is a Python string (Unicode) regular expression'),
     ]
 
     def __init__(self):
@@ -98,9 +106,10 @@ class TagEncoder(InputProcessor):
 
     def main(self, args, inf, ouf):
 
+        # Tags not to be encoded, including special VRT comments
         preserve_tag_re = re.compile(
-            b'< /? (' + '|'.join(args.preserve_tags.split()).encode()
-            + br') [>\s]', re.VERBOSE)
+            b'< ( /? (' + '|'.join(args.preserve_tags.split()).encode() + br')'
+            + br' | !-- \s \#vrt \s .* ) [>\s]', re.VERBOSE)
         # Also encode XML comments, even though they are not structural tags,
         # so "#vrt structure-tag" is somewhat misleading. This allows comments
         # in the middle of a line or a token. The resulting VRT comments are
@@ -113,10 +122,15 @@ class TagEncoder(InputProcessor):
                       | !-- .+ -- )
                   ) >
                 ( (?: \s*? \n )? )''', re.VERBOSE)
-        # CHECK: By default, the following also matches Unicode spaces,
-        # including non-break space. Should it? It might depend on the
-        # tokenizer what is most useful.
-        spaces_re = re.compile('(' + args.spaces + ')+')
+        # Ignore spaces, and hyphens preceded by a non-space and followed by
+        # space or end-of-string (a tag).
+        ignore_re = re.compile(
+            ((r'((?<= \S) (?:' + args.hyphens + ')+ )?'
+              + '(?: \Z | (?:' + args.spaces + ')+)')
+             if args.hyphens else
+             ('(?:' + args.spaces + ')+')),
+            re.VERBOSE)
+
         context_chars = 10
         LESS_THAN = '<'.encode('utf-8')[0]
         NEWLINE = '\n'.encode('utf-8')[0]
@@ -135,7 +149,7 @@ class TagEncoder(InputProcessor):
             notag_indices = range(0, len(parts), 3)
             tag_indices = range(1, len(parts), 3)
             nl_indices = range(2, len(parts), 3)
-            notag_parts = [spaces_re.sub('', parts[i]) for i in notag_indices]
+            notag_parts = [ignore_re.sub('', parts[i]) for i in notag_indices]
             # print(notag_parts)
             # print([parts[i] for i in notag_indices])
             # print([parts[i] for i in tag_indices])

@@ -19,6 +19,8 @@ feature-set values and some others not.
 # - If a structure has some intra-word occurrences, add the struct_*
 #   attributes to all its occurrences. In general, that requires a
 #   second pass over the output of the first pass.
+# - Add to mid-token empty tags an extra attribute indicating the
+#   character offset of the tag.
 
 
 import os
@@ -44,10 +46,18 @@ class TagDecoder(InputProcessor):
     comments, as encoded with hrt-encode-tags.
     """
     ARGSPECS = [
-        ('--spaces = regexp "\\s"',
-         'remove characters matching regexp from word forms when computing the'
+        # CHECK: By default, the following also matches Unicode spaces,
+        # including non-break space. Should it? It might depend on the
+        # tokenizer what is most useful.
+        ('--spaces|ignore-spaces = regexp "\\s"',
+         'ignore characters matching regexp from word forms when computing the'
          ' tag offset and matching context strings; regexp is a Python string'
          ' (Unicode) regular expression'),
+        # The following default matches ASCII hyphen-minus and Unicode HYPHEN.
+        ('--hyphens|ignore-hyphens = regexp "[-\\u2010]"',
+         'ignore characters matching regexp at the end of a word but not as'
+         ' a word by itself;'
+         ' regexp is a Python string (Unicode) regular expression'),
         ('--word|w = name -> word_attr',
          'use positional attribute name as the word-form attribute;'
          ' alternatively, name may be a one-based integer denoting the index'
@@ -83,10 +93,14 @@ class TagDecoder(InputProcessor):
                 (?P<right> \S* )""",
             re.VERBOSE)
         tag_re = re.compile(r'<(/\w+|\w+(?:\s[^>]+)?/?)>(?:\s*\n)?')
-        # CHECK: By default, the following also matches Unicode spaces,
-        # including non-break space. Should it? It might depend on the
-        # tokenizer what is most useful.
-        spaces_re = re.compile(r'(?:' + args.spaces + r')+')
+        # Ignore spaces, and hyphens preceded by a non-space and followed by
+        # space or end-of-string (a tag).
+        ignore_re = re.compile(
+            ((r'((?<= \S) (?:' + args.hyphens + ')+ )?'
+              + '(?: \Z | (?:' + args.spaces + ')+)')
+             if args.hyphens else
+             ('(?:' + args.spaces + ')+')),
+            re.VERBOSE)
         subword_attrs = 'charspan tokens tokens_all partnum continues'
         subword_attrs_format = (
             ' ' + (' '.join('{prefix}{attrname}="{{{attrname}}}"'
@@ -126,17 +140,23 @@ class TagDecoder(InputProcessor):
             structs = []
             latest_wordform_linenum = -1
             for tagnum, tag_line in enumerate(tag_lines):
+                # print(tag_line)
                 tag_info = extract_tag_info(tag_line)
+                if tag_info is None:
+                    self.warn('Ignoring malformed structure-tag comment: '
+                              + tag_line.decode()[:-1])
+                    continue
                 # print(tag_info)
                 tag_text = tag_info['tag']
                 is_comment = (
                     tag_text[0] == EXCLAM and tag_text.startswith(b'!--'))
-                if is_comment:
+                is_emptytag = (not is_comment and tag_text[-1] == SLASH)
+                if is_comment or is_emptytag:
                     is_endtag = False
                     attrs = None
                     tagname = tag_text.decode()
                 else:
-                    is_endtag = (not is_comment and tag_text[0] == SLASH)
+                    is_endtag = (tag_text[0] == SLASH)
                     tagparts = tag_text.split(maxsplit=1)
                     basetag = tagparts[0]
                     attrs = tagparts[1] if len(tagparts) > 1 else b''
@@ -148,7 +168,7 @@ class TagDecoder(InputProcessor):
                             wordforms, latest_wordform_linenum))
                     # print(tag_info, linenum, offset, char_offset, is_endtag)
                 tag_linenum = linenum + int(is_endtag and bool(char_offset))
-                if is_comment:
+                if is_comment or is_emptytag:
                     structs.append(
                         StructInfo(tagname=tagname,
                                    attrs=attrs,
@@ -183,6 +203,7 @@ class TagDecoder(InputProcessor):
                     else:
                         struct = struct_stack.pop(starttag_stack_num)
                     if struct:
+                        # print(struct)
                         struct.tagnums.append(tagnum)
                         struct.linenums.append(tag_linenum)
                         struct.wordform_nums.append(len(wordforms) - 1)
@@ -201,6 +222,7 @@ class TagDecoder(InputProcessor):
                         partnum='1/1',
                         continues='',
                         text_all=None)
+                    # print('Start tag', struct)
                     structs.append(struct)
                     struct_stack.append(struct)
             # Add unclosed start tags
@@ -226,6 +248,8 @@ class TagDecoder(InputProcessor):
         def extract_tag_info(line):
             _, taginfo = getbinvrtcomment(line)
             mo = structtag_value_re.fullmatch(taginfo)
+            if not mo:
+                return None
             gd = mo.groupdict()
             gd['offset'] = int(gd['offset'])
             return gd
@@ -238,11 +262,12 @@ class TagDecoder(InputProcessor):
             offset = prev_offset
             char_offset = 0
             linenum = prev_linenum
+            line_count = len(lines)
             wf = None
-            # print(new_offset, offset, linenum)
-            while offset < new_offset:
+            # print(new_offset, offset, linenum, lines)
+            while offset < new_offset and linenum < line_count:
                 if lines[linenum][0] != LESS_THAN:
-                    wf = spaces_re.sub('', get_wordform(lines[linenum]))
+                    wf = ignore_re.sub('', get_wordform(lines[linenum]))
                     offset += len(wf)
                     if linenum > latest_wordform_linenum:
                         wordforms.append(wf)
@@ -250,17 +275,22 @@ class TagDecoder(InputProcessor):
                 linenum += 1
                 # print('WF', wf, linenum, offset, wordforms)
             if offset != new_offset:
+                warn = True
                 if contexts_match(tag_info, offset, wordforms):
-                    offset -= len(wordforms[-1])
                     linenum -= 1
-                    char_offset = new_offset - offset
-                else:
+                    last_wf_len = len(wordforms[-1])
+                    if new_offset - offset < last_wf_len:
+                        warn = False
+                        offset -= last_wf_len
+                        char_offset = new_offset - offset
+                if warn:
                     self.warn(('Tag <{}> (contexts {}, {}): expected offset'
                                ' {:d}, got {:d}: possibly intra-word spaces')
                               .format(tag_info['tag'].decode(),
                                       tag_info['left'].decode(),
                                       tag_info['right'].decode(),
                                       new_offset, offset))
+            # print(linenum, offset, char_offset, latest_wordform_linenum)
             return linenum, offset, char_offset, latest_wordform_linenum
 
         def get_wordform(line):
@@ -269,7 +299,7 @@ class TagDecoder(InputProcessor):
         def contexts_match(tag_info, offset, wordforms):
             # Test if the actual contexts based on wordforms match the contexts
             # specified in tag_info
-            # print(tag_info, offset, wordforms)
+            # print('CM', tag_info, offset, wordforms)
             offset_diff = offset - tag_info['offset']
             context_left = tag_info['left'].decode()
             context_right = tag_info['right'].decode()
@@ -280,7 +310,7 @@ class TagDecoder(InputProcessor):
             while len(context_left_actual) < contextlen_left and wf_num >= 0:
                 context_left_actual = wordforms[wf_num] + context_left_actual
                 wf_num -= 1
-            #     print(context_left_actual, contextlen_left, wf_num)
+                # print(context_left_actual, contextlen_left, wf_num)
             # print(context_left_actual[-contextlen_left:], context_left,
             #       context_right, wordforms[-1][-offset_diff:][:len(context_right)],
             #       context_left_actual[-contextlen_left:] == context_left,
@@ -406,7 +436,7 @@ class TagDecoder(InputProcessor):
                     ' boundary (typically paragraph or text): {}'.format(
                         type_, tag_text))
 
-            if tag[0] == EXCLAM:
+            if tag[0] == EXCLAM or tag[-1] == SLASH:
                 # If the nearest structures are closed first (see below), this
                 # results in comments immediately preceding end tags in the
                 # input to be output after the end tags. That is not optimal,
@@ -561,6 +591,7 @@ class TagDecoder(InputProcessor):
             """Make a value with both partial and whole tokens of struct."""
             wfnums = struct.wordform_nums
             chofss = struct.char_offsets
+            # print(wfnums, chofss, len(wordforms), wordforms[-1])
             # print(struct)
             if chofss[0] == 0 and chofss[1] == 0:
                 # Whole words only
@@ -631,7 +662,10 @@ class TagDecoder(InputProcessor):
             attrs = OrderedDict(extract_attrs(attrstr))
             modified = False
             for attrname in struct_attrs_featset[struct_name]:
-                if not (attrs[attrname] and attrs[attrname][0] == VBAR):
+                if attrname not in attrs:
+                    attrs[attrname] = b'|'
+                    modified = True
+                elif not (attrs[attrname] and attrs[attrname][0] == VBAR):
                     attrs[attrname] = b'|' + attrs[attrname] + b'|'
                     modified = True
             if modified:
