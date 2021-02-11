@@ -53,7 +53,7 @@ do
 	    # Check format of first XML file in directory
 	    if [ "$xml_format_checked" = "false" ]; then
 		if (grep -m 1 '<root>' $xmlfile > /dev/null); then
-		    echo 'Error: $xmlfile has wrong XML format, skipping directory $dir.';
+		    echo "Error: $xmlfile has wrong XML format, skipping directory $dir.";
 		    break;
 		else
 		    xml_format_checked="true";
