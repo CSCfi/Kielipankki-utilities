@@ -88,6 +88,8 @@ def align_data(element, page_file):
                         if len(string_data) != 0:
                             ( string, atts ) = string_data.pop(0)
                             string = string.strip()
+                        if (token == string):
+                            break
                     # see if part of the last string matches
                     if token != '' and string.startswith(token):
                         if new_string == '':
