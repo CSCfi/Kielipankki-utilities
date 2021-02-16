@@ -1,12 +1,12 @@
 # -*- mode: Python; -*-
 
 '''Testing libvrt protocol 1 aka pr1 through the special test tool,
-test-pr1, that uses an external program, `cut -c -3`, to extract a
-prefix of three characters from a given field.
+vrt-test-pr1-data, that implements the protocol using an external
+program, `cut -c -3`, to extract a prefix of three characters from a
+given field as the contents of a new field.
 
-(The external program does not actually consider sentences as units.
-It does get to see only the word, not the preceding field, and not any
-of the tags. Also, sentences are sent to it separated by empty lines.)
+The external program sees one field (on its own line) for each token,
+empty line between sentences.
 
 '''
 
@@ -31,7 +31,7 @@ def test_001a():
                       b'</paragraph>',
                       b'</text>',
                       b''))
-    proc = run([ './vrt-test-pr1', '--word=word' ],
+    proc = run([ './vrt-test-pr1-data', '--word=word' ],
                input = inf,
                stdout = PIPE,
                stderr = PIPE,
@@ -78,7 +78,7 @@ def test_001b():
                       b'</paragraph>',
                       b'</text>',
                       b''))
-    proc = run([ './vrt-test-pr1', '--word=word' ],
+    proc = run([ './vrt-test-pr1-data', '--word=word' ],
                input = inf,
                stdout = PIPE,
                stderr = PIPE,
@@ -129,7 +129,7 @@ def test_002():
                       b'</paragraph>',
                       b'</text>',
                       b''))
-    proc = run([ './vrt-test-pr1', '--word=word' ],
+    proc = run([ './vrt-test-pr1-data', '--word=word' ],
                input = inf,
                stdout = PIPE,
                stderr = PIPE,
@@ -182,7 +182,7 @@ def test_003a():
                       b'</paragraph>',
                       b'</text>',
                       b''))
-    proc = run([ './vrt-test-pr1', '--word=word', '--class=one' ],
+    proc = run([ './vrt-test-pr1-data', '--word=word', '--class=one' ],
                input = inf,
                stdout = PIPE,
                stderr = PIPE,
@@ -229,7 +229,7 @@ def test_003b():
                       b'</paragraph>',
                       b'</text>',
                       b''))
-    proc = run([ './vrt-test-pr1', '--word=word', '--class=one' ],
+    proc = run([ './vrt-test-pr1-data', '--word=word', '--class=one' ],
                input = inf,
                stdout = PIPE,
                stderr = PIPE,
@@ -276,7 +276,7 @@ def test_003c():
                       b'</paragraph>',
                       b'</text>',
                       b''))
-    proc = run([ './vrt-test-pr1', '--word=word', '--class=two' ],
+    proc = run([ './vrt-test-pr1-data', '--word=word', '--class=two' ],
                input = inf,
                stdout = PIPE,
                stderr = PIPE,
@@ -323,7 +323,7 @@ def test_003d():
                       b'</paragraph>',
                       b'</text>',
                       b''))
-    proc = run([ './vrt-test-pr1', '--word=word', '--class=two' ],
+    proc = run([ './vrt-test-pr1-data', '--word=word', '--class=two' ],
                input = inf,
                stdout = PIPE,
                stderr = PIPE,

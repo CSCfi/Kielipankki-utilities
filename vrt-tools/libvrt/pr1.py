@@ -29,6 +29,7 @@ tool-specific functionality.
 
 '''
 
+import sys
 from itertools import filterfalse, groupby
 from queue import Queue
 from threading import Thread
@@ -185,7 +186,7 @@ def _separate(args, imp, matter, copy, proc):
                         if imp.pr1_test()
                         else TAGS ),
                       lines))
-        if kind == TAGS:
+        elif kind == TAGS:
             copy.put((kind, lines))
             imp.pr1_test(tags = lines)
         elif kind == OUTER:
