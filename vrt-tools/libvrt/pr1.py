@@ -5,14 +5,24 @@ with the following characteristics that might be different in an
 alternative protocol.
 
 0. Input is VRT, output is VRT. With field name comment before first
-   sentence. With every token inside a sentence. At least one token
-   inside every sentence.
+   sentence. With every token inside a <sentence> tags. At least one
+   token inside every sentence.
 
-1. Any meta outside sentences (outer meta) is observed to decide
-   whether to pass current sentence to the external tool or keep it.
+1. An implementation is allowed to observe, in pr1_test, any meta
+   outside sentences (outer meta) to decide whether to pass current
+   sentence to the external tool or keep it. (Possibly observe a
+   special _skip tag of each sentence.)
 
 2. Any meta inside sentences (inner meta) is passed transparently
    through.
+
+3. An implementation may provide pr1_join_meta to combine new
+   annotations to the sentence start tag. Then pr1_read must yield a
+   meta component for each sentence.
+
+4. An implementation may provide pr1_join to combine new annotations
+   to a token. Then pr1_read must yield a data component for each
+   sentence, generating new token annotations.
 
 A particular tool is implemented as a module that provides the
 tool-specific functionality.
@@ -25,7 +35,7 @@ from threading import Thread
 
 from libvrt.bad import BadData, BadCode
 
-NAMES, OUTER, INNER, TAGS, META, DATA, JOIN, KEEP = range(2, 10)
+NAMES, OUTER, INNER, TAGS, BEGIN, META, DATA, JOIN, KEEP = range(2, 11)
 
 def transput(args, imp, proc, ins, ous):
 
@@ -36,10 +46,10 @@ def transput(args, imp, proc, ins, ous):
 
     '''
 
-    matter = _segment(ins)
+    matter = _segment(ins, imp)
     kind, head = next(matter)
 
-    if kind == TAGS:
+    if kind in (TAGS, BEGIN):
         raise BadData('no name comment before first sentence')
 
     names = imp.pr1_init(args, _extract(head))
@@ -77,10 +87,12 @@ def transput(args, imp, proc, ins, ous):
 
     return code
 
-def _segment(ins):
+def _segment(ins, imp):
     '''Yield non-empty input lines in classified groups.
 
     (TAGS, lines) is a succession of sentence tags (start or end);
+    (BEGIN, lines) is same and ends with a start tag.
+
     (OUTER, lines) is a succession of meta lines outside sentence;
     (INNER, mix) consists of all lines inside a sentence.
 
@@ -89,16 +101,21 @@ def _segment(ins):
     (DATA, record) is a stripped-and-split data line (a record).
 
     There are three legitimate TAGS groups: a lone start tag, a lone
-    end tag, and an end tag followed by a start tag.
+    end tag, and an end tag followed by a start tag. Two of these are
+    also legitimate BEGIN groups.
 
-    Both meta groups and data groups may consist of many lines, but
-    any impractical numbers are considered impossible (an error, like
-    a data set that does not use sentence tags, for example).
+    Both OUTER meta groups and INNER data/meta groups may consist of
+    many lines, but any impractical length is considered impossible
+    (an error, like a data set that does not use sentence tags, for
+    example).
 
     It is very important to note that no unescaping of the few special
     characters is done.
 
     '''
+
+    START = (BEGIN if hasattr(imp, 'pr1_join_meta') else TAGS)
+
     inside = False
     for k, g in groupby(filterfalse(bytes.isspace, ins), lambda line:
                         line.startswith((b'<sentence ',
@@ -106,8 +123,8 @@ def _segment(ins):
                                          b'</sentence>'))):
         if k:
             lines = tuple(g)
-            yield TAGS, lines
             inside = lines[-1].startswith(b'<sentence')
+            yield (START if inside else TAGS), lines
         elif inside:
             yield INNER, tuple(((META, line)
                                 if line.startswith(b'<') else
@@ -133,21 +150,41 @@ def _extract(head):
     return names
 
 def _separate(args, imp, matter, copy, proc):
-    '''In another thread, put all incoming matter (segmented ins) to copy
-    (a queue of classified groups of lines) and some of the sentences
-    to proc according to imp. Finally put a sentinel in copy.
+    '''Running in another thread, put all incoming matter (segmented ins)
+    to copy (a queue of classified groups of lines) and send some of
+    the sentences to proc according to imp. Finally put a sentinel in
+    copy.
 
-    Matter coming in as TAGS, OUTER, INNER (DATA records, META lines).
-    Matter going to copy as TAGS, OUTER, JOIN (with proc), KEEP.
-    Choice to JOIN or KEEP is up to imp, with access to TAGS and OUTER.
+    Matter comes in as TAGS/BEGIN, OUTER, INNER (INNER containing DATA
+    records, META lines).
+
+    Matter goes to copy as TAGS/BEGIN, OUTER, JOIN (INNER sent to
+    proc), KEEP (INNER not sent to PROC).
+
+    Choice to skip a sentence is up to imp, with access to TAGS/BEGIN
+    and OUTER.
+
+    Only use BEGIN if there is imp.pr1_join_meta, and then
+    imp.pr1_read produces a meta component for the sentence.
+
+    Only use JOIN if there is imp.pr1_join, and then imp.pr1_read
+    produces a data component for the sentence.
 
     '''
-    def ismeta(line):
-        '''Whether an INNER line is META (or DATA).'''
-        kind, content = line
-        return kind == META
+
+    # whether imp.pr1_read produces data components or not
+    SENT = (JOIN if hasattr(imp, 'pr1_join') else KEEP)
 
     for kind, lines in matter:
+        if kind == BEGIN:
+            # imp.pr1_read produces meta components
+            # for sent sentences (put to copy as BEGIN)
+            # not for skipped (put to copy as TAGS)
+            imp.pr1_test(tags = lines)
+            copy.put((( BEGIN
+                        if imp.pr1_test()
+                        else TAGS ),
+                      lines))
         if kind == TAGS:
             copy.put((kind, lines))
             imp.pr1_test(tags = lines)
@@ -156,7 +193,7 @@ def _separate(args, imp, matter, copy, proc):
             imp.pr1_test(meta = lines)
         elif imp.pr1_test():
             # kind == INNER
-            copy.put((JOIN, lines))
+            copy.put((SENT, lines))
             imp.pr1_send((line for kind, line in lines
                           if kind == DATA),
                          proc)
@@ -176,12 +213,17 @@ def _combinate(args, imp, copy, proc, ous):
     while kind is not None:
         if kind in (OUTER, TAGS):
             _write_meta(old, ous)
+        elif kind == BEGIN:
+            # there is a meta component for the sentence
+            _write_join_meta(imp, old, next(news), ous)
         elif kind == JOIN:
+            # there is a data component for the sentence
             _write_join(imp, old, next(news), ous)
         elif kind == KEEP:
+            # there is no data component for the sentence
             _write_keep(imp, old, ous)
         elif kind == NAMES:
-            # actually *new* names
+            # old is actually *new* names already
             _write_names(old, ous)
         else:
             raise BadCode('broken protocol')
@@ -200,6 +242,21 @@ def _write_meta(old, ous):
         ( line.startswith(b'<!-- #vrt positional-attributes:') or
           ous.write(line)
         )
+
+def _write_join_meta(imp, old, new, ous):
+    '''Write a group of sentence tags, ending with a start tag, with new
+    meta added to that start tag. (Either there is only the start
+    tag, or there is an end tag followed by the start tag.
+
+    '''
+
+    for line in old:
+        if line.startswith(b'</'):
+            ous.write(line)
+        else:
+            # only imp knows what kind of thing new is
+            # (imp.pr1_read, imp.pr1_join_meta)
+            imp.pr1_join_meta(line, new, ous)
 
 def _write_join(imp, old, new, ous):
     '''Write data lines out with new annotations by imp.'''
