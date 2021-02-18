@@ -1,0 +1,50 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from argparse import ArgumentParser
+import sys
+
+def parsearguments():
+    description = '''
+
+    Exercise the transput format of an underlying language guesser.
+    Intended to be run by vrt-guess-lang while waiting for the a real
+    thing. Options facilitate access to otherwise internal
+    communications of vrt-guess-lang.
+
+'''
+
+    parser = ArgumentParser(description = description)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--ins', '-i', action = 'store_true',
+                       help = 'leak input stream to stderr')
+    group.add_argument('--ous', '-o', action = 'store_true',
+                       help = 'leak output stream to stderr')
+    return parser.parse_args()
+
+args = parsearguments()
+
+for line in sys.stdin:
+    # Had to modify original plan because there was no room for
+    # sentence attributes in the original plan. Embarrassing, though
+    # this current implementation is ignoring attributes anyway.
+    #
+    # Input is a stream of lines (literal tag, data has id):
+    # text [TAB attr=value]*
+    # para [TAB attr=value]*
+    # sent [TAB attr=value]*
+    # data TAB id [TAB token]+
+    #
+    # Output is a stream of lines corresponding to data lines:
+    # id TAB code
+    args.ins and print(line, end = '', file = sys.stderr)
+    kind, *rest = line.rstrip('\r\n').split('\t')
+    if kind == 'data':
+        code = ( 'swe' if any('å' in token.lower() for token in rest) else
+                 'fin' if any('ä' in token.lower() for token in rest) else
+                 'fin' if any('ö' in token.lower() for token in rest) else
+                 'ger' if any('ü' in token.lower() for token in rest) else
+                 'unk'
+        )
+        print(rest[0], code, sep = '\t')
+        args.ous and print(rest[0], code, sep = '\t', file = sys.stderr)
