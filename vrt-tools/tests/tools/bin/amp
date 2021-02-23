@@ -1,0 +1,55 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from argparse import ArgumentParser
+import sys
+
+def _nat(arg):
+    '''Natural number type for argument parsing.'''
+    n = int(arg)
+    if n < 0:
+        raise TypeError('nonsense')
+    return n
+
+def parsearguments():
+    description = '''
+
+    Amplify stdin by copying each line once to stdin and many times to
+    stderr. The sole intensive purpose is to exercise the stderr
+    handling mechanism of transputative VRT-to-VRT sentence annotation
+    tools: the amplifier can be a trivial external tool (an identity
+    map) with diagnostics on the side.
+
+    '''
+    parser = ArgumentParser(description = description)
+    parser.add_argument('--times', '-n',
+                        type = _nat,
+                        default = 2, # one, two, many
+                        help = '''
+
+                        How many copies of each stdin line in stderr.
+                        Defaults to 2.
+
+                        ''')
+    parser.add_argument('--count', '-c', action = 'store_true',
+                        help = '''
+
+                        Prefix the copies of the input lines with a
+                        counter and a TAB, starting at 1 for each
+                        input line.
+
+                        ''')
+
+    args = parser.parse_args()
+    return args
+
+def main(args):
+    for line in sys.stdin.buffer:
+        sys.stdout.buffer.write(line)
+        for k in ('{}\t'.format(j).encode('UTF-8')
+                  for j in range(1, args.times + 1)):
+            args.count and sys.stderr.buffer.write(k)
+            sys.stderr.buffer.write(line)
+
+if __name__ == '__main__':
+    main(parsearguments())

@@ -7,32 +7,24 @@ added to the attributes.
 
 The tokens and their annotations are left alone.
 
-The external program sees each sentence as units as a one-line record
+The external program sees each sentence as a one-line record
 that consists of a couple of fields followed by the tokens.
+
+Testing stderr handling, added to the protocol, using another special
+testing tool bin/vrt-asis that writes to stderr but leaves input as it
+was, having no pr1_join for data, trivial pr1_join_meta for meta.
 
 '''
 
+import os
 from subprocess import run, PIPE
 
+HERE = os.path.dirname(__file__)
+
 def test_001a():
-    inf = b'\n'.join((b'<!-- #vrt positional-attributes: ref word -->',
-                      b'<text topic="basic" subtopic="lone sentences">',
-                      b'<paragraph n="1">',
-                      b'<sentence>',
-                      b'1\tTietokoneilla',
-                      b'2\tvoi',
-                      b'3\tvaihtaa',
-                      b'4\ttaustakuvaa',
-                      b'5\t.',
-                      b'</sentence>',
-                      b'</paragraph>',
-                      b'<paragraph n="2">',
-                      b'<sentence>',
-                      b'1\t:-)',
-                      b'</sentence>',
-                      b'</paragraph>',
-                      b'</text>',
-                      b''))
+    with open(os.path.join(HERE, 'data', 'text-00.vrt'),
+              mode = 'br') as ins:
+        inf = ins.read()
     proc = run([ './vrt-test-pr1-meta', '--word=word' ],
                input = inf,
                stdout = PIPE,
@@ -352,3 +344,20 @@ def test_003d():
                     b'</text>',
                     b''))
     )
+
+def test_stderr_001():
+    with open(os.path.join(HERE, 'data', 'text-00.vrt'),
+              mode = 'br') as ins:
+        inf = ins.read()
+    with open(os.path.join(HERE, 'data', 'text-00-asis.err'),
+              mode = 'br') as ins:
+        err = ins.read()
+    proc = run([ os.path.join(HERE, 'bin', 'vrt-asis') ],
+               input = inf,
+               stdout = PIPE,
+               stderr = PIPE,
+               timeout = 5)
+    assert not proc.returncode
+    assert proc.stdout
+    assert proc.stdout == inf
+    assert proc.stderr == err

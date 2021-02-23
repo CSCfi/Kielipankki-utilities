@@ -24,6 +24,10 @@ alternative protocol.
    to a token. Then pr1_read must yield a data component for each
    sentence, generating new token annotations.
 
+5. An implementation may provide pr1_read_stderr. Then the external
+   process must write its stderr to a PIPE and pr1_read_stderr must
+   deal with it.
+
 A particular tool is implemented as a module that provides the
 tool-specific functionality.
 
@@ -44,6 +48,9 @@ def transput(args, imp, proc, ins, ous):
     and uses imp to feed proc with input sentences from ins. Combine
     the copy of ins with the output sentences from proc and write the
     combined result to ous.
+
+    If there is imp.pr1_read_stderr, set it to read all of proc.stderr
+    in yet another thread.
 
     '''
 
@@ -66,25 +73,37 @@ def transput(args, imp, proc, ins, ous):
                   daemon = True)
     feed.start()
 
+    if hasattr(imp, 'pr1_read_stderr'):
+        deal = Thread(target = _readerr,
+                      args = (args, imp, proc),
+                      name = 'Diagnostic Thread',
+                      daemon = True)
+        deal.start()
+
     _combinate(args, imp, copy, proc, ous)
 
-    # proc should have run its course by now;
-    # the 30 second timeout may or may not be
-    # either excessive or sufficient
+    # proc should have run its course by now; the 30 second timeout
+    # may or may not be either wildly excessive or sufficient
     code = proc.wait(timeout = 30)
 
     if not copy.empty():
         raise BadCode('copy queue is not empty')
 
-    # feed should have run its course by now,
-    # but was sometimes observed alive before
-    # the addition of the (probably excessive)
-    # timeout; incidentally, documentation says
-    # the timeout "should be a floating point
-    # number" but does not seem to mean it
+    # feed should have run its course by now, but was sometimes
+    # observed alive before the addition of the (probably excessive)
+    # 5-second timeout; incidentally, documentation says the timeout
+    # "should be a floating point number" but does not seem to mean it
     feed.join(5)
     if feed.is_alive():
         raise BadCode('separation thread is still alive')
+
+    # proc is surely not writing anything to its stderr any more,
+    # having been waited for, but let the stderr-reading thread have
+    # five more seconds to finish, should it still be there
+    if hasattr(imp, 'pr1_read_stderr'):
+        deal.join(5)
+        if deal.is_alive():
+            raise BadCode('diagnostic thread is still alive')
 
     return code
 
@@ -280,3 +299,20 @@ def _write_keep(imp, old, ous):
             ous.write(line)
         else:
             imp.pr1_keep(line, ous)
+
+def _readerr(args, imp, proc):
+    '''Running as another thread, have imp read the diagnostic (stderr)
+    stream of proc.
+
+    '''
+
+    try:
+        imp.pr1_read_stderr(args, proc.stderr)
+    except Exception as exn:
+        print(args.prog, ': stderr reader failed: ', exn,
+              sep = '',
+              file = sys.stderr)
+        # should show stack trace of exn, need to remember how
+        if proc.returncode is None:
+            proc.terminate()
+            proc.kill()

@@ -1,0 +1,6 @@
+# These are input files and *expected* output files,
+# not to be gitignored.
+
+!*.vrt
+!*.out
+!*.err
