@@ -444,6 +444,9 @@ mysql_make_manage_table_rows () {
     target_u=$3
     shift 3
     for table in "$@"; do
+        if ! mysql_table_exists $table; then
+            continue
+        fi
 	if [ "$cmd" = "remove" ]; then
 	    echo "DELETE FROM \`$table\` WHERE corpus='$source_u';"
 	elif [ "$cmd" = "rename" ]; then
