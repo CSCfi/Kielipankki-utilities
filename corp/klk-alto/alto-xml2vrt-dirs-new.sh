@@ -47,6 +47,16 @@ do
 	xmlfiles=`echo $metsfile | perl -pe 's/_mets\.xml/_page-*.xml/;'`
 	single_vrtfile=`echo $metsfile | perl -pe 's/_mets\.xml/.VRT/;'`
 	single_vrtfile_copied=`echo $metsfile | perl -pe 's/_mets\.xml/.vrt/;'`
+
+	# check if single VRT file has been already copied
+	if [ "$outputdir" != "" -a -f "$outputdir/$lang/$single_vrtfile_copied" -a -f "$single_vrtfile" ]; then
+	    echo "$single_vrtfile already exists, copying it to $outputdir/$lang/$single_vrtfile_copied.";
+	    cp --parents $single_vrtfile $outputdir/$lang/;
+	    # rename *.VRT to *.vrt
+	    mv $outputdir/$lang/$single_vrtfile $outputdir/$lang/$single_vrtfile_copied;
+	    continue;
+	fi
+
 	first_vrtfile="true";
 	for xmlfile in $xmlfiles;
 	do
