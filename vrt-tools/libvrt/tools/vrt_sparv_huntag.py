@@ -16,11 +16,11 @@ from libvrt.bad import BadData, BadCode
 from libvrt.pr1 import transput
 
 try:
-    from outsidelib import HUNPOS, HUNPOSTAG
+    from outsidelib import HUNPOSTAG, HUNPOSMODELS
 except ImportError as exn:
     # So it will crash when actually trying to launch the underlying
-    # tool and HUNPOS is not defined, but --help and --version options
-    # will work!
+    # tool and HUNPOSTAG is not defined, but --help and --version
+    # options will work!
     print('Import Error:', exn, file = sys.stderr)
 
 def _name(arg):
@@ -75,6 +75,7 @@ def parsearguments(argv):
 
 def main(args, ins, ous):
 
+    # TODO probably add morph table
     proc = Popen([ HUNPOSTAG, HUNPOSMODELS['sparv'] ],
                  stdin = PIPE,
                  stdout = PIPE,
