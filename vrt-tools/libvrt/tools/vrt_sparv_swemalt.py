@@ -186,7 +186,7 @@ def pr1_read(ins):
             yield (
                 (ref, head, rel)
                 for line in group
-                for ref, form, base, pos, xpos, feats, head, rel
+                for ref, form, base, pos, xpos, feats, head, rel, _, _
                 in [ line.rstrip(b'\r\n').split(b'\t') ]
             )
 
