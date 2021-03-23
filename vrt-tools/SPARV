@@ -46,7 +46,7 @@ case "$1" in
 
 	# tag : word -> msd
 
-	bin/vrt-sparv-huntag -i "$1.Copy"
+	bin/vrt-old-sparv-huntag -i "$1.Copy"
 	tick "tag"
 
 	# parse : msd -> id + head + rel
