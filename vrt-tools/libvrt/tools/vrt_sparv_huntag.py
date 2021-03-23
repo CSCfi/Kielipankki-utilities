@@ -152,7 +152,7 @@ def pr1_read(ins):
                 # word tab tag => tag
                 tag
                 for line in group
-                for word, tag in [line.rstrip('\r\n').split(b'\t')]
+                for word, tag in [line.rstrip(b'\r\n').split(b'\t')]
             )
 
 def pr1_join(old, new, ous):
