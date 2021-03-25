@@ -16,7 +16,7 @@ from libvrt.bad import BadData, BadCode
 from libvrt.pr1 import transput
 
 try:
-    from outsidelib import CSTLEMMA, CSTLEMMAMODELS
+    from outsidelib import CSTLEMMA, CSTMODELS
 except ImportError as exn:
     # So it will crash when actually trying to launch the underlying
     # tool and CSTLEMMA is not defined, but --help and --version
