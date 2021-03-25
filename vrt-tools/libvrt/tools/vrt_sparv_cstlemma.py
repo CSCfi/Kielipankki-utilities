@@ -220,6 +220,19 @@ def parsearguments(argv):
     
     # TODO something about skipping sentences? maybe later
 
+    parser.add_argument('--err',
+                        choices = [
+                            'all',
+                            'none'
+                        ],
+                        default = 'none',
+                        help = '''
+
+                        how much of the stderr stream from the
+                        underlying tool to let pass ("none")
+
+                        ''')
+
     args = parser.parse_args(argv)
     args.prog = parser.prog
     return args
@@ -232,9 +245,7 @@ def main(args, ins, ous):
                    *CSTLEMMAMODELS[args.model] ],
                  stdin = PIPE,
                  stdout = PIPE,
-                 stderr = None)
-    # TODO stderr = PIPE
-    # - requires a handler implementation
+                 stderr = PIPE)
 
     return transput(args, sys.modules[__name__], proc, ins, ous)
 
@@ -420,3 +431,12 @@ def pr1_keep(old, ous):
                           *((b'_', b'_', b'_') if ORIGINS else ()),
                           *old[WORD + 1:])))
     ous.write(b'\n')
+
+def pr1_read_stderr(args, err):
+    for line in err:
+        if args.err == 'none':
+            pass
+        elif args.err == 'all':
+            sys.stderr.write(line)
+        else:
+            raise BadCode('this cannot happen')
