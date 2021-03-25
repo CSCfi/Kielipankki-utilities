@@ -279,7 +279,7 @@ def pr1_init(args, old):
 
     new.insert(WORD + 1, args.lemma)
     if ORIGINS:
-        lemmaname = lemma.rstrip(b'/')
+        lemmaname = args.lemma.rstrip(b'/')
         flexname = lemmaname + b'.flex/'
         dictname = lemmaname + b'.dict/'
         lookname = lemmaname + b'.look'
