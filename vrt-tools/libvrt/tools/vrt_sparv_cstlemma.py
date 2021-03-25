@@ -437,6 +437,6 @@ def pr1_read_stderr(args, err):
         if args.err == 'none':
             pass
         elif args.err == 'all':
-            sys.stderr.write(line)
+            sys.stderr.buffer.write(line)
         else:
             raise BadCode('this cannot happen')
