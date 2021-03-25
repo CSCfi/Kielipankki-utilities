@@ -249,7 +249,7 @@ def pr1_init(args, old):
     case, just the field index WORD).
 
     '''
-    global WORD, MSD, ENCODING, STRICTUTF8
+    global WORD, MSD, ENCODING, STRICTUTF8, ORIGINS
 
     for name in (args.word, args.msd):
         if name not in old:
