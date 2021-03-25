@@ -396,14 +396,13 @@ def pr1_join(old, new, ous):
     # rulemma is |-separated rule-generated lemmas
     look, dilemma, rulemma = new
 
-    # presumably dilemma or rulemma is always non-empty so that the
-    # last choice of '_' is never used; not using word for that case
-    # because word can contain vertical bar, though could replace
-    # vertical bar with broken bar there again if desired
+    # presumably dilemma or rulemma is always non-empty; otherwise
+    # could use word itself as a last resort, but word can contain a
+    # vertical bar, so that should then be replaced with a broken bar
 
     dilemma = esc(b'|' + dilemma + b'|' if dilemma else b'|')
     rulemma = esc(b'|' + rulemma + b'|' if rulemma else b'|')
-    lemma = dilemma or rulemma or b'|'
+    lemma = (rulemma if dilemma == b'|' else dilemma)
     
     ous.write(b'\t'.join((*old[:WORD + 1],
                           lemma,
