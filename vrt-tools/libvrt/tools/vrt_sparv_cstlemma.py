@@ -16,7 +16,7 @@ from libvrt.bad import BadData, BadCode
 from libvrt.pr1 import transput
 
 try:
-    from outsidelib import CSTLEMMA, CSTMODELS
+    from outsidelib import CSTLEMMA, CSTLEMMAMODELS
 except ImportError as exn:
     # So it will crash when actually trying to launch the underlying
     # tool and CSTLEMMA is not defined, but --help and --version
@@ -229,7 +229,7 @@ def main(args, ins, ous):
     proc = Popen([ CSTLEMMA,
                    *CSTFORMATOPTIONS,
                    *CSTENCODING[args.encoding or 'UTF-8'],
-                   *CSTMODELS[args.model] ],
+                   *CSTLEMMAMODELS[args.model] ],
                  stdin = PIPE,
                  stdout = PIPE,
                  stderr = None)
