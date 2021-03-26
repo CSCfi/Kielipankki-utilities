@@ -92,10 +92,7 @@ def main(args, ins, ous):
     proc = Popen([ HUNPOSTAG, HUNPOSMODELS['sparv'] ],
                  stdin = PIPE,
                  stdout = PIPE,
-                 stderr = None)
-    # TODO stderr = PIPE
-    # - requires a handler implementation
-    # - requires support in pr1.py (MUST!)
+                 stderr = PIPE)
 
     return transput(args, sys.modules[__name__], proc, ins, ous)
 
