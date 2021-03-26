@@ -51,14 +51,14 @@ case "$1" in
 
 	# parse : msd -> id + head + rel
 
-	bin/vrt-sparv-swemalt -i "$1.Copy"
+	bin/vrt-old-sparv-swemalt -i "$1.Copy"
 	tick "parse"
 
 	# lemma : word + msd -> lemma
 	# wonder if --strict is worse than no --strict here,
 	# need to work out all manner of things eventually.
 
-	bin/vrt-sparv-cstlemma -i --strict "$1.Copy"
+	bin/vrt-old-sparv-cstlemma -i --strict "$1.Copy"
 	tick "lemma"
 
 	# Finish: msd, id, head, rel => feat, ref, dephead, deprel,

@@ -1,0 +1,510 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+import codecs
+
+from itertools import groupby, count
+from queue import Queue
+from subprocess import Popen, PIPE
+from threading import Thread
+import enum, os, re, sys, traceback
+
+from vrtargslib import trans_args, trans_main
+from vrtargslib import BadData, BadCode
+
+from vrtnamelib import binxname, binxrest
+from vrtnamelib import isbinnames as isnames
+from vrtnamelib import binnamelist as namelist, nameindex, nameindices
+from vrtnamelib import bininsertnames as insertnames
+
+from vrtdatalib import binasrecord as asrecord
+from vrtdatalib import binescape as escape, binunescape as unescape
+
+from outsidelib import CSTLEMMA, CSTLEMMAMODELS as MODELS
+
+PROC = [
+    CSTLEMMA,
+    
+    # input is tagged, word TAB tag NL
+    '-t',
+    '-I', r'$w\t$t\n',
+
+    # output is word TAB info TAB dictionary lemma TAB rule-based
+    # lemma NL and lemmas turned out to be *sometimes* not UTF-8 (but
+    # Latin-1?)  NEEDS INVESTIGATED BUT WORKAROUNDIT FOR NOW; note
+    # that that was observed and workarounded for UTF-8 input/output
+    # (-eU) to cstlemma before attempting to use the other encodings
+    # because there were missing letters in UTF-8 output from it -
+    # maybe it does not quite work?
+
+    # From cstlemma -h for the option -c:
+    #    $i info:  -    full form not in dictionary.
+    #              +    full form has more than one lemma in the dictionary.
+    #                   (If that is the case, the lemmatiser also generates lemma(s)
+    #                   using the flex pattern rules, so you can choose.)
+    #           (blank) full form in dictionary.
+    '-c', '$w\t$i\t$b\t$B\n',
+    '-b', '$w',
+    '-B', '$w',
+
+    # separate alternative lemmas with unit separator, U+001F, rather
+    # than the default vertical pipe, because cannot prevent vertical
+    # pipes from occurring in the input (it must be one argument: -s
+    # alone is another option); will split cstlemma output at U+001F
+    # and then replace any vertical bars, U+007C, in base forms with
+    # broken vertical bars, U+00A6, and join alternative lemmas with
+    # vertical bars (iso-8859-2 does not contain broken bar at all)
+    R'-s\x1f',
+
+    # encoding and models are appended according to options
+]
+
+ENCODING = {
+    # $ cstlemma -h
+    # -e<n> ISO8859 Character encoding. 'n' is one of 1,2,7 and 9 (ISO8859-1,2, etc).
+    # -eU turns out to produce garbage (missing and malcoded letters)
+    'Latin-1' : [ '-e1' ],
+    'Latin-2' : [ '-e2' ],
+    'Latin/Greek' : [ '-e7' ],
+    'Latin/Turkish' : [ '-e9' ],
+    'UTF-8' : [ '-eU' ]
+}
+
+def parsearguments():
+    description = '''
+
+    Pass word forms and specially prepared features in a flat vrt
+    document through cstlemma using models based on the tagged saldo
+    and suc word lists in the sparv distribution. Insert after each
+    word a lemma, and when verbose also a dictionary-match indicator
+    (lemma.match: full, form, none), dictionary lemmas (lemma.dict),
+    and rule-derived lemmas (lemma.flex).
+
+    '''
+
+    parser = trans_args(description = description)
+    parser.add_argument('--word', '-w', metavar = 'name',
+                        type = binxname, default = b'word',
+                        help = 'input word field name (default word)')
+    parser.add_argument('--tag', '-t', metavar = 'name',
+                        type = binxname, default = b'msd',
+                        help = 'input tag field name (default msd)')
+
+
+    parser.add_argument('--lemma', metavar = 'name',
+                        type = binxname, default = b'lemma',
+                        help = 'output field name (default lemma)')
+
+    parser.add_argument('--verbose', action = 'store_true',
+                        help = '''
+
+                        in addition to the chosen lemma, produce also
+                        the output fields from cstlemma
+
+                        ''')
+
+    # so the defaults are not valid values of the type?
+    parser.add_argument('--prefix', '-p', metavar = 'fix',
+                        type = binxname, default = b'',
+                        help = 'prefix to output field names')
+    parser.add_argument('--suffix', '-s', metavar = 'fix',
+                        type = binxrest, default = b'',
+                        help = 'suffix to output field names')
+
+    parser.add_argument('--model',
+                        choices = [ 'saldo', 'suc', 'sucsaldo' ],
+                        default = 'saldo',
+                        help = '''
+
+                        lemmatisation models to use (saldo is based on
+                        a huge list, suc on a short list; default is
+                        to use saldo; sucsaldo combines both lists)
+
+                        ''')
+    parser.add_argument('--strict', action = 'store_true',
+                        help = '''
+
+                        highlight all invalid bytes in lemmas as
+                        "[UTF-8?xx]" (default is to interpret hex
+                        a0-ff as Latin-1)
+
+                        ''')
+
+    parser.add_argument('--encoding',
+                        choices = [
+                            'Latin-1', 'Latin-2',
+                            'Latin/Greek',   # iso-8859-7
+                            'Latin/Turkish', # iso-8859-9
+                            'UTF-8'
+                        ],
+                        default = 'Latin-1',
+                        help = '''
+
+                        internal re-encoding of input for cstlemma;
+                        where not possible, surface form is used as
+                        base form; the available encodings are
+                        ISO-8859-1,2,7,9 as indicated in the help text
+                        of cstlemma 7.36 (default is Latin-1, since
+                        UTF-8 does not seem to work for all lemmas)
+
+                        ''')
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
+
+def message(args, mess):
+    print(args.prog + ':', mess, file = sys.stderr)
+
+def terminate(proc):
+    try:
+        proc.terminate()
+    except ProcessLookupError:
+        pass
+
+def highlight_errors(exn):
+    '''Handles UnicodeDecodeError. Because some but not all occurrences of
+    the usual letters are mal-encoded in the output of cstlemma.
+
+    '''
+
+    bad = (
+        codecs
+        .encode(exn.object[exn.start:exn.end], 'hex')
+        .decode('ASCII')
+    )
+    return '[UTF-8?{}]'.format(bad), exn.end
+
+def interpret_errors(exn):
+    '''Handles UnicodeDecodeError. Because some but not all occurrences of
+    the usual letters are mal-encoded in the output of cstlemma.
+    Interpret them in Latin-1.
+
+    '''
+
+    bad = exn.object[exn.start:exn.end]
+
+    # only handle graphic characters
+    if all(b > 0xa0 for b in bad):
+        return bad.decode('iso-8859-1'), exn.end
+
+    return highlight_errors(exn)
+
+codecs.register_error('highlight', highlight_errors)
+codecs.register_error('interpret', interpret_errors)
+
+def utf8(args, word):
+    '''Bring the word to this millennium.'''
+
+    if args.strict:
+        word = word.decode('UTF-8', errors = 'highlight')
+    else:
+        word = word.decode('UTF-8', errors = 'interpret')
+
+    return word.encode('UTF-8')
+
+def main(args, inf, ouf):
+
+    with Popen(PROC
+               + ENCODING[args.encoding or 'UTF-8']
+               + MODELS[args.model],
+               stdin = PIPE,
+               stdout = PIPE,
+               stderr = sys.stderr.buffer) as cstlemma:
+
+        copy = Queue()
+        Thread(target = combine, args = (args, cstlemma, copy, ouf)).start()
+
+        status = 1
+        try:
+            implement_main(args, inf, cstlemma, copy)
+            status = 0
+        except BadData as exn:
+            message(args, exn)
+        except BrokenPipeError as exn:
+            message(args, 'broken pipe in main thread')
+        except KeyboardInterrupt as exn:
+            message(args, 'keyboard interrupt in main thread')
+        except Exception as exn:
+            print(traceback.format_exc(), file = sys.stderr)
+
+        if status:
+            terminate(cstlemma)
+        else:
+            cstlemma.stdin.close()
+
+        try:
+            copy.join()
+        except KeyboardInterrupt:
+            message(args, 'keyboard interrupt in main thread')
+            status = 1
+
+        return status
+
+def implement_main(args, inf, cstlemma, copy):
+
+    # each "word" and "tag" go to cstlemma, with an empty line (EXCEPT
+    # IT CANNOT BE AN EMPTY LINE BECAUSE THOSE VANISH) after each
+    # sentence; everything goes to copy in alternative groups of meta
+    # and data, with new "dict.lemma", "rule.lemma" (or such) in names
+
+    wordix, posix = None, None
+
+    if args.encoding == 'UTF-8':
+        # UTF-8 as is - does not work right
+        def recode(word): return word
+    elif args.encoding == 'Latin-1':
+        def recode(word):
+            return ( word
+                     .decode('UTF-8', errors = 'strict')
+                     .encode('iso-8859-1', errors = 'replace')
+            )
+    elif args.encoding == 'Latin-2':
+        def recode(word):
+            return ( word
+                     .decode('UTF-8', errors = 'strict')
+                     .encode('iso-8859-2', errors = 'replace')
+            )
+    elif args.encoding == 'Latin/Greek':
+        def recode(word):
+            return ( word
+                     .decode('UTF-8', errors = 'strict')
+                     .encode('iso-8859-7', errors = 'replace')
+            )
+    elif args.encoding == 'Latin/Turkish':
+        def recode(word):
+            return ( word
+                     .decode('UTF-8', errors = 'strict')
+                     .encode('iso-8859-9', errors = 'replace')
+                     )
+    else:
+        raise BadCode('unrecognized --encoding in main')
+
+    def send(sentence):
+        for record in sentence:
+            cstlemma.stdin.write(recode(unescape(record[wordix])))
+            cstlemma.stdin.write(b'\t')
+            cstlemma.stdin.write(unescape(record[posix]))
+            cstlemma.stdin.write(b'\n')
+        else:
+            cstlemma.stdin.write(b'<< >>\t_\n')
+            cstlemma.stdin.flush()
+
+    def setnames(line):
+        nonlocal wordix, posix
+        if isnames(line):
+            wordix, posix = nameindices(namelist(line), args.word, args.tag)
+            return insertnames(line, args.word,
+                               args.prefix + b'lemma' + args.suffix,
+                               *((args.prefix + b'lemma.match' + args.suffix,
+                                  args.prefix + b'lemma.dict' + args.suffix,
+                                  args.prefix + b'lemma.flex' + args.suffix)
+                                 if args.verbose
+                                 else ()))
+        return line
+
+    def issome(line): return not line.isspace()
+    def ismeta(line): return line.startswith(b'<')
+
+    first = True
+    for groupismeta, group in groupby(filter(issome, inf), ismeta):
+
+        if groupismeta:
+            meta = tuple(map(setnames, group))
+            copy.put(meta)
+            first = False
+            continue
+
+        # groupisdata
+
+        if first:
+            # there shall always be previous meta
+            copy.put(())
+            first = False
+
+        if wordix is None:
+            raise BadData('error: token before field names')
+
+        sentence = tuple(map(asrecord, group))
+        copy.put(sentence)
+        send(sentence)
+
+    if not groupismeta:
+        # there shall always be final meta
+        copy.put(())
+
+def combine(args, cstlemma, copy, out):
+    '''Read cstlemma output (word TAB lemma TAB lemma NL) and flat vrt
+    from the copy process. Insert lemmas from cstlemma to the vrt at
+    the named position.
+
+    This is run as a thread that consumes the cstlemma process and
+    syncs it with the copy queue. Preceding meta and corresponding
+    data were put in the queue before the data was sent to cstlemma,
+    so they will always be there when a sentence is read out of
+    cstlemma.
+
+    '''
+
+    fail = True
+    try:
+        implement_combine(args, cstlemma, copy, out)
+        fail = False
+    except BrokenPipeError:
+        message(args, 'broken pipe in combine thread')
+    except StopIteration:
+        # not sure when this can happen now
+        message(args, 'stop iteration in combine thread')
+    except ValueError as exn:
+        # sometimes keyboard interruption in main thread produces here
+        # a readline of closed file (or at least it did in one stage
+        # in development)
+        message(args, 'value error in combine thread ' + str(exn))
+    finally:
+        if fail: terminate(cstlemma)
+
+def implement_combine(args, cstlemma, copy, out):
+    '''Thread may find pipe closed.'''
+
+    # separator of alternative base forms becomes vertical bar; any
+    # vertical bars in base forms become broken bars
+    repipe = str.maketrans({ '|' : '¦', '\x1f' : '|' })
+
+    if args.encoding == 'UTF-8':
+        # UTF-8 as is ... except those pipes,
+        # and with error handling according to
+        # args.strict or not args.strict :/
+        # because cstlemma seems broken with -eU
+        # (possibly it is losing bytes rather
+        # than characters and sometimes just
+        # happens to lose the first byte of
+        # a double-byte UTF-8 character)
+        def recode(word):
+            return ( utf8(args, word)
+                     .decode('UTF-8')
+                     .translate(repipe)
+                     .encode('UTF-8')
+            )
+    elif args.encoding == 'Latin-1':
+        def recode(word):
+            return ( word
+                     .decode('iso-8859-1')
+                     .translate(repipe)
+                     .encode('UTF-8')
+            )
+    elif args.encoding == 'Latin-2':
+        def recode(word):
+            return ( word
+                     .decode('iso-8859-2')
+                     .translate(repipe)
+                     .encode('UTF-8')
+            )
+    elif args.encoding == 'Latin/Greek':
+        def recode(word):
+            return ( word
+                     .decode('iso-8859-7')
+                     .translate(repipe)
+                     .encode('UTF-8')
+            )
+    elif args.encoding == 'Latin/Turkish':
+        def recode(word):
+            return ( word
+                     .decode('iso-8859-9')
+                     .translate(repipe)
+                     .encode('UTF-8')
+            )
+    else:
+        raise BadCode('unrecognized --encoding in combine')
+
+    def issentinel(line): return line.startswith(b'<< >>\t')
+    it = {
+        b'-' : b'none', # full form not in dictionary
+        b'+' : b'many', # has many lemmas in dictionary
+        b' ' : b'one', # update: "(blank)" seems to be this one!
+        b'' : b'one', # should not happen, nor any other
+    }
+
+    response = (tokens
+                for isempty, tokens
+                in groupby(cstlemma.stdout, issentinel)
+                if not isempty)
+
+    at = None # word field index, after which insert new
+    for analyses in response:
+
+        meta = copy.get_nowait()
+        data = copy.get_nowait()
+        copy.task_done()
+        copy.task_done()
+
+        for line in meta:
+            if isnames(line):
+                at = nameindex(namelist(line), args.word)
+
+        if at is None:
+            raise BadData('combine thread: data before names')
+
+        shipmeta(meta, out)
+        for new, old in zip(analyses, data):
+            [
+                word,
+                info,
+                dilemma,
+                rulemma
+            ] = asrecord(new)
+
+            dilemma8 = utf8(args, recode(dilemma))
+            rulemma8 = utf8(args, recode(rulemma))
+
+            # presumably dilemma8 or rulemma8 is always non-empty so
+            # that the last choice of '_' is never used; not using
+            # word for that because word can contain the separator
+            # WAS lemma = (dilemma8 or rulemma8 or '_').split(b'|')[0]
+            # NOW is multivalued
+            lemma = (
+                b'|' + (dilemma8 or rulemma8) + b'|'
+                if dilemma8 or rulemma8
+                else b'|'
+            )
+
+            args.verbose and old.insert(at + 1, escape(rulemma8) or b'_')
+            args.verbose and old.insert(at + 1, escape(dilemma8) or b'_')
+            args.verbose and old.insert(at + 1, it.get(info, info))
+            old.insert(at + 1, escape(lemma))
+        else:
+            shipdata(data, out)
+
+    # should this have a timeout? or could it be .get_nowait()?
+    # added flush and made get get_nowait because a few processes
+    # seemed to make no progress till they timed out - were they
+    # stalled here?
+    out.flush()
+    shipmeta(copy.get_nowait(), out)
+    copy.task_done()
+
+def shipmeta(meta, out):
+    for line in meta: out.write(line)
+
+from datetime import datetime
+def shipdata(data, out):
+    if len(data) > 2000:
+        # [this is a remnant from the marmot tool in td pipeline]
+        # where even marmot appeared to behave badly with long
+        # "sentences" (though only much longer than the parser -
+        # present limit of 2000 is taken out of thin air and could
+        # probably have been much larger but then it only controls a
+        # warning in stderr)
+        sys.stderr.buffer.write(b'shipping data at ')
+        sys.stderr.buffer.write(datetime.now().isoformat().encode())
+        sys.stderr.buffer.write(b' of len ')
+        sys.stderr.buffer.write(str(len(data)).encode())
+        sys.stderr.buffer.write(b'\n')
+        sys.stderr.buffer.flush()
+    for record in data:
+        out.write(b'\t'.join(record))
+        out.write(b'\n')
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main,
+               in_as_text = False,
+               out_as_text = False)
