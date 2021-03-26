@@ -69,6 +69,19 @@ def parsearguments(argv):
 
     # TODO something about skipping sentences? maybe later
 
+    parser.add_argument('--err',
+                        choices = [
+                            'all',
+                            'none'
+                        ],
+                        default = 'none',
+                        help = '''
+
+                        how much of the stderr stream from the
+                        underlying tool to let pass ("none")
+
+                        ''')
+
     args = parser.parse_args(argv)
     args.prog = parser.prog
     return args
@@ -178,3 +191,12 @@ def pr1_keep(old, ous):
                           b'_',
                           *old[WORD + 1:])))
     ous.write(b'\n')
+
+def pr1_read_stderr(args, err):
+    for line in err:
+        if args.err == 'none':
+            pass
+        elif args.err == 'all':
+            sys.stderr.buffer.write(line)
+        else:
+            raise BadCode('this cannot happen')
