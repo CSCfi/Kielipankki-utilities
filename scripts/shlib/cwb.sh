@@ -169,6 +169,9 @@ cwb_registry_add_posattr () {
 	awk '/^ATTRIBUTE/ { prev_attr = 1 }
 	     /^$/ && prev_attr { printf "'"$_new_attrdecls"'"; prev_attr = 0 }
 	     { print }' "$_regfile.old" > "$_regfile"
+        cwb_registry_add_change_comment \
+            $_corpus \
+            "Added positional attribute$(plural "$_new_attrs") $(delimit ", " $_new_attrs)"
     fi
     ensure_perms "$_regfile" "$_regfile.old"
 }
@@ -183,12 +186,14 @@ cwb_registry_add_posattr () {
 # the very end of the registry file.)
 cwb_registry_add_structattr () {
     local _corpus _struct _regfile _new_attrs _new_attrs_prefixed
-    local _new_attrdecls _xml_attrs
+    local _new_attrdecls _xml_attrs _added_attrs
     _corpus=$1
     _struct=$2
     shift 2
     _regfile="$cwb_regdir/$_corpus"
+    _added_attrs=
     if ! grep -q "STRUCTURE $_struct\$" "$_regfile"; then
+        _added_attrs="$_struct "
 	cp -p "$_regfile" "$_regfile.old"
 	awk '
             function output () {
@@ -241,6 +246,10 @@ cwb_registry_add_structattr () {
             }
         ' "$_regfile.old" > "$_regfile"
     fi
+    _added_attrs="$_added_attrs$_new_attrs_prefixed"
+    cwb_registry_add_change_comment \
+        $_corpus \
+        "Added structural attribute$(plural "$_added_attrs") $(delimit ", " $_added_attrs)"
     ensure_perms "$_regfile" "$_regfile.old"
 }
 
