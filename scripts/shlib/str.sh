@@ -185,3 +185,19 @@ foreach_filter () {
 	itemnum=$(($itemnum + 1))
     done
 }
+
+
+# delimit delimiter [item ...]
+#
+# Output items delimited by delimiter. The output has no newline at
+# the end (unless the last item ends in a newline).
+delimit () {
+    local sep
+    sep=$1
+    shift
+    while [ $# -gt 1 ]; do
+        printf "%s" "$1$sep"
+        shift
+    done
+    printf "$1"
+}
