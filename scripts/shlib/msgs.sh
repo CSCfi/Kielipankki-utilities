@@ -9,6 +9,11 @@
 # is not POSIX but supported by dash, ash.
 
 
+# Load shlib components for the functions used
+shlib_required_libs="str"
+. $_shlibdir/loadlibs.sh
+
+
 # warn msg
 #
 # Print msg (prefixed with progname and "Warning") to stderr.
@@ -291,6 +296,34 @@ run_dbg () {
 	echo_quoted "$@" > /dev/stderr
     fi
     "$@"
+}
+
+
+# plural count_or_words [plural_suffix [singular_suffix]]
+#
+# Print plural_suffix or singular_suffix depending on the value of
+# count_or_words: if it is "1" or a single non-integer word, print
+# singular_suffix; if it is non-1 integer or contains multiple words
+# separated by spaces, print plural_suffix.
+#
+# If neither plural_suffix nor singular_suffix is specified, default
+# to "s" and "", respectively. If singular_suffix is not specified,
+# default to "". (If singular_suffix is specified, also plural_suffix
+# must be specified explicitly, even if it is "s".)
+plural () {
+    local count pl_suff sg_suff
+    count=$1
+    # Plural suffix "s" if unspecified
+    pl_suff=${2-s}
+    sg_suff=$3
+    if ! is_int "$count"; then
+        count=$(count_words $count)
+    fi
+    if [ $count = 1 ]; then
+        echo "$sg_suff"
+    else
+        echo "$pl_suff"
+    fi
 }
 
 
