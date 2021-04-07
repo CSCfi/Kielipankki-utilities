@@ -51,7 +51,7 @@ force|overwrite
 
 . $progdir/korp-lib.sh
 
-cleanup_on_exit=
+# cleanup_on_exit=
 
 cwb_s_decode=$cwb_bindir/cwb-s-decode
 cwb_s_encode=$cwb_bindir/cwb-s-encode
