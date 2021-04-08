@@ -10,6 +10,11 @@ from libvrt.args import transput_args
 
 from libvrt.metaname import nametype # need checked
 
+def affix(arg):
+    if re.fullmatch('[A-Za-z0-9_\-+/.:]*', arg):
+        return arg
+    raise ArgumentTypeError('affix out of spec')
+
 def parsearguments(argv, *, prog = None):
 
     description = '''
@@ -48,6 +53,15 @@ def parsearguments(argv, *, prog = None):
 
                         ''')
 
+    parser.add_argument('--prefix', metavar = 'affix',
+                        type = affix,
+                        default = '',
+                        help = '''
+
+                        additional prefix text to each id ("")
+
+                        ''')
+
     parser.add_argument('--force', action = 'store_true',
                         help = '''
 
@@ -64,7 +78,7 @@ def main(args, ins, ous):
     '''Transput VRT (bytes) in ins to VRT (bytes) in ous.'''
 
     ids = (
-        str(int(k)).encode('UTF-8')
+        '{}{}'.format(args.prefix, k).encode('UTF-8')
         for k in count(start = args.start)
     )
 
