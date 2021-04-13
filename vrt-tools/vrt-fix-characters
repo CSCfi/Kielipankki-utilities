@@ -934,7 +934,7 @@ def parsemeta(start):
     # now be safe to capture (key, value) pairs with a lax pattern
 
     name = name.group(1)
-    rest = re.finditer(R'(\S+)="([^"]*)"', start)
+    rest = re.finditer(R'(\S+?)="([^"]*)"', start)
     return name, dict(mo.groups() for mo in rest)
 
 def composemeta(name, attrs, end = ''):
