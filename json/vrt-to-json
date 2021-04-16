@@ -1,0 +1,98 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from argparse import ArgumentParser
+from html import unescape # undo &lt; &gt; &amp; &quot; (&apos;)
+from itertools import filterfalse, groupby
+from json import dumps # to escape " and \ in JSON
+from re import findall
+from sys import stdin
+
+def parseargs():
+    description = '''
+
+    Read Kielipankki VRT (with positional-attribute names as comment)
+    in stdin, render it as straightforward JSON in stdout. This is a
+    very rudimentary tool and may or may not do what is wanted. That
+    is the question: what is wanted? Also, watch out! Input is
+    expected to be regular text/paragraph/sentence/tokens, strictly
+    spaced, *really* UTF-8, no dangerous characters or character
+    entity references. Output has all values as strings. Tool may yet
+    evolve, pending information on what is really wanted.
+
+    '''
+
+    parser = ArgumentParser(description = description)
+    args = parser.parse_args()
+    return args
+
+def main(args):
+    print('[', end = '')
+    ship(stdin)
+    print(']')
+
+def ship(ins):
+    global COMMATEXT
+    COMMATEXT = ''
+    for ismeta, lines in groupby(filterfalse(str.isspace, ins),
+                                 lambda line: line.startswith('<')):
+        for line in lines:
+            (shipmeta if ismeta else shipdata)(line)
+
+def shipmeta(line):
+    global COMMATEXT, COMMAPARA, COMMASENT, COMMADATA, NAMES
+    if line.startswith(('<sentence', '<sentence ')):
+        print(COMMASENT, end = '')
+        print('{"type":"sentence","meta":{', end = '')
+        shipattr(line)
+        print('},"data":[', end = '')
+        COMMADATA = ''
+    elif line.startswith('</sentence>'):
+        print(']}', end = '')
+        COMMASENT = ','
+    elif line.startswith(('<paragraph', '<paragraph ')):
+        print(COMMAPARA, end = '')
+        print('{"type":"paragraph","meta":{', end = '')
+        shipattr(line)
+        print('},"content":[', end = '')
+        COMMASENT = ''
+    elif line.startswith('</paragraph>'):
+        print(']}', end = '')
+        COMMAPARA = ','
+    elif line.startswith(('<text', '<text ')):
+        print(COMMATEXT, end = '')
+        print('{"type":"text","meta":{', end = '')
+        shipattr(line)
+        print('},"content":[', end = '')
+        COMMAPARA = ''
+    elif line.startswith('</text>'):
+        print(']}', end = '')
+        COMMATEXT = ','
+    elif line.startswith('<!-- #vrt positional-attributes:'):
+        NAMES = findall(r'\S+', line.rstrip('\r\n'))[3:-1]
+    else:
+        pass
+
+def shipdata(line):
+    global COMMADATA
+    print(COMMADATA, end = '')
+    print('{', end = '')
+    record = line.rstrip('\r\n').split('\t')
+    for not_first, pair in enumerate(zip(NAMES, record)):
+        not_first and print(',', end = '')                        
+        name, val = pair
+        print('"{}":{}'.format(name, escape(unescape(val))), end = '')
+    print('}', end = '')
+    COMMADATA = ','
+
+def shipattr(line):
+    for not_first, pair in enumerate(findall(r'(\S+?)="(.*?)"', line)):
+        not_first and print(',', end = '')
+        key, val = pair
+        print('"{}":{}'.format(key, escape(unescape(val))), end = '')
+
+def escape(value):
+    return dumps(value, ensure_ascii = False)
+
+if __name__ == '__main__':
+    main(parseargs())
