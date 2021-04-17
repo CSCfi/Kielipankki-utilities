@@ -3,10 +3,30 @@
 
 from argparse import ArgumentParser
 from html import unescape # undo &lt; &gt; &amp; &quot; (&apos;)
-from itertools import filterfalse, groupby
+from itertools import chain, count, filterfalse, groupby
 from json import dumps # to escape " and \ in JSON
-from re import findall
-from sys import stdin
+from os import makedirs, path
+from re import findall, fullmatch
+from sys import stdin, stdout
+
+def nat(arg):
+    if int(arg) < 0:
+        raise ValueError('negative: ' + arg)
+    return int(arg)
+
+def bagofnames(arg):
+    sep = '[ ,]'
+    name = '(text:|para:|sent:)?[A-Za-z_][A-Za-z0-9_.]*/?'
+    if not fullmatch('{sep}*({name}{sep}+)*({name})?'
+                     .format(sep = sep,
+                             name = name),
+                     arg):
+        # ArgumentParser replaces the message anyway
+        raise ValueError('not a bag of names')
+
+    # Python 3.8 ArgumentParser has 'extend' action but this needs to
+    # work in earlier versions: only normalize to join and split after
+    return ' '.join(findall('[^ ,]+', arg))
 
 def parseargs():
     description = '''
@@ -23,76 +43,270 @@ def parseargs():
     '''
 
     parser = ArgumentParser(description = description)
+    parser.add_argument('--out', '-o', metavar = 'FILE',
+                        help = '''
+
+                        output file pathname, any # characters
+                        replaced with the digits of a counter, only
+                        effective with --limit (default output to
+                        stdout)
+
+                        ''')
+
+    parser.add_argument('--limit', metavar = 'N',
+                        type = nat,
+                        help = '''
+
+                        a number of tokens at which to start a new
+                        JSON object at the next close of a text, and a
+                        new file when output pathname also contains
+                        counter digits
+
+                        ''')
+
+    parser.add_argument('--positional', '-p', action = 'store_true',
+                        dest = 'pos',
+                        help = '''
+
+                        output positional attributes of each token
+                        positionally, with field name record at top
+                        level (default is to output each token with
+                        named fields)
+
+                        ''')
+
+    parser.add_argument('--nat', metavar = 'NAME*',
+                        dest = 'nats', action = 'append',
+                        type = bagofnames,
+                        default = [],
+                        help = '''
+
+                        fields or attributes to output as natural
+                        numbers, or -1 when the value is not such,
+                        separated by commas or spaces, or repeat
+                        option, prefix attribute names with text:,
+                        para:, or sent:
+
+                        ''')
+
+    parser.add_argument('inf', metavar = 'INFILE',
+                        nargs = '?',
+                        help = '''
+
+                        input VRT file, with name comment before any
+                        data line (default stdin)
+
+                        ''')
+
     args = parser.parse_args()
+    args.nats[:] = ' '.join(args.nats).split()
     return args
 
+def outgen(out):
+    '''Yield new pathnames by filling # characters in out by digits from a
+    counter. Any extra digits leak into the first #. Generation only
+    makes any sense when there is at least one # character in out.
+
+    '''
+
+    m = out.count('#')
+    for digits in (list('{0:0{w}}'.format(k, w = m)) for k in count()):
+        # negative index, digits [:1 - m], did the wrong thing when
+        # there was only one # character in out, hence n - m + 1
+        n = len(digits)
+        fill = chain([''.join(digits[:n - m + 1])], digits[n - m + 1:])
+        yield ''.join((next(fill) if s == '#' else s)
+                      for s in out)
+
 def main(args):
-    print('[', end = '')
-    ship(stdin)
-    print(']')
+    pnats = [ ( name.split(':') if ':' in name else ('data', name) )
+              for name in args.nats
+    ]
+    args._nats = dict()
+    for key in ('text', 'para', 'sent', 'data'):
+        args._nats[key] = { n for p, n in pnats if p == key }
 
-def ship(ins):
-    global COMMATEXT
-    COMMATEXT = ''
-    for ismeta, lines in groupby(filterfalse(str.isspace, ins),
-                                 lambda line: line.startswith('<')):
-        for line in lines:
-            (shipmeta if ismeta else shipdata)(line)
+    args._ous = None
+    args._gen = (outgen(args.out) if args.out and '#' in args.out else None)
+    args._tokens = 0
 
-def shipmeta(line):
-    global COMMATEXT, COMMAPARA, COMMASENT, COMMADATA, NAMES
-    if line.startswith(('<sentence', '<sentence ')):
-        print(COMMASENT, end = '')
-        print('{"type":"sentence","meta":{', end = '')
-        shipattr(line)
-        print('},"data":[', end = '')
-        COMMADATA = ''
-    elif line.startswith('</sentence>'):
-        print(']}', end = '')
-        COMMASENT = ','
-    elif line.startswith(('<paragraph', '<paragraph ')):
-        print(COMMAPARA, end = '')
-        print('{"type":"paragraph","meta":{', end = '')
-        shipattr(line)
-        print('},"content":[', end = '')
-        COMMASENT = ''
-    elif line.startswith('</paragraph>'):
-        print(']}', end = '')
-        COMMAPARA = ','
-    elif line.startswith(('<text', '<text ')):
-        print(COMMATEXT, end = '')
-        print('{"type":"text","meta":{', end = '')
-        shipattr(line)
-        print('},"content":[', end = '')
-        COMMAPARA = ''
-    elif line.startswith('</text>'):
-        print(']}', end = '')
-        COMMATEXT = ','
-    elif line.startswith('<!-- #vrt positional-attributes:'):
-        NAMES = findall(r'\S+', line.rstrip('\r\n'))[3:-1]
+    ins = ( open(args.inf) if args.inf else stdin )
+    ins = filter(isseen, filterfalse(str.isspace, ins))
+    head = list(readhead(ins))
+    if head[-1].startswith('<'):
+        args._names = findall(r'\S+', head[-1].rstrip('\r\n'))[3:-1]
     else:
+        raise ValueError('data line before name line')
+
+    ship(args, chain(head, ins))
+    if args._tokens:
+        finish(args)
+
+    # redundant?
+    args._ous.close()
+
+def readhead(ins):
+    '''Yield lines up to an including the name comment or a data line,
+    whichever is encountered first.
+
+    '''
+    for line in ins:
+        yield line
+        if (
+                line.startswith('<!-- #vrt positional-attributes:') or
+                not line.startswith('<')
+        ):
+            break
+
+def start(args):
+    '''Start a new JSON object.'''
+    if args._gen:
+        next_out = next(args._gen)
+        makedirs(path.dirname(next_out) or '.', exist_ok = True)
+        args._ous = open(next_out, 'x', encoding = 'UTF-8')
+    elif args.out is args._ous is None:
+        args._ous = stdout
+    elif args.out is not args._ous is None:
+        makedirs(path.dirname(args.out) or '.', exist_ok = True)
+        args._ous = open(args.out, 'x', encoding = 'UTF-8')
+    elif args._ous is not None:
         pass
+    else:
+        raise Exception('this cannot happen')
 
-def shipdata(line):
-    global COMMADATA
-    print(COMMADATA, end = '')
-    print('{', end = '')
+    if args.pos:
+        print('{"name":[', end = '', file = args._ous)
+        print(*('"{}"'.format(name) for name in args._names),
+              sep = ',', end = '', file = args._ous)
+        print('],"data":[', end = '', file = args._ous)
+    else:
+        print('[', end = '', file = args._ous)
+
+def finish(args):
+    '''Finish a JSON object.'''
+    if args.pos:
+        print(']}', end = '', file = args._ous)
+    else:
+        print(']', end = '', file = args._ous)
+
+    if args._gen:
+        args._ous.close()
+    args._tokens = 0
+
+def ship(args, ins):
+    sep = ''
+    for meta, lines in groupby(ins, ismeta):
+        for line in lines:
+            sep = (shipmeta if meta else
+                   shiplist if args.pos else
+                   shipdata)(args, sep, line)
+
+def ismeta(line):
+    return line.startswith('<')
+
+def isseen(line):
+    '''Return True if the (non-empty!) line is to be seen at all.'''
+    return (
+        not line.startswith('<') or
+        line.startswith(('<sentence ', '<sentence>',
+                         '</sentence>',
+                         '<paragraph ', '<paragraph>',
+                         '</paragraph>',
+                         '<text ', '<text>',
+                         '</text>',
+                         '<!-- #vrt positional-attributes:'))
+    )
+
+def shipmeta(args, sep, line):
+
+    if line.startswith('</'):
+        print(']}', end = '', file = args._ous)
+        if ( line.startswith('</text') and
+             args.limit is not None and
+             args._tokens >= args.limit ):
+            finish(args)
+            return ''
+        return ','
+
+    if line.startswith('<!'):
+        if args._names != findall(r'\S+', line.rstrip('\r\n'))[3:-1]:
+            raise ValueError('mismatching names')
+        return sep
+
+    # line starts with <sent, <para, or <text;
+    # use a segment of the element name as meta key
+
+    if line.startswith('<text') and args._tokens == 0:
+        start(args)
+
+    print('{}{{"{}":{{'.format(sep, line[1:5]), end = '', file = args._ous)
+    shipattr(args, line)
+    print('},"data":[', end = '', file = args._ous)
+    return ''
+
+def shipdata(args, sep, line):
+    '''Ship data line as an object.'''
+    args._tokens += 1
     record = line.rstrip('\r\n').split('\t')
-    for not_first, pair in enumerate(zip(NAMES, record)):
-        not_first and print(',', end = '')                        
+    print(sep, end = '', file = args._ous)
+    print('{', end = '', file = args._ous)
+    for not_first, pair in enumerate(zip(args._names, record)):
+        not_first and print(',', end = '', file = args._ous)
         name, val = pair
-        print('"{}":{}'.format(name, escape(unescape(val))), end = '')
-    print('}', end = '')
-    COMMADATA = ','
+        if name in args._nats['data']:
+            print('"{}":{}'.format(name, digital(val)), end = '',
+                  file = args._ous)
+        else:
+            print('"{}":{}'.format(name, escape(unescape(val))), end = '',
+                  file = args._ous)
+    print('}', end = '', file = args._ous)
+    return ','
 
-def shipattr(line):
+def shiplist(args, sep, line):
+    '''Ship data line as an array of values.'''
+    args._tokens += 1
+    record = line.rstrip('\r\n').split('\t')
+    print(sep, end = '', file = args._ous)
+    print('[', end = '', file = args._ous)
+    for not_first, pair in enumerate(zip(args._names, record)):
+        not_first and print(',', end = '', file = args._ous)
+        name, val = pair
+        if name in args._nats['data']:
+            print('{}'.format(digital(val)), end = '',
+                  file = args._ous)
+        else:
+            print('{}'.format(escape(unescape(val))), end = '',
+                  file = args._ous)
+    print(']', end = '', file = args._ous)
+    return ','
+
+def shipattr(args, line):
+    kind = line[1:5] # text, para, or sent
     for not_first, pair in enumerate(findall(r'(\S+?)="(.*?)"', line)):
-        not_first and print(',', end = '')
+        not_first and print(',', end = '', file = args._ous)
         key, val = pair
-        print('"{}":{}'.format(key, escape(unescape(val))), end = '')
+        if key in args._nats[kind]:
+            print('"{}":{}'.format(key, digital(val)), end = '',
+                  file = args._ous)
+        else:
+            print('"{}":{}'.format(key, escape(unescape(val))), end = '',
+                  file = args._ous)
 
 def escape(value):
     return dumps(value, ensure_ascii = False)
+
+def digital(value):
+    '''Return the natural number if the value is a written representation
+    of a natural number, else return -1 as a NaN of natural numbers.
+
+    '''
+    try:
+        n = int(value)
+        if n < 0:
+            return -1
+    except ValueError:
+        return -1
+    return n
 
 if __name__ == '__main__':
     main(parseargs())
