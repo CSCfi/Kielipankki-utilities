@@ -31,14 +31,13 @@ def bagofnames(arg):
 def parseargs():
     description = '''
 
-    Read Kielipankki VRT (with positional-attribute names as comment)
-    in stdin, render it as straightforward JSON in stdout. This is a
-    very rudimentary tool and may or may not do what is wanted. That
-    is the question: what is wanted? Also, watch out! Input is
-    expected to be regular text/paragraph/sentence/tokens, strictly
-    spaced, *really* UTF-8, no dangerous characters or character
-    entity references. Output has all values as strings. Tool may yet
-    evolve, pending information on what is really wanted.
+    Render Kielipankki VRT (with positional-attribute names) as simple
+    JSON objects, data lines either as objects (names field) or arrays
+    (positionally). Observe text, paragraph, sentence elements, tokens
+    inside sentences. With counter digits in output file name and a
+    limit to the number of tokens (rounded up to contain full text
+    elements) in the JSON object, store each JSON object in a separate
+    file.
 
     '''
 
