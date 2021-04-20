@@ -153,7 +153,7 @@ def align_data(element, page_file):
     return aligned_para
 
 def replace_spaces(string):
-    for space in ('\u2002','\u2003','\u2006','\u200a','\u202f'):
+    for space in ('\u2002','\u2003','\u2005', '\u2006','\u200a','\u202f','\u3000','\u3100','\xa0'):
         string = string.replace(space,' ')
     return string
 
