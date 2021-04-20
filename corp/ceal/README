@@ -108,6 +108,31 @@ cwb-align-encode -v -r $registrydir -D ${corpusname}_en_fi.align;
 korp-make-corpus-package.sh --target-corpus-root=/v/corpora --corpus-root=$corpusrootdir \
   --database-format tsv --include-vrt-dir ${corpusname}_par ${corpusname}_fi ${corpusname}_en;
 
+# Parallel version on Puhti:
+
+PATH=$PATH:/projappl/clarin/cwb/bin:/projappl/clarin/Kielipankki-utilities/scripts:/projappl/clarin/cwb-perl/bin
+export PERL5LIB=/projappl/clarin/cwb-perl/lib/site_perl
+lemgram_posmap="lemgram_posmap_ud2_universal.tsv"
+corpusname="ceal_o"
+corpusrootdir="/proj/clarin/korp/corpora"
+registrydir="/scratch/clarin/korp/corpora/registry"
+
+korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-logging --verbose \
+ --input-attributes="ref lemma pos xpos msd dephead deprel deps misc" \
+   $scramble --compound-boundary-marker="#" --lemgram-posmap=$lemgram_posmap ${corpusname}_fi \
+      austen/austen_fi.vrt dickens/dickens_fi.vrt james/james_fi.vrt;
+      korp-make --no-package --corpus-root=$corpusrootdir --log-file=log --no-logging --verbose \
+       --input-attributes="ref lemma pos xpos msd dephead deprel deps misc" \
+         $scramble --compound-boundary-marker="#" --lemgram-posmap=$lemgram_posmap ${corpusname}_en \
+	    austen/austen_en.vrt dickens/dickens_en.vrt james/james_en.vrt;
+	    cwb-align -v -r $registrydir -o ${corpusname}_fi_en.align -V link_id ${corpusname}_fi ${corpusname}_en link;
+	    cwb-align -v -r $registrydir -o ${corpusname}_en_fi.align -V link_id ${corpusname}_en ${corpusname}_fi link;
+	    cwb-regedit -r $registrydir ${corpusname}_fi :add :a ${corpusname}_en;
+	    cwb-regedit -r $registrydir ${corpusname}_en :add :a ${corpusname}_fi;
+	    cwb-align-encode -v -r $registrydir -D ${corpusname}_fi_en.align;
+	    cwb-align-encode -v -r $registrydir -D ${corpusname}_en_fi.align;
+	    korp-make-corpus-package.sh --target-corpus-root=/v/corpora --corpus-root=$corpusrootdir \
+	      --database-format tsv --include-vrt-dir ${corpusname}_par ${corpusname}_fi ${corpusname}_en;
 
 Changes made to text files
 --------------------------
