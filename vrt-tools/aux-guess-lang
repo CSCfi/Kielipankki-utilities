@@ -1,0 +1,71 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from argparse import ArgumentParser
+from telnetlib import Telnet
+from time import sleep
+
+import sys
+
+def parsearguments():
+    description = '''
+
+    Exercise the transput format of an underlying language guesser.
+    Exercise an actual language code server.
+
+    Intended to be run by vrt-guess-lang while waiting for the a real
+    thing. Options facilitate access to otherwise internal
+    communications of vrt-guess-lang.
+
+'''
+
+    parser = ArgumentParser(description = description)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--ins', '-i', action = 'store_true',
+                       help = 'leak input stream to stderr')
+    group.add_argument('--ous', '-o', action = 'store_true',
+                       help = 'leak output stream to stderr')
+    return parser.parse_args()
+
+args = parsearguments()
+
+host = 'hfst-17.it.helsinki.fi'
+port = '8093'
+server = Telnet()
+
+def fib(server, text):
+    for seconds, k in zip((0, 1, 1, 2, 3), b'1 2 3 4 5'.split()):
+        try:
+            # with explicit timeout parameter the exception appears to
+            # be something else - not caught as TimeoutError - let it
+            # use the unknown default and raise the known exception
+            server.open(host, port)
+            server.write(text)
+            return server.read_all()
+        except TimeoutError as exn:
+            sleep(seconds)
+            msg = b'Telnet connection timed out: retry #' + k + b'\n'
+            sys.stderr.buffer.write(msg)
+            sys.stderr.buffer.flush()
+    else:
+        raise TimeoutError('Telnet connection timed out: no more retries')
+
+for line in sys.stdin.buffer:
+    # Had to modify original plan because there was no room for
+    # sentence attributes in the original plan. Embarrassing, though
+    # this current implementation is ignoring attributes anyway.
+    #
+    # Input is a stream of lines (literal tag, data has id):
+    # text [TAB attr=value]*
+    # para [TAB attr=value]*
+    # sent [TAB attr=value]*
+    # data TAB id [TAB token]+
+    #
+    # Output is a stream of lines corresponding to data lines:
+    # id TAB code
+    args.ins and sys.stderr.buffer.write(line)
+    if line.startswith(b'data\t'):
+        kind, it, text = line.split(b'\t', 2)
+        code = fib(server, text)
+        sys.stdout.buffer.write(b'\t'.join((it, code)))
+        args.ous and sys.stderr.buffer.write(b'\t'.join((it, code)))

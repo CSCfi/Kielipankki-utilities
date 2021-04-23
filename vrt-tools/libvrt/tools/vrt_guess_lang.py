@@ -2,8 +2,8 @@
 # -*- mode: Python; -*-
 
 '''A preliminary implementation of a language guesser, using pr1 and a
-meta component. The underlying tool is a fake, pending the real thing,
-exercising a tentative transput format.
+meta component. The underlying tool calls a specially opened language
+server, still exercising a tentative transput format.
 
 '''
 
@@ -21,12 +21,16 @@ def _name(arg):
         return arg.encode('UTF-8')
     raise ArgumentTypeError('bad name: ' + repr(arg))
 
-def parsearguments(argv):
+def parsearguments(argv, *, _aux_guess_lang = None):
+    # smuggling in aux-guess-lang, with a real path,
+    # so that actual tool can find it
+
     description = '''
 
-    (Preliminary) Exercise a language-guessing mechanism for sentences
-    in VRT documents, using `./fake-guess-lang` to add (or overwrite)
-    in each processed sentence a new language code attribute.
+    (Preliminary) Exercise a language-identification mechanism for
+    sentences in VRT documents, using `./aux-guess-lang` to add (or
+    overwrite) in each processed sentence a new language code
+    attribute.
 
     '''
     parser = transput_args(description = description)
@@ -75,11 +79,12 @@ def parsearguments(argv):
 
     args = parser.parse_args(argv)
     args.prog = parser.prog
+    args._aux_guess_lang = _aux_guess_lang
     return args
 
 def main(args, ins, ous):
 
-    proc = Popen([ './fake-guess-lang',
+    proc = Popen([ args._aux_guess_lang,
                    *([ '--ins' ] if args.leakins else
                      [ '--ous' ] if args.leakous else
                      []) ],

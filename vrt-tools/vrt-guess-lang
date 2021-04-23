@@ -1,11 +1,15 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
-import sys
+import os, sys
 
 from libvrt.args import transput
 from libvrt.tools.vrt_guess_lang import parsearguments, main
 
-transput(parsearguments(sys.argv[1:]), main,
+# implementation must find ./aux-guess-lang
+_dir = os.path.dirname(os.path.realpath(__file__))
+_aux = os.path.join(_dir, 'aux-guess-lang')
+transput(parsearguments(sys.argv[1:], _aux_guess_lang = _aux),
+         main,
          in_as_text = False,
          out_as_text = False)
