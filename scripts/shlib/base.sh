@@ -10,7 +10,27 @@
 tab='	'
 
 # Directory for temporary files
-tmpdir=${LOCAL_SCRATCH:-${TMPDIR:-${TEMPDIR:-${TMP:-$TEMP}}}}
+tmpdir=
+
+# First try the values of environment variables; use the first whose
+# value is set and the directory is writable, regardless of the free
+# space.
+tmpdir_vars="
+    $LOCAL_SCRATCH
+    $TMPDIR
+    $TEMPDIR
+    $TMP
+    $TEMP
+"
+for tmpdir_cand in $tmpdir_vars; do
+    if [ "$tmpdir_cand" != "" ] && [ -w $tmpdir_cand ]; then
+        tmpdir=$tmpdir_cand
+        break
+    fi
+done
+
+# If none of the above was available, choose the one of those listed
+# below with most free space.
 # FIXME: This does not always work well, as e.g. $TMPDIR is chosen if
 # it is defined even if it is very small (as by default in Puhti
 # compute nodes). We now rely on the user to set TMPDIR appropriately
