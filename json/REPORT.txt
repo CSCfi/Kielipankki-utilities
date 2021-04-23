@@ -1,0 +1,187 @@
+# -*- mode: Org -*-
+
+2021-04-23 Observe the resource consumption in the loading of JSON
+
+* Summary
+
+The behaviour of various ways of loading JSON (created from VRT with
+./vrt-to-json) to a python process was observed with the aid of
+./consumer-report, a python script written specifically for that
+purpose.
+
+Observations:
+- JSON with positional fields is more compact than with named fields
+- a hook to share frequent strings can save memory noticably
+- but maybe not dramatically
+- and the use of the hook appears to double the load time
+
+It is not yet known (or understood) why sharing the frequent strings
+over successive loaded objects seems to be no better than sharing the
+same strings separately in each loaded object. (Reporting script has
+an option to observe the internals of the sharing, but no programming
+error was detected by the ocular inspection of such debug reports.)
+
+Presumably the largest saving of memory (also load time) is to be
+achieved by altogether omitting from the JSON such annotations in the
+VRT that are not of interest.
+
+Presumably the memory-saving effect of converting frequent numerical
+attribute values to numerical values, as opposed to strings, in the
+JSON. would also be noticable. Such might also be desirable for other
+reasons.
+
+* Test data
+
+Data: kielipankki/suomi24-2001-2017-vrt-v1-1/vrt/s24_2001.vrt
+
+Data was converted to a number (36) of million-token JSON files with
+vrt-to-json, ref and dephead of tokens (at least) as (natural)
+numbers.
+
+| s24     | default JSON    | (tokens have named fields)      |
+| s24-pos | positional JSON | (tokens have positional fields) |
+
+There is rather too much data to load into memory at once even in the
+tiny 2001 file (only 3.3G as VRT). The following consumer reports
+report Python process resource usage for loading three of the output
+files.
+
+Frequent values, to observe the effect of sharing string values in the
+data, are the up to one million most frequent values of their kind in
+a different year (s24_2002.vrt) of the same corpus.
+
+* Simply loading and releasing default JSON
+
+Simply json.load(open(...)) without holding on to the results.
+
+$ ./consumer-report --ignore --files=3 s24
+|----------------+-----------+-------+--------+-------|
+| file           | RSS (MiB) | Delta | RT (s) | Delta |
+|----------------+-----------+-------+--------+-------|
+| n/a            |        36 |     0 |      0 |     0 |
+| s24/00/00.json |      1561 |  1525 |      4 |     4 |
+| s24/00/01.json |      1564 |     3 |      7 |     3 |
+| s24/00/02.json |      1565 |     1 |     10 |     3 |
+|----------------+-----------+-------+--------+-------|
+
+* Simply loading and releasing positional JSON
+
+Simply json.load(open(...)) without holding on to the results.
+
+$ ./consumer-report --ignore --files=3 s24-pos
+|--------------------+-----------+-------+--------+-------|
+| file               | RSS (MiB) | Delta | RT (s) | Delta |
+|--------------------+-----------+-------+--------+-------|
+| n/a                |        37 |     0 |      0 |     0 |
+| s24-pos/00/00.json |       942 |   905 |      3 |     3 |
+| s24-pos/00/01.json |       946 |     4 |      6 |     3 |
+| s24-pos/00/02.json |       947 |     1 |      9 |     3 |
+|--------------------+-----------+-------+--------+-------|
+
+* Simply loading and holding default JSON
+
+Simply json.load(open(...)) holding on to a list of the results.
+
+$ ./consumer-report --append --files=3 s24
+|----------------+-----------+-------+--------+-------|
+| file           | RSS (MiB) | Delta | RT (s) | Delta |
+|----------------+-----------+-------+--------+-------|
+| n/a            |        36 |     0 |      0 |     0 |
+| s24/00/00.json |      1559 |  1523 |      3 |     3 |
+| s24/00/01.json |      2724 |  1165 |      7 |     4 |
+| s24/00/02.json |      3888 |  1164 |     10 |     3 |
+|----------------+-----------+-------+--------+-------|
+
+* Simply loading and holding positional JSON
+
+Simply json.load(open(...)) holding on to a list of the results.
+
+$ ./consumer-report --append --files=3 s24-pos
+|--------------------+-----------+-------+--------+-------|
+| file               | RSS (MiB) | Delta | RT (s) | Delta |
+|--------------------+-----------+-------+--------+-------|
+| n/a                |        37 |     0 |      0 |     0 |
+| s24-pos/00/00.json |       942 |   905 |      3 |     3 |
+| s24-pos/00/01.json |      1661 |   719 |      5 |     2 |
+| s24-pos/00/02.json |      2380 |   719 |      9 |     4 |
+|--------------------+-----------+-------+--------+-------|
+
+* Loading and holding default JSON with string sharing
+
+Have an object_pairs_hook in json.load(open(...), ...) to keep only
+one copy of each frequent string.
+
+$ ./consumer-report --append --over='freq-2002/pos.txt freq-2002/deprel.txt' --files=3 s24
+|----------------+-----------+-------+--------+-------|
+| file           | RSS (MiB) | Delta | RT (s) | Delta |
+|----------------+-----------+-------+--------+-------|
+| n/a            |        37 |     0 |      0 |     0 |
+| s24/00/00.json |      1482 |  1445 |      7 |     7 |
+| s24/00/01.json |      2570 |  1088 |     13 |     6 |
+| s24/00/02.json |      3658 |  1088 |     20 |     7 |
+|----------------+-----------+-------+--------+-------|
+
+* The effect of sharing more values over many loads
+
+Have an object_pairs_hook in json.load(open(...), ...) to keep only
+one copy of each frequent string, sharing 100 or 1000 most frequent of
+each kind.
+
+$ ./consumer-report --append --over="$(echo freq-2002/*.txt)" --share=100 --files=3 s24
+|----------------+-----------+-------+--------+-------|
+| file           | RSS (MiB) | Delta | RT (s) | Delta |
+|----------------+-----------+-------+--------+-------|
+| n/a            |        97 |     0 |      1 |     0 |
+| s24/00/00.json |      1333 |  1236 |      7 |     6 |
+| s24/00/01.json |      2268 |   935 |     14 |     7 |
+| s24/00/02.json |      3202 |   934 |     21 |     7 |
+|----------------+-----------+-------+--------+-------|
+
+$ ./consumer-report --append --over="$(echo freq-2002/*.txt)" --share=10000 --files=3 s24
+|----------------+-----------+-------+--------+-------|
+| file           | RSS (MiB) | Delta | RT (s) | Delta |
+|----------------+-----------+-------+--------+-------|
+| n/a            |        97 |     0 |      1 |     0 |
+| s24/00/00.json |      1228 |  1131 |      8 |     7 |
+| s24/00/01.json |      2052 |   824 |     15 |     7 |
+| s24/00/02.json |      2875 |   823 |     22 |     7 |
+|----------------+-----------+-------+--------+-------|
+
+* The effect of sharing many values over many loads
+
+Sharing 1000000 most frequent of each kind.
+
+$ ./consumer-report --append --over="$(echo freq-2002/*.txt)" --share=1000000 --files=3 s24
+|----------------+-----------+-------+--------+-------|
+| file           | RSS (MiB) | Delta | RT (s) | Delta |
+|----------------+-----------+-------+--------+-------|
+| n/a            |       666 |     0 |      2 |     0 |
+| s24/00/00.json |      1704 |  1038 |      9 |     7 |
+| s24/00/01.json |      2495 |   791 |     16 |     7 |
+| s24/00/02.json |      3287 |   792 |     23 |     7 |
+|----------------+-----------+-------+--------+-------|
+* The non-effect of sharing more values separately in each load
+
+The effect of sharing string values within *each* load seems fairly
+indistinguishable from sharing over *all* loads. It is not yet known
+and understood why.
+
+$ ./consumer-report --append --each="$(echo freq-2002/*.txt)" --share=100 --files=3 s24
+|----------------+-----------+-------+--------+-------|
+| file           | RSS (MiB) | Delta | RT (s) | Delta |
+|----------------+-----------+-------+--------+-------|
+| n/a            |        97 |     0 |      1 |     0 |
+| s24/00/00.json |      1333 |  1236 |      7 |     6 |
+| s24/00/01.json |      2268 |   935 |     14 |     7 |
+| s24/00/02.json |      3202 |   934 |     21 |     7 |
+|----------------+-----------+-------+--------+-------|
+
+$ ./consumer-report --append --each="$(echo freq-2002/*.txt)" --share=10000 --files=3 s24
+|----------------+-----------+-------+--------+-------|
+| file           | RSS (MiB) | Delta | RT (s) | Delta |
+|----------------+-----------+-------+--------+-------|
+| n/a            |        97 |     0 |      1 |     0 |
+| s24/00/00.json |      1228 |  1131 |      7 |     6 |
+| s24/00/01.json |      2054 |   826 |     14 |     7 |
+| s24/00/02.json |      2880 |   826 |     21 |     7 |
+|----------------+-----------+-------+--------+-------|

@@ -1,0 +1,268 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+import glob
+import json
+import os
+import sys
+
+from argparse import ArgumentParser
+from itertools import chain
+from resource import getrusage, RUSAGE_SELF
+
+def parseargs():
+    description = '''
+
+    Load a sequence of JSON files, made with vrt-to-json. Produce a
+    cumulative resource consumption report.
+
+    '''
+
+    parser = ArgumentParser(description = description)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--org', action = 'store_true',
+                       help = '''org-mode format''')
+    group.add_argument('--tsv', action = 'store_true',
+                       help = '''TSV format''')
+
+    parser.add_argument('--files', metavar = 'N',
+                        type = int,
+                        default = 10,
+                        help = '''
+
+                        number of input files to load (10) in the
+                        lexicographic order of names, in '*.json'
+                        under DIR
+
+                        ''')
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--append', action = 'store_true',
+                       help = '''hold on to each JSON object''')
+    group.add_argument('--extend', action = 'store_true',
+                       help = '''combine JSON objects''')
+    group.add_argument('--ignore', action = 'store_true',
+                       help = '''release each JSON object''')
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--each', metavar = 'FILES',
+                       help = '''
+
+                       space-separated file names, to share within
+                       each JSON object the space-separated string
+                       values split from the file contents
+
+                       ''')
+    group.add_argument('--over', metavar = 'FILES',
+                       help = '''
+
+                       space-separated file names, to share over all
+                       JSON objects the space-separated string values
+                       split from the file contents
+
+                       ''')
+
+    parser.add_argument('--share', metavar = 'LINES',
+                        type = int,
+                        help = '''
+
+                        only share so many lines from each file of
+                        strings (defaults to the whole file)
+
+                        ''')
+
+    # Python seems to do this on its own - empty string and character?
+    # or possibly ASCII character? But no point in writing any code.
+    # 
+    # parser.add_argument('--empty', action = 'store_true',
+    #                     help = '''also share the empty string''')
+
+    parser.add_argument('--debug', metavar = 'VALUES',
+                        default = '',
+                        type = str.strip, # false when no values
+                        help = '''
+
+                        leak sharing information to stderr, observing
+                        space-separated test values in tokens (default
+                        none)
+
+                        ''')
+
+    parser.add_argument('indir', metavar = 'DIR',
+                        help = '''
+
+                        directory to recursively glob, in
+                        lexicographic order, for input files in
+                        '*.json'
+
+                        ''')
+
+    args = parser.parse_args()
+    return args
+
+def mibs():
+    return round(getrusage(RUSAGE_SELF).ru_maxrss / 1024)
+
+def secs():
+    rusage = getrusage(RUSAGE_SELF)
+    return round(rusage.ru_utime + rusage.ru_stime)
+
+nwid = len('s24/##/##.json')
+mwid = len('RSS (MiB)')
+
+def head(args):
+    if args.tsv:
+        print('file', 'MiB', 'Dm', 's', 'Dt', sep = '\t')
+    else:
+        print('| {:<{NW}} | {:>{MW}} | Delta | RT (s) | Delta |'
+              .format('file', 'RSS (MiB)',
+                      NW = nwid, MW = mwid))
+
+def rule(args):
+    if args.tsv: return
+    print('|-{:-<{NW}}-+-{:->{MW}}-+-------+--------+-------|'
+          .format('', '', NW = nwid, MW = mwid))
+
+def line(args, what, prevsize, prevtime):
+    if args.tsv:
+        print(what,
+              mibs(), mibs() - prevsize,
+              secs(), secs() - prevtime,
+              sep = '\t')
+    else:
+        print('| {:<{nwid}} | {:>{mwid}} | {:>5} | {:>6} | {:>5} |'
+              .format(what,
+                      mibs(), mibs() - prevsize,
+                      secs(), secs() - prevtime,
+                      nwid = nwid, mwid = mwid))
+
+def sharing(vals):
+    def make(pairs):
+        return dict((key, ( store.get(val, val)
+                            if isinstance(val, str)
+                            else val ))
+                    for key, val in pairs)
+    store = dict((val, val) for val in vals)
+    return make, store
+
+def observe_store(args, store):
+    print('stored:', len(store), 'strings',
+          file = sys.stderr)
+    obs = args.debug.split()
+    for v in obs:
+        print('store @ {}, split {} @ {}'
+              .format(id(store), repr(v), id(v)),
+              file = sys.stderr)
+    for k, v in store.items():
+        if k not in obs: continue
+        print('store: {} @ {}'
+              .format(repr(k), id(k)),
+              '↦ {} @ {}'
+              .format(repr(v), id(v)),
+              file = sys.stderr)
+
+def watch(args, data, *, before = ''):
+    for v in args.debug.split():
+        ts = find_tokens(data, v)
+        for t in (next(ts, None), next(ts, None)):
+            if isinstance(t, list):
+                k = t.index(v)
+                print('split {} @ {} {}: {} @ {}'
+                      .format(repr(v), id(v),
+                              before or 'new',
+                              repr(t[k]), id(t[k])),
+                      file = sys.stderr)
+            elif isinstance(t, dict):
+                k = next(key for key, val in t.items() if val == v)
+                print('split {} @ {} {}: {} @ {}'
+                      .format(repr(v), id(v),
+                              before or 'in new',
+                              repr(t[k]), id(t[k])),
+                      file = sys.stderr)
+    return data
+
+def watch_before(args, data):
+    return watch(args, data, before = 'in old')
+
+def find_tokens(data, val):
+    '''Yield tokens with val in some field, scanning sentences from the
+    end of data.
+
+    '''
+    if isinstance(data, list):
+        for k in range(len(data) - 1, 0, -1):
+            yield from find_tokens(data[k], val)
+    elif isinstance(data, dict) and 'sent' in data:
+        for t in data['data']:
+            if ( ( isinstance(t, list) and val in t) or
+                 ( isinstance(t, dict) and val in t.values()) ):
+                yield t
+    elif isinstance(data, dict):
+        yield from find_tokens(data['data'], val)
+
+def main(args):
+
+    def read(args, inf):
+        '''so many lines as a single string'''
+        if args.share:
+            return ''.join(open(inf).readlines()[:args.share])
+        return open(inf).read()
+
+    shared = [
+        read(args, inf)
+        for inf in (args.each or args.over or '').split()
+    ]
+
+    if args.append: data = []
+    if args.extend: obj = None
+
+    if args.each:
+        def share():
+            # split every time
+            make, store = sharing(chain(*map(str.split, shared)))
+            args.debug and observe_store(args, store)
+            return make
+    elif args.over:
+        def share(*, it = sharing(chain(*map(str.split, shared)))):
+            # split first time
+            make, store = it
+            args.debug and observe_store(args, store)
+            return make
+    else:
+        pass
+
+    def load(args, inf):
+        args.debug and print('now loading:', inf, file = sys.stderr)
+        if args.each or args.over:
+            return json.load(open(inf), object_pairs_hook = share())
+        return json.load(open(inf))
+
+    rule(args)
+    head(args)
+    rule(args)
+    line(args, 'n/a', mibs(), secs())
+    for inf in ( sorted(glob.iglob(os.path.join(args.indir, '**/*.json')))
+                 [:args.files] ):
+        prevsize = mibs()
+        prevtime = secs()
+        if args.append:
+            watch_before(args, data)
+            data.append(watch(args, load(args, inf)))
+        elif args.extend and obj is None:
+            watch_before(args, obj)
+            obj = watch(args, load(args, inf))
+        elif args.extend and isinstance(obj, list):
+            watch_before(args, obj)
+            obj.extend(watch(args, load(args, inf)))
+        elif args.extend and isinstance(obj, dict):
+            watch_before(args, obj)
+            obj['data'].extend(watch(args, load(args, inf)))
+        else:
+            watch(args, load(args, inf))
+
+        line(args, inf, prevsize, prevtime)
+    else:
+        rule(args)
+
+if __name__ == '__main__':
+    main(parseargs())
