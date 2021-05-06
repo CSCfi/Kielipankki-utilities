@@ -186,11 +186,7 @@ date "+%F %T FINISH IN $time WITH STATUS $status"
                                   if tailargs else
                                   [] )))
 
-    partition = (
-        ['small', 'large'][len(tailargs) > 30]
-        if args.partition == 'puhti-default'
-        else args.partition
-    )
+    partition = args.partition
 
     script = (template
               .format(job = args.job,
