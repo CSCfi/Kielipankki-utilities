@@ -1,0 +1,237 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+'''Is a command line tool that adds up times like 03:14:15.926 from
+arguments to the command or from stdin. Otherwise it was not there.
+
+'''
+
+from argparse import ArgumentParser
+from datetime import timedelta
+from re import fullmatch, VERBOSE
+from sys import stdin
+
+def duration(arg):
+    '''A "type" to be used in an argument parser.'''
+
+    mo = fullmatch(r'''
+
+    (?: (?: (?:
+    (?P<days> \d+) -)?
+    (?P<hours> \d+) :)?
+    (?P<minutes> \d+) :)?
+
+    (?P<seconds> (?P<whole> \d+) (?: \.\d+)? )
+
+    ''', arg, flags = VERBOSE)
+
+    if not mo: raise ValueError('malformed duration: ' + arg)
+
+    days = mo.group('days')
+    hours = mo.group('hours')
+    minutes = mo.group('minutes')
+    seconds = mo.group('seconds')
+    whole_seconds = mo.group('whole')
+
+    if not((days is None or len(hours) == 2) and
+           (hours is None or len(minutes) == 2) and
+           (minutes is None or len(whole_seconds) == 2)):
+        raise ValueError('malformed duration: ' + arg)
+
+    days = int(days or 0)
+    hours = int(hours or 0)
+    minutes = int(minutes or 0)
+    seconds = float(seconds)
+
+    if days < 0 or hours < 0 or minutes < 0 or seconds < 0:
+        raise ValueError('malformed duration: ' + arg)
+
+    if ((days == 0 or hours < 24) and
+        (days == hours == 0 or minutes < 60) and
+        (days == hours == minutes == 0 or seconds < 60)):
+        return timedelta(days = days,
+                         hours = hours,
+                         minutes = minutes,
+                         seconds = seconds)
+
+    raise ValueError('malformed duration: ' + arg)
+
+def character(arg):
+    '''Character "type" for ArgumentParser.'''
+    if len(arg) == 1:
+        return arg
+    raise ValueError('not a character: ' + repr(arg))
+    
+def parseargs():
+    description = '''
+
+    Report the sum of time durations, each specified as seconds, or
+    minutes:seconds, or hours:minutes:seconds, or even
+    days-hours:minutes:seconds, possibly with a .fraction after the
+    seconds. The intended format is [[[D-]HH:]MM:]SS[.FFF]. Lead can
+    exceed its natural range, so that 314.15 = 5:14.150 but 0:314.15
+    is not even allowed.
+
+    '''
+
+    parser = ArgumentParser(description = description)
+
+    parser.add_argument('dur', nargs = '*',
+                        type = duration,
+                        help = '''
+
+                        durations (if none, read whitespace separated
+                        from stdin)
+
+                        ''')
+
+    parser.add_argument('--echo', '-e', action = 'store_true',
+                        help = '''
+
+                        echo formatted input to stdout, separate from
+                        sum by '='
+
+                        ''')
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--day', '-D', action = 'store_true',
+                       help = '''
+
+                       lead with days, D-HH:MM:SS[.SSS]
+
+                       ''')
+    group.add_argument('--hour', '-H', action = 'store_true',
+                       help = '''
+
+                       lead with hours, H:MM:SS[.SSS]
+
+                       ''')
+    group.add_argument('--minute', '-M', action = 'store_true',
+                       help = '''
+
+                       lead with minutes, M:SS[.SSS]
+
+                       ''')
+    group.add_argument('--second', '-S', action = 'store_true',
+                       help = '''
+
+                       lead with seconds, S[.SSS]
+
+                       ''')
+
+    parser.add_argument('--zero', '-Z', metavar = 'FILL',
+                        type = character,
+                        default = '0',
+                        help = '''
+                        
+                        lead character to use with --fill
+                        
+                        ''')
+    parser.add_argument('--fill', '-F', metavar = 'WIDTH',
+                        type = int, # nat
+                        default = 1,
+                        help = '''
+                    
+                        fill lead with FILL to WIDTH
+                        
+                        ''')
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--milli', '-3', action = 'store_true',
+                       help = '''
+
+                       display milliseconds, S.SSS
+
+                       ''')
+    group.add_argument('--micro', '-6', action = 'store_true',
+                       help = '''
+
+                       display microseconds, S.SSSSSS
+
+                       ''')
+
+    args = parser.parse_args()
+    return args
+
+def format(args, res):
+
+    if args.milli:
+        # round res to milliseconds, let timedelta normalize
+        q, r = divmod(res.microseconds, 1000)
+        res = timedelta(days = res.days,
+                        seconds = res.seconds,
+                        milliseconds = q + (r >= 500))
+
+    mic = res.microseconds
+    fraction = (
+        '.{:0>3}'.format(mic // 1000) if args.milli else
+        '.{:0>6}'.format(mic)         if args.micro else
+        ''
+    )
+
+    if args.day or (res.days > 0 and
+                    not args.hour and
+                    not args.minute and
+                    not args.second):
+        M, S = divmod(res.seconds, 60)
+        H, M = divmod(M, 60)
+        return ( '{D:{pad}>{wid}}-{H:02}:{M:02}:{S:02}{sss}'
+                 .format(D = res.days,
+                         H = H, M = M, S = S,
+                         pad = args.zero,
+                         wid = args.fill,
+                         sss = fraction)
+        )
+
+    if args.hour or (res.days == 0 and
+                     res.seconds >= 3600 and
+                     not args.minute and
+                     not args.second):
+        M, S = divmod(res.seconds, 60)
+        H, M = divmod(M, 60)
+        H += 24 * res.days
+        return ( '{H:{pad}>{wid}}:{M:02}:{S:02}{sss}'
+                 .format(H = H, M = M, S = S,
+                         pad = args.zero,
+                         wid = args.fill,
+                         sss = fraction)
+        )
+
+    if args.minute or (res.days == 0 and
+                       res.seconds >= 60 and
+                       not args.second):
+        M, S = divmod(res.seconds, 60)
+        M += 24 * 3600 * res.days
+        return ( '{M:{pad}>{wid}}:{S:02}{sss}'
+                 .format(M = M, S = S,
+                         pad = args.zero,
+                         wid = args.fill,
+                         sss = fraction)
+        )
+
+    return ( '{S:{pad}>{wid}}{sss}'
+             .format(S = res.seconds,
+                     pad = args.zero,
+                     wid = args.fill,
+                     sss = fraction)
+    )
+
+def inputs(args):
+    return iter(
+        args.dur or
+        ( duration(word)
+          for line in stdin
+          for word in line.split()
+          if word )
+    )
+
+def main(args):
+    res = timedelta()
+    for arg in inputs(args):
+        res += arg
+        args.echo and print(format(args, arg))
+    args.echo and print('=')
+    print(format(args, res))
+
+if __name__ == '__main__':
+    main(parseargs())
