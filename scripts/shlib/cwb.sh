@@ -192,6 +192,8 @@ cwb_registry_add_structattr () {
     shift 2
     _regfile="$cwb_regdir/$_corpus"
     _added_attrs=
+    # If struct does not exist in the registry file, add it after
+    # existing structural attributes
     if ! grep -q "STRUCTURE $_struct\$" "$_regfile"; then
         _added_attrs="$_struct "
 	cp -p "$_regfile" "$_regfile.old"
@@ -235,7 +237,13 @@ cwb_registry_add_structattr () {
                 print
                 next
             }
-            prev_struct {
+            # Add the declarations at the end of the attribute
+            # declarations for struct: before a blank line, a comment
+            # line beginning with "# <" or a STRUCTURE declaration of
+            # a different structural attribute.
+            prev_struct && ! printed \
+                && (/^ *$/ || /^# </ \
+                    || (/^STRUCTURE / && ! /^STRUCTURE '$_struct'(_|$)/)) {
                 printf "'"$_new_attrdecls"'"
                 printed = 1
                 prev_struct = 0
