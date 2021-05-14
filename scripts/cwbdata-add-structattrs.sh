@@ -6,7 +6,6 @@
 # - Ensure that keyed input and field headings work
 # - Fix fieldspec mappings to work
 # - Ordered input by default
-# - If ordered, check that the input is of the correct length
 
 
 progname=`basename $0`
@@ -133,6 +132,31 @@ get_fieldnum () {
     echo "$fieldnum"
 }
 
+check_input_length () {
+    local corpus infile input_line_count corpus_struct_count msg_prefix
+    corpus=$1
+    infile=$2
+    input_line_count=$(wc -l < "$infile")
+    if [ "x$has_headings" != x ]; then
+        input_line_count=$(($input_line_count - 1))
+    fi
+    if [ $input_line_count = 0 ]; then
+        error "Empty input"
+    fi
+    if [ "x$ordered_input" = x ]; then
+        return
+    fi
+    corpus_struct_count=$(get_corpus_struct_count $corpus $struct_name)
+    if [ $input_line_count != $corpus_struct_count ]; then
+        msg_prefix="Input contains $input_line_count lines but corpus has $corpus_struct_count $struct_name structures"
+        if [ "x$force" = x ]; then
+            error "$msg_prefix; please specify --force to ignore"
+        else
+            warn "$msg_prefix; proceeding anyway as --force was specified"
+        fi
+    fi
+}
+
 order_by_key () {
     local struct_count fieldnum saved_lc_all
     struct_count=$(nth_arg 1 $(wc -l "$structpos_file"))
@@ -170,7 +194,11 @@ order_by_key () {
 }
 
 process_input () {
+    local corpus
+    corpus=$1
+    shift
     comprcat "$@" > "$input_file.tmp"
+    check_input_length $corpus "$input_file.tmp"
     input_field_count=$(count_words $(head -1 "$input_file.tmp"))
     if [ "x$has_headings" != x ]; then
 	heading_fieldnames=$(head -1 "$input_file.tmp")
@@ -232,7 +260,7 @@ main () {
     make_attrnames_bare
     check_existing_attrs $corpus
     make_struct_pos $corpus > "$structpos_file"
-    process_input "$@"
+    process_input $corpus "$@"
     make_input_fieldnums
     encode_attrs $corpus
 }
