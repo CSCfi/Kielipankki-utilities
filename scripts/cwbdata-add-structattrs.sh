@@ -122,7 +122,7 @@ get_fieldnum () {
 	else
 	    error "Input field number $fieldname greater than the number of input fields $input_field_count"
 	fi
-    elif [ "x$has_haedings" != x ]; then
+    elif [ "x$has_headings" != x ]; then
 	fieldnum=$(word_index $fieldname $heading_fieldnames)
 	if [ "$fieldnum" -eq -1 ]; then
 	    error "Field $fieldname not found on the input heading line"
