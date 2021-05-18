@@ -833,6 +833,9 @@ make_tar_transforms () {
 	local pair=$(transform_dirtempl_pair $source $target)
 	source=${pair% *}
 	target=${pair#* }
+        # Tar removes leading "../" before transformations, so remove
+        # it to make the transformation work
+        source=${source#../}
 	make_tar_transform "$source" "$target"
 	if [[ "$source" = */ && "$target" = */ ]]; then
 	    make_tar_transform "$(remove_trailing_slash $source)\$" \
