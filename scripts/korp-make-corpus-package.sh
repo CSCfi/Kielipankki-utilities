@@ -269,6 +269,21 @@ add_corpus_files () {
     fi
 }
 
+add_corpus_files_expand () {
+    # Add corpus files with "{corp}" in arguments expanded to each
+    # corpus id in turn
+    local fname corpus_id
+    for fname in "$@"; do
+        if [[ $fname = *{corp*}* ]]; then
+            for corpus_id in $corpus_ids; do
+                add_corpus_files "$(echo $(fill_dirtempl $fname $corpus_id))"
+            done
+        else
+            add_corpus_files "$(echo $fname)"
+        fi
+    done
+}
+
 has_wildcards () {
     # FIXME: This does not take into account backslash-protected
     # wildcards, which should not be counted as wildcards.
@@ -721,15 +736,7 @@ for corpus_id in $corpus_ids; do
 	    "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")
     fi
 done
-for extra_file in $extra_corpus_files; do
-    if [[ $extra_file = *{corp*}* ]]; then
-	for corpus_id in $corpus_ids; do
-	    add_corpus_files "$(echo $(fill_dirtempl $extra_file $corpus_id))"
-	done
-    else
-	add_corpus_files "$(echo $extra_file)"
-    fi
-done
+add_corpus_files_expand $extra_corpus_files
 echo_dbg corpus_files "$corpus_files"
 
 for corpus_id in $corpus_ids; do
