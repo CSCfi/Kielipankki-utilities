@@ -112,7 +112,7 @@ info-from-file=FILENAME { cat "$1" >> "$extra_info_file" }
 
 @ Options for additional files
 
-readme-file=FILE * { add_extra_file "$1" /; has_readme=1 }
+readme-file=FILE * { add_extra_file --prepend "$1" /; has_readme=1 }
     include FILE as a top-level read-me file; the option may be
     specified multiple times to include multiple files, and FILE may
     contain shell wildcards (but braces are not expanded)
@@ -213,6 +213,7 @@ extra_info_file=$tmp_prefix.info
 touch $extra_info_file
 
 corpus_files=
+corpus_files_prepend=
 extra_dir_and_file_transforms=
 
 
@@ -249,7 +250,14 @@ $1 $2"
 }
 
 add_corpus_files () {
-    local any any_added _fname
+    local prepend any any_added _fname
+    # If --prepend is specified, prepend the file name to
+    # $corpus_files instead of appending.
+    prepend=
+    if [ "x$1" = "x--prepend" ]; then
+        prepend=1
+        shift
+    fi
     # If --any is specified, warn on non-existent files only if none
     # of the files specified as arguments is found.
     if [ "x$1" = "x--any" ]; then
@@ -258,7 +266,11 @@ add_corpus_files () {
     fi
     for _fname in "$@"; do
 	if ls $_fname > /dev/null 2>&1; then
-	    corpus_files="$corpus_files $_fname"
+            if [ "x$prepend" != x ]; then
+                corpus_files_prepend="$corpus_files_prepend $_fname"
+            else
+	        corpus_files="$corpus_files $_fname"
+            fi
 	    any_added=1
 	elif [ "x$any" = x ]; then
 	    warn "File or directory not found: $_fname"
@@ -343,6 +355,11 @@ set_compress () {
 add_extra_dir_or_file () {
     # Target ends in / => dir, transform the dir part of source;
     # otherwise transform the whole source; source ends in / => dir
+    local prepend=
+    if [ "x$1" = "x--prepend" ]; then
+        prepend=$1
+        shift
+    fi
     local source=$1
     local target=$2
     echo_dbg "** add_extra:param" "$source" "$target"
@@ -369,7 +386,7 @@ add_extra_dir_or_file () {
     local sourcedir=$(remove_leading_slash $(dirname_slash "$source"))
     local targetdir=$(remove_leading_slash $(dirname_slash "$target"))
     echo_dbg add_extra:dirs "$sourcedir" "$targetdir"
-    add_corpus_files $(remove_trailing_slash "$source")
+    add_corpus_files $prepend $(remove_trailing_slash "$source")
     source=$(remove_leading_slash "$source")
     target=$(remove_leading_slash "$target")
     echo_dbg add_extra:mods "$source" "$target"
@@ -401,11 +418,17 @@ add_extra_file () {
 }
 
 add_extra_dir () {
+    local prepend=
+    if [ "x$1" = "x--prepend" ]; then
+        prepend=$1
+        shift
+    fi
     local target=$2
     if [ "x$target" != x ]; then
 	target="$target/"
     fi
-    add_extra_dir_or_file "$(echo "$1" | sed -e 's,:,/:,; s,$,/,')" "$target"
+    add_extra_dir_or_file \
+        $prepend "$(echo "$1" | sed -e 's,:,/:,; s,$,/,')" "$target"
 }
 
 add_auth_opts () {
@@ -712,9 +735,10 @@ if [ "x$auth_opts" != "x" ]; then
 fi
 
 echo_dbg extra_files "$corpus_files"
-# Add the extra files to the end
+# Add the extra files to the end, except for those to be prepended
 extra_corpus_files=$corpus_files
 corpus_files=
+add_corpus_files_expand $corpus_files_prepend
 for corpus_id in $corpus_ids; do
     # Include the CWB registry file as documentation of the VRT fields
     # even if omitting CWB data
