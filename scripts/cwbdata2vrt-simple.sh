@@ -30,6 +30,10 @@ all-attributes|all all_attrs
 sort-structural-attributes|sort sort_struct_attrs
     sort structural attribute annotations ("XML attributes") alphabetically,
     instead of using their order of declaration in the registry file
+undef-value|replace-undef=UNDEF
+    replace all "__UNDEF__" (undefined) values of all positional attributes
+    with UNDEF; note that is is not checked if the value sets of the
+    attributes already contains UNDEF
 include-xml-declaration
     include XML declaration in the output (omitted by default)
 include-corpus-element
@@ -146,6 +150,14 @@ perl_decode_entities_token='
     s/&quot;/"/g;
     s/&apos;/'"'"'/g;
 '
+# Optionally replace __UNDEF__ values with the string given with
+# --undef-value.
+perl_replace_undef=
+if [ "x$undef_value" != x ]; then
+    perl_replace_undef='
+        s/(?:\t|^)\K__UNDEF__(?=\t|$)/\Q'"$undef_value"'\E/g;
+'
+fi
 
 process_tags_single () {
     # This is somewhat faster than using sed, but not significantly
@@ -161,6 +173,7 @@ process_tags_single () {
 	    s/^(<\/[^_]*)_.*>/$1>/;
 	    if (! /^</) {
 		'"$perl_decode_entities_token"'
+                '"$perl_replace_undef"'
 	    }
 	    print;
 	}
@@ -241,6 +254,7 @@ process_tags_multi () {
 	    if (! /^</) {
 	       	# Token
 	        '"$perl_decode_entities_token"'
+                '"$perl_replace_undef"'
 		$cpos++;
 	    }
             print;
