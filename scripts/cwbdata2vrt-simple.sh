@@ -175,14 +175,12 @@ if [ "x$sort_struct_attrs" = x ]; then
     perl_attrs_clear='$attrs = ""'
     perl_attrs_append='$attrs .= " $attrname=\"$attrval\""'
     perl_attrs_get='$attrs'
-    perl_attrs_isnonempty='$attrs'
 else
     perl_attrs_clear='@attrs = ()'
     perl_attrs_append='push(@attrs, "$attrname=\"$attrval\"")'
     perl_attrs_get='" " . join (" ", sort { substr($a, 0, index($a, "=")) cmp
                                             substr($b, 0, index($b, "=")) }
                                           @attrs)'
-    perl_attrs_isnonempty='scalar(@attrs)'
 fi
 
 process_tags_multi () {
@@ -193,15 +191,17 @@ process_tags_multi () {
             $prevtag = $tag = "";
 	    '"$perl_attrs_clear"';
 	    $cpos = 0;
+            $prevtag_printed = 0;
         }
         if (/^(<[^\/_\s]*)(?:_([^ ]*)( )?(.*))?>$/) {
 	    # Structure start tag, possibly with an annotation value
             $tag = $1;
-            if ($tag ne $prevtag && '"$perl_attrs_isnonempty"') {
+            if ($prevtag && $tag ne $prevtag && ! $prevtag_printed) {
                 print "$prevtag" . '"$perl_attrs_get"' . ">\n";
                 '"$perl_attrs_clear"';
             }
             $prevtag = $tag;
+            $prevtag_printed = 0;
 	    if ($2) {
 		$attrname = $2;
 		# If the annotation is defined but has no value, not
@@ -227,14 +227,16 @@ process_tags_multi () {
             $tag = $1;
             if ($tag ne $prevtag) {
                 print "$tag>\n";
+                $prevtag_printed = 1;
             }
             $prevtag = $tag;
         } else {
 	    # Token, XML declaration or <corpus> start tag
-            if ($prevtag && '"$perl_attrs_isnonempty"') {
+            if ($prevtag && ! $prevtag_printed) {
                 print "$prevtag" . '"$perl_attrs_get"' . ">\n";
             }
             $tag = $prevtag = "";
+            $prevtag_printed = 0;
 	    '"$perl_attrs_clear"';
 	    if (! /^</) {
 	       	# Token
