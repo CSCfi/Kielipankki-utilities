@@ -32,8 +32,13 @@ sort-structural-attributes|sort sort_struct_attrs
     instead of using their order of declaration in the registry file
 undef-value|replace-undef=UNDEF
     replace all "__UNDEF__" (undefined) values of all positional attributes
-    with UNDEF; note that is is not checked if the value sets of the
-    attributes already contains UNDEF
+    with UNDEF; if the value set of any positional attribute of any corpus
+    contains both "__UNDEF__" and UNDEF, no VRT files are generated unless
+    --force-undef-value is specified
+force-undef-value|force-replace-undef force_undef
+    replace "__UNDEF__" values with the value specified with --undef-value
+    even if the value set of an attribute contains both "__UNDEF__" and the
+    replacement value
 include-xml-declaration
     include XML declaration in the output (omitted by default)
 include-corpus-element
@@ -132,6 +137,38 @@ cat_noargs () {
     cat
 }
 
+# Check if any positional attribute of any corpus contains both
+# __UNDEF__ and the replacement value; if so, abort unless
+# --force-undef-value has been specified. (Another option would be to
+# check this one corpus at a time and refuse to generate VRT output
+# only for the corpora with attributes with both __UNDEF__ and
+# replacement value. However, as the input corpora for a single run
+# are often subcorpora of the same corpus or otherwise related, it is
+# justified to produce output for either all or none of the corpora.)
+check_undef_replacement () {
+    local undef_value corpus attr msg_base abort
+    abort=
+    undef_value=$1
+    shift
+    for corpus in "$@"; do
+        for attr in $(corpus_list_attrs $corpus p); do
+            if corpus_posattr_contains_values $corpus $attr "__UNDEF__" &&
+                    corpus_posattr_contains_values $corpus $attr "$undef_value";
+            then
+                msg_base="corpus $corpus: the value set of positional attribute $attr contains both \"__UNDEF__\" and its replacement \"$undef_value\""
+                if [ "x$force_undef" != x ]; then
+                    warn "$msg_base; replacing anyway, as --force-undef-value was specified"
+                else
+                    warn "$msg_base"
+                    abort=1
+                fi
+            fi
+        done
+    done
+    if [ "x$abort" != x ]; then
+        error "Aborting as the value set of at least one positional attribute of at least one corpus contains both \"__UNDEF__\" and its replacement \"$undef_value\"; specify --force-undef-value to replace anyway"
+    fi
+}
 
 # Perl code snippets used in both process_tags_single and
 # process_tags_multi
@@ -154,6 +191,7 @@ perl_decode_entities_token='
 # --undef-value.
 perl_replace_undef=
 if [ "x$undef_value" != x ]; then
+    check_undef_replacement "$undef_value" $corpora
     perl_replace_undef='
         s/(?:\t|^)\K__UNDEF__(?=\t|$)/\Q'"$undef_value"'\E/g;
 '
