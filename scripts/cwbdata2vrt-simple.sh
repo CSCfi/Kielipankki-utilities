@@ -30,10 +30,10 @@ all-attributes|all all_attrs
 sort-structural-attributes|sort sort_struct_attrs
     sort structural attribute annotations ("XML attributes") alphabetically,
     instead of using their order of declaration in the registry file
-undef-value|replace-undef=UNDEF
+undef-value|replace-undef=REPL
     replace all "__UNDEF__" (undefined) values of all positional attributes
-    with UNDEF; if the value set of any positional attribute of any corpus
-    contains both "__UNDEF__" and UNDEF, no VRT files are generated unless
+    with REPL; if the value set of any positional attribute of any corpus
+    contains both "__UNDEF__" and REPL, no VRT files are generated unless
     --force-undef-value is specified
 force-undef-value|force-replace-undef force_undef
     replace "__UNDEF__" values with the value specified with --undef-value
