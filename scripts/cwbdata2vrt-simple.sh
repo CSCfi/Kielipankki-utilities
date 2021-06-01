@@ -193,7 +193,7 @@ perl_replace_undef=
 if [ "x$undef_value" != x ]; then
     check_undef_replacement "$undef_value" $corpora
     perl_replace_undef='
-        s/(?:\t|^)\K__UNDEF__(?=\t|$)/\Q'"$undef_value"'\E/g;
+        s/(?:\t|^)\K__UNDEF__(?=\t|$)/'"$undef_value"'/g;
 '
 fi
 
