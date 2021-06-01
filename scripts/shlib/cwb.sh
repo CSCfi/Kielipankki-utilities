@@ -1138,6 +1138,33 @@ corpus_attr_is_featset_valued () {
     esac
 }
 
+
+# corpus_get_posattr_values corpus attr [pattern]
+#
+# Output the values of the positional attribute attr in corpus,
+# matching the regular expression pattern if specified. (pattern is an
+# extended regular expression recognized by cwb-lexdecode.) The output
+# contains one value per line.
+corpus_get_posattr_values () {
+    local corpus attr pattern_opt
+    corpus=$1
+    attr=$2
+    pattern_opt=
+    if [ "x$3" != x ]; then
+        pattern_opt="-p $3"
+    fi
+    $cwb_bindir/cwb-lexdecode -P $attr $pattern_opt $corpus
+}
+
+# corpus_posattr_contains_values corpus attr pattern
+#
+# Return true if the positional attribute attr of corpus contains
+# values matching the regular expression pattern.
+corpus_posattr_contains_values () {
+    [ x"$(corpus_get_posattr_values "$@")" != x ]
+}
+
+
 # corpus_exists corpus
 #
 # Return true if corpus exists (cwb-describe-corpus returns true).
