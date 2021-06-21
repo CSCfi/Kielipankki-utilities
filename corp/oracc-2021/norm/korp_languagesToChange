@@ -1,0 +1,24 @@
+_ == Uncertain or unspecified
+akkadian == Akkadian
+Akkadian, Aramaic == Akkadian, Aramaic
+Akkadian, Aramaic? == Akkadian, Aramaic
+Akkadian + Aramaic == Akkadian, Aramaic
+Akkadian, Elamite, Persian == Akkadian, Old Persian, Elamite
+Akkadian, Old Persian, Elamite, Hieroglyphs == Akkadian, Old Persian, Elamite, Egyptian
+Akkadian, Elamite, Old Persian, Hieroglyphs? == Akkadian, Old Persian, Elamite, Egyptian
+Akkadian, Old Persian, Elamite,  Hieroglyphs == Akkadian, Old Persian, Elamite, Egyptian
+Akkadian, Elamite, Old Persian, Hieroglyphs == Akkadian, Old Persian, Elamite, Egyptian
+Akkadian; Egyptian == Akkadian, Egyptian
+Akkadian? == Uncertain or unspecified
+Akkadian ? == Uncertain or unspecified
+bilingual == Akkadian, Sumerian
+Neo-Babylonian script == Akkadian
+Sumerian ? == Uncertain or unspecified	
+Sumerian/Akkadian Bilingual == Akkadian, Sumerian
+Sumerian; Akkadian == Sumerian, Akkadian
+Akkadian (with Sumerian colophon) == Akkadian, Sumerian
+Syllabic Sumerian == Sumerian
+undetermined == Uncertain or unspecified	
+Urartian/Assirian == Akkadian, Urartian
+Urartian/Assyrian == Akkadian, Urartian
+

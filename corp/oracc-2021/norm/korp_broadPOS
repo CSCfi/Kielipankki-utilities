@@ -1,0 +1,107 @@
+AJ == adjective
+AV == adverb
+CN == proper noun
+CNJ == conjunction
+DET == pronoun
+DN == proper noun
+DP == pronoun
+EN == proper noun
+FN == proper noun
+GN == proper noun
+IP == pronoun
+J == interjection
+L == miscunknown
+LN == proper noun
+M == miscunknown
+MA == adverb
+MN == proper noun
+MOD == particle
+n == number
+N == common noun
+NU == number
+O == miscunknown
+ON == proper noun
+P == miscunknown
+PN == proper noun
+PP == pronoun
+PRP == adposition
+QN == proper noun
+QP == pronoun
+REL == pronoun
+RN == proper noun
+RP == pronoun
+S == miscunknown
+SBJ == conjunction
+SN == proper noun
+TN == proper noun
+U == miscunknown
+V == verb
+V/i == verb
+V/t == verb
+WN == proper noun
+X == miscunknown
+XP == pronoun
+u == miscunknown
+PSP == adposition
+_ == miscunknown
+AJ&amp;&amp;N == common noun
+_&amp;&amp;_ == miscunknown
+_&amp;&amp;N == common noun
+CN&amp;&amp;CN == proper noun
+CN&amp;&amp;DET&amp;&amp;N == proper noun
+CNJ&amp;&amp;CNJ == conjunction
+DET&amp;&amp;N == common noun
+IP&amp;&amp;N == common noun
+J&amp;&amp;QP == pronoun
+MN&amp;&amp;AJ == proper noun
+MN&amp;&amp;N == proper noun
+MOD&amp;&amp;AJ == adjective
+MOD&amp;&amp;AV == adverb
+MOD&amp;&amp;N == common noun
+MOD&amp;&amp;V == verb
+N&amp;&amp;_ == common noun
+N&amp;&amp;AJ == common noun
+N&amp;&amp;CN == proper noun
+N&amp;&amp;DET == common noun
+N&amp;&amp;DET&amp;&amp;N == common noun
+N&amp;&amp;DN == common noun
+N&amp;&amp;DN&amp;&amp;DET&amp;&amp;N == common noun
+N&amp;&amp;DP == common noun
+N&amp;&amp;EN == common noun
+N&amp;&amp;GN == common noun
+N&amp;&amp;MN == common noun
+N&amp;&amp;N == common noun
+N&amp;&amp;N&amp;&amp;AJ == common noun
+N&amp;&amp;N&amp;&amp;GN == common noun
+N&amp;&amp;N&amp;&amp;N == common noun
+N&amp;&amp;NU == common noun
+N&amp;&amp;PRP == common noun
+N&amp;&amp;V == common noun
+N&amp;&amp;V/t == common noun
+NU&amp;&amp;PRP&amp;&amp;N == common noun
+PRP&amp;&amp;AJ == adjective
+PRP&amp;&amp;AV == adverb
+PRP&amp;&amp;DET == pronoun
+PRP&amp;&amp;DP == pronoun
+PRP&amp;&amp;IP == pronoun
+PRP&amp;&amp;N == common noun
+PRP&amp;&amp;N&amp;&amp;N == common noun
+PRP&amp;&amp;PRP == adposition
+PRP&amp;&amp;PRP&amp;&amp;PRP == adposition
+PRP&amp;&amp;QP == pronoun
+PRP&amp;&amp;REL == pronoun
+PRP&amp;&amp;RP == pronoun
+PRP&amp;&amp;SBJ == conjunction
+PRP&amp;&amp;V == verb
+QP&amp;&amp;IP == conjunction
+REL&amp;&amp;N == common noun
+REL&amp;&amp;REL == particle
+V&amp;&amp;IP == verb
+V&amp;&amp;N == verb
+V&amp;&amp;PRP&amp;&amp;N == verb
+V&amp;&amp;V == verb
+V/i&amp;&amp;V/i == verb
+V/t&amp;&amp;V/t == verb
+XP&amp;&amp;AJ == adjective
+XP&amp;&amp;DN&amp;&amp;DN == proper noun
+XP&amp;&amp;N == common noun

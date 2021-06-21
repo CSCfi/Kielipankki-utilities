@@ -1,0 +1,53 @@
+# GENRES
+
+lexical == lexical
+royal inscription == royal inscription
+administrative letter == letter
+_ == uncertain or unspecified
+legal transaction == legal transaction
+legal == legal transaction
+astrological report == astrological/astronomical
+school == school
+administrative record == administrative record
+administrative == administrative record
+scholarly letter == letter
+extispicy query == omen/divination
+incantation-ritual == prayer/ritual/incantation
+mathematical == scholarly
+priestly letter == letter
+royal/monumental == royal inscription
+literary == literary
+prayer-incantation == prayer/ritual/incantation
+ritual == prayer/ritual/incantation
+omen == omen/divination
+extispicy report == omen/divination
+grant == grant/decree/gift
+royal ritual == prayer/ritual/incantation
+literary work == literary
+medical == scholarly
+astronomical == astrological/astronomical
+hymn-prayer == prayer/ritual/incantation
+prayer/incantation == prayer/ritual/incantation
+eponym list == miscellaneous
+astrological == astrological/astronomical
+technical procedure == scholarly
+scholarly == scholarly
+hemerological == omen/divination
+treaty == miscellaneous
+decree == grant/decree/gift
+letter == letter
+votive donation == grant/decree/gift
+prophecy == omen/divination
+lexical; mathematical == lexical
+historical == miscellaneous
+uncertain == uncertain or unspecified
+lexical; literary == lexical
+lexical &amp; mathematical == lexical
+appointment == grant/decree/gift
+scholarly work == scholarly
+building inscription == royal inscription
+scientific == scholarly
+royal/momumental == royal inscription
+literary; mathematical == miscellaneous
+gift == grant/decree/gift
+astronomical diary == astrological/astronomical
