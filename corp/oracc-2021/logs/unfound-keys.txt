@@ -1,0 +1,144 @@
+List of new values for normalizations
+===================================
+period Achaemenid
+period Urartian
+period Hittite
+period 8th century
+period 8th/7th century
+period Standard Babylonian
+period 9th/8th century
+period unknown
+period Middle Hittite
+period Neo-Assyrian
+period Middle Babylonian
+period Old Babylonian
+period Old Akkadian
+period Early Dynastic
+period unclear date
+period Late Middle Assyrian or early Neo-Assyrian
+period First Millennium
+period 7th century
+period Middle Assyrian
+period Neo-Babylonian
+period Hellenistic
+period Ebla
+period Late Babylonian
+period Old Assyrian
+period Parthian
+period 9th century
+period Lagash II
+period Ur III
+period Lagaš II
+===================================
+language Urartian
+language Akkadian + Aramaic
+language Hittite
+language Old Persian, Elamite
+language Eblaite
+language Akkadian, Old Persian, Elamite,  Hieroglyphs
+language Akkadian, Elamite, Old Persian, Hieroglyphs?
+language Akkadian, Elamite, Old Persian, Hieroglyphs
+language Akkadian
+language Old Persian
+language Akkadian, Old Persian, Elamite
+language Assyrian
+language Aramaic
+language Sumerian, Akkadian
+language Elamite
+language Hurrian
+language Akkadian, Aramaic, Luwian
+language Sumerian
+language Akkadian (with Sumerian colophon)
+language Akkadian, Aramaic
+language Ugaritic
+language Akkadian, Old Persian
+language Akkadian ?
+===================================
+genre Hemerological
+genre Lexical Text
+genre Prophecy
+genre Lexical
+genre Literary
+genre Treaty
+genre Astrological
+genre Literary; Administrative
+genre Astronomical
+genre Royal Inscription
+genre inscription on a ball of agate
+genre Prayer/Incantation
+genre Astronomical Diary
+genre Votive Donation
+genre Scientific
+genre Gift
+genre Literary; Mathematical
+genre Omen
+genre Administrative
+genre Historical
+genre school
+genre Appointment
+genre lexical
+genre Royal/Momumental
+genre Ritual
+genre Letter
+genre letter
+genre Hymn-Prayer
+genre Extispicy Report
+genre Eponym Chronicle
+genre Inscription on a bone bracelet
+genre Administrative Letter
+genre Building Inscription
+genre Clay pithos inscription
+genre Scholarly
+genre Uncertain
+genre Administrative Record
+genre Royal metal inscription
+genre Literary Work
+genre Amulet Text
+genre incantation-Ritual
+genre Extispicy Query
+genre Clay bulla inscription
+genre Royal stone inscription
+genre Metrological
+genre Incantation-Ritual
+genre Mathematical
+genre royal inscription
+genre School
+genre Eponym List
+genre administrative record
+genre Seal inscription
+genre Astrological Report
+genre Grant
+genre Royal/Monumental
+genre Decree
+genre Medical
+genre Legal
+genre Scholarly Letter
+genre Clay tablet inscription
+genre inscription on a perle
+genre Legal Transaction
+genre Royal Ritual
+genre Priestly Letter
+===================================
+long_pos O
+long_pos P
+long_pos NINDA
+long_pos KN
+long_pos NN
+long_pos _
+long_pos AN
+long_pos L
+===================================
+word_lang hlu
+word_lang hit-946
+word_lang qur
+word_lang qca
+word_lang xhu-040
+word_lang xhu-946
+word_lang hit-040
+word_lang egy-020
+word_lang _
+===================================
+pos AN
+pos NN
+pos KN
+pos NINDA
