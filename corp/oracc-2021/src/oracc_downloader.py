@@ -79,5 +79,5 @@ class OraccDownloader:
                 print('> Warning: Unable to download {p}')
                 continue
 
-#od = OraccDownloader('../info/projects.txt', '../jsonzip')
+#od = OraccDownloader('../projectlist/projects.txt', '../jsonzip')
 #od.download()
