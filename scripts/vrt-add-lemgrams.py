@@ -5,6 +5,7 @@
 import sys
 import codecs
 import errno
+import unicodedata
 
 from optparse import OptionParser
 from os.path import basename
@@ -46,11 +47,11 @@ def add_lemgram(line, posmap, opts):
     # add all possible combinations.
     if len(lemmas) == len(poses):
         for i in xrange(len(lemmas)):
-            lemgrams.extend(make_lemgrams(posmap, lemmas[i], poses[i]))
+            lemgrams.extend(make_lemgrams(posmap, lemmas[i], poses[i], opts))
     else:
         for lemma in lemmas:
             for pos in poses:
-                lemgrams.extend(make_lemgrams(posmap, lemma, pos))
+                lemgrams.extend(make_lemgrams(posmap, lemma, pos, opts))
     lemgram_str = ('|' + '|'.join(unique(lemgrams)) + '|') if lemgrams else '|'
     return line[:-1] + '\t' + lemgram_str + '\n'
 
@@ -71,11 +72,30 @@ def split_set_value(field):
         return [field]
 
 
-def make_lemgrams(posmap, lemma, pos):
+def make_lemgrams(posmap, lemma, pos, opts):
     lemmas = [lemma]
+    if opts.add_lowercase:
+        lemma_lower = lemma.lower()
+        if lemma_lower != lemma:
+            lemmas.append(lemma_lower)
+    if opts.add_non_diacritic:
+        add_lemmas = []
+        for lemma in lemmas:
+            # CHECK: Would it be faster to check if lemma contains non-ASCII
+            # characters?
+            lemma_non_diacritic = remove_diacritics(lemma)
+            if lemma_non_diacritic != lemma:
+                add_lemmas.append(lemma_non_diacritic)
+        lemmas.extend(add_lemmas)
     pos = posmap.get(pos, 'xx')
     return [u'{lemma}..{pos}.1'.format(lemma=lemma, pos=pos)
             for lemma in lemmas]
+
+
+def remove_diacritics(s):
+    # Based on https://stackoverflow.com/a/517974
+    return u''.join(c for c in unicodedata.normalize('NFKD', s)
+                    if not unicodedata.combining(c))
 
 
 def read_posmap(fname, opts):
@@ -154,6 +174,16 @@ def getopts():
     optparser.add_option('--skip-empty-lemmas', action='store_true',
                          default=False)
     optparser.add_option('--pos-field', type='int', default=3)
+    optparser.add_option(
+        '--add-lowercase-variants', action='store_true',
+        dest='add_lowercase',
+        help=('Add all-lower-case variants of lemgrams for lemmas containing'
+              ' upper-case letters'))
+    optparser.add_option(
+        '--add-non-diacritic-variants', action='store_true',
+        dest='add_non_diacritic',
+        help=('Add variants of lemgrams without diacritics for lemmas'
+              ' containing letters with diacritics'))
     (opts, args) = optparser.parse_args()
     if opts.pos_map_file is None:
         sys.stderr.write('Please specify POS map file with --pos-map-file\n')
