@@ -46,11 +46,11 @@ def add_lemgram(line, posmap, opts):
     # add all possible combinations.
     if len(lemmas) == len(poses):
         for i in xrange(len(lemmas)):
-            lemgrams.append(make_lemgram(posmap, lemmas[i], poses[i]))
+            lemgrams.extend(make_lemgrams(posmap, lemmas[i], poses[i]))
     else:
         for lemma in lemmas:
             for pos in poses:
-                lemgrams.append(make_lemgram(posmap, lemma, pos))
+                lemgrams.extend(make_lemgrams(posmap, lemma, pos))
     lemgram_str = ('|' + '|'.join(unique(lemgrams)) + '|') if lemgrams else '|'
     return line[:-1] + '\t' + lemgram_str + '\n'
 
@@ -71,8 +71,11 @@ def split_set_value(field):
         return [field]
 
 
-def make_lemgram(posmap, lemma, pos):
-    return u'{lemma}..{pos}.1'.format(lemma=lemma, pos=posmap.get(pos, 'xx'))
+def make_lemgrams(posmap, lemma, pos):
+    lemmas = [lemma]
+    pos = posmap.get(pos, 'xx')
+    return [u'{lemma}..{pos}.1'.format(lemma=lemma, pos=pos)
+            for lemma in lemmas]
 
 
 def read_posmap(fname, opts):
