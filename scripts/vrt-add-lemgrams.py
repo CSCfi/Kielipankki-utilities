@@ -5,6 +5,7 @@
 import sys
 import codecs
 import errno
+import re
 import unicodedata
 
 from optparse import OptionParser
@@ -83,7 +84,11 @@ def make_lemgrams(posmap, lemma, pos, opts):
         for lemma in lemmas:
             # CHECK: Would it be faster to check if lemma contains non-ASCII
             # characters?
-            lemma_non_diacritic = remove_diacritics(lemma)
+            if opts.keep_letters:
+                lemma_non_diacritic = opts.non_keep_letters_re.sub(
+                    lambda mo: remove_diacritics(mo.group()), lemma)
+            else:
+                lemma_non_diacritic = remove_diacritics(lemma)
             if lemma_non_diacritic != lemma:
                 add_lemmas.append(lemma_non_diacritic)
         lemmas.extend(add_lemmas)
@@ -184,12 +189,24 @@ def getopts():
         dest='add_non_diacritic',
         help=('Add variants of lemgrams without diacritics for lemmas'
               ' containing letters with diacritics'))
+    optparser.add_option(
+        '--keep-letters-with-diacritics', metavar='CHARS', dest='keep_letters',
+        help=('Keep the letters with diacritics in CHARS intact even in'
+              ' lemgram variants otherwise without diacritics. CHARS is a'
+              ' string of characters that can be used inside a set of'
+              ' characters in a regular expression (as [^CHARS]). CHARS are'
+              ' retained regardless of their case.'))
     (opts, args) = optparser.parse_args()
     if opts.pos_map_file is None:
         sys.stderr.write('Please specify POS map file with --pos-map-file\n')
         exit(1)
     opts.lemma_field -= 1
     opts.pos_field -= 1
+    if opts.keep_letters:
+        # Kludge: Add attribute to opts to avoid a global variable
+        setattr(opts, 'non_keep_letters_re',
+                re.compile(ur'([^' + opts.keep_letters.decode('utf-8') + u'])',
+                           re.UNICODE | re.IGNORECASE))
     return (opts, args)
 
 
