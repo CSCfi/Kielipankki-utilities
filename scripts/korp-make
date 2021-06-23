@@ -150,6 +150,22 @@ remove-compound-boundary-algorithm=ALGORITHM "omorfi" compound_boundary_alg
     hyphens replaced with compound boundary markers), and "naive"
     simply removes compound boundary markers
 
+@ Lemgrams
+
+add-lowercase-lemgrams { add_lemgram_opt --add-lowercase-variants }
+    add all-lower-case variants of lemgrams for lemmas containing
+    upper-case letters
+add-lemgrams-without-diacritics { add_lemgram_opt --add-non-diacritic-variants }
+    add variants of lemgrams without diacritics for lemmas containing
+    letters with diacritics
+lemgrams-keep-letters-with-diacritics=CHARS \
+  { add_lemgram_opt --keep-letters-with-diacritics "$1" }
+    Keep the letters with diacritics in CHARS intact even in lemgram
+    variants otherwise without diacritics. CHARS is a string of
+    characters that can be used inside a set of characters in a
+    regular expression (as [^CHARS]). CHARS are retained regardless of
+    their case.
+
 @ Structure ids
 
 add-structure-ids|add-element-ids=STRUCTLIST \
@@ -341,6 +357,8 @@ vrt_file=
 
 text_sort_opts=
 sort_texts=
+add_lemgrams_opts=
+
 
 add_auth_opts () {
     local type opt val
@@ -359,6 +377,14 @@ add_text_sort_opt () {
 	sort_texts=1
     fi
     text_sort_opts="$text_sort_opts $optname $(quote_args_safe "$optarg")"
+}
+
+add_lemgram_opt () {
+    local optname=$1
+    local optarg=$2
+    # optarg may not contain spaces, but in this case they should not
+    # occur
+    add_lemgrams_opts="$lemgram_opts $optname $optarg"
 }
 
 # Process options
@@ -778,7 +804,8 @@ test_skip_add_lemmas_without_boundaries () {
 add_lemgrams () {
     process_vrt $vrt_add_lemgrams --pos-map-file "$lemgram_posmap" \
 	--lemma-field=$(get_attr_num lemma "$input_attrs") \
-	--pos-field=$(get_attr_num pos "$input_attrs")
+	--pos-field=$(get_attr_num pos "$input_attrs") \
+        $add_lemgrams_opts
     if [ $? != 0 ]; then
 	exit_on_error false
     fi
