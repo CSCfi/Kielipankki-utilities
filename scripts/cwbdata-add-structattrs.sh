@@ -19,32 +19,32 @@ the input or based on a key (id) in the input."
 
 optspecs='
 struct-name|structural-attribute-name|element-name=STRUCT "text"
-    add the attributes to structural attribute (element) STRUCT
+    Add the attributes to structural attribute (element) STRUCT.
 attribute-names=ATTRNAMELIST attrnames
-    add the attributes listed in ATTRNAMELIST, separated by spaces; the list
+    Add the attributes listed in ATTRNAMELIST, separated by spaces. The list
     items may be either simple attribute names or mappings of the form
     ATTRNAME:FIELDSPEC, where FIELDSPEC is either an input field number or
-    name as specified by the input field headings; for simple attribute names,
+    name as specified by the input field headings. For simple attribute names,
     if --input-has-field-headings has not been specified, the attributes are
     taken from the input in the order in which they are specified in
-    ATTRNAMELIST, skipping the possible key field
+    ATTRNAMELIST, skipping the possible key field.
 input-has-field-headings has_headings
-    the first line of the TSV input is a field heading row
+    The first line of the TSV input is a field heading row.
 input-in-corpus-order|ordered-input ordered_input
-    add the values in the input in the order they are specified to the
-    structures STRUCT, instead of matching by a key attribute
+    Add the values in the input in the order they are specified to the
+    structures STRUCT, instead of matching by a key attribute.
 key-attribute-name=ATTRNAME "id" key_attr
-    use the attribute in structure STRUCT as the key by which to choose values
-    from the input, unless --input-in-corpus-order is specified
+    Use the attribute in structure STRUCT as the key by which to choose values
+    from the input, unless --input-in-corpus-order is specified.
 key-field=FIELDSPEC "1" key_field
-    use the field FIELDSPEC as the key field in the input to be matched by the
+    Use the field FIELDSPEC as the key field in the input to be matched by the
     values of the key attribute to choose the values, unless
-    --input-in-corpus-order is specified; FIELDSPEC may be either a field
+    --input-in-corpus-order is specified. FIELDSPEC may be either a field
     number (beginning from 1) or a field name, if --input-has-heading-row is
-    specified
+    specified.
 force|overwrite
-    overwrite possible existing values in the corpus data of the attributes to
-    be added
+    Overwrite possible existing values in the corpus data of the attributes to
+    be added.
 '
 
 
