@@ -3,7 +3,7 @@
 
 
 # TODO:
-# - Ensure that keyed input and field headings work
+# - Ensure that field headings work
 # - Fix fieldspec mappings to work
 # - Ordered input by default
 
@@ -19,32 +19,34 @@ the input or based on a key (id) in the input."
 
 optspecs='
 struct-name|structural-attribute-name|element-name=STRUCT "text"
-    add the attributes to structural attribute (element) STRUCT
+    Add the attributes to structural attribute (element) STRUCT.
 attribute-names=ATTRNAMELIST attrnames
-    add the attributes listed in ATTRNAMELIST, separated by spaces; the list
+    Add the attributes listed in ATTRNAMELIST, separated by spaces. The list
     items may be either simple attribute names or mappings of the form
     ATTRNAME:FIELDSPEC, where FIELDSPEC is either an input field number or
-    name as specified by the input field headings; for simple attribute names,
+    name as specified by the input field headings. For simple attribute names,
     if --input-has-field-headings has not been specified, the attributes are
     taken from the input in the order in which they are specified in
-    ATTRNAMELIST, skipping the possible key field
+    ATTRNAMELIST, skipping the possible key field. If an attribute name is
+    followed by a slash (/), the values of the attribute are treated as
+    feature sets: vertical bars in them are preserved unencoded.
 input-has-field-headings has_headings
-    the first line of the TSV input is a field heading row
+    The first line of the TSV input is a field heading row.
 input-in-corpus-order|ordered-input ordered_input
-    add the values in the input in the order they are specified to the
-    structures STRUCT, instead of matching by a key attribute
+    Add the values in the input in the order they are specified to the
+    structures STRUCT, instead of matching by a key attribute.
 key-attribute-name=ATTRNAME "id" key_attr
-    use the attribute in structure STRUCT as the key by which to choose values
-    from the input, unless --input-in-corpus-order is specified
+    Use the attribute in structure STRUCT as the key by which to choose values
+    from the input, unless --input-in-corpus-order is specified.
 key-field=FIELDSPEC "1" key_field
-    use the field FIELDSPEC as the key field in the input to be matched by the
+    Use the field FIELDSPEC as the key field in the input to be matched by the
     values of the key attribute to choose the values, unless
-    --input-in-corpus-order is specified; FIELDSPEC may be either a field
+    --input-in-corpus-order is specified. FIELDSPEC may be either a field
     number (beginning from 1) or a field name, if --input-has-heading-row is
-    specified
+    specified.
 force|overwrite
-    overwrite possible existing values in the corpus data of the attributes to
-    be added
+    Overwrite possible existing values in the corpus data of the attributes to
+    be added.
 '
 
 
@@ -64,10 +66,14 @@ eval "$optinfo_opt_handler"
 
 
 make_attrnames_bare () {
-    local attrspec
+    local attrspec attrname
     attrnames_bare=
     for attrspec in $attrnames; do
-	attrnames_bare="$attrnames_bare ${attrspec%:*}"
+        # Remove possible mapping
+        attrname=${attrspec%:*}
+        # Remove possible trailing slash marking feature-set attribute
+        attrname=${attrname%/}
+	attrnames_bare="$attrnames_bare $attrname"
     done
 }
 
@@ -160,7 +166,7 @@ check_input_length () {
 order_by_key () {
     local struct_count fieldnum saved_lc_all
     struct_count=$(nth_arg 1 $(wc -l "$structpos_file"))
-    fieldnum=$(get_fieldnum $key_field 1)
+    fieldnum=$key_fieldnum
     seq $struct_count > $tmp_prefix.structnum
     saved_lc_all=$LC_ALL
     LC_ALL=C
@@ -194,19 +200,24 @@ order_by_key () {
 }
 
 process_input () {
-    local corpus
+    local corpus linenum1
     corpus=$1
     shift
     comprcat "$@" > "$input_file.tmp"
     check_input_length $corpus "$input_file.tmp"
     input_field_count=$(count_words $(head -1 "$input_file.tmp"))
-    if [ "x$has_headings" != x ]; then
-	heading_fieldnames=$(head -1 "$input_file.tmp")
-	tail -n+2 "$input_file.tmp"
+    if [ "x$has_headings" = x ]; then
+        linenum1=1
     else
-	cat "$input_file.tmp"
-    fi |
-    $encode_special_chars |
+        linenum1=2
+	heading_fieldnames=$(head -1 "$input_file.tmp")
+    fi
+    # Call make_input_fieldnums here because it requires (indirectly
+    # in get_fieldnum) $heading_fieldnames and it sets
+    # $featset_fieldnums_opt required below
+    make_input_fieldnums
+    tail -n+$linenum1 "$input_file.tmp" |
+    $encode_special_chars $featset_fieldnums_opt |
     if [ "x$ordered_input" = x ]; then
 	order_by_key
     else
@@ -215,13 +226,36 @@ process_input () {
 }
 
 make_input_fieldnums () {
-    local heading_fieldnames attrspec attrnum
+    local heading_fieldnames attrspec attrnum fieldnum attrname \
+          featset_fieldnums
     input_fieldnums=
+    featset_fieldnums=
+    key_fieldnum=$(get_fieldnum $key_field $key_field)
     attrnum=1
     for attrspec in $attrnames; do
-	input_fieldnums="$input_fieldnums $(get_fieldnum $attrspec $attrnum)"
+        fieldnum=$(get_fieldnum $attrspec $attrnum)
+	input_fieldnums="$input_fieldnums $fieldnum"
+        attrname=${attrspec%:*}
+        # If attribute name ends in a slash, treat it as having
+        # feature-set values
+        if [ $attrname != ${attrname%/} ]; then
+            # Numbers in featset_fieldnums take into account the key
+            # field, as it is included in the input to
+            # vrt-convert-chars.py
+            if [ $fieldnum -ge $key_fieldnum ]; then
+                fieldnum=$(($fieldnum + 1))
+            fi
+            featset_fieldnums="$featset_fieldnums $fieldnum"
+        fi
 	attrnum=$(($attrnum + 1))
     done
+    # featset_fieldnums_opt is global
+    featset_fieldnums_opt=
+    if [ "x$featset_fieldnums" != x ]; then
+        # Delimit field numbers with commas to be able to use
+        # $featset_fieldnums_opt without double quotes
+        featset_fieldnums_opt="--feature-set-attributes=$(delimit "," $featset_fieldnums)"
+    fi
 }
 
 encode_attr () {
@@ -261,7 +295,6 @@ main () {
     check_existing_attrs $corpus
     make_struct_pos $corpus > "$structpos_file"
     process_input $corpus "$@"
-    make_input_fieldnums
     encode_attrs $corpus
 }
 
