@@ -257,3 +257,16 @@ def transput(args, main, *,
     except IOError as exn:
         print(exn, file = sys.stderr)
         exit(1)
+
+def nat(arg):
+    '''A "type" for an argument parser to enforce that an int is not
+    negative.
+
+    '''
+    n = int(arg) # or raise ValueError
+    if n < 0:
+        # use the same expection that int() raises;
+        # the important thing is that this is caught
+        # by the argument parser
+        raise ValueError('negative literal for nat()')
+    return n
