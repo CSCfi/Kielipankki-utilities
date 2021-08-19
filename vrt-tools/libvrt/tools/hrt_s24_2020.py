@@ -108,11 +108,17 @@ def begin_thread(record, ous):
     # Split topics at a comma that is not followed by a space (at a
     # guess), flank with vertical bars (not sure if topics is ever
     # empty, but then there is just a vertical bar).
-    attributes['topics/'] = (
-        '|'
-        + '|'.join(re.split(r',(?=\S)', TOPICS))
-        + '|'
-    ) if TOPICS else '|'
+    #
+    # attributes['topics/'] = (
+    #    '|'
+    #    + '|'.join(re.split(r',(?=\S)', TOPICS))
+    #    + '|'
+    # ) if TOPICS else '|'
+
+    # On second thought, maybe topics was not meant to be multivalued
+    # but a "super > sub" sequence? That be done so, with ">" already
+    # as "&gt;" everywhere so the ampersand will not be re-escaped.
+    attributes['topics'] = ' &gt; '.join(re.split(r',(?=\S)', TOPICS))
 
     attributes.update(datetime_attributes(CREATED))
 
