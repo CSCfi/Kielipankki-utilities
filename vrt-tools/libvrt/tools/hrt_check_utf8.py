@@ -68,7 +68,8 @@ def main(args, ins, ous):
             failures += 1
 
         if failures >= args.limit and not args.no_limit:
-            exit(0)
+            error(k, 'code', 'stop at {}'.format(failures))
+            return
 
     if args.info and not failures:
         info(0, 'code', 'every line decoded as UTF-8')

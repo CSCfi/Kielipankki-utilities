@@ -86,7 +86,7 @@ def main(args, ins, ous):
         if failures >= args.limit and not args.no_limit:
             error(0, 'code',
                   'stopped checking at {}'.format(args.limit))
-            exit(0)
+            return
 
     if args.info and not failures:
         info(0, 'code', 'no private (BMP PUA; PUA-A, PUA-B) codes')

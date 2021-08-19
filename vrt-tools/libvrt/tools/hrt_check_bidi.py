@@ -82,7 +82,7 @@ def main(args, ins, ous):
         if occurrences >= args.limit and not args.no_limit:
             warn(0, 'code',
                  'stopped checking at {}'.format(args.limit))
-            exit(0)
+            return
 
     if args.info and not occurrences:
         info(0, 'code', 'no explicit BiDi codes')

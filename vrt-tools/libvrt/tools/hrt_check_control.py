@@ -74,7 +74,7 @@ def main(args, ins, ous):
 
         failures += 1
         if failures >= args.limit and not args.no_limit:
-            exit(0)
+            return
 
     if args.info and not failures:
         info(0, 'code', 'no spurious control (C0, DEL, C1) codes')
