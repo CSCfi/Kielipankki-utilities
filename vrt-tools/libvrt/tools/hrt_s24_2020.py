@@ -220,14 +220,20 @@ def fix(data):
 
 character_fixes = str.maketrans({
     # Translations based on observing the occurrences in
-    # comments_2018.
+    # comments_2018 first, then also on the other files.
     #
     # Translations of LS and PS introduce new "<br />".
 
     '\u0001' : None, # delete C0 SOH ^A
     '\u0002' : None, # delete C0 STX ^B (cannot help)
+    '\u0003' : None, # delete C0 ETX ^C (garbage, cannot help)
+    '\u0004' : None, # delete C0 EOT ^D (garbage, cannot help)
+    '\u0005' : None, # delete C0 ENQ ^E (garbage, cannot help)
+    '\u0006' : None, # delete C0 ACK ^F (garbage, cannot help)
+    '\u0007' : None, # delete C0 BEL ^G (garbage, cannot help)
     '\u0008' : None, # delete C0 BS ^H
     '\u000B' : None, # delete C0 VT ^K (cannot help)
+    '\u000C' : None, # delete C0 FF ^L (garbage, cannot help)
     '\u000E' : None, # delete C0 SO ^N (cannot help)
     '\u000F' : None, # delete C0 SI ^O
     '\u0010' : None, # delete C0 DLE ^P
@@ -250,12 +256,15 @@ character_fixes = str.maketrans({
     # C1 : Windows-1252 from Wikipedia
     # https://en.wikipedia.org/wiki/Windows-1252
     '\u0080' : 'U+0080', # C1 PAD : GIGO (€ makes no sense)
+    '\u0081' : None, # delete (one) C1 HOP (not in Windows-1252)
     '\u0082' : None, # delete C1 BPH (‚ makes no sense)
     '\u0083' : None, # delete C1 NBH (ƒ makes no sense)
     '\u0084' : 'U+0084', # C1 IND : GIGO („ makes no sense)
     '\u0085' : '\u2026', # C1 NEL : … (HORIZONTAL ELLIPSIS)
     '\u0086' : 'U+0086', # C1 SSA : GIGO († makes no sense)
+    '\u0089' : None, # delete C1 HTJ (‰ makes no sense)
     '\u0090' : 'U+0090', # C1 DCS : GIGO (not in Windows-1252)
+    '\u0091' : '\u2018', # C1 PU1 : ‘ (once, twice)
     '\u0092' : '\u2019', # C1 PU2 : ’
     '\u0093' : '\u201C', # C1 STS : “
     '\u0094' : '\u201D', # C1 CCH : ”
@@ -273,4 +282,8 @@ character_fixes = str.maketrans({
     # in one and a bad paragraph break at a place that is already bad,
     # so never mind.
     '\u2029' : '<br /><br />',
+
+    # The *only* nonchar (of 66 possible) in this data, occurs in word
+    # forms in what seems to be copy-paste, and seems removable.
+    '\uFFFE' : None
 })
