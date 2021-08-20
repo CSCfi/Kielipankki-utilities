@@ -32,7 +32,7 @@ def parsearguments(args, *, prog = None):
 
                        ''')
 
-    group.add_argument('--num', choices = [ 'w', 'W', 's', 'S' ],
+    group.add_argument('--num', choices = [ 'w', 'W', 's', 'S', 'shy' ],
                        dest = 'num_such',                       
                        help = '''
 
@@ -41,7 +41,7 @@ def parsearguments(args, *, prog = None):
 
                        ''')
 
-    group.add_argument('--run', choices = [ 'w', 'W', 's', 'S' ],
+    group.add_argument('--run', choices = [ 'w', 'W', 's', 'S', 'shy' ],
                        dest = 'num_runs',
                        help = '''
 
@@ -49,7 +49,7 @@ def parsearguments(args, *, prog = None):
 
                        ''')
 
-    group.add_argument('--max', choices = [ 'w', 'W', 's', 'S' ],
+    group.add_argument('--max', choices = [ 'w', 'W', 's', 'S', 'shy' ],
                        dest = 'max_length',
                        help = '''
 
@@ -105,7 +105,8 @@ def parsearguments(args, *, prog = None):
 REX = dict(w = r'\w+',
            W = r'\W+',
            s = r'\s+',
-           S = r'\S+',)
+           S = r'\S+',
+           shy = '\xAD+',)
 
 def main(args, ins, ous):
     '''Transput HRT input stream in ins to TSV report in ous.
