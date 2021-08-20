@@ -8,11 +8,11 @@
 from argparse import ArgumentParser, ArgumentTypeError
 from string import ascii_letters, digits as ascii_digits
 from tempfile import mkstemp
-import os, sys, traceback
+import re, os, sys, traceback
 
 from .bad import BadData, BadCode
 
-VERSION = '0.8.5 (2019-09-13)'
+VERSION = '0.8.6 (2021-08-20)'
 
 def version_args(*, description):
     '''Return an initial argument parser for a command line tool that
@@ -71,8 +71,9 @@ def transput_args(*, description, inplace = True):
 
                        write output to a sibling file, replacing (if
                        ext is given as old/new) or adding an extension
-                       to the input file name; both extensions must
-                       consist of ASCII letters
+                       to the input file name; extensions must consist
+                       of ASCII letters, digits, underscores, and
+                       hyphen, with period allowed as a separator
 
                        ''')
 
@@ -101,29 +102,35 @@ def bakfix(arg):
 def sibext(arg):
     '''Argument type for sibling extension: must be old/new where new must
     not be empty and otherwise both old and new must be sensible
-    filename suffix. Consider sensible only ASCII letters.
+    filename suffix. Used to consider sensible only ASCII letters,
+    found that too restrictive, now allow a (period-separated sequence
+    of components that consist of) ASCII letters, digits, underscores
+    and hyphens.
 
     '''
+    EXT = r'[\w\-]+(?:\.[\w\-]+)*'
+
     if '/' not in arg:
         if not arg:
             raise ArgumentTypeError('empty extension')
-        if all(c in ascii_letters for c in arg):
+        if re.fullmatch(EXT, arg, re.ASCII):
             return arg
-        raise ArgumentTypeError('bad character in extension')
+        raise ArgumentTypeError('not an extension: ' + repr(arg))
     
     extensions = arg.split('/')
     if len(extensions) != 2:
-        raise ArgumentTypeError('old/new must have one slash')
+        raise ArgumentTypeError('old/new must have only one slash')
 
     old, new = extensions
     if not old or not new:
         raise ArgumentTypeError('empty extension')
 
-    if (all(c in ascii_letters for c in old) and
-        all(c in ascii_letters for c in new)):
+    if (re.fullmatch(EXT, old, re.ASCII) and
+        re.fullmatch(EXT, new, re.ASCII)):
         return arg
 
-    raise ArgumentTypeError('bad character in extension')
+    raise ArgumentTypeError('not extensions: '
+                            + repr(old) + ' / ' + repr(new))
 
 def inputstream(infile, as_text):
     if infile is None:
