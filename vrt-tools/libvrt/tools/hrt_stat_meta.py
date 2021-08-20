@@ -60,7 +60,7 @@ def parsearguments(args, *, prog = None):
 
     parser.add_argument('--sum', dest = 'summ',
                         default = None,
-                        choices = [ 'h5', 'v5', 'h11', 'v11' ],
+                        choices = [ 'h5', 'v5', 'h11', 'v11', 'v101' ],
                         help = '''
 
                         summarize instead of reporting each
@@ -213,6 +213,15 @@ def summarize(mem, summ, what, ous):
     elif summ == 'v11':
         for elem, attr in sorted(mem):
             for key, val in zip(head11, quant(mem[elem, attr], 10)):
+                print(elem, attr, what, key, val, sep = '\t', file = ous)
+    elif summ == 'v101':
+        special = { 0 : 'min', 25 : 'lo',
+                    50 : 'med', 75 : 'hi',
+                    100 : 'max' }
+        head101 = tuple(special.get(k, 'p{:02}'.format(k))
+                        for k in range(101))
+        for elem, attr in sorted(mem):
+            for key, val in zip(head101, quant(mem[elem, attr], 100)):
                 print(elem, attr, what, key, val, sep = '\t', file = ous)
     else:
         raise BadCode(summ + ' not implemented')
