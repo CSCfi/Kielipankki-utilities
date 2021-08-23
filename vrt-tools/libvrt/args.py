@@ -65,15 +65,15 @@ def transput_args(*, description, inplace = True):
     else: pass
 
     group.add_argument('--in-sibling', '-I',
-                       dest = 'sibling', metavar = 'ext',
+                       dest = 'sibling', metavar = 'EXT',
                        type = sibext,
                        help = '''
 
-                       write output to a sibling file, replacing (if
-                       ext is given as old/new) or adding an extension
-                       to the input file name; extensions must consist
-                       of ASCII letters, digits, underscores, and
-                       hyphen, with period allowed as a separator
+                       write to a sibling file, adding .EXT to the
+                       input file name, or replacing .OLD with .NEW
+                       when EXT is OLD/NEW (allow ASCII letters,
+                       digits, underscore, hyphen, and period as a
+                       separator)
 
                        ''')
 
