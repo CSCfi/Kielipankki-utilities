@@ -13,7 +13,7 @@ from libvrt.check import error, warn, info
 
 import re
 
-def parsearguments(args, *, prog = None):
+def parsearguments(argv, *, prog = None):
 
     description = '''
 
@@ -54,7 +54,7 @@ def parsearguments(args, *, prog = None):
 
                         ''')
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     args.prog = prog or parser.prog
 
     return args

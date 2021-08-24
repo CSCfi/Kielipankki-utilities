@@ -6,6 +6,7 @@
 # command-line tools - TODO testing this with rel tools first.
 
 from argparse import ArgumentParser, ArgumentTypeError
+from pathlib import Path
 from string import ascii_letters, digits as ascii_digits
 from tempfile import mkstemp
 import re, os, sys, traceback
@@ -72,10 +73,51 @@ def transput_args(*, description, inplace = True):
                        write to a sibling file, adding .EXT to the
                        input file name, or replacing .OLD with .NEW
                        when EXT is OLD/NEW (allow ASCII letters,
-                       digits, underscore, hyphen, and period as a
-                       separator)
+                       digits, underscore, hyphen, and separating
+                       period)
 
                        ''')
+
+    parser.add_argument('--version',
+                        action = 'version',
+                        version = '%(prog)s: vrt tools {}'.format(VERSION))
+
+    return parser
+
+def multiput_args(*, description):
+    '''Return an initial argument parser for a command line tool that
+    produces for a single input file a number of output files, as
+    siblings with names derived from the input file name, possibly
+    removed to a parallel output directory hierarchy.
+
+    '''
+
+    parser = ArgumentParser(description = description)
+
+    parser.add_argument('infile', metavar = 'file',
+                        help = 'input file')
+
+    parser.add_argument('--infix', '-I',
+                        dest = 'infix', metavar = 'EXT',
+                        type = sibext,
+                        help = '''
+
+                        add .EXT to input file name, or replace .OLD
+                        with .NEW when EXT is OLD/NEW (allow ASCII
+                        letters, digits, undescore, hyphen, and
+                        separating period), before adding output file
+                        extension
+
+                        ''')
+
+    parser.add_argument('--outdir', '-D', metavar = 'DIR',
+                        help = '''
+
+                        output directory, created as needed, extended
+                        with infile path components after any parent
+                        reference (infile must be relative)
+
+                        ''')
 
     parser.add_argument('--version',
                         action = 'version',
@@ -260,10 +302,85 @@ def transput(args, main, *,
     try:
         backfile is None or os.rename(infile, backfile)
         outfile is None or os.rename(temp, outfile)
-        exit(status)
+        # return succesfully
+        # used to exit(0) but new multiput tools need to continue
+        # TODO test that old heavy tools still finish, normally
     except IOError as exn:
         print(exn, file = sys.stderr)
         exit(1)
+
+def multiput(args, main):
+    '''Arrange to call main(args, infile, outdir) after ensuring that
+    outdir exists. Extend args.outdir with a segment of args.infile
+    parent names. Pass infile and outdir to main as pathlib objects.
+
+    The purpose is to support tools that produce many output files
+    from one input file and base the output filenames on the input
+    filename.
+
+    '''
+
+    # verify that input file exists, and is properly relative to . if
+    # output directory is specified
+
+    infile = Path(args.infile)
+    print('TODO check infile is a file', file = sys.stderr)
+    if not infile.exists():
+        print('{}: cannot access input file: {}'
+              .format(args.prog, infile),
+              file = sys.stderr)
+        exit(1)
+
+    # multiput tools receive outfile name that they extend
+    # with their own suffixes, after infix processing here
+
+    outfile = infile.name
+    if args.infix and '/' in args.infix:
+        old, new = args.infix.split('/')
+        if outfile.endswith('.' + old):
+            outfile = outfile[:-len(old)] + new
+        else:
+            print('{}: no such suffix to replace: {}'
+                  .format(args.prog, old),
+                  '{}: {}'.format(args.prog, outfile),
+                  sep = '\n', file = sys.stderr)
+            exit(1)
+    elif args.infix:
+        outfile = outfile + '.' + args.infix
+
+    # if outdir is specified, extend it with those parent names of the
+    # input filename that follow the last .., if any, then ensure that
+    # the resulting outdir exists
+
+    outdir = args.outdir
+    if outdir:
+        if infile.is_absolute():
+            print('{}: error: --outdir requires relative input filename'
+                  .format(args.prog),
+                  '{}: input filename: {}'.format(args.prog, infile),
+                  sep = '\n', file = sys.stderr)
+            exit(1)
+
+        # deliberately off by one so the last index is just past ".."
+        starts = (tuple(k for k, part in enumerate(infile.parent.parts,
+                                                   start = 1)
+                        if part in ('..', '.'))
+                  or (0,))
+        subdir = Path(*infile.parent.parts[starts[-1]:])
+        outdir = Path(args.outdir) / subdir
+
+        try:
+            outdir.mkdir(parents = True, exist_ok = True)
+        except OSError as exn:
+            print('{}: error: could not make output directory: {}'
+                  .format(args.prog, outdir))
+            print('{}: {}'.format(args.prog, exn))
+            exit(1)
+
+    if outdir is None:
+        outdir = infile.parent
+
+    main(args, str(infile), str(outdir / outfile))
 
 def nat(arg):
     '''A "type" for an argument parser to enforce that an int is not
