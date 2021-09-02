@@ -324,12 +324,18 @@ def multiput(args, main):
     # output directory is specified
 
     infile = Path(args.infile)
-    print('TODO check infile is a file', file = sys.stderr)
     if not infile.exists():
-        print('{}: cannot access input file: {}'
-              .format(args.prog, infile),
+        print('{}: not found: {}'.format(args.prog, infile),
               file = sys.stderr)
         exit(1)
+    elif not infile.is_file():
+        # a symlink that points to a regular file should work; mainly
+        # detecting directory names early; filename is needed for the
+        # naming of the output files; should one allow fifo or such?
+        print('{}: not a regular file: {}'.format(args.prog, infile),
+              file = sys.stderr)
+        exit(1)
+    else: pass
 
     # multiput tools receive outfile name that they extend
     # with their own suffixes, after infix processing here

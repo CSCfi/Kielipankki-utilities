@@ -11,7 +11,7 @@ from collections import defaultdict, Counter
 
 import re
 
-def parsearguments(args, *, prog = None):
+def parsearguments(argv, *, prog = None):
 
     description = '''
 
@@ -77,7 +77,7 @@ def parsearguments(args, *, prog = None):
 
                         ''')
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     args.prog = prog or parser.prog
 
     return args
@@ -143,11 +143,17 @@ def find_data(args, ins):
 def read_paragraph_lines(klines):
     '''Read numbered lines, yield each line until </paragraph>.'''
 
-    while True:
-        _, line = next(klines)
-        if line.startswith('</paragraph>'):
-            return
-        yield line
+    try:
+        while True:
+            _, line = next(klines)
+            if line.startswith('</paragraph>'):
+                return
+            yield line
+    except StopIteration:
+        # the paragraph and the whole file ended prematurely but it is
+        # not a concern of this tool to report on such issues; return
+        # as if the paragraph just ended
+        return
 
 def report_stats(data, stat, what, summ, ous):
     '''Report on stat(para) for each para in data.
