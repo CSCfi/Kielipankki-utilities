@@ -85,10 +85,17 @@ def ship_comment(data, ous):
         end_message(ous)
     pass
 
+ESC_META = str.maketrans({
+    # '<' : '&lt;',
+    # '>' : '&gt;',
+    # '&' : '&amp;',
+    '"' : '&quot;',
+})
+
 def esc_meta(value):
-    # should not this come from some library?
-    # must entify < > & and "
-    return value
+    # should not this come from some library? maybe not - corpus
+    # specific what is already entified and what is entified here
+    return value.translate(ESC_META)
 
 def begin_thread(record, ous):
     [ THREAD_ID, TITLE, BODY,
