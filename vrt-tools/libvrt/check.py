@@ -28,6 +28,7 @@ def _message(k, level, kind, what):
     if _binary:
         _output_stream.write(b'\t'.join((str(k).encode('UTF-8'),
                                          level, kind, what)))
+        _output_stream.write(b'\n')
     else:
         print(k, level, kind, what, sep = '\t',
               file = _output_stream)
