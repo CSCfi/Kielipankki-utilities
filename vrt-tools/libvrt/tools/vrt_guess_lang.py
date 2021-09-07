@@ -1,9 +1,12 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
-'''A preliminary implementation of a language guesser, using pr1 and a
-meta component. The underlying tool calls a specially opened language
-server, still exercising a tentative transput format.
+'''A language-recognition implementation, using pr1 and a meta
+component. The underlying tool is the HeLI recognizer that reads each
+sentence on a line of its own and writes a corresponding language code
+on a line of its own:
+
+https://zenodo.org/record/5052819#.YTeUAVtRVH4
 
 '''
 
@@ -16,21 +19,26 @@ from libvrt.args import transput_args
 from libvrt.bad import BadData, BadCode
 from libvrt.pr1 import transput
 
+try:
+    from outsidelib import HeLI
+except ImportError as exn:
+    # So it will crash when actually trying to launch the underlying
+    # tool and HeLI is not defined, but --help and --version
+    # options will work!
+    print('Import Error:', exn, file = sys.stderr)
+
 def _name(arg):
     if re.fullmatch('\w+', arg, re.ASCII):
         return arg.encode('UTF-8')
     raise ArgumentTypeError('bad name: ' + repr(arg))
 
-def parsearguments(argv, *, _aux_guess_lang = None):
-    # smuggling in aux-guess-lang, with a real path,
-    # so that actual tool can find it
+def parsearguments(argv):
 
     description = '''
 
-    (Preliminary) Exercise a language-identification mechanism for
-    sentences in VRT documents, using `./aux-guess-lang` to add (or
-    overwrite) in each processed sentence a new language code
-    attribute.
+    Exercise a language-identification mechanism for sentences in VRT
+    documents to add (or overwrite) in each processed sentence a new
+    language code attribute.
 
     '''
     parser = transput_args(description = description)
@@ -67,27 +75,15 @@ def parsearguments(argv, *, _aux_guess_lang = None):
 
                         ''')
 
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--leak-ins',
-                       dest = 'leakins',
-                       action = 'store_true',
-                       help = 'leak input of fake-guess-lang to stderr')
-    group.add_argument('--leak-ous',
-                       dest = 'leakous',
-                       action = 'store_true',
-                       help = 'leak output of fake-guess-lang to stderr')
-
     args = parser.parse_args(argv)
     args.prog = parser.prog
-    args._aux_guess_lang = _aux_guess_lang
     return args
 
 def main(args, ins, ous):
 
-    proc = Popen([ args._aux_guess_lang,
-                   *([ '--ins' ] if args.leakins else
-                     [ '--ous' ] if args.leakous else
-                     []) ],
+    # should add -c to also receive a confidence score; without
+    # input/output filenames HeLi should work stdin/stdout
+    proc = Popen([ 'java', '-jar', HeLI ],
                  stdin = PIPE,
                  stdout = PIPE,
                  stderr = None)
@@ -125,7 +121,9 @@ class _state: now = True
 def pr1_test(*, meta = (), tags = ()):
     '''Establish whether to send the next sentence to the external tool.
     Except mainly keep track of the current context, to be shipped and
-    cleared when first shipping a sentence in that context.
+    cleared when first shipping a sentence in that context. (Remnant
+    of a design where the language recognizer would have received such
+    context information. Maybe some day it might actually use it?)
 
     '''
     for line in chain(meta, tags):
@@ -149,34 +147,35 @@ def pr1_test(*, meta = (), tags = ()):
         return _state.now
 
 def pr1_send(sentence, proc, *, box = [0]):
-    '''Ship and clear any currently tracked meta, then ship the (tokens
-    of) the current sentence, all in the format expected by the
-    underlying (currently fake) tool.
+    '''Ship (except do not ship any more) and clear any currently tracked
+    meta, then ship the (tokens of) the current sentence, all in the
+    format expected by the underlying tool.
 
     '''
     for level in ('text', 'para', 'sent'):
         if META[level] is not None:
-            proc.stdin.write(META[level])
+            # proc.stdin.write(META[level])
             META[level] = None
 
     box[0] += 1
-    proc.stdin.write(b'data\t')
-    proc.stdin.write(str(box[0]).encode('UTF-8'))
-    for record in sentence:
-        # should unescape the word
-        proc.stdin.write(b'\t')
+    # proc.stdin.write(b'data\t')
+    # proc.stdin.write(str(box[0]).encode('UTF-8'))
+    for k, record in enumerate(sentence):
+        # in an ideal world should unescape the word,
+        # but even &amp; is presumably quite rare,
+        # let alone &lt; or &gt;
+        k and proc.stdin.write(b' ')
         proc.stdin.write(record[WORD])
     else:
         proc.stdin.write(b'\n')
 
 def pr1_read(ins):
-    '''Return a reader of sentences analyses (just a sentence counter and
-    a language code) from the external process, one sentence at a
-    time.
+    '''Return a reader of sentences analyses (a language code) from the
+    external process, one sentence at a time.
 
     '''
     for line in ins:
-        sk, lang = line.rstrip(b'\r\n').split(b'\t')
+        lang = line.rstrip(b'\r\n')
         yield lang
 
 def pr1_join_meta(old, new, ous):
