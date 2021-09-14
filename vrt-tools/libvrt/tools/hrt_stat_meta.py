@@ -164,7 +164,7 @@ def parse_meta(args, ins):
         elem = mo.group(1)
         if elemi and elem not in elemi: continue
         attr = dict((key, val)
-                    for key, val in re.findall(r'(\S+)="(.*?)"', line)
+                    for key, val in re.findall(r'(\S+?)="(.*?)"', line)
                     if not attri or key in attri)
 
         yield k, elem, attr
