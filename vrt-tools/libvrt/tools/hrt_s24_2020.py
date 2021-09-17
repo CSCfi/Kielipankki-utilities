@@ -233,7 +233,7 @@ def remove_internal_shy(data):
     invisible to a reader of the message, and otherwise potentially
     problematic.
 
-    Also remove \U00AD after a space or a hyphen, or before a space or
+    Also remove U+00AD after a space or a hyphen, or before a space or
     a hyphen (some occur as both). Is there any explanation for such?
 
     Some (few) double SHY were spotted, so remove runs.
