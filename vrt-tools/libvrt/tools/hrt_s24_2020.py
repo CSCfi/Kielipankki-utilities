@@ -222,7 +222,23 @@ def fix(data):
 
     '''
     if FIXING:
+        data = remove_internal_shy(data)
         return data.translate(character_fixes)
+    return data
+
+def remove_internal_shy(data):
+    '''Remove runs of U+00AD between letters (including digits and
+    underscores, because why not and it was easier that way). Vastly
+    many SHY are either compound boundaries or full syllabification,
+    presumably invisible to a reader of the message, and otherwise
+    potentially problematic.  Some double SHY were spotted, so remove
+    runs.
+
+    '''
+
+    if '\xad' not in data: return data # premature optimization
+    data = re.sub(r'(?<=\w)\xad+(?=\w)', '', data)
+
     return data
 
 character_fixes = str.maketrans({
