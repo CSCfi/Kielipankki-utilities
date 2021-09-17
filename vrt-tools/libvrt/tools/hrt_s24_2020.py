@@ -227,17 +227,22 @@ def fix(data):
     return data
 
 def remove_internal_shy(data):
-    '''Remove runs of U+00AD between letters (including digits and
-    underscores, because why not and it was easier that way). Vastly
-    many SHY are either compound boundaries or full syllabification,
-    presumably invisible to a reader of the message, and otherwise
-    potentially problematic.  Some double SHY were spotted, so remove
-    runs.
+    '''Remove U+00AD between letters (including digits and underscores,
+    because why not and it was easier that way). Vastly many SHY are
+    either compound boundaries or full syllabification, presumably
+    invisible to a reader of the message, and otherwise potentially
+    problematic.
+
+    Also remove \U00AD after a space or a hyphen, or before a space or
+    a hyphen (some occur as both). Is there any explanation for such?
+
+    Some (few) double SHY were spotted, so remove runs.
 
     '''
 
     if '\xad' not in data: return data # premature optimization
     data = re.sub(r'(?<=\w)\xad+(?=\w)', '', data)
+    data = re.sub(r'(?<=[\s\-])\xad+|\xad+(?=[\s\-])', '', data)
 
     return data
 
