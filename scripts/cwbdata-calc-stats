@@ -1,0 +1,190 @@
+#! /usr/bin/env python3
+
+# cwbdata-calc-stats
+#
+# Calculate structural attribute statistics from CWB corpus data and output
+# them as TSV.
+#
+# For each combination of structural key attribute annotation values in each
+# CWB corpus corpus_id, count the number of different structural count
+# attribute annotation values and the number of tokens within them. Output the
+# result as a TSV table with columns corpus_id, each key attribute, counts of
+# count attribute combinations and token count.
+#
+# For usage and some more details, run "cwbdata-calc-stats --help".
+
+# TODO:
+# - Add column headings (optionally)
+# - Handle specified attributes missing from (some) corpora
+
+
+import argparse
+import glob
+import re
+import sys
+import textwrap
+
+from subprocess import Popen, PIPE, check_output
+
+
+class StatsCalculator:
+
+    def __init__(self):
+        self._args = None
+
+    def run(self):
+        '''Parse arguments, calculate and output statistics'''
+        self._parse_args()
+        for corpus in self._get_corpora():
+            if not self._args.quiet:
+                print(corpus, file=sys.stderr)
+            self._calc_stats(corpus)
+
+    def _parse_args(self):
+        '''Parse command-line arguments'''
+
+        def format_paragraphs(text):
+            '''Remove indentation and fill each text paragraph separately'''
+            return '\n\n'.join(textwrap.fill(para, width=78)
+                               for para in textwrap.dedent(text).split('\n\n'))
+
+        description = format_paragraphs('''\
+            Calculate structural attribute statistics from CWB corpus data
+            and output them as a TSV table.
+
+            For each combination of structural key attribute annotation
+            values in each CWB corpus specified, count the number of
+            different structural count attribute annotation values and the
+            number of tokens within them. Output the result as a TSV table
+            with columns for corpus id, each key attribute, counts of count
+            attribute combinations and token count.
+            ''')
+        epilog = format_paragraphs('''\
+            The attributes in ATTRLISTs need to be structural attributes
+            with annotations, specified in the notation STRUCT_ATTR,
+            such as "sentence_id". For example, to count the number
+            of sentences, you need to specify an attribute with unique
+            values within the next-larger structure, such as "sentence_id",
+            instead of just "sentence" (a structural attribute without
+            annotations).
+
+            Note that specifying --count-attributes "x_a y_b z_c" counts
+            the number of combinations x_a, x_a+y_b and x_a+y_b+z_c, instead
+            of individual values of y_b and z_c. As the counter for x_a+y_b
+            is incremented when x_a changes, x_a should in general cover a
+            larger extent than y_b. However, it can be a different annotation
+            attribute b of the same structure x if multiple x can have the
+            same value for b.
+            ''')
+        argparser = argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description=description, epilog=epilog)
+        argparser.add_argument(
+            '--key-attributes', metavar='ATTRLIST', dest='key_attrs',
+            required=True,
+            help='''Use the structural attributes listed in ATTRLIST as a key
+                    for which to calculate statistics. Attribute names in
+                    ATTRLIST are separated by spaces.''')
+        argparser.add_argument(
+            '--count-attributes', metavar='ATTRLIST', dest='count_attrs',
+            default='',
+            help='''Count the number of different values for the structural
+                    attributes listed in ATTRLIST (attribute names separated by
+                    spaces). If ATTRLIST is empty, count only tokens (the
+                    default)''')
+        argparser.add_argument(
+            '--quiet', action='store_true',
+            help='''Do not print progress information to stderr.''')
+        argparser.add_argument(
+            'corpus', nargs='+',
+            help='''Corpora (CWB corpus ids) for which to calculate statistics.
+                    The statistics are calculated separately for each corpus,
+                    and the corpus id is output as the first field. Shell
+                    wildcards in corpus ids are expanded.''')
+        self._args = argparser.parse_args()
+        self._args.key_attrs = self._args.key_attrs.split()
+        self._args.count_attrs = self._args.count_attrs.split()
+
+    def _get_corpora(self):
+        '''Return corpora matching self._args.corpus'''
+        regdir = check_output(['cwb-config', '--registry']).strip()
+        corp_specs = [regdir.decode() + '/' + corp
+                      for corp in self._args.corpus]
+        corpora = []
+        for corp_spec in corp_specs:
+            corpora.extend(corp for fname in glob.iglob(corp_spec)
+                           for (_, _, corp) in (fname.rpartition('/'),)
+                           # Only valid corpus ids
+                           if re.fullmatch(r'[a-z0-9_-]+', corp))
+        return sorted(corpora)
+
+    def _calc_stats(self, corpus):
+        '''Calculate and output statistics for corpus'''
+        num_counts = len(self._args.count_attrs)
+        # Add token count
+        counts = [0] * (num_counts + 1)
+        key_attr_end = len(self._args.key_attrs) + 1
+        count_attr_end = key_attr_end + num_counts
+        prev_key = None
+        prev_vals = [None] * num_counts
+
+        def output():
+            '''Output the statistics in counts for prev_key'''
+            print('\t'.join([corpus, prev_key] + [str(cnt) for cnt in counts]))
+
+        def increment_counts(start):
+            '''Increment counts starting from index start and set prev_vals'''
+            nonlocal prev_vals
+            for j in range(start, num_counts - 1):
+                counts[j] += 1
+                prev_vals[j] = fields[j + key_attr_end]
+
+        # cwb-scan-corpus outputs token frequencies for each combination
+        # of attribute values, sorted in canonical order (with -S).
+        # Use line buffering (universal_newlines=True, bufsize=1) to read
+        # line by line.
+        # TODO: Use a separate thread for cwb-scan-corpus
+        with Popen(['cwb-scan-corpus', '-S', '-q', corpus.upper()]
+                   + self._args.key_attrs + self._args.count_attrs,
+                   stdout=PIPE, stderr=PIPE,
+                   universal_newlines=True, bufsize=1) as scan:
+            for line in scan.stdout:
+                fields = line.strip().split('\t')
+                token_count = fields[0]
+                key = '\t'.join(fields[1:key_attr_end])
+                if key != prev_key and prev_key is not None:
+                    # When key attribute values change, output and reset counts
+                    output()
+                    counts = [0] * (num_counts + 1)
+                    increment_counts(0)
+                else:
+                    # Otherwise, check for each count attribute except the last
+                    # one if the value differs from the previous one; if it
+                    # does, increment the count for that attribute and the ones
+                    # following it. This works because of the canonical order:
+                    # a a < a b < b a < b b
+                    for i in range(num_counts - 1):
+                        if fields[i + key_attr_end] != prev_vals[i]:
+                            increment_counts(i)
+                            break
+                # The last attribute count is always incremented, as we count
+                # in effect structures
+                if num_counts > 0:
+                    counts[-2] += 1
+                # Add token count
+                counts[-1] += int(token_count)
+                prev_key = key
+            # prev_key is None if cwb-scan-corpus output is empty (terminated
+            # by an error)
+            if prev_key is not None:
+                output()
+            # Check and output possible error messages from cwb-scan-corpus
+            err_out = ''.join(line for line in scan.stderr)
+            if err_out:
+                sys.stderr.write(f'cwbdata-calc-stats: cwb-scan-corpus error'
+                                 f' when processing corpus {corpus}:\n')
+                sys.stderr.write(textwrap.indent(err_out, '  '))
+
+
+if __name__ == '__main__':
+    StatsCalculator().run()
