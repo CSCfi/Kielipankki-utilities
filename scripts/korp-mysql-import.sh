@@ -16,7 +16,7 @@ dbname=korp
 
 prepare_tables=
 imported_file_list=
-relations_format=auto
+relations_format=new
 table_name_template=@
 show_warnings=1
 mysql_extra_opts=
@@ -225,10 +225,10 @@ Options:
   -I, --imported-file-list FILE
                   do not import files listed in FILE, and write the names of
                   imported files to FILE
-  --relations-format auto|new|old
-                  the format for word picture relation tables: "auto" for
-                  inferring automatically, "new" for Korp backend 2.5 and
-                  later, or "old" for Korp backend versions 2 to 2.3 (default:
+  --relations-format new|old|auto
+                  the format for word picture relation tables: "new" for Korp
+                  backend 2.5 and later, "old" for Korp backend versions 2 to
+                  2.3, or "auto" for inferring automatically (default:
                   "$relations_format")
   --table-name-template TEMPLATE
                   use TEMPLATE for naming tables; TEMPLATE should contain @
