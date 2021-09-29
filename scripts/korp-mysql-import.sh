@@ -437,7 +437,7 @@ infer_relations_format () {
 		echo relations_new
 	    fi
 	else
-	    if [ "x$int_format" = new ]; then
+	    if [ "x$int_format" = xnew ]; then
 		echo relations_new
 	    else
 		echo relations
