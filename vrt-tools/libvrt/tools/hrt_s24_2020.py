@@ -125,7 +125,8 @@ def begin_thread(record, ous):
     # On second thought, maybe topics was not meant to be multivalued
     # but a "super > sub" sequence? That be done so, with ">" already
     # as "&gt;" everywhere so the ampersand will not be re-escaped.
-    attributes['topics'] = ' &gt; '.join(re.split(r',(?=\S)', TOPICS))
+    # (Later further renamed to topic_names.)
+    attributes['topic_names'] = ' &gt; '.join(re.split(r',(?=\S)', TOPICS))
 
     attributes.update(datetime_attributes(CREATED))
 
