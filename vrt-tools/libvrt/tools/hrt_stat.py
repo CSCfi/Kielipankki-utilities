@@ -110,4 +110,21 @@ def main(args, infile, outfile):
              hrt_stat_data.main)
 
     now = _secs()
+    args.quiet or print('{} -- {} (data maxnw)'.format(now, args.prog))
+    args.quiet or print('{} -- longest non-word-code-run in each paragraph'
+                        .format(now))
+    args.quiet or print('{} {}.data.maxnw'.format(now, outfile))
+    transput(hrt_stat_data.parsearguments
+             (
+                 [
+                     '--out', outfile + '.data.maxnw',
+                     '--max=W',
+                     '--sum=h5',
+                     infile
+                 ],
+                 prog = '{} (data maxnw)'.format(args.prog)
+             ),
+             hrt_stat_data.main)
+
+    now = _secs()
     args.quiet or print('{} -- {} (done)'.format(now, args.prog))
