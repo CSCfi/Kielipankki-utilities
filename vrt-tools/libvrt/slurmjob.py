@@ -15,6 +15,9 @@ def moduleloader(args):
     which may also cause the "command" to be a comment so the modules
     are not actually loaded.
 
+    (The language identification tool needs quite recent java, hence
+    the loading of "biojava/16" now instead of the Puhti default.)
+
     '''
     kieli = ({ 'yes' : 'module load kieli',
                'out' : '2>&1 module load kieli',
@@ -23,7 +26,7 @@ def moduleloader(args):
                'no' : '# module load kieli' }
              [args.kieli])
 
-    if guesshost() == 'puhti': kieli += ' biojava'
+    if guesshost() == 'puhti': kieli += ' biojava/16'
 
     return kieli
 
