@@ -27,12 +27,37 @@ from subprocess import Popen, PIPE
 import pytest
 import yaml
 
-from .conftest import option_scripttest_granularity
+
+# Scripttest granularity: one of "value", "outputitem" or "programrun"; see the
+# help text in add_pytest_option_scripttest_granularity for more information.
+_option_scripttest_granularity = 'value'
+
+
+def add_pytest_option_scripttest_granularity(parser):
+    """Add custom option --scripttest-granularity to pytest option parser."""
+    parser.addoption(
+        '--scripttest-granularity',
+        choices=['value', 'outputitem', 'programrun'], default='value',
+        help="""
+            parametrize scripttestlib tests at the given granularity,
+            indicating what is made a pytest test of its own (from
+            finest to coarsest): "value" (each value to be tested is
+            made its own test), "outputitem" (each output item of a
+            program run) or "programrun" (each program run) (default:
+            "%(default)s")
+        """
+        )
+
+
+def set_scripttest_granularity(granularity):
+    """Set scripttest granularity to one of {value, outputitem, programrun}."""
+    global _option_scripttest_granularity
+    _option_scripttest_granularity = granularity
 
 
 def _get_granularity():
     """Return the value of the custom --scripttest-granularity option"""
-    return option_scripttest_granularity
+    return _option_scripttest_granularity
 
 
 def make_param_id(val):
