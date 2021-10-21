@@ -1,0 +1,388 @@
+
+# Tests for vrt-add-struct-attrs
+
+
+# Base cases
+
+- name: 'vrt-add-struct-attrs: No data file'
+  input:
+    cmdline: vrt-add-struct-attrs
+    stdin: ''
+  output:
+    returncode: 2
+    stderr:
+      regex: ".*the following arguments are required: --data-file.*"
+    stdout: ''
+
+
+- name: 'vrt-add-struct-attrs: Empty VRT and data file'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file /dev/null
+    stdin: ''
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: ''
+
+
+- name: 'vrt-add-struct-attrs: Empty VRT, non-empty data file'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv
+    stdin: ''
+    file:attrs.tsv: &tsv-1 |
+      a1	a2
+      aa	bb
+      cc	dd
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: ''
+
+
+- name: 'vrt-add-struct-attrs: Same-length VRT and data file'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv
+    stdin: |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a="1" a1="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" a1="cc" a2="dd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-struct-attrs: Longer data file than VRT'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv
+    stdin: |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a="1" a1="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-struct-attrs: Longer VRT than data file'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv
+    stdin: |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: |
+      a1	a2
+      aa	bb
+  output:
+    returncode: 1
+    stderr: |
+      vrt-add-struct-attrs: Data file attrs.tsv has fewer data lines (1) than the input VRT has text structures
+    stdout: |
+      <text a="1" a1="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-struct-attrs: Input structures without attributes'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv
+    stdin: |
+      <text>
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a1="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a1="cc" a2="dd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-struct-attrs: Check existing attribute values (match)'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv
+    stdin: |
+      <text a1="aa">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a1="cc">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a1="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a1="cc" a2="dd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-struct-attrs: Check existing attribute values (mismatch)'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv
+    stdin: |
+      <text a1="ab">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a1="cc">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    returncode: 0
+    stderr: |
+      vrt-add-struct-attrs: Warning: Values for attribute a1 differ on line 2 of attrs.tsv and line 1 of VRT input
+    stdout: |
+      <text a1="ab" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a1="cc" a2="dd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-struct-attrs: --structure-name'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --structure-name sentence
+    stdin: |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a="1">
+      <sentence a1="aa" a2="bb">
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence a1="cc" a2="dd">
+      b
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-struct-attrs: --attribute names, no column heading row'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --attribute-names "b c"
+    stdin: |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+      <text a="3">
+      <sentence>
+      c
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a="1" b="a1" c="a2">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="aa" c="bb">
+      <sentence>
+      b
+      </sentence>
+      </text>
+      <text a="3" b="cc" c="dd">
+      <sentence>
+      c
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-struct-attrs: --overwrite-attributes (some)'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --overwrite-attributes a1
+    stdin: |
+      <text a1="ab" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a1="cc" a2="cd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    returncode: 0
+    stderr: |
+      vrt-add-struct-attrs: Warning: Values for attribute a2 differ on line 3 of attrs.tsv and line 6 of VRT input
+    stdout: |
+      <text a1="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a1="cc" a2="cd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-struct-attrs: --overwrite-attributes (all)'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --overwrite-attributes "a1 a2"
+    stdin: |
+      <text a1="ab" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a1="cc" a2="cd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a1="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a1="cc" a2="dd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-struct-attrs: Convert to entities'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv
+    stdin: |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: |
+      a1	a2
+      <>	ab&"cd
+      &quot;&lt;	ab&gt;cd&amp;ef&amp
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a="1" a1="&lt;&gt;" a2="ab&amp;&quot;cd">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" a1="&quot;&lt;" a2="ab&gt;cd&amp;ef&amp;amp">
+      <sentence>
+      b
+      </sentence>
+      </text>
