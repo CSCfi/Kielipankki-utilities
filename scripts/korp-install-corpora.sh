@@ -207,6 +207,11 @@ get_package_name_date () {
     date=${date%%.*}
     # Separate suffix
     suffix=${date#*-}
+    # If no suffix, default to 0
+    if [ $suffix = $date ]; then
+        suffix=0
+    fi
+    # Remove suffix from date
     date=${date%-*}
     printf "%s%04d" "$date" "$suffix"
 }
