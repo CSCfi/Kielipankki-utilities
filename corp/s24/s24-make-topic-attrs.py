@@ -2,13 +2,13 @@
 
 
 import csv
-import os.path
 import re
 import sys
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                                 '../../scripts/korpimport')))
-import scriptutil
+# libpaths adds local library paths to sys.path (korpimport)
+import libpaths
+
+from korpimport import scriptutil
 
 
 class TopicAttributeMaker(scriptutil.ArgumentRunner):

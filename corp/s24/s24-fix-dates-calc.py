@@ -4,15 +4,13 @@
 # FIXME: The script has very little error checking
 
 
-import os.path
-import sys
-
 from collections import defaultdict
 from datetime import datetime as dt
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                             '../../scripts/korpimport')))
-import scriptutil
+# libpaths adds local library paths to sys.path (korpimport)
+import libpaths
+
+from korpimport import scriptutil
 
 
 class DateApproximator(scriptutil.ArgumentRunner):

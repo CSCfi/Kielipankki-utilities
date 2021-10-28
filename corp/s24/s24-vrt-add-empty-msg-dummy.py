@@ -8,11 +8,9 @@
 # - Rename and move to vrt-tools.
 
 
-import os.path
-import sys
+# libpaths adds local library paths to sys.path (VRT Tools)
+import libpaths
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                             '../../vrt-tools')))
 import vrtargsoolib
 import vrtnamelib
 

@@ -1,14 +1,12 @@
 #! /usr/bin/env python3
 
 
-import os.path
 import re
-import sys
 
-for dir_ in ['scripts/korpimport', 'vrt-tools']:
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                                 '../../' + dir_)))
-import scriptutil
+# libpaths adds local library paths to sys.path (korpimport, VRT Tools)
+import libpaths
+
+from korpimport import scriptutil
 import vrtnamelib
 
 

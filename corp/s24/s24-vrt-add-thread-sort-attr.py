@@ -1,12 +1,11 @@
 #! /usr/bin/env python3
 
 
-import os.path
 import re
-import sys
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                             '../../vrt-tools')))
+# libpaths adds local library paths to sys.path (VRT Tools)
+import libpaths
+
 import vrtargsoolib
 
 
