@@ -52,14 +52,18 @@ _\t_\tPunct\t_\t1\t0\tROOT\t_\t1
 
         text = []
         for line in inf:
-            text.append(line)
-            if line.startswith(b'</text>'):
-                if (len(text) == 2):
-                    text = make_dummy(text)
-                else:
-                    text = make_nonempty(text)
-                output_lines(text)
-                text = []
+            if not (text or (line.startswith(b'<text') and line[5] in b' >')):
+                # Outside <text>, for example a VRT comment
+                ouf.write(line)
+            else:
+                text.append(line)
+                if line.startswith(b'</text>'):
+                    if (len(text) == 2):
+                        text = make_dummy(text)
+                    else:
+                        text = make_nonempty(text)
+                    output_lines(text)
+                    text = []
 
 
 if __name__ == '__main__':
