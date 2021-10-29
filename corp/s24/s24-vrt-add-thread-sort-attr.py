@@ -57,15 +57,17 @@ class ThreadSortKeyAdder(vrtargsoolib.InputProcessor):
                     + line[-2:])
 
         def get_attr_values(line):
-            # Note that this assumes that the order of the attributes is as
-            # below.
-            mo = re.search(
-                (b' comment="(?P<comment>.*?)".*'
-                 b' datetime="(?P<datetime>.*?)".*'
-                 b' parent="(?P<parent>.*?)".*'
-                 b' thread="(?P<thread>.*?)"'),
-                line)
-            return mo.groupdict() if mo else {}
+            return dict((key, get_attr_value(line, patt))
+                        for key, patt in (
+                            ('comment', b'comment(?:_id)?'),
+                            ('datetime', b'(?:datetime|created)'),
+                            ('parent', b'parent(?:_comment_id)?'),
+                            ('thread', b'thread(?:_id)?'),
+                        ))
+
+        def get_attr_value(line, attrname_re):
+            mo = re.search(attrname_re + b'="(.*?)"', line)
+            return mo.group(1) if mo else None
 
         def make_key(attrvals):
             key = attrvals['datetime']
