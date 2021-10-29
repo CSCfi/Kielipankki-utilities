@@ -74,14 +74,23 @@ class ThreadSortKeyAdder(vrtargsoolib.InputProcessor):
             # ouf.write(b'>> attrvals = ' + repr(attrvals).encode() + b'\n')
             # ouf.write(b'>> key(1) = ' + key + b'\n')
             if attrvals['comment'] == b'0':
+                # Thread start message: key is the (thread start) timestamp and
+                # thread id (padded)
                 # ouf.write(b'>> branch1\n')
                 key = append_thread_id(key, attrvals['thread'])
                 # ouf.write(b'>> key(2) = ' + key + b'\n')
             else:
+                # Comment: if parent key is available (parent in this data file
+                # (year)), key is the key of the parent followed by the
+                # timestamp of this message; if parent key is not available,
+                # key is the timestamp of the first message of the thread
+                # (within this year) (or of this message, if that does not
+                # exist; when does that happen?) followed by thread id (padded)
+                # and the timestamp of this message
                 # ouf.write(b'>> branch2\n')
                 key = ((msg_keys.get(attrvals['parent'])
                         or (append_thread_id(thread_first_datetime or key,
-                                            attrvals['thread'])))
+                                             attrvals['thread'])))
                        + b' ' + key)
                 # ouf.write(b'>> parent_key = ' + msg_keys.get(attrvals['parent'], b'[None]') + b'\n')
                 # ouf.write(b'>> key(3) = ' + key + b'\n')
@@ -89,7 +98,10 @@ class ThreadSortKeyAdder(vrtargsoolib.InputProcessor):
             return key
 
         def append_thread_id(val, thread_id):
-            return val + b' ' + (b'0' * (8 - len(thread_id))) + thread_id
+            return val + b' ' + pad0(thread_id, 10)
+
+        def pad0(val, len_):
+            return b'0' * (len_ - len(val)) + val
 
         def add_key_attr(line, key):
             if sort_key_attr_sign in line:
