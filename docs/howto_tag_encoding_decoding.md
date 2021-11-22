@@ -1,7 +1,7 @@
 # Tag encoding and decoding
 The original structure of data should be preserved as far as possible. Data in TEI-XML format, for example, can have a rich structure of elements like lists, tables, quotes etc. Here it should be decided, which structure is important to be preserved, and how these elements should be named. A standardized set of element names is planned to be created. 
 
-You should make sure, that all additional structural elements are within paragraph elements. These additional structural elements do not have to be on their own line. You would need to encode these tags before tokenizing and decode them after parsing. The scripts **hrt-encode-tags** and **vrt-decode-tags** are created for this purpose. The scripts were created by Jyrki Niemi and are available in GitHub [https://github.com/CSCfi/Kielipankki-konversio/vrt-tools](https://github.com/CSCfi/Kielipankki-konversio/vrt-tools).
+You should make sure, that all additional structural elements are within paragraph elements. These additional structural elements do not have to be on their own line. You would need to encode these tags before tokenizing and decode them after parsing. The scripts **hrt-encode-tags** and **vrt-decode-tags** are created for this purpose. The scripts were created by Jyrki Niemi and are available in GitHub [https://github.com/CSCfi/Kielipankki-utilities/vrt-tools](https://github.com/CSCfi/Kielipankki-utilities/vrt-tools).
 
 The following commands are given based on the assumption, that you created a folder 'bin' in your work directory referring to the folder 'vrt-tools' in GitHub, as recommended in the step 'Tokenizing' in the [pipeline instructions](howto_pipeline_textkorpora_020919.md). 
 

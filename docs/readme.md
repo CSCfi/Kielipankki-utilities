@@ -1,13 +1,13 @@
-# Kielipankki-konversio/docs
+# Kielipankki-utilities/docs
 
 This folder contains the pipeline instructions for preparing text corpora. 
 Described are all steps needed from converting the original data to publishing the corpus in Korp.
 
 
 The instructions are accessible through the browser interface:
-https://github.com/CSCfi/Kielipankki-konversio/
+https://github.com/CSCfi/Kielipankki-utilities/
 
-or on Taito in the Git repository 'Kielipankki-konversio'.
+or on Taito in the Git repository 'Kielipankki-utilities'.
 Here you should update your own copy of the repository with 'git pull' to see the latest changes.
 
 A third option would be to use the desktop client of GitHub.

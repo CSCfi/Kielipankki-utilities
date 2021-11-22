@@ -60,15 +60,15 @@ You can add attributes to the `paragraph` and `sentence` element tags, like for 
 
 
 ### Tokenizing: Tools and process
-The scripts for tokenizing were created by Jussi Piitulainen and can be found in GitHub [https://github.com/CSCfi/Kielipankki-konversio/vrt-tools](https://github.com/CSCfi/Kielipankki-konversio/vrt-tools)
+The scripts for tokenizing were created by Jussi Piitulainen and can be found in GitHub [https://github.com/CSCfi/Kielipankki-utilities/vrt-tools](https://github.com/CSCfi/Kielipankki-utilities/vrt-tools)
 
-If you have your own copy of ‘Kielipankki-konversio’ on Taito already, you can just update it with the help of the command `git pull`. Then you can create a symbolic link to the folder ‘vrt-tools’ from the respective corpora folder in your working directory, e.g.:
+If you have your own copy of ‘Kielipankki-utilities’ on Taito already, you can just update it with the help of the command `git pull`. Then you can create a symbolic link to the folder ‘vrt-tools’ from the respective corpora folder in your working directory, e.g.:
 
-    ln -s /homeappl/home/‘username’/Kielipankki-konversio/vrt-tools/ bin
+    ln -s /homeappl/home/‘username’/Kielipankki-utilities/vrt-tools/ bin
 
 Now you have the tools available in your corpus folder in a folder named ‘bin’. 
 
-If you have to tokenize a corpus again some time later, you should first update your copy of the folder ‘Kielipankki-konversio’. Go to Kielipankki-konversio in your HOME directory and do `git pull`.
+If you have to tokenize a corpus again some time later, you should first update your copy of the folder ‘Kielipankki-utilities’. Go to Kielipankki-utilities in your HOME directory and do `git pull`.
  Of course, this is only one suggestion on how to use the tokenizing scripts.
 
 The scripts for tokenizing are
@@ -131,7 +131,7 @@ In case you find other problems, it might be helpful to fix the sentence breaks 
 
 
 ### Parsing with TDPipe
-The scripts for parsing were created by Jussi Piitulainen and can be found in GitHub in the same place as the tokenizing scripts [https://github.com/CSCfi/Kielipankki-konversio/vrt-tools](https://github.com/CSCfi/Kielipankki-konversio/vrt-tools).
+The scripts for parsing were created by Jussi Piitulainen and can be found in GitHub in the same place as the tokenizing scripts [https://github.com/CSCfi/Kielipankki-utilities/vrt-tools](https://github.com/CSCfi/Kielipankki-utilities/vrt-tools).
 
 It is recommended to create a copy of the script TDPipe (available in folder ‘bin’, if you created one as recommended in the tokenizing step) to the corpus folder, one level higher than the data folders, and make it executable:
 
@@ -378,9 +378,9 @@ NOTE: It is usually not recommended to unfreeze already frozen data in IDA!
 
 
 ### Archiving your conversion scripts
-Your **conversion scripts** for creating the HRT should be preserved. It is recommended to upload them to GitHub. The place for your scripts is in 'Kielipankki-konversio'. Do 'git pull' to make sure your copy of the repository is up to date. Then change to the sub folder 'corp' and create a new folder for your corpus in here. Copy your conversion scripts to this folder.
+Your **conversion scripts** for creating the HRT should be preserved. It is recommended to upload them to GitHub. The place for your scripts is in 'Kielipankki-utilities'. Do 'git pull' to make sure your copy of the repository is up to date. Then change to the sub folder 'corp' and create a new folder for your corpus in here. Copy your conversion scripts to this folder.
 
-The command for adding your scripts to the repository (from Kielipankki-konversio/corp/'your_corpus'/) is:
+The command for adding your scripts to the repository (from Kielipankki-utilities/corp/'your_corpus'/) is:
 
     git add .
     
