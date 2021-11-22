@@ -3,6 +3,12 @@
 This folder contains the pipeline instructions for preparing text corpora. 
 Described are all steps needed from converting the original data to publishing the corpus in Korp.
 
+In addition, the file
+[`corpus_publishing_tasklist.md`](corpus_publishing_tasklist.md)
+contains checklists for tasks in the corpus publishing pipeline that
+can be copied to the description of a Jira ticket for publishing (a
+version of) a corpus for keeping track of the progress of the
+publication process.
 
 The instructions are accessible [through the GitHub browser
 interface](https://github.com/CSCfi/Kielipankki-utilities/docs) or in
