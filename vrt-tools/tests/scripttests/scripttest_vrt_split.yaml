@@ -262,3 +262,55 @@
       j
       </sentence>
       </t>
+
+
+# Copy initial VRT comments
+
+- name: 'vrt-split: Copy initial VRT comments to each output file'
+  input:
+    cmdline: vrt-split --max-structs=1 ./input.vrt
+    file:input.vrt: &input-2 |
+      <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: An initial VRT comment is copied to each output file -->
+      <!-- #vrt info: This is copied, too -->
+      <!-- A plain XML-style comment is not copied -->
+      <text a="aa" b="ba" c="ca" n="1">
+      <sentence>
+      a
+      <!-- #vrt info: VRT comment in the middle -->
+      b
+      </sentence>
+      </text>
+      <!-- #vrt info: VRT comment between structs -->
+      <text a="ab" b="ba" c="cb" n="2">
+      <sentence>
+      c
+      d
+      </sentence>
+      </text>
+      <!-- #vrt info: Trailing VRT comment only in last file -->
+  output:
+    file:input-01.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: An initial VRT comment is copied to each output file -->
+      <!-- #vrt info: This is copied, too -->
+      <!-- A plain XML-style comment is not copied -->
+      <text a="aa" b="ba" c="ca" n="1">
+      <sentence>
+      a
+      <!-- #vrt info: VRT comment in the middle -->
+      b
+      </sentence>
+      </text>
+      <!-- #vrt info: VRT comment between structs -->
+    file:input-02.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: An initial VRT comment is copied to each output file -->
+      <!-- #vrt info: This is copied, too -->
+      <text a="ab" b="ba" c="cb" n="2">
+      <sentence>
+      c
+      d
+      </sentence>
+      </text>
+      <!-- #vrt info: Trailing VRT comment only in last file -->

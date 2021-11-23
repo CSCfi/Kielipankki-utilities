@@ -14,6 +14,7 @@ import re
 import sys
 
 import vrtargsoolib
+import vrtcommentlib
 import vrtnamelib
 
 
@@ -65,6 +66,7 @@ class Splitter(vrtargsoolib.InputProcessor):
             fname_comps['filename'])
         out_lines = []
         attr_comment = b''
+        head_comment = []
         check_keep_attr = args.keep_attr is not None
         struct_begins = [b'<' + args.struct.encode() + trail
                          for trail in [b'>', b' ']]
@@ -96,6 +98,8 @@ class Splitter(vrtargsoolib.InputProcessor):
                 **fname_comps)
             outf = open(outfile_name, 'wb')
             outf.write(attr_comment)
+            for line in head_comment:
+                outf.write(line)
             return outf
 
         def output():
@@ -116,6 +120,10 @@ class Splitter(vrtargsoolib.InputProcessor):
         for line in inf:
             if not attr_comment and vrtnamelib.isbinnames(line):
                 attr_comment = line
+                continue
+            if (outfile_cnt == 0 and not out_lines
+                    and vrtcommentlib.isbinvrtcomment(line)):
+                head_comment.append(line)
                 continue
             if line[0] == LESS_THAN:
                 if (line.startswith(struct_begins[0])
