@@ -54,7 +54,7 @@
 
 - name: 'vrt-split: Single output, default output template'
   input:
-    cmdline: vrt-split ./input.vrt
+    cmdline: vrt-split input.vrt
   output:
     file:input-01.vrt: *input-1
 
@@ -75,7 +75,7 @@
     cmdline:
       vrt-split
       --out-template '{basename}-out-{num0:02d}-{num1}-{lower}-{upper}{ext}'
-      --max-structs=3 ./input.vrt
+      --max-structs=3 input.vrt
   output:
     file:input-out-00-1-a-A.vrt: |
       <!-- #vrt positional-attributes: word -->
@@ -118,7 +118,7 @@
 
 - name: 'vrt-split: --max-structs'
   input:
-    cmdline: vrt-split --max-structs=2 ./input.vrt
+    cmdline: vrt-split --max-structs=2 input.vrt
   output: &output-split-3
     file:input-01.vrt: |
       <!-- #vrt positional-attributes: word -->
@@ -160,19 +160,19 @@
 
 - name: 'vrt-split: --max-tokens'
   input:
-    cmdline: vrt-split --max-tokens=5 ./input.vrt
+    cmdline: vrt-split --max-tokens=5 input.vrt
   output: *output-split-3
 
 
 - name: 'vrt-split: --max-tokens overrides --max-structs'
   input:
-    cmdline: vrt-split --max-tokens=5 --max-structs=3 ./input.vrt
+    cmdline: vrt-split --max-tokens=5 --max-structs=3 input.vrt
   output: *output-split-3
 
 
 - name: 'vrt-split: --max-structs overrides --max-tokens'
   input:
-    cmdline: vrt-split --max-tokens=10 --max-structs=2 ./input.vrt
+    cmdline: vrt-split --max-tokens=10 --max-structs=2 input.vrt
   output: *output-split-3
 
 
@@ -180,7 +180,7 @@
 
 - name: 'vrt-split: --keep-together-attribute'
   input:
-    cmdline: vrt-split --max-structs=3 --keep-together-attribute=c  ./input.vrt
+    cmdline: vrt-split --max-structs=3 --keep-together-attribute=c  input.vrt
     file:input-01.vrt: |
       <!-- #vrt positional-attributes: word -->
       <text a="aa" b="ba" c="ca" n="1">
@@ -221,7 +221,7 @@
 
 - name: 'vrt-split: --structure'
   input:
-    cmdline: vrt-split --structure=t --max-structs=3 ./input.vrt
+    cmdline: vrt-split --structure=t --max-structs=3 input.vrt
     file:input.vrt:
       value: *input-1
       transform:
@@ -268,7 +268,7 @@
 
 - name: 'vrt-split: Copy initial VRT comments to each output file'
   input:
-    cmdline: vrt-split --max-structs=1 ./input.vrt
+    cmdline: vrt-split --max-structs=1 input.vrt
     file:input.vrt: &input-2 |
       <!-- #vrt positional-attributes: word -->
       <!-- #vrt info: An initial VRT comment is copied to each output file -->
