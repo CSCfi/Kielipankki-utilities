@@ -1,0 +1,264 @@
+
+# Tests for vrt-split
+
+
+# Default input and output
+
+- defaults:
+    input:
+      file:input.vrt: &input-1 |
+        <!-- #vrt positional-attributes: word -->
+        <text a="aa" b="ba" c="ca" n="1">
+        <sentence>
+        a
+        b
+        </sentence>
+        </text>
+        <text a="ab" b="ba" c="cb" n="2">
+        <sentence>
+        c
+        d
+        </sentence>
+        </text>
+        <text a="ac" b="ba" c="ca" n="3">
+        <sentence>
+        e
+        f
+        </sentence>
+        </text>
+        <text a="ad" b="bb" c="ca" n="4">
+        <sentence>
+        g
+        h
+        </sentence>
+        </text>
+        <text a="ae" b="bb" c="cb" n="5">
+        <sentence>
+        i
+        j
+        </sentence>
+        </text>
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+      # Output to separate files
+      stdout: ''
+
+
+# Test cases
+
+
+# Single output with defaults
+
+
+- name: 'vrt-split: Single output, default output template'
+  input:
+    cmdline: vrt-split ./input.vrt
+  output:
+    file:input-01.vrt: *input-1
+
+
+- name: 'vrt-split: Input file in subdir'
+  input:
+    cmdline: vrt-split tmp/input.vrt
+    file:tmp/input.vrt: *input-1
+    file:input.vrt: ''
+  output:
+    file:tmp/input-01.vrt: *input-1
+
+
+# Output file name template
+
+- name: 'vrt-split: --out-template'
+  input:
+    cmdline:
+      vrt-split
+      --out-template '{basename}-out-{num0:02d}-{num1}-{lower}-{upper}{ext}'
+      --max-structs=3 ./input.vrt
+  output:
+    file:input-out-00-1-a-A.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="1">
+      <sentence>
+      a
+      b
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="2">
+      <sentence>
+      c
+      d
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="3">
+      <sentence>
+      e
+      f
+      </sentence>
+      </text>
+    file:input-out-01-2-b-B.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ad" b="bb" c="ca" n="4">
+      <sentence>
+      g
+      h
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="5">
+      <sentence>
+      i
+      j
+      </sentence>
+      </text>
+
+
+# Limit the number of structures or tokens
+
+
+- name: 'vrt-split: --max-structs'
+  input:
+    cmdline: vrt-split --max-structs=2 ./input.vrt
+  output: &output-split-3
+    file:input-01.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="1">
+      <sentence>
+      a
+      b
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="2">
+      <sentence>
+      c
+      d
+      </sentence>
+      </text>
+    file:input-02.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ac" b="ba" c="ca" n="3">
+      <sentence>
+      e
+      f
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="4">
+      <sentence>
+      g
+      h
+      </sentence>
+      </text>
+    file:input-03.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ae" b="bb" c="cb" n="5">
+      <sentence>
+      i
+      j
+      </sentence>
+      </text>
+
+
+- name: 'vrt-split: --max-tokens'
+  input:
+    cmdline: vrt-split --max-tokens=5 ./input.vrt
+  output: *output-split-3
+
+
+- name: 'vrt-split: --max-tokens overrides --max-structs'
+  input:
+    cmdline: vrt-split --max-tokens=5 --max-structs=3 ./input.vrt
+  output: *output-split-3
+
+
+- name: 'vrt-split: --max-structs overrides --max-tokens'
+  input:
+    cmdline: vrt-split --max-tokens=10 --max-structs=2 ./input.vrt
+  output: *output-split-3
+
+
+# Keep structures with the same attribute value in the same slice
+
+- name: 'vrt-split: --keep-together-attribute'
+  input:
+    cmdline: vrt-split --max-structs=3 --keep-together-attribute=c  ./input.vrt
+    file:input-01.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="1">
+      <sentence>
+      a
+      b
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="2">
+      <sentence>
+      c
+      d
+      </sentence>
+      </text>
+    file:input-02.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ac" b="ba" c="ca" n="3">
+      <sentence>
+      e
+      f
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="4">
+      <sentence>
+      g
+      h
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="5">
+      <sentence>
+      i
+      j
+      </sentence>
+      </text>
+
+
+# Specify the structure by which to split
+
+- name: 'vrt-split: --structure'
+  input:
+    cmdline: vrt-split --structure=t --max-structs=3 ./input.vrt
+    file:input.vrt:
+      value: *input-1
+      transform:
+        python: |
+          return value.replace('<text', '<t').replace('</text', '</t')
+  output:
+    file:input-01.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <t a="aa" b="ba" c="ca" n="1">
+      <sentence>
+      a
+      b
+      </sentence>
+      </t>
+      <t a="ab" b="ba" c="cb" n="2">
+      <sentence>
+      c
+      d
+      </sentence>
+      </t>
+      <t a="ac" b="ba" c="ca" n="3">
+      <sentence>
+      e
+      f
+      </sentence>
+      </t>
+    file:input-02.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <t a="ad" b="bb" c="ca" n="4">
+      <sentence>
+      g
+      h
+      </sentence>
+      </t>
+      <t a="ae" b="bb" c="cb" n="5">
+      <sentence>
+      i
+      j
+      </sentence>
+      </t>
