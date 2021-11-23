@@ -38,16 +38,21 @@ class Splitter(vrtargsoolib.InputProcessor):
          ' {filename} = file name, {basename} = file name without extension,'
          ' {ext} = extension; from slice number: {num0} = 0-based decimal,'
          ' {num1} = 1-based decimal, {lower} = lower-case letter, {upper} ='
-         ' upper-case letter'),
+         ' upper-case letter, {attr[name]} = the value of attribute name in'
+         ' the structure by which to split the input (the first of them in'
+         ' the output file)'),
         ('--structure=struct "text" -> struct',
          'split the input at the boundaries of structure struct'),
         ('--keep-together-attribute=attr -> keep_attr',
-         'keep together consecutive STRUCTs with the same value for attribute'
+         'keep together consecutive structs with the same value for attribute'
          ' attr'),
         ('--max-structs=num :int =10000',
-         'output at most num structures to a single file'),
+         'output at most num structures to a single file; note that the limit'
+         ' may be exceeded if the file name template refers to an attribute'
+         ' value that is not unique among structures'),
         ('--max-tokens=num :int =0',
-         'output at most num tokens to a single file; 0 = unlimited'),
+         'output at most num tokens to a single file; 0 = unlimited; the same'
+         ' note applies as to --max-structs'),
     ]
 
     class OPTIONS(vrtargsoolib.InputProcessor.OPTIONS):
@@ -64,6 +69,10 @@ class Splitter(vrtargsoolib.InputProcessor):
             filename=os.path.basename(args.infile))
         fname_comps['basename'], fname_comps['ext'] = os.path.splitext(
             fname_comps['filename'])
+        fname_attrnames = re.findall(r'\{attr\[(.+?)\]', args.out_fname_templ)
+        fname_attrval_res = dict(
+            (attrname, b' ' + attrname.encode() + b'="(.*?)"')
+            for attrname in fname_attrnames)
         out_lines = []
         attr_comment = b''
         head_comment = []
@@ -79,27 +88,49 @@ class Splitter(vrtargsoolib.InputProcessor):
         prev_struct_cnt = 0
         prev_token_cnt = 0
         outfile_cnt = 0
+        outfile_names = set()
         outf = None
 
-        def get_keep_attr_value(line):
-            mo = re.search(keep_value_re, line)
+        def get_re_match(regex, line):
+            mo = re.search(regex, line)
             return mo.group(1) if mo else b''
+
+        def get_keep_attr_value(line):
+            return get_re_match(keep_value_re, line)
+
+        def get_fname_attr_values(line):
+            return dict(
+                (attrname,
+                 get_re_match(fname_attrval_res[attrname], line).decode())
+                for attrname in fname_attrnames)
 
         def new_outfile():
             nonlocal outf, outfile_cnt
             if outf is not None:
                 outf.close()
+            fname_attrvals = {}
+            if fname_attrnames:
+                for line in out_lines:
+                    if (line[0] == LESS_THAN
+                            and line.startswith(struct_begins[1])):
+                        fname_attrvals = get_fname_attr_values(line)
+                        break
             outfile_cnt += 1
             outfile_name = args.out_fname_templ.format(
                 num0=outfile_cnt - 1,
                 num1=outfile_cnt,
                 lower=chr(outfile_cnt + 96),
                 upper=chr(outfile_cnt + 64),
+                attr=fname_attrvals,
                 **fname_comps)
-            outf = open(outfile_name, 'wb')
-            outf.write(attr_comment)
-            for line in head_comment:
-                outf.write(line)
+            # If the file has already been written to, append to it
+            mode = 'a' if outfile_name in outfile_names else 'w'
+            outf = open(outfile_name, mode + 'b')
+            if outfile_name not in outfile_names:
+                outf.write(attr_comment)
+                for line in head_comment:
+                    outf.write(line)
+            outfile_names.add(outfile_name)
             return outf
 
         def output():
@@ -130,7 +161,8 @@ class Splitter(vrtargsoolib.InputProcessor):
                         or line.startswith(struct_begins[1])):
                     if check_keep_attr:
                         keep_value_new = get_keep_attr_value(line)
-                    if keep_value is None or keep_value_new != keep_value:
+                    if struct_cnt and (keep_value is None
+                                       or keep_value_new != keep_value):
                         output()
                     keep_value = keep_value_new
                     struct_cnt += 1

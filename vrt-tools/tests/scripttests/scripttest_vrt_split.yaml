@@ -314,3 +314,141 @@
       </sentence>
       </text>
       <!-- #vrt info: Trailing VRT comment only in last file -->
+
+
+# Structural attribute in the output file name template
+
+
+- name: 'vrt-split: Struct attribute in output file name template, --max-structs=1'
+  input:
+    cmdline: vrt-split --max-structs=1 --out-template='{attr[a]}{ext}' input.vrt
+  output:
+    file:aa.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="1">
+      <sentence>
+      a
+      b
+      </sentence>
+      </text>
+    file:ab.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="2">
+      <sentence>
+      c
+      d
+      </sentence>
+      </text>
+    file:ac.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ac" b="ba" c="ca" n="3">
+      <sentence>
+      e
+      f
+      </sentence>
+      </text>
+    file:ad.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ad" b="bb" c="ca" n="4">
+      <sentence>
+      g
+      h
+      </sentence>
+      </text>
+    file:ae.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ae" b="bb" c="cb" n="5">
+      <sentence>
+      i
+      j
+      </sentence>
+      </text>
+
+
+- name: 'vrt-split: Struct attribute in output file name template, --max-structs=2'
+  input:
+    cmdline: vrt-split --max-structs=2 --out-template='{attr[a]}{ext}' input.vrt
+  output:
+    file:aa.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="1">
+      <sentence>
+      a
+      b
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="2">
+      <sentence>
+      c
+      d
+      </sentence>
+      </text>
+    file:ac.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ac" b="ba" c="ca" n="3">
+      <sentence>
+      e
+      f
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="4">
+      <sentence>
+      g
+      h
+      </sentence>
+      </text>
+    file:ae.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ae" b="bb" c="cb" n="5">
+      <sentence>
+      i
+      j
+      </sentence>
+      </text>
+
+
+- name: 'vrt-split: Struct attribute in output file name template, append to a previous file'
+  input:
+    cmdline: vrt-split --max-structs=1 --out-template='{attr[c]}{ext}' input.vrt
+  output:
+    file:ca.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="1">
+      <sentence>
+      a
+      b
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="3">
+      <sentence>
+      e
+      f
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="4">
+      <sentence>
+      g
+      h
+      </sentence>
+      </text>
+    file:cb.vrt: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="2">
+      <sentence>
+      c
+      d
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="5">
+      <sentence>
+      i
+      j
+      </sentence>
+      </text>
+
+
+- name: 'vrt-split: Struct attribute in output file name template, all output to the same file'
+  input:
+    cmdline: vrt-split --max-structs=3 --out-template='{attr[c]}{ext}' input.vrt
+  output:
+    file:ca.vrt: *input-1
