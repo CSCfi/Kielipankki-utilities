@@ -68,6 +68,15 @@
     file:tmp/input-01.vrt: *input-1
 
 
+- name: 'vrt-split: Input from stdin, single output'
+  input:
+    cmdline: vrt-split
+    stdin: *input-1
+    file:input.vrt: ''
+  output:
+    file:(stdin)-01.vrt: *input-1
+
+
 # Output file name template
 
 - name: 'vrt-split: --out-template'

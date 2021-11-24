@@ -65,8 +65,8 @@ class Splitter(vrtargsoolib.InputProcessor):
 
         LESS_THAN = '<'.encode()[0]
         fname_comps = dict(
-            dir=os.path.dirname(args.infile) or '.',
-            filename=os.path.basename(args.infile))
+            dir=os.path.dirname(args.infile or '') or '.',
+            filename=os.path.basename(args.infile or '(stdin).vrt'))
         fname_comps['basename'], fname_comps['ext'] = os.path.splitext(
             fname_comps['filename'])
         fname_attrnames = re.findall(r'\{attr\[(.+?)\]', args.out_fname_templ)
