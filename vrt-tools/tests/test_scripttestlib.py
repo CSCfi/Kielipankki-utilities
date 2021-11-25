@@ -979,6 +979,31 @@ _testcase_files_content = [
                  'returncode': 0,
              },
          },
+         {
+             'name': 'Test: "files" in input and output',
+             'input': {
+                 'cmdline': 'cat a.txt b.txt | tee out1.txt > out2.txt',
+                 'shell': True,
+                 'files': {
+                     'a.txt': 'a\n',
+                     'b.txt': {
+                         'value': 'b\n',
+                     },
+                 },
+                 'stdin': '',
+             },
+             'output': {
+                 'files': {
+                     'out1.txt': 'a\nb\n',
+                     'out2.txt': {
+                         'value': 'a\nb\n',
+                     },
+                 },
+                 'stdout': '',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
          # Note that the tests do not really check whether the tests marked to
          # be skipped or xfailing really are skipped or xfail. How could that
          # be tested?
@@ -1219,6 +1244,29 @@ def test_empty_values(tmpdir):
         check_program_run('Empty input args',
                           {'name': 'Empty input args',
                            'input': {'args': []}},
+                          '', None,
+                          tmpdir=str(tmpdir))
+
+
+def test_duplicate_filename(tmpdir):
+    """Test with a file specified as both file:fname and files: {fname}."""
+    with pytest.raises(ValueError) as e_info:
+        check_program_run('Duplicate input file name',
+                          {'name': 'Duplicate input file name',
+                           'input': {
+                               'cmdline': 'cat a',
+                               'files': {'a': ''},
+                               'file:a': '',
+                           }},
+                          '', None,
+                          tmpdir=str(tmpdir))
+        check_program_run('Duplicate output file name',
+                          {'name': 'Duplicate output file name',
+                           'input': {'cmdline': 'cat'},
+                           'output': {
+                               'files': {'a': ''},
+                               'file:a': '',
+                           }},
                           '', None,
                           tmpdir=str(tmpdir))
 

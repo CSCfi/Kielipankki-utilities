@@ -75,6 +75,9 @@ test case:
     -   `stdin`: the content of standard input (`str` or `dict`; see below)
     -   `file:FNAME`: the content of input file FNAME (`str` or
         `dict`; see below)
+    -   `files`: a dict of input files with file names as keys and
+        values as for `file:FNAME`. Both `files` and `file:FNAME` can
+        be used, but each file must be specified only once.
     -   `transform`: transform the base content of standard input and
         all input files according to the specified options
         (`list(dict)` or `dict`). Currently the following options are
@@ -99,8 +102,9 @@ test case:
         dictionaries, the transformations are applied in the list
         order, each transformation to the output of the preceding one.
 
-	`stdin` and `file:FNAME` may be either plain strings containing
-    the content, or dicts of one or two items:
+	`stdin`, `file:FNAME` and the values under `files` may be either
+    plain strings containing the content, or dicts of one or two
+    items:
 
 	-   `value`: the base value (obligatory), subject to
         transformations specified in `transform` (`str`)
@@ -123,6 +127,9 @@ test case:
         `list`; see below)
     -   `file:FNAME`: the content of file FNAME (`str`, `dict` or
         `list`; see below)
+    -   `files`: a dict of output files with file names as keys and
+        values as for `file:FNAME`. Both `files` and `file:FNAME` can
+        be used, but each file must be specified only once.
     -   `transform-expected`: transformations to be applied to all
         expected output values (except `returncode`) before testing;
         the same options are supported as for `input: transform`

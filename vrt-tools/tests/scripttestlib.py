@@ -206,6 +206,7 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         # print('make_subcases', name, input_, output)
         result = []
         subcases = []
+        _convert_files_dict(output, 'output')
         for key, expected_vals in sorted(output.items()):
             # Transformations are handled below
             if key.startswith('transform'):
@@ -354,6 +355,21 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                     testcases.append(subcase)
     # print(len(testcases))
     return testcases
+
+
+def _convert_files_dict(d, type_):
+    """Convert files: {fname: ...} to file:fname: ... in dict d of type_
+
+    type_ is "input" or "output", used only in the error message"""
+    if 'files' in d:
+        for fname, value in d['files'].items():
+            if ('file:' + fname) in d:
+                raise ValueError(
+                    ('Value for {type} file {fname} specified both as'
+                     ' file:{fname} and as files: {{{fname}}}').format(
+                         fname=fname, type=type_))
+            d['file:' + fname] = value
+        del d['files']
 
 
 def dict_deep_update(a, b):
@@ -505,6 +521,7 @@ class ProgramRunner:
         input_trans = input_.get('transform', [])
         stdin = (_make_value(input_.get('stdin', ''), 'transform', input_trans)
                  .encode('UTF-8'))
+        _convert_files_dict(input_, 'input')
         # Create input files
         for key, value in input_.items():
             if key.startswith('file:'):
