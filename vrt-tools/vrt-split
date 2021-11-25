@@ -9,6 +9,11 @@ Split VRT (horizontally) at text boundaries into multiple output files.
 """
 
 
+# TODO:
+# - Support some kind of transformations for attribute values to be used as
+#   part of the output filename
+
+
 import os.path
 import re
 import sys
@@ -53,6 +58,8 @@ class Splitter(vrtargsoolib.InputProcessor):
         ('--max-tokens=num :int =0',
          'output at most num tokens to a single file; 0 = unlimited; the same'
          ' note applies as to --max-structs'),
+        ('--omit-split-info',
+         'do not output a VRT comment informing of having split a VRT file'),
     ]
 
     class OPTIONS(vrtargsoolib.InputProcessor.OPTIONS):
@@ -115,7 +122,9 @@ class Splitter(vrtargsoolib.InputProcessor):
                             and line.startswith(struct_begins[1])):
                         fname_attrvals = get_fname_attr_values(line)
                         break
-            outfile_cnt += 1
+            # outfile_cnt is used only if a new file is created, so it need not
+            # be decremented even if appending to an existing file
+            outfile_cnt = len(outfile_names) + 1
             outfile_name = args.out_fname_templ.format(
                 num0=outfile_cnt - 1,
                 num1=outfile_cnt,
@@ -130,6 +139,12 @@ class Splitter(vrtargsoolib.InputProcessor):
                 outf.write(attr_comment)
                 for line in head_comment:
                     outf.write(line)
+                if not args.omit_split_info:
+                    outf.write(vrtcommentlib.makebinvrtcomment(
+                        b'info',
+                        ('Split ' + (args.infile or '(stdin)')
+                         + ': part ' + str(outfile_cnt)
+                         + ', ' + os.path.basename(outfile_name)).encode()))
             outfile_names.add(outfile_name)
             return outf
 

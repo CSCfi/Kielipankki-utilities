@@ -56,7 +56,11 @@
   input:
     cmdline: vrt-split input.vrt
   output:
-    file:input-01.vrt: *input-1
+    file:input-01.vrt:
+      value: *input-1
+      transform-expected:
+        python: |
+          return value.replace('\n', '\n<!-- #vrt info: Split input.vrt: part 1, input-01.vrt -->\n', 1)
 
 
 - name: 'vrt-split: Input file in subdir'
@@ -65,7 +69,11 @@
     file:tmp/input.vrt: *input-1
     file:input.vrt: ''
   output:
-    file:tmp/input-01.vrt: *input-1
+    file:tmp/input-01.vrt:
+      value: *input-1
+      transform-expected:
+        python: |
+          return value.replace('\n', '\n<!-- #vrt info: Split tmp/input.vrt: part 1, input-01.vrt -->\n', 1)
 
 
 - name: 'vrt-split: Input from stdin, single output'
@@ -74,7 +82,20 @@
     stdin: *input-1
     file:input.vrt: ''
   output:
-    file:(stdin)-01.vrt: *input-1
+    file:(stdin)-01.vrt:
+      value: *input-1
+      transform-expected:
+        python: |
+          return value.replace('\n', '\n<!-- #vrt info: Split (stdin): part 1, (stdin)-01.vrt -->\n', 1)
+
+
+# Omit split info comment
+
+- name: 'vrt-split: Single output, default output template'
+  input:
+    cmdline: vrt-split --omit-split-info input.vrt
+  output:
+    file:input-01.vrt: *input-1
 
 
 # Output file name template
@@ -88,6 +109,7 @@
   output:
     file:input-out-00-1-a-A.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 1, input-out-00-1-a-A.vrt -->
       <text a="aa" b="ba" c="ca" n="1">
       <sentence>
       a
@@ -108,6 +130,7 @@
       </text>
     file:input-out-01-2-b-B.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 2, input-out-01-2-b-B.vrt -->
       <text a="ad" b="bb" c="ca" n="4">
       <sentence>
       g
@@ -131,6 +154,7 @@
   output: &output-split-3
     file:input-01.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 1, input-01.vrt -->
       <text a="aa" b="ba" c="ca" n="1">
       <sentence>
       a
@@ -145,6 +169,7 @@
       </text>
     file:input-02.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 2, input-02.vrt -->
       <text a="ac" b="ba" c="ca" n="3">
       <sentence>
       e
@@ -159,6 +184,7 @@
       </text>
     file:input-03.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 3, input-03.vrt -->
       <text a="ae" b="bb" c="cb" n="5">
       <sentence>
       i
@@ -192,6 +218,7 @@
     cmdline: vrt-split --max-structs=3 --keep-together-attribute=c  input.vrt
     file:input-01.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 1, input-01.vrt -->
       <text a="aa" b="ba" c="ca" n="1">
       <sentence>
       a
@@ -206,6 +233,7 @@
       </text>
     file:input-02.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 1, input-02.vrt -->
       <text a="ac" b="ba" c="ca" n="3">
       <sentence>
       e
@@ -239,6 +267,7 @@
   output:
     file:input-01.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 1, input-01.vrt -->
       <t a="aa" b="ba" c="ca" n="1">
       <sentence>
       a
@@ -259,6 +288,7 @@
       </t>
     file:input-02.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 2, input-02.vrt -->
       <t a="ad" b="bb" c="ca" n="4">
       <sentence>
       g
@@ -303,6 +333,7 @@
       <!-- #vrt positional-attributes: word -->
       <!-- #vrt info: An initial VRT comment is copied to each output file -->
       <!-- #vrt info: This is copied, too -->
+      <!-- #vrt info: Split input.vrt: part 1, input-01.vrt -->
       <!-- A plain XML-style comment is not copied -->
       <text a="aa" b="ba" c="ca" n="1">
       <sentence>
@@ -316,6 +347,7 @@
       <!-- #vrt positional-attributes: word -->
       <!-- #vrt info: An initial VRT comment is copied to each output file -->
       <!-- #vrt info: This is copied, too -->
+      <!-- #vrt info: Split input.vrt: part 2, input-02.vrt -->
       <text a="ab" b="ba" c="cb" n="2">
       <sentence>
       c
@@ -334,6 +366,7 @@
   output:
     file:aa.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 1, aa.vrt -->
       <text a="aa" b="ba" c="ca" n="1">
       <sentence>
       a
@@ -342,6 +375,7 @@
       </text>
     file:ab.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 2, ab.vrt -->
       <text a="ab" b="ba" c="cb" n="2">
       <sentence>
       c
@@ -350,6 +384,7 @@
       </text>
     file:ac.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 3, ac.vrt -->
       <text a="ac" b="ba" c="ca" n="3">
       <sentence>
       e
@@ -358,6 +393,7 @@
       </text>
     file:ad.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 4, ad.vrt -->
       <text a="ad" b="bb" c="ca" n="4">
       <sentence>
       g
@@ -366,6 +402,7 @@
       </text>
     file:ae.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 5, ae.vrt -->
       <text a="ae" b="bb" c="cb" n="5">
       <sentence>
       i
@@ -380,6 +417,7 @@
   output:
     file:aa.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 1, aa.vrt -->
       <text a="aa" b="ba" c="ca" n="1">
       <sentence>
       a
@@ -394,6 +432,7 @@
       </text>
     file:ac.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 2, ac.vrt -->
       <text a="ac" b="ba" c="ca" n="3">
       <sentence>
       e
@@ -408,6 +447,7 @@
       </text>
     file:ae.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 3, ae.vrt -->
       <text a="ae" b="bb" c="cb" n="5">
       <sentence>
       i
@@ -422,6 +462,7 @@
   output:
     file:ca.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 1, ca.vrt -->
       <text a="aa" b="ba" c="ca" n="1">
       <sentence>
       a
@@ -442,6 +483,7 @@
       </text>
     file:cb.vrt: |
       <!-- #vrt positional-attributes: word -->
+      <!-- #vrt info: Split input.vrt: part 2, cb.vrt -->
       <text a="ab" b="ba" c="cb" n="2">
       <sentence>
       c
@@ -460,4 +502,8 @@
   input:
     cmdline: vrt-split --max-structs=3 --out-template='{attr[c]}{ext}' input.vrt
   output:
-    file:ca.vrt: *input-1
+    file:ca.vrt:
+      value: *input-1
+      transform-expected:
+        python: |
+          return value.replace('\n', '\n<!-- #vrt info: Split input.vrt: part 1, ca.vrt -->\n', 1)
