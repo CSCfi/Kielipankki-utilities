@@ -1210,14 +1210,14 @@ def test_empty_values(tmpdir):
                           '', None,
                           tmpdir=str(tmpdir))
     with pytest.raises(ValueError) as e_info:
-        check_program_run('Empty input info',
+        check_program_run('Empty prog',
                           {'name': 'Empty prog',
                            'input': {'prog': ''}},
                           '', None,
                           tmpdir=str(tmpdir))
     with pytest.raises(ValueError) as e_info:
         check_program_run('Empty input args',
-                          {'name': 'Empty prog',
+                          {'name': 'Empty input args',
                            'input': {'args': []}},
                           '', None,
                           tmpdir=str(tmpdir))
