@@ -412,12 +412,19 @@ class ProgramRunner:
             If `key` is of the form "file:FNAME", return the content
             of the file ``FNAME`` in self._tmpdir.
             """
+
+            def assert_exists(fname):
+                """Assert that file fname exists"""
+                assert os.path.isfile(fname)
+
             if key in self:
                 return self[key]
             elif key.startswith('file:'):
                 fname = os.path.join(
                     self._tmpdir, key.split(':', maxsplit=1)[1])
-                assert os.path.isfile(fname)
+                # Assertion in a separate function to make the pytest assertion
+                # error somewhat easier to understand
+                assert_exists(fname)
                 with open(fname, 'r') as f:
                     value = f.read()
                 return value
