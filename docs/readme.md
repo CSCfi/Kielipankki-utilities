@@ -21,7 +21,7 @@ A third option would be to use the desktop client of GitHub.
 The instructions are organized in several files, all stored in this subfolder `docs`.
 The main file of the instructions is
 [`howto_pipeline_textcorpora.md`](howto_pipeline_textcorpora.md), from
-where the other files are referred to..
+where the other files are referred to.
 
 The instructions are written in Markdown format. (For more information please see: https://help.github.com/en/articles/about-writing-and-formatting-on-github.)
 The browser interface of GitHub displays this nicely and makes it easy to read and edit the text.
