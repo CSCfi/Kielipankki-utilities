@@ -17,6 +17,7 @@ from libvrt.metaname import nametype # need checked
 
 from libvrt.nameargs import bagtype, parsenames
 from libvrt.nameline import isnameline, parsenameline
+from libvrt.metaline import mapping # does not unescape :/
 
 def character(arg):
     if len(arg) == 1:
@@ -28,7 +29,8 @@ def parsearguments(argv, *, prog = None):
     description = '''
 
     Lay out each instance of the specified type of element as a line
-    containing the tokens inside the element. Default is to lay out
+    containing the tokens inside the element, optionally with some
+    attribute values before or after the tokens. Default is to lay out
     sentences so, selecting just the word field from each token.
 
     '''
@@ -71,7 +73,37 @@ def parsearguments(argv, *, prog = None):
                         default = b' ',
                         help = '''
 
-                        field separator (within token) (SPC)
+                        field separator (within token and between
+                        attributes) (SPC)
+
+                        ''')
+
+    parser.add_argument('--attr', '-a', metavar = 'name,*',
+                        type = bagtype,
+                        dest = 'attrs', action = 'append',
+                        default = [],
+                        help = '''
+
+                        names of the attributes to extract for
+                        each element, separated by commas or spaces,
+                        or repeat the option (defaults to none,
+                        values default to "(name)")
+
+                        ''')
+
+    parser.add_argument('--apart', '-A', metavar = 'character',
+                        type = character,
+                        help = '''
+
+                        separator of attributes (if any) and tokens
+                        (defaults to token separator)
+                        ''')
+
+    parser.add_argument('--after', action = 'store_true',
+                        help = '''
+
+                        put attributes (if any) after the tokens
+                        (defaults to before)
 
                         ''')
 
@@ -113,6 +145,7 @@ def main(args, ins, ous):
         ))
 
     wants = parsenames(args.fields) or [b'word']
+    attrs = parsenames(args.attrs)
 
     # collecting all lines (should not be too many) up to positional
     # attributes (inclusive), to find the field names; the lines are
@@ -125,12 +158,22 @@ def main(args, ins, ous):
         line = next(filterfalse(bytes.isspace, ins), None)
         if line is None: break
         if line.startswith(begin):
+            metamap = mapping(line)
+            meta = args.within.join(( metamap.get(name, None)
+                                      or b''.join((b'(', name, b')')) )
+                                    for name in attrs)
             tokens = (
                 build_token(line)
                 for line in takewhile(not_end, chain(head, ins))
                 if not line.startswith(b'<')
             )
+            if meta and not args.after:
+                ous.write(meta)
+                ous.write(args.apart or args.between)
             ous.write(args.between.join(tokens))
+            if meta and args.after:
+                ous.write(args.apart or args.between)
+                ous.write(meta)
             ous.write(b'\n')
 
 def find_names(ins):
