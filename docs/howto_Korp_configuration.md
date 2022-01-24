@@ -62,7 +62,7 @@ Push your changes to the main repository ("origin").
         
 
 ### Creating a test instance of Korp
-Inform Jyrki, that you have pushed the changes. He will then create a test instance of Korp for your corpus, copy your corpus package (which you created earlier with 'korp-make') to the Korp server and install your configuration. When you did changes to an already existing test corpus, he will update the test instance for you.
+Inform Jyrki, that you have pushed the changes. He will then create a test instance of Korp for your corpus, copy your corpus package (which you created earlier with 'korp-make') to the Korp server and install your configuration. When you did changes to an already existing test corpus, he will update the test instance for you. (More information on [how to publish a corpus in Korp](howto_korp_publish.md))
 
 ### Testing the corpus in Korp
 
