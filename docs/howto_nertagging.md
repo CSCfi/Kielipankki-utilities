@@ -73,7 +73,7 @@ The names and order of positional attributes for NERtagged data should be:
 
 	<!-- #vrt positional-attributes: word ref lemma pos msd dephead deprel nerbio nertags/ nertag wid spaces -->
 
-It might be necessary to rename and re-order the positional attributes after NER-tagging. For instructions on how to rename and re-order positional attributes, see [docs: how to order positional attributes](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_pos_attributes.md).
+It might be necessary to rename and re-order the positional attributes after NER-tagging. For instructions on how to rename and re-order positional attributes, see [docs: how to order positional attributes](howto_pos_attributes.md).
 
 
-It is recommended to validate the result VRT after NERtagging. For instructions on how to validate VRT data, see [docs: validating VRT](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_validate.vrt.md).
+It is recommended to validate the result VRT after NERtagging. For instructions on how to validate VRT data, see [docs: validating VRT](howto_validate_vrt.md).
