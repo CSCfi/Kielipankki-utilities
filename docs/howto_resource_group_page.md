@@ -25,7 +25,7 @@ The content of a resource group page is usually:
 - The name of the resource (headline)
 - A description of the resource containing all relevant details, sometimes also links to related sources outside of Kielipankki. Check the META-SHARE record and take all relevant information from there.
 - A table of the latest versions/subcorpora of the resource. Each version/subcorpus is put to its own row in the table. Links to the particular META-SHARE record, citation information and access location are given.
-- A reference to all available versions of this resource in META-SHARE (search result list)
+- A link to all available versions of this resource in META-SHARE (search result list)
 - A PID
 
 In WordPress in the window on the right you should choose one or more of the given categories (resource families). 
