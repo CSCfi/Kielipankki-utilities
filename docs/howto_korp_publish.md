@@ -1,7 +1,7 @@
 # Publish a corpus in Korp
 The **corpus package**, created by running **korp-make**, has to be installed on the Korp server. If you do not have access rights to the Korp server, ask someone with the rights to do that. Instructions on how to create a corpus package by running korp-make can be found in [docs: how to korpmake](howto_korpmake.md).
 
-The **corpus configuration** has to be added to Korp by making changes to the existing Korp configuration and translation files on the corpus-specific branch of the Korp frontend repository (Kielipankki-korp-frontend). For instructions on how to add a corpus configuration to Korp, see [docs: how to add a corpus configuration to Korp](howto_Korp_configuration.md). 
+The **corpus configuration** has to be added to Korp by making changes to the existing Korp configuration and translation files on the corpus-specific branch of the Korp frontend repository (Kielipankki-korp-frontend). For instructions on how to add a corpus configuration to Korp, see [docs: how to add a corpus configuration to Korp](howto_korp_configuration.md). 
 
 
 ## Publish on a test instance of Korp
