@@ -30,7 +30,7 @@ After the test version works as expected, you should inform at least *fin-clarin
 
 
 ## Publish on the production Korp
-Once the corpus works as desired in the test version of Korp, it is ready to be installed on the production Korp. Jyrki Niemi takes care of the installation. Usually the corpus will be published as a **beta version** for approximately two weeks. If during this time someone notices problems and changes need to be done to the data, it will not be necessary to change the version of the corpus.
+Once the corpus works as desired in the test version of Korp, it is ready to be installed on the production Korp. Ask someone with the rights to take care of the installation. Usually the corpus will be published as a **beta version** for approximately two weeks. If during this time someone notices problems and changes need to be done to the data, it will not be necessary to change the version of the corpus.
 
 ### Beta version
 In order to publish the corpus as a beta version, you have to add information to the corpus configuration.
@@ -47,10 +47,10 @@ Create news in the portal, see [docs: how to create news in the portal](howto_po
 
 If you haven’t heard of any requests for corrections or changes during a period of about two weeks, you can remove the beta status.
 
-    remove the beta label from the Korp configuration
-    remove 'beta' from the corpus name in META-SHARE and update the description to *is available in Korp*
-	remove 'beta' from the corpus name on the resource group page
-    remove 'beta' from the corpus name in the list of published resources
+    - remove the beta label from the Korp configuration
+    - remove 'beta' from the corpus name in META-SHARE and update the description to *is available in Korp*
+    - remove 'beta' from the corpus name on the resource group page
+    - remove 'beta' from the corpus name in the list of published resources
 
  
 
