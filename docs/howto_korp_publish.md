@@ -5,7 +5,7 @@ The **corpus configuration** has to be added to Korp by making changes to the ex
 
 
 ## Publish on a test instance of Korp
-At first, the corpus configuration should be installed on a separate test instance of Korp. Jyrki Niemi takes care of this. Just let him know, when you pushed your changes of the Korp configuration and translation files in GitHub.
+At first, the corpus configuration should be installed on a separate test instance of Korp. Ask someone with the rights to do that. Just let him know, when you pushed your changes of the Korp configuration and translation files in GitHub.
 
 Example of a test instance of Korp:
 
