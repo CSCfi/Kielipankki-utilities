@@ -1,7 +1,7 @@
 # Kielipankki-utilities/docs
 
 This folder contains the pipeline instructions for preparing text corpora. 
-Described are all steps needed from converting the original data to publishing the corpus in Korp.
+Described are all steps needed from converting the original data to publishing the corpus in Korp or in the download service.
 
 In addition, the file
 [`corpus_publishing_tasklist.md`](corpus_publishing_tasklist.md)
@@ -19,9 +19,6 @@ the repository with `git pull` to see the latest changes.
 A third option would be to use the desktop client of GitHub.
 
 The instructions are organized in several files, all stored in this subfolder `docs`.
-The main file of the instructions is
-[`howto_pipeline_textcorpora.md`](howto_pipeline_textcorpora.md), from
-where the other files are referred to.
 
 The instructions are written in Markdown format. (For more information please see: https://help.github.com/en/articles/about-writing-and-formatting-on-github.)
 The browser interface of GitHub displays this nicely and makes it easy to read and edit the text.
