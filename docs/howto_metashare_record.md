@@ -9,7 +9,7 @@ You must fill in all the required fields to be able to save the page. It is poss
 If unsure about some details, it is possible to fill in a kind of a placeholder (e.g. for 'size' you could put '1') and add the needed information later.
 You will have to enter the correct name and short name for the resource. Please follow Kielipankki's [Language resource naming conventions](https://www.kielipankki.fi/development/language-resource-naming-conventions/).
 Also you should check, whether there are (related) resources with this name in META-SHARE already.
-The article needs a PID (Persistant Identifier of this resource). Instructions on how to request a PID can be found from [docs: How to request a PID](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_request_pid.md).
+The article needs a PID (Persistant Identifier of this resource). Instructions on how to request a PID can be found from [docs: How to request a PID](howto_request_pid.md).
 
 After saving, the page will be visible only internally (that is, only the person who has created the page will be able to see it) before it is published.
 
@@ -26,7 +26,7 @@ When changing an existing META-SHARE article, add your name as a 'metadata creat
 Add a short explanation of your change in the field 'revision', this will also change the date in the field 'last updated'.
 For more complex explanations on a change add a **CHANGE LOG** with the current date under 'documentation'. For an example see [META-SHARE: lehdet90ff-v1](http://urn.fi/urn:nbn:fi:lb-2016011101)
   
-Remember to add a link to the resource's group page via its URN under 'documentation', and name it **Resource group page**. If a resource group page is not created yet, you can add it later. See [docs: Instructions on how to create a resource group page](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_grouppage.md).
+Remember to add a link to the resource's group page via its URN under 'documentation', and name it **Resource group page**. If a resource group page is not created yet, you can add it later. See [docs: Instructions on how to create a resource group page](howto_grouppage.md).
 
 The link to the attribution details (citing information) should be added with the name **How to cite**. The link is offered in the column 'Cite' of the list of corpora and can be copied from there. It is a good idea to use the URN instead of the shortname within the citation link, so that it always resolves, even if the name for some reason is changed or misspelled.
 
