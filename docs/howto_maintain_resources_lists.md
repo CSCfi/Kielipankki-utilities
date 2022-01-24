@@ -1,6 +1,8 @@
 # Maintain the resource lists in the portal
 
-The lists are offered in the Kielipankki portal in English:
+The resources offered by Kielipankki are listed in the portal, separated after language corpora and tools.
+
+Lists in English:
 
 [The list of published corpora](https://www.kielipankki.fi/corpora/)
 
@@ -8,7 +10,7 @@ The lists are offered in the Kielipankki portal in English:
 
 [The list of tools](https://www.kielipankki.fi/tools/)
 
-And in Finnish:
+Lists in Finnish:
 
 [Aineistot](https://www.kielipankki.fi/aineistot/)
 
@@ -51,7 +53,7 @@ Choose the table 'new corpora', click on 'import' (above), click 'manual import'
 Go to the excel sheet, mark and copy all (!) rows from the tab `obj_new` and add them to WordPress into the big empty box.
 Click 'replace existing table' and select the table 'new corpora'.
 Press 'Upload'. Now the changed table is already published, but not yet in alphabetical order!
-Go to the top of the table, click 'A - row up (small triangle'). Wait until the order of the lines has changed and save the change.
+Go to the top of the table, click 'A - row up' (small triangle). Wait until the order of the lines has changed and save the change.
 Upload again and check the content on the [portal page for the upcoming corpora](https://www.kielipankki.fi/corpora/forthcoming/).
 
 ## Add a corpus to the list of published resources
@@ -76,14 +78,14 @@ Choose the table 'new corpora', click on 'import' (above), click 'manual import'
 Go to the excel sheet, mark and copy all (!) rows from the tab `obj_new` and add them to WordPress into the big empty box.
 Click 'replace existing table' and select the table 'new corpora'.
 Press 'Upload'. Now the changed table is already published, but not yet in alphabetical order!
-Go to the top of the table, click 'A - row up (small triangle'). Wait until the order of the lines has changed and save the change.
+Go to the top of the table, click 'A - row up' (small triangle). Wait until the order of the lines has changed and save the change.
 Upload again and check the content on the [portal page for the upcoming corpora](https://www.kielipankki.fi/corpora/forthcoming/).
 
 To change the table 'all corpora', go to 'import new table' on the left.
 In the excel sheet, mark and copy all (!) rows of `obj_prod` and paste to the manual import box.
 Click 'replace existing table' and select the table 'all corpora' this time.
 Press 'Upload'. Now the changed table is already published, but not yet in alphabetical order!
-Go to the top of the table, click 'A - row up (small triangle'). Wait until the order of the lines has changed and save the change.
+Go to the top of the table, click 'A - row up' (small triangle). Wait until the order of the lines has changed and save the change.
 Upload again and check the content on the [portal page of published corpora](https://www.kielipankki.fi/corpora/). 
 
 
