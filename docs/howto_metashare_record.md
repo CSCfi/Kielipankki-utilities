@@ -1,5 +1,5 @@
-#Maintaining metadata in META-SHARE
-##How to create a META-SHARE record
+# Maintaining metadata in META-SHARE
+## How to create a META-SHARE record
 
 You need the rights to edit in META-SHARE (ask for access from CSC, if you do not have the rights yet). Login to META-SHARE. 
 In order to create a new article, open the menu under "Manage Resources" and choose "Manage your own resources" or "Manage all resources".
@@ -47,7 +47,7 @@ Remember to not create roof pages in META-SHARE any more, but 'resource group pa
 To save your additions while editing an article, press 'save and continue editing', so you do not have to search for the article again 
 in order to continue editing or to preview the article.
 
-##Create a META-SHARE record by copying an existing one
+## Create a META-SHARE record by copying an existing one
 It is possible to create a META-SHARE record by using an existing page. This is helpful, if another version of the resource already has a record in META-SHARE and all or most of the details are the same. You need the script `clearObjects.sh`, which is stored in JIRA task KP-3693 at the moment.
 
     - Login to Metashare.
@@ -60,7 +60,7 @@ It is possible to create a META-SHARE record by using an existing page. This is 
     - Edit any other fields that need to be changed.
 
 
-##Relations between resources
+## Relations between resources
 Relations between resources should be made explicit under the topic 'Relation' in the META-SHARE record. 
 Related resources are for example the Korp version and the downloadable version of the same resource. 
 Relations between resources are always bilateral and the pairs of relations are fixed (e.g. IsVariantFormOf / IsOriginalFormOf). 
