@@ -1,5 +1,5 @@
 # Tokenizing: Tools and process
-The input format for the tokenizing scripts is **HRT** (for more information on this format see [docs: how to convert data to HRT](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_convert_data_to_hrt.md)). The output format of the tokenizing process is **VRT**. For more information on the **VRT** format see [kielipankki: corpus input format](https://www.kielipankki.fi/development/korp/corpus-input-format/).
+The input format for the tokenizing scripts is **HRT** (for more information on this format see [docs: how to convert data to HRT](howto_convert_data_to_hrt.md)). The output format of the tokenizing process is **VRT**. For more information on the **VRT** format see [Kielipankki: corpus input format](https://www.kielipankki.fi/development/korp/corpus-input-format/).
 
 The scripts can be found in GitHub [Kielipankki-utilities/vrt-tools](https://github.com/CSCfi/Kielipankki-utilities/tree/master/vrt-tools)
 
