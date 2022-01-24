@@ -29,5 +29,5 @@ Saving, previewing, and publishing a page:
     - From upper right corner, "Tallenna luonnos", "Esikatsele", or "Julkaise".
 
 
-After having created the license page in English and in Finnish, request URNs for both language variants. 
-Link to (at least the English) license page via its URN from the META-SHARE record. 
+After having created the license page in English and in Finnish, request PIDs for both language variants. 
+Link to (at least the English) license page via its PID from the META-SHARE record. 
