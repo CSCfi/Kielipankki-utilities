@@ -43,10 +43,15 @@ Structure of the download package:
 - short-name/LICENSE.txt
 - short-name/short-name/data files ... (including possible sub directories)
 
-Copy the package together with the uncompressed LICENSE.txt and README.txt to the folder `/scratch/clarin/download_preview/CORPUS/` on Puhti.   
-CORPUS here is a placeholder for the folder structure that should be shown in the download service.
-For example `/scratch/clarin/download_preview/YLE/fi/2019-2020-src/`
-would be shown in the download service as `https://kielipankki/download/YLE/fi/2019-2020-src/`
+Copy the package together with the uncompressed LICENSE.txt and README.txt to the folder `/scratch/clarin/download_preview/CORPUS/` on Puhti. CORPUS here is a placeholder for the folder structure that should be shown in the download service.
+
+For example 
+
+`/scratch/clarin/download_preview/YLE/fi/2019-2020-src/`
+
+would be shown in the download service as 
+
+`https://kielipankki/download/YLE/fi/2019-2020-src/`
 
 
 
@@ -72,7 +77,7 @@ Have the package on `/scratch/clarin/download_preview/'CORPUS'/` on Puhti tested
 Ask someone from CSC to upload the package to the download service.
 For a RES corpus, ask also to create an LBR record.
 
-Check the uploaded resource or better, have it checked by someone else of the team.
+Check the uploaded resource, or better, have it checked by someone else of the team.
 Check:
 
 - the download folder has the correct name (short-name)
