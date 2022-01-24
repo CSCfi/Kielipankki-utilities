@@ -81,7 +81,7 @@ Check:
 - the subdirectory contains the uncompressed README.txt and sometimes separate LICENSE.txt
 - for restricted corpora a license and acceptance page opens, that needs to be approved before download
 
-Move the resource from the list of upcoming resources to the list of published resources. See instructions under [docs: how to maintain resources lists](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_maintain_resources_lists.md)
+Move the resource from the list of upcoming resources to the list of published resources. See instructions under [docs: how to maintain resources lists](howto_maintain_resources_lists.md)
 
 Update the META-SHARE record and add the location PID.
 
