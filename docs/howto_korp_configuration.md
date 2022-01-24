@@ -77,7 +77,7 @@ Check that
 
 
 
-It would be nice to have a common list of what should be tested for all text corpora.
+It would be nice to have a general list of what should be tested for all text corpora.
 
 
 ### Debugging    
