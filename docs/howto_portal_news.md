@@ -16,7 +16,7 @@ The news item should have a title, which includes the name of the resource. For 
 location and resource group page should be given. No categories, icons etc. are needed.
 
 Try to publish the news in both languages at about the same time. It is recommended to create them first as drafts and publish them later.
-You can also select a date for publication.
+You can also define a date for publication.
 
 
 
