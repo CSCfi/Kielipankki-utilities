@@ -1,11 +1,11 @@
 # Korp configuration
 This part of the pipeline consists of making changes to the existing Korp configuration and translation files on the corpus-specific branch of the Korp frontend repository and committing the changes.
 
-You should have a folder ‘korp-frontend’ in your HOME directory in Taito shell, which is a Git working directory. 
+You should have a folder ‘Kielipankki-korp-frontend’ (Git working directory) in your HOME directory in Puhti. 
 
 Change to that directory:
 
-    cd korp-frontend
+    cd Kielipankki-korp-frontend
 
 You can create a new branch in GitHub, for example for a new corpus. This might be useful e.g. when working on several corpora at a time. Do the following (while in the master branch):
 
