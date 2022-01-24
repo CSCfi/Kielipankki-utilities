@@ -19,7 +19,7 @@ Run the PID-Generator under 'Registeröinti'. You will get a message created by 
 
 NOTE: Your changes and additions will come into effect only the following day!
 
-PIDs usually needed for a resource:
+A resource usually needs PIDs for the following pages:
 
 - META-SHARE article
 - LICENSE in English
