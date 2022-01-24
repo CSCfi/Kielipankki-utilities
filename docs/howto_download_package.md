@@ -85,9 +85,9 @@ Move the resource from the list of upcoming resources to the list of published r
 
 Update the META-SHARE record and add the location PID.
 
-Create or upate the resource group page, see [docs: how to create a resource group page](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_resource_group_page.md).
+Create or upate the resource group page, see [docs: how to create a resource group page](howto_resource_group_page.md).
 
-Publish news about the new corpus in the portal, see [docs: howto create news in the portal](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_portal_news.md) .
+Publish news about the new corpus in the portal, see [docs: howto create news in the portal](howto_portal_news.md) .
 
 
 
