@@ -1,5 +1,5 @@
 # Validating VRT
-The script for validating, **vrt-validate**, is meant for VRT data, so you should run it either before packing on the output of the tokenizing scipt or after unpacking the data after parsing.
+The script for validating, **vrt-validate**, is meant for VRT data, so you should run it either after tokenizing the data or after the last step of the parsing process.
 
 The script can be found in GitHub in the same place as the tokenizing and parsing scripts [Kielipankki-utilities/vrt-tools](https://github.com/CSCfi/Kielipankki-utilities/tree/master/vrt-tools).
 
