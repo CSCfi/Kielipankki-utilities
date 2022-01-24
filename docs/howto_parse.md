@@ -1,5 +1,5 @@
 # Parsing: Tools and process
-The input format for the parsing tools is **VRT**. For more information on the **VRT** format see [kielipankki: corpus input format](https://www.kielipankki.fi/development/korp/corpus-input-format/).
+The input format for the parsing tools is **VRT**. For more information on the **VRT** format see [Kielipankki: corpus input format](https://www.kielipankki.fi/development/korp/corpus-input-format/).
 
 The scripts for parsing can be found in GitHub in the same place as the tokenizing scripts [Kielipankki-utilities/vrt-tools](https://github.com/CSCfi/Kielipankki-utilities/tree/master/vrt-tools).
 
@@ -111,7 +111,7 @@ Example on how to run SPARV:
 
 
 ### Unpacking
-After parsing (and possibly [NER-tagging](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_nertagging.md)), the data is being put back together at the correct cuts, which were marked during the packing process. The script for this is **vrt-unpack**:
+After parsing (and possibly [NER-tagging](howto_nertagging.md)), the data is being put back together at the correct cuts, which were marked during the packing process. The script for this is **vrt-unpack**:
 
      $ bin/game --job unpack --log log/Unpack -C 1 bin/vrt-unpack -o parsed --vrf=vrf.Final data/
     
@@ -122,9 +122,9 @@ The log files can go to the same log folder as for packing, as a job name I chos
 The input files’ names have the extension 'vrf.Final'. Folder 'data': all subfolders will be worked on.
 
 
-It is recommended to validate the result VRT after parsing. For instructions on how to validate VRT data, see [docs: validating VRT](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_validate.vrt.md).
+It is recommended to validate the result VRT after parsing. For instructions on how to validate VRT data, see [docs: validating VRT](howto_validate_vrt.md).
 
-It might be necessary to rename and re-order the positional attributes after parsing. For instructions on how to rename and re-order positional attributes, see [docs: howto_pos_attributes.md](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_pos_attributes.md).
+It might be necessary to rename and re-order the positional attributes after parsing. For instructions on how to rename and re-order positional attributes, see [docs: how to order positional attributes](howto_pos_attributes.md).
 
 
 ### Creating a corpus zip file
