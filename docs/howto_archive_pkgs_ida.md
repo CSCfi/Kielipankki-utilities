@@ -3,6 +3,8 @@ After the corpus is installed on the production Korp, the **corpus package** (cr
 
 You can find the corpus package on Puhti under `/scratch/clarin/korp/corpora/pkgs/'corpus_id'`.
 
+Accordingly, after publishing a VRT download package in the download service, the VRT download package should be stored in IDA. The data can be found on Puhti under `/scratch/clarin/download_preview/'CORPUS'/`, where 'CORPUS' is the shortname of the corpus in question.
+
 Instructions on how to upload and download data to IDA can be found here: [IDA user guide](https://www.fairdata.fi/en/ida/user-guide/ "https://www.fairdata.fi/en/ida/user-guide/"). 
 
 If you decide to use the IDA client in Puhti, you can find instructions on configuring and using IDA from the command line here: [CSC guide for archiving data](https://research.csc.fi/csc-guide-archiving-data-to-the-archive-servers#3.2.2 "https://research.csc.fi/csc-guide-archiving-data-to-the-archive-servers#3.2.2").
