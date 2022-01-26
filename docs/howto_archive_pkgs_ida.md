@@ -1,5 +1,5 @@
 # Archiving the corpus package
-After the corpus is installed on the production Korp, the **corpus package** should be uploaded to the [IDA storage service](https://ida.fairdata.fi/login). Usually there is a folder for your corpus in IDA already, containing e.g. the original data. The package should be added to the same folder.
+After the corpus is installed on the production Korp, the **corpus package** (created by korp-make) should be uploaded to the [IDA storage service](https://ida.fairdata.fi/login). Usually there is a folder for your corpus in IDA already, containing e.g. the original data. The package should be added to the same folder.
 
 You can find the corpus package on Puhti under `/scratch/clarin/korp/corpora/pkgs/'corpus_id'`.
 
