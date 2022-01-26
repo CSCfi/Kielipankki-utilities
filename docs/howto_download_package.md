@@ -1,14 +1,15 @@
 # Publish source data/VRT data in Download
 Source data of a resource as well as its VRT version can be offered in the download service of Kielipankki [http://www.kielipankki.fi/download](http://www.kielipankki.fi/download "http://www.kielipankki.fi/download").
 
-The source data is offered as is, meaning that usually it is not changed by us, except for packaging the data (in zip files) in a suitable way. All data should be available in IDA, so it can be taken from there to create a download package.
+The **source data** is offered as is, meaning that usually it is not changed by us, except for packaging the data (in zip files) in a suitable way. All data should be available in IDA, so it can be taken from there to create a download package.
 
-If the VRT data is not yet stored in IDA, it can be extracted from Korp in order to create a download package. You have to ask someone with access rights to the Korp server for this.
+If the **VRT data** is not yet stored in IDA, it can be extracted from Korp in order to create a download package. You have to ask someone with access rights to the Korp server for this.
 
 As for all resources and all their versions, a META-SHARE record has to be created, URNs to be requested, the resource has to be added to the list of upcoming resources, if not there yet. (See [instructions](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/))
 
-The name of the source version of a resource should contain the additional information 'source', e.g. `Yle Finnish News Archive 2011-2018, source`. The short name should have the suffix '-src', e.g. `ylenews-fi-2011-2018-src`.
-Accordingly, the name of the VRT version of a resource should contain the information 'VRT', e.g. `Yle Finnish News Archive 2011-2018, VRT`. The short name should have the suffix '-vrt', e.g. `ylenews-fi-2011-2018-vrt`. Please follow Kielipankki's [Language resource naming conventions](https://www.kielipankki.fi/development/language-resource-naming-conventions/).
+The name of the **source version** of a resource should contain the additional information 'source', e.g. `Yle Finnish News Archive 2011-2018, source`. The short name should have the suffix '-src', e.g. `ylenews-fi-2011-2018-src`.
+
+Accordingly, the name of the **VRT version** of a resource should contain the information 'VRT', e.g. `Yle Finnish News Archive 2011-2018, VRT`. The short name should have the suffix '-vrt', e.g. `ylenews-fi-2011-2018-vrt`. Please follow Kielipankki's [Language resource naming conventions](https://www.kielipankki.fi/development/language-resource-naming-conventions/).
 
 In case of data with restricted access rights, license pages in the portal have to be created and linked to from META-SHARE.
 Citation information also has to be added to the META-SHARE record.
@@ -71,7 +72,7 @@ Unzip and re-pack the data. Remember to add the README.txt and LICENSE.txt to th
 Remember to copy the re-packed data back from local scratch to either your work directory or directly to `/scratch/clarin/download_preview/`, because when you leave the interactive session, all your data on the local scratch area will be deleted.
 
 
-## Publish the resource
+## Publishing the resource
 Have the package on `/scratch/clarin/download_preview/'CORPUS'/` on Puhti tested by someone else of the team.
 
 Ask someone from CSC to upload the package to the download service.
@@ -98,3 +99,6 @@ Publish news about the new corpus in the portal, see [docs: howto create news in
 
 More information on how to publish a corpus in the download service:
 [Kielipankki: corpus data publication for download at the language-bank](https://www.kielipankki.fi/development/corpus-data-publication-for-download-at-the-language-bank/)
+
+## Archiving the VRT download package in IDA
+After publishing the VRT data in download, the VRT download package should be uploaded to the particular corpus folder in IDA. Instructions on how to upload data to the [IDA storage service](https://ida.fairdata.fi/) can be found in [docs: how to archive packages in ida](howto_archive_pkgs_ida.md).
