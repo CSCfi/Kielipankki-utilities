@@ -138,3 +138,4 @@ tmp
 
 # Profiling files
 *.prof
+.DS_Store
