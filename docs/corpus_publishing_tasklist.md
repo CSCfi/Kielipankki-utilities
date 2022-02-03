@@ -31,7 +31,7 @@ one of the following letters:
 ## Negotiate publishing a corpus in the Language Bank of Finland
 
 ```
-# [ ] _+A_ Contact the potential depositor and ask them to submit basic corpus details (preferably via e-form)
+# [ ] _?A_ Contact the potential depositor and ask them to submit basic corpus details (preferably via e-form)
 # [ ] _+A_ Create and publish an initial META-SHARE record (skeletal information only, no promises regarding publication yet)
 # [ ] _+A_ Ask the rightholder to review the details in the META-SHARE record (shortname and title should be finalized)
 # [ ] _+A_ Make an initial decision as to whether the resource can potentially be distributed via the Language Bank of Finland
@@ -39,23 +39,29 @@ one of the following letters:
 # [ ] _+A_ Update the META-SHARE record and inform the depositor about citation practices
 # [ ] _+A_ Add the corpus to the list of upcoming resources
 # [ ] _+A_ Add the corpus to the list of licenses
-# [ ] _?A_ Provide the depositor with references/advice regarding the technical format and structure of the source data
-# [ ] _?A_ In case the corpus contains third-party copyrighted material, find out if the depositor has the rights to distribute it via the Language Bank (e.g., explicit license or permission from copyright holders)
-# [ ] _?A_ In case the corpus contains personal data, ask who the data controller is, how the depositor has informed the data subjects about purpose and further processing, and ask the depositor to show their data protection information sheet (or the documents that passed ethical review, if applicable)
-# [ ] _?A_ In case the corpus contains personal data, obtain (or create) a description of the personal data categories that are included in the corpus and see if further risk assessment (or a DPIA) is required
-# [ ] _?A_ Provide the depositor with further references regarding personal data minimization and safeguards that may be applied prior to submitting the corpus for distribution
 # [ ] _?A_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
-# [ ] _?A_ Prepare for a meeting with the depositor (agenda: to discuss the requirements regarding the deposition agreement)
-# [ ] _?A_ Meet with the depositor/rightholder and take note of the action points
-# [ ] _+A_ Make the final decision as to whether the resource can be distributed via the Language Bank of Finland (bring the case up in legal meeting, if necessary)
-# [ ] _+A_ Prepare a draft of the deposition license agreement and send it to corpus owner who should fill in the remaining gaps (ask for legal advice if needed)
-# [ ] _+A_ Check the final deposition agreement and send it to the rightholder (and to the data controller) and to the head of department at the University of Helsinki for electronic signing
-# [ ] _+A_ Archive the signed deposition agreement (pdf) in IDA 
-# [ ] _+A_ Create license pages
-# [ ] _?A_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
-# [ ] _+A_ Request URNs for license pages (and the PRIV condition pages)
+# [ ] _?A_ Provide the depositor with references/advice regarding the technical format and structure of the source data
+# [ ] _?A_ Clear the license terms and conditions regarding copyrighted material 
+## [ ] _?A_ In case the corpus contains third-party copyrighted material, find out if the depositor has the rights to distribute it via the Language Bank (e.g., explicit license or permission from copyright holders)
+##  [ ] _?A_ When in doubt, bring the case up in a legal meeting
+# [ ] _?A_ Clear the data protection terms and conditions (PRIV)
+## [ ] _?A_ Find out who the data controller is, how the depositor has informed the data subjects about purpose and further processing, and ask the depositor to show their data protection information sheet (or the documents that passed ethical review, if applicable)
+## [ ] _?A_ Obtain (or create) a description of the personal data categories that are included in the corpus
+## [ ] _?A_ Find out if further risk assessment (or a DPIA) is required (and take action if necessary)
+## [ ] _?A_ Provide the depositor with further references regarding personal data minimization and safeguards that may be applied prior to submitting the corpus for distribution
+# [ ] _+A_ Prepare and sign the deposition license agreement
+## [ ] _?A_ Prepare for a meeting with the depositor (agenda: to discuss the requirements regarding the deposition agreement)
+## [ ] _?A_ Meet with the depositor/rightholder and take note of the action points
+## [ ] _+A_ Make the final decision as to whether the resource can be distributed via the Language Bank of Finland (bring the case up in legal meeting, if necessary)
+## [ ] _+A_ Prepare a draft of the deposition license agreement and send it to corpus owner who should fill in the remaining gaps (ask for legal advice if needed)
+## [ ] _+A_ Check the final deposition agreement and send it to the rightholder (and to the data controller) and to the head of department at the University of Helsinki for electronic signing
+## [ ] _+A_ Archive the signed deposition agreement (pdf) in IDA
+# [ ] _+A_ Publish the end-user license
+## [ ] _+A_ Create license pages
+## [ ] _?A_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
+## [ ] _+A_ Request URNs for license pages (and the PRIV condition pages)
+## [ ] _+A_ Update the list of licenses
 # [ ] _+A_ Update the list of upcoming resources
-# [ ] _+A_ Update the list of licenses
 # [ ] _+A_ Bring up the corpus requirements for discussion in an internal meeting, to prioritize it and to assign further work
 ```
 
