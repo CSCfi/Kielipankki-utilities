@@ -62,7 +62,10 @@ one of the following letters:
 ## [ ] _+A_ Request URNs for license pages (and the PRIV condition pages)
 ## [ ] _+A_ Update the list of licenses
 # [ ] _+A_ Update the list of upcoming resources
-# [ ] _+A_ Bring up the corpus requirements for discussion in an internal meeting, to prioritize and to assign further work
+# [ ] _+A_ Allocate internal resources for processing and publishing the corpus in Kielipankki
+##  [ ] _?A_ Ask the depositor/rightholder about their schedule for submitting the data
+## [ ] _+A_ Bring the further processing steps and required resources up for discussion in an internal meeting
+## [ ] _+A_ Prioritize and assign further work
 ```
 
 ## Acquire source data
@@ -94,8 +97,10 @@ one of the following letters:
 # [ ] _+T_ Have it tested again (access rights!)
 # [ ] _+A_ Move the resource from the list of upcoming resources to the list of published resources
 # [ ] _+A_ Update the META-SHARE record; add location PID
+# [ ] _?A_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _+A_ Create or update the resource group page, and make sure the META-SHARE record also contains a link to the resource group page
 # [ ] _+A_ Publish news about the new corpus on the Portal
+# [ ] _?A_ Inform the depositor/rightholder about the publication
 # [ ] _+D_ Upload the source package to IDA
 ## [ ] _+A_ Freeze the IDA package
 # [ ] _?D_ Ask Martin (CSC) to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti if the source data is to be published there
@@ -109,7 +114,7 @@ one of the following letters:
 # [ ] _+A_ Request URNs (for META-SHARE, Korp, license pages)
 # [ ] _+A_ Add corpus to the list of upcoming resources
 # [ ] _+A_ Create license pages
-# [ ] _+A_ Add citing information to the META-SHARE record
+# [ ] _+A_ Add citation information to the META-SHARE record
 # [ ] _?D_ Convert the data to HRT
 # [ ] _?D_ Convert HRT to VRT (tokenizing)
 # [ ] _?D_ Convert the data directly to VRT (alternative to HRT->VRT)
@@ -142,6 +147,7 @@ one of the following letters:
 # [ ] _?A_ Create an LBR record (for a RES corpus, if the corpus does not yet have one)
 # [ ] _+A_ Move the corpus from the list of upcoming resources to the list of published resources (add status beta to the name!)
 # [ ] _+A_ Update META-SHARE record; add location PID
+# [ ] _?A_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _+A_ Add beta status to META-SHARE record and resource group page
 # [ ] _+A_ Publish news about this new corpus in the portal
 # [ ] _?A_ Inform corpus owner and possibly interested researchers on the corpus in Korp and ask them to test it
@@ -162,7 +168,7 @@ one of the following letters:
 # [ ] _+A_ Request URNs (for META-SHARE, download, license pages)
 # [ ] _+A_ Add the corpus to list of upcoming resources
 # [ ] _+A_ Create license pages
-# [ ] _+A_ Add citing information to the META-SHARE record
+# [ ] _+A_ Add citation information to the META-SHARE record
 # [ ] _+D_ Create a download package
 ## [ ] _+D_ Create and add readme and license files
 ## [ ] _+D_ Zip the data and the readme and license files
@@ -174,8 +180,10 @@ one of the following letters:
 # [ ] _+T_ Have it tested again (access rights!)
 # [ ] _+A_ Move the corpus from the list of upcoming resources to the list of published resources
 # [ ] _+A_ Update the META-SHARE record; add location PID
+# [ ] _?A_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _+A_ Create or update the resource group page
 # [ ] _+A_ Publish news about the new corpus on the Portal
+# [ ] _?A_ Inform the depositor/rightholder about the VRT publication
 # [ ] _?A_ If the package was published as beta (during the beta stage of the corresponding Korp corpus), remove the beta status after removing the beta status from Korp
 ## [ ] _?D_ Create a new download package with the beta status removed from the readme file and file names
 ## [ ] _?D_ Compute MD5 checksum for the zip package
