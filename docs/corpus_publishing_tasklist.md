@@ -62,7 +62,7 @@ one of the following letters:
 ## [ ] _+A_ Request URNs for license pages (and the PRIV condition pages)
 ## [ ] _+A_ Update the list of licenses
 # [ ] _+A_ Update the list of upcoming resources
-# [ ] _+A_ Bring up the corpus requirements for discussion in an internal meeting, to prioritize it and to assign further work
+# [ ] _+A_ Bring up the corpus requirements for discussion in an internal meeting, to prioritize and to assign further work
 ```
 
 ## Acquire source data
