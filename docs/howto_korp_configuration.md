@@ -1,11 +1,11 @@
 # Korp configuration
 This part of the pipeline consists of making changes to the existing Korp configuration and translation files on the corpus-specific branch of the Korp frontend repository and committing the changes.
 
-You should have a folder ‘korp-frontend’ in your HOME directory in Taito shell, which is a Git working directory. 
+You should have a folder ‘Kielipankki-korp-frontend’ (Git working directory) in your HOME directory in Puhti. 
 
 Change to that directory:
 
-    cd korp-frontend
+    cd Kielipankki-korp-frontend
 
 You can create a new branch in GitHub, for example for a new corpus. This might be useful e.g. when working on several corpora at a time. Do the following (while in the master branch):
 
@@ -62,7 +62,7 @@ Push your changes to the main repository ("origin").
         
 
 ### Creating a test instance of Korp
-Inform Jyrki, that you have pushed the changes. He will then create a test instance of Korp for your corpus, copy your corpus package (which you created earlier with 'korp-make') to the Korp server and install your configuration. When you did changes to an already existing test corpus, he will update the test instance for you.
+Inform Jyrki, that you have pushed the changes. He will then create a test instance of Korp for your corpus, copy your corpus package (which you created earlier with 'korp-make') to the Korp server and install your configuration. When you did changes to an already existing test corpus, he will update the test instance for you. (More information on [how to publish a corpus in Korp](howto_korp_publish.md))
 
 ### Testing the corpus in Korp
 
@@ -77,7 +77,7 @@ Check that
 
 
 
-It would be nice to have a common list of what should be tested for all text corpora.
+It would be nice to have a general list of what should be tested for all text corpora.
 
 
 ### Debugging    
