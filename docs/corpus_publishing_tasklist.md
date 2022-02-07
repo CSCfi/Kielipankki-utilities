@@ -28,7 +28,11 @@ one of the following letters:
 - _K_: Korp configuration
 - _T_: testing
 
-## Negotiate a license for a new corpus / resource group in the Language Bank of Finland
+It is suggested that you use the section titles as names of the corresponding Jira issues.
+Please replace "corpusshortname" with the (base) short name of the resource in question.
+This makes it easier to see which resource is addressed in individual Jira tickets.
+
+## corpusshortname: Clear the license for the corpus in the Language Bank of Finland
 
 ```
 # [ ] _?A_ Contact the potential depositor and ask them to submit basic corpus details (preferably via e-form)
@@ -63,7 +67,7 @@ one of the following letters:
 ## [ ] _+A_ Update the list of licenses
 ```
 
-## Prepare for data acquisition, after the license is cleared
+## corpusshortname: Prepare for data acquisition, after the license is cleared
 ```
 # [ ] _+A_ Create/update the META-SHARE record, including the license information
 # [ ] _?A_ Request a URN for the META-SHARE record, if missing
@@ -74,7 +78,7 @@ one of the following letters:
 ## [ ] _+A_ Prioritize and assign further work
 ```
 
-## Acquire source data
+## corpusshortname: Acquire source data
 
 ```
 # [ ] _+D_ Receive, download or harvest the data
@@ -84,7 +88,7 @@ one of the following letters:
 # [ ] _+D_ Upload the data package to IDA
 ```
 
-## Publish source data in Download 
+## corpusshortname: Publish source data in Download 
 
 ```
 # [ ] _?D_ Get the data from IDA
@@ -112,7 +116,7 @@ one of the following letters:
 # [ ] _?D_ Ask Martin (CSC) to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti if the source data is to be published there
 ```
 
-## Publish a corpus in Korp
+## corpusshortname: Publish in Korp
 
 ```
 # [ ] _?D_ Get the data from IDA
@@ -166,7 +170,7 @@ one of the following letters:
 # [ ] _+A_ Freeze the IDA package
 ```
 
-## Publish VRT data in Download
+## corpusshortname: Publish VRT data in Download
 
 ```
 # [ ] _+D_ Get the data from IDA or extract it from Korp
