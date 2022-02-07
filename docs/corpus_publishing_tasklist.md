@@ -29,10 +29,11 @@ one of the following letters:
 - _T_: testing
 
 It is suggested that you use the section titles as names of the corresponding Jira issues.
-Please replace "corpusshortname" with the (base) short name of the resource in question.
+If several issues are needed for a given corpus, please replace "_corpusshortname_" 
+with the short name of the resource in question (use base name only, excluding "-src" etc.).
 This makes it easier to see which resource is addressed in individual Jira tickets.
 
-## corpusshortname: Clear the license for the corpus in the Language Bank of Finland
+## _corpusshortname_: Clear the license for the corpus in the Language Bank of Finland
 
 ```
 # [ ] _?A_ Contact the potential depositor and ask them to submit basic corpus details (preferably via e-form)
@@ -67,7 +68,7 @@ This makes it easier to see which resource is addressed in individual Jira ticke
 ## [ ] _+A_ Update the list of licenses
 ```
 
-## corpusshortname: Prepare for data acquisition, after the license is cleared
+## _corpusshortname_: Prepare for data acquisition, after the license is cleared
 ```
 # [ ] _+A_ Create/update the META-SHARE record, including the license information
 # [ ] _?A_ Request a URN for the META-SHARE record, if missing
@@ -78,7 +79,7 @@ This makes it easier to see which resource is addressed in individual Jira ticke
 ## [ ] _+A_ Prioritize and assign further work
 ```
 
-## corpusshortname: Acquire source data
+## _corpusshortname_: Acquire source data
 
 ```
 # [ ] _+D_ Receive, download or harvest the data
@@ -88,7 +89,7 @@ This makes it easier to see which resource is addressed in individual Jira ticke
 # [ ] _+D_ Upload the data package to IDA
 ```
 
-## corpusshortname: Publish source data in Download 
+## _corpusshortname_: Publish source data in Download 
 
 ```
 # [ ] _?D_ Get the data from IDA
@@ -116,7 +117,7 @@ This makes it easier to see which resource is addressed in individual Jira ticke
 # [ ] _?D_ Ask Martin (CSC) to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti if the source data is to be published there
 ```
 
-## corpusshortname: Publish in Korp
+## _corpusshortname_: Publish in Korp
 
 ```
 # [ ] _?D_ Get the data from IDA
@@ -170,7 +171,7 @@ This makes it easier to see which resource is addressed in individual Jira ticke
 # [ ] _+A_ Freeze the IDA package
 ```
 
-## corpusshortname: Publish VRT data in Download
+## _corpusshortname_: Publish VRT data in Download
 
 ```
 # [ ] _+D_ Get the data from IDA or extract it from Korp
