@@ -28,7 +28,7 @@ one of the following letters:
 - _K_: Korp configuration
 - _T_: testing
 
-## Negotiate publishing a corpus in the Language Bank of Finland
+## Negotiate a license for a new corpus / resource group in the Language Bank of Finland
 
 ```
 # [ ] _?A_ Contact the potential depositor and ask them to submit basic corpus details (preferably via e-form)
@@ -61,6 +61,12 @@ one of the following letters:
 ## [ ] _?A_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
 ## [ ] _+A_ Request URNs for license pages (and the PRIV condition pages)
 ## [ ] _+A_ Update the list of licenses
+```
+
+## Prepare for data acquisition, after the license is cleared
+```
+# [ ] _+A_ Create/update the META-SHARE record, including the license information
+# [ ] _?A_ Request a URN for the META-SHARE record, if missing
 # [ ] _+A_ Update the list of upcoming resources
 # [ ] _+A_ Allocate internal resources for processing and publishing the corpus in Kielipankki
 ##  [ ] _?A_ Ask the depositor/rightholder about their schedule for submitting the data
