@@ -68,7 +68,7 @@ This makes it easier to see which resource is addressed in individual Jira ticke
 ## [ ] _+A_ Update the list of licenses
 ```
 
-## _corpusshortname_: Prepare for data acquisition, after the license is cleared
+## _corpusshortname_: Prepare for data acquisition
 ```
 # [ ] _+A_ Create/update the META-SHARE record, including the license information
 # [ ] _?A_ Request a URN for the META-SHARE record, if missing
