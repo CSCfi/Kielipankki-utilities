@@ -119,3 +119,8 @@ CSTLEMMAMODELS = dict(
         '-f', os.path.join(SPARVDIR, 'models', 'suc-saldo.cstlemma.flex'),
     ]
 )
+
+# Temporary location for Turku Neural Parser Pipeline
+# https://github.com/TurkuNLP/Turku-neural-parser-pipeline/tree/master
+# (with venv-tnpp for Python and Finnish-TDT model added)
+TURKUNPPDIR = '/projappl/clarin/test-tnpp/TNPP'

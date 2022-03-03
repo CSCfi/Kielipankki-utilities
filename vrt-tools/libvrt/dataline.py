@@ -68,6 +68,7 @@ ENTITIES = {
     b'&quot;' : b'"',
     b'&apos;' : b"'",
     b'\t' : b'{TAB}' # tab is field separator
+    # why is \t here?
 }
 
 def unentify(mo): return ENTITIES[mo.group()]
@@ -81,3 +82,11 @@ def unescape(value):
     '''
 
     return re.sub(b'&(lt|gt|amp|quot|apos);|\t', unentify, value)
+
+def escape(value):
+    '''Escape & < > in value as &amp; &lt; &gt; respectively.'''
+    return ( value
+             .replace(b'&', b'&amp;')
+             .replace(b'<', b'&lt;')
+             .replace(b'>', b'&gt;')
+    )
