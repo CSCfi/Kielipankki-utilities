@@ -32,9 +32,14 @@ unzip -v "$tei_zip" |
 
 grep -E 'rdf:about|dc:identifier' "$prefix"-*.xml |
     perl -ne 'if (/rdf:about="(.*?)"/) {
-                  $url = $1
-              } elsif (/<dc:identifier>(\d+)</) {
-                  print "$1\t$url\n"
+                  if ($url && ! $p) {
+                      print "\t$url\n";
+                  }
+                  $url = $1;
+                  $p = 0;
+              } elsif (/<dc:identifier>(\d.*?)</) {
+                  print "$1\t$url\n";
+                  $p = 1;
 	      }' |
     LC_ALL=C sort -k1,1 |
     LC_ALL=C join -t'	' -j1 -a1 -o "1.2 2.2" $texts_file - |
