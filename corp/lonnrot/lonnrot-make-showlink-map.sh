@@ -25,9 +25,9 @@ export LC_ALL
 texts_file=${TMPDIR:-/tmp}/lonnrot_texts_$$.tsv
 
 unzip -v "$tei_zip" |
-    grep -E '[0-9]+_.*\.xml' |
+    grep '\.xml' |
     awk '{print $NF}' |
-    perl -ne '/^(\d+)_/; print "$1\t$_";' |
+    perl -ne '/^(.+?)_/; print "$1\t$_";' |
     sort -k1,1 > $texts_file
 
 grep -E 'rdf:about|dc:identifier' "$prefix"-*.xml |
