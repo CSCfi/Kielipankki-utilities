@@ -22,7 +22,7 @@ prefix=$dcmes_dir/lonnrot-dcmes
 LC_ALL=C
 export LC_ALL
 
-texts_file=${TMPDIR:/tmp}/lonnrot_texts_$$.tsv
+texts_file=${TMPDIR:-/tmp}/lonnrot_texts_$$.tsv
 
 unzip -v "$tei_zip" |
     grep -E '[0-9]+_.*\.xml' |
