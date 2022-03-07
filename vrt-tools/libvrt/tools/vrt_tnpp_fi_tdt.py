@@ -179,25 +179,26 @@ def pr1_init(args, old):
     global WORD
 
     if args.word not in old:
-        raise BadData('no such field: {}'
+        raise BadData('no such input field: {}'
                       .format(repr(args.word.decode('UTF-8'))))
 
-    # TODO ref, base, upos, xpos, feats, head, deprel
-    for name in (args.ref, args.head, args.rel):
-        if name in old:
-            raise BadData('field already in use: {}'
-                          .format(name.decode('UTF-8')))
+    outnames = [ args.prefix + name + args.suffix
+                 for name in (args.ref,
+                              args.base, args.upos, args.xpos,
+                              args.feat, args.head, args.rel) ]
+
+    clashes = [ name for name in outnames if name in old ]
+    if clashes:
+        raise BadData('output field names already in use: {}: {}'
+                      .format(b', '.join(clashes).decode('UTF-8'),
+                              b', '.join(old).decode('UTF-8')))
+
+    if len(outnames) > len(set(outnames)):
+        raise BadData('duplicates in output field names: {}'
+                      .format(b', '.join(outnames).decode('UTF-8')))
 
     WORD = old.index(args.word)
-
-    new = old[:]
-    new.insert(WORD + 1, args.prefix + args.rel + args.suffix)
-    new.insert(WORD + 1, args.prefix + args.head + args.suffix)
-    new.insert(WORD + 1, args.prefix + args.feat + args.suffix)
-    new.insert(WORD + 1, args.prefix + args.xpos + args.suffix)
-    new.insert(WORD + 1, args.prefix + args.upos + args.suffix)
-    new.insert(WORD + 1, args.prefix + args.base + args.suffix)
-    new.insert(WORD + 1, args.prefix + args.ref + args.suffix)
+    new = old[:WORD + 1] + outnames + old[WORD + 1:]
 
     return new
 
