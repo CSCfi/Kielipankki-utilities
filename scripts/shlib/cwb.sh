@@ -255,9 +255,11 @@ cwb_registry_add_structattr () {
         ' "$_regfile.old" > "$_regfile"
     fi
     _added_attrs="$_added_attrs$_new_attrs_prefixed"
-    cwb_registry_add_change_comment \
-        $_corpus \
-        "Added structural attribute$(plural "$_added_attrs") $(delimit ", " $_added_attrs)"
+    if [ "x$_added_attrs" != x ]; then
+        cwb_registry_add_change_comment \
+            $_corpus \
+            "Added structural attribute$(plural "$_added_attrs") $(delimit ", " $_added_attrs)"
+    fi;
     ensure_perms "$_regfile" "$_regfile.old"
 }
 
