@@ -83,8 +83,10 @@ def transput(args, imp, proc, ins, ous):
     _combinate(args, imp, copy, proc, ous)
 
     # proc should have run its course by now; the 30 second timeout
-    # may or may not be either wildly excessive or sufficient
-    code = proc.wait(timeout = 30)
+    # may or may not be either wildly excessive or sufficient --
+    # turned out insufficient for some tool so is a five minute
+    # timeout now
+    code = proc.wait(timeout = 300)
 
     if not copy.empty():
         raise BadCode('copy queue is not empty')
