@@ -1,0 +1,213 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from vrtargslib import trans_args, trans_main
+
+from vrtnamelib import isnames, namelist, nameindices
+
+from vrtdatalib import asrecord
+
+def parsearguments():
+    description = '''
+
+    Mend sentences that were torn and then annotated with dependency
+    syntax in CoNLL-U format. Remove sen.ten.ce tags and sentence-tag
+    pairs within sen.ten.ce, adjust numbering of tokens and non-0
+    heads in further shreds. Make each further root (0 head) that is
+    also root (relation "root") a dep of the first root that is also
+    "root". (So build a bush rather than a chain.)
+
+    '''
+    parser = trans_args(description = description)
+
+    parser.add_argument('--id', default = 'ref_ud2',
+                        help = '''
+
+                        token id field name - 1-based counter within
+                        sentence (default: ref_ud2 (!))
+
+                        ''')
+
+    parser.add_argument('--rel', default = 'deprel_ud2',
+                        help = '''
+
+                        dependency relation field name, used to link
+                        further roots to a previous root (default:
+                        deprel_ud2 (!))
+
+                        ''')
+
+    parser.add_argument('--head', default = 'dephead_ud2',
+                        help = '''
+
+                        dependency head field name - either the id of
+                        another token or, in a root token, 0 (default:
+                        dephead_ud2 (!))
+
+                        ''')
+
+    parser.add_argument('--limit', default = 1000, type = int,
+                        help = '''
+
+                        only combine shreds until they reach or exceed
+                        this number of tokens, then start another
+                        sentence at the next shred (default: 1000);
+                        warning: could destroy previous dependency
+                        annotation by not restoring previous sentence
+                        boundaries!
+
+                        ''')
+
+    parser.add_argument('--debug', action = 'store_true',
+                        help = '''
+
+                        leave comments in place of sen.ten.ce tags and
+                        those sentence end/start tags within that were
+                        removed
+
+                        ''')
+
+    args = parser.parse_args()
+    args.prog = parser.prog
+    return args
+
+def main(args, ins, ous):
+    
+    def issome(line): return not line.isspace()
+
+    idix, relix, headix = None, None, None
+    keep = True
+    look = False
+    size = 0
+    for line in filter(issome, ins):
+
+        # outside <sen.ten.ce>, keep everything;
+        # inside <sen.ten.ce>, drop sentence tags
+        # but look for a first sentence start tag;
+        # at </sen.ten.ce> close the <sentence>
+        # (unless still looking for it to start)
+
+        if isnames(line):
+            print(line, end = '', file = ous)
+            idix, relix, headix = nameindices(namelist(line),
+                                              args.id,
+                                              args.rel,
+                                              args.head)
+            continue
+
+        if line.startswith(('<sen.ten.ce>',
+                            '<sen.ten.ce ')):
+            keep = False
+            look = True
+            root, record = None, None
+            args.debug and print('<!-- sen.ten.ce -->', file = ous)
+            continue
+
+        if line.startswith('</sen.ten.ce>'):
+            if look:
+                # wait what
+                pass
+            else:
+                # the shred that ended was the last shred
+                print('</sentence>', file = ous)
+            keep = True 
+            look = False
+            root, record = None, None
+            args.debug and print('<!-- /sen.ten.ce -->', file = ous)
+            continue
+
+        if line.startswith(('<sentence>',
+                            '<sentence ')):
+            if keep:
+                print(line, end = '', file = ous)
+                continue
+
+            if look:
+                # enter first shred,
+                # possibly first shred after reaching size limit
+                print(line, end = '', file = ous)
+                look = False
+                step = 0
+                size = 0
+                root, record = None, None
+                continue
+            
+            if args.debug:
+                print('<!-- /sentence -->', file = ous)
+                print('<!-- sentence -->', file = ous)
+                continue
+
+            continue
+
+        if line.startswith('</sentence>'):
+            if keep:
+                print(line, end = '', file = ous)
+                continue
+
+            if size >= args.limit:
+                print(line, end = '', file = ous)
+                look = True
+                continue
+
+            # record is last token in a shred in a sentence being
+            # mended and already adjusted to have its final id; next
+            # shred is to be stepped that much
+            step = int(record[idix])
+            continue
+
+        if line.startswith('<'):
+            print(line, end = '', file = ous)
+            continue
+
+        # line is a token
+
+        if keep:
+            print(line, end = '', file = ous)
+            continue
+
+        # line is a token in a sentence being mended
+
+        record = asrecord(line)
+        size += 1
+
+        record[idix] = str(int(record[idix]) + step)
+
+        if not record[headix] == '0':
+            record[headix] = str(int(record[headix]) + step)
+            print(*record, sep = '\t', file = ous)
+            continue
+
+        # Innovation: only adjust "root" roots, leave non-"root" roots
+        # as they are! So this would _also_ adjust multiple "root"
+        # roots within a shred, and may still leave trees multirooted
+        # with non-"root" roots. (History: an earlier parser sometimes
+        # produced such multi-trees.)
+
+        # record[headix] == '0'
+
+        if record[relix] != 'root':
+            # leaving this root alone
+            print(*record, sep = '\t', file = ous)
+            continue
+
+        # adjusting "root"-roots
+        # record[headix] == '0'
+        # record[relix] == 'root'
+        
+        if root is None:
+            # first "root" root remains a "root" root,
+            # adjustment strategy does not matter yet,
+            root = record[idix]
+            print(*record, sep = '\t', file = ous)
+            continue
+
+        # have previous "root" root,
+        # point current "root" root to the previous "root" root
+        
+        record[relix] = 'dep'
+        record[headix] = root
+
+        print(*record, sep = '\t', file = ous)
+
+if __name__ == '__main__':
+    trans_main(parsearguments(), main)
