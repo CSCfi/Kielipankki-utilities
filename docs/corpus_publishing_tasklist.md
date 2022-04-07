@@ -37,7 +37,7 @@ This makes it easier to see which resource is addressed in individual Jira ticke
 of the Jira issue in question!*
 
 ```
-h4. {_}corpusshortname{_}: Clear the license for the corpus in the Language Bank of Finland
+h2. {_}corpusshortname{_}: Clear the license for the corpus in the Language Bank of Finland
 # [ ] _*?A*_ Contact the potential depositor and ask them to submit basic corpus details (preferably via e-form)
 # [ ] _*+A*_ Create and publish an initial META-SHARE record (skeletal information only, no promises regarding publication yet)
 # [ ] _*+A*_ Ask the rightholder to review the details in the META-SHARE record (shortname and title should be finalized)
@@ -69,7 +69,7 @@ h4. {_}corpusshortname{_}: Clear the license for the corpus in the Language Bank
 ## [ ] _*+A*_ Request URNs for license pages (and the PRIV condition pages)
 ## [ ] _*+A*_ Update the list of licenses
 \\
-h4.  {_}corpusshortname{_}: Prepare for data acquisition
+h2.  {_}corpusshortname{_}: Prepare for data acquisition
 # [ ] _*+A*_ Create/update the META-SHARE record, including the license information
 # [ ] _*?A*_ Request a URN for the META-SHARE record, if missing
 # [ ] _*+A*_ Update the list of upcoming resources
@@ -78,14 +78,14 @@ h4.  {_}corpusshortname{_}: Prepare for data acquisition
 ## [ ] _*+A*_ Bring the further processing steps and required resources up for discussion in an internal meeting
 ## [ ] _*+A*_ Prioritize and assign further work
 \\
-h4. {_}corpusshortname{_}: Acquire source data
+h2. {_}corpusshortname{_}: Acquire source data
 # [ ] _*+D*_ Receive, download or harvest the data
 # [ ] _*+D*_ Check the data: format and validity
 ## [ ] _*?D*_ Clean up the data
 # [ ] _*+D*_ Package the data for IDA
 # [ ] _*+D*_ Upload the data package to IDA
 \\
-h4.  {_}corpusshortname{_}: Publish source data in Download
+h2.  {_}corpusshortname{_}: Publish source data in Download
 # [ ] _*?D*_ Get the data from IDA
 # [ ] _*+A*_ Update the META-SHARE record (or create a new record, if missing)
 # [ ] _*+A*_ Request access location URN for download version (and check that the URNs for META-SHARE and license pages are available and working)
@@ -110,7 +110,7 @@ h4.  {_}corpusshortname{_}: Publish source data in Download
 ## [ ] _*+A*_ Freeze the IDA package
 # [ ] _*?D*_ Ask Martin (CSC) to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti if the source data is to be published there
 \\
-h4.  {_}corpusshortname{_}: Publish in Korp
+h2.  {_}corpusshortname{_}: Publish in Korp
 # [ ] _*?D*_ Get the data from IDA
 # [ ] _*+A*_ Create a META-SHARE record
 # [ ] _*+A*_ Request URNs (for META-SHARE, Korp, license pages)
@@ -161,7 +161,7 @@ h4.  {_}corpusshortname{_}: Publish in Korp
 ## [ ] _*+A*_ Remove beta status from the META-SHARE record and resource group page
 # [ ] _*+A*_ Freeze the IDA package
 \\
-h4.  {_}corpusshortname{_}: Publish VRT data in Download
+h2.  {_}corpusshortname{_}: Publish VRT data in Download
 # [ ] _*+D*_ Get the data from IDA or extract it from Korp
 # [ ] _*+A*_ Create a META-SHARE record
 # [ ] _*+A*_ Request URNs (for META-SHARE, download, license pages)
