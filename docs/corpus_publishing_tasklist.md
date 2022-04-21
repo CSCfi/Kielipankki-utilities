@@ -37,46 +37,47 @@ This makes it easier to see which resource is addressed in individual Jira ticke
 of the Jira issue in question!*
 
 ```
-h2. [ ] {_}corpusshortname{_}: Clear the license for the corpus in the Language Bank of Finland
-# [ ] _*?A*_ Contact the potential depositor and ask them to submit basic corpus details (preferably via e-form)
-# [ ] _*+A*_ Create and publish an initial META-SHARE record (skeletal information only, no promises regarding publication yet)
-# [ ] _*+A*_ Ask the rightholder to review the details in the META-SHARE record (shortname and title should be finalized)
-# [ ] _*+A*_ Make an initial decision as to whether the resource can potentially be distributed via the Language Bank of Finland
+h2. [ ] {_}corpusshortname{_}: Enter a new corpus to the pipeline of the Language Bank of Finland
+# [ ] _*+A*_ Make an initial decision on whether the upcoming resource could potentially be distributed and create a Jira Epic
+# [ ] _*?A*_ Contact the potential depositor (by email; arrange a meeting if required) 
+# [ ] _*?A*_ Ask the depositor to submit the basic details of the new corpus or resource (preferably via e-form)
+# [ ] _*+A*_ Create and publish a preliminary META-SHARE record (skeletal information only, no promises made)
+# [ ] _*+A*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
 # [ ] _*+A*_ Request a URN for the META-SHARE record
-# [ ] _*+A*_ Update the META-SHARE record and inform the depositor about citation practices
-# [ ] _*+A*_ Add the corpus to the list of upcoming resources
-# [ ] _*+A*_ Add the corpus to the list of licenses
+# [ ] _*+A*_ Update the META-SHARE record with the URN and inform the depositor about citation practices, if relevant
+# [ ] _*+A*_ Add the corpus to the list of upcoming resources and update the Portal page
+# [ ] _*?A*_ Ask the depositor/rightholder about their schedule for submitting the data
 # [ ] _*?A*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
+# [ ] _*+A*_ Allocate the resources for the technical processing of the corpus in Kielipankki (who shall take care of it?)
 # [ ] _*?A*_ Provide the depositor with references/advice regarding the technical format and structure of the source data
+\\
+h2. [ ] {_}corpusshortname{_}: Clear the license for the corpus in the Language Bank of Finland
+# [ ] _*+A*_ Add the corpus to the list of licenses
 # [ ] _*?A*_ Clear the license terms and conditions regarding copyrighted material
 ## [ ] _*?A*_ In case the corpus contains third-party copyrighted material, find out if the depositor has the rights to distribute it via the Language Bank (e.g., explicit license or permission from copyright holders)
 ## [ ] _*?A*_ When in doubt, bring the case up in a legal meeting
 # [ ] _*?A*_ Clear the data protection terms and conditions (PRIV)
-## [ ] _*?A*_ Find out who the data controller is, how the depositor has informed the data subjects about purpose and further processing, and ask the depositor to show their data protection information sheet (or the documents that passed ethical review, if applicable)
+## [ ] _*?A*_ Find out who the data controller is
+## [ ] _*?A*_ Find out how the depositor informed the data subjects about the purpose of processing and to what the participants gave their permission/consent (is Kielipankki or similar mentioned?)
+## [ ] _*?A*_ Ask the depositor to show their data protection information sheet (or the documents that passed ethical review, if applicable)
 ## [ ] _*?A*_ Obtain (or create) a description of the personal data categories that are included in the corpus
-## [ ] _*?A*_ Find out if further risk assessment (or a DPIA) is required (and take action if necessary)
+## [ ] _*?A*_ Find out if some further risk assessment (or a DPIA) was/is required and take action if necessary
 ## [ ] _*?A*_ Provide the depositor with further references regarding personal data minimization and safeguards that may be applied prior to submitting the corpus for distribution
-# [ ] _*+A*_ Prepare and sign the deposition license agreement
-## [ ] _*?A*_ Prepare for a meeting with the depositor (agenda: to discuss the requirements regarding the deposition agreement)
+# [ ] _*+A*_ Prepare a preliminary version of the deposition license agreement for discussion
+## [ ] _*?A*_ Make arrangements to meet the depositor about the details of the deposition agreement
 ## [ ] _*?A*_ Meet with the depositor/rightholder and take note of the action points
 ## [ ] _*+A*_ Make the final decision as to whether the resource can be distributed via the Language Bank of Finland (bring the case up in legal meeting, if necessary)
-## [ ] _*+A*_ Prepare a draft of the deposition license agreement and send it to corpus owner who should fill in the remaining gaps (ask for legal advice if needed)
+## [ ] _*+A*_ Prepare the final draft of the deposition license agreement and send it to corpus owner who should fill in the remaining gaps (ask for legal advice if needed)
 ## [ ] _*+A*_ Check the final deposition agreement and send it to the rightholder (and to the data controller) and to the head of department at the University of Helsinki for electronic signing
 ## [ ] _*+A*_ Archive the signed deposition agreement (pdf) in IDA
 # [ ] _*+A*_ Publish the end-user license
 ## [ ] _*+A*_ Create license pages
 ## [ ] _*?A*_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
-## [ ] _*+A*_ Request URNs for license pages (and the PRIV condition pages)
+## [ ] _*?A*_ Request URNs for license pages (and the PRIV condition pages)
 ## [ ] _*+A*_ Update the list of licenses
-\\
-h2. [ ] {_}corpusshortname{_}: Prepare for data acquisition
 # [ ] _*+A*_ Create/update the META-SHARE record, including the license information
-# [ ] _*?A*_ Request a URN for the META-SHARE record, if missing
 # [ ] _*+A*_ Update the list of upcoming resources
-# [ ] _*+A*_ Allocate internal resources for processing and publishing the corpus in Kielipankki
-## [ ] _*?A*_ Ask the depositor/rightholder about their schedule for submitting the data
-## [ ] _*+A*_ Bring the further processing steps and required resources up for discussion in an internal meeting
-## [ ] _*+A*_ Prioritize and assign further work
+# [ ] _*?A*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
 \\
 h2. [ ] {_}corpusshortname{_}: Acquire source data
 # [ ] _*+D*_ Receive, download or harvest the data
