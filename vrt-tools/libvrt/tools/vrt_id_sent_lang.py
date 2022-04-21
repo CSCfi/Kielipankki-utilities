@@ -1,12 +1,13 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
-'''A language-recognition implementation, using pr1 and a meta
-component. The underlying tool is the HeLI 1.1 recognizer that reads
+'''A language-identification implementation, using pr1 and a meta
+component. The underlying tool is the HeLI 1.3 recognizer that reads
 each sentence on a line of its own and writes a corresponding language
-code on a line of its own:
+code on a line of its own, with -c also a confidence score except no
+tab and no confidence score if code is xxx:
 
-https://zenodo.org/record/5052819#.YTeUAVtRVH4
+https://doi.org/10.5281/zenodo.6077089
 
 '''
 
@@ -20,7 +21,7 @@ from libvrt.bad import BadData, BadCode
 from libvrt.pr1 import transput
 
 try:
-    from outsidelib import HeLI
+    from outsidelib import HeLI_1_3 as HeLI
 except ImportError as exn:
     # So it will crash when actually trying to launch the underlying
     # tool and HeLI is not defined, but --help and --version
@@ -36,9 +37,10 @@ def parsearguments(argv):
 
     description = '''
 
-    Exercise a language-identification mechanism (HeLI 1.1) for
+    Exercise a language-identification mechanism (HeLI 1.3) for
     sentences in VRT documents to add (or overwrite) in each processed
-    sentence a new language code attribute and a confidence value.
+    sentence a language code attribute, with a confidence value in
+    another attribute.
 
     '''
     parser = transput_args(description = description)
@@ -57,6 +59,8 @@ def parsearguments(argv):
                         help = '''
 
                         output attribute name (defaults to "lang")
+                        (confidence score with suffix "_conf", so
+                        default "lang_conf")
 
                         ''')
     parser.add_argument('--class', '-c', dest = 'todo',
@@ -81,9 +85,9 @@ def parsearguments(argv):
 
 def main(args, ins, ous):
 
-    # should add -c to also receive a confidence score; without
+    # option -c is to also receive a confidence score; without without
     # input/output filenames HeLi should work stdin/stdout
-    proc = Popen([ 'java', '-jar', HeLI ],
+    proc = Popen([ 'java', '-jar', HeLI, '-c' ],
                  stdin = PIPE,
                  stdout = PIPE,
                  stderr = None)
@@ -92,17 +96,20 @@ def main(args, ins, ous):
 
 WORD = None # field index
 LANG = None # sentence attribute name
+CONF = None # sentence attribute name (LANG_conf)
 TODO = None
 META = dict(text = None, para = None, sent = None) # ship and clear at data
 
 def pr1_init(args, old):
     '''Return new (same as old) names. Establish the context for the
     protocol (in this case, the field index WORD, attribute name LANG,
-    and not sure if TODO will remain in any form).
+    the corresponding attribute CONF, and not sure if TODO will remain
+    in any form).
 
     '''
     global WORD
     global LANG
+    global CONF # LANG_conf
     global TODO
 
     # with `-c one`, pr1_test selects <sentence class="one">
@@ -114,6 +121,7 @@ def pr1_init(args, old):
 
     WORD = old.index(args.word)
     LANG = args.lang
+    CONF = args.lang + b'_conf'
 
     return old
 
@@ -170,22 +178,27 @@ def pr1_send(sentence, proc, *, box = [0]):
         proc.stdin.write(b'\n')
 
 def pr1_read(ins):
-    '''Return a reader of sentences analyses (a language code) from the
-    external process, one sentence at a time.
+    '''Return a reader of sentences analyses (a language code with a
+    confidence score) from the external process, one sentence at a
+    time. For language "xxx" there is no confidence score, so yield
+    0.0 for that.
 
     '''
     for line in ins:
-        lang = line.rstrip(b'\r\n')
-        yield lang
+        lang, conf = ( line.rstrip(b'\r\n').split(b'\t')
+                       if b'\t' in line
+                       else (line.rstrip(b'\r\n'), b"0.0")
+        )
+        yield lang, conf
 
 def pr1_join_meta(old, new, ous):
     '''Write old sentence start-tag line with new (whatever pr1_read
-    yielded as a meta component - here just the language code) added
-    to the attributes.
+    yielded as a meta component - here just the language code and its
+    confidence score) added to the attributes.
 
     '''
     meta = dict(re.findall(br'(\S+)="(.*?)"', old))
-    meta[LANG] = new
+    meta[LANG], meta[CONF] = new
     ous.write(b'<sentence')
     for k, v in sorted(meta.items()):
         ous.write(b' ')

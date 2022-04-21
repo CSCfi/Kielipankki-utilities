@@ -5,8 +5,9 @@
 import os
 from .fixenv import prebins, prelibs, utf8ish
 
-# language recognizer
-HeLI = '/projappl/clarin/HeLI/HeLI.jar'
+# language recognizer (vrt-guess-lang, vrt-id-sent-lang)
+HeLI = '/projappl/clarin/HeLI/HeLI.jar' # old version (1.1)
+HeLI_1_3 = '/projappl/clarin/HeLI/HeLI-1.3.jar'
 
 # where kielipankki software modules are installed
 LINGDIR = '/appl/soft/ling'
