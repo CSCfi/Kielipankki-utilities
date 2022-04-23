@@ -17,6 +17,7 @@ from subprocess import Popen, PIPE
 import re, sys
 
 from libvrt.args import transput_args
+from libvrt.nameargs import nametype
 from libvrt.bad import BadData, BadCode
 from libvrt.pr1 import transput
 
@@ -27,11 +28,6 @@ except ImportError as exn:
     # tool and HeLI is not defined, but --help and --version
     # options will work!
     print('Import Error:', exn, file = sys.stderr)
-
-def _name(arg):
-    if re.fullmatch('\w+', arg, re.ASCII):
-        return arg.encode('UTF-8')
-    raise ArgumentTypeError('bad name: ' + repr(arg))
 
 def parsearguments(argv):
 
@@ -47,7 +43,7 @@ def parsearguments(argv):
 
     parser.add_argument('--word', '-w', metavar = 'name',
                         default = 'word',
-                        type = _name,
+                        type = nametype,
                         help = '''
 
                         input field name (defaults to "word")
@@ -55,7 +51,7 @@ def parsearguments(argv):
                         ''')
     parser.add_argument('--lang', metavar = 'name',
                         default = 'lang',
-                        type = _name,
+                        type = nametype,
                         help = '''
 
                         output attribute name (defaults to "lang")
