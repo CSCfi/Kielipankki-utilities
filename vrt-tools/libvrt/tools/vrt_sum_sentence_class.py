@@ -142,7 +142,7 @@ def renderdist(dist, by, args):
 
     '''
     if not dist:
-        return '|'
+        return b'|'
 
     return b'|'.join((b'',
                       *(key + b':' + str(value).encode('utf-8')
