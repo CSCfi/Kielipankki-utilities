@@ -25,7 +25,8 @@ def parsearguments(argv, *, prog = None):
 
     Count the occurrences of different values of a sentence attribute
     into corresponding summary attributes in containing paragraph and
-    text elements.
+    text elements. Counts are listed in decreasing order, ties in the
+    alphabetical order of the value.
 
     '''
 
@@ -66,7 +67,7 @@ def parsearguments(argv, *, prog = None):
                         help = '''
 
                         imputed value when sentence does not have the
-                        attribute (default empty)
+                        attribute (default NSA, for No Such Attribute)
 
                         ''')
 
@@ -135,13 +136,19 @@ def _bycount(pair):
     return (-val, key)
 
 def renderdist(dist, by, args):
-    '''Render the observed distribution as comma-separated key=count
+    '''Render the observed distribution as |-separated key:count
     assignments in the order on (b'key', count) specified by by.
+    Decreasing order by count may work well for some purposes in Korp.
 
     '''
-    return b','.join(key + b'=' + str(value).encode('utf-8')
-                     for key, value
-                     in sorted(dist.items(), key = by))
+    if not dist:
+        return '|'
+
+    return b'|'.join((b'',
+                      *(key + b':' + str(value).encode('utf-8')
+                        for key, value
+                        in sorted(dist.items(), key = by)),
+                      b''))
 
 def renderstart(name, meta):
     '''Render start tag line for the element name (paragraph or text) and
