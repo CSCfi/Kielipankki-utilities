@@ -41,7 +41,7 @@ h2. [ ] {_}corpusshortname{_}: Enter a new corpus to the pipeline of the Languag
 # [ ] _*+A*_ Make an initial decision on whether the upcoming resource could potentially be distributed and create a Jira Epic
 # [ ] _*?A*_ Contact the potential depositor (by email; arrange a meeting if required) 
 # [ ] _*?A*_ Ask the depositor to submit the basic details of the new corpus or resource (preferably via e-form)
-# [ ] _*+A*_ Create and publish a preliminary META-SHARE record (skeletal information only, no promises made)
+# [ ] _*+A*_ Create and publish a preliminary META-SHARE record (skeletal information only) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+A*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
 # [ ] _*+A*_ Request a URN for the META-SHARE record
 # [ ] _*+A*_ Update the META-SHARE record with the URN and inform the depositor about citation practices, if relevant
@@ -88,7 +88,7 @@ h2. [ ] {_}corpusshortname{_}: Acquire source data
 \\
 h2. [ ] {_}corpusshortname{_}: Publish source data in Download
 # [ ] _*?D*_ Get the data from IDA
-# [ ] _*+A*_ Update the META-SHARE record (or create a new record, if missing)
+# [ ] _*+A*_ Update the META-SHARE record (or create a new record, if missing) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+A*_ Request access location URN for download version (and check that the URNs for META-SHARE and license pages are available and working)
 # [ ] _*+A*_ Check that the corpus is on the list of upcoming resources
 # [ ] _*+A*_ Add citation information to the META-SHARE record
@@ -113,7 +113,7 @@ h2. [ ] {_}corpusshortname{_}: Publish source data in Download
 \\
 h2. [ ] {_}corpusshortname{_}: Publish in Korp
 # [ ] _*?D*_ Get the data from IDA
-# [ ] _*+A*_ Create a META-SHARE record
+# [ ] _*+A*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+A*_ Request URNs (for META-SHARE, Korp, license pages)
 # [ ] _*+A*_ Add corpus to the list of upcoming resources
 # [ ] _*+A*_ Create license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
@@ -164,7 +164,7 @@ h2. [ ] {_}corpusshortname{_}: Publish in Korp
 \\
 h2. [ ] {_}corpusshortname{_}: Publish VRT data in Download
 # [ ] _*+D*_ Get the data from IDA or extract it from Korp
-# [ ] _*+A*_ Create a META-SHARE record
+# [ ] _*+A*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+A*_ Request URNs (for META-SHARE, download, license pages)
 # [ ] _*+A*_ Add the corpus to list of upcoming resources
 # [ ] _*+A*_ Create license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
