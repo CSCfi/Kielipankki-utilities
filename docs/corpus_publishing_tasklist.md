@@ -71,7 +71,8 @@ h2. [ ] {_}corpusshortname{_}: Clear the license for the corpus in the Language 
 ## [ ] _*+A*_ Prepare the final draft of the deposition license agreement and send it to corpus owner who should fill in the remaining gaps (ask for legal advice if needed)
 ## [ ] _*+A*_ Check the final deposition agreement and send it to the rightholder (and to the data controller) and to the head of department at the University of Helsinki for electronic signing
 ## [ ] _*+A*_ Archive the signed deposition agreement (pdf) in IDA
-# [ ] _*+A*_ Publish the end-user license
+\\
+h2. [ ] {_}corpusshortname{_}: Publish the end-user license
 ## [ ] _*+A*_ Create or update the license pages [how to create license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 ## [ ] _*?A*_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
 ## [ ] _*?A*_ If required, request URNs for license pages (and the PRIV condition pages)
