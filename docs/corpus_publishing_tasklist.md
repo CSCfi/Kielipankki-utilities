@@ -38,7 +38,8 @@ of the Jira issue in question!*
 
 ```
 h2. [ ] {_}corpusshortname{_}: Enter a new corpus to the pipeline of the Language Bank of Finland
-# [ ] _*+A*_ Make an initial decision on whether the upcoming resource could potentially be distributed and create a Jira Epic
+# [ ] _*+A*_ Make an initial decision on whether the upcoming resource could potentially be distributed
+# [ ] _*+A*_ Create a Jira Epic called "shortname: Publish XXX in Kielipankki (Korp/Download/…)" and insert this task list (sections under linked Jira Stories)
 # [ ] _*?A*_ Contact the potential depositor (by email; arrange a meeting if required) 
 # [ ] _*?A*_ Ask the depositor to submit the basic details of the new corpus or resource (preferably via e-form)
 # [ ] _*+A*_ Create and publish a preliminary META-SHARE record (skeletal information only) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
