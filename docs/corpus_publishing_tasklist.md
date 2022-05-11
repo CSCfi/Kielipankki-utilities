@@ -76,7 +76,7 @@ h2. [ ] {_}corpusshortname{_}: Clear the license for the corpus in the Language 
 ## [ ] _*?A*_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
 ## [ ] _*?A*_ Request URNs for license pages (and the PRIV condition pages)
 ## [ ] _*+A*_ Update the list of licenses
-# [ ] _*+A*_ Create/update the META-SHARE record, including the license information
+# [ ] _*+A*_ Create/update the META-SHARE record, including the license information [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+A*_ Update the list of upcoming resources
 # [ ] _*?A*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
 \\
