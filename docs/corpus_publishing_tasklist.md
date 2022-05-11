@@ -73,7 +73,7 @@ h2. [ ] {_}corpusshortname{_}: Clear the license for the corpus in the Language 
 ## [ ] _*+A*_ Archive the signed deposition agreement (pdf) in IDA
 \\
 h2. [ ] {_}corpusshortname{_}: Publish the end-user license
-## [ ] _*+A*_ Create or update the license pages [how to create license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
+## [ ] _*+A*_ Create the license pages (unless this is a version of a previously existing resource) [how to create license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 ## [ ] _*?A*_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
 ## [ ] _*?A*_ If required, request URNs for license pages (and the PRIV condition pages)
 ## [ ] _*+A*_ Update the list of licenses
@@ -95,7 +95,7 @@ h2. [ ] {_}corpusshortname{_}: Publish source data in Download
 # [ ] _*+A*_ Check that the corpus is on the list of upcoming resources
 # [ ] _*+A*_ Add citation information to the META-SHARE record
 # [ ] _*+D*_ Create a download package
-## [ ] _*+D*_ Create and add readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
+## [ ] _*+D*_ Create and add the downloadable readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 ## [ ] _*+D*_ Zip the data and the readme and license files
 ## [ ] _*+D*_ Compute an MD5 checksum for the zip package
 # [ ] _*+D*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
@@ -105,6 +105,7 @@ h2. [ ] {_}corpusshortname{_}: Publish source data in Download
 # [ ] _*+T*_ Have it tested again (access rights!)
 # [ ] _*+A*_ Move the resource from the list of upcoming resources to the list of published resources
 # [ ] _*+A*_ Update the META-SHARE record; add location PID
+# [ ] _*?A*_ If applicable, add the new resource version to the license page of the previous versions [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*?A*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+A*_ Create or update the resource group page, and make sure the META-SHARE record also contains a link to the resource group page
 # [ ] _*+A*_ Publish news about the new corpus on the Portal
@@ -118,7 +119,7 @@ h2. [ ] {_}corpusshortname{_}: Publish in Korp
 # [ ] _*+A*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+A*_ Request URNs (for META-SHARE, Korp, license pages)
 # [ ] _*+A*_ Add corpus to the list of upcoming resources
-# [ ] _*+A*_ Create license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
+# [ ] _*+A*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*+A*_ Add citation information to the META-SHARE record
 # [ ] _*?D*_ Convert the data to HRT
 # [ ] _*?D*_ Convert HRT to VRT (tokenizing)
@@ -169,10 +170,10 @@ h2. [ ] {_}corpusshortname{_}: Publish VRT data in Download
 # [ ] _*+A*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+A*_ Request URNs (for META-SHARE, download, license pages)
 # [ ] _*+A*_ Add the corpus to list of upcoming resources
-# [ ] _*+A*_ Create license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
+# [ ] _*+A*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*+A*_ Add citation information to the META-SHARE record
 # [ ] _*+D*_ Create a download package
-## [ ] _*+D*_ Create and add readme and license files
+## [ ] _*+D*_ Create and add the downloadable readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 ## [ ] _*+D*_ Zip the data and the readme and license files
 ## [ ] _*+D*_ Compute MD5 checksum for the zip package
 # [ ] _*+D*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
