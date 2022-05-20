@@ -104,7 +104,7 @@ h2. [ ] {_}corpusshortname{_}: Publish source data in Download
 # [ ] _*+D*_ Upload the package to the download service (or ask someone with the rights to do that)
 # [ ] _*+T*_ Have it tested again (access rights!)
 # [ ] _*+A*_ Move the resource from the list of upcoming resources to the list of published resources
-# [ ] _*+A*_ Update the META-SHARE record; add location PID
+# [ ] _*+A*_ Update the META-SHARE record; add location PID and Availability start date (under Distribution)
 # [ ] _*?A*_ If applicable, add the new resource version to the license page of the previous versions [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*?A*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+A*_ Create or update the resource group page, and make sure the META-SHARE record also contains a link to the resource group page
@@ -152,7 +152,7 @@ h2. [ ] {_}corpusshortname{_}: Publish in Korp
 ## [ ] _*+K*_ Install the updated {{master}} branch to production Korp (or ask someone with the rights to do that)
 # [ ] _*?A*_ Create an LBR record (for a RES corpus, if the corpus does not yet have one)
 # [ ] _*+A*_ Move the corpus from the list of upcoming resources to the list of published resources (add status beta to the name!)
-# [ ] _*+A*_ Update META-SHARE record; add location PID
+# [ ] _*+A*_ Update META-SHARE record; add location PID and Availability start date (under Distribution)
 # [ ] _*?A*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+A*_ Add beta status to META-SHARE record and resource group page
 # [ ] _*+A*_ Publish news about this new corpus in the portal
@@ -182,7 +182,7 @@ h2. [ ] {_}corpusshortname{_}: Publish VRT data in Download
 # [ ] _*?A*_ Create an LBR record (for a RES corpus, if the corpus does not yet have one)
 # [ ] _*+T*_ Have it tested again (access rights!)
 # [ ] _*+A*_ Move the corpus from the list of upcoming resources to the list of published resources
-# [ ] _*+A*_ Update the META-SHARE record; add location PID
+# [ ] _*+A*_ Update the META-SHARE record; add location PIDand Availability start date (under Distribution)
 # [ ] _*?A*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+A*_ Create or update the resource group page
 # [ ] _*+A*_ Publish news about the new corpus on the Portal
