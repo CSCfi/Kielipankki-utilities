@@ -20,6 +20,7 @@ from libvrt.args import transput_args
 from libvrt.nameargs import nametype
 from libvrt.bad import BadData, BadCode
 from libvrt.pr1 import transput
+from libvrt.dataline import unescape
 
 try:
     from outsidelib import HeLI_1_3 as HeLI
@@ -165,11 +166,8 @@ def pr1_send(sentence, proc, *, box = [0]):
     # proc.stdin.write(b'data\t')
     # proc.stdin.write(str(box[0]).encode('UTF-8'))
     for k, record in enumerate(sentence):
-        # in an ideal world should unescape the word,
-        # but even &amp; is presumably quite rare,
-        # let alone &lt; or &gt;
         k and proc.stdin.write(b' ')
-        proc.stdin.write(record[WORD])
+        proc.stdin.write(unescape(record[WORD]))
     else:
         proc.stdin.write(b'\n')
 
