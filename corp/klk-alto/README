@@ -84,3 +84,22 @@ ids with command
 Then generate the corpus package for each year YEAR with command
 
   ... outputdir/*/YEAR/*/*.vrt
+
+
+An example of rerunning the commands:
+
+Get commands from file COMMANDS_klk_s2015 that did not finish due to time limit
+with new reserved time of 4 hours (possibly removing old *.err and *.out files first):
+
+for file in gamelog/*.err; do if (tail -2 $file | grep 'TIME LIMIT' > /dev/null); then echo $file; fi; done > TIME_LIMIT
+# for file in `cat TIME_LIMIT`; do rm $file; done
+# for file in `cat TIME_LIMIT | perl -pe 's/\.err/\.out/;'`; do rm $file; done
+cat TIME_LIMIT | perl -pe 's/.*(klk_[0-9]+)\.err/grep " --job=\1 " COMMANDS_klk_s2015/;' | sh | perl -pe 's/ \-\-hours=[0-9]/ --hours=4/;'
+
+Get commands from file COMMANDS_klk_s2015 that did not finish succesfully
+(possibly removing old *.err and *.out files first):
+
+for file in gamelog/*.out; do if (tail -2 $file | grep 'STATUS 1' > /dev/null); then echo $file; fi; done > STATUS_1
+# for file in `cat STATUS_1`; do rm $file; done
+# for file in `cat STATUS_1 | perl -pe 's/\.out/\.err/;'`; do rm $file; done
+cat STATUS_1 | perl -pe 's/.*(klk_[0-9]+)\.out/grep " --job=\1 " COMMANDS_klk_s2015/;' | sh

@@ -19,6 +19,11 @@ vrtvalidate=$scriptdir"/vrt-tools/vrt-validate";
 
 for dir in $1;
 do
+    files=`ls $dir | wc -l`;
+    if [ "$files" == "0" ]; then
+	echo "No files in directory $dir, skipping it.";
+	continue;
+    fi
     xml_format_checked="false";
     for metsfile in $dir/*_mets.xml;
     do
@@ -70,6 +75,9 @@ do
 		fi
 	    fi
 	    vrtfile=`echo $xmlfile | perl -pe 's/\.xml/\.vrt/'`;
+	    #cp $xmlfile $xmlfile.orig
+            #cat $xmlfile | perl -pe 'use open qw(:std :utf8); s/[\x80-\x9F]//g; s/\&\#13\;/ /g;' > $dir/tmp1;
+            #mv $dir/tmp1 $xmlfile;
 	    echo "Generating "$vrtfile;
 	    if !($convpy --metadata $metadatafile --metsfilename $metsfile $xmlfile > $vrtfile); then
 		echo "VRT file could not be created, exiting.";

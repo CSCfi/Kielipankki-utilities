@@ -152,9 +152,9 @@ def align_data(element, page_file):
 
     return aligned_para
 
-def replace_spaces(string):
-    for space in ('\u2002','\u2003','\u2005', '\u2006','\u200a','\u202f','\u3000','\u3100','\xa0'):
-        string = string.replace(space,' ')
+def replace_whitespace(string):
+    for char in ('\u2002','\u2003','\u2005', '\u2006','\u200a','\u202f','\u3000','\u3100','\xa0'):
+        string = string.replace(char,' ')
     return string
 
 def get_string_data(block_elem):
@@ -170,7 +170,7 @@ def get_string_data(block_elem):
             atts['WC'] = '_'
         if 'SUBS_CONTENT' in atts:
             if atts['SUBS_TYPE'] == 'HypPart1':
-                pairs.append(( replace_spaces(atts['SUBS_CONTENT']), atts ))
+                pairs.append(( replace_whitespace(atts['SUBS_CONTENT']), atts ))
             if atts['SUBS_TYPE'] == 'HypPart2':
                 # combine CC and WC values from first and second parts
                 # of hyphenated words and add attribute HYPH
@@ -180,7 +180,7 @@ def get_string_data(block_elem):
                     previous_content = pairs[-1][1]['CONTENT']
                     current_cc = atts['CC']
                     current_wc = atts['WC']
-                    current_content = replace_spaces(atts['CONTENT'])
+                    current_content = replace_whitespace(atts['CONTENT'])
                     if (previous_cc == '_' or current_cc == '_'):
                         new_cc = '_'
                     else:
@@ -196,7 +196,7 @@ def get_string_data(block_elem):
                     pairs[-1][1]['CONTENT'] = new_content
                     pairs[-1][1]['HYPH'] = hyphenated
         else:
-            pairs.append(( replace_spaces(atts['CONTENT']), atts))
+            pairs.append(( replace_whitespace(atts['CONTENT']), atts))
 
     return pairs
 
@@ -226,8 +226,9 @@ def sentence(sent):
         cont = cont.replace('\n', '_')
         cont = cont.replace('\r', '_')
         # sometimes content has an empty value, so value combined from hyphenated parts
-        # might contain spaces in the beginning or end or double spaces in the middle
+        # might contain spaces in the beginning or end or double (or triple) spaces in the middle
         cont = cont.strip()
+        cont = cont.replace('  ',' ')
         cont = cont.replace('  ',' ')
         if cont == '':
             cont = '_'
