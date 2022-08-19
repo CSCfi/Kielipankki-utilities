@@ -37,7 +37,7 @@ This makes it easier to see which resource is addressed in individual Jira ticke
 of the Jira issue in question!*
 
 ```
-h2. [ ] {_}corpusshortname{_}: Enter a new corpus to the pipeline of the Language Bank of Finland
+h2. [ ] {_}corpusshortname{_}: Enter the new corpus to the pipeline of the Language Bank of Finland
 # [ ] _*+A*_ Make an initial decision on whether the upcoming resource could potentially be distributed
 # [ ] _*+A*_ Create a Jira Epic called "shortname: Publish XXX in Kielipankki (Korp/Download/…)" and insert this task list (sections under linked Jira Stories)
 # [ ] _*?A*_ Contact the potential depositor (by email; arrange a meeting if required) 
