@@ -47,10 +47,10 @@ h2. [ ] {_}corpusshortname{_}: Enter the new corpus to the pipeline of the Langu
 # [ ] _*+A*_ Request a URN for the META-SHARE record
 # [ ] _*+A*_ Update the META-SHARE record with the URN and inform the depositor about citation practices, if relevant
 # [ ] _*+A*_ Add the corpus to the list of upcoming resources and update the Portal page
+# [ ] _*?A*_ Provide the depositor with references/advice regarding the technical format and structure of the source data
 # [ ] _*?A*_ Ask the depositor/rightholder about their schedule for submitting the data
 # [ ] _*?A*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
 # [ ] _*+A*_ Allocate the resources for the technical processing of the corpus in Kielipankki (who shall take care of it?)
-# [ ] _*?A*_ Provide the depositor with references/advice regarding the technical format and structure of the source data
 \\
 h2. [ ] {_}corpusshortname{_}: Clear the license for the corpus in the Language Bank of Finland
 # [ ] _*+A*_ Add the corpus to the list of licenses
