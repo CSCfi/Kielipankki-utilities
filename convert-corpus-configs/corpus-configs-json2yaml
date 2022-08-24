@@ -74,6 +74,12 @@ class KorpCorpusConfigConverter:
         "private_struct_attributes",
         "time",
     ]
+    # Attribute list properties
+    attrlist_props = [
+        "pos_attributes",
+        "struct_attributes",
+        "custom_attributes",
+    ]
 
     def __init__(self):
         """Initialize instance attributes"""
@@ -175,6 +181,7 @@ class KorpCorpusConfigConverter:
         """Make output corpus object for corpus_obj with id corpus_id"""
         result = self._convert_keys(corpus_obj, 3)
         result = self._convert_lang_codes(result)
+        result = self._convert_attrs(result)
         result["mode"] = self._make_corpus_mode(corpus_id)
         return result
 
@@ -211,6 +218,15 @@ class KorpCorpusConfigConverter:
                         for key in obj)
         else:
             return obj
+
+    def _convert_attrs(self, obj):
+        """Convert attributes objects in obj from dict to list of dicts"""
+        for attrlist_name in self.attrlist_props:
+            if attrlist_name in obj:
+                obj[attrlist_name] = [
+                    dict([(key, val)])
+                    for key, val in obj[attrlist_name].items()]
+        return obj
 
     def _make_corpus_mode(self, corpus_id):
         """Make the value of the "mode" object for corpus corpus_id"""
