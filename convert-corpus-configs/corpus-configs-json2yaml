@@ -82,6 +82,7 @@ class KorpCorpusConfigConverter:
     ]
     # Output property order (in various kinds of mapping objects);
     # non-listed keys come after the listed ones
+    # TODO: Add more keys
     prop_order = [
         "id",
         "label",
@@ -206,6 +207,8 @@ class KorpCorpusConfigConverter:
         result = self._convert_keys(corpus_obj, 3)
         result = self._convert_lang_codes(result)
         result = self._convert_attrs(result)
+        for key in ["context", "within"]:
+            result[key] = self._convert_context_within(result[key])
         result["mode"] = self._make_corpus_mode(corpus_id)
         return result
 
@@ -251,6 +254,14 @@ class KorpCorpusConfigConverter:
                     dict([(key, val)])
                     for key, val in obj[attrlist_name].items()]
         return obj
+
+    def _convert_context_within(self, obj):
+        """Convert a context or within value to a list with label, value"""
+        return [
+            {
+                "label": self._get_localized_obj(key),
+                "value": key,
+            } for key in obj]
 
     def _make_corpus_mode(self, corpus_id):
         """Make the value of the "mode" object for corpus corpus_id"""
