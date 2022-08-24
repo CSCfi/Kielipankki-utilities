@@ -1,0 +1,247 @@
+#! /usr/bin/env python3
+
+# corpus-configs-json2yaml
+#
+# Convert Korp corpus configurations from frontend JavaScript
+# (stringified to JSON) to backend YAML.
+#
+# Usage: corpus-configs-json2yaml input.json [outputdir]
+#
+# input.json is a JSON file containing the representation of a
+# JavaScript object combining the following objects in the Korp
+# frontend: settings, attrs, sattrs, attrlist, sattrlist, options,
+# within, transl, loc_data. They can be converted to JSON in the
+# browser's JavaScript console as follows, for example:
+#
+#   data = {}
+#   for (let prop of "settings attrs sattrs attrlist sattrlist options context within transl loc_data".split(" ")) {
+#       data[prop] = window[prop]
+#   }
+#   s = JSON.stringify(data)
+#
+# Default outputdir is "./yaml".
+
+
+# TODO:
+# - Handle multiple modes (separate JSON files), combining common corpora
+# - Common attributes to attribute files
+# - Handle common values of e.g. attribute lists, options, withins
+
+
+import json
+import os
+import os.path
+import re
+import sys
+
+import yaml
+
+
+class KorpCorpusConfigConverter:
+
+    """Convert Korp corpus configurations from JavaScript/JSON to YAML.
+    """
+
+    # Subdirectories to be created under output directory
+    subdirs = [
+        "modes",
+        "corpora",
+        "attributes/positional",
+        "attributes/structural",
+    ]
+    # Corpus folder properties that are not subfolders
+    nonfolder_props = [
+        "title",
+        "description",
+        "contents",
+        "info",
+    ]
+    # Language code mapping from two-letter to three-letter ones
+    lang_map = {
+        "en": "eng",
+        "fi": "fin",
+        "sv": "swe",
+    }
+    # Property name mapping
+    prop_map = {
+        "attributes": "pos_attributes",
+    }
+    # Properties to be removed (from the top level)
+    remove_props = [
+        "corpusType",
+        "linkAttributes",
+        "logicalCorpus",
+        "private_struct_attributes",
+        "time",
+    ]
+
+    def __init__(self):
+        """Initialize instance attributes"""
+        # Input data read from JSON
+        self._indata = None
+        # Data to be output as YAML
+        self._outdata = {}
+        # Output directory
+        self._outdir = None
+        # Name of the mode
+        self._modename = ""
+        # The folder for each corpus
+        self._corpus_folder = {}
+
+    def main(self, args):
+        """Main method"""
+        self._read_json(args[0])
+        self._convert_config()
+        self._outdir = args[1] if len(args) > 1 else "yaml"
+        self._write_config()
+
+    def _read_json(self, fname):
+        """Read input JSON from file named fname"""
+        with open(fname, "r") as f:
+            self._indata = json.load(f)
+
+    def _convert_config(self):
+        """Convert the configuration in self._indata to self._outdata"""
+        self._convert_mode()
+        self._convert_corpora()
+
+    def _convert_mode(self):
+        """Generate mode configuration to self._outdata"""
+        settings = self._indata["settings"]
+        self._modename = settings["mode"]["mode"]
+        self._outdata["mode"] = {
+            "label": self._get_localized_obj(settings["mode"]["localekey"]),
+            "folders": self._make_folder(settings["corporafolders"]),
+        }
+
+    def _get_localized_obj(self, key):
+        """Return a localized object for localization key key.
+
+        The returned object has the structure
+            {
+              "lang1": "translation in lang1",
+              "lang2": "translation in lang2",
+              ...
+            }
+        """
+        loc_data = self._indata["loc_data"]
+        result = {}
+        for in_lang, out_lang in self.lang_map.items():
+            val = loc_data[in_lang].get(key)
+            if val is None:
+                val = key
+            result[out_lang] = val
+        return result
+
+    def _make_folder(self, folder, parents=None):
+        """Make a output corpus folder object from folder.
+
+        folder may be either the top-level folder object
+        (settings.corporafolders) or a subfolder. parents contains the
+        names of parent folders, separated by dots (and with a leading
+        dot).
+        """
+        parents = parents or ""
+        subfolders = {}
+        for prop in folder:
+            if prop not in self.nonfolder_props:
+                subfolders[prop] = self._make_folder(
+                    folder[prop], f"{parents}.{prop}")
+        for corpus_id in folder.get("contents", []):
+            # Drop leading dot from parents
+            self._corpus_folder[corpus_id] = parents[1:]
+        if "title" in folder:
+            # Lower-level folder
+            result = {
+                "title": folder["title"],
+                "description": folder.get("description", ""),
+            }
+            if subfolders:
+                result["subfolders"] = subfolders
+            return result
+        else:
+            # Top-level folder
+            return subfolders
+
+    def _convert_corpora(self):
+        """Convert settings.corpora"""
+        settings = self._indata["settings"]
+        self._outdata["corpora"] = {}
+        for corpus in settings["corpora"]:
+            self._outdata["corpora"][corpus] = self._make_corpus(
+                corpus, settings["corpora"][corpus])
+
+    def _make_corpus(self, corpus_id, corpus_obj):
+        """Make output corpus object for corpus_obj with id corpus_id"""
+        result = self._convert_keys(corpus_obj, 3)
+        result = self._convert_lang_codes(result)
+        result["mode"] = self._make_corpus_mode(corpus_id)
+        return result
+
+    def _convert_keys(self, obj, levels):
+        """Convert dict keys (property names) in obj, up to depth levels"""
+
+        def snake_case(key):
+            """Convert key from camelCase to snake_case"""
+            return re.sub(r"[A-Z]", lambda mo: "_" + mo.group().lower(), key)
+
+        def convert_key(key):
+            """Map key with self.prop_map and convert to snake_case"""
+            return self.prop_map.get(key, snake_case(key))
+
+        if isinstance(obj, dict):
+            return dict((convert_key(key),
+                         val if levels <= 1 else self._convert_keys(val,
+                                                                    levels - 1))
+                        for key, val in obj.items()
+                        if key not in self.remove_props)
+        else:
+            return obj
+
+    def _convert_lang_codes(self, obj):
+        """Convert language codes in subobjects with key "translation" in obj"""
+        if isinstance(obj, dict):
+            if "translation" in obj:
+                result = {}
+                for key, transls in obj["translation"].items():
+                    result[key] = dict((self.lang_map.get(lang, lang), transl)
+                                       for lang, transl in transls.items())
+                obj["translation"] = result
+            return dict((key, self._convert_lang_codes(obj[key]))
+                        for key in obj)
+        else:
+            return obj
+
+    def _make_corpus_mode(self, corpus_id):
+        """Make the value of the "mode" object for corpus corpus_id"""
+        result = {
+            "name": self._modename,
+        }
+        if corpus_id in self._corpus_folder:
+            result["folder"] = self._corpus_folder[corpus_id]
+        # Mode value is a list
+        return [result]
+
+    def _write_config(self):
+        """Output the YAML configuration files"""
+        self._make_outdirs(self._outdir)
+        self._write_yaml(self._outdata["mode"], "modes", self._modename)
+        for corpus_id, corpus_data in self._outdata["corpora"].items():
+            self._write_yaml(corpus_data, "corpora", corpus_id)
+
+    def _make_outdirs(self, outdir):
+        """Create YAML output directories"""
+        os.makedirs(outdir, exist_ok=True)
+        for subdir in self.subdirs:
+            os.makedirs(os.path.join(outdir, subdir), exist_ok=True)
+
+    def _write_yaml(self, obj, dirname, fname):
+        """Write obj as YAML to dirname/fname.yaml"""
+        with open(os.path.join(self._outdir, dirname, fname + ".yaml"),
+                  "wb") as f:
+            yaml.dump(obj, f, default_flow_style=False, encoding="utf-8",
+                      allow_unicode=True)
+
+
+if __name__ == "__main__":
+    KorpCorpusConfigConverter().main(sys.argv[1:])
