@@ -208,7 +208,8 @@ class KorpCorpusConfigConverter:
         result = self._convert_lang_codes(result)
         result = self._convert_attrs(result)
         for key in ["context", "within"]:
-            result[key] = self._convert_context_within(result[key])
+            result[key] = self._convert_context_within(result[key],
+                                                       as_list=True)
         result["mode"] = self._make_corpus_mode(corpus_id)
         return result
 
@@ -255,13 +256,20 @@ class KorpCorpusConfigConverter:
                     for key, val in obj[attrlist_name].items()]
         return obj
 
-    def _convert_context_within(self, obj):
-        """Convert a context or within value to a list with label, value"""
-        return [
-            {
+    def _convert_context_within(self, obj, as_list=False):
+        """Convert a context or within value to a dict with label, value.
+
+        If as_list is True, return the result as a list of values
+        instead of a dict.
+        """
+        if isinstance(obj, str):
+            return obj
+        for key in obj:
+            obj[key] = {
                 "label": self._get_localized_obj(key),
                 "value": key,
-            } for key in obj]
+            }
+        return list(obj.values()) if as_list else obj
 
     def _make_corpus_mode(self, corpus_id):
         """Make the value of the "mode" object for corpus corpus_id"""
