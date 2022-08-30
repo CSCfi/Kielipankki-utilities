@@ -27,7 +27,6 @@
 # - Handle common values of attribute lists
 # - Extract common values of attributes etc. without an explicit value in
 #   attrs etc.
-# - Extract common values of options and translations in extracted attributes
 
 
 import json
@@ -107,6 +106,17 @@ class KorpCorpusConfigConverter:
         ("attributes.*.translation", "transl"),
         ("structAttributes.*.translation", "transl"),
         ("customAttributes.*.translation", "transl"),
+    ]
+    # Replace rules for common values: a list of pairs (common_values,
+    # rules), where common_values is a list of keys for common-value
+    # objects and rules is a list of pairs as above in
+    # corpus_common_value_replace_rules.
+    common_values_replace_rules = [
+        (["attrs", "sattrs"],
+         [
+             ("opts", "options"),
+             ("translation", "transl"),
+         ]),
     ]
     # Output property order (in various kinds of mapping objects);
     # non-listed keys come after the listed ones
@@ -378,10 +388,19 @@ class KorpCorpusConfigConverter:
             (self._convert_context_within,
              ["context", "within"]),
         ]
+        # First convert the common values similarly to the values in
+        # corpus configurations, according to convert_funcs above
         for convert_func, valtypes in convert_funcs:
             for valtype in valtypes:
                 self._indata[valtype] = convert_func(
                     self._indata.get(valtype, {}))
+        # Then replace common values with the name of value, according
+        # to self.common_values_replace_rules
+        for targets, rules in self.common_values_replace_rules:
+            for target in targets:
+                for key, val in self._indata[target].items():
+                    self._indata[target][key] = self._replace_common_values(
+                        val, rules)
 
     def _write_config(self):
         """Output the YAML configuration files"""
