@@ -267,19 +267,32 @@ class KorpCorpusConfigConverter:
         else:
             return obj
 
-    def _convert_lang_codes(self, obj):
-        """Convert language codes in subobjects with key "translation" in obj"""
-        if isinstance(obj, dict):
-            if "translation" in obj and isinstance(obj["translation"], dict):
-                result = {}
-                for key, transls in obj["translation"].items():
-                    result[key] = dict((self.lang_map.get(lang, lang), transl)
-                                       for lang, transl in transls.items())
-                obj["translation"] = result
-            return dict((key, self._convert_lang_codes(obj[key]))
+    def _convert_lang_codes(self, obj, depth=None):
+        """Convert language codes in obj.
+
+        If depth is None, convert language codes in subobjects with
+        key "translation" in obj. If depth == 0, treat obj as a
+        translation object and convert keys directly in it. If depth >
+        0, convert translation keys at depth, even if there is no key
+        "translation".
+        """
+        if not isinstance(obj, dict):
+            return obj
+        elif depth == 0:
+            result = {}
+            for key, transls in obj.items():
+                result[key] = dict((self.lang_map.get(lang, lang), transl)
+                                   for lang, transl in transls.items())
+            return result
+        elif depth is not None and depth > 0:
+            return dict((key, self._convert_lang_codes(obj[key], depth - 1))
                         for key in obj)
         else:
-            return obj
+            if "translation" in obj and isinstance(obj["translation"], dict):
+                obj["translation"] = self._convert_lang_codes(
+                    obj["translation"], 0)
+            return dict((key, self._convert_lang_codes(obj[key]))
+                        for key in obj)
 
     def _convert_attrs(self, obj):
         """Convert attributes objects in obj from dict to list of dicts"""
@@ -357,7 +370,9 @@ class KorpCorpusConfigConverter:
             (lambda val: self._convert_keys(val, 1),
              ["attrs", "sattrs"]),
             (self._convert_lang_codes,
-             ["attrs", "sattrs", "transl"]),
+             ["attrs", "sattrs"]),
+            (lambda val: self._convert_lang_codes(val, 1),
+             ["transl"]),
             (self._convert_context_within,
              ["context", "within"]),
         ]
