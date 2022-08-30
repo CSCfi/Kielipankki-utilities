@@ -96,7 +96,7 @@ class KorpCorpusConfigConverter:
     # property names in settings.corpora.*, where * denotes any key,
     # and values_obj is the key in the in input JSON under which equal
     # values are searched.
-    replace_props = [
+    corpus_common_value_replace_rules = [
         ("attributes.*", "attrs"),
         ("structAttributes.*", "sattrs"),
         ("attributes.*.opts", "options"),
@@ -147,8 +147,9 @@ class KorpCorpusConfigConverter:
         # The folder for each corpus
         self._corpus_folder = {}
         # Attributes actually used (in attrs and sattrs)
-        self._replaced_values = dict([(name, set())
-                                      for _, name in self.replace_props])
+        self._replaced_values = dict(
+            [(name, set())
+             for _, name in self.corpus_common_value_replace_rules])
 
     def main(self, args):
         """Main method"""
@@ -237,7 +238,8 @@ class KorpCorpusConfigConverter:
     def _make_corpus(self, corpus_id, corpus_obj):
         """Make output corpus object for corpus_obj with id corpus_id"""
         result = corpus_obj
-        result = self._replace_common_values(result)
+        result = self._replace_common_values(
+            result, self.corpus_common_value_replace_rules)
         result = self._convert_keys(result, 3)
         result = self._convert_lang_codes(result)
         result = self._convert_attrs(result)
@@ -318,8 +320,8 @@ class KorpCorpusConfigConverter:
             }
         return list(obj.values()) if as_list else obj
 
-    def _replace_common_values(self, obj):
-        """Replace common values in obj according to self.replace_props"""
+    def _replace_common_values(self, obj, replace_rules):
+        """Replace common values in obj according to replace_rules"""
 
         def replace_values(obj, prop_path, values):
             """Replace values in prop_path in obj if found in values"""
@@ -347,7 +349,7 @@ class KorpCorpusConfigConverter:
                     self._replaced_values[values_name].add(key)
                     return
 
-        for prop_path, values_name in self.replace_props:
+        for prop_path, values_name in replace_rules:
             values = self._indata.get(values_name)
             if values:
                 value_key = replace_values(obj, prop_path.split("."), values)
