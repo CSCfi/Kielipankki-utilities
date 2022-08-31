@@ -53,6 +53,8 @@ class KorpCorpusConfigConverter:
         "within": "withins",
         "transl": "translations",
     }
+    # Keys in input data containing common values objects
+    common_values_keys = list(common_values_dirs.keys())
     # Subdirectories to be created under output directory
     subdirs = [
         "modes",
@@ -181,6 +183,7 @@ class KorpCorpusConfigConverter:
     def main(self, args):
         """Main method"""
         self._read_json(args[0])
+        self._remove_empty_common_values()
         self._convert_config()
         self._outdir = args[1] if len(args) > 1 else "yaml"
         self._write_config()
@@ -189,6 +192,16 @@ class KorpCorpusConfigConverter:
         """Read input JSON from file named fname"""
         with open(fname, "r") as f:
             self._indata = json.load(f)
+
+    def _remove_empty_common_values(self):
+        """Remove empty values (dicts, lists) from common values"""
+        for value_type in self.common_values_keys:
+            remove_keys = []
+            for key, val in self._indata.get(value_type, {}).items():
+                if not val:
+                    remove_keys.append(key)
+            for key in remove_keys:
+                del self._indata[value_type][key]
 
     def _convert_config(self):
         """Convert the configuration in self._indata to self._outdata"""
