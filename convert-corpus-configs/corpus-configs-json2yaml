@@ -24,7 +24,6 @@
 
 # TODO:
 # - Handle multiple modes (separate JSON files), combining common corpora
-# - Handle common values of attribute lists
 # - Extract common values of attributes etc. without an explicit value in
 #   attrs etc.
 
@@ -45,6 +44,8 @@ class KorpCorpusConfigConverter:
 
     # Directories for common values of attributes and others
     common_values_dirs = {
+        "attrlist": "attribute_lists/positional",
+        "sattrlist": "attribute_lists/structural",
         "attrs": "attributes/positional",
         "sattrs": "attributes/structural",
         "options": "options",
@@ -96,6 +97,8 @@ class KorpCorpusConfigConverter:
     # and values_obj is the key in the in input JSON under which equal
     # values are searched.
     corpus_common_value_replace_rules = [
+        ("attributes", "attrlist"),
+        ("structAttributes", "sattrlist"),
         ("attributes.*", "attrs"),
         ("structAttributes.*", "sattrs"),
         ("attributes.*.opts", "options"),
@@ -116,6 +119,20 @@ class KorpCorpusConfigConverter:
          [
              ("opts", "options"),
              ("translation", "transl"),
+         ]),
+        # After attribute list conversion, attrlist and sattrlist
+        # values are lists of single-value dicts, so use "*.*"
+        (["attrlist"],
+         [
+             ("*.*.opts", "options"),
+             ("*.*.translation", "transl"),
+             ("*.*", "attrs"),
+         ]),
+        (["sattrlist"],
+         [
+             ("*.*.opts", "options"),
+             ("*.*.translation", "transl"),
+             ("*.*", "sattrs"),
          ]),
     ]
     # Output property order (in various kinds of mapping objects);
@@ -310,10 +327,15 @@ class KorpCorpusConfigConverter:
         """Convert attributes objects in obj from dict to list of dicts"""
         for attrlist_name in self.attrlist_props:
             if attrlist_name in obj:
-                obj[attrlist_name] = [
-                    dict([(key, val)])
-                    for key, val in obj[attrlist_name].items()]
+                obj[attrlist_name] = self._convert_attrlist(obj[attrlist_name])
         return obj
+
+    def _convert_attrlist(self, obj):
+        """Convert attribute dict obj to a list"""
+        if isinstance(obj, dict):
+            return [dict([(key, val)]) for key, val in obj.items()]
+        else:
+            return obj
 
     def _convert_context_within(self, obj, as_list=False):
         """Convert a context or within value to a dict with label, value.
@@ -388,14 +410,18 @@ class KorpCorpusConfigConverter:
 
     def _convert_common_values(self):
         """Convert the common values elsewhere than in settings"""
-        convert_keys_1 = lambda val: self._convert_keys(val, 1)
         convert_funcs = [
-            (lambda val: self._convert_keys(val, 1),
+            (lambda val: self._convert_keys(val, 3),
+             ["attrlist", "sattrlist"]),
+            (lambda val: self._convert_keys(val, 2),
              ["attrs", "sattrs"]),
             (self._convert_lang_codes,
-             ["attrs", "sattrs"]),
+             ["attrs", "sattrs", "attrlist", "sattrlist"]),
             (lambda val: self._convert_lang_codes(val, 1),
              ["transl"]),
+            (lambda obj: dict([(key, self._convert_attrlist(obj[key]))
+                               for key in obj]),
+             ["attrlist", "sattrlist"]),
             (self._convert_context_within,
              ["context", "within"]),
         ]
@@ -410,6 +436,7 @@ class KorpCorpusConfigConverter:
         for targets, rules in self.common_values_replace_rules:
             for target in targets:
                 for key, val in self._indata[target].items():
+                    # print(target, key, rules)
                     self._indata[target][key] = self._replace_common_values(
                         val, rules)
 
