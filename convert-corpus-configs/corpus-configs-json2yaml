@@ -333,19 +333,30 @@ class KorpCorpusConfigConverter:
     def _replace_common_values(self, obj, replace_rules):
         """Replace common values in obj according to replace_rules"""
 
+        def indices(obj):
+            """Return obj indices: keys for dict, indices for list, or None"""
+            if isinstance(obj, list):
+                return range(len(obj))
+            elif isinstance(obj, dict):
+                return obj.keys()
+            else:
+                return None
+
         def replace_values(obj, prop_path, values):
             """Replace values in prop_path in obj if found in values"""
+            if not isinstance(obj, dict) and not isinstance(obj, list):
+                return
             # print("replace_values", prop_path)
             if len(prop_path) == 1:
                 if prop_path[0] == "*":
-                    for key in obj:
+                    for key in indices(obj):
                         replace_value(obj, key, values)
                 elif prop_path[0] in obj:
                     replace_value(obj, prop_path[0], values)
             else:
                 if prop_path[0] == "*":
                     prop_path_rest = prop_path[1:]
-                    for key in obj:
+                    for key in indices(obj):
                         replace_values(obj[key], prop_path_rest, values)
                 elif prop_path[0] in obj:
                     replace_values(obj[prop_path[0]], prop_path[1:], values)
@@ -362,7 +373,7 @@ class KorpCorpusConfigConverter:
         for prop_path, values_name in replace_rules:
             values = self._indata.get(values_name)
             if values:
-                value_key = replace_values(obj, prop_path.split("."), values)
+                replace_values(obj, prop_path.split("."), values)
         return obj
 
     def _make_corpus_mode(self, corpus_id):
