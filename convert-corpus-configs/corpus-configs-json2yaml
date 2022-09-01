@@ -26,6 +26,17 @@
 # - Handle multiple modes (separate JSON files), combining common corpora
 # - Extract common values of attributes etc. without an explicit value in
 #   attrs etc.
+# - Add attribute label translations
+# - Remove properties common_attrs and info in corpora (possibly others)
+# - Remove licence type label ([RES]/[ACA]) from corpus titles
+# - Split corpora into subdirectories, based on id prefixes, folders or an
+#   explicit list
+# - Extract common properties of corpus configurations in a subdirectory
+#   to a template file
+# - Extract common parts of corpus titles and descriptions to templates
+# - Move low-level folder info to corpus subdirectories
+# - Add corpus aliases, either so that a corpus lists the aliases it has
+#   or as separate alias lists
 
 
 import json
