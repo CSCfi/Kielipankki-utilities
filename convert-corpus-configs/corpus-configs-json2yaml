@@ -26,7 +26,6 @@
 # - Handle multiple modes (separate JSON files), combining common corpora
 # - Extract common values of attributes etc. without an explicit value in
 #   attrs etc.
-# - Add attribute label translations
 # - Remove properties common_attrs and info in corpora (possibly others)
 # - Remove licence type label ([RES]/[ACA]) from corpus titles
 # - Split corpora into subdirectories, based on id prefixes, folders or an
@@ -351,6 +350,7 @@ class KorpCorpusConfigConverter:
         """Convert attributes objects in obj from dict to list of dicts"""
         for attrlist_name in self.attrlist_props:
             if attrlist_name in obj:
+                self._convert_attr_labels(obj[attrlist_name])
                 obj[attrlist_name] = self._convert_attrlist(obj[attrlist_name])
         return obj
 
@@ -360,6 +360,19 @@ class KorpCorpusConfigConverter:
             return [dict([(key, val)]) for key, val in obj.items()]
         else:
             return obj
+
+    def _convert_attr_labels(self, attrdict):
+        """Add translations to attribute labels in attrdict"""
+        if isinstance(attrdict, dict):
+            for attrname in attrdict:
+                self._convert_attr_label(attrdict[attrname])
+        return attrdict
+
+    def _convert_attr_label(self, attrobj):
+        """Add translations to attribute label in attrobj"""
+        if "label" in attrobj:
+            attrobj["label"] = self._get_localized_obj(attrobj["label"])
+        return attrobj
 
     def _convert_context_within(self, obj, as_list=False):
         """Convert a context or within value to a dict with label, value.
@@ -443,6 +456,11 @@ class KorpCorpusConfigConverter:
              ["attrs", "sattrs", "attrlist", "sattrlist"]),
             (lambda val: self._convert_lang_codes(val, 1),
              ["transl"]),
+            (lambda attrdict: dict([(key, self._convert_attr_labels(val))
+                                    for key, val in attrdict.items()]),
+             ["attrlist", "sattrlist"]),
+            (self._convert_attr_labels,
+             ["attrs", "sattrs"]),
             (lambda obj: dict([(key, self._convert_attrlist(obj[key]))
                                for key in obj]),
              ["attrlist", "sattrlist"]),
