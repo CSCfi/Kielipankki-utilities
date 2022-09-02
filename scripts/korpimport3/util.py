@@ -2,10 +2,12 @@
 
 
 """
-Module korpimport.util
+Module korpimport3.util
 
 Common utility functions and classes for Korp/CWB importing and VRT
 processing scripts.
+
+This is a Python 3 version of korpimport.util.
 """
 
 
