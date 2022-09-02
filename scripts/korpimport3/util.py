@@ -54,13 +54,13 @@ def _delimited_stream_dictreader(stream, utf8_input=False, *args, **kwargs):
     reader = csv.DictReader(stream, *args, **kwargs)
     for row in reader:
         # decode UTF-8 back to Unicode, cell by cell:
-        yield dict((key, unicode(val, 'utf-8'))
-                   for key, val in row.iteritems())
+        yield dict((key, str(val, 'utf-8'))
+                   for key, val in row.items())
 
 
 def delimited_dictreader(stream_or_fname, *args, **kwargs):
     """Return a reader for a CSV/TSV stream or file, yield values in Unicode."""
-    if isinstance(stream_or_fname, basestring):
+    if isinstance(stream_or_fname, str):
         with open(stream_or_fname, 'rb') as stream:
             for line in _delimited_stream_dictreader(
                     stream, *args, utf8_input=True, **kwargs):
@@ -84,9 +84,9 @@ def whole_line_reader(stream, linebreak_chars=None):
 
     Return lines ending in one of linebreak_chars (default: newline
     \n), even if they may be split at other (Unicode) linebreak
-    characters, such as NEL (\u0085).
+    characters, such as NEL (\\u0085).
     """
-    linebreak_chars = linebreak_chars or u'\n'
+    linebreak_chars = linebreak_chars or '\n'
     incompl_lines = []
     for line in stream:
         if line[-1] not in linebreak_chars:
@@ -158,13 +158,13 @@ def run(main, input_encoding='utf-8', output_encoding='utf-8-sig', *args, **kwar
             sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
             sys.stderr = codecs.getwriter(output_encoding)(sys.stderr)
         main(*args, **kwargs)
-    except IOError, e:
+    except IOError as e:
         if e.errno == errno.EPIPE:
             sys.stderr.write('Broken pipe\n')
         else:
             sys.stderr.write(str(e) + '\n')
         exit(1)
-    except KeyboardInterrupt, e:
+    except KeyboardInterrupt as e:
         sys.stderr.write('Interrupted\n')
         exit(1)
     except:
@@ -281,7 +281,7 @@ class BasicInputProcessor(Runner):
         if isinstance(args, list):
             for arg in args:
                 self.process_input(arg)
-        elif isinstance(args, basestring):
+        elif isinstance(args, str):
             self._filename = args
             with codecs.open(args, 'r', encoding=self._input_encoding) as f:
                 self.process_input_stream(f, args)
