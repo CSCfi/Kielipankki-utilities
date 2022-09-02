@@ -42,34 +42,14 @@ def unique(lst):
     return result
 
 
-def _delimited_stream_dictreader(stream, utf8_input=False, *args, **kwargs):
-    """Return a reader for CSV/TSV files, yield values in Unicode."""
-
-    def utf8_encoder(unicode_csv_data):
-        for line in unicode_csv_data:
-            yield line.encode('utf-8')
-
-    # print "tsv stream", repr(stream)
-    if not utf8_input:
-        # print "encode to utf8"
-        stream = utf8_encoder(stream)
-    reader = csv.DictReader(stream, *args, **kwargs)
-    for row in reader:
-        # decode UTF-8 back to Unicode, cell by cell:
-        yield dict((key, str(val, 'utf-8'))
-                   for key, val in row.items())
-
-
 def delimited_dictreader(stream_or_fname, *args, **kwargs):
     """Return a reader for a CSV/TSV stream or file, yield values in Unicode."""
     if isinstance(stream_or_fname, str):
-        with open(stream_or_fname, 'rb') as stream:
-            for line in _delimited_stream_dictreader(
-                    stream, *args, utf8_input=True, **kwargs):
+        with open(stream_or_fname, 'r') as stream:
+            for line in csv.DictReader(stream, *args, **kwargs):
                 yield line
     else:
-        for line in _delimited_stream_dictreader(
-                stream_or_fname, *args, **kwargs):
+        for line in csv.DictReader(stream_or_fname, *args, **kwargs):
             # print line
             yield line
 
