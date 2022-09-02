@@ -138,8 +138,7 @@ class PartialStringFormatter(string.Formatter):
     def get_field(self, field_name, args, kwargs):
         # Handle missing fields
         try:
-            return super(_PartialStringFormatter, self).get_field(
-                field_name, args, kwargs)
+            return super().get_field(field_name, args, kwargs)
         except (KeyError, AttributeError):
             return None, field_name
 
@@ -147,8 +146,7 @@ class PartialStringFormatter(string.Formatter):
         if value is None:
             return self.missing
         else:
-            return super(_PartialStringFormatter, self).format_field(
-                value, spec)
+            return super().format_field(value, spec)
 
 
 def run(main, input_encoding='utf-8', output_encoding='utf-8-sig', *args, **kwargs):
@@ -173,7 +171,7 @@ def run(main, input_encoding='utf-8', output_encoding='utf-8-sig', *args, **kwar
         raise
 
 
-class Runner(object):
+class Runner:
 
     """
     An abstract runner class wrapping the run function.
@@ -220,7 +218,7 @@ class OptionRunner(Runner):
     """An abstract class for a script with options."""
 
     def __init__(self, args=None, **kwargs):
-        super(OptionRunner, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.getopts(args)
 
     def getopts(self, args=None):
@@ -271,7 +269,7 @@ class BasicInputProcessor(Runner):
     """An abstract class for a script processing input."""
 
     def __init__(self, args=None, **kwargs):
-        super(BasicInputProcessor, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._linenr = 0
         self._filename = None
         # FIXME: These are not yet the codecs versions, since they are
@@ -298,7 +296,7 @@ class BasicInputProcessor(Runner):
         if show_fileinfo:
             filename = filename or self._filename or '<stdin>'
             linenr = linenr or self._linenr
-        super(BasicInputProcessor, self).write_message(
+        super().write_message(
             message, outstream=outstream, filename=filename, linenr=linenr,
             show_fileinfo=show_fileinfo, **kwargs)
 
@@ -311,4 +309,4 @@ class InputProcessor(BasicInputProcessor, OptionRunner):
     """An abstract class for a script processing input and with options."""
 
     def __init__(self, args=None, **kwargs):
-        super(InputProcessor, self).__init__(args, **kwargs)
+        super().__init__(args, **kwargs)
