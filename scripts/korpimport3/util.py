@@ -13,6 +13,7 @@ This is a Python 3 version of korpimport.util.
 
 import sys
 import codecs
+import io
 import errno
 import string
 import csv
@@ -132,12 +133,28 @@ class PartialStringFormatter(string.Formatter):
 def run(main, input_encoding='utf-8-sig', output_encoding='utf-8',
         *args, **kwargs):
     """Run the main function; catch IOErrors and KeyboardInterrupt."""
+
+    def same_encoding(enc1, enc2):
+        """Return true if enc1 and enc2 denote the same encoding."""
+        return codecs.lookup(enc1).name == codecs.lookup(enc2).name
+
+    def set_encoding(stream_name, encoding):
+        """Set the encoding of stream_name in sys to encoding."""
+        stream = getattr(sys, stream_name)
+        if not same_encoding(stream.encoding, encoding):
+            try:
+                # Python 3.7+
+                stream.reconfigure(encoding=encoding)
+            except AttributeError:
+                # Older Python 3 versions
+                setattr(sys, stream_name, io.TextIOWrapper(stream.buffer,
+                                                           encoding=encoding))
+
     try:
-        if input_encoding:
-            sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
-        if output_encoding:
-            sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
-            sys.stderr = codecs.getwriter(output_encoding)(sys.stderr)
+        for stream_name, encoding in [('stdin', input_encoding),
+                                      ('stdout', output_encoding),
+                                      ('stderr', output_encoding)]:
+            set_encoding(stream_name, encoding)
         main(*args, **kwargs)
     except IOError as e:
         if e.errno == errno.EPIPE:
@@ -253,8 +270,8 @@ class BasicInputProcessor(Runner):
         super().__init__(**kwargs)
         self._linenr = 0
         self._filename = None
-        # FIXME: These are not yet the codecs versions, since they are
-        # initialized only in the run function
+        # FIXME: These are not yet the streams with the encoding set,
+        # since they are initialized only in the run function
         self._error_stream = sys.stderr
         self._output_stream = sys.stdout
 
