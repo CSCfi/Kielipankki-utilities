@@ -129,7 +129,8 @@ class PartialStringFormatter(string.Formatter):
             return super().format_field(value, spec)
 
 
-def run(main, input_encoding='utf-8', output_encoding='utf-8-sig', *args, **kwargs):
+def run(main, input_encoding='utf-8-sig', output_encoding='utf-8',
+        *args, **kwargs):
     """Run the main function; catch IOErrors and KeyboardInterrupt."""
     try:
         if input_encoding:
