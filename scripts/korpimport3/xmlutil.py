@@ -46,7 +46,7 @@ def make_attrs(attrnames=None, attrdict=None, attrs=None, elemname=''):
 
 def make_attr(name, value):
     """Make name="value", with the appropriate characters in value escaped."""
-    return u'{name}="{value}"'.format(
+    return '{name}="{value}"'.format(
         name=name,
         value=escape(unescape(value,
                               {'&quot;': '"', '&apos;': '\''}),
@@ -89,14 +89,14 @@ def make_elem(elemname, content='', attrnames=None, attrdict=None, attrs=None,
     """
     starttag = make_starttag(elemname, attrnames, attrdict, attrs)
     if content is None:
-        return starttag[:-1] + u'/>'
+        return starttag[:-1] + '/>'
     content_end = ''
     if content and content[-1] == '\n':
         content_end = '\n'
         content = content[:-1]
     if indent > 0:
-        content = content.replace(u'\n', u'\n' + (u' ' * indent)).rstrip(' ')
-    newline1 = u'\n' + (u' ' * indent) if newlines else ''
-    newline2 = u'\n' if newlines and content and content_end != '\n' else ''
+        content = content.replace('\n', '\n' + (' ' * indent)).rstrip(' ')
+    newline1 = '\n' + (' ' * indent) if newlines else ''
+    newline2 = '\n' if newlines and content and content_end != '\n' else ''
     return (starttag + newline1 + content + content_end + newline2
-            + u'</' + elemname + u'>')
+            + '</' + elemname + '>')
