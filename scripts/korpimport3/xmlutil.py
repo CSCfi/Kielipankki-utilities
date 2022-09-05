@@ -2,10 +2,12 @@
 
 
 """
-Module korpimport.xmlutil
+Module korpimport3.xmlutil
 
 Common utility functions and classes for processing XML in Korp/CWB
 importing and VRT processing scripts.
+
+This is a Python 3 version of korpimport.xmlutil.
 """
 
 
