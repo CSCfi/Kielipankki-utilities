@@ -149,16 +149,30 @@ def parsearguments(argv):
 
     # TODO something about skipping sentences? maybe later
 
+    parser.add_argument('--batch-lines',
+                        dest = 'batch',
+                        choices = [ '1000', '5000', '10000' ],
+                        default = 1000,
+                        type = int,
+                        help = '''
+
+                        number of lines in a job batch, suitable
+                        default (initially 1000) to be determined
+
+                        ''')
+
     args = parser.parse_args(argv)
     args.prog = parser.prog
     return args
 
 def main(args, ins, ous):
 
-    # must find the components somewhere
-    # mocking for now
     proc = Popen([ PYTHON, TURKUNPP,
-                   '--conf', TURKUNPP_FI_TDT,
+                   '--conf-yaml', TURKUNPP_FI_TDT,
+                   '--empty-line-batching',
+                   # need empty-line-batching be specified here? if
+                   # so, how can previous runs been working at all?
+                   '--batch-lines', args.batch,
                    'parse_conllu' ],
                  stdin = PIPE,
                  stdout = PIPE,
