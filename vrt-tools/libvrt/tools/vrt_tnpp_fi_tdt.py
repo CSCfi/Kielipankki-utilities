@@ -152,8 +152,7 @@ def parsearguments(argv):
     parser.add_argument('--batch-lines',
                         dest = 'batch',
                         choices = [ '1000', '5000', '10000' ],
-                        default = 1000,
-                        type = int,
+                        default = '1000',
                         help = '''
 
                         number of lines in a job batch, suitable
