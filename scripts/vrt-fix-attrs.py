@@ -3,7 +3,6 @@
 
 
 import sys
-import codecs
 import re
 import errno
 
@@ -428,8 +427,8 @@ class AttributeFixer(object):
             for file_ in files:
                 self.process_files(file_)
         elif isinstance(files, str):
-            with codecs.open(files, 'r', encoding='utf-8-sig',
-                             errors=self._opts.encoding_errors) as f:
+            with open(files, 'r', encoding='utf-8-sig',
+                      errors=self._opts.encoding_errors) as f:
                 self._fix_input(f)
         else:
             self._fix_input(files)

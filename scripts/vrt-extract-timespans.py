@@ -3,7 +3,6 @@
 
 
 import sys
-import codecs
 import re
 
 from optparse import OptionParser
@@ -162,7 +161,7 @@ class TimespanExtractor(object):
 
     def _process_file(self, fname):
         if isinstance(fname, str):
-            with codecs.open(fname, 'r', encoding='utf-8-sig') as f:
+            with open(fname, 'r', encoding='utf-8-sig') as f:
                 self._extract_timespans(f)
         else:
             self._extract_timespans(fname)

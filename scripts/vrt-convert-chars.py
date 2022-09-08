@@ -8,7 +8,6 @@
 
 
 import sys
-import codecs
 import re
 import errno
 
@@ -132,8 +131,7 @@ class CharConverter(object):
             self._process_input(sys.stdin)
         else:
             for fname in fnames:
-                with codecs.open(fname, 'r',
-                                 encoding=self._input_encoding) as file_:
+                with open(fname, 'r', encoding=self._input_encoding) as file_:
                     self._process_input(file_)
 
     def _process_input(self, file_):

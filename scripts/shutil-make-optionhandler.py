@@ -162,7 +162,6 @@ The script generates the following sections:
 
 
 import re
-import codecs
 import textwrap
 # configparser in Python 3
 import configparser as configparser
@@ -348,7 +347,7 @@ class ShellOptionHandlerGenerator(korpimport3.util.BasicInputProcessor):
             # Handle possible BOM at the beginning (in a file from Windows)
             if encoding == 'utf-8':
                 encoding = 'utf-8-sig'
-            self._file = codecs.open(fname, 'r', encoding=encoding)
+            self._file = open(fname, 'r', encoding=encoding)
 
         def readline(self):
             if self._first:
