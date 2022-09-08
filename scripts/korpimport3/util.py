@@ -130,31 +130,45 @@ class PartialStringFormatter(string.Formatter):
             return super().format_field(value, spec)
 
 
+def encoding_equal(enc1, enc2):
+    """Return true if enc1 and enc2 denote the same encoding."""
+    return codecs.lookup(enc1).name == codecs.lookup(enc2).name
+
+
+def set_sys_stream_encoding(stream_name, encoding):
+    """Set the encoding of stream_name in sys to encoding.
+
+    stream_name is the string "stdin", "stdout" or "stderr".
+    If encoding is falsey, do not change the encoding.
+    """
+    if not encoding:
+        return
+    stream = getattr(sys, stream_name)
+    if not encoding_equal(stream.encoding, encoding):
+        try:
+            # Python 3.7+
+            stream.reconfigure(encoding=encoding)
+        except AttributeError:
+            # Older Python 3 versions
+            setattr(sys, stream_name, io.TextIOWrapper(stream.buffer,
+                                                       encoding=encoding))
+
+def set_sys_stream_encodings(stdin=None, stdout=None, stderr=None):
+    """Set the encodings of sys.stdin, sys.stdout and/or sys.stderr."""
+    for stream_name, encoding in [('stdin', stdin),
+                                  ('stdout', stdout),
+                                  ('stderr', stderr)]:
+        set_sys_stream_encoding(stream_name, encoding)
+
+
 def run(main, input_encoding='utf-8-sig', output_encoding='utf-8',
         *args, **kwargs):
     """Run the main function; catch IOErrors and KeyboardInterrupt."""
 
-    def same_encoding(enc1, enc2):
-        """Return true if enc1 and enc2 denote the same encoding."""
-        return codecs.lookup(enc1).name == codecs.lookup(enc2).name
-
-    def set_encoding(stream_name, encoding):
-        """Set the encoding of stream_name in sys to encoding."""
-        stream = getattr(sys, stream_name)
-        if not same_encoding(stream.encoding, encoding):
-            try:
-                # Python 3.7+
-                stream.reconfigure(encoding=encoding)
-            except AttributeError:
-                # Older Python 3 versions
-                setattr(sys, stream_name, io.TextIOWrapper(stream.buffer,
-                                                           encoding=encoding))
-
     try:
-        for stream_name, encoding in [('stdin', input_encoding),
-                                      ('stdout', output_encoding),
-                                      ('stderr', output_encoding)]:
-            set_encoding(stream_name, encoding)
+        set_sys_stream_encodings(input_encoding,
+                                 output_encoding,
+                                 output_encoding)
         main(*args, **kwargs)
     except IOError as e:
         if e.errno == errno.EPIPE:
