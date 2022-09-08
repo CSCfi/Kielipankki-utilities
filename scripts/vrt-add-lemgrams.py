@@ -20,7 +20,7 @@ def warn(msg, kwdict):
 
 
 def process_input(f, posmap, opts):
-    if isinstance(f, basestring):
+    if isinstance(f, str):
         with codecs.open(f, 'r', encoding='utf-8') as fp:
             process_input_stream(fp, posmap, opts)
     else:
@@ -47,7 +47,7 @@ def add_lemgram(line, posmap, opts):
     # lemma1 corresponds to pos1, lemma2 to pos2 and so on; otherwise,
     # add all possible combinations.
     if len(lemmas) == len(poses):
-        for i in xrange(len(lemmas)):
+        for i in range(len(lemmas)):
             lemgrams.extend(make_lemgrams(posmap, lemmas[i], poses[i], opts))
     else:
         for lemma in lemmas:
@@ -93,13 +93,13 @@ def make_lemgrams(posmap, lemma, pos, opts):
                 add_lemmas.append(lemma_non_diacritic)
         lemmas.extend(add_lemmas)
     pos = posmap.get(pos, 'xx')
-    return [u'{lemma}..{pos}.1'.format(lemma=lemma, pos=pos)
+    return ['{lemma}..{pos}.1'.format(lemma=lemma, pos=pos)
             for lemma in lemmas]
 
 
 def remove_diacritics(s):
     # Based on https://stackoverflow.com/a/517974
-    return u''.join(c for c in unicodedata.normalize('NFKD', s)
+    return ''.join(c for c in unicodedata.normalize('NFKD', s)
                     if not unicodedata.combining(c))
 
 
@@ -205,7 +205,7 @@ def getopts():
     if opts.keep_letters:
         # Kludge: Add attribute to opts to avoid a global variable
         setattr(opts, 'non_keep_letters_re',
-                re.compile(ur'([^' + opts.keep_letters.decode('utf-8') + u'])',
+                re.compile(r'([^' + opts.keep_letters.decode('utf-8') + '])',
                            re.UNICODE | re.IGNORECASE))
     return (opts, args)
 
@@ -223,13 +223,13 @@ def main_main():
 def main():
     try:
         main_main()
-    except IOError, e:
+    except IOError as e:
         if e.errno == errno.EPIPE:
             sys.stderr.write('Broken pipe\n')
         else:
             sys.stderr.write(str(e) + '\n')
         exit(1)
-    except KeyboardInterrupt, e:
+    except KeyboardInterrupt as e:
         sys.stderr.write('Interrupted\n')
         exit(1)
     except:

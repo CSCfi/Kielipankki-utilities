@@ -165,7 +165,7 @@ import re
 import codecs
 import textwrap
 # configparser in Python 3
-import ConfigParser as configparser
+import configparser as configparser
 
 from collections import defaultdict
 from optparse import OptionParser
@@ -190,7 +190,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         self._args = None
         self._help_indent = {'opt': 2, 'text': 18, 'grouplabel': 0}
         self._help_indent_text = dict(
-            (key, val * ' ') for key, val in self._help_indent.iteritems())
+            (key, val * ' ') for key, val in self._help_indent.items())
         self._help_width = 78
         self._optspec_re = re.compile(
             r'''(?P<optnames> [^\s=:]+)
@@ -262,7 +262,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             try:
                 _ = name.encode('ascii')
             except UnicodeEncodeError as e:
-                self.error(u'Invalid non-ASCII option name: ' + name)
+                self.error('Invalid non-ASCII option name: ' + name)
         for name in optspec['names']:
             self._optspec_map[name.strip('-')] = optspec
         optspec['defaulttrue'] = (optspec['targetneg'] == '!')
@@ -306,8 +306,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             [['config-section'], dict(default='Default')],
             [['config-values-single-quoted'], dict(action='store_true')],
             [['output-section-format'],
-             dict(default=u'----- {name}\n{content}\n-----\n')],
-            [['option-group-label-format'], dict(default=u'\n{label}:')],
+             dict(default='----- {name}\n{content}\n-----\n')],
+            [['option-group-label-format'], dict(default='\n{label}:')],
         ]
         for optnames, optopts in script_opts:
             optparser.add_option(*['--_' + name for name in optnames],
@@ -332,9 +332,9 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                              None)
             if optval:
                 self._opts._config_file = optval
-        self._opts._output_section_format = unicode(
+        self._opts._output_section_format = str(
             self._opts._output_section_format.replace('\\n', '\n'))
-        self._opts._option_group_label_format = unicode(
+        self._opts._option_group_label_format = str(
             self._opts._option_group_label_format.replace('\\n', '\n'))
         for optspec in self._optspecs:
             optspec['value'] = getattr(self._opts, optspec['pytarget'], None)
@@ -392,8 +392,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                     self[key].append('')
                     self[key].extend(val)
                     return
-                elif (isinstance(self[key], basestring)
-                      and isinstance(val, basestring)):
+                elif (isinstance(self[key], str)
+                      and isinstance(val, str)):
                     # Python 2.6
                     val = self[key] + '\n\n' + val
             super(ShellOptionHandlerGenerator.ListExtendDict,
@@ -405,7 +405,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         try:
             confparser = configparser.SafeConfigParser(
                 dict_type=self.ListExtendDict)
-            confparser.optionxform = unicode
+            confparser.optionxform = str
             confparser.readfp(reader, self._opts._config_file)
             reader.close()
             # raw=True: Do not expand %(...) variable references in

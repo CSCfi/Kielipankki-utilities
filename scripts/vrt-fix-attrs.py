@@ -196,11 +196,11 @@ class PosAttrConverter(object):
         output_field_fieldnums = [output_field.get_input_fieldnum()
                                   for output_field in self._output_fields]
         self._max_fieldnum = max((output_field_fieldnums
-                                  + self._empty_field_values.keys()
-                                  + self._missing_field_values.keys())
+                                  + list(self._empty_field_values.keys())
+                                  + list(self._missing_field_values.keys()))
                                  or [-1])
         # print self._output_fields, output_field_fieldnums, self._max_fieldnum
-        for num in xrange(max(output_field_fieldnums or [-1]) + 1,
+        for num in range(max(output_field_fieldnums or [-1]) + 1,
                           self._max_fieldnum + 1):
             opts = {}
             if num in self._set_fields:
@@ -255,7 +255,7 @@ class PosAttrConverter(object):
                     start = end = fieldrange
                 start = self._get_fieldnum(start)
                 end = self._get_fieldnum(end)
-                result.extend(range(start, end + 1))
+                result.extend(list(range(start, end + 1)))
         return result
 
     def _get_fieldnum(self, num_or_name):
@@ -283,7 +283,7 @@ class PosAttrConverter(object):
             '0', self._input_fields, **output_field_kwargs)
 
     def _add_default_fieldvals(self, type_, values):
-        for fieldnum, fieldval in values.items():
+        for fieldnum, fieldval in list(values.items()):
             if fieldnum != -1 and fieldnum <= self._max_fieldnum:
                 self._output_fields[fieldnum].set_option(type_, fieldval)
         if -1 in values:
@@ -307,7 +307,7 @@ class PosAttrConverter(object):
         for output_field in self._output_fields:
             add_output_field(fields, output_field)
         if self._copy_extra_fields:
-            for fieldnum in xrange(self._max_fieldnum + 1, len(fields)):
+            for fieldnum in range(self._max_fieldnum + 1, len(fields)):
                 add_output_field(fields, self._extra_output_field, fieldnum)
         return outfields
 
@@ -320,9 +320,9 @@ class AttributeFixer(object):
                           'lt': '<',
                           'gt': '>'}
     _xml_char_entities_rev = dict(
-        (val, key) for key, val in _xml_char_entities.iteritems())
+        (val, key) for key, val in _xml_char_entities.items())
     _xml_char_entity_name_regex = \
-        r'#x[0-9a-fA-F]+|#[0-9]+|' + '|'.join(_xml_char_entities.keys())
+        r'#x[0-9a-fA-F]+|#[0-9]+|' + '|'.join(list(_xml_char_entities.keys()))
 
     def __init__(self, opts):
         self._opts = opts
@@ -341,7 +341,7 @@ class AttributeFixer(object):
         self._special_char_encode_maps = {}
         self._special_char_encode_maps['base'] = [
             (c, (opts.encoded_special_char_prefix
-                 + unichr(i + opts.encoded_special_char_offset)))
+                 + chr(i + opts.encoded_special_char_offset)))
             for (i, c) in enumerate(opts.special_chars)]
         self._special_char_encode_maps['set'] = [
             (key, val) for key, val in self._special_char_encode_maps['base']
@@ -427,7 +427,7 @@ class AttributeFixer(object):
         if isinstance(files, list):
             for file_ in files:
                 self.process_files(file_)
-        elif isinstance(files, basestring):
+        elif isinstance(files, str):
             with codecs.open(files, 'r', encoding='utf-8',
                              errors=self._opts.encoding_errors) as f:
                 self._fix_input(f)
@@ -521,7 +521,7 @@ class AttributeFixer(object):
                 if chrval < 32:
                     return name
                 try:
-                    char = unichr(chrval)
+                    char = chr(chrval)
                 except ValueError:
                     return name
                 if numeric_only and char in self._xml_char_entities_rev:
@@ -675,11 +675,11 @@ def getopts():
     optparser.add_option('--encode-special-chars', type='choice',
                          choices=['none', 'all', 'pos', 'struct'],
                          default='none')
-    optparser.add_option('--special-chars', default=u' /<>|')
+    optparser.add_option('--special-chars', default=' /<>|')
     optparser.add_option('--encoded-special-char-offset',
                          '--special-char-offset', default='0x7F')
     optparser.add_option('--encoded-special-char-prefix',
-                         '--special-char-prefix', default=u'')
+                         '--special-char-prefix', default='')
     optparser.add_option(
         '--set-struct-attributes', '--feature-set-valued-struct-attributes',
         action='append', default=[],
@@ -739,13 +739,13 @@ def main_main():
 def main():
     try:
         main_main()
-    except IOError, e:
+    except IOError as e:
         if e.errno == errno.EPIPE:
             sys.stderr.write('Broken pipe\n')
         else:
             sys.stderr.write(str(e) + '\n')
         exit(1)
-    except KeyboardInterrupt, e:
+    except KeyboardInterrupt as e:
         sys.stderr.write('Interrupted\n')
         exit(1)
     except:

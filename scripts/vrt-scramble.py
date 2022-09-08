@@ -21,9 +21,9 @@ class VrtScrambler(korpimport.util.InputProcessor):
 
     def process_input_stream(self, stream, filename=None):
         within_begin_re = re.compile(
-            ur'<' + self._opts.scramble_within + '[>\s]')
+            r'<' + self._opts.scramble_within + '[>\s]')
         scramble_begin_re = re.compile(
-            ur'<' + self._opts.scramble_unit + '[>\s]')
+            r'<' + self._opts.scramble_unit + '[>\s]')
         scramble_end = '</' + self._opts.scramble_within + '>'
         collecting = False
         units = []

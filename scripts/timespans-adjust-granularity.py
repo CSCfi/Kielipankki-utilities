@@ -55,7 +55,7 @@ class GranularityAdjuster(korpimport.util.InputProcessor):
                 count = fields[count_fieldnr]
                 # @COUNT@ will be replaced by the final count when writing
                 # output
-                fields[count_fieldnr] = u'@COUNT@'
+                fields[count_fieldnr] = '@COUNT@'
                 self._counts['\t'.join(fields)] += int(count)
             else:
                 sys.stdout.write('\t'.join(fields) + '\n')
@@ -95,9 +95,9 @@ class GranularityAdjuster(korpimport.util.InputProcessor):
         return str(mdays)
 
     def _write_output(self):
-        for key in self._counts.iterkeys():
+        for key in self._counts.keys():
             sys.stdout.write(
-                key.replace(u'@COUNT@', unicode(self._counts[key])) + '\n')
+                key.replace('@COUNT@', str(self._counts[key])) + '\n')
 
     def getopts(self, args=None):
         gran_map = {

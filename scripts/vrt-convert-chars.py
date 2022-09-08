@@ -44,7 +44,7 @@ class CharConverter(object):
                                  in ['all', 'pos'])
         self._convert_structattrs = (self._opts.attribute_types
                                     in ['all', 'struct'])
-        self._convert_map = [(c, (opts.prefix + unichr(i + opts.offset)))
+        self._convert_map = [(c, (opts.prefix + chr(i + opts.offset)))
                              for (i, c) in enumerate(opts.chars)]
         self._add_xml_char_refs_to_convert_map()
         self._feat_set_attrs = set(
@@ -200,7 +200,7 @@ Encode or decode in VRT files special characters that are problematic in CWB."""
               ' attributes only), or all (both positional and structural'
               ' attributes) (default: %default)'))
     optparser.add_option(
-        '--chars', default=u' /<>|',
+        '--chars', default=' /<>|',
         help=('the characters to be converted in their unencoded form'
               ' (default: "%default")'))
     optparser.add_option(
@@ -209,7 +209,7 @@ Encode or decode in VRT files special characters that are problematic in CWB."""
               ' character in CHARS is encoded as OFFSET, the second as'
               ' OFFSET+1 and so on (default: %default)'))
     optparser.add_option(
-        '--prefix', default=u'',
+        '--prefix', default='',
         help='prefix the encoded characters with PREFIX (default: none)')
     optparser.add_option(
         '--no-convert-xml-character-entity-references', '--no-xml-char-refs',
@@ -281,13 +281,13 @@ def main_main():
 def main():
     try:
         main_main()
-    except IOError, e:
+    except IOError as e:
         if e.errno == errno.EPIPE:
             sys.stderr.write('Broken pipe\n')
         else:
             sys.stderr.write(str(e) + '\n')
         exit(1)
-    except KeyboardInterrupt, e:
+    except KeyboardInterrupt as e:
         sys.stderr.write('Interrupted\n')
         exit(1)
     except:
