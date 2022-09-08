@@ -428,7 +428,7 @@ class AttributeFixer(object):
             for file_ in files:
                 self.process_files(file_)
         elif isinstance(files, str):
-            with codecs.open(files, 'r', encoding='utf-8',
+            with codecs.open(files, 'r', encoding='utf-8-sig',
                              errors=self._opts.encoding_errors) as f:
                 self._fix_input(f)
         else:
@@ -727,10 +727,10 @@ def getopts():
 
 
 def main_main():
-    input_encoding = 'utf-8'
+    input_encoding = 'utf-8-sig'
     output_encoding = 'utf-8'
-    sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
-    sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
+    korputil.set_sys_stream_encodings(
+        input_encoding, output_encoding, output_encoding)
     (opts, args) = getopts()
     attr_fixer = AttributeFixer(opts)
     attr_fixer.process_files(args if args else sys.stdin)

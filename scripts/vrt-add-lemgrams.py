@@ -11,7 +11,7 @@ import unicodedata
 from optparse import OptionParser
 from os.path import basename
 
-from korpimport3.util import unique
+from korpimport3.util import unique, set_sys_stream_encodings
 
 
 def warn(msg, kwdict):
@@ -21,7 +21,7 @@ def warn(msg, kwdict):
 
 def process_input(f, posmap, opts):
     if isinstance(f, str):
-        with codecs.open(f, 'r', encoding='utf-8') as fp:
+        with codecs.open(f, 'r', encoding='utf-8-sig') as fp:
             process_input_stream(fp, posmap, opts)
     else:
         process_input_stream(f, posmap, opts)
@@ -120,7 +120,7 @@ def read_posmap(fname, opts):
         # PoS.
         'source-spaces': False,
     }
-    with codecs.open(fname, 'r', encoding='utf-8') as f:
+    with codecs.open(fname, 'r', encoding='utf-8-sig') as f:
         linenum = 0
         for line in f:
             linenum += 1
@@ -211,10 +211,9 @@ def getopts():
 
 
 def main_main():
-    input_encoding = 'utf-8'
+    input_encoding = 'utf-8-sig'
     output_encoding = 'utf-8'
-    sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
-    sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
+    set_sys_stream_encodings(input_encoding, output_encoding, output_encoding)
     (opts, args) = getopts()
     posmap = read_posmap(opts.pos_map_file, opts)
     process_input(args[0] if args else sys.stdin, posmap, opts)

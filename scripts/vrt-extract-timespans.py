@@ -12,6 +12,8 @@ from collections import defaultdict, OrderedDict
 from datetime import date
 from subprocess import Popen, PIPE
 
+import korpimport3.util as korputil
+
 
 def get_current_year():
     return date.today().year
@@ -160,7 +162,7 @@ class TimespanExtractor(object):
 
     def _process_file(self, fname):
         if isinstance(fname, str):
-            with codecs.open(fname, 'r', encoding='utf-8') as f:
+            with codecs.open(fname, 'r', encoding='utf-8-sig') as f:
                 self._extract_timespans(f)
         else:
             self._extract_timespans(fname)
@@ -395,10 +397,10 @@ def getopts():
 
 
 def main():
-    input_encoding = 'utf-8'
+    input_encoding = 'utf-8-sig'
     output_encoding = 'utf-8'
-    sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
-    sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
+    korputil.set_sys_stream_encodings(
+        input_encoding, output_encoding, output_encoding)
     (opts, args) = getopts()
     extractor = TimespanExtractor(opts)
     extractor.process_files(args if args else sys.stdin)

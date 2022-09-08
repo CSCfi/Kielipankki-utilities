@@ -37,7 +37,7 @@ class CharConverter(object):
         '"': '&quot;'
         }
 
-    def __init__(self, opts, input_encoding='utf-8'):
+    def __init__(self, opts, input_encoding='utf-8-sig'):
         self._opts = opts
         self._input_encoding = input_encoding
         self._convert_posattrs = (self._opts.attribute_types
@@ -269,10 +269,10 @@ Encode or decode in VRT files special characters that are problematic in CWB."""
 
 
 def main_main():
-    input_encoding = 'utf-8'
+    input_encoding = 'utf-8-sig'
     output_encoding = 'utf-8'
-    sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
-    sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
+    korputil.set_sys_stream_encodings(
+        input_encoding, output_encoding, output_encoding)
     (opts, args) = getopts()
     converter = CharConverter(opts, input_encoding)
     converter.process_input(args)
