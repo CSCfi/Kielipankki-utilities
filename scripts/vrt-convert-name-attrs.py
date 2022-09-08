@@ -5,11 +5,11 @@
 import sys
 import re
 
-import korpimport.util
-import korpimport.xmlutil as xmlutil
+import korpimport3.util
+import korpimport3.xmlutil as xmlutil
 
 
-class NameAttrConverter(korpimport.util.InputProcessor):
+class NameAttrConverter(korpimport3.util.InputProcessor):
 
     def __init__(self, args=None):
         super(NameAttrConverter, self).__init__()

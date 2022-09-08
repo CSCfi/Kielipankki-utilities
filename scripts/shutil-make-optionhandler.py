@@ -170,7 +170,7 @@ import configparser as configparser
 from collections import defaultdict
 from optparse import OptionParser
 
-import korpimport.util
+import korpimport3.util
 
 # A similar approach is used in ConfigParser
 try:
@@ -180,7 +180,7 @@ except ImportError:
     ConfigBaseDict = dict
 
 
-class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
+class ShellOptionHandlerGenerator(korpimport3.util.BasicInputProcessor):
 
     def __init__(self, args=None):
         super(ShellOptionHandlerGenerator, self).__init__()

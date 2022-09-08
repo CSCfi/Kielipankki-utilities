@@ -11,7 +11,7 @@ import unicodedata
 from optparse import OptionParser
 from os.path import basename
 
-from korpimport.util import unique
+from korpimport3.util import unique
 
 
 def warn(msg, kwdict):

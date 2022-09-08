@@ -19,10 +19,10 @@ import re
 
 from collections import defaultdict
 
-import korpimport.util
+import korpimport3.util
 
 
-class GranularityAdjuster(korpimport.util.InputProcessor):
+class GranularityAdjuster(korpimport3.util.InputProcessor):
 
     _month_days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 

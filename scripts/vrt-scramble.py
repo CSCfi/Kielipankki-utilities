@@ -9,10 +9,10 @@ import sys
 import re
 import random
 
-import korpimport.util
+import korpimport3.util
 
 
-class VrtScrambler(korpimport.util.InputProcessor):
+class VrtScrambler(korpimport3.util.InputProcessor):
 
     def __init__(self):
         super(VrtScrambler, self).__init__()

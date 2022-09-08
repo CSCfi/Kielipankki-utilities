@@ -14,7 +14,7 @@ import errno
 
 from optparse import OptionParser
 
-import korpimport.util as korputil
+import korpimport3.util as korputil
 
 
 def replace_substrings(s, mapping):

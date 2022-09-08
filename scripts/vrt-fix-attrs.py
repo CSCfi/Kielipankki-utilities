@@ -10,8 +10,8 @@ import errno
 from optparse import OptionParser
 from collections import defaultdict
 
-from korpimport.util import unique
-import korpimport.util as korputil
+from korpimport3.util import unique
+import korpimport3.util as korputil
 
 
 def replace_substrings(s, mapping):

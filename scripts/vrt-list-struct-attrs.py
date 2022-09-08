@@ -12,10 +12,10 @@ import re
 
 from collections import defaultdict
 
-import korpimport.util
+import korpimport3.util
 
 
-class StructAttrLister(korpimport.util.InputProcessor):
+class StructAttrLister(korpimport3.util.InputProcessor):
 
     def __init__(self, args=None):
         super(StructAttrLister, self).__init__()
