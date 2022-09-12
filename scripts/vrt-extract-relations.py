@@ -13,6 +13,8 @@ from tempfile import NamedTemporaryFile
 from collections import defaultdict
 from os.path import basename
 
+from korpimport3.util import set_sys_stream_encodings
+
 
 class Deprels(object):
 
@@ -273,7 +275,7 @@ class DeprelsDirectWrite(Deprels):
         # FIXME: Deprels constructor creates attributes that
         # DeprelsDirectWrite does not need.
         super(DeprelsDirectWrite, self).__init__(**kwargs)
-        self._outfiles = dict((reltype, open(fname, 'w'))
+        self._outfiles = dict((reltype, open(fname, 'w', encoding='utf-8'))
                               for reltype, fname in filenames.items())
 
     def _add_info(self, sent_id, rel, head, dep, headnr, depnr, wf_head=False,
@@ -363,7 +365,7 @@ class RelationExtractor(object):
 
     def _read_relmap(self, fname):
         relmap = {}
-        with open(fname, 'r') as f:
+        with open(fname, 'r', encoding='utf-8-sig') as f:
             for line in f:
                 line_strip = line.strip()
                 if line_strip == '' or line_strip.startswith('#'):
@@ -380,7 +382,7 @@ class RelationExtractor(object):
             for arg in args:
                 self.process_input(arg)
         elif isinstance(args, str):
-            with open(args, 'r') as f:
+            with open(args, 'r', encoding='utf-8-sig') as f:
                 self._process_input_stream(f)
         else:
             self._process_input_stream(args)
@@ -503,7 +505,7 @@ class RelationExtractor(object):
         elif self._opts.compress.startswith('bz'):
             fname += '.bz2'
             compress_cmd = 'bzip2'
-        f = open(fname, 'w')
+        f = open(fname, 'w', encoding='utf-8')
         if self._opts.sort:
             sort_env = os.environ
             sort_env['LC_ALL'] = 'C'
@@ -590,6 +592,9 @@ def getopts():
 
 
 def main_main():
+    input_encoding = 'utf-8-sig'
+    output_encoding = 'utf-8'
+    set_sys_stream_encodings(input_encoding, output_encoding, output_encoding)
     (opts, args) = getopts()
     extractor = RelationExtractor(opts)
     extractor.process_input(args or sys.stdin)
