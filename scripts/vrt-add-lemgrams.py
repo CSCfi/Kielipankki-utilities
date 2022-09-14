@@ -204,7 +204,7 @@ def getopts():
     if opts.keep_letters:
         # Kludge: Add attribute to opts to avoid a global variable
         setattr(opts, 'non_keep_letters_re',
-                re.compile(r'([^' + opts.keep_letters.decode('utf-8') + '])',
+                re.compile(r'([^' + opts.keep_letters + '])',
                            re.UNICODE | re.IGNORECASE))
     return (opts, args)
 
