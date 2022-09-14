@@ -27,7 +27,7 @@ class GranularityAdjuster(korpimport3.util.InputProcessor):
     _month_days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
     def __init__(self, args=None):
-        super(GranularityAdjuster, self).__init__()
+        super().__init__()
         # Adjusting the granularities may collapse several input
         # values into one, so collect the counts first and output them
         # at the end (unless --no-counts).

@@ -18,7 +18,7 @@ import korpimport3.util
 class StructAttrLister(korpimport3.util.InputProcessor):
 
     def __init__(self, args=None):
-        super(StructAttrLister, self).__init__()
+        super().__init__()
         self._structs = []
         self._struct_depth = defaultdict(int)
         self._struct_maxdepth = defaultdict(int)

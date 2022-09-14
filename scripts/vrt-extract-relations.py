@@ -16,9 +16,9 @@ from os.path import basename
 from korpimport3.util import set_sys_stream_encodings
 
 
-class Deprels(object):
+class Deprels:
 
-    class SentInfo(object):
+    class SentInfo:
 
         __slots__ = ['id', 'sentences']
 
@@ -274,7 +274,7 @@ class DeprelsDirectWrite(Deprels):
     def __init__(self, filenames=None, **kwargs):
         # FIXME: Deprels constructor creates attributes that
         # DeprelsDirectWrite does not need.
-        super(DeprelsDirectWrite, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._outfiles = dict((reltype, open(fname, 'w', encoding='utf-8'))
                               for reltype, fname in filenames.items())
 
@@ -302,7 +302,7 @@ class DeprelsDirectWrite(Deprels):
             f.close()
 
 
-class RelationExtractor(object):
+class RelationExtractor:
 
     # TODO: Add an option for this
     _str_maxlen = 100

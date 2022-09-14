@@ -26,7 +26,7 @@ def replace_substrings(s, mapping):
     return s
 
 
-class CharConverter(object):
+class CharConverter:
 
     _xml_char_entities = {
         '&': '&amp;',

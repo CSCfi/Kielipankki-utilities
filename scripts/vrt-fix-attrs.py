@@ -45,9 +45,9 @@ def fix_feature_set_attr(value, unique_opt=None):
     return value
 
 
-class PosAttrConverter(object):
+class PosAttrConverter:
 
-    class OutputFieldSpec(object):
+    class OutputFieldSpec:
 
         def __init__(self, fieldspec, input_field_nums=None,
                      char_encode_maps=None, compound_boundary_marker=None,
@@ -311,7 +311,7 @@ class PosAttrConverter(object):
         return outfields
 
 
-class AttributeFixer(object):
+class AttributeFixer:
 
     _xml_char_entities = {'quot': '"',
                           'amp': '&',

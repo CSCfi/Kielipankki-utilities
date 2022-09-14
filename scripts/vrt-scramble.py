@@ -15,7 +15,7 @@ import korpimport3.util
 class VrtScrambler(korpimport3.util.InputProcessor):
 
     def __init__(self):
-        super(VrtScrambler, self).__init__()
+        super().__init__()
         self._scramble_units = []
         self._rnd = random.Random(self._opts.random_seed)
 

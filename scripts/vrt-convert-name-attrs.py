@@ -12,7 +12,7 @@ import korpimport3.xmlutil as xmlutil
 class NameAttrConverter(korpimport3.util.InputProcessor):
 
     def __init__(self, args=None):
-        super(NameAttrConverter, self).__init__()
+        super().__init__()
         self._name_endtag = '</' + self._opts.name_struct + '>\n'
 
     def process_input_stream(self, stream, filename=None):

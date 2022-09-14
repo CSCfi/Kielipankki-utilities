@@ -182,7 +182,7 @@ except ImportError:
 class ShellOptionHandlerGenerator(korpimport3.util.BasicInputProcessor):
 
     def __init__(self, args=None):
-        super(ShellOptionHandlerGenerator, self).__init__()
+        super().__init__()
         self._optspecs = []
         self._optspec_map = {}
         self._opts = None
@@ -338,7 +338,7 @@ class ShellOptionHandlerGenerator(korpimport3.util.BasicInputProcessor):
         for optspec in self._optspecs:
             optspec['value'] = getattr(self._opts, optspec['pytarget'], None)
 
-    class ConfigReader(object):
+    class ConfigReader:
 
         """Add a [Default] section at the beginning of the config file."""
 
@@ -395,8 +395,7 @@ class ShellOptionHandlerGenerator(korpimport3.util.BasicInputProcessor):
                       and isinstance(val, str)):
                     # Python 2.6
                     val = self[key] + '\n\n' + val
-            super(ShellOptionHandlerGenerator.ListExtendDict,
-                  self).__setitem__(key, val)
+            super().__setitem__(key, val)
 
     def _read_config_file(self):
         reader = self.ConfigReader(self._opts._config_file,
