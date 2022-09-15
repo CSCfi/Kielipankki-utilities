@@ -1,4 +1,10 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
+
+
+# This script has been converted from Python 2 to Python 3.
+
+# TODO:
+# - Rewrite the script as a proper VRT tool.
 
 
 import sys
@@ -13,10 +19,12 @@ from tempfile import NamedTemporaryFile
 from collections import defaultdict
 from os.path import basename
 
+from korpimport3.util import set_sys_stream_encodings
 
-class Deprels(object):
 
-    class SentInfo(object):
+class Deprels:
+
+    class SentInfo:
 
         __slots__ = ['id', 'sentences']
 
@@ -135,7 +143,7 @@ class Deprels(object):
                                          in self.sentences[key].sentences)}
 
     def iter_strings(self):
-        for key, id_ in self.strings.iteritems():
+        for key, id_ in self.strings.items():
             string, stringextra, pos = key
             yield (str(id_),
                    string,
@@ -272,9 +280,9 @@ class DeprelsDirectWrite(Deprels):
     def __init__(self, filenames=None, **kwargs):
         # FIXME: Deprels constructor creates attributes that
         # DeprelsDirectWrite does not need.
-        super(DeprelsDirectWrite, self).__init__(**kwargs)
-        self._outfiles = dict((reltype, open(fname, 'w'))
-                              for reltype, fname in filenames.iteritems())
+        super().__init__(**kwargs)
+        self._outfiles = dict((reltype, open(fname, 'w', encoding='utf-8'))
+                              for reltype, fname in filenames.items())
 
     def _add_info(self, sent_id, rel, head, dep, headnr, depnr, wf_head=False,
                   wf_dep=False):
@@ -296,11 +304,11 @@ class DeprelsDirectWrite(Deprels):
         self._outfiles[reltype].write('\t'.join(fields) + '\n')
 
     def close_files(self):
-        for f in self._outfiles.itervalues():
+        for f in self._outfiles.values():
             f.close()
 
 
-class RelationExtractor(object):
+class RelationExtractor:
 
     # TODO: Add an option for this
     _str_maxlen = 100
@@ -363,7 +371,7 @@ class RelationExtractor(object):
 
     def _read_relmap(self, fname):
         relmap = {}
-        with open(fname, 'r') as f:
+        with open(fname, 'r', encoding='utf-8-sig') as f:
             for line in f:
                 line_strip = line.strip()
                 if line_strip == '' or line_strip.startswith('#'):
@@ -379,8 +387,8 @@ class RelationExtractor(object):
         if isinstance(args, list):
             for arg in args:
                 self.process_input(arg)
-        elif isinstance(args, basestring):
-            with open(args, 'r') as f:
+        elif isinstance(args, str):
+            with open(args, 'r', encoding='utf-8-sig') as f:
                 self._process_input_stream(f)
         else:
             self._process_input_stream(args)
@@ -455,10 +463,9 @@ class RelationExtractor(object):
 
     def _output_rels_old(self):
         for data in self._deprels:
-            print '\t'.join(map(lambda x: str(data[x]),
-                                ['head', 'rel', 'dep', 'depextra', 'freq',
+            print('\t'.join([str(data[x]) for x in ['head', 'rel', 'dep', 'depextra', 'freq',
                                  'freq_rel', 'freq_head_rel', 'freq_rel_dep',
-                                 'wf', 'sentences']))
+                                 'wf', 'sentences']]))
 
     def _output_rels_new(self):
         for rel_iter_name, rel_suffix, numeric_sort in self._output_rels:
@@ -504,7 +511,7 @@ class RelationExtractor(object):
         elif self._opts.compress.startswith('bz'):
             fname += '.bz2'
             compress_cmd = 'bzip2'
-        f = open(fname, 'w')
+        f = open(fname, 'w', encoding='utf-8')
         if self._opts.sort:
             sort_env = os.environ
             sort_env['LC_ALL'] = 'C'
@@ -526,7 +533,7 @@ class RelationExtractor(object):
     def _write_final_files(self, output_rels_info):
         numeric_sort = dict([(relinfo[1], relinfo[-1])
                              for relinfo in output_rels_info])
-        for (rel_suffix, temp_fname) in self._temp_fnames.iteritems():
+        for (rel_suffix, temp_fname) in self._temp_fnames.items():
             with open(temp_fname, 'r') as inf:
                 with self._open_output_file(
                     self._make_output_filename(rel_suffix),
@@ -567,7 +574,7 @@ def getopts():
     optparser.add_option('--inverse-relation-map', action='store_true',
                          default=False)
     optparser.add_option('--word-form-pair-type', type='choice',
-                         choices=word_form_pair_types.keys())
+                         choices=list(word_form_pair_types.keys()))
     optparser.add_option('--raw-output', '--optimize-memory',
                          action='store_true')
     # --include-word-forms superseded by --word-form-pair-type=wordform;
@@ -591,6 +598,9 @@ def getopts():
 
 
 def main_main():
+    input_encoding = 'utf-8-sig'
+    output_encoding = 'utf-8'
+    set_sys_stream_encodings(input_encoding, output_encoding, output_encoding)
     (opts, args) = getopts()
     extractor = RelationExtractor(opts)
     extractor.process_input(args or sys.stdin)
@@ -600,13 +610,13 @@ def main_main():
 def main():
     try:
         main_main()
-    except IOError, e:
+    except IOError as e:
         if e.errno == errno.EPIPE:
             sys.stderr.write('Broken pipe\n')
         else:
             sys.stderr.write(str(e) + '\n')
         exit(1)
-    except KeyboardInterrupt, e:
+    except KeyboardInterrupt as e:
         sys.stderr.write('Interrupted\n')
         exit(1)
     except:

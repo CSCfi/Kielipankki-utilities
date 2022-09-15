@@ -1,29 +1,38 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
 """Scramble (randomly shuffle) structures in a VRT input."""
 
 
+# This script has been converted from Python 2 to Python 3.
+
+# TODO:
+# - Rewrite the script as a proper VRT tool.
+
+
 import sys
 import re
 import random
 
-import korpimport.util
+from math import floor
+
+import korpimport3.util
 
 
-class VrtScrambler(korpimport.util.InputProcessor):
+class VrtScrambler(korpimport3.util.InputProcessor):
 
     def __init__(self):
-        super(VrtScrambler, self).__init__()
+        super().__init__()
         self._scramble_units = []
-        self._rnd = random.Random(self._opts.random_seed)
+        # version=1 to be compatible with Python 2 random
+        random.seed(self._opts.random_seed, version=1)
 
     def process_input_stream(self, stream, filename=None):
         within_begin_re = re.compile(
-            ur'<' + self._opts.scramble_within + '[>\s]')
+            r'<' + self._opts.scramble_within + '[>\s]')
         scramble_begin_re = re.compile(
-            ur'<' + self._opts.scramble_unit + '[>\s]')
+            r'<' + self._opts.scramble_unit + '[>\s]')
         scramble_end = '</' + self._opts.scramble_within + '>'
         collecting = False
         units = []
@@ -60,10 +69,22 @@ class VrtScrambler(korpimport.util.InputProcessor):
                     collecting = True
 
     def _scramble(self, units):
-        self._rnd.shuffle(units)
+        self._random_shuffle(units)
         for unit in units:
             for line in unit:
                 yield line
+
+    def _random_shuffle(self, seq):
+        """Randomly shuffle seq, same results as Python 2 random.shuffle."""
+        # This code was copied from the Python 3.10 library code for
+        # random.shuffle. Up to Python 3.10, the same result could be
+        # achieved by using random.shuffle(seq, random=random.random),
+        # but the parameter random will be removed in Python 3.11
+        # (deprecated in 3.9).
+        for i in reversed(range(1, len(seq))):
+            # pick an element in seq[:i+1] with which to exchange seq[i]
+            j = floor(random.random() * (i + 1))
+            seq[i], seq[j] = seq[j], seq[i]
 
     def getopts(self, args=None):
         self.getopts_basic(

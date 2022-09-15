@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
@@ -6,19 +6,24 @@
 # --cwb-struct-attrs" but the input need not be valid XML: for
 # example, the elements need not be strictly nested.
 
+# This script has been converted from Python 2 to Python 3.
+
+# TODO:
+# - Rewrite the script as a proper VRT tool.
+
 
 import sys
 import re
 
 from collections import defaultdict
 
-import korpimport.util
+import korpimport3.util
 
 
-class StructAttrLister(korpimport.util.InputProcessor):
+class StructAttrLister(korpimport3.util.InputProcessor):
 
     def __init__(self, args=None):
-        super(StructAttrLister, self).__init__()
+        super().__init__()
         self._structs = []
         self._struct_depth = defaultdict(int)
         self._struct_maxdepth = defaultdict(int)

@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
@@ -14,20 +14,23 @@ tabs.
 """
 
 
+# This script has been converted from Python 2 to Python 3.
+
+
 import sys
 import re
 
 from collections import defaultdict
 
-import korpimport.util
+import korpimport3.util
 
 
-class GranularityAdjuster(korpimport.util.InputProcessor):
+class GranularityAdjuster(korpimport3.util.InputProcessor):
 
     _month_days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
     def __init__(self, args=None):
-        super(GranularityAdjuster, self).__init__()
+        super().__init__()
         # Adjusting the granularities may collapse several input
         # values into one, so collect the counts first and output them
         # at the end (unless --no-counts).
@@ -55,7 +58,7 @@ class GranularityAdjuster(korpimport.util.InputProcessor):
                 count = fields[count_fieldnr]
                 # @COUNT@ will be replaced by the final count when writing
                 # output
-                fields[count_fieldnr] = u'@COUNT@'
+                fields[count_fieldnr] = '@COUNT@'
                 self._counts['\t'.join(fields)] += int(count)
             else:
                 sys.stdout.write('\t'.join(fields) + '\n')
@@ -95,9 +98,9 @@ class GranularityAdjuster(korpimport.util.InputProcessor):
         return str(mdays)
 
     def _write_output(self):
-        for key in self._counts.iterkeys():
+        for key in self._counts.keys():
             sys.stdout.write(
-                key.replace(u'@COUNT@', unicode(self._counts[key])) + '\n')
+                key.replace('@COUNT@', str(self._counts[key])) + '\n')
 
     def getopts(self, args=None):
         gran_map = {

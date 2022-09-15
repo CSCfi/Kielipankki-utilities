@@ -1,20 +1,23 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+
+# This script has been converted from Python 2 to Python 3.
 
 
 # TODO:
 # - Add an option not to decode encoded vertical bars in feature set
 #   attributes to allow correct round-trip conversion.
+# - Rewrite the script as a proper VRT tool.
 
 
 import sys
-import codecs
 import re
 import errno
 
 from optparse import OptionParser
 
-import korpimport.util as korputil
+import korpimport3.util as korputil
 
 
 def replace_substrings(s, mapping):
@@ -27,7 +30,7 @@ def replace_substrings(s, mapping):
     return s
 
 
-class CharConverter(object):
+class CharConverter:
 
     _xml_char_entities = {
         '&': '&amp;',
@@ -37,14 +40,14 @@ class CharConverter(object):
         '"': '&quot;'
         }
 
-    def __init__(self, opts, input_encoding='utf-8'):
+    def __init__(self, opts, input_encoding='utf-8-sig'):
         self._opts = opts
         self._input_encoding = input_encoding
         self._convert_posattrs = (self._opts.attribute_types
                                  in ['all', 'pos'])
         self._convert_structattrs = (self._opts.attribute_types
                                     in ['all', 'struct'])
-        self._convert_map = [(c, (opts.prefix + unichr(i + opts.offset)))
+        self._convert_map = [(c, (opts.prefix + chr(i + opts.offset)))
                              for (i, c) in enumerate(opts.chars)]
         self._add_xml_char_refs_to_convert_map()
         self._feat_set_attrs = set(
@@ -132,8 +135,7 @@ class CharConverter(object):
             self._process_input(sys.stdin)
         else:
             for fname in fnames:
-                with codecs.open(fname, 'r',
-                                 encoding=self._input_encoding) as file_:
+                with open(fname, 'r', encoding=self._input_encoding) as file_:
                     self._process_input(file_)
 
     def _process_input(self, file_):
@@ -200,7 +202,7 @@ Encode or decode in VRT files special characters that are problematic in CWB."""
               ' attributes only), or all (both positional and structural'
               ' attributes) (default: %default)'))
     optparser.add_option(
-        '--chars', default=u' /<>|',
+        '--chars', default=' /<>|',
         help=('the characters to be converted in their unencoded form'
               ' (default: "%default")'))
     optparser.add_option(
@@ -209,7 +211,7 @@ Encode or decode in VRT files special characters that are problematic in CWB."""
               ' character in CHARS is encoded as OFFSET, the second as'
               ' OFFSET+1 and so on (default: %default)'))
     optparser.add_option(
-        '--prefix', default=u'',
+        '--prefix', default='',
         help='prefix the encoded characters with PREFIX (default: none)')
     optparser.add_option(
         '--no-convert-xml-character-entity-references', '--no-xml-char-refs',
@@ -269,10 +271,10 @@ Encode or decode in VRT files special characters that are problematic in CWB."""
 
 
 def main_main():
-    input_encoding = 'utf-8'
+    input_encoding = 'utf-8-sig'
     output_encoding = 'utf-8'
-    sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
-    sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
+    korputil.set_sys_stream_encodings(
+        input_encoding, output_encoding, output_encoding)
     (opts, args) = getopts()
     converter = CharConverter(opts, input_encoding)
     converter.process_input(args)
@@ -281,13 +283,13 @@ def main_main():
 def main():
     try:
         main_main()
-    except IOError, e:
+    except IOError as e:
         if e.errno == errno.EPIPE:
             sys.stderr.write('Broken pipe\n')
         else:
             sys.stderr.write(str(e) + '\n')
         exit(1)
-    except KeyboardInterrupt, e:
+    except KeyboardInterrupt as e:
         sys.stderr.write('Interrupted\n')
         exit(1)
     except:

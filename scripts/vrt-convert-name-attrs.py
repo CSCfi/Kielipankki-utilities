@@ -1,18 +1,25 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+
+# This script has been converted from Python 2 to Python 3.
+
+# TODO:
+# - Rewrite the script as a proper VRT tool.
+# - Handle the new format of (Fi)NER tags.
 
 
 import sys
 import re
 
-import korpimport.util
-import korpimport.xmlutil as xmlutil
+import korpimport3.util
+import korpimport3.xmlutil as xmlutil
 
 
-class NameAttrConverter(korpimport.util.InputProcessor):
+class NameAttrConverter(korpimport3.util.InputProcessor):
 
     def __init__(self, args=None):
-        super(NameAttrConverter, self).__init__()
+        super().__init__()
         self._name_endtag = '</' + self._opts.name_struct + '>\n'
 
     def process_input_stream(self, stream, filename=None):
@@ -31,11 +38,11 @@ class NameAttrConverter(korpimport.util.InputProcessor):
                 if nertag:
                     if name_type:
                         if nertag[0] != '/':
-                            self.warn(u'name {0} within name {1}'
+                            self.warn('name {0} within name {1}'
                                       .format(nertag, name_type))
                         else:
                             if nertag[1:] != name_type:
-                                self.warn(u'NER tag mismatch: {0} closed by {1}'
+                                self.warn('NER tag mismatch: {0} closed by {1}'
                                           .format(name_type, nertag[1:]))
                             if self._opts.add_bio_attribute:
                                 fields.append('I')
@@ -51,7 +58,7 @@ class NameAttrConverter(korpimport.util.InputProcessor):
                         continue
                     else:
                         if nertag[0] == '/':
-                            self.warn(u'ignoring lone NER end tag ' + nertag)
+                            self.warn('ignoring lone NER end tag ' + nertag)
                         else:
                             name_type = nertag
                             bio = 'B'
@@ -86,12 +93,12 @@ class NameAttrConverter(korpimport.util.InputProcessor):
                     # "Ignoring lone NER end tag /A")
                     for tag in nertags:
                         if tag[1:] == name_type:
-                            self.warn(u'ignoring alternative NER end tag '
+                            self.warn('ignoring alternative NER end tag '
                                       + ' '.join(tag1 for tag1 in nertags
                                                  if tag1 != tag))
                             return tag
-                    self.warn(u'ignoring mismatched NER end tags for {0}: {1}'
-                              .format(name_type,' '.join(nertags)))
+                    self.warn('ignoring mismatched NER end tags for {0}: {1}'
+                              .format(name_type, ' '.join(nertags)))
                     return None
                 else:
                     start_tags = [tag for tag in nertags

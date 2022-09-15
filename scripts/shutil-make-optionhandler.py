@@ -1,8 +1,12 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
+# This script has been converted from Python 2 to Python 3.
+
+
 # TODO:
+# - Convert to use argparse.
 # - Specify value separator for options that can be specified many
 #   times (syntax maybe *"sep", *(sep) or *[sep]).
 # - Support specifying a hard line break in the option description.
@@ -20,9 +24,8 @@
 #   of the options while passing the rest to a called script. That
 #   requires either converting to use argparse (parse_known_args) or
 #   subclassing OptionParser (https://stackoverflow.com/a/9307174).
-# - Options without a value in the configuration file. This would be
-#   simple with ConfigParser for Python 2.7 (allow_no_value=True), but
-#   how about with Python 2.6?
+# - Options without a value in the configuration file (by using
+#   allow_no_value=True).
 # - A marker in the option specification to allow non-option arguments
 #   interspersed with options. This cannot be a script option, since
 #   interspersed arguments would need to be enabled before parsing
@@ -162,35 +165,28 @@ The script generates the following sections:
 
 
 import re
-import codecs
 import textwrap
-# configparser in Python 3
-import ConfigParser as configparser
+import configparser
 
 from collections import defaultdict
+# dict could be used for Python 3.8+, as it preserves insertion order
+from collections import OrderedDict as ConfigBaseDict
 from optparse import OptionParser
 
-import korpimport.util
-
-# A similar approach is used in ConfigParser
-try:
-    from collections import OrderedDict as ConfigBaseDict
-except ImportError:
-    # For Python 2.6
-    ConfigBaseDict = dict
+import korpimport3.util
 
 
-class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
+class ShellOptionHandlerGenerator(korpimport3.util.BasicInputProcessor):
 
     def __init__(self, args=None):
-        super(ShellOptionHandlerGenerator, self).__init__()
+        super().__init__()
         self._optspecs = []
         self._optspec_map = {}
         self._opts = None
         self._args = None
         self._help_indent = {'opt': 2, 'text': 18, 'grouplabel': 0}
         self._help_indent_text = dict(
-            (key, val * ' ') for key, val in self._help_indent.iteritems())
+            (key, val * ' ') for key, val in self._help_indent.items())
         self._help_width = 78
         self._optspec_re = re.compile(
             r'''(?P<optnames> [^\s=:]+)
@@ -262,7 +258,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             try:
                 _ = name.encode('ascii')
             except UnicodeEncodeError as e:
-                self.error(u'Invalid non-ASCII option name: ' + name)
+                self.error('Invalid non-ASCII option name: ' + name)
         for name in optspec['names']:
             self._optspec_map[name.strip('-')] = optspec
         optspec['defaulttrue'] = (optspec['targetneg'] == '!')
@@ -306,8 +302,8 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             [['config-section'], dict(default='Default')],
             [['config-values-single-quoted'], dict(action='store_true')],
             [['output-section-format'],
-             dict(default=u'----- {name}\n{content}\n-----\n')],
-            [['option-group-label-format'], dict(default=u'\n{label}:')],
+             dict(default='----- {name}\n{content}\n-----\n')],
+            [['option-group-label-format'], dict(default='\n{label}:')],
         ]
         for optnames, optopts in script_opts:
             optparser.add_option(*['--_' + name for name in optnames],
@@ -332,33 +328,12 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
                              None)
             if optval:
                 self._opts._config_file = optval
-        self._opts._output_section_format = unicode(
+        self._opts._output_section_format = str(
             self._opts._output_section_format.replace('\\n', '\n'))
-        self._opts._option_group_label_format = unicode(
+        self._opts._option_group_label_format = str(
             self._opts._option_group_label_format.replace('\\n', '\n'))
         for optspec in self._optspecs:
             optspec['value'] = getattr(self._opts, optspec['pytarget'], None)
-
-    class ConfigReader(object):
-
-        """Add a [Default] section at the beginning of the config file."""
-
-        def __init__(self, fname, encoding='utf-8-sig'):
-            self._first = True
-            # Handle possible BOM at the beginning (in a file from Windows)
-            if encoding == 'utf-8':
-                encoding = 'utf-8-sig'
-            self._file = codecs.open(fname, 'r', encoding=encoding)
-
-        def readline(self):
-            if self._first:
-                self._first = False
-                return '[Default]\n'.decode(self._file.encoding)
-            else:
-                return self._file.readline()
-
-        def close(self):
-            self._file.close()
 
     class ListExtendDict(ConfigBaseDict):
 
@@ -368,9 +343,7 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         value exists and if both the previous and the new value are
         lists, instead of replacing the old value with the new one,
         extend the existing list with the new one, with an empty
-        string element in between. If a previous value exists and if
-        both the previous and the new value are strings, append two
-        newlines and the new value to the old value.
+        string element in between.
 
         This is used to make ConfigParser handle options that may be
         specified multiple times in the configuration file. They will
@@ -378,36 +351,40 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
         an option, whereas a single multi-line value has a single
         newline between each line.
 
-        NOTE: This works because (Raw)ConfigParser.read() in Python
-        2.7 internally collects multi-line values to lists, and Python
-        2.6 collects them to strings. If that changes, this probably
-        will not work.
+        NOTE: This works because ConfigParser._read() in Python 3
+        (and 2.7) internally collects multi-line values to lists. If
+        that changes, this probably will not work.
         """
 
         def __setitem__(self, key, val):
             # print key, repr(val), repr(self)
-            if key in self:
-                if isinstance(self[key], list) and isinstance(val, list):
-                    # Python 2.7
-                    self[key].append('')
-                    self[key].extend(val)
-                    return
-                elif (isinstance(self[key], basestring)
-                      and isinstance(val, basestring)):
-                    # Python 2.6
-                    val = self[key] + '\n\n' + val
-            super(ShellOptionHandlerGenerator.ListExtendDict,
-                  self).__setitem__(key, val)
+            if (key in self and isinstance(self[key], list)
+                and isinstance(val, list)):
+                # Python 2.7 and 3
+                self[key].append('')
+                self[key].extend(val)
+                return
+            super().__setitem__(key, val)
 
     def _read_config_file(self):
-        reader = self.ConfigReader(self._opts._config_file,
-                                   self._input_encoding)
+
+        def default_config_reader(fp):
+            """Add a [Default] section at the beginning of the config file."""
+            yield '[Default]\n'
+            for line in fp:
+                yield line
+
         try:
-            confparser = configparser.SafeConfigParser(
-                dict_type=self.ListExtendDict)
-            confparser.optionxform = unicode
-            confparser.readfp(reader, self._opts._config_file)
-            reader.close()
+            # strict=False to allow multiple values for the same option
+            confparser = configparser.ConfigParser(
+                dict_type=self.ListExtendDict, strict=False)
+            # Do not lowercase, as camel case is converted to
+            # hyphenated command-line option names later
+            confparser.optionxform = str
+            with open(self._opts._config_file, 'r',
+                      encoding=self._input_encoding) as conff:
+                confparser.read_file(default_config_reader(conff),
+                                     self._opts._config_file)
             # raw=True: Do not expand %(...) variable references in
             # option values
             config_items = confparser.items(self._opts._config_section,
@@ -447,9 +424,6 @@ class ShellOptionHandlerGenerator(korpimport.util.BasicInputProcessor):
             'opt_usage',
             'opt_handler',
         ]
-        # FIXME: Decode here to Unicode, since
-        # BasicInputProcessor.output() expects that; however, it again
-        # encodes to UTF-8.
         for sectname in sectnames:
             self.output(self._opts._output_section_format.format(
                 name=sectname,

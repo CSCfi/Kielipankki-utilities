@@ -1,9 +1,15 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
+# This script has been converted from Python 2 to Python 3.
+
+# TODO:
+# - Rewrite the script as a proper VRT tool.
+# - Document the options.
+
+
 import sys
-import codecs
 import re
 
 from optparse import OptionParser
@@ -11,6 +17,8 @@ from optparse import OptionParser
 from collections import defaultdict, OrderedDict
 from datetime import date
 from subprocess import Popen, PIPE
+
+import korpimport3.util as korputil
 
 
 def get_current_year():
@@ -34,17 +42,17 @@ class TimespanExtractor(object):
         # they would produce a longer match for the whole regular expression,
         # so having them the other way round would match a three-digit prefix
         # of a four-digit year.
-        'Y': ur'(?P<Y>(?:(?:1[0-9]|20)[0-9][0-9]|0?[0-9]?[0-9]?[0-9]))',
+        'Y': r'(?P<Y>(?:(?:1[0-9]|20)[0-9][0-9]|0?[0-9]?[0-9]?[0-9]))',
         # FIXME: Can we support simultaneously two-digit years and
         # years before 1000?
-        'Y2': ur'(?P<Y>(?:[01][0-9]|20)?[0-9][0-9])',
+        'Y2': r'(?P<Y>(?:[01][0-9]|20)?[0-9][0-9])',
         # Also here, the longer alternative is before the shorter one, even
         # though it might not make a difference.
-        'M': ur'(?P<M>1[0-2]|0?[1-9])',
-        'D': ur'(?P<D>[12][0-9]|3[01]|0?[1-9])'
+        'M': r'(?P<M>1[0-2]|0?[1-9])',
+        'D': r'(?P<D>[12][0-9]|3[01]|0?[1-9])'
         }
-    PART_SEP_PATTERN = ur'[-./]'
-    RANGE_SEP_PATTERN = ur'\s*[-/–]\s*'
+    PART_SEP_PATTERN = r'[-./]'
+    RANGE_SEP_PATTERN = r'\s*[-/–]\s*'
     DATE_GRAN_RANGES = [(0, get_current_year()), (1, 12), (1, 31),
                         (0, 24), (0, 59), (0, 59)]
     MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
@@ -159,8 +167,8 @@ class TimespanExtractor(object):
                 self._opts.timespans_output_file or sys.stdout)
 
     def _process_file(self, fname):
-        if isinstance(fname, basestring):
-            with codecs.open(fname, 'r', encoding='utf-8') as f:
+        if isinstance(fname, str):
+            with open(fname, 'r', encoding='utf-8-sig') as f:
                 self._extract_timespans(f)
         else:
             self._extract_timespans(fname)
@@ -231,7 +239,7 @@ class TimespanExtractor(object):
             if patt_attr in attrs:
                 check_attrs = [patt_attr]
             elif patt_attr == '*':
-                check_attrs = attrs.iterkeys()
+                check_attrs = iter(attrs.keys())
             else:
                 continue
             for attrname in check_attrs:
@@ -260,7 +268,7 @@ class TimespanExtractor(object):
                 if any(end_date_parts):
                     end_date_parts = [
                         end_date_parts[partnr] or start_date_parts[partnr]
-                        for partnr in xrange(3)]
+                        for partnr in range(3)]
                 start_date = '-'.join(start_date_parts).rstrip('-')
                 end_date = '-'.join(end_date_parts).rstrip('-')
             else:
@@ -313,7 +321,7 @@ class TimespanExtractor(object):
             return year
 
     def output_timespans(self, outfname):
-        if not isinstance(outfname, basestring):
+        if not isinstance(outfname, str):
             self._write_timespans(outfname)
         else:
             compress_prog = {'bz2': 'bzip2', 'gz': 'gzip'}.get(
@@ -330,7 +338,7 @@ class TimespanExtractor(object):
     def _write_timespans(self, outfile):
         prefix = ([self._opts.timespans_prefix] if self._opts.timespans_prefix
                   else [])
-        for (time, tokencnt) in sorted(self._time_tokencnt.iteritems()):
+        for (time, tokencnt) in sorted(self._time_tokencnt.items()):
             outfile.write(
                 '\t'.join(prefix
                           + list(self._make_output_dates(time, 'extract'))
@@ -395,10 +403,10 @@ def getopts():
 
 
 def main():
-    input_encoding = 'utf-8'
+    input_encoding = 'utf-8-sig'
     output_encoding = 'utf-8'
-    sys.stdin = codecs.getreader(input_encoding)(sys.stdin)
-    sys.stdout = codecs.getwriter(output_encoding)(sys.stdout)
+    korputil.set_sys_stream_encodings(
+        input_encoding, output_encoding, output_encoding)
     (opts, args) = getopts()
     extractor = TimespanExtractor(opts)
     extractor.process_files(args if args else sys.stdin)
