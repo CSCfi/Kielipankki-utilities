@@ -2,6 +2,13 @@
 # -*- coding: utf-8 -*-
 
 
+# This script has been converted from Python 2 to Python 3.
+
+# TODO:
+# - Rewrite the script as a proper VRT tool.
+# - Handle the new format of (Fi)NER tags.
+
+
 import sys
 import re
 

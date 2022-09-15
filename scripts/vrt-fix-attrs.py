@@ -2,6 +2,15 @@
 # -*- coding: utf-8 -*-
 
 
+# This script has been converted from Python 2 to Python 3, though
+# only the --copy-struct-attributes option used by korp-make has been
+# tested.
+
+# TODO:
+# - Split the script into multiple VRT tools, each doing only one
+#   thing (or at most a couple of things).
+
+
 import sys
 import re
 import errno

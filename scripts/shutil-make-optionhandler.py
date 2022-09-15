@@ -2,7 +2,11 @@
 # -*- coding: utf-8 -*-
 
 
+# This script has been converted from Python 2 to Python 3.
+
+
 # TODO:
+# - Convert to use argparse.
 # - Specify value separator for options that can be specified many
 #   times (syntax maybe *"sep", *(sep) or *[sep]).
 # - Support specifying a hard line break in the option description.

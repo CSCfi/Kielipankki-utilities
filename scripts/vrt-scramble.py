@@ -5,6 +5,12 @@
 """Scramble (randomly shuffle) structures in a VRT input."""
 
 
+# This script has been converted from Python 2 to Python 3.
+
+# TODO:
+# - Rewrite the script as a proper VRT tool.
+
+
 import sys
 import re
 import random

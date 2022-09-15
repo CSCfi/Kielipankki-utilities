@@ -2,9 +2,13 @@
 # -*- coding: utf-8 -*-
 
 
+# This script has been converted from Python 2 to Python 3.
+
+
 # TODO:
 # - Add an option not to decode encoded vertical bars in feature set
 #   attributes to allow correct round-trip conversion.
+# - Rewrite the script as a proper VRT tool.
 
 
 import sys

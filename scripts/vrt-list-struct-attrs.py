@@ -6,6 +6,11 @@
 # --cwb-struct-attrs" but the input need not be valid XML: for
 # example, the elements need not be strictly nested.
 
+# This script has been converted from Python 2 to Python 3.
+
+# TODO:
+# - Rewrite the script as a proper VRT tool.
+
 
 import sys
 import re
