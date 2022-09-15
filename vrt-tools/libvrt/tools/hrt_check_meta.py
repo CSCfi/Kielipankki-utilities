@@ -37,7 +37,7 @@ def main(args, ins, ous):
 
     setup_binary(ous)
 
-    META = br'<[a-z._]+(\s+[a-z._]+/?="[^"]*")*>\r?\n?'
+    META = br'<[a-z._]+(\s+[a-z._][a-z0-9._]+/?="[^"]*")*>\r?\n?'
     for k, line in enumerate(ins, start = 1):
         if (line.startswith(b'<') and
             not line.startswith(b'</')):
@@ -46,7 +46,7 @@ def main(args, ins, ous):
                 error(k, b'meta', b'malformed start tag')
                 continue
 
-            name = re.match(b'<([a-z_]+)', line).group(1)
+            name = re.match(b'<([a-z._]+)', line).group(1)
             check_name(args, ous, line, name)
 
             attr = re.findall(b'(\S+)="(.*?)"', line)
