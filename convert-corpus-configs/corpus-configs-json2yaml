@@ -196,6 +196,8 @@ class KorpCorpusConfigConverter:
         self._get_args()
         self._read_json(self._args.jsonfile)
         self._loc_data = self._indata["loc_data"]
+        self._common_vals = dict([(key, self._indata.get(key, {}))
+                                  for key in self.common_values_keys])
         self._remove_empty_common_values()
         self._convert_config()
         self._write_config()
@@ -226,11 +228,11 @@ within, transl, loc_data""")
         """Remove empty values (dicts, lists) from common values"""
         for value_type in self.common_values_keys:
             remove_keys = []
-            for key, val in self._indata.get(value_type, {}).items():
+            for key, val in self._common_vals.get(value_type, {}).items():
                 if not val:
                     remove_keys.append(key)
             for key in remove_keys:
-                del self._indata[value_type][key]
+                del self._common_vals[value_type][key]
 
     def _convert_config(self):
         """Convert the configuration in self._indata to self._outdata"""
@@ -448,7 +450,7 @@ within, transl, loc_data""")
                     return
 
         for prop_path, values_name in replace_rules:
-            values = self._indata.get(values_name)
+            values = self._common_vals.get(values_name)
             if values:
                 replace_values(obj, prop_path.split("."), values)
         return obj
@@ -489,16 +491,16 @@ within, transl, loc_data""")
         # corpus configurations, according to convert_funcs above
         for convert_func, valtypes in convert_funcs:
             for valtype in valtypes:
-                self._indata[valtype] = convert_func(
-                    self._indata.get(valtype, {}))
+                self._common_vals[valtype] = convert_func(
+                    self._common_vals.get(valtype, {}))
         # Then replace common values with the name of value, according
         # to self.common_values_replace_rules
         for targets, rules in self.common_values_replace_rules:
             for target in targets:
-                for key, val in self._indata[target].items():
+                for key, val in self._common_vals[target].items():
                     # print(target, key, rules)
-                    self._indata[target][key] = self._replace_common_values(
-                        val, rules)
+                    self._common_vals[target][key] = (
+                        self._replace_common_values(val, rules))
 
     def _write_config(self):
         """Output the YAML configuration files"""
@@ -554,7 +556,7 @@ within, transl, loc_data""")
         for values_key, values_dir in self.common_values_dirs.items():
             for key in self._replaced_values[values_key]:
                 self._write_yaml(
-                    self._indata[values_key][key], values_dir, key)
+                    self._common_vals[values_key][key], values_dir, key)
 
 
 if __name__ == "__main__":
