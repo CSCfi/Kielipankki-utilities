@@ -195,6 +195,7 @@ class KorpCorpusConfigConverter:
         """Main method"""
         self._get_args()
         self._read_json(self._args.jsonfile)
+        self._loc_data = self._indata["loc_data"]
         self._remove_empty_common_values()
         self._convert_config()
         self._write_config()
@@ -256,10 +257,9 @@ within, transl, loc_data""")
               ...
             }
         """
-        loc_data = self._indata["loc_data"]
         result = {}
         for in_lang, out_lang in self.lang_map.items():
-            val = loc_data[in_lang].get(key)
+            val = self._loc_data[in_lang].get(key)
             if val is None:
                 val = key
             result[out_lang] = val
