@@ -5,7 +5,7 @@
 # Convert Korp corpus configurations from frontend JavaScript
 # (stringified to JSON) to backend YAML.
 #
-# Usage: corpus-configs-json2yaml input.json [outputdir]
+# Usage: corpus-configs-json2yaml [--outdir outputdir] input.json
 #
 # input.json is a JSON file containing the representation of a
 # JavaScript object combining the following objects in the Korp
@@ -38,6 +38,7 @@
 #   or as separate alias lists
 
 
+import argparse
 import json
 import os
 import os.path
@@ -190,13 +191,30 @@ class KorpCorpusConfigConverter:
             [(name, set())
              for _, name in self.corpus_common_value_replace_rules])
 
-    def main(self, args):
+    def main(self):
         """Main method"""
-        self._read_json(args[0])
+        self._get_args()
+        self._read_json(self._args.jsonfile)
         self._remove_empty_common_values()
         self._convert_config()
-        self._outdir = args[1] if len(args) > 1 else "yaml"
         self._write_config()
+
+    def _get_args(self):
+        """Process command-line arguments"""
+        argparser = argparse.ArgumentParser(
+            description="""Convert Korp corpus configurations from frontend JavaScript
+(stringified to JSON) to backend YAML.""",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        argparser.add_argument(
+            "jsonfile",
+            help="""a JSON file containing the representation of a
+JavaScript object combining the following objects in the Korp
+frontend: settings, attrs, sattrs, attrlist, sattrlist, options,
+within, transl, loc_data""")
+        argparser.add_argument(
+            "--outdir", "--output-directory", default="./yaml",
+            help="output directory for the YAML corpus configurations")
+        self._args = argparser.parse_args()
 
     def _read_json(self, fname):
         """Read input JSON from file named fname"""
@@ -484,7 +502,7 @@ class KorpCorpusConfigConverter:
 
     def _write_config(self):
         """Output the YAML configuration files"""
-        self._make_outdirs(self._outdir)
+        self._make_outdirs(self._args.outdir)
         self._write_yaml(self._outdata["mode"], "modes", self._modename)
         for corpus_id, corpus_data in self._outdata["corpora"].items():
             self._write_yaml(corpus_data, "corpora", corpus_id)
@@ -526,7 +544,7 @@ class KorpCorpusConfigConverter:
                     node.flow_style, node.start_mark, node.end_mark)
                 return node
 
-        with open(os.path.join(self._outdir, dirname, fname + ".yaml"),
+        with open(os.path.join(self._args.outdir, dirname, fname + ".yaml"),
                   "wb") as f:
             yaml.dump(obj, f, default_flow_style=False, encoding="utf-8",
                       allow_unicode=True, Dumper=ReorderMappingYAMLDumper)
@@ -540,4 +558,4 @@ class KorpCorpusConfigConverter:
 
 
 if __name__ == "__main__":
-    KorpCorpusConfigConverter().main(sys.argv[1:])
+    KorpCorpusConfigConverter().main()
