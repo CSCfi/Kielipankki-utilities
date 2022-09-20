@@ -353,8 +353,14 @@ within, transl, loc_data""")
         elif depth == 0:
             result = {}
             for key, transls in obj.items():
-                result[key] = dict((self.lang_map.get(lang, lang), transl)
-                                   for lang, transl in transls.items())
+                if isinstance(key, dict):
+                    result[key] = dict((self.lang_map.get(lang, lang), transl)
+                                       for lang, transl in transls.items())
+                else:
+                    # This covers objects that are not actual
+                    # translation objects and should be kept as they
+                    # are, such as an attribute named "translation"
+                    result[key] = transls
             return result
         elif depth is not None and depth > 0:
             return dict((key, self._convert_lang_codes(obj[key], depth - 1))
