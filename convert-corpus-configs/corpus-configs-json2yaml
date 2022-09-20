@@ -26,8 +26,6 @@
 
 
 # TODO:
-# - Regard structural attributes equal if the only difference is
-#   isStructAttr == true (and still allow that in positional attributes)
 # - Extract common values of attributes etc. without an explicit value in
 #   attrs etc.
 # - Remove properties common_attrs and info in corpora (possibly others)
@@ -246,6 +244,14 @@ within, transl, loc_data""")
 
     def _merge_common_values(self):
         """Copy common values to separate object, rename clashing ones"""
+        # Remove isStructAttr from attribute definitions in sattrs and
+        # sattrlist, as for some reason it sometimes exists and
+        # sometimes not; however, do not remove from attrs and
+        # attrlist, as there it has a meaning
+        self._remove_prop(self._indata,
+                          ["*", "sattrs", "*", "isStructAttr"])
+        self._remove_prop(self._indata,
+                          ["*", "sattrlist", "*", "*", "isStructAttr"])
         self._common_vals = dict(
             [(key, self._indata[self._default_name].get(key, {}))
              for key in self.common_values_keys])
@@ -266,6 +272,18 @@ within, transl, loc_data""")
                                 defaults[f"{indata_name}_{key}"] = val
                         else:
                             defaults[key] = val
+
+    def _remove_prop(self, obj, path):
+        """Remove property from obj, following key path path (list)"""
+        if path[0] == "*":
+            # * == any key
+            for key in obj:
+                self._remove_prop(obj, [key, *path[1:]])
+        elif path[0] in obj:
+            if len(path) == 1:
+                del obj[path[0]]
+            else:
+                self._remove_prop(obj[path[0]], path[1:])
 
     def _remove_empty_common_values(self):
         """Remove empty values (dicts, lists) from common values"""
@@ -357,6 +375,8 @@ within, transl, loc_data""")
     def _make_corpus(self, corpus_id, corpus_obj, modename):
         """Make output corpus object for corpus_obj with id corpus_id"""
         result = corpus_obj
+        # Remove isStructAttr from structural attributes as redundant
+        self._remove_prop(result, ["structAttributes", "*", "isStructAttr"])
         result = self._replace_common_values(
             result, self.corpus_common_value_replace_rules)
         result = self._convert_keys(result, 3)
