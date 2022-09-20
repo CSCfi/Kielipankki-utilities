@@ -19,11 +19,15 @@
 #   }
 #   s = JSON.stringify(data)
 #
+# Multiple input JSON files can be specified, one for each different
+# Korp frontend mode.
+#
 # Default outputdir is "./yaml".
 
 
 # TODO:
-# - Handle multiple modes (separate JSON files), combining common corpora
+# - Regard structural attributes equal if the only difference is
+#   isStructAttr == true (and still allow that in positional attributes)
 # - Extract common values of attributes etc. without an explicit value in
 #   attrs etc.
 # - Remove properties common_attrs and info in corpora (possibly others)
@@ -44,6 +48,8 @@ import os
 import os.path
 import re
 import sys
+
+from collections import defaultdict
 
 import yaml
 
@@ -167,6 +173,10 @@ class KorpCorpusConfigConverter:
         "limited_access",
         "licence",
         "licence_type",
+        "mode",
+        "name",
+        "folder",
+        "changes",
         "context",
         "within",
         "pos_attributes",
@@ -177,13 +187,11 @@ class KorpCorpusConfigConverter:
     def __init__(self):
         """Initialize instance attributes"""
         # Input data read from JSON
-        self._indata = None
+        self._indata = {}
         # Data to be output as YAML
-        self._outdata = {}
+        self._outdata = defaultdict(dict)
         # Output directory
         self._outdir = None
-        # Name of the mode
-        self._modename = ""
         # The folder for each corpus
         self._corpus_folder = {}
         # Attributes actually used (in attrs and sattrs)
@@ -195,9 +203,10 @@ class KorpCorpusConfigConverter:
         """Main method"""
         self._get_args()
         self._read_json(self._args.jsonfile)
-        self._loc_data = self._indata["loc_data"]
-        self._common_vals = dict([(key, self._indata.get(key, {}))
-                                  for key in self.common_values_keys])
+        # Assume that loc_data is the same in all JSON files; maybe it would
+        # be cleaner to have a separate option or argument for it
+        self._loc_data = self._indata[self._default_name]["loc_data"]
+        self._merge_common_values()
         self._remove_empty_common_values()
         self._convert_config()
         self._write_config()
@@ -209,7 +218,7 @@ class KorpCorpusConfigConverter:
 (stringified to JSON) to backend YAML.""",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         argparser.add_argument(
-            "jsonfile",
+            "jsonfile", nargs="+",
             help="""a JSON file containing the representation of a
 JavaScript object combining the following objects in the Korp
 frontend: settings, attrs, sattrs, attrlist, sattrlist, options,
@@ -219,10 +228,44 @@ within, transl, loc_data""")
             help="output directory for the YAML corpus configurations")
         self._args = argparser.parse_args()
 
-    def _read_json(self, fname):
-        """Read input JSON from file named fname"""
-        with open(fname, "r") as f:
-            self._indata = json.load(f)
+    def _read_json(self, fnames):
+        """Read input JSON from files listed in fnames"""
+
+        def basebasename(fname):
+            """Return base filename of fname without extension and "_mode"."""
+            return (os.path.splitext(os.path.basename(fname))[0]
+                    .replace("_mode", ""))
+
+        for fname in fnames:
+            with open(fname, "r") as f:
+                self._indata[basebasename(fname)] = json.load(f)
+        if "default" in self._indata:
+            self._default_name = "default"
+        else:
+            self._default_name = basebasename(fnames[0])
+
+    def _merge_common_values(self):
+        """Copy common values to separate object, rename clashing ones"""
+        self._common_vals = dict(
+            [(key, self._indata[self._default_name].get(key, {}))
+             for key in self.common_values_keys])
+        for indata_name, indata in self._indata.items():
+            if indata_name != self._default_name:
+                for valtype in self.common_values_keys:
+                    defaults = self._common_vals[valtype]
+                    for key, val in indata.get(valtype, {}).items():
+                        if key in defaults:
+                            if val != defaults[key]:
+                                # If the a value with the same key but
+                                # different value already exists in
+                                # defaults, preprend file base name
+                                # (mode name)
+                                print(f"Renaming {valtype}.{key} as"
+                                      f" {valtype}.{indata_name}_{key}")
+                                # print("def:", defaults[key], "\nval:", val)
+                                defaults[f"{indata_name}_{key}"] = val
+                        else:
+                            defaults[key] = val
 
     def _remove_empty_common_values(self):
         """Remove empty values (dicts, lists) from common values"""
@@ -236,15 +279,16 @@ within, transl, loc_data""")
 
     def _convert_config(self):
         """Convert the configuration in self._indata to self._outdata"""
-        self._convert_mode()
-        self._convert_corpora()
+        for modename, indata in self._indata.items():
+            self._convert_mode(indata)
+            self._convert_corpora(indata)
         self._convert_common_values()
 
-    def _convert_mode(self):
+    def _convert_mode(self, indata):
         """Generate mode configuration to self._outdata"""
-        settings = self._indata["settings"]
-        self._modename = settings["mode"]["mode"]
-        self._outdata["mode"] = {
+        settings = indata["settings"]
+        modename = settings["mode"]["mode"]
+        self._outdata["mode"][modename] = {
             "label": self._get_localized_obj(settings["mode"]["localekey"]),
             "folders": self._make_folder(settings["corporafolders"]),
         }
@@ -297,15 +341,20 @@ within, transl, loc_data""")
             # Top-level folder
             return subfolders
 
-    def _convert_corpora(self):
+    def _convert_corpora(self, indata):
         """Convert settings.corpora"""
-        settings = self._indata["settings"]
-        self._outdata["corpora"] = {}
+        settings = indata["settings"]
         for corpus in settings["corpora"]:
-            self._outdata["corpora"][corpus] = self._make_corpus(
-                corpus, settings["corpora"][corpus])
+            corpus_data = self._make_corpus(
+                corpus, settings["corpora"][corpus], settings["mode"]["mode"])
+            if corpus in self._outdata["corpora"]:
+                print(f"Configuration for corpus {corpus} already exists")
+                self._add_to_corpus_data(
+                    self._outdata["corpora"][corpus], corpus_data, corpus)
+            else:
+                self._outdata["corpora"][corpus] = corpus_data
 
-    def _make_corpus(self, corpus_id, corpus_obj):
+    def _make_corpus(self, corpus_id, corpus_obj, modename):
         """Make output corpus object for corpus_obj with id corpus_id"""
         result = corpus_obj
         result = self._replace_common_values(
@@ -316,7 +365,7 @@ within, transl, loc_data""")
         for key in ["context", "within"]:
             result[key] = self._convert_context_within(result[key],
                                                        as_list=True)
-        result["mode"] = self._make_corpus_mode(corpus_id)
+        result["mode"] = self._make_corpus_mode(corpus_id, modename)
         return result
 
     def _convert_keys(self, obj, levels):
@@ -396,7 +445,7 @@ within, transl, loc_data""")
 
     def _convert_attr_label(self, attrobj):
         """Add translations to attribute label in attrobj"""
-        if "label" in attrobj:
+        if "label" in attrobj and isinstance(attrobj["label"], str):
             attrobj["label"] = self._get_localized_obj(attrobj["label"])
         return attrobj
 
@@ -461,15 +510,35 @@ within, transl, loc_data""")
                 replace_values(obj, prop_path.split("."), values)
         return obj
 
-    def _make_corpus_mode(self, corpus_id):
+    def _make_corpus_mode(self, corpus_id, modename):
         """Make the value of the "mode" object for corpus corpus_id"""
         result = {
-            "name": self._modename,
+            "name": modename,
         }
         if corpus_id in self._corpus_folder:
             result["folder"] = self._corpus_folder[corpus_id]
         # Mode value is a list
         return [result]
+
+    def _add_to_corpus_data(self, target, source, corpus):
+        """Add to target values in source with no keys in target
+
+        Add possible differences from the target corpus data to a
+        "changes" property in the "mode" property of the source,
+        appended to the modes of the target.
+        """
+        changes = {}
+        for key, val in source.items():
+            if key != "mode":
+                if key in target and target[key] != val:
+                    print(f"Different values for {key} in corpus {corpus}")
+                    #      f": \"{target[key]}\" != \"{val}\""
+                    changes[key] = val
+                else:
+                    target[key] = val
+        if changes:
+            source["mode"][0]["changes"] = changes
+        target["mode"].append(source["mode"][0])
 
     def _convert_common_values(self):
         """Convert the common values elsewhere than in settings"""
@@ -511,7 +580,8 @@ within, transl, loc_data""")
     def _write_config(self):
         """Output the YAML configuration files"""
         self._make_outdirs(self._args.outdir)
-        self._write_yaml(self._outdata["mode"], "modes", self._modename)
+        for mode_name, mode_data in self._outdata["mode"].items():
+            self._write_yaml(mode_data, "modes", mode_name)
         for corpus_id, corpus_data in self._outdata["corpora"].items():
             self._write_yaml(corpus_data, "corpora", corpus_id)
         self._write_common_values()
