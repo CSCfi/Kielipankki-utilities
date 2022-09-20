@@ -29,7 +29,6 @@
 # - Extract common values of attributes etc. without an explicit value in
 #   attrs etc.
 # - Remove properties common_attrs and info in corpora (possibly others)
-# - Remove licence type label ([RES]/[ACA]) from corpus titles
 # - Split corpora into subdirectories, based on id prefixes, folders or an
 #   explicit list
 # - Extract common properties of corpus configurations in a subdirectory
@@ -377,6 +376,9 @@ within, transl, loc_data""")
         result = corpus_obj
         # Remove isStructAttr from structural attributes as redundant
         self._remove_prop(result, ["structAttributes", "*", "isStructAttr"])
+        # Remove licence type label from corpus title (added by a Korp
+        # frontend plugin); this assumes that title is a plain string
+        result["title"] = re.sub(r"\s\[\S+?\]$", "", result["title"])
         result = self._replace_common_values(
             result, self.corpus_common_value_replace_rules)
         result = self._convert_keys(result, 3)
