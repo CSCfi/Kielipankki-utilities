@@ -35,8 +35,6 @@
 #   to a template file
 # - Extract common parts of corpus titles and descriptions to templates
 # - Move low-level folder info to corpus subdirectories
-# - Add corpus aliases, either so that a corpus lists the aliases it has
-#   or as separate alias lists
 
 
 import argparse
@@ -361,9 +359,12 @@ within, transl, loc_data""")
     def _convert_corpora(self, indata):
         """Convert settings.corpora"""
         settings = indata["settings"]
+        corpus_aliases = self._make_corpus_aliases(settings["corpusAliases"],
+                                                   settings["corpora"].keys())
         for corpus in settings["corpora"]:
             corpus_data = self._make_corpus(
-                corpus, settings["corpora"][corpus], settings["mode"]["mode"])
+                corpus, settings["corpora"][corpus], corpus_aliases,
+                settings["mode"]["mode"])
             if corpus in self._outdata["corpora"]:
                 print(f"Configuration for corpus {corpus} already exists")
                 self._add_to_corpus_data(
@@ -371,7 +372,53 @@ within, transl, loc_data""")
             else:
                 self._outdata["corpora"][corpus] = corpus_data
 
-    def _make_corpus(self, corpus_id, corpus_obj, modename):
+    def _make_corpus_aliases(self, alias_corpora, corpus_ids):
+        """Convert aliases "a" -> "c1,c2" to "c1" -> "a", "c2" -> "a"."""
+        remove_aliases = set()
+        add_aliases = {}
+        # Normalize aliases to using underscores instead of hyphens
+        for alias, corpus_res in alias_corpora.items():
+            if "-" in alias:
+                alias_uscore = alias.replace("-", "_")
+                if alias_uscore not in alias_corpora:
+                    add_aliases[alias_uscore] = corpus_res
+                elif alias_corpora.get(alias_uscore) != corpus_res:
+                    print(f"Aliases {alias} and {alias_uscore} differ:"
+                          f" \"{alias_corpora[alias]}\" !="
+                          f" \"{alias_corpora[alias_uscore]}\"")
+                remove_aliases.add(alias)
+        alias_corpora.update(add_aliases)
+        for alias, corpus_res in alias_corpora.items():
+            if alias not in remove_aliases:
+                alias_remove = None
+                if alias.endswith("_korp"):
+                    # Keep only alias with "_korp" suffix if also one
+                    # without exists
+                    alias_remove = alias[:-5]
+                elif "_korp_" in alias:
+                    # Keep only alias with "_korp_" infix if also one
+                    # without exists
+                    alias_remove = alias.replace("_korp_", "_")
+                if (alias_remove
+                    and (alias_corpora.get(alias_remove)
+                         == alias_corpora.get(alias))):
+                    remove_aliases.add(alias_remove)
+        for alias in remove_aliases:
+            del alias_corpora[alias]
+        result = defaultdict(set)
+        for alias, corpus_res in alias_corpora.items():
+            for corpus_re in corpus_res.split(","):
+                if corpus_re.replace("-", "").isalnum():
+                    # Single corpus id
+                    result[corpus_re].add(alias)
+                else:
+                    # Regular expression
+                    for corpus_id in corpus_ids:
+                        if re.fullmatch(corpus_re, corpus_id):
+                            result[corpus_id].add(alias)
+        return result
+
+    def _make_corpus(self, corpus_id, corpus_obj, corpus_aliases, modename):
         """Make output corpus object for corpus_obj with id corpus_id"""
         result = corpus_obj
         # Remove isStructAttr from structural attributes as redundant
@@ -387,6 +434,8 @@ within, transl, loc_data""")
         for key in ["context", "within"]:
             result[key] = self._convert_context_within(result[key],
                                                        as_list=True)
+        if corpus_id in corpus_aliases:
+            result["alias"] = sorted(list(corpus_aliases[corpus_id]))
         result["mode"] = self._make_corpus_mode(corpus_id, modename)
         return result
 
