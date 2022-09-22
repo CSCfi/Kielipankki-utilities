@@ -28,7 +28,6 @@
 # TODO:
 # - Extract common values of attributes etc. without an explicit value in
 #   attrs etc.
-# - Remove properties common_attrs and info in corpora (possibly others)
 # - Extract common properties of corpus configurations in a subdirectory
 #   to a template file
 # - Extract common parts of corpus titles and descriptions to templates
@@ -89,9 +88,12 @@ class KorpCorpusConfigConverter:
     }
     # Properties to be removed (from the top level)
     remove_props = [
+        "common_attributes",
         "corpusType",
+        "features",
         "linkAttributes",
         "logicalCorpus",
+        "non_time",
         "private_struct_attributes",
         "time",
     ]
@@ -316,6 +318,12 @@ within, transl, loc_data""")
                           ["*", "sattrs", "*", "isStructAttr"])
         self._remove_prop(self._indata,
                           ["*", "sattrlist", "*", "*", "isStructAttr"])
+        # Remove _linkAttr added by a frontend plugin
+        self._remove_prop(self._indata,
+                          ["*", ("attrs", "sattrs"), "*", "_linkAttr"])
+        self._remove_prop(self._indata,
+                          ["*", ("attrlist", "sattrlist"), "*", "*",
+                           "_linkAttr"])
         self._common_vals = dict(
             [(key, self._indata[self._default_name].get(key, {}))
              for key in self.common_values_keys])
@@ -342,6 +350,10 @@ within, transl, loc_data""")
         if path[0] == "*":
             # * == any key
             for key in obj:
+                self._remove_prop(obj, [key, *path[1:]])
+        elif isinstance(path[0], tuple):
+            # Any of the keys listed in the tuple
+            for key in path[0]:
                 self._remove_prop(obj, [key, *path[1:]])
         elif path[0] in obj:
             if len(path) == 1:
@@ -492,8 +504,14 @@ within, transl, loc_data""")
     def _make_corpus(self, corpus_id, corpus_obj, corpus_aliases, modename):
         """Make output corpus object for corpus_obj with id corpus_id"""
         result = corpus_obj
+        # Remove info from corpora as redundant (in folders, info is needed)
+        del result["info"]
         # Remove isStructAttr from structural attributes as redundant
         self._remove_prop(result, ["structAttributes", "*", "isStructAttr"])
+        # Remove _linkAttr added by a frontend plugin
+        self._remove_prop(
+            result, [("attributes", "structAttributes", "customAttributes"),
+                     "*", "_linkAttr"])
         # Remove licence type label from corpus title (added by a Korp
         # frontend plugin); this assumes that title is a plain string
         result["title"] = re.sub(r"\s\[\S+?\]$", "", result["title"])
