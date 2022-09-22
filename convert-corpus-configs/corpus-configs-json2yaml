@@ -29,8 +29,6 @@
 # - Extract common values of attributes etc. without an explicit value in
 #   attrs etc.
 # - Remove properties common_attrs and info in corpora (possibly others)
-# - Split corpora into subdirectories, based on id prefixes, folders or an
-#   explicit list
 # - Extract common properties of corpus configurations in a subdirectory
 #   to a template file
 # - Extract common parts of corpus titles and descriptions to templates
@@ -178,6 +176,71 @@ class KorpCorpusConfigConverter:
         "struct_attributes",
         "custom_attributes",
     ]
+    # Split corpora into subdirectories if their id match one of the
+    # following prefixes (followed by an underscore)
+    _corpus_subdirs_prefix = [
+        "agricola",
+        "ceal",
+        "coca",
+        "coha",
+        "erme",
+        "ethesis_en",
+        "ethesis_sv",
+        "europarl",
+        "fennougrica",
+        "fstc",
+        "ftc",
+        "glowbe",
+        "hcs2",
+        "jrc_acquis",
+        "kal",
+        "klk_fi",
+        "klk_sv",
+        "las2",
+        # Should Opus be split into subdirectories by subcorpus?
+        "opus",
+        "oracc",
+        "oracc2021",
+        "pabivus",
+        "sus_fieldwork",
+        "sust",
+        "uralic_ud",
+        "vks",
+        "wanca",
+    ]
+    # Split corpora into subdirectories according to regular
+    # expressions: if the corpus id matches regex in pair (subdir,
+    # regex), place it in subdir
+    _corpus_subdirs_other = [
+        ("ethesis_fi", r"ethesis_((ma|diss)abs|ma_.*|phd_.*)"),
+        ("ftb3", r"ftb3.*"),
+        ("kaannossuomi", r"alkusuomi|kaannossuomi"),
+        ("la_murre", r"lam_.*"),
+        ("lehdet", r"(tiede)?lehdet_.*"),
+        ("parfin", r"parfin(_.*)?"),
+        ("parrus", r"parrus(_.*)?"),
+        ("presidentti", r"kotus_ns_presidentti_.*"),
+        ("scotscorr", r"scots_.*"),
+        ("semfinlex_fi", r"semfinlex_..._fi.*"),
+        ("semfinlex_par", r"semfinlex_..._par.*"),
+        ("semfinlex_sv", r"semfinlex_..._sv.*"),
+        ("s24_2016h2", r"s24_0.*"),
+        ("s24_accruing", r"s24_2.*"),
+        ("skk", r"skk_.*"),
+        ("vnsk", r"vnsk?_.*"),
+        ("ylenews_fi_s", r"ylenews_fi_.*_s"),
+        ("ylenews_fi_a", r"ylenews_fi_.*_a"),
+        ("ylenews_sv_s", r"ylenews_sv_.*_s"),
+        ("ylenews_sv_a", r"ylenews_sv_.*_a"),
+    ]
+    # Corpus subdirectory names and the corresponding regular
+    # expressions, generated from the above two lists
+    corpus_subdirs_re = (
+        [(subdir, re.compile(subdir + "_.*"))
+         for subdir in _corpus_subdirs_prefix]
+        + [(subdir, re.compile(regex))
+           for subdir, regex in _corpus_subdirs_other]
+    )
 
     def __init__(self):
         """Initialize instance attributes"""
@@ -189,6 +252,10 @@ class KorpCorpusConfigConverter:
         self._outdir = None
         # The folder for each corpus
         self._corpus_folder = {}
+        # The subdirectory for corpora in subdirectories (corpus -> subdir)
+        self._corpus_subdir = {}
+        # The corpora in each subdirectory (subdir -> [corpora])
+        self._subdir_corpora = defaultdict(list)
         # Attributes actually used (in attrs and sattrs)
         self._replaced_values = dict(
             [(name, set())
@@ -371,6 +438,10 @@ within, transl, loc_data""")
                     self._outdata["corpora"][corpus], corpus_data, corpus)
             else:
                 self._outdata["corpora"][corpus] = corpus_data
+                subdir = self._get_corpus_subdir(corpus)
+                if subdir:
+                    self._corpus_subdir[corpus] = subdir
+                    self._subdir_corpora[subdir].append(corpus)
 
     def _make_corpus_aliases(self, alias_corpora, corpus_ids):
         """Convert aliases "a" -> "c1,c2" to "c1" -> "a", "c2" -> "a"."""
@@ -611,6 +682,13 @@ within, transl, loc_data""")
             source["mode"][0]["changes"] = changes
         target["mode"].append(source["mode"][0])
 
+    def _get_corpus_subdir(self, corpus_id):
+        """Get the subdirectory for corpus_id, None if none"""
+        for subdir, regex in self.corpus_subdirs_re:
+            if regex.fullmatch(corpus_id):
+                return subdir
+        return None
+
     def _convert_common_values(self):
         """Convert the common values elsewhere than in settings"""
         convert_funcs = [
@@ -654,7 +732,9 @@ within, transl, loc_data""")
         for mode_name, mode_data in self._outdata["mode"].items():
             self._write_yaml(mode_data, "modes", mode_name)
         for corpus_id, corpus_data in self._outdata["corpora"].items():
-            self._write_yaml(corpus_data, "corpora", corpus_id)
+            subdir = self._corpus_subdir.get(corpus_id)
+            corpusdir = os.path.join("corpora", subdir) if subdir else "corpora"
+            self._write_yaml(corpus_data, corpusdir, corpus_id)
         self._write_common_values()
 
     def _make_outdirs(self, outdir):
@@ -662,6 +742,8 @@ within, transl, loc_data""")
         os.makedirs(outdir, exist_ok=True)
         for subdir in self.subdirs:
             os.makedirs(os.path.join(outdir, subdir), exist_ok=True)
+        for subdir in self._subdir_corpora:
+            os.makedirs(os.path.join(outdir, "corpora", subdir))
 
     def _write_yaml(self, obj, dirname, fname):
         """Write obj as YAML to dirname/fname.yaml"""
