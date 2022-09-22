@@ -28,8 +28,6 @@
 # TODO:
 # - Extract common values of attributes etc. without an explicit value in
 #   attrs etc.
-# - Extract common properties of corpus configurations in a subdirectory
-#   to a template file
 # - Extract common parts of corpus titles and descriptions to templates
 # - Move low-level folder info to corpus subdirectories
 
@@ -258,6 +256,9 @@ class KorpCorpusConfigConverter:
         self._corpus_subdir = {}
         # The corpora in each subdirectory (subdir -> [corpora])
         self._subdir_corpora = defaultdict(list)
+        # Templates for common parts of corpus configurations in
+        # subdirectories (subdir -> template)
+        self._subdir_template = {}
         # Attributes actually used (in attrs and sattrs)
         self._replaced_values = dict(
             [(name, set())
@@ -376,6 +377,7 @@ within, transl, loc_data""")
         for modename, indata in self._indata.items():
             self._convert_mode(indata)
             self._convert_corpora(indata)
+        self._extract_subdir_templates()
         self._convert_common_values()
 
     def _convert_mode(self, indata):
@@ -707,6 +709,23 @@ within, transl, loc_data""")
                 return subdir
         return None
 
+    def _extract_subdir_templates(self):
+        """Extract common parts of corpus configs in subdirs to templates"""
+        out_corpora = self._outdata["corpora"]
+        for subdir, corpora in self._subdir_corpora.items():
+            template = {}
+            corpus1 = out_corpora[corpora[0]]
+            for key in corpus1.keys():
+                if all(out_corpora[corpus].get(key) == corpus1[key]
+                       for corpus in corpora):
+                    template[key] = corpus1[key]
+            if template:
+                self._subdir_template[subdir] = template
+                # Remove common properties from corpus configurations
+                for corpus in corpora:
+                    for key in template:
+                        del out_corpora[corpus][key]
+
     def _convert_common_values(self):
         """Convert the common values elsewhere than in settings"""
         convert_funcs = [
@@ -753,6 +772,9 @@ within, transl, loc_data""")
             subdir = self._corpus_subdir.get(corpus_id)
             corpusdir = os.path.join("corpora", subdir) if subdir else "corpora"
             self._write_yaml(corpus_data, corpusdir, corpus_id)
+        for subdir, template in self._subdir_template.items():
+            self._write_yaml(
+                template, os.path.join("corpora", subdir), "_template")
         self._write_common_values()
 
     def _make_outdirs(self, outdir):
