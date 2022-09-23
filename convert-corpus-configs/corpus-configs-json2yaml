@@ -28,8 +28,14 @@
 # TODO:
 # - Extract common values of attributes etc. without an explicit value in
 #   attrs etc.
+# - Use the order property in attributes to order them in attribute lists
+#   and remove it, so that attributes otherwise same except for order can
+#   use a common definition
 # - Extract common parts of corpus titles and descriptions to templates
 # - Move low-level folder info to corpus subdirectories
+# - When converting camelCase to snake_case, instead of going to a certain
+#   depth in objects, cut off at certain property names (at least dataset
+#   and translation)
 
 
 import argparse
