@@ -149,25 +149,29 @@ class KorpCorpusConfigConverter:
     ]
     # Output property order (in various kinds of mapping objects);
     # non-listed keys come after the listed ones
-    # TODO: Add more keys
     prop_order = [
         "id",
         "label",
         "title",
+        # Licence subtype
+        "subtype",
+        "name",
         "description",
+        "alias",
         "subfolders",
         "lang",
         "linked_to",
+        "shortname",
         "metadata_urn",
         "urn",
-        "cite_id",
-        "shortname",
-        "iprholder",
-        "limited_access",
         "licence",
         "licence_type",
+        "limited_access",
+        "cite_id",
+        "homepage",
+        "homepage_url",
+        "iprholder",
         "mode",
-        "name",
         "folder",
         "changes",
         "context",
@@ -175,6 +179,17 @@ class KorpCorpusConfigConverter:
         "pos_attributes",
         "struct_attributes",
         "custom_attributes",
+        # Attribute properties (below "label")
+        "type",
+        "display_type",
+        "is_struct_attr",
+        "opts",
+        "pattern",
+        "extended_component",
+        "escape",
+        "localize",
+        "dataset",
+        "translation",
     ]
     # Split corpora into subdirectories if their id match one of the
     # following prefixes (followed by an underscore)
