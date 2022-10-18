@@ -28,12 +28,12 @@ find_existing_dir () {
 # find_dir_with_file file dir [dir ...]
 #
 # Find a directory under one of dir containing file. The printed
-# directory is the first one found by find.
+# directory is the first one found by find. Follows symbolic links.
 find_dir_with_file () {
     local file path
     file=$1
     shift
-    path=$(find "$@" -name "$file" 2> /dev/null | head -1)
+    path=$(find -L "$@" -name "$file" 2> /dev/null | head -1)
     if [ "$path" != "" ]; then
         echo "${path%/*}"
     fi
