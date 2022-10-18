@@ -1249,3 +1249,21 @@ set_corpus_root ${CORPUS_ROOT:-$(find_existing_dir -d "" $default_corpus_roots)}
 
 # The directory in which CWB binaries reside
 cwb_bindir=${CWB_BINDIR:-$(find_existing_dir -e cwb-describe-corpus $default_cwb_bindirs)}
+
+# The directory for CWB Perl utility scripts
+cwb_perl_bindir=${CWB_PERL_BINDIR:-$(
+                      find_existing_dir -e cwb-make $default_cwb_bindirs)}
+
+# Append CWB Perl library path to PERL5LIB so that the CWB Perl
+# scripts can be used even if the library is not on a standard path.
+# Assume that the library dir contains CWB.pm.
+cwb_perl_libdir=${CWB_PERL_LIBDIR:-$(
+                      find_dir_with_file CWB.pm ${cwb_perl_bindir%/bin})}
+if [ "$cwb_perl_libdir" != "" ]; then
+    if [ "$PERL5LIB" != "" ]; then
+        PERL5LIB=$PERL5LIB:$cwb_perl_libdir
+    else
+        PERL5LIB=$cwb_perl_libdir
+    fi
+    export PERL5LIB
+fi
