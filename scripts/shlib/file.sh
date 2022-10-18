@@ -25,6 +25,20 @@ find_existing_dir () {
     done
 }
 
+# find_dir_with_file file dir [dir ...]
+#
+# Find a directory under one of dir containing file. The printed
+# directory is the first one found by find.
+find_dir_with_file () {
+    local file path
+    file=$1
+    shift
+    path=$(find "$@" -name "$file" 2> /dev/null | head -1)
+    if [ "$path" != "" ]; then
+        echo "${path%/*}"
+    fi
+}
+
 find_filegroup () {
     filegroup=
     for grp in $@; do
