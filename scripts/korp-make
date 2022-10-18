@@ -350,7 +350,7 @@ cwbdata2vrt="$progdir/cwbdata2vrt-simple.sh --all-attributes --output-file=-"
 
 cwb_encode=$cwb_bindir/cwb-encode
 cwb_describe_corpus=$cwb_bindir/cwb-describe-corpus
-cwb_make=$progdir/cwb-make-safe
+cwb_make=$cwb_perl_bindir/cwb-make
 
 vrt_file=
 
