@@ -1,0 +1,127 @@
+#! /usr/bin/env python3
+
+
+# sls-hrt-inline-expl
+#
+# Convert the word (or expression) explanations in "explanation"
+# attributes of paragraphs to intra-paragraph expr elements in the HRT
+# converted from data from Svenska Litteratursällskap i Finland (SLS).
+#
+# Usage: sls-hrt-inline-expl < input.hrt > output.hrt
+#
+# This script is probably a temporary solution before integrating the
+# functionality to the actual conversion script.
+#
+# The input is something like this:
+#
+# <text ...>
+# <paragraph explanation="[1] xxx 'yyy'[2]x y 'z'>
+# Foo bar xxx[1] baz foo x y[2] z.
+# </paragraph>
+# </text>
+#
+# It is converted to:
+#
+# <text ...>
+# <paragraph>>
+# Foo bar <expr explanation="xxx 'yyy'" expl_num="1">xxx<expr> baz foo
+# <expr explanation="x y 'z'" expl_num="2">x y</expr> z.
+# </paragraph>
+# </text>
+#
+# NOTE: The script uses a heuristic based on counting the words before
+# the first single quotation mark (either ASCII apostrophe ' or
+# Unicode U+2019 ’) to get the number of words to enclose in the expr
+# structure. As the data is not completely consistent, this does not
+# produce the correct result in all cases.
+
+
+import re
+import sys
+
+
+def main():
+    """Process input HRT from stdin and write output to stdout."""
+
+    def split_expl(expl):
+        """Split the explanation string expl into a dictionary.
+
+        The returned dictionary maps explanation numbers (as strings)
+        to pairs (explanation, num_words), where num_words is the
+        guessed number of words in the text that the explanation
+        covers.
+        """
+        # Split the explanation at numbers enclosed in square brackets
+        expls = dict(re.findall(r'\[([0-9]+)\]\s*(.+?(?=\[|$))', expl))
+        # Guess the number of words covered by the explanation
+        for num, val in expls.items():
+            # Split the explanation at the first occurrence of a
+            # single quotation mark
+            words_rest = re.split(r'[\'’]', val, 1)
+            if len(words_rest) == 1:
+                # If the explanation contains no single quotes, assume
+                # that it covers only one word
+                num_words = 1
+            else:
+                # Otherwise, count the words before the single quote
+                words = words_rest[0].split()
+                num_words = len(words)
+                if num_words == 0:
+                    # If the explanation begins with a single quote,
+                    # assume it covers only one word
+                    num_words = 1
+                elif words[-1] == 'ev.':
+                    # If the last word before the single quote is
+                    # "ev.", deduct it from the count
+                    num_words -= 1
+            expls[num] = (val, num_words)
+        return expls
+
+    def inline_expls(line, expldict):
+        """Add explanations to line based on numbers "[n]" and expldict
+
+        Enclose in <expr> structures the word(s) preceding explanation
+        numbers marked as "[n]", adding the explanation in
+        expldict[n][0]. Remove the numbers "[n]" from line.
+        """
+        # Check one item in expldict at a time
+        for num, val in expldict.items():
+            expl, num_words = val
+            # If line contains [num], try to enclose the num_words
+            # preceding words with <expr>...</expr>
+            while num_words > 0 and f'[{num}]' in line:
+                # The words to be enclosed may not contain a ">"
+                # indicating an occurrence replaced already. Also do
+                # not make an explanation begin with a punctuation
+                # mark immediately following the preceding
+                # explanation.
+                line = re.sub(
+                    rf'((?:[^>\s,.:?!][^>\s]*\s+){{{num_words - 1}}}\S+?)\[{num}\]',
+                    f'<expr explanation="{expl}" expl_num="{num}">\g<1></expr>',
+                    line)
+                # Possibly try with fewer words if the above
+                # replacement did not replace all occurrences
+                num_words -= 1
+        return line
+        
+    line = sys.stdin.readline()
+    while line:
+        if line.startswith('<paragraph'):
+            # Save explanation attributes in paragraph tags
+            mo = re.search(r'explanation="([^"]+)"', line)
+            if mo:
+                expldict = split_expl(mo.group(1))
+            else:
+                expldict = {}
+            # Remove explanation attributes (also empty ones)
+            line = re.sub(r' explanation="[^"]*"', '', line)
+        elif line[0] != '<' and expldict:
+            # On text lines, inline explanations if the paragraph
+            # contains thme
+            line = inline_expls(line, expldict)
+        sys.stdout.write(line)
+        line = sys.stdin.readline()
+
+
+if __name__ == '__main__':
+    main()
