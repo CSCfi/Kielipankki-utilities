@@ -1,0 +1,22 @@
+SLS data
+
+Original data from "Spara talet metadata - transkriptioner export.xlsx".
+
+The fields "Signum", "Objekt-titel", "Filnamn", "Rubrik" and "Titel" are found as attributes of the "text" 
+field.
+
+The attribute names are not the same as in the xlsx file:
+Signum -> signum, Objekt-titel -> object, Filnamn -> filename, Rubrik -> headline, Titel -> title
+
+The data in the "Ordförklaringar" field is in the "explanation" attribute of each corresponding paragraph.
+These are matched by the explanation numbers in the text.
+
+Some texts have normalized versions available in the original file. In these cases the normalized version
+is used in the paragraph field and the original text can be found in the attribute "original".
+In some cases the original texts are incorrectly in cell G and the normalizations are in cell F. This has not
+been corrected.
+
+Paragraphs where the normalizations and original text are not automatically lined up in the xlsx file do not
+have the original text as an attribute. If the speakers in the original and the normalization are not lined 
+up, the attribute "original" has the value "not match".
+
