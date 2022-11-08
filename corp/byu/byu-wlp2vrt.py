@@ -118,6 +118,16 @@ class WlpToVrtConverter:
                 # columns contain the mapping
                 return False, {key: i for i, key in enumerate(field_keys)}
 
+        def make_ud2_pos(ud2_pos_raw):
+            pos_alts = ud2_pos_raw.split('/')
+            if self._opts.use_first_coarser_pos:
+                return pos_alts[0]
+            else:
+                # If the original BYU PoS contains alternative values,
+                # this can result in coarser PoS with duplicate
+                # values, but maybe that is not a major problem
+                return '|'.join(pos_alts)
+
         pos_map = {}
         with open(fname, 'r', encoding='utf8', errors='replace') as f:
             reader = csv.reader(f, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -137,9 +147,7 @@ class WlpToVrtConverter:
                         continue
                 for i in fieldmap.values():
                     fields[i] = fields[i].strip()
-                # Take the first alternative UD2 PoS separated by a slash
-                # (or should we take both?)
-                ud2_pos = xml_escape(fields[fieldmap['ud2_pos']].split('/')[0])
+                ud2_pos = xml_escape(make_ud2_pos(fields[fieldmap['ud2_pos']]))
                 ud2_feat = xml_escape(fields[fieldmap['ud2_feat']])
                 byu_pos = fields[fieldmap['byu_pos']]
                 pos_map[byu_pos] = pos_map[xml_escape(byu_pos)] = (
@@ -521,6 +529,10 @@ def getargs():
                                  ' either in this order or with the column'
                                  ' headers "BYU PoS", "UD2 PoS" and "UD2'
                                  ' features"'))
+    argparser.add_argument('--use-first-coarser-pos', action='store_true',
+                           help=('if the coarser PoS contains two values'
+                                 ' separated by a slash, use only the first'
+                                 ' one instead of both'))
     argparser.add_argument('--verbose', action='store_true',
                            help='output progess information to stderr')
     return argparser.parse_args()
