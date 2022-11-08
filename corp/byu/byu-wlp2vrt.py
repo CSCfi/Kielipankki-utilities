@@ -70,6 +70,7 @@ class WlpToVrtConverter:
                 for fieldname in reader.fieldnames]
 
     def convert(self):
+        self._output('<!-- #vrt positional-attributes: word lemma pos/ posorig -->\n')
         for filename in self._filenames:
             with open(filename, 'r', encoding='cp1252', errors='replace') as f:
                 self._convert_file(filename, f)
@@ -80,7 +81,6 @@ class WlpToVrtConverter:
         text_id_prefix = None
 
         self._output_verbose(filename + ':')
-        self._output('<!-- #vrt positional-attributes: word lemma pos/ posorig -->\n')
         for linenr, line in enumerate(f):
             if self._opts.verbose and (linenr + 1) % self._progress_step == 0:
                 self._output_verbose(
