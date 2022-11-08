@@ -51,6 +51,7 @@ class WlpToVrtConverter:
         self._seen_text_ids = set()
         self._opts = args
         self._read_metadata_file(args.metadata_file)
+        self._positional_attrs = 'word lemma pos/ pos_orig'
 
     def _read_metadata_file(self, filename):
         with open(filename, 'r', encoding='cp1252',
@@ -71,7 +72,8 @@ class WlpToVrtConverter:
         self._attrnames += ['filename', 'datefrom', 'dateto']
 
     def convert(self):
-        self._output('<!-- #vrt positional-attributes: word lemma pos/ posorig -->\n')
+        self._output(
+            f'<!-- #vrt positional-attributes: {self._positional_attrs} -->\n')
         for filename in self._filenames:
             with open(filename, 'r', encoding='cp1252', errors='replace') as f:
                 self._convert_file(filename, f)
