@@ -149,7 +149,7 @@ class WlpToVrtConverter:
         filename_base = os.path.basename(self._filename)
         if not attrs:
             self._warn('Metadata information not found for text id ' + text_id,
-                       self._filename, self._linenr + 1)
+                       self._filename, self._linenr - len(lines))
         attrs['filename'] = filename_base
         self._add_dateinfo(attrs)
         self._output(xu.make_starttag('text', attrnames=self._attrnames,
