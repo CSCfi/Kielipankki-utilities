@@ -123,9 +123,6 @@ class WlpToVrtConverter:
             if self._opts.use_first_coarser_pos:
                 return pos_alts[0]
             else:
-                # If the original BYU PoS contains alternative values,
-                # this can result in coarser PoS with duplicate
-                # values, but maybe that is not a major problem
                 return '|'.join(pos_alts)
 
         pos_map = {}
@@ -247,12 +244,14 @@ class WlpToVrtConverter:
         # This code has been adapted from byu-make-coarser-pos.py
 
         def make_featset_value(lst):
-            # If all the values of the feature set are the same,
-            # output the value only once.
-            if len(lst) > 1:
-                if all(lst[i] == lst[0] for i in range(1, len(lst))):
-                    lst = [lst[0]]
-            return '|' + '|'.join(lst) + '|'
+            """Return a feature set value with unique values of lst."""
+            # Handle alternative coarser PoS by splitting at "|"
+            lst = [alt for item in lst for alt in item.split('|')]
+            vals = OrderedDict()
+            for item in lst:
+                if item not in vals:
+                    vals[item] = 1
+            return '|' + '|'.join(vals.keys()) + '|'
 
         # Python does not have built-in ordered set, so use
         # OrderedDict with dummy values.
