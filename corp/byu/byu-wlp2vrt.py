@@ -68,6 +68,7 @@ class WlpToVrtConverter:
                 (self._attrname_map.get(fieldname, fieldname)
                  .lower().replace(' ', '_'), fieldname)
                 for fieldname in reader.fieldnames]
+        self._attrnames += ['filename', 'datefrom', 'dateto']
 
     def convert(self):
         self._output('<!-- #vrt positional-attributes: word lemma pos/ posorig -->\n')
