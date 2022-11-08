@@ -80,9 +80,11 @@ class WlpToVrtConverter:
         lines = []
         text_id = None
         text_id_prefix = None
+        self._filename = filename
 
         self._output_verbose(filename + ':')
         for linenr, line in enumerate(f):
+            self._linenr = linenr
             if self._opts.verbose and (linenr + 1) % self._progress_step == 0:
                 self._output_verbose(
                     ' ' + str((linenr + 1) // self._progress_step))
@@ -99,7 +101,7 @@ class WlpToVrtConverter:
                 continue
             if new_text_id != text_id:
                 if lines:
-                    self._output_text(text_id, lines, filename, linenr)
+                    self._output_text(text_id, lines)
                     lines = []
                 text_id = new_text_id
             else:
@@ -108,7 +110,7 @@ class WlpToVrtConverter:
                 lines.append(fields)
         self._output_verbose(' ' + str(linenr + 1) + ' lines\n')
         if lines:
-            self._output_text(text_id, lines, filename, linenr)
+            self._output_text(text_id, lines)
 
     def _fix_lemma(self, fields):
         # COHA sometimes has NULL in the lemma or PoS field
@@ -142,12 +144,12 @@ class WlpToVrtConverter:
         fields[2:2] = ['|' + '|'.join(get_base_pos(pos)
                                       for pos in fields[2].split('_')) + '|']
 
-    def _output_text(self, text_id, lines, filename, linenr):
+    def _output_text(self, text_id, lines):
         attrs = self._metadata.get(text_id, {})
-        filename_base = os.path.basename(filename)
+        filename_base = os.path.basename(self._filename)
         if not attrs:
             self._warn('Metadata information not found for text id ' + text_id,
-                       filename, linenr + 1)
+                       self._filename, self._linenr + 1)
         attrs['filename'] = filename_base
         self._add_dateinfo(attrs)
         self._output(xu.make_starttag('text', attrnames=self._attrnames,
