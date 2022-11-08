@@ -55,7 +55,8 @@ class WlpToVrtConverter:
         self._positional_attrs = 'word lemma pos/ pos_orig'
         if args.pos_map_file:
             self._pos_map = self._read_pos_map_file(args.pos_map_file)
-            self._positional_attrs += ' pos_major/ msd/'
+            if self._pos_map is not None:
+                self._positional_attrs += ' pos_major/ msd/'
         else:
             self._pos_map = None
 
@@ -84,18 +85,65 @@ class WlpToVrtConverter:
         PoS, a coarser PoS and the associated morphological features.
         """
 
+        field_names = [
+            ('byu_pos', 'BYU PoS'),
+            ('ud2_pos', 'UD2 PoS'),
+            ('ud2_feat', 'UD2 features'),
+        ]
+        field_keys = [key for key, name in field_names]
+        fieldmap = None
+
         def xml_escape(val):
             return escape(val, {'"': '&quot;', '\'': '&apos;'})
 
+        def make_fieldmap(fields):
+            fields_lower = [field.lower() for field in fields]
+            if field_names[0][1].lower() in fields_lower:
+                # Assume that this is a column heading line if it
+                # contains "BYU PoS"
+                fieldmap = {}
+                for key, field_name in field_names:
+                    try:
+                        field_num = fields_lower.index(field_name.lower())
+                    except ValueError:
+                        self._warn(
+                            f'Column heading "{field_name}" not found in'
+                            ' coarser PoS mapping file; not adding extra'
+                            ' attributes', fname, 1)
+                        return True, None
+                    fieldmap[key] = field_num
+                return True, fieldmap
+            else:
+                # No column heading line: assume that the first three
+                # columns contain the mapping
+                return False, {key: i for i, key in enumerate(field_keys)}
+
         pos_map = {}
         with open(fname, 'r', encoding='utf8', errors='replace') as f:
-            for line in f:
-                fields = [field.strip().split('/')[0]
-                          for field in line.strip().split('\t')]
-                for i in [1, 2]:
-                    fields[i] = xml_escape(fields[i])
-                pos_map[fields[0]] = (fields[1], fields[2])
-                pos_map[xml_escape(fields[0])] = (fields[1], fields[2])
+            reader = csv.reader(f, delimiter='\t', quoting=csv.QUOTE_NONE)
+            for fields in reader:
+                # Initialize the field map at the first row
+                if fieldmap is None:
+                    if len(fields) < len(field_keys):
+                        self._warn(
+                            'Coarser PoS mapping file needs at least'
+                            f' {len(field_keys)} columns but only {len(fields)}'
+                            ' found; not adding extra attributes', fname, 1)
+                        return None
+                    has_headings, fieldmap = make_fieldmap(fields)
+                    if fieldmap is None:
+                        return None
+                    if has_headings:
+                        continue
+                for i in fieldmap.values():
+                    fields[i] = fields[i].strip()
+                # Take the first alternative UD2 PoS separated by a slash
+                # (or should we take both?)
+                ud2_pos = xml_escape(fields[fieldmap['ud2_pos']].split('/')[0])
+                ud2_feat = xml_escape(fields[fieldmap['ud2_feat']])
+                byu_pos = fields[fieldmap['byu_pos']]
+                pos_map[byu_pos] = pos_map[xml_escape(byu_pos)] = (
+                    ud2_pos, ud2_feat)
         return pos_map
 
     def convert(self):
@@ -469,7 +517,10 @@ def getargs():
                                  ' based on the mapping file FILE, with lines'
                                  ' containing the (converted) BYU PoS tag, the'
                                  ' corresponding coarser PoS tag and'
-                                 ' morphological features, separated by tabs'))
+                                 ' morphological features, separated by tabs,'
+                                 ' either in this order or with the column'
+                                 ' headers "BYU PoS", "UD2 PoS" and "UD2'
+                                 ' features"'))
     argparser.add_argument('--verbose', action='store_true',
                            help='output progess information to stderr')
     return argparser.parse_args()
