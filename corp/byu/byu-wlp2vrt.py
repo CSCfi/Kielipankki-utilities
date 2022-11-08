@@ -55,21 +55,12 @@ class WlpToVrtConverter:
     def _read_metadata_file(self, filename):
         with open(filename, 'r', encoding='cp1252',
                   errors='replace') as metadatafile:
-            reader = csv.DictReader(metadatafile, delimiter='\t',
+            reader = csv.DictReader(metadatafile, fieldnames= ('textID','year','genre', 'subgen', 'source','title'),delimiter='\t',
                                     quoting=csv.QUOTE_NONE, restval='')
             for fields in reader:
                 if fields['textID'].isdigit():
                     fieldvals = dict(
                         ((name, val.strip()) for name, val in fields.items()))
-                    if 'country genre' in fields:
-                        # print(fields['textID'], fields['country genre'])
-                        country, genre = fields['country genre'].split()
-                        fieldvals.update(
-                            dict([('country', country), ('genre', genre)]))
-                    if 'URL' in fields:
-                        mo = re.search(r'://(.*?)(/|$)', fieldvals['URL'])
-                        if mo:
-                            fieldvals['webdomain'] = mo.group(1)
                     self._metadata[fields['textID']] = fieldvals
             # The items in _attrnames are names or pairs (output_name,
             # input_name) handled by korpimport.xmlutil.make_starttag
@@ -77,17 +68,6 @@ class WlpToVrtConverter:
                 (self._attrname_map.get(fieldname, fieldname)
                  .lower().replace(' ', '_'), fieldname)
                 for fieldname in reader.fieldnames]
-            try:
-                cg_index = self._attrnames.index(
-                    ('country_genre', 'country genre'))
-                self._attrnames[cg_index:cg_index+1] = ['country', 'genre']
-            except ValueError:
-                pass
-            if ('url', 'URL') in self._attrnames:
-                self._attrnames += ['webdomain']
-                if 'year' not in self._attrnames:
-                    self._attrnames += ['year']
-            self._attrnames += ['filename', 'datefrom', 'dateto']
 
     def convert(self):
         for filename in self._filenames:
@@ -99,71 +79,22 @@ class WlpToVrtConverter:
         text_id = None
         text_id_prefix = None
 
-        def check_text_id(fields):
-            nonlocal text_id_prefix
-            # Text ids may have the PoS "fo" but not "nnu"
-            if len(fields) > 2 and fields[2] == 'nnu':
-                return text_id
-            # Only look for the text id prefix that has previously
-            # been used in the file; look for both ## and @@ only if
-            # this is the first text id the file.
-            prefix = text_id_prefix or r'(?:##|@@)'
-            matchobj = re.match(r'^' + prefix + r'([1-9]\d*)$', fields[0])
-            if not matchobj:
-                return text_id
-            possible_text_id = matchobj.group(1)
-            # Treat a line looking like a text id seen before as an
-            # ordinary token.
-            if possible_text_id in self._seen_text_ids:
-                self._warn('Skipping ' + fields[0]
-                           + ', which has appeared as a text id before',
-                           filename, linenr + 1)
-                return text_id
-            # A line looking like a text id is regarded as a text id
-            # only if the metadata contains information for the id.
-            if possible_text_id in self._metadata:
-                text_id_prefix = fields[0][:2]
-                self._seen_text_ids.add(possible_text_id)
-                return possible_text_id
-            else:
-                self._warn('Skipping ' + fields[0]
-                           + (', which looks like a text id but metadata'
-                              ' information not found'),
-                           filename, linenr + 1)
-                return text_id
-
-        def is_possible_text_id(fields):
-            return (fields[0].startswith('##') or fields[0].startswith('@@'))
-
-        mo = re.search(r'_[12]\d{3}_(\d+)\.txt$', filename)
-        if mo:
-            text_id = mo.group(1)
-        text_id_from_filename = (mo is not None)
-        new_text_id = text_id
         self._output_verbose(filename + ':')
+        self._output('<!-- #vrt positional-attributes: word lemma pos/ posorig -->\n')
         for linenr, line in enumerate(f):
             if self._opts.verbose and (linenr + 1) % self._progress_step == 0:
                 self._output_verbose(
                     ' ' + str((linenr + 1) // self._progress_step))
             fields = line.strip('\n').split('\t')
-            if len(fields) == 5:
+            new_text_id = fields[0]
+            if len(fields) == 4:
                 # Take the last three fields to skip the token number
                 # and text id in the COCA addednum.
                 fields = fields[-3:]
-            elif len(fields) == 4 and fields[3] == '':
-                # COHA sometimes has a trailing tab
-                fields = fields[:3]
             # COHA files have lines with "q!" as the word, lemma and
             # PoS at the end of many files. It probably won't hurt to
             # remove them. A file in GloWbE ends in Ctrl-Z.
             if fields[0] in ['q!', '\x1a']:
-                continue
-            if not text_id_from_filename and is_possible_text_id(fields):
-                new_text_id = check_text_id(fields)
-            elif (text_id_from_filename and not lines
-                  and is_possible_text_id(fields)):
-                # Skip the first line for COHA files whose text id is
-                # taken from the file name.
                 continue
             if new_text_id != text_id:
                 if lines:
@@ -198,7 +129,6 @@ class WlpToVrtConverter:
 
     def _add_pos_set(self, fields):
         """Add a split, normalized PoS a feature set attribute
-
         Split PoS at underscores to different alternatives, strip
         trailing % and @ and strip the multi-word-expression markers
         (two trailing digits). Enclose and separate the resulting PoS
