@@ -21,6 +21,7 @@ import sys
 import argparse
 import os.path
 
+from collections import OrderedDict
 from io import open
 from xml.sax.saxutils import escape, unescape
 
@@ -52,6 +53,11 @@ class WlpToVrtConverter:
         self._opts = args
         self._read_metadata_file(args.metadata_file)
         self._positional_attrs = 'word lemma pos/ pos_orig'
+        if args.pos_map_file:
+            self._pos_map = self._read_pos_map_file(args.pos_map_file)
+            self._positional_attrs += ' pos_major/ msd/'
+        else:
+            self._pos_map = None
 
     def _read_metadata_file(self, filename):
         with open(filename, 'r', encoding='cp1252',
@@ -70,6 +76,27 @@ class WlpToVrtConverter:
                  .lower().replace(' ', '_'), fieldname)
                 for fieldname in reader.fieldnames]
         self._attrnames += ['filename', 'datefrom', 'dateto']
+
+    def _read_pos_map_file(self, fname):
+        """Read a TSV file mapping PoS tags to coarser ones.
+
+        fname is the name of a PoS mapping file with fields for BYU
+        PoS, a coarser PoS and the associated morphological features.
+        """
+
+        def xml_escape(val):
+            return escape(val, {'"': '&quot;', '\'': '&apos;'})
+
+        pos_map = {}
+        with open(fname, 'r', encoding='utf8', errors='replace') as f:
+            for line in f:
+                fields = [field.strip().split('/')[0]
+                          for field in line.strip().split('\t')]
+                for i in [1, 2]:
+                    fields[i] = xml_escape(fields[i])
+                pos_map[fields[0]] = (fields[1], fields[2])
+                pos_map[xml_escape(fields[0])] = (fields[1], fields[2])
+        return pos_map
 
     def convert(self):
         self._output(
@@ -108,7 +135,7 @@ class WlpToVrtConverter:
                 text_id = new_text_id
             else:
                 self._fix_lemma(fields)
-                self._add_pos_set(fields)
+                self._add_pos_attrs(fields)
                 lines.append(fields)
         self._output_verbose(' ' + str(linenr + 1) + ' lines\n')
         if lines:
@@ -132,19 +159,59 @@ class WlpToVrtConverter:
             fields[1] = '@'
             fields[2] = 'GAP'
 
-    def _add_pos_set(self, fields):
-        """Add a split, normalized PoS a feature set attribute
+    def _add_pos_attrs(self, fields):
+        """Add a split, normalized PoS, coarser PoS and msd features.
+
         Split PoS at underscores to different alternatives, strip
         trailing % and @ and strip the multi-word-expression markers
         (two trailing digits). Enclose and separate the resulting PoS
         by vertical bars and add it as the third field.
+
+        If --coarser-pos-map-file has been specified, append fields
+        for a coarser PoS and morphological features as feature-set
+        attributes.
         """
 
         def get_base_pos(pos):
             return re.sub(r'[2-9]\d$', '', re.sub(r'(?<!")[@%]', '', pos))
 
-        fields[2:2] = ['|' + '|'.join(get_base_pos(pos)
-                                      for pos in fields[2].split('_')) + '|']
+        base_poses = [get_base_pos(pos) for pos in fields[2].split('_')]
+        fields[2:2] = ['|' + '|'.join(base_poses) + '|']
+        if self._pos_map is not None:
+            fields.extend(self._make_coarser_pos(base_poses))
+
+    def _make_coarser_pos(self, byu_poses):
+        """Return attributes for coarser PoS and morphological features.
+
+        Return a two-item list [coarser PoS, morphological features]:
+        each item is a feature set attribute containing values for
+        byu_poses, mapped through self._pos_map.
+        """
+
+        # This code has been adapted from byu-make-coarser-pos.py
+
+        def make_featset_value(lst):
+            # If all the values of the feature set are the same,
+            # output the value only once.
+            if len(lst) > 1:
+                if all(lst[i] == lst[0] for i in range(1, len(lst))):
+                    lst = [lst[0]]
+            return '|' + '|'.join(lst) + '|'
+
+        # Python does not have built-in ordered set, so use
+        # OrderedDict with dummy values.
+        mapped_poses = OrderedDict()
+        for byu_pos in byu_poses:
+            if byu_pos not in self._pos_map:
+                self._warn(
+                    f'Tag "{byu_pos}" not found in the PoS mapping; replacing'
+                    ' with "X"', self._filename, self._linenr + 1)
+                mapped_poses[('X', '_')] = ''
+            else:
+                mapped_poses[self._pos_map[byu_pos]] = ''
+        return [make_featset_value([pos_morph[idx]
+                                    for pos_morph in mapped_poses.keys()])
+                for idx in range(2)]
 
     def _output_text(self, text_id, lines):
         attrs = self._metadata.get(text_id, {})
@@ -396,6 +463,13 @@ def getargs():
                            help='names of input files in word/lemma/PoS format')
     argparser.add_argument('--metadata-file', metavar='FILE', required=True,
                            help='read text metadata from FILE in TSV format')
+    argparser.add_argument('--coarser-pos-map-file', dest='pos_map_file',
+                           metavar='FILE',
+                           help=('add coarser PoS and morphological features,'
+                                 ' based on the mapping file FILE, with lines'
+                                 ' containing the (converted) BYU PoS tag, the'
+                                 ' corresponding coarser PoS tag and'
+                                 ' morphological features, separated by tabs'))
     argparser.add_argument('--verbose', action='store_true',
                            help='output progess information to stderr')
     return argparser.parse_args()
