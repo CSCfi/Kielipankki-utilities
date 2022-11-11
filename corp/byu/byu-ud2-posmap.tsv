@@ -11,6 +11,7 @@ BYU PoS	BYU freq	UD2 PoS	UD2 features	CLAWS7 description
 :	258715	PUNCT	_	# Not in CLAWS7
 ;	146782	PUNCT	_	# Not in CLAWS7
 ?	293352	PUNCT	PunctType=Peri	# Not in CLAWS7
+1	_	X	_	# Not in CLAWS7; nonverbal communication (COCA 2020 tvm)
 GAP	151824124	X	Omitted=Yes	# Not in CLAWS7
 UNKNOWN	1122	X	Unknown=Yes	# Not in CLAWS7
 a	270	DET	PronType=Art	# Not in CLAWS7; always word form "ze"
@@ -129,6 +130,7 @@ rrr	5606439	ADV	_	comparative general adverb (e.g. better, longer)
 rrt	930805	ADV	_	superlative general adverb (e.g. best, longest)
 rt	11661872	ADV	_	quasi-nominal adverb of time (e.g. now, tomorrow)
 to	47283023	PART	PartType=Inf	infinitive marker (to)
+u	_	INTJ	_	# Not in CLAWS7; "whew", "hmm", "bam" (COCA 2020 tvm)
 uh	3958313	INTJ	_	interjection (e.g. oh, yes, um)
 v	937	VERB	_	# Not in CLAWS7; word form "shortz"
 vb0	133486	VERB/AUX	VerbForm=Fin	be, base form (finite i.e. imperative, subjunctive)
