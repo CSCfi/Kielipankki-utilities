@@ -215,10 +215,11 @@ class WlpToVrtConverter:
     def _add_pos_attrs(self, fields):
         """Add a split, normalized PoS, coarser PoS and msd features.
 
-        Split PoS at underscores to different alternatives, strip
-        trailing % and @ and strip the multi-word-expression markers
-        (two trailing digits). Enclose and separate the resulting PoS
-        by vertical bars and add it as the third field.
+        Split PoS at underscores to different alternatives,
+        lower-case, strip leading # and trailing % and @, and strip
+        the multi-word-expression markers (two trailing digits).
+        Enclose and separate the resulting PoS by vertical bars and
+        add it as the third field.
 
         If --coarser-pos-map-file has been specified, append fields
         for a coarser PoS and morphological features as feature-set
@@ -226,9 +227,14 @@ class WlpToVrtConverter:
         """
 
         def get_base_pos(pos):
-            return re.sub(r'[2-9]\d$', '', re.sub(r'(?<!")[@%]', '', pos))
+            for strip_re in [r'(?<!")[@%]', r'[2-9]\d$', r'^#+']:
+                pos = re.sub(strip_re, '', pos)
+            if pos != 'GAP':
+                pos = pos.lower()
+            return pos
 
-        base_poses = [get_base_pos(pos) for pos in fields[2].split('_')]
+        base_poses = [get_base_pos(pos)
+                      for pos in fields[2].strip().split('_')]
         fields[2:2] = ['|' + '|'.join(base_poses) + '|']
         if self._pos_map is not None:
             fields.extend(self._make_coarser_pos(base_poses))
