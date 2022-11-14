@@ -344,7 +344,9 @@ class WlpToVrtConverter:
             may be a proper noun, and 2 if it is not marked as a
             proper noun.
             """
-            if not line[0][0].isupper():
+            if len(line[0]) == 0:
+                return 0
+            elif not line[0][0].isupper():
                 return 0
             elif not any(tag[:2] == 'np' for tag in line[3].split('_')):
                 return 2
