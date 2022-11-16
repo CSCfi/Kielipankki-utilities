@@ -1,3 +1,4 @@
+a	dt
 appge	pn
 at	dt
 at1	dt
@@ -9,6 +10,7 @@ csa	sn
 csn	sn
 cst	sn
 csw	sn
+d	dt
 da	dt
 da1	dt
 da2	dt
@@ -27,14 +29,20 @@ fo	xx
 fu	xx
 fw	ud
 ge	xx
+i	pp
 if	pp
 ii	pp
 io	pp
 iw	pp
+j	jj
 jj	jj
 jjr	jj
 jjt	jj
 jk	jj
+m	rg
+m#	rg
+m$	rg
+m1	rg
 mc	rg
 mc1	rg
 mc2	rg
@@ -42,6 +50,7 @@ mcge	rg
 mcmc	rg
 md	ro
 mf	rg
+n	nn
 nd1	nn
 nn	nn
 nn1	nn
@@ -64,6 +73,8 @@ npd1	pm
 npd2	pm
 npm1	pm
 npm2	pm
+npx	pm
+p	pn
 pn	pn
 pn1	pn
 pnqo	pn
@@ -100,7 +111,9 @@ rrr	ab
 rrt	ab
 rt	ab
 to	ie
+u	in
 uh	in
+v	vb
 vb0	vb
 vbdr	vb
 vbdz	vb
@@ -110,6 +123,7 @@ vbm	vb
 vbn	vb
 vbr	vb
 vbz	vb
+vd	vb
 vd0	vb
 vdd	vb
 vdg	vb
