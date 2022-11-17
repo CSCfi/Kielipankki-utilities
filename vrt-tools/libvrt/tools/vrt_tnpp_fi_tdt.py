@@ -1,7 +1,10 @@
 # -*- mode: Python; -*-
 
-'''Implementation of Finnish-TDT VRT parser, using the "pr1" machinery
-with TNPP (Turku Neural Parser Pipeline).
+'''Implementation of TNPP VRT parser, using the "pr1" machinery with
+TNPP (Turku Neural Parser Pipeline). Description and default model
+provided to parsearguments by a vrt tool script, so this is a Finnish
+parser if called by vrt-tnpp-fi-tdt but an English parser is called by
+vrt-tnpp-en-ewt.
 
 '''
 
@@ -19,7 +22,6 @@ try:
     from outsidelib import TURKUNPPDIR
     PYTHON = os.path.join(TURKUNPPDIR, 'venv-tnpp/bin/python3')
     TURKUNPP = os.path.join(TURKUNPPDIR, 'tnpp_parse.py')
-    TURKUNPP_FI_TDT = os.path.join(TURKUNPPDIR, 'models_fi_tdt_dia/pipelines.yaml')
 except ImportError as exn:
     # So it will crash when actually trying to launch the underlying
     # tool and TURKUNPPDIR is not defined, but --help and --version
@@ -29,7 +31,6 @@ except ImportError as exn:
     PYTHON = 'python3'
     # print('IMA:', __file__)
     TURKUNPP = os.path.join(os.path.dirname(__file__), 'mock-ud-parse.py')
-    TURKUNPP_FI_TDT = 'TODO'
 
 def _name(arg):
     # librarify this already!
@@ -43,12 +44,11 @@ def _affix(arg):
         return arg.encode('UTF-8')
     raise ArgumentTypeError('bad affix: {}'.format(repr(arg)))
 
-def parsearguments(argv):
-    description = '''
-
-    Parse Finnish VRT: pass the word field in a VRT document through
-    the TNPP parser using Finnish-TDT model, insert output fileds
-    after the word. Input VRT must have positional attribute names.
+def parsearguments(argv, description, model):
+    '''Parse the argument vector with an argument parser that uses
+    description for description and model for default model. This way
+    the tool script can become a Finnish parser or an English parser
+    by supplying appropriate arguments.
 
     '''
     parser = transput_args(description = description)
@@ -149,6 +149,15 @@ def parsearguments(argv):
 
     # TODO something about skipping sentences? maybe later
 
+    parser.add_argument('--model',
+                        choices = [ 'fi_tdt_dia', 'en_ewt_dia' ],
+                        default = model,
+                        help = '''
+
+                        name of a parsing model ({})
+
+                        '''.format(model))
+
     parser.add_argument('--batch-lines',
                         dest = 'batch',
                         choices = [ '1000', '5000', '10000' ],
@@ -166,12 +175,12 @@ def parsearguments(argv):
 
 def main(args, ins, ous):
 
+    # insert the model name into a conventional dirname
+    TNPP_PIPELINES = os.path.join(TURKUNPPDIR, 'models_{}/pipelines.yaml'.format(args.model))
+
     proc = Popen([ PYTHON, TURKUNPP,
-                   '--conf-yaml', TURKUNPP_FI_TDT,
-                   '--empty-line-batching',
-                   # need empty-line-batching be specified here? if
-                   # so, how can previous runs been working at all?
-                   '--batch-lines', args.batch,
+                   '--conf-yaml', TNPP_PIPELINES, # defines parse_conllu
+                   '--batch-lines', args.batch, # overrides default
                    'parse_conllu' ],
                  stdin = PIPE,
                  stdout = PIPE,
@@ -179,6 +188,7 @@ def main(args, ins, ous):
     # TODO stderr = PIPE
     # - requires a handler implementation
     # - though does this tool even write there?
+    # - yes, it does write - lots
 
     return transput(args, sys.modules[__name__], proc, ins, ous)
 

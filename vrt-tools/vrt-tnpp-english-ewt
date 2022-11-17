@@ -8,12 +8,12 @@ from libvrt.tools.vrt_tnpp_fi_tdt import parsearguments, main
 
 description = '''
 
-    Parse Finnish VRT: pass the word field in a VRT document through
-    the TNPP parser using Finnish-TDT model, insert output fields
+    Parse English VRT: pass the word field in a VRT document through
+    the TNPP parser using English-EWT model, insert output fields
     after the word. Input VRT must have positional attribute names.
 
 '''
 
-transput(parsearguments(sys.argv[1:], description, 'fi_tdt_dia'), main,
+transput(parsearguments(sys.argv[1:], description, 'en_ewt_dia'), main,
          in_as_text = False,
          out_as_text = False)
