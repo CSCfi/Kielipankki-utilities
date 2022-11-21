@@ -73,7 +73,7 @@ h2. [ ] {_}corpusshortname{_}: Clear the license for the corpus in the Language 
 ## [ ] _*+A*_ Archive the signed deposition agreement (pdf) in IDA
 \\
 h2. [ ] {_}corpusshortname{_}: Publish the end-user license
-## [ ] _*+A*_ Create the license pages (in case this is not a new version of a previously existing resource) [how to create license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
+ ## [ ] _*+A*_ Create the license pages or include the resource in a previous license page of the resource group ([how to create license pages)|https://www.kielipankki.fi/intra/creating-license-pages/]
 ## [ ] _*?A*_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
 ## [ ] _*?A*_ If required, request URNs for license pages (and the PRIV condition pages)
 ## [ ] _*+A*_ Update the list of licenses
