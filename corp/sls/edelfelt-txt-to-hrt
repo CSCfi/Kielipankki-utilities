@@ -1,0 +1,75 @@
+#! /usr/bin/env python3
+
+# edelfelt-txt-to-hrt
+#
+# Convert Edelfelt's letters from plain text to HRT.
+#
+# Usage: edelfelt-txt-to-hrt letter1.txt [letter2.txt ...] > letters.hrt
+
+
+import re
+import sys
+
+
+class Converter():
+
+    def __init__(self):
+        pass
+
+    def main(self):
+        if len(sys.argv) > 1:
+            for fname in sys.argv[1:]:
+                with open(fname, 'r', encoding='utf-8-sig') as inf:
+                    self.process_input(inf)
+        else:
+            self.process_input(sys.stdin)
+
+    def process_input(self, inf):
+
+        def escape(s, quotes=False):
+            s = (s.replace('&', '&amp;')
+                 .replace('<', '&lt;')
+                 .replace('>', '&gt;'))
+            if quotes:
+                s = s.replace('"', '&quot;')
+            return s
+
+        text_open = False
+        signum = year = letternum = page = ''
+        for line in inf:
+            line = line.strip()
+            if not line:
+                continue
+            line = escape(line)
+            mo = re.match(r'Brev (slsa?367_([0-9]{4})_([0-9]+))', line)
+            if mo:
+                if text_open:
+                    print('</text>')
+                text_open = False
+                year = mo.group(2)
+                letternum = mo.group(3)
+                signum = f'SLSA 367_brev_{year}_{letternum}'
+            else:
+                mo = re.match(r'Sida ([0-9]+)', line)
+                if mo:
+                    page = mo.group(1)
+                    if text_open:
+                        print('</page>')
+                        print(f'<page n="{page}">')
+                    continue
+                elif not text_open:
+                    print(f'<text signum="{signum}" year="{year}"'
+                          f' letternum="{letternum}"'
+                          f' title="{escape(line, True)}"'
+                          f' datefrom="{year}0101" dateto="{year}1231">')
+                    print(f'<page n="{page}">')
+                    print(escape(line))
+                    text_open = True
+                else:
+                    print(escape(line))
+        print('</page>')
+        print('</text>')
+
+
+if __name__ == '__main__':
+    Converter().main()
