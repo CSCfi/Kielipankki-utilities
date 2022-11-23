@@ -532,8 +532,9 @@ def rewrite(text, args):
             sen.attr[args.prefix + args.lang + args.suffix],
             sen.attr[args.prefix + args.conf + args.suffix]
         ] = [
-            sen.attr[args.lang],
-            sen.attr[args.conf]
+            # an error in the input to not have the attribute
+            sen.attr.get(args.lang, b'NSA'),
+            sen.attr.get(args.conf, 0.0)
         ]
         [
             sen.attr[args.lang],
@@ -632,7 +633,8 @@ class Info(object):
     def lang(self):
         if self._lang is None:
             # expect args to be at self._args, yes?
-            self._lang = self.attr[self._args.lang]
+            # an error in the input to not have the attribute
+            self._lang = self.attr.get(self._args.lang, b'NSA')
             pass
         return self._lang
 
@@ -645,7 +647,8 @@ class Info(object):
     @property
     def conf(self):
         if self._conf is None:
-            self._conf = float(self.attr[self._args.conf])
+            # an error in the input to not have the attribute
+            self._conf = float(self.attr.get(self._args.conf, '0.0'))
             pass
         return self._conf
 
