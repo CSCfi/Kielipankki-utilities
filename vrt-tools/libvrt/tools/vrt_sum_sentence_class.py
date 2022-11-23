@@ -88,7 +88,7 @@ def main(args, ins, ous):
     '''Transput VRT (bytes) in ins to VRT (bytes) in ous.'''
 
     # regex matches the sentence attribute, captures the value
-    observed = args.attr + b'="(.*?)"'
+    observed = b'(?<= )' + args.attr + b'="(.*?)"'
 
     # summary name to use in paragraph and text elements
     reported = args.prefix + args.attr + args.suffix
