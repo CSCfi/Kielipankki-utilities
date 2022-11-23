@@ -534,7 +534,7 @@ def rewrite(text, args):
         ] = [
             # an error in the input to not have the attribute
             sen.attr.get(args.lang, b'NSA'),
-            sen.attr.get(args.conf, 0.0)
+            sen.attr.get(args.conf, b'0.0')
         ]
         [
             sen.attr[args.lang],
@@ -648,7 +648,7 @@ class Info(object):
     def conf(self):
         if self._conf is None:
             # an error in the input to not have the attribute
-            self._conf = float(self.attr.get(self._args.conf, '0.0'))
+            self._conf = float(self.attr.get(self._args.conf, b'0.0'))
             pass
         return self._conf
 
