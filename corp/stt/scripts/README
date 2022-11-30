@@ -1,0 +1,18 @@
+Alkuperäiset HRT-tiedostot on siivottu käyttäen skriptejä clean_up.py, clean_empty.py ja remove_faulty.py.
+
+remove_faulty.py poistaa virheelliset paragraph tagit HRT:stä ja clean_empty.py poistaa tyhjät paragraphit VRT:stä.
+
+clean_up.py korjaa muut virheet, joita voi löytää hrt-checkin avulla.
+
+Tiedostot on jäsennetty vrt-tnpp-finnish-tdt käyttäen seuraavin parametrein:
+--batch-lines 10000 
+--GiB 8
+-H 4
+-C 10
+
+Jäsennettyjen tiedostojen koko on 200000 merkkiriviä.
+
+Aikaa jäsentämiseen on jäsentämiseen on mennyt keskimäärin n. 1,5h.
+
+Vuoden 1997 tiedostossa oli pitkiä saneita, jotka aiheuttivat muistin loppumisen kesken jäsentämisen.
+Pitkät saneet on lyhennetty vrt-redact-long -skriptillä.
