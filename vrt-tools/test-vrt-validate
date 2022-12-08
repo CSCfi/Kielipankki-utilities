@@ -351,9 +351,22 @@ test(tag = 'suspect-dates',
        b'</text>\n' ),
 
      expected =
-     report(('1', 'meta', 'warning', 'suspect date: datefrom of text'),
-            ('1', 'meta', 'warning', 'suspect time: timefrom of text'),
-            ('1', 'meta', 'warning', 'suspect year: year of text')))
+     report(('1', 'meta', 'error',
+             'date neither YYYYMMDD nor empty: datefrom of text'),
+            ('1', 'meta', 'error',
+             'time neither HHMMSS nor empty: timefrom of text'),
+            ('1', 'meta', 'warning',
+             'year neither YYYY nor empty: year of text')))
+
+test(tag = 'empty-dates',
+
+     document =
+     ( b'<text datefrom="" timefrom="" year="">\n'
+       b'</text>\n' ),
+
+     # No error or warning from empty dates
+     expected =
+     report())
 
 test(document =
      b'<text>\n',

@@ -351,16 +351,19 @@ def validateattribute(k, element, name, respond):
               .format(name, element)) )
 
 def date8(k, value, label, respond):
-    if not (len(value) == 8 and value.isdigit()):
-        respond(k, 'meta', 'warning', 'suspect date: {}'.format(label))
+    if not ((len(value) == 8 and value.isdigit()) or value == ''):
+        respond(k, 'meta', 'error',
+                'date neither YYYYMMDD nor empty: {}'.format(label))
 
 def time6(k, value, label, respond):
-    if not (len(value) == 6 and value.isdigit()):
-        respond(k, 'meta', 'warning', 'suspect time: {}'.format(label))
+    if not ((len(value) == 6 and value.isdigit()) or value == ''):
+        respond(k, 'meta', 'error',
+                'time neither HHMMSS nor empty: {}'.format(label))
 
 def year4(k, value, label, respond):
-    if not (len(value) == 4 and value.isdigit()):
-        respond(k, 'meta', 'warning', 'suspect year: {}'.format(label))
+    if not ((len(value) == 4 and value.isdigit()) or value == ''):
+        respond(k, 'meta', 'warning',
+                'year neither YYYY nor empty: {}'.format(label))
 
 def ignore(k, value, label, respond):
     pass
