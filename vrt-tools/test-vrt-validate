@@ -132,8 +132,9 @@ test(document =
      ( b'<foo bar="n\'">\n'
        b'</foo>' ),
 
+     # A bare apostrophe in attribute value is not an error
      expected =
-     report(('1', 'meta', 'error', 'bare apostrophe in value: bar of foo')))
+     report())
 
 test(document =
      ( b'<foo baz="" bar="">\n'

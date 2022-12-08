@@ -338,11 +338,6 @@ def validateattributes(k, element, attributes, respond):
     for name, value in zip(names, values):
         validateattribute(k, element, name, respond)
         label = '{} of {}'.format(name, element)
-        # should check against references
-        if "'" in value:
-            respond(k, 'meta', 'error',
-                    'bare apostrophe in value: {}'
-                    .format(label))
 
         validatevalue(k, label, value, respond)
 
