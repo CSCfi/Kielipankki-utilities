@@ -1,4 +1,5 @@
-# Map the Finnish UD dependency relation labels to those used in the
+# Map the Finnish UD1 and UD2 dependency relation labels (as produced
+# by the Turku Neural Parser Pipeline (TNPP)) to those used in the
 # Korp word picture: SS (subject), OBJ (object), ADV (adverbial), PA
 # (preposition), AT ((pre)modifier), ET (postmodifier), CPL
 # (complement). Additional, alternative labels, currently commented
@@ -33,6 +34,7 @@ appos	-
 # aux	AUX
 aux	-
 auxpass	-
+aux:pass	-
 # Could the following be PA, or maybe inverted PA?
 case	-
 cc	-
@@ -44,6 +46,7 @@ compound:nn	AT
 compound:prt	-
 conj	-
 cop	-
+cop:own	-
 csubj	SS
 # csubj:cop	CPS
 csubj:cop	-
@@ -52,6 +55,12 @@ dep	-
 det	-
 discourse	-
 dobj	OBJ
+# Does it make sense to map fixed and flat(:*) (MWEs) to ET, or would
+# it be better not to map them to anything?
+fixed	ET
+flat	ET
+flat:foreign	ET
+flat:name	ET
 goeswith	AT
 mark	-
 mwe	ET
@@ -72,6 +81,9 @@ nsubj	SS
 # nsubj:cop	CPS
 nsubj:cop	-
 nummod	-
+obj	OBJ
+obl	ADV
+orphan	-
 # parataxis	CRD
 parataxis	-
 punct	-
