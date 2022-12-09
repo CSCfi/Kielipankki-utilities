@@ -5,6 +5,9 @@
 # Convert Edelfelt's letters from plain text to HRT.
 #
 # Usage: edelfelt-txt-to-hrt letter1.txt [letter2.txt ...] > letters.hrt
+#
+# The letters need to have been converted from .docx to plain text
+# (UTF-8) with e.g. unoconv.
 
 
 import re
@@ -25,8 +28,10 @@ class Converter():
             self.process_input(sys.stdin)
 
     def process_input(self, inf):
+        """Process text input stream inf and output HRT."""
 
         def escape(s, quotes=False):
+            """Convert &, <, > and " (if quotes) in s to XML entities"""
             s = (s.replace('&', '&amp;')
                  .replace('<', '&lt;')
                  .replace('>', '&gt;'))
@@ -43,21 +48,27 @@ class Converter():
             line = escape(line)
             mo = re.match(r'Brev (slsa?367_([0-9]{4})_([0-9]+))', line)
             if mo:
+                # Line containing letter id begins a new letter
                 if text_open:
                     print('</text>')
                 text_open = False
+                # Extract information from letter id, to be added as
+                # text attributes
                 year = mo.group(2)
                 letternum = mo.group(3)
                 signum = f'SLSA 367_brev_{year}_{letternum}'
             else:
                 mo = re.match(r'Sida ([0-9]+)', line)
                 if mo:
+                    # Page break
                     page = mo.group(1)
                     if text_open:
+                        # If a text is open, add page tags
                         print('</page>')
                         print(f'<page n="{page}">')
                     continue
                 elif not text_open:
+                    # Text not yet opened, so open it
                     print(f'<text signum="{signum}" year="{year}"'
                           f' letternum="{letternum}"'
                           f' title="{escape(line, True)}"'
@@ -67,6 +78,7 @@ class Converter():
                     text_open = True
                 else:
                     print(escape(line))
+        # Close page and text
         print('</page>')
         print('</text>')
 
