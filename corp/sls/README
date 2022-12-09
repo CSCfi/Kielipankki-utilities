@@ -20,3 +20,33 @@ Paragraphs where the normalizations and original text are not automatically line
 have the original text as an attribute. If the speakers in the original and the normalization are not lined 
 up, the attribute "original" has the value "not match".
 
+
+Samples of Edelfelt’s letters
+
+(Converted by Jyrki Niemi)
+
+The original data in slsa367_*.docx was first converted to plain text
+(UTF-8) with the unoconv program using LibreOffice (in local Ubuntu).
+
+The text files were then converted to VRT via HRT as follows (assuming
+data in a temporary subdirectory “data” and “bin” symlinked to a clone
+of Kielipankki-utilities GitHub repository):
+
+  bin/corp/sls/edelfelt-txt-to-hrt data/slsa367_1867_*.txt |
+  perl -ne '
+      if (/-$/) {
+          s/-\n$//;
+          $prev = "$prev$_"
+      } else {
+          print "$prev$_";
+          $prev = ""
+      }' |
+  bin/vrt-tools/hrt-encode-tags |
+  bin/vrt-tools/hrt-tokenize-udpipe --model swedish-talbanken |
+  bin/vrt-tools/vrt-decode-tags > data/edelfelt_sample.vrt
+
+The Perl snippet joins hyphenated words across line breaks. We
+probably should have a proper tool for that.
+
+A Korp corpus package was then created with korp-make without any
+configuration options.
