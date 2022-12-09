@@ -125,6 +125,49 @@ def multiput_args(*, description):
 
     return parser
 
+def multiput2_args(*, description):
+    '''Return an alternative initial argument parser for a command line
+    tool that produces for a single input file a number of output
+    files, as siblings with names derived from the input file name,
+    possibly removed to a parallel output directory hierarchy.
+
+    This version has a "stem" option to replace the input file stem.
+
+    '''
+
+    parser = ArgumentParser(description = description)
+
+    parser.add_argument('infile', nargs = '?', metavar = 'file',
+                        help = 'input file (stdin)')
+
+    parser.add_argument('--stem', '-s', metavar = 'name',
+                        # default to input stem or "stdin"
+                        # should sanity check as filename component;
+                        # is str, not bytes
+                        help = '''
+
+                        output filename stem
+                        (input filename stem, or "stdin" if stdin)
+
+                        ''')
+
+    parser.add_argument('--outdir', '-D', metavar = 'path',
+                        dest = 'outdir',
+                        help = '''
+
+                        directory where to write the output files
+                        (instead of as siblings to the input file or
+                        in current working directory), created as
+                        needed
+
+                        ''')
+
+    parser.add_argument('--version',
+                        action = 'version',
+                        version = '%(prog)s: vrt tools {}'.format(VERSION))
+
+    return parser
+
 def bakfix(arg):
     '''Argument type for --backup: argument must be a valid and proper and
     safe suffix to a filename.
@@ -387,6 +430,29 @@ def multiput(args, main):
         outdir = infile.parent
 
     main(args, str(infile), str(outdir / outfile))
+
+def multiput2(args, main, *,
+              in_as_text = True):
+    '''Arrange to call main(args, instream, outdir) after ensuring that
+    outdir exists.
+
+    The purpose is to support tools that produce many output files
+    from one input file.
+
+    '''
+
+    if args.outdir is None:
+        outdir = '.' if args.infile is None else os.path.dirname(args.infile)
+    else:
+        os.makedirs(args.outdir, exist_ok = True)
+        outdir = args.outdir
+
+    if args.infile is None:
+        ins = sys.stdin if in_as_text else sys.stdin.buffer
+    else:
+        ins = open(args.infile, ('r' if in_as_text else 'br'))
+
+    main(args, ins, str(outdir))
 
 def nat(arg):
     '''A "type" for an argument parser to enforce that an int is not
