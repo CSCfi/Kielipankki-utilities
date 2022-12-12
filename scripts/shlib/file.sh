@@ -225,6 +225,28 @@ replace_file () {
 }
 
 
+# file_newer file1 file2 [...]
+#
+# Return true (0) if file1 is newer than file2 or any other of the
+# files specified as arguments, or if the other files do not exist.
+# (If file1 does not exist, return 1.) Return 2 if fewer than 2
+# arguments were given.
+file_newer () {
+    local file1 file
+    file1=$1
+    shift
+    if [ "$1" = "" ]; then
+        return 2
+    fi
+    for file in "$@"; do
+        if [ ! "$file1" -nt "$file" ]; then
+            return 1
+        fi
+    done
+    return 0
+}
+
+
 # Initialize variables
 
 # File permissions used by ensure_perms
