@@ -50,7 +50,10 @@ corpus-id=CORPUS corpus
     corpus id as the first non-option argument
 force
     force all stages of processing by first removing all the output
-    files if they exist
+    files if they exist; existing output files are also removed if the
+    input is read from standard input or if any of the input files is
+    newer than the VRT file stored on a previous run for the same
+    corpus (unless --augment-data is specified)
 config-file|configuration-file=FILE
     read FILE as an INI-style configuration file (without sections).
     Configuration keys correspond to option names without the leading
@@ -627,7 +630,18 @@ test_skip_combine_input () {
 	gunzip $vrt_file.gz
     fi
     if [ -r $vrt_file ] && [ -s $vrt_file ]; then
-	echo "using existing VRT file $vrt_file"
+        # If any of the input files is newer than the existing VRT
+        # file (or the input is from stdin) and not augmenting data,
+        # remove existing data
+        if [ "x$augment_data" = x ] && {
+               [ "${#input_files[@]}" = "0" ] ||
+                   ! file_newer $vrt_file "${input_files[@]}"
+           };
+        then
+            remove_existing_data
+        else
+	    echo "using existing VRT file $vrt_file"
+        fi
     fi
 }
 
