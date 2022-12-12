@@ -496,6 +496,11 @@ if [ "x$verbose" != x ]; then
 fi
 
 
+remove_existing_data () {
+    rm -f $datadir/* $cwb_regdir/$corpus $tsvdir/$corpus_*.tsv.gz \
+       $vrtdir/$corpus.vrt $vrtdir/$corpus.vrt.gz
+}
+
 run_cmd () {
     verbose printf "  Running: " >&$top_stdout
     verbose echo_quoted "$@" >&$top_stdout
@@ -1193,8 +1198,7 @@ main () {
     exec 3> /dev/stdout
     set -o pipefail
     if [ "x$force" != x ]; then
-	rm -f $datadir/* $cwb_regdir/$corpus $tsvdir/$corpus_*.tsv.gz \
-	    $vrtdir/$corpus.vrt $vrtdir/$corpus.vrt.gz
+        remove_existing_data
     fi
     run_stages
     exec 3>&-
