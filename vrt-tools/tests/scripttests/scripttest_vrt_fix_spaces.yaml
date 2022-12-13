@@ -1,0 +1,110 @@
+
+# scripttestlib test cases for vrt-fix-spaces
+
+
+- name: 'vrt-fix-spaces: Multiple consecutive spaces in positional attribute values'
+  input:
+    cmdline: vrt-fix-spaces
+    stdin: |
+      <!-- #vrt positional-attributes word a b -->
+      <text>
+      <sentence>
+      foo	foo  foo   bar	xx  xx xx
+      </sentence>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <!-- #vrt positional-attributes word a b -->
+      <text>
+      <sentence>
+      foo	foo foo bar	xx xx xx
+      </sentence>
+      </text>
+
+- name: 'vrt-fix-spaces: Leading and trailing spaces in positional attribute values'
+  input:
+    cmdline: vrt-fix-spaces
+    stdin: |
+      <!-- #vrt positional-attributes word a b -->
+      <text>
+      <sentence>
+      foo  	  foo foo bar  	  xx xx xx
+      </sentence>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <!-- #vrt positional-attributes word a b -->
+      <text>
+      <sentence>
+      foo	foo foo bar	xx xx xx
+      </sentence>
+      </text>
+
+
+- name: 'vrt-fix-spaces: Multiple consecutive spaces in structural attribute values'
+  input:
+    cmdline: vrt-fix-spaces
+    stdin: |
+      <!-- #vrt positional-attributes word a b -->
+      <text foo="bar  foo  bar" xx="xx yy  zzz">
+      <sentence x="x   y    z" z="a b  c   d">
+      foo	foo foo bar	xx xx xx
+      </sentence>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <!-- #vrt positional-attributes word a b -->
+      <text foo="bar foo bar" xx="xx yy zzz">
+      <sentence x="x y z" z="a b c d">
+      foo	foo foo bar	xx xx xx
+      </sentence>
+      </text>
+
+- name: 'vrt-fix-spaces: Leading and trailing spaces in structural attribute values'
+  input:
+    cmdline: vrt-fix-spaces
+    stdin: |
+      <!-- #vrt positional-attributes word a b -->
+      <text foo=" bar foo bar " xx="   xx yy zzz   ">
+      <sentence x=" x y z" z="a b c d  ">
+      foo	foo foo bar	xx xx xx
+      </sentence>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <!-- #vrt positional-attributes word a b -->
+      <text foo="bar foo bar" xx="xx yy zzz">
+      <sentence x="x y z" z="a b c d">
+      foo	foo foo bar	xx xx xx
+      </sentence>
+      </text>
+
+
+- name: 'vrt-fix-spaces: No-break spaces intact'
+  input:
+    cmdline: vrt-fix-spaces
+    stdin: |
+      <!-- #vrt positional-attributes word a b -->
+      <text foo=" bar foo bar " xx="    xx yy zzz   ">
+      <sentence x=" x y z" z="a b c d  ">
+      foo	foo  foo  bar	   xx   xx   xx   
+      </sentence>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <!-- #vrt positional-attributes word a b -->
+      <text foo="bar foo bar" xx="  xx yy zzz  ">
+      <sentence x="x y z" z="a b c d">
+      foo	foo foo bar	  xx  xx   xx  
+      </sentence>
+      </text>
