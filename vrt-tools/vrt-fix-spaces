@@ -31,6 +31,15 @@ class SpaceFixer(vrtargsoolib.InputProcessor):
     tool handles only ASCII space characters (U+0020).
     """
     ARGSPECS = [
+        # Only one of --skip-positional-attributes and
+        # --skip-structural-attributes is allowed, as having both
+        # would make the script run a no-op.
+        ('#EXCLUSIVE', [
+            ('--skip-positional-attributes -> ! process_pos_attrs',
+             'do not fix space issues in positional attributes'),
+            ('--skip-structural-attributes -> ! process_struct_attrs',
+             'do not fix space issues in structural attribute annotations'),
+        ]),
     ]
 
     def __init__(self):
@@ -39,6 +48,8 @@ class SpaceFixer(vrtargsoolib.InputProcessor):
     def main(self, args, inf, ouf):
 
         LESS_THAN = '<'.encode()[0]
+        process_struct_attrs =  args.process_struct_attrs
+        process_pos_attrs = args.process_pos_attrs
 
         def fix_spaces_struct(line):
             """Fix spaces in structural attribute line."""
@@ -65,8 +76,9 @@ class SpaceFixer(vrtargsoolib.InputProcessor):
 
         for line in inf:
             if line[0] == LESS_THAN:
-                line = fix_spaces_struct(line)
-            else:
+                if process_struct_attrs:
+                    line = fix_spaces_struct(line)
+            elif process_pos_attrs:
                 line = fix_spaces_token(line)
             ouf.write(line)
         ouf.close()

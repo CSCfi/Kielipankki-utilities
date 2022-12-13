@@ -108,3 +108,46 @@
       foo	foo foo bar	  xx  xx   xx  
       </sentence>
       </text>
+
+
+- name: 'vrt-fix-spaces: Fix structural attributes only'
+  input:
+    cmdline: vrt-fix-spaces --skip-positional-attributes
+    stdin: |
+      <!-- #vrt positional-attributes word a b -->
+      <text foo=" bar foo bar " xx="   xx yy zzz   ">
+      <sentence x=" x y z" z="a b c d  ">
+        foo  	foo   foo  bar	 xx xx xx 
+      </sentence>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <!-- #vrt positional-attributes word a b -->
+      <text foo="bar foo bar" xx="xx yy zzz">
+      <sentence x="x y z" z="a b c d">
+        foo  	foo   foo  bar	 xx xx xx 
+      </sentence>
+      </text>
+
+- name: 'vrt-fix-spaces: Fix positional attributes only'
+  input:
+    cmdline: vrt-fix-spaces --skip-structural-attributes
+    stdin: |
+      <!-- #vrt positional-attributes word a b -->
+      <text foo=" bar foo bar " xx="   xx yy zzz   ">
+      <sentence x=" x y z" z="a b c d  ">
+        foo  	foo   foo  bar	 xx xx xx 
+      </sentence>
+      </text>
+  output:
+    returncode: 0
+    stderr: ""
+    stdout: |
+      <!-- #vrt positional-attributes word a b -->
+      <text foo=" bar foo bar " xx="   xx yy zzz   ">
+      <sentence x=" x y z" z="a b c d  ">
+      foo	foo foo bar	xx xx xx
+      </sentence>
+      </text>
