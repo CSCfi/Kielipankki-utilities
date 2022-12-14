@@ -230,6 +230,32 @@ def test_entity_name_digits(tmpdir):
     assert not err
     assert proc.returncode == 0
 
+def test_amp_entities(tmpdir):
+    '''Decode mis-encoded entity references such as &amp;quot;.
+
+    '''
+    names = makenameline(b'word'.split())
+    send = b''.join(
+        (names,
+         b'<text a="&amp;quot; &amp; lt; &amp;lt; &amp;dollar; &amp;#42;">\n',
+         b'&amp;quot; &amp; lt; &amp;lt; &amp;dollar; &amp;#42;\n'))
+    want = b''.join(
+        (names,
+         b'<text a="&quot; &amp; lt; &lt; $ *">\n',
+         b'" &amp; lt; &lt; $ *\n'))
+    proc = Popen([ './vrt-fix-characters',
+                   '--field', 'word',
+                   '--attr', 'a',
+                   '--entities',
+                   '--amp-entities' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0
+
 def test_eq_end_attr(tmpdir):
     '''Attribute parsing, "=" at end of value: head="VAL=" gen="WEV".
     Nothing to fix, other than normalize the order of attributes, but
