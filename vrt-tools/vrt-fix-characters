@@ -127,6 +127,11 @@ def parsearguments():
                         help = '''retain input attribute order
                         (default: sort alphabetically)''')
 
+    parser.add_argument('--allow-empty',
+                        action = 'store_true',
+                        help = '''keep empty field values empty
+                        (default: replace with _)''')
+
     args = parser.parse_args()
     args.prog = parser.prog
     return args
@@ -159,6 +164,7 @@ def implement_main(args, ins, ous):
 
     anames = set(args.attributes)
     fnames = set(args.fields)
+    emptyfield = '' if args.allow_empty else '_'
     attrsort = (lambda s: s) if args.unsorted else sorted
 
     if not (anames or fnames):
@@ -195,7 +201,7 @@ def implement_main(args, ins, ous):
             record = asrecord(line)
 
             for ix in fix:
-                record[ix] = fixdata(args, record[ix])
+                record[ix] = fixdata(args, record[ix]) or emptyfield
 
             print(*record, sep = '\t', file = ous)
 
@@ -232,7 +238,7 @@ def fixdata(args, value):
     if args.reservd: value = ''.join(fixchar(args, value, catReservd))
     if args.surrogt: value = ''.join(fixchar(args, value, catSurrogt))
     # return '[{}]'.format(value) # testing
-    return value or '_'
+    return value
 
 def unbreakity(match, quote = False):
     '''Consider any &\w+; an attempted named entity (ASCII only), also

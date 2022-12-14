@@ -301,3 +301,56 @@ def test_unsorted_attr(tmpdir):
     assert not err
     assert out == want
     assert proc.returncode == 0
+
+def test_replace_empty_field(tmpdir):
+    '''By default, replace empty field values with an underscore.
+
+    '''
+    # Need more than one attribute as completely empty lines are
+    # skipped
+    names = makenameline(b'word lemma'.split())
+    send = b''.join((names,
+                     b'x\t\n',
+                     b'\ty\n',
+    ))
+    want = b''.join((names,
+                     b'x\t_\n',
+                     b'_\ty\n',
+    ))
+    proc = Popen([ './vrt-fix-characters',
+                   '--field', 'word',
+                   '--field', 'lemma',
+                   '--entities' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0
+
+def test_allow_empty_field(tmpdir):
+    '''With --allow-empty, keep empty field values empty, do not replace
+    with an underscore.
+
+    '''
+    # Need more than one attribute as completely empty lines are
+    # skipped
+    names = makenameline(b'word lemma'.split())
+    send = b''.join((names,
+                     b'x\t\n',
+                     b'\ty\n',
+    ))
+    want = send
+    proc = Popen([ './vrt-fix-characters',
+                   '--field', 'word',
+                   '--field', 'lemma',
+                   '--allow-empty',
+                   '--entities' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0
