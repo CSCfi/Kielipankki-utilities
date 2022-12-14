@@ -270,7 +270,7 @@ entitylike = re.compile(R'''
     # eventual semicolon is mandatory on an entity sequence
     # or the entity sequence will not be recognized as such
 
-    (?: & [a-z] +
+    (?: & [a-z] [a-z0-9] *
       | & \# [0-9] +
       | & \# x [0-9a-f] + ) + ;
     | [&<>"']

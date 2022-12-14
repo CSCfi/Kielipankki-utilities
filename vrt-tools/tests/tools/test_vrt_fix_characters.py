@@ -208,6 +208,28 @@ def test_C0_hex_data(tmpdir):
     assert not err
     assert proc.returncode == 0
 
+def test_entity_name_digits(tmpdir):
+    '''Entity name with digits, such as &frac12;.
+
+    '''
+    names = makenameline(b'word'.split())
+    send = b''.join((names,
+                     b'&frac12; kg\n'
+    ))
+    want = b''.join((names,
+                     '½ kg\n'.encode('UTF-8'),
+    ))
+    proc = Popen([ './vrt-fix-characters',
+                   '--field', 'word',
+                   '--entities' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0
+
 def test_eq_end_attr(tmpdir):
     '''Attribute parsing, "=" at end of value: head="VAL=" gen="WEV".
     Nothing to fix, other than normalize the order of attributes, but
