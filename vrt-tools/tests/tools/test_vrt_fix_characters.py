@@ -278,3 +278,26 @@ def test_eq_end_attr(tmpdir):
     assert not err
     assert out == want
     assert proc.returncode == 0
+
+def test_unsorted_attr(tmpdir):
+    '''With --unsorted, output attributes in the order they are in the
+    input.
+
+    '''
+    names = makenameline(b'word'.split())
+    send = b''.join((names,
+                     b'<text head="VAL" gen="WEV">\n'))
+    want = b''.join((names,
+                     b'<text head="VAL" gen="WEV">\n'))
+    proc = Popen([ './vrt-fix-characters',
+                   '--entities',
+                   '--attr', 'head',
+                   '--replace=identify',
+                   '--unsorted' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert not err
+    assert out == want
+    assert proc.returncode == 0

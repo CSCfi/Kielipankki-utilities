@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
+from collections import OrderedDict
 import html
 from itertools import groupby, chain
 import os, re, sys, traceback
@@ -121,6 +122,11 @@ def parsearguments():
                         with \N{BULLET}
                         ''')
 
+    parser.add_argument('--unsorted',
+                        action = 'store_true',
+                        help = '''retain input attribute order
+                        (default: sort alphabetically)''')
+
     args = parser.parse_args()
     args.prog = parser.prog
     return args
@@ -153,6 +159,7 @@ def implement_main(args, ins, ous):
 
     anames = set(args.attributes)
     fnames = set(args.fields)
+    attrsort = (lambda s: s) if args.unsorted else sorted
 
     if not (anames or fnames):
         print('{}: warning: no attributes or fields specified'
@@ -175,7 +182,8 @@ def implement_main(args, ins, ous):
                     continue
 
                 # line is a start tag and may contain attributes
-                print(fixmeta(args, line, anames), end = '', file = ous)
+                print(fixmeta(args, line, anames, attrsort),
+                      end = '', file = ous)
                 continue
 
         # groupisdata aka token lines
@@ -191,14 +199,14 @@ def implement_main(args, ins, ous):
 
             print(*record, sep = '\t', file = ous)
 
-def fixmeta(args, start, anames):
+def fixmeta(args, start, anames, attrsort):
     '''Return fixed start-tag line'''
     if not anames: return start
     tag, attrs = parsemeta(start)
     for aname in anames:
         if aname not in attrs: continue
         attrs[aname] = fixattr(args, attrs[aname])
-    return composemeta(tag, attrs, end = '\n')
+    return composemeta(tag, attrs, end = '\n', attrsort = attrsort)
 
 def fixattr(args, value):
     '''Return fixed attribute value'''
@@ -957,9 +965,9 @@ def parsemeta(start):
 
     name = name.group(1)
     rest = re.finditer(R'(\S+?)="([^"]*)"', start)
-    return name, dict(mo.groups() for mo in rest)
+    return name, OrderedDict(mo.groups() for mo in rest)
 
-def composemeta(name, attrs, end = ''):
+def composemeta(name, attrs, end = '', attrsort = sorted):
     '''Given element name and a dictionary of attributes, properly
     entified and all, construct the start tag line, sorted, spaced,
     double-quoted.
@@ -971,7 +979,7 @@ def composemeta(name, attrs, end = ''):
                                        .format(name = name,
                                                value = value) )
                                      for name, value
-                                     in sorted(attrs.items())),
+                                     in attrsort(attrs.items())),
                      end = end) )
 
 if __name__ == '__main__':
