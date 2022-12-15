@@ -354,3 +354,50 @@ def test_allow_empty_field(tmpdir):
     assert out == want
     assert not err
     assert proc.returncode == 0
+
+def test_literal_apostrophe(tmpdir):
+    '''By default, keep ' literal even in attribute values.
+
+    '''
+    names = makenameline(b'word'.split())
+    send = b''.join((names,
+                     b'<text a="\'&dollar;&quot;&apos;">\n',
+                     b'\'&dollar;&quot;&apos;\n'))
+    want = b''.join((names,
+                     b'<text a="\'$&quot;\'">\n',
+                     b'\'$"\'\n'))
+    proc = Popen([ './vrt-fix-characters',
+                   '--field', 'word',
+                   '--attr', 'a',
+                   '--entities' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0
+
+def test_apos(tmpdir):
+    '''With --apos, encode ' as &apos in attribute values.
+
+    '''
+    names = makenameline(b'word'.split())
+    send = b''.join((names,
+                     b'<text a="\'&dollar;&quot;&apos;">\n',
+                     b'\'&dollar;&quot;&apos;\n'))
+    want = b''.join((names,
+                     b'<text a="&apos;$&quot;&apos;">\n',
+                     b'\'$"\'\n'))
+    proc = Popen([ './vrt-fix-characters',
+                   '--field', 'word',
+                   '--attr', 'a',
+                   '--entities',
+                   '--apos' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0

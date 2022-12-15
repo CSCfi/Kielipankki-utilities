@@ -132,6 +132,11 @@ def parsearguments():
                         help = '''keep empty field values empty
                         (default: replace with _)''')
 
+    parser.add_argument('--apos',
+                        action = 'store_true',
+                        help = '''encode ' as &apos; in attributes
+                        (default: keep ' literal)''')
+
     args = parser.parse_args()
     args.prog = parser.prog
     return args
@@ -162,10 +167,15 @@ def implement_main(args, ins, ous):
     def issome(line): return not line.isspace()
     def ismeta(line): return line.startswith('<')
 
+    # Is assigned to if args.apos
+    global QUOTES
+
     anames = set(args.attributes)
     fnames = set(args.fields)
     emptyfield = '' if args.allow_empty else '_'
     attrsort = (lambda s: s) if args.unsorted else sorted
+    if args.apos:
+        QUOTES = QUOTES_APOS
 
     if not (anames or fnames):
         print('{}: warning: no attributes or fields specified'
@@ -324,11 +334,21 @@ ENTITIES = {
 }
 
 QUOTES = {
-    # Two more characters are entified in meta
+    # One more character is entified in meta; ' need not, but
+    # recognize it to support --apos
     '&quot;' : '&quot;',
-    '&apos;' : '&apos;',
+    '&apos;' : "'",
     '"' : '&quot;',
-    "'" : '&apos;'
+    "'" : "'"
+}
+
+QUOTES_APOS = {
+    # With --apos (previously, always), two more characters are
+    # entified in meta
+    '&quot;' : '&quot;',
+    '&apos;' : "&apos;",
+    '"' : '&quot;',
+    "'" : "&apos;"
 }
 
 TANKEROES = {
