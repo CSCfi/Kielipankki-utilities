@@ -156,8 +156,9 @@ def klk_main_lang(line, args):
     '''Extract a file-name component from the args.attr (sum_lang) in the
     line - this is a possible (initially the only) "part" function in
     the main loop - assume decreasing count for language codes, ignore
-    any xxx or und, then take most frequent and second most frequent
-    together with any that are tied with that.
+    any xxx or und, then take most frequent language, with any ties,
+    and the languages generally of most interest to the Language Bank
+    of Finland (those being fin, swe, eng).
 
     Called through PART (below) when arts.tag == 'klk-main-lang'.
 
