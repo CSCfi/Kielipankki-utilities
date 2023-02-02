@@ -1,7 +1,11 @@
-SLS data
+
+Data from Svenska litteratursällskapet i Finland (SLS)
+
 
 Original data from "Spara talet metadata - transkriptioner
-export.xlsx".
+export.xlsx", converted by Varpu Vehomäki.
+
+The main conversion is done with the script xlsx_to_hrt.py.
 
 The fields "Signum", "Objekt-titel", "Filnamn", "Rubrik" and "Titel"
 are found as attributes of the "text" field.
@@ -24,6 +28,65 @@ Paragraphs where the normalizations and original text are not
 automatically lined up in the xlsx file do not have the original text
 as an attribute. If the speakers in the original and the normalization
 are not lined up, the attribute "original" has the value "not match".
+
+The HRT produced by xlsx_to_hrt.py was then further processed with
+sls-hrt-inline-expl (written by Jyrki Niemi) to convert the word or
+expression explanations in “explanation” attributes of paragraphs to
+intra-paragraph expr elements. (It might be better to integrate the
+functionality to the primary conversion script.)
+
+The inline attributes in the HRT file were then encoded, the HRT was
+tokenized and the attributes decoded as follows (assuming data in a
+temporary subdirectory “data” and “bin” symlinked to a clone of
+Kielipankki-utilities GitHub repository):
+
+  bin/vrt-tools/hrt-encode-tags data/out.hrt |
+  bin/vrt-tools/hrt-tokenize-udpipe --model swedish-talbanken |
+  bin/vrt-tools/vrt-decode-tags > data/slsdemo22.vrt
+
+Some extra attributes based on the filename attribute were then added
+with a short Perl snippet, and the texts were sorted by attribute
+“collection”:
+
+  perl -pe '
+      if (/<text/) {
+          ($coll) = /filename=".*?\/sls(\d+)\//;
+          if (! $coll) {
+              $coll = "2098 (?)"
+          }
+          s/>/ collection="SLS $coll">/;
+          ($y) = /signum="(\d{4}):/;
+          if (! $y) {
+              s/>/ datefrom="" dateto="">/
+          } else {
+              s/>/ datefrom="${y}0101" dateto="${y}1231">/
+          }
+      }' |
+  bin/vrt-sort-texts.sh --attribute collection data/slsdemo22.vrt >
+      data/slsdemo22-extra-attrs.vrt
+
+The file was then split by collection:
+
+  perl -e '
+      while (<>) {
+          if (/^<!--/) {
+              $cmt = $_
+          } else {
+              if (/^<text .*collection="SLS (\d+)/) {
+                  $coll = $1;
+                  if ($coll != $prevcoll) {
+                      open (OUTF, ">", "data/sls_$coll.vrt");
+                      print OUTF $cmt;
+                      $prevcoll = $coll
+                  }
+              }
+          }
+          print OUTF $_
+      }' data/slsdemo22-extra-attrs.vrt
+
+Korp corpus packages were then created separately for each collection
+by running korp-make with the configuration option
+--text-sort-attribute=signum.
 
 
 Samples of Edelfelt’s letters
