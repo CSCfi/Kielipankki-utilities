@@ -49,6 +49,16 @@ str_hasprefix () {
     [ -z "${str##$prefix*}" ] && [ -z "$prefix" -o -n "$str" ]
 }
 
+# str_hassuffix string suffix
+#
+# Returns true if string ends with suffix, false otherwise.
+str_hassuffix () {
+    local str suffix
+    str=$1
+    suffix=$2
+    [ -z "${str%%*$suffix}" ] && [ -z "$suffix" -o -n "$str" ]
+}
+
 # word_in word text
 #
 # Return true if text contains word, text words separated by spaces.
