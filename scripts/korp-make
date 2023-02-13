@@ -29,6 +29,10 @@ mapdir=$progdir/../corp
 vrt_subdir=vrt/CORPUS
 tsv_subdir=$vrt_subdir
 
+lemgram_posmap_default=$mapdir/lemgram_posmap_tdt.tsv
+lemgram_posmap_ud_default=$mapdir/lemgram_posmap_ud2_universal.tsv
+wordpict_relmap_default=$mapdir/wordpict_relmap_tdt.tsv
+wordpict_relmap_ud_default=$mapdir/wordpict_relmap_ud_fi.tsv
 usage_header="Usage: $progname [options] [corpus] [input_file ...]
 
 Process a VRT file to make a Korp corpus package containing CWB data files and
@@ -132,16 +136,22 @@ generate-input-from-data generate_input
 
 @ Annotation mappings
 
-lemgram-posmap|posmap=POSMAP_FILE "$mapdir/lemgram_posmap_tdt.tsv"
+lemgram-posmap|posmap=POSMAP_FILE "'"$lemgram_posmap_default"'"
     use POSMAP_FILE as the mapping file from the corpus parts of
     speech to those used in Korp lemgrams; the file should contain
-    lines with corpus POS and lemgram POS separated by a tab
+    lines with corpus POS and lemgram POS separated by a tab;
+    if the positional attributes contain UD annotations and no non-UD
+    annotations, file "'"$lemgram_posmap_ud_default"'" is used unless
+    a different file is specified explicitly
 wordpict-relmap|wordpicture-relation-map=RELMAP_FILE \
-  "$mapdir/wordpict_relmap_tdt.tsv"
+  "'"$wordpict_relmap_default"'"
     use RELMAP_FILE as the mapping file from corpus dependency
     relation codes to those used in the Korp word picture; the file
     should contain lines with corpus dependency relation code and word
-    picture dependency relation code separated by a tab
+    picture dependency relation code separated by a tab;
+    if the positional attributes contain UD annotations and no non-UD
+    annotations, file "'"$wordpict_relmap_ud_default"'" is used unless
+    a different file is specified explicitly
 
 @ Compound boundaries
 
@@ -674,6 +684,18 @@ check_input_attrs () {
     if has_only_ud_attrs $initial_input_attrs; then
         initial_input_attrs=$(rename_ud_attrs $initial_input_attrs)
         verbose safe_echo "Removing suffix _ud[12]? from positional attribute names, as no corresponding attributes without the suffix; modified input attributes: $initial_input_attrs"
+        if word_in "pos" "$initial_input_attrs" &&
+                [ "$lemgram_posmap" = "$lemgram_posmap_default" ]
+        then
+            lemgram_posmap=$lemgram_posmap_ud_default
+            verbose safe_echo "Using the default UD lemgram part-of-speech mapping file $lemgram_posmap_ud_default"
+        fi
+        if word_in "deprel" "$initial_input_attrs" &&
+                [ "$wordpict_relmap" = "$wordpict_relmap_default" ]
+        then
+            wordpict_relmap=$wordpict_relmap_ud_default
+            verbose safe_echo "Using the default UD word picture relation mapping file $wordpict_relmap_ud_default"
+        fi
     fi
     if [ "x$augment_data" != x ]; then
 	keep_attr_order=1
