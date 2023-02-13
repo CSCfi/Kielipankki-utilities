@@ -104,7 +104,10 @@ input-attrs|input-attributes|input-fields=ATTRS \
     overrides this option, unless --override-vrt-attributes is
     specified;
     attributes named "_" or with names beginning with a "-" are
-    skipped in the input
+    skipped in the input;
+    if ATTRS contains attribute names suffixed with "_ud", "_ud1" or
+    "_ud2" and no corresponding attributes without the suffix, the
+    suffix is stripped
 override-vrt-attrs|override-vrt-attributes
     use the positional attributes specified with --input-attributes
     even if the input VRT contains a positional attributes comment
@@ -668,6 +671,10 @@ check_input_attrs () {
     else
 	verbose safe_echo "No positional attributes named in the input VRT; using those listed with --input-attributes: $initial_input_attrs"
     fi
+    if has_only_ud_attrs $initial_input_attrs; then
+        initial_input_attrs=$(rename_ud_attrs $initial_input_attrs)
+        verbose safe_echo "Removing suffix _ud[12]? from positional attribute names, as no corresponding attributes without the suffix; modified input attributes: $initial_input_attrs"
+    fi
     if [ "x$augment_data" != x ]; then
 	keep_attr_order=1
 	no_word_attr=1
@@ -709,6 +716,43 @@ check_input_attrs () {
     stages[2]=$stage2_fn
     stages[3]=$stage2_descr
     input_attrs=$initial_input_attrs
+}
+
+has_only_ud_attrs () {
+    # Check if the arguments has attribute names with suffix _ud, _ud1
+    # or _ud2 without corresponding non-suffixed attributes
+    # TODO: Also return false if multiple different _ud attributes,
+    # e.g. _ud1, _ud2
+    local attrs attr attr_base has_ud
+    has_ud=1
+    attrs="$@"
+    for attr in $attrs; do
+        if str_hassuffix "$attr" "_ud[12]" || str_hassuffix "$attr" "_ud"; then
+            has_ud=0
+            attr_base=${attr%_ud*}
+            if word_in "$attr_base" "$attrs"; then
+                return 1
+            fi
+        fi
+    done
+    return $has_ud
+}
+
+rename_ud_attrs () {
+    # Remove suffix _ud, _ud1 or _ud2 from attribute names given as
+    # arguments
+    local attrs=
+    local attr
+    for attr in "$@"; do
+        attr=${attr%_ud[12]}
+        attr=${attr%_ud}
+        if [ "x$attrs" = x ]; then
+            attrs=$attr
+        else
+            attrs="$attrs $attr"
+        fi
+    done
+    echo "$attrs"
 }
 
 filter_and_reorder_posattrs () {
