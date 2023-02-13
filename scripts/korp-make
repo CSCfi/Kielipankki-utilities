@@ -33,6 +33,9 @@ lemgram_posmap_default=$mapdir/lemgram_posmap_tdt.tsv
 lemgram_posmap_ud_default=$mapdir/lemgram_posmap_ud2_universal.tsv
 wordpict_relmap_default=$mapdir/wordpict_relmap_tdt.tsv
 wordpict_relmap_ud_default=$mapdir/wordpict_relmap_ud_fi.tsv
+compound_boundary_marker_default="|"
+compound_boundary_marker_ud_default="#"
+
 usage_header="Usage: $progname [options] [corpus] [input_file ...]
 
 Process a VRT file to make a Korp corpus package containing CWB data files and
@@ -155,9 +158,11 @@ wordpict-relmap|wordpicture-relation-map=RELMAP_FILE \
 
 @ Compound boundaries
 
-compound-boundary-marker=MARKER "|"
+compound-boundary-marker=MARKER "'"$compound_boundary_marker_default"'"
     the string MARKER marks compound boundaries in lemmas and will be
-    removed from lemmas without compound boundaries
+    removed from lemmas without compound boundaries;
+    if the positional attributes contain UD annotations and no non-UD
+    annotations, "'"$compound_boundary_marker_ud_default"'" is used
 remove-compound-boundary-algorithm=ALGORITHM "omorfi" compound_boundary_alg
     use ALGORITHM for adding lemmas without compound boundaries, one
     of "omorfi", "old" (alias "simple-omorfi") and "naive": "omorfi"
@@ -695,6 +700,12 @@ check_input_attrs () {
         then
             wordpict_relmap=$wordpict_relmap_ud_default
             verbose safe_echo "Using the default UD word picture relation mapping file $wordpict_relmap_ud_default"
+        fi
+        if [ "x$lemmas_without_boundaries" != x ] &&
+               word_in "lemma" "$initial_input_attrs"
+        then
+            compound_boundary_marker=$compound_boundary_marker_ud_default
+            verbose safe_echo "Using the default UD compound boundary marker \"$compound_boundary_marker_ud_default\""
         fi
     fi
     if [ "x$augment_data" != x ]; then
