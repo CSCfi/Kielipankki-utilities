@@ -118,6 +118,9 @@ input-attrs|input-attributes|input-fields=ATTRS \
 override-vrt-attrs|override-vrt-attributes
     use the positional attributes specified with --input-attributes
     even if the input VRT contains a positional attributes comment
+omit-attributes|skip-attributes=ATTRS omit_attrs
+    omit the positional input attributes listed in ATTRS (seprated by
+    spaces)
 no-word-attribute no_word_attr
     the input does not contain a "word" attribute; implied by
     --augment-data
@@ -722,10 +725,11 @@ check_input_attrs () {
 	error "Error: the input VRT has $vrt_attrcount positional attributes, but $attrcount were specified"
     fi
     if word_in _ "$initial_input_attrs" ||
-	    [ "${initial_input_attrs#*-}" != "$initial_input_attrs" ]
+	    [ "${initial_input_attrs#*-}" != "$initial_input_attrs" ] ||
+            [ "x$omit_attrs" != x ]
     then
 	stage2_fn=filter_and_reorder_posattrs
-	stage2_descr="Filtering out positional attributes with name \"_\" or starting with \"-\""
+	stage2_descr="Filtering out positional attributes with name \"_\" or starting with \"-\" or specified with --omit-attributes"
 	preprocess_posattrs=filter
     fi
     if [ "x$keep_attr_order" = x ] &&
@@ -804,6 +808,7 @@ filter_and_reorder_posattrs () {
     for attrname in $initial_input_attrs; do
 	if [ "$attrname" != "_" ] &&
 	       [ "${attrname#-}" = "$attrname" ] &&
+               ! word_in "$attrname" "$omit_attrs" &&
 	       eval "$word_filter"
 	then
 	    attrs_names="$attrs_names $attrname"
