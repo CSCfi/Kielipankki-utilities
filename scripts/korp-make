@@ -814,7 +814,7 @@ filter_and_reorder_posattrs () {
 	then
 	    attrs_names="$attrs_names $attrname"
 	    attrs_nums="$attrs_nums, \$$attrnum"
-        else
+        elif [ "$attrname" != "word" ]; then
             skip_attrs="$skip_attrs $attrname"
 	fi
 	attrnum=$(($attrnum + 1))
