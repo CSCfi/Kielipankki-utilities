@@ -796,7 +796,6 @@ filter_and_reorder_posattrs () {
     local attrs_names=
     local attrs_nums=
     local word_filter=true
-    local add_posattr_comment=
     local skip_attrs=
     # set -vx
     if word_in reorder "$preprocess_posattrs"; then
@@ -821,12 +820,6 @@ filter_and_reorder_posattrs () {
     done
     attrs_names=${attrs_names# }
     attrs_nums=${attrs_nums#,}
-    # CHECK: Would filtering and reordering attributes ever be needed
-    # if the input VRT has a positional attributes comment?
-    if [ "x$initial_vrt_posattrs" = x ]; then
-	add_posattr_comment="print \"$(vrt_make_posattr_comment "$attrs_names")\""
-	initial_vrt_posattrs=$attrs_names
-    fi
     if [ "x$skip_attrs" != x ]; then
         echo_verb "  Filtering out positional attributes:$skip_attrs"
     fi
@@ -834,12 +827,15 @@ filter_and_reorder_posattrs () {
     process_vrt awk -F"$tab" '
 		BEGIN {
 		    OFS = "\t"
-		    '"$add_posattr_comment"'
 	        }
 		/^</ { print }
 		/^[^<]/ { print '"$attrs_nums"' }'
     initial_input_attrs=$attrs_names
     input_attrs=$attrs_names
+    if [ "$initial_vrt_posattrs" != "$attrs_names" ]; then
+        initial_vrt_posattrs=$attrs_names
+        adjust_posattrs_comment
+    fi
 }
 
 generate_input () {
