@@ -5,8 +5,14 @@ The following lists contain tasks required for publishing a corpus. The
 lists are in a rough order in which tasks should be (or typically are)
 done.
 
+For each resource, you should have a collecting "Epic"-type issue, which has
+several "Story"-issues as children. These stories contain the task lists below.
+If the resource is a completely new one and you have not decided what to do with 
+it, just create the first story, which is about entering the new corpus to 
+the pipeline (and deciding what to do with it).
+
 The appropriate task list can be copied verbatim to the description of
-a Jira ticket for publishing (a version of) a corpus, where it will be
+a Jira (story) ticket for publishing (a version of) a corpus, where it will be
 rendered as an enumerated list. (The list should be copied when the
 description input field is in “Text” mode, not “Visual”.) In the
 description field, the list should be adjusted as appropriate for the
@@ -34,12 +40,12 @@ with the short name of the resource in question (use base name only, excluding "
 This makes it easier to see which resource is addressed in individual Jira tickets.
 
 *Please copy & paste the appropriate portions of the raw text below to the description field 
-of the Jira issue in question!*
+of the Jira issue (Story) in question!*
 
 ```
 h2. [ ] {_}corpusshortname{_}: Enter the new corpus to the pipeline of the Language Bank of Finland
 # [ ] _*+A*_ Make an initial decision on whether the upcoming resource could potentially be distributed
-# [ ] _*+A*_ Create a Jira Epic called "shortname: Publish XXX in Kielipankki (Korp/Download/…)" and insert this task list (sections under linked Jira Stories)
+# [ ] _*+A*_ Create a Jira story issue called "shortname: Publish XXX in Kielipankki (Korp/Download/…)" and insert relevant parts of this task list (sections under linked Jira Stories)
 # [ ] _*?A*_ Contact the potential depositor (by email; arrange a meeting if required) 
 # [ ] _*?A*_ Ask the depositor to submit the basic details of the new corpus or resource (preferably via e-form)
 # [ ] _*+A*_ Create and publish a preliminary META-SHARE record (skeletal information only) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
