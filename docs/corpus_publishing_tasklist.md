@@ -47,7 +47,7 @@ h2. [ ] {_}corpusshortname{_}: Enter the new corpus to the pipeline of the Langu
 # [ ] _*+A*_ Make an initial decision on whether the upcoming resource could potentially be distributed
 # [ ] _*+A*_ Create a Jira story issue called "shortname: Publish XXX in Kielipankki (Korp/Download/…)" and insert relevant parts of this task list (sections under linked Jira Stories)
 # [ ] _*?A*_ Contact the potential depositor (by email; arrange a meeting if required) 
-# [ ] _*?A*_ Ask the depositor to submit the basic details of the new corpus or resource (preferably via e-form)
+# [ ] _*?A*_ Ask the depositor to submit the basic details of the new corpus or resource (e-form: http://urn.fi/urn:nbn:fi:lb-2021121421)
 # [ ] _*+A*_ Create and publish a preliminary META-SHARE record (skeletal information only) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+A*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
 # [ ] _*+A*_ Request a URN for the META-SHARE record
