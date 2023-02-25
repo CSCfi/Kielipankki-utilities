@@ -1,0 +1,28 @@
+#! /usr/bin/env python3
+
+
+import re
+import sys
+
+
+def main():
+    remove_re_src = [
+        r'<a .*?(>|$)',
+        r'</a>',
+        r'<img .*?>',
+        r'<br>',
+        r'</?(i|b|strong|p|sub)( .*?)?>',
+        '</?B?\r?$',
+    ]
+    remove_re = [re.compile(regex, re.IGNORECASE) for regex in remove_re_src]
+    for line in sys.stdin:
+        fields = line[:-1].split('\t')
+        title = fields[-1].strip()
+        title = title.replace('^', '\'')
+        for regex in remove_re:
+            title = regex.sub('', title)
+        print('\t'.join(fields + [title]))
+
+
+if __name__ == '__main__':
+    main()
