@@ -75,8 +75,8 @@ h2. [ ] {_}corpusshortname{_}: Clear the license for the corpus in the Language 
 ## [ ] _*?A*_ Meet with the depositor/rightholder and take note of the action points
 ## [ ] _*+A*_ Make the final decision as to whether the resource can be distributed via the Language Bank of Finland (bring the case up in legal meeting, if necessary)
 ## [ ] _*+A*_ Prepare the final draft of the deposition license agreement and send it to corpus owner who should fill in the remaining gaps (ask for legal advice if needed)
-## [ ] _*+A*_ Check the final deposition agreement, combine all parts into a single pdf file and upload the document to the UniSign system for electronic signing by the rightholder (+ the data controller) and finally by the head of department at the University of Helsinki
-## [ ] _*+A*_ Archive the signed deposition agreement (pdf) in IDA
+## [ ] _*+A*_ Check the final deposition agreement, combine all parts into a single pdf file and upload the document to the UniSign system for electronic signing by the rightholder (+ the data controller) and finally by the head of department at the University of Helsinki, https://unisign.helsinki.fi/sign/#/dashboard
+## [ ] _*+A*_ Archive the signed deposition agreement (pdf) in IDA, https://ida.fairdata.fi/apps/files/?dir=/tlp0063%252B/FIN-CLARIN%20Administration/agreements
 \\
 h2. [ ] {_}corpusshortname{_}: Publish the end-user license
 # [ ] _*+A*_ Create the license pages if required ([how to create license pages)|https://www.kielipankki.fi/intra/creating-license-pages/]
