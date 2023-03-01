@@ -10,6 +10,8 @@
 # TODO:
 # - Add command "alias": symlink CWB data, copy registry and MySQL
 #   data.
+# - When operating on specific components, test for an existing target
+#   by the component, not just the registry.
 
 
 progname=`basename $0`
@@ -39,7 +41,8 @@ Perl expression \"s/source/target/\". Note that the \"e\" flag is not
 allowed in the Perl substitution expressions, for security reasons.
 
 For the remove command and when using a pattern in copy or rename, the
-corpus ids may contain shell wildcards that are expanded.
+corpus ids may contain shell wildcards that are expanded (unless the
+option --no-check-source is specified).
 
 When removing corpora, the script prompts to confirm the removal of
 each corpus unless the option --force is specified.
@@ -57,6 +60,12 @@ backup-suffix|suffix=SUFFIX "'$baksuff_default'" baksuff
     Use SUFFIX as the suffix for the backup corpus name.
 no-backups !backups
     Do not make a backup before overwriting an existing target corpus.
+no-check-source !check_source
+    Do not check the existence of a source corpus based on its CWB
+    registry file. This has effect only if --components is specified
+    and does not contain \"registry\" nor is \"all\". If this option
+    is used with a substitution pattern, shell wildcards in the source
+    corpus ids are not expanded.
 comment=COMMENT
     Append COMMENT to the standard comment added to the changelog in
     the corpus registry file.
@@ -190,6 +199,12 @@ elif [ "x$baksuff" = x ]; then
     error "Backup suffix must be non-empty"
 fi
 
+if [ "x$check_source" = x ] && word_in "registry" "$components"; then
+    verbose warn \
+            "--no-check-source has no effect unless --components is specified without \"registry\" and \"all\""
+    check_source=1
+fi
+
 # Only warn on corpora not found, each with a separate message. The
 # function get_error_corpora is called from list_corpora if some of
 # the arguments were not found.
@@ -204,10 +219,14 @@ warn_nonfound_corpora () {
 }
 
 if [ "$command" = "remove" ] || [ "x$substpatt" != x ]; then
-    # This warns on all non-existent corpora at this point, in
-    # alphabetical order, instead of in the order in which they are on
-    # the command line.
-    corpora=$(list_corpora --on-error warn_nonfound_corpora "$@")
+    if [ "x$check_source" != x ]; then
+        # This warns on all non-existent corpora at this point, in
+        # alphabetical order, instead of in the order in which they are on
+        # the command line.
+        corpora=$(list_corpora --on-error warn_nonfound_corpora "$@")
+    else
+        corpora=$@
+    fi
 elif [ "x$3" != x ]; then
     shift 2
     # Use $* instead of $@, as the latter would expand to separate
@@ -258,10 +277,18 @@ run_verb () {
 }
 
 extract_datadir () {
-    local regfile
+    local regfile corpusname datadir
     regfile=$1
-    grep '^HOME ' $regfile |
-    cut -d' ' -f2
+    if [ -e "$regfile" ]; then
+        grep '^HOME ' $regfile |
+            cut -d' ' -f2
+    else
+        corpusname=$(basename "$regfile")
+        datadir=$(dirname "$cwb_regdir")/data/$corpusname
+        verbose warn \
+                "Corpus $corpusname: registry file $regfile not found; assuming data directory $datadir"
+        echo "$datadir"
+    fi
 }
 
 extract_top_datadir () {
@@ -552,7 +579,7 @@ manage_corpus () {
     cmd=$1
     source=$2
     target=$3
-    if ! corpus_exists "$source"; then
+    if [ "x$check_source" != x ] && ! corpus_exists "$source"; then
 	verbose warn \
 		"Skipping corpus $source: not found in registry $cwb_regdir"
 	return
@@ -614,8 +641,12 @@ manage_corpus () {
 	fi
 	safe_echo "$msg"
     fi
-    # This is a global variable that is used in the called functions
-    top_datadir=$(extract_top_datadir $cwb_regdir/$source)
+    if [ "$components" != "database" ]; then
+        # top_datadir is a global variable that is used in the called
+        # functions (not needed if only operating on the MySQL
+        # database data)
+        top_datadir=$(extract_top_datadir $cwb_regdir/$source)
+    fi
     for comp in $all_components; do
         if word_in $comp "$components"; then
 	    manage_$comp $cmd $source $target
