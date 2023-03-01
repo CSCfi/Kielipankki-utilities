@@ -7,8 +7,9 @@ import os, re, sys, traceback
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 
-from vrtnamelib import xname, isnames, namelist, nameindex
+from vrtnamelib import xname, isnames, namelist, nameindices
 from vrtdatalib import asrecord, unescape, escape
+from libvrt.nameargs import bagtype, parsenames
 
 def parsearguments():
     description = '''
@@ -23,10 +24,22 @@ def parsearguments():
 
     parser = trans_args(description = description)
 
+    parser.add_argument('--field', '-f',
+                        metavar = 'name,*',
+                        dest = 'fields', default = [],
+                        type = bagtype, action = 'append',
+                        help = '''
+
+                        fields to redact, separate names by commas or
+                        spaces, or repeat the option (default: word)
+
+                        ''')
+
     parser.add_argument('--word', '-w',
-                        metavar = 'name',
-                        type = xname, default = 'word',
-                        help = 'the field to redact (default: word)')
+                        metavar = 'name,*',
+                        dest = 'fields', default = [],
+                        type = bagtype, action = 'append',
+                        help = '(deprecated) use --field/-f instead')
 
     parser.add_argument('--long', type = int, default = 70,
                         metavar = 'N',
@@ -88,6 +101,13 @@ def parsearguments():
 
 def main(args, inf, ouf):
 
+    if args.fields:
+        args.fields = [field.decode('utf-8')
+                       for field in parsenames(args.fields)]
+    else:
+        # default to --field word
+        args.fields = ['word']
+
     if args.after < 0 or args.before < 0 or args.long < 1:
         raise BadData('numbers make no sense')
 
@@ -123,27 +143,28 @@ def implement_main(args, ins, ous):
                   other = isother,
                   any = isany) [args.like]
 
-    wordix = None
+    wordixs = None
     for groupismeta, group in groupby(filter(issome, ins), ismeta):
 
         if groupismeta:
             for line in group:
                 print(line, end = '', file = ous)
                 if isnames(line):
-                    wordix = nameindex(namelist(line), args.word)
+                    wordixs = nameindices(namelist(line), *args.fields)
             continue
 
         # groupisdata aka token lines
 
-        if wordix is None:
+        if wordixs is None:
             raise BadData('no names before tokens')
 
         for line in group:
             record = asrecord(line)
-            word = unescape(record[wordix])
+            for wordix in wordixs:
+                word = unescape(record[wordix])
 
-            if len(word) >= args.long and islike(word):
-                record[wordix] = escape(redact(args, word))
+                if len(word) >= args.long and islike(word):
+                    record[wordix] = escape(redact(args, word))
 
             print(*record, sep = '\t', file = ous)
 
