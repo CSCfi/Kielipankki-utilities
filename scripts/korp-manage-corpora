@@ -76,14 +76,13 @@ registry=DIR "$cwb_regdir" { set_corpus_registry "$1" }
     Use DIR as the CWB registry directory.
 '
 
-usage_footer="Note that when copying aligned corpora to a different name, it is
-in general advisable to copy all mutually aligned corpora with the
-same command using the appropriate --pattern, since in that case, the
-alignment attributes in the copies are renamed accordingly. If you
-copy only one corpus at a time, the alignment attribute in the aligned
-corpora are duplicated, with one attribute referring to the new copy,
-whereas the new copy has only the attribute referring to the original
-corpus."
+usage_footer="Note that when copying aligned corpora to a different name, you
+should in general copy all mutually aligned corpora with the same
+command using the appropriate pattern to ensure that the alignment
+attributes in the copies are renamed accordingly. If you copy only one
+corpus at a time, the alignment attribute in the aligned corpora are
+duplicated, with one attribute referring to the new copy, whereas the
+new copy has only the attribute referring to the original corpus."
 
 . $progdir/korp-lib.sh
 
