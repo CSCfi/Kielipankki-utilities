@@ -62,6 +62,12 @@ comment=COMMENT
     the corpus registry file.
 omit-comment|no-comment
     Do not add a changelog comment to the corpus registry file.
+components=COMPONENTS "all"
+    Manage the corpus data components listed in COMPONENTS, one or
+    more of the following, separated by spaces: data (CWB data
+    directory), registry (CWB registry file), aligned (CWB alignment
+    attributes in aligned corpora), database (Korp MySQL data), or all
+    for all components.
 dry-run
     Output information on what would be done but do not actually do
     it. (Cancels the effect of a possible --quiet.)
@@ -114,6 +120,16 @@ if in_str ":" "$1" || str_hasprefix "$1" "s/"; then
     substpatt=$1
     shift
 fi
+
+all_components="data registry aligned database"
+for component in $components; do
+    if ! word_in "$component" "$all_components all"; then
+        error "Unrecognized component \"$component\": allowed values: $(delimit ", " $all_components "all")"
+    fi
+    if [ "$component" = "all" ]; then
+        components=$all_components
+    fi
+done
 
 if [ "$command" = "remove" ] && [ "x$substpatt" != x ]; then
     error "Cannot use substitution pattern with command remove"
@@ -532,7 +548,7 @@ manage_database () {
 }
 
 manage_corpus () {
-    local cmd source target internal_remove target_bak msg
+    local cmd source target internal_remove target_bak msg comp
     cmd=$1
     source=$2
     target=$3
@@ -600,8 +616,10 @@ manage_corpus () {
     fi
     # This is a global variable that is used in the called functions
     top_datadir=$(extract_top_datadir $cwb_regdir/$source)
-    for type in data registry aligned database; do
-	manage_$type $cmd $source $target
+    for comp in $all_components; do
+        if word_in $comp "$components"; then
+	    manage_$comp $cmd $source $target
+        fi
     done
 }
 
