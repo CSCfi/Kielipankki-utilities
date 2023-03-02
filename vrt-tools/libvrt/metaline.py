@@ -109,3 +109,21 @@ def strescape(value):
              .replace('>', '&gt;')
              .replace('"', '&quot;')
     )
+
+def starttag(struct, attrs):
+    '''Start tag line for struct (bytes) with attrs (dict[bytes, bytes]).
+
+    attrs should be an OrderedDict to preserve attribute order for
+    Python versions prior to 3.8.
+
+    '''
+
+    attrstr = b' '.join(name + b'="' + val + b'"'
+                        for name, val in attrs.items())
+    return b'<' + struct + (b' ' + attrstr if attrstr else b'') + b'>\n'
+
+def strstarttag(struct, attrs):
+    '''Start tag line for struct (str) with attrs (dict[str, str]).'''
+    attrstr = ' '.join(name + '="' + val + '"'
+                       for name, val in attrs.items())
+    return '<' + struct + (' ' + attrstr if attrstr else '') + '>\n'
