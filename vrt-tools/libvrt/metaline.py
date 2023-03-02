@@ -82,3 +82,30 @@ def unescape(value):
     '''
 
     return re.sub(b'&(lt|gt|amp|quot|apos);|\t', unentify, value)
+
+def escape(value):
+    '''Escape & < > " in value as &amp; &lt; &gt; &quot; respectively.'''
+    return ( value
+             .replace(b'&', b'&amp;')
+             .replace(b'<', b'&lt;')
+             .replace(b'>', b'&gt;')
+             .replace(b'"', b'&quot;')
+    )
+
+STR_ENTITIES = dict((key.decode('utf-8'), val.decode('utf-8'))
+                    for key, val in ENTITIES.items())
+
+def strunentify(mo): return STR_ENTITIES[mo.group()]
+def strunescape(value):
+    '''As unescape but for strings instead of bytes.'''
+
+    return re.sub('&(lt|gt|amp|quot|apos);|\t', strunentify, value)
+
+def strescape(value):
+    '''Escape & < > " in value (str) as &amp; &lt; &gt; &quot; respectively.'''
+    return ( value
+             .replace('&', '&amp;')
+             .replace('<', '&lt;')
+             .replace('>', '&gt;')
+             .replace('"', '&quot;')
+    )
