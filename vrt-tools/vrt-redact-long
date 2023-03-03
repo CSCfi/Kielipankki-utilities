@@ -2,6 +2,7 @@
 # -*- mode: Python; -*-
 
 from itertools import groupby, chain
+from collections import OrderedDict
 import os, re, sys, traceback
 
 from vrtargslib import trans_args, trans_main
@@ -10,6 +11,9 @@ from vrtargslib import BadData, BadCode
 from vrtnamelib import isbinnames, binnamelist, nameindices
 from vrtdatalib import binasrecord, unescape, escape
 from libvrt.nameargs import bagtype, parsenames
+from libvrt.structargs import structattrbagtype, parsestructattrs
+from libvrt.metaline import unescape as metaunescape, escape as metaescape
+from libvrt.metaline import starttag
 
 def parsearguments():
     description = '''
@@ -31,7 +35,8 @@ def parsearguments():
                         help = '''
 
                         fields to redact, separate names by commas or
-                        spaces, or repeat the option (default: word)
+                        spaces, or repeat the option (default: word,
+                        or none if --struct is specified)
 
                         ''')
 
@@ -40,6 +45,20 @@ def parsearguments():
                         dest = 'fields', default = [],
                         type = bagtype, action = 'append',
                         help = '(deprecated) use --field/-f instead')
+
+    parser.add_argument('--struct', '-s',
+                        metavar = 'attr,*',
+                        dest = 'structs', default = [],
+                        type = structattrbagtype, action = 'append',
+                        help = '''
+
+                        structural attributes to redact, of the form
+                        "struct_attrname" or
+                        "struct:attrname1,attrname2" separate
+                        structure or attribute names by commas or
+                        spaces, or repeat the option (default: none)
+
+                        ''')
 
     parser.add_argument('--long', type = int, default = 70,
                         metavar = 'N',
@@ -103,9 +122,12 @@ def main(args, inf, ouf):
 
     if args.fields:
         args.fields = parsenames(args.fields)
-    else:
+    elif not args.structs:
         # default to --field word
         args.fields = [b'word']
+
+    if args.structs:
+        args.structs = parsestructattrs(args.structs, attrstype=set)
 
     if args.after < 0 or args.before < 0 or args.long < 1:
         raise BadData('numbers make no sense')
@@ -147,12 +169,19 @@ def implement_main(args, ins, ous):
 
         if groupismeta:
             for line in group:
-                ous.write(line)
                 if isbinnames(line):
                     wordixs = nameindices(binnamelist(line), *args.fields)
+                elif args.structs and line[1] not in b'/!' and b' ' in line:
+                    line = redact_struct_attrs(args, line, islike)
+                ous.write(line)
             continue
 
         # groupisdata aka token lines
+
+        if not args.fields:
+            for line in group:
+                ous.write(line)
+            continue
 
         if wordixs is None:
             raise BadData('no names before tokens')
@@ -166,6 +195,27 @@ def implement_main(args, ins, ous):
                     record[wordix] = escape(redact(args, word)).encode('UTF-8')
 
             ous.write(b'\t'.join(record) + b'\n')
+
+def redact_struct_attrs(args, line, islike):
+
+    def attributes(line):
+        return OrderedDict(re.findall(br'(\S+)="([^""]*)"', line))
+
+    struct, _, attrstr = line[1:].partition(b' ')
+
+    if struct in args.structs:
+        attrs = attributes(attrstr)
+
+        for attrname in args.structs[struct]:
+            attrval = metaunescape(attrs[attrname]).decode('UTF-8')
+            if len(attrval) >= args.long and islike(attrval):
+                attrs[attrname] = (
+                    metaescape(redact(args, attrval).encode('UTF-8')))
+
+        return starttag(struct, attrs)
+
+    else:
+        return line
 
 def redact(args, word):
     return '{}{}{}'.format(word[:args.after],
