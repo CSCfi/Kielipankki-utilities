@@ -7,8 +7,8 @@ import os, re, sys, traceback
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 
-from vrtnamelib import xname, isnames, namelist, nameindices
-from vrtdatalib import asrecord, unescape, escape
+from vrtnamelib import isbinnames, binnamelist, nameindices
+from vrtdatalib import binasrecord, unescape, escape
 from libvrt.nameargs import bagtype, parsenames
 
 def parsearguments():
@@ -102,11 +102,10 @@ def parsearguments():
 def main(args, inf, ouf):
 
     if args.fields:
-        args.fields = [field.decode('utf-8')
-                       for field in parsenames(args.fields)]
+        args.fields = parsenames(args.fields)
     else:
         # default to --field word
-        args.fields = ['word']
+        args.fields = [b'word']
 
     if args.after < 0 or args.before < 0 or args.long < 1:
         raise BadData('numbers make no sense')
@@ -136,7 +135,7 @@ def main(args, inf, ouf):
 def implement_main(args, ins, ous):
 
     def issome(line): return not line.isspace()
-    def ismeta(line): return line.startswith('<')
+    def ismeta(line): return line.startswith(b'<')
 
     islike = dict(word = islikeword,
                   link = islikelink,
@@ -148,9 +147,9 @@ def implement_main(args, ins, ous):
 
         if groupismeta:
             for line in group:
-                print(line, end = '', file = ous)
-                if isnames(line):
-                    wordixs = nameindices(namelist(line), *args.fields)
+                ous.write(line)
+                if isbinnames(line):
+                    wordixs = nameindices(binnamelist(line), *args.fields)
             continue
 
         # groupisdata aka token lines
@@ -159,14 +158,14 @@ def implement_main(args, ins, ous):
             raise BadData('no names before tokens')
 
         for line in group:
-            record = asrecord(line)
+            record = binasrecord(line)
             for wordix in wordixs:
-                word = unescape(record[wordix])
+                word = unescape(record[wordix].decode('UTF-8'))
 
                 if len(word) >= args.long and islike(word):
-                    record[wordix] = escape(redact(args, word))
+                    record[wordix] = escape(redact(args, word)).encode('UTF-8')
 
-            print(*record, sep = '\t', file = ous)
+            ous.write(b'\t'.join(record) + b'\n')
 
 def redact(args, word):
     return '{}{}{}'.format(word[:args.after],
@@ -193,4 +192,4 @@ def isany(word):
     return True
 
 if __name__ == '__main__':
-    trans_main(parsearguments(), main)
+    trans_main(parsearguments(), main, in_as_text=False, out_as_text=False)
