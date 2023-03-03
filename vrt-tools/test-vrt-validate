@@ -554,6 +554,34 @@ test(tag = 'names-mismatch-record',
      report(('5', 'name', 'error', 'original number of fields: 1'),
             ('5', 'name', 'error', 'different number of names: 2')))
 
+test(tag = 'too-long-line',
+
+     document =
+     ( b'<text>\n'
+       b'<sentence>\n'
+       + (b'x' * 65533) + b'\n'
+       + (b'x' * 65534) + b'\n' +
+       b'</sentence>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('3', 'length', 'warning', 'value over 4095 bytes long: field 1'),
+            ('4', 'length', 'error', 'line over 65534 bytes long')))
+
+test(tag = 'too-long-value',
+
+     document =
+     ( b'<text a="' + (b'x' * 4095) + b'" b="' + (b'x' * 4096) + b'">\n'
+       b'<sentence>\n'
+       + (b'x' * 4095) + b'\n'
+       + (b'x' * 4096) + b'\n' +
+       b'</sentence>\n'
+       b'</text>\n' ),
+
+     expected =
+     report(('1', 'length', 'warning', 'value over 4095 bytes long: b of text'),
+            ('4', 'length', 'warning', 'value over 4095 bytes long: field 1')))
+
 print('passed: {}'.format(passed),
       'failed: {}'.format(failed),
       sep = '\n')
