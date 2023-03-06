@@ -199,7 +199,7 @@ def implement_main(args, ins, ous):
 def redact_struct_attrs(args, line, islike):
 
     def attributes(line):
-        return OrderedDict(re.findall(br'(\S+)="([^""]*)"', line))
+        return OrderedDict(re.findall(br'(\S+?)="([^"]*)"', line))
 
     struct, _, attrstr = line[1:].partition(b' ')
 
