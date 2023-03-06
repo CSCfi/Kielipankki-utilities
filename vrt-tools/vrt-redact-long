@@ -91,6 +91,18 @@ def parsearguments():
 
                         ''')
 
+    parser.add_argument('--bytes', action = 'store_true',
+                        help = '''
+
+                        the arguments of --long, --after and --before
+                        denote bytes instead of characters; to keep
+                        the UTF-8 encoding valid, the prefix and
+                        suffix of the redacted value may be slightly
+                        shorter than specified with --after and
+                        --before
+
+                        ''')
+
     parser.add_argument('--like', choices = [ 'word',
                                               'link',
                                               'other',
@@ -136,6 +148,9 @@ def main(args, inf, ouf):
     if args.after + args.before > args.long:
         raise BadData('after and before are already long')
 
+    if args.bytes:
+        args.text = args.text.encode('UTF-8')
+
     # *all* these exceptions should probably go to trans_main, q.v.
 
     status = 1
@@ -160,10 +175,18 @@ def implement_main(args, ins, ous):
     def issome(line): return not line.isspace()
     def ismeta(line): return line.startswith(b'<')
 
-    islike = dict(word = islikeword,
-                  link = islikelink,
-                  other = isother,
-                  any = isany) [args.like]
+    if args.bytes:
+        maybe_redact = maybe_redact_bin
+        islike = dict(word = binislikeword,
+                      link = binislikelink,
+                      other = binisother,
+                      any = isany) [args.like]
+    else:
+        maybe_redact = maybe_redact_str
+        islike = dict(word = islikeword,
+                      link = islikelink,
+                      other = isother,
+                      any = isany) [args.like]
 
     wordixs = None
     for groupismeta, group in groupby(filter(issome, ins), ismeta):
@@ -173,7 +196,7 @@ def implement_main(args, ins, ous):
                 if isbinnames(line):
                     wordixs = nameindices(binnamelist(line), *args.fields)
                 elif args.structs and line[1] not in b'/!' and b' ' in line:
-                    line = redact_struct_attrs(args, line, islike)
+                    line = redact_struct_attrs(args, line, maybe_redact, islike)
                 ous.write(line)
             continue
 
@@ -195,7 +218,7 @@ def implement_main(args, ins, ous):
 
             ous.write(b'\t'.join(record) + b'\n')
 
-def redact_struct_attrs(args, line, islike):
+def redact_struct_attrs(args, line, maybe_redact, islike):
 
     def attributes(line):
         return OrderedDict(re.findall(br'(\S+?)="([^"]*)"', line))
@@ -217,16 +240,55 @@ def redact_struct_attrs(args, line, islike):
     else:
         return line
 
-def maybe_redact(args, binvalue, islike, escape, unescape):
+def maybe_redact_str(args, binvalue, islike, escape, unescape):
     value = unescape(binvalue).decode('UTF-8')
     if len(value) >= args.long and islike(value):
         return escape(redact(args, value).encode('UTF-8'))
+    return binvalue
+
+def maybe_redact_bin(args, binvalue, islike, escape, unescape):
+    value = unescape(binvalue)
+    if len(value) >= args.long and islike(value):
+        return escape(binredact(args, value))
     return binvalue
 
 def redact(args, word):
     return '{}{}{}'.format(word[:args.after],
                            args.text,
                            word[-args.before:] if args.before else '')
+
+def binredact(args, word):
+    return (binprefix(word, args.after)
+            + args.text
+            + (binsuffix(word, args.before) if args.before else b''))
+
+def binprefix(bs, length):
+    result = bs[:length]
+    # Would the validity of a UTF-8 byte string be checked more easily
+    # and efficiently?
+    while len(result) > 0:
+        # remove additional bytes from the end until the result is
+        # valid UTF-8
+        try:
+            _ = result.decode('UTF-8')
+        except UnicodeDecodeError:
+            result = result[:-1]
+        else:
+            break
+    return result
+
+def binsuffix(bs, length):
+    result = bs[-length:]
+    while len(result) > 0:
+        # remove additional bytes from the beginning until the result
+        # is valid UTF-8
+        try:
+            _ = result.decode('UTF-8')
+        except UnicodeDecodeError:
+            result = result[1:]
+        else:
+            break
+    return result
 
 def islikeword(word):
     return re.fullmatch(R'[\w\-]+', word)
@@ -246,6 +308,23 @@ def isother(word):
 
 def isany(word):
     return True
+
+def binislikeword(word):
+    # Note that this will only take ASCII letters and digits into
+    # account, whereas islikeword recognizes Unicode letters and
+    # digits
+    return re.fullmatch(br'[\w\-]+', word)
+
+def binislikelink(word):
+    if word.startswith((b'http:', b'https:', b'ftp:')):
+        return True
+    return False
+
+def binisother(word):
+    return not (
+        binislikeword(word) or
+        binislikelink(word)
+    )
 
 if __name__ == '__main__':
     trans_main(parsearguments(), main, in_as_text=False, out_as_text=False)
