@@ -9,7 +9,8 @@ from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 
 from vrtnamelib import isbinnames, binnamelist, nameindices
-from vrtdatalib import binasrecord, unescape, escape
+from vrtdatalib import binasrecord
+from vrtdatalib import binunescape as unescape, binescape as escape
 from libvrt.nameargs import bagtype, parsenames
 from libvrt.structargs import structattrbagtype, parsestructattrs
 from libvrt.metaline import unescape as metaunescape, escape as metaescape
@@ -189,10 +190,8 @@ def implement_main(args, ins, ous):
         for line in group:
             record = binasrecord(line)
             for wordix in wordixs:
-                word = unescape(record[wordix].decode('UTF-8'))
-
-                if len(word) >= args.long and islike(word):
-                    record[wordix] = escape(redact(args, word)).encode('UTF-8')
+                record[wordix] = maybe_redact(
+                    args, record[wordix], islike, escape, unescape)
 
             ous.write(b'\t'.join(record) + b'\n')
 
@@ -210,15 +209,19 @@ def redact_struct_attrs(args, line, islike):
             attrval = attrs.get(attrname)
             if attrval is None:
                 continue
-            attrval = metaunescape(attrval).decode('UTF-8')
-            if len(attrval) >= args.long and islike(attrval):
-                attrs[attrname] = (
-                    metaescape(redact(args, attrval).encode('UTF-8')))
+            attrs[attrname] = maybe_redact(
+                args, attrval, islike, metaescape, metaunescape)
 
         return starttag(struct, attrs)
 
     else:
         return line
+
+def maybe_redact(args, binvalue, islike, escape, unescape):
+    value = unescape(binvalue).decode('UTF-8')
+    if len(value) >= args.long and islike(value):
+        return escape(redact(args, value).encode('UTF-8'))
+    return binvalue
 
 def redact(args, word):
     return '{}{}{}'.format(word[:args.after],
