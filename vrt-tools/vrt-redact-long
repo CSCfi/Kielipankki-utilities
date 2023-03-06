@@ -207,7 +207,10 @@ def redact_struct_attrs(args, line, islike):
         attrs = attributes(attrstr)
 
         for attrname in args.structs[struct]:
-            attrval = metaunescape(attrs[attrname]).decode('UTF-8')
+            attrval = attrs.get(attrname)
+            if attrval is None:
+                continue
+            attrval = metaunescape(attrval).decode('UTF-8')
             if len(attrval) >= args.long and islike(attrval):
                 attrs[attrname] = (
                     metaescape(redact(args, attrval).encode('UTF-8')))
