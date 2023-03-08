@@ -134,6 +134,9 @@ def starttag(struct, attrs):
     attrs should be an OrderedDict to preserve attribute order for
     Python versions prior to 3.8.
 
+    This function does not escape attribute values in attrs nor check
+    their escaping, so that should be done by the caller.
+
     '''
 
     attrstr = b' '.join(name + b'="' + val + b'"'
@@ -141,7 +144,12 @@ def starttag(struct, attrs):
     return b'<' + struct + (b' ' + attrstr if attrstr else b'') + b'>\n'
 
 def strstarttag(struct, attrs):
-    '''Start tag line for struct (str) with attrs (dict[str, str]).'''
+    '''Start tag line for struct (str) with attrs (dict[str, str]).
+
+    This works the same way for strings as starttag for bytes.
+
+    '''
+
     attrstr = ' '.join(name + '="' + val + '"'
                        for name, val in attrs.items())
     return '<' + struct + (' ' + attrstr if attrstr else '') + '>\n'
