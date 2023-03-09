@@ -310,10 +310,9 @@ def isany(word):
     return True
 
 def binislikeword(word):
-    # Note that this will only take ASCII letters and digits into
-    # account, whereas islikeword recognizes Unicode letters and
-    # digits
-    return re.fullmatch(br'[\w\-]+', word)
+    # allow Unicode letters; re.fullmatch on bytes would only take
+    # ASCII letters into account
+    return islikeword(word.decode('UTF-8'))
 
 def binislikelink(word):
     if word.startswith((b'http:', b'https:', b'ftp:')):
