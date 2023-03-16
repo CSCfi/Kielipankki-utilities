@@ -239,10 +239,11 @@ make_input_fieldnums () {
         # If attribute name ends in a slash, treat it as having
         # feature-set values
         if [ $attrname != ${attrname%/} ]; then
-            # Numbers in featset_fieldnums take into account the key
-            # field, as it is included in the input to
+            # Numbers in featset_fieldnums take into account the
+            # possible key field, as it is included in the input to
             # vrt-convert-chars.py
-            if [ $fieldnum -ge $key_fieldnum ]; then
+            if [ "x$ordered_input" = x ] && [ $fieldnum -ge $key_fieldnum ];
+            then
                 fieldnum=$(($fieldnum + 1))
             fi
             featset_fieldnums="$featset_fieldnums $fieldnum"
