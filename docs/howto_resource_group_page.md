@@ -16,7 +16,10 @@ In the [list of tools](https://www.kielipankki.fi/tools/) the link to the resour
 
 In order to create a resource group page in the portal, go to [Kielipankki.fi/wp-admin](https://www.kielipankki.fi/wp-admin/) (login with your university account, you need the VPN when working remotely).
 It is possible to edit existing pages.
-To create a new page, press 'uusi sivu'.
+Open the editor for the English and the Finnish template pages on separate browser tabs and create a copy of each page as the starting points for the new resource group pages – click on 'Kopioi uudeksi luonnokseksi':
+[kielipankki.fi/intra/aineistosivumalli-eng/](https://www.kielipankki.fi/intra/aineistosivumalli-eng/) | 
+[kielipankki.fi/intra/aineistosivumalli](https://www.kielipankki.fi/intra/aineistosivumalli/)
+(Or, to start by creating a new blank page, press 'uusi sivu'.)
 The first, bold text (document) will be the name of the page (link).
 The following bold text will be the headline of the page.
 
@@ -28,7 +31,7 @@ The content of a resource group page is usually:
 - A link to all available versions of this resource in META-SHARE (search result list)
 - A PID
 
-In WordPress in the window on the right you should choose one or more of the given categories (resource families). 
+In the WordPress page editor, in the window on the right, you should choose one or more of the given categories (resource families). 
 If a category is missing, you can add it here.
 
 A page created in Kielipankki can be put to 'privat' first. Then it is only visible to the author.
