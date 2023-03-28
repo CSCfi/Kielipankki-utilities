@@ -115,16 +115,22 @@ class VrtSorter(InputProcessor):
             else:
                 if line[0] == LESS_THAN:
                     if line.startswith(b'<text '):
-                        # Preserve comments before the first text at the top of
-                        # the output by using key "0"
-                        if not text_seen and comments:
-                            for comment in comments:
-                                sorter.stdin.write(
-                                    b'0' + comment_tabs + comment)
-                            comments = []
                         # Prepend "1" to the key value to sort the data between
                         # the top and bottom comments
                         key = b'1\t' + self._make_key(line) + b'\t'
+                        if comments:
+                            if text_seen:
+                                # Prepend comments between texts to
+                                # the following text
+                                comment_prefix = key
+                            else:
+                                # Preserve comments before the first
+                                # text at the top of the output by
+                                # using key "0"
+                                comment_prefix = b'0' + comment_tabs
+                            for comment in comments:
+                                sorter.stdin.write(comment_prefix + comment)
+                            comments = []
                         text_open = text_seen = True
                         sorter.stdin.write(key + line)
                     elif line.startswith(b'<!'):
