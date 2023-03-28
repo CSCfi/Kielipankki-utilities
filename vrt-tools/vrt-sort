@@ -35,6 +35,12 @@ class VrtSorter(InputProcessor):
     DESCRIPTION = """
     Sort text structures within the input VRT according to the values
     of given attributes.
+
+    Comments and tags before the first <text> tag in the input are
+    preserved at the top of the output and those after the last
+    </text> tag at the end, so the input may have a structure spanning
+    the whole input containing the text structures, but it should not
+    have structures spanning multiple texts but not all of them.
     """
     ARGSPECS = [
         ('--key|attribute = attrlist',
@@ -126,20 +132,20 @@ class VrtSorter(InputProcessor):
                                 # the following text
                                 comment_prefix = key
                             else:
-                                # Preserve comments before the first
-                                # text at the top of the output by
-                                # using key "0"
+                                # Preserve comments (and tags) before
+                                # the first text at the top of the
+                                # output by using key "0"
                                 comment_prefix = b'0' + comment_tabs
                             for comment in comments:
                                 sorter.stdin.write(comment_prefix + comment)
                             comments = []
                         text_open = text_seen = True
                         sorter.stdin.write(key + line)
-                    elif line.startswith(b'<!'):
+                    else:
                         comments.append(line)
         if comments:
-            # Preserve comments after the last text at the end of the output
-            # (key "2")
+            # Preserve comments (and tags) after the last text at the
+            # end of the output (key "2")
             for comment in comments:
                 sorter.stdin.write(b'2' + comment_tabs + comment)
         sorter.stdin.close()
