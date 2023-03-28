@@ -100,6 +100,7 @@ class VrtSorter(InputProcessor):
         cutter = Popen(['cut', '-d\t',
                         '-f{0}-'.format(self._key_attr_count + 2)],
                        stdin=sorter.stdout, stdout=ouf, bufsize=-1)
+        sorter.stdout.close()
         text_seen = False
         text_open = False
         comments = []
