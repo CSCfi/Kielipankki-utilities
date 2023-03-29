@@ -13,8 +13,20 @@ to remove the sort key.
 """
 
 
-# TODO:
+# TODO (if deemed useful):
+# - Transformations with access to all key attributes as a dict
+#   (transformation attribute label "*"), either modifying one or more
+#   of the key attribute values or producing a separate key value
+# - Recognize some way to keep comments with the first text, so that
+#   they are not grouped with the comments at the beginning of the
+#   input, such as a separating empty comment or something like that
 # - Allow sorting e.g. paragraphs or sentences within texts
+# - Take the sort order from the attributes of a corpus (as
+#   vrt-sort-texts.sh --order-from-corpus does)
+# - Allow specifying character start and end positions in sort keys
+# - Add option --show-transforms to only show the transformations and
+#   their function definitions for each attribute, without actually
+#   processing the input.
 
 
 import os
