@@ -5,7 +5,7 @@ different attribute or a different interpretation of that attribute
 can be added. The attribute handler should then return a component of
 a file name where the text element is then written. Note that all
 output files be open at the same time - maybe best not to have like
-millions of them? or even hundreds.
+millions of them? or even hundreds. (Around 150 worked fine in Puhti.)
 
 Any markup lines outside text elements are discarded. This breaks the
 VRT format if some such markup starts outside and ends inside a text
@@ -33,41 +33,43 @@ def parsearguments(argv, *, prog = None):
 
     description = '''
 
-    Partitions VRT input stream into VRT output files based on the
-    value of a text attribute. Each text element goes to an output
-    file "stem-tag.vrt" where "tag" depends on an interpretation of
-    the specified text attribute. Markup outside text elements is
-    discarded.
+    Partitions VRT input stream into VRT output files based on text
+    attributes. Each text element goes to an output file
+    "stem-tag.vrt" where "tag" depends on an interpretation of some
+    text attributes. Markup outside text elements is discarded.
 
-    Initially only one partition criterion is implemented: account for
-    the majority language codes of the sentences in a text element
-    together with the languages most relevant to the Language Bank of
-    Finland (so mainly fin, swe).
+    First partition criterion was to account for the majority language
+    codes of the sentences, together with any fin, swe, eng, in a text
+    element. Second is an attempted to partition by publication year,
+    based on a number of attributes that might contain a year.
 
     '''
 
     parser = multiput2_args(description = description)
 
-    parser.add_argument('--attr', '-a', metavar = 'name',
-                        default = 'sum_lang',
-                        type = nametype,
+    parser.add_argument('--attr', '-a', metavar = 'spec',
                         help = '''
 
-                        text attribute on which to partition
-                        (sum_lang)
+                        text attributes on which to partition
+                        (interpreted by the particular method)
 
                         ''')
 
-    parser.add_argument('--tag', '-t',
-                        choices = [ 'klk-main-lang' ],
-                        default = 'klk-main-lang',
-                        # type = str.encode,
+    method = parser.add_mutually_exclusive_group(required = True)
+    method.add_argument('--klk-main-lang', action = 'store_true',
                         help = '''
 
-                        tagging procedure for the parts
-                        (only "klk-main-lang" is implemented:
-                        tags consist of most frequent language codes
-                        and codes for Finnish, Swedish and such)
+                        tag by majority language codes and any fin,
+                        swe, eng in a summary attribute (sum_lang,
+                        override with -a)
+
+                        ''')
+    method.add_argument('--klk-year', action = 'store_true',
+                        help = '''
+
+                        tag by publication year, extracted from
+                        datefrom, date, or issue_date attribute
+                        (ignores -a)
 
                         ''')
 
@@ -121,13 +123,20 @@ def main(args, ins, outdir):
     # print('args.tag:', args.tag)
     # print('PART:', PART)
 
+    # set partition method according to the options
+    method = (
+        klk_main_lang if args.klk_main_lang else
+        klk_year if args.klk_year else
+        None # this cannot happen: method group is required in args
+    )
+
     outstreams = dict() # an open output stream for each tag seen so far
     for group in text_elements(ins, open(os.devnull, mode = 'wb'),
                                as_text = False):
         # lines outside any text element are discarded
         # lines inside are shipped to different files
         line = next(group)
-        tag = PART[args.tag](line, args) # get file-name component from text start line
+        tag = method(line, args) # get file-name component from text start line
         # print('would write to:', tmpname.format(tag))
 
         # opener opens tmpname.format(tag) if it that is not already
@@ -201,13 +210,47 @@ def klk_main_lang(line, args):
 
     return b'-'.join(result).decode('UTF-8')
 
-PART = {
-    # a partition function (defined above) is called on each text
-    # start tag through this dict based on the option args.tag, to
-    # return a component of a file name where the element then goes
+def klk_year(line, args):
+    '''Return a best publication year from line, which is the start tag of
+    a text element. Ignore args. This attempt to interpret KLK
+    attributes may be somewhat opaque to the user, but the result
+    should alway be a sequence of four digits. Say, 0000 for no valid
+    year found? And otherwise slightly heuristic due to the variation
+    and incompleteness in the attributes.
 
-    'klk-main-lang' : klk_main_lang,
-}
+    '''
+    # extract the attributes
+    meta = mapping(line)
+
+    # extract a year (or fall on "0000")
+    YYYY_MM_DD = b'(?x: ( [0-9]{4} ) (?: - [0-9]{2} (?: - [0-9]{2} )? )? )'
+    DD_MM_YYYY = b'(?x: (?: [0-9]{2} [.] (?: [0-9]{2} [.] )? )? ( [0-9]{4} ) )'
+    YYYYMMDD = b'(?x: ( [0-9]{4} ) [0-9]{4} )'
+    year = (
+        # datefrom="19230401"
+        fullmatch(YYYYMMDD, meta.get(b'datefrom', b''))
+        or
+        # date="_" but no year there
+        # date="1923"
+        # date="1923-04"
+        # date="1923-04-01"
+        # date="04.1923"
+        # date="01.04.1923"
+        fullmatch(YYYY_MM_DD, meta.get(b'date', b'')) or
+        fullmatch(DD_MM_YYYY, meta.get(b'date', b''))
+        or
+        # issue_date="01.04.1923"
+        # issue_date="04.1923"
+        # issue_date="1923"
+        # or ... can be (yyyy[-mm[-dd]]) so ... act accordingly
+        fullmatch(YYYY_MM_DD, meta.get(b'issue_date', b'')) or
+        fullmatch(DD_MM_YYYY, meta.get(b'issue_date', b''))
+        or
+        # found no year, find "0000" as a fallback
+        fullmatch(b'(0000)', b'0000')
+
+    ).group(1)
+    return year.decode()
 
 def opener(streams, tag, head, tmpname, outname):
     '''Return the output stream that points to an output file with "tag"
