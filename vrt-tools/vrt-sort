@@ -14,7 +14,6 @@ to remove the sort key.
 
 
 # TODO:
-# - Allow transforming key values
 # - Allow sorting e.g. paragraphs or sentences within texts
 
 
@@ -22,6 +21,7 @@ import os
 import re
 import sys
 
+from collections import defaultdict
 from subprocess import Popen, PIPE, TimeoutExpired
 from time import sleep
 
@@ -55,21 +55,43 @@ class VrtSorter(InputProcessor):
             numeric sort), R (random sort), r (reverse), V (version
             sort).''',
          {'required': True}),
+        ('--transform = attrname',
+         '''Transform the value of the attribute attrname using code
+            before using it as a sort key. attrname is one of the
+            attributes listed in the argument of --key. code may be
+            one of the following: (1) a Perl-style substitution
+            "s/regexp/subst/flags" (where regexp and subst follow
+            Python regular expression syntax), (2) a single Python
+            expression, or (3) the body of a Python function. In (2)
+            and (3), the variable "val" refers to the value of the
+            attribute (str). If the body of a Python function has no
+            return statement, the value of "val" is returned. The
+            option may be repeated to specify transformations for
+            different attributes and/or multiple transformations for a
+            single attribute. Multiple transformations for an
+            attribute are processed in the order they are
+            specified.''',
+         {'metavar': 'attrname:code',   # colon cannot be used in spec above
+          'action': 'append'}),
     ]
 
     def __init__(self):
         super().__init__()
         self._key_attrs = []
+        self._key_attrs_set = set()
         self._key_attr_count = 0
         self._key_re = None
         self._make_key = None
         self._sorter_key_opts = None
+        self._transform_funcs = defaultdict(list)
+        self._transform_attrs = set()
 
     def check_args(self, args):
         super().check_args(args)
         args.key = args.key.replace(',', ' ')
         keys = [key.partition(':') for key in args.key.split()]
         self._key_attrs = [key[0].encode() for key in keys]
+        self._key_attrs_set = set(self._key_attrs)
         key_opts = [key[2] for key in keys]
         self._key_attr_count = len(keys)
         if len(keys) == 1:
@@ -85,7 +107,65 @@ class VrtSorter(InputProcessor):
         key_opts[0:0] = ['']
         self._sorter_key_opts = ['-k{0},{0}{1}'.format(i + 1, key_opts[i])
                                 for i in range(len(keys) + 1)]
-        # sys.stderr.write(repr(self._key_attrs) + '\n' + repr(self._sorter_key_opts) + '\n')
+        # sys.stderr.write(repr(self._key_attrs) + '\n'
+        #                  + repr(self._sorter_key_opts) + '\n')
+        self._make_transforms(args.transform or [])
+        self._transform_attrs = set(self._transform_funcs.keys())
+
+    def _make_transforms(self, transforms):
+        for transform in transforms:
+            key, _, code = transform.partition(':')
+            key = key.strip()
+            key_b = key.encode()
+            code = code.lstrip()
+            if key_b not in self._key_attrs:
+                self.error_exit('Transform attribute ' + key
+                                + ' not listed in the argument of --key')
+            self._transform_funcs[key_b].append(self._make_transform_func(code))
+        # sys.stderr.write(repr(self._transform_funcs) + '\n')
+
+    def _make_transform_func(self, code):
+
+        def is_single_expr(code):
+            # Use eval to check if the code is a single expression
+            try:
+                compile(code, '', mode='eval')
+            except SyntaxError:
+                return False
+            return True
+
+        def indent(lines):
+            return '  ' + lines.replace('\n', '\n  ')
+
+        body = ''
+        if code.startswith('s/'):
+            mo = re.match(r's/((?:[^/]|\\/)+)/((?:[^/]|\\/)*)/([gix]*)', code)
+            if not mo:
+                self.error_exit(f'Perl-style substitution not of the form'
+                                f' s/regexp/repl/[flags]: {code}')
+            regexp = mo.group(1)
+            repl = mo.group(2)
+            repl = re.sub(r'\$(\d)', r'\\\1', repl)
+            flags = mo.group(3)
+            count = 0 if 'g' in flags else 1
+            flags = '|'.join('re.' + flag.upper()
+                             for flag in flags if flag != 'g')
+            if not flags:
+                flags = '0'
+            # f-strings require at least Python 3.5
+            body = (f'return re.sub(r"""{regexp}""",'
+                    f' r"""{repl}""", val, {count}, {flags})')
+        elif is_single_expr(code):
+            body = 'return ' + code
+        else:
+            if not re.search(r'(^|;)\s*return', code):
+                body = code + '\nreturn val'
+            else:
+                body = code
+        funcdef = 'def transfunc(val):\n' + indent(body)
+        # sys.stderr.write(funcdef + '\n')
+        exec(funcdef, globals())
+        return transfunc
 
     def main(self, args, inf, ouf):
         LESS_THAN = '<'.encode('utf-8')[0]
@@ -126,6 +206,7 @@ class VrtSorter(InputProcessor):
                         # Prepend "1" to the key value to sort the data between
                         # the top and bottom comments
                         key = b'1\t' + self._make_key(line) + b'\t'
+                        # sys.stderr.write(repr(key) + '\n')
                         if comments:
                             if text_seen:
                                 # Prepend comments between texts to
@@ -156,12 +237,32 @@ class VrtSorter(InputProcessor):
 
     def _make_key_single(self, tagline):
         mo = self._key_re.search(tagline)
-        return mo.group(1) if (mo and mo.group(1) is not None) else b''
+        if mo and mo.group(1) is not None:
+            if self._transform_funcs:
+                return self._apply_transforms(self._key_attrs[0], mo.group(1))
+            else:
+                return mo.group(1)
+        else:
+            return b''
 
     def _make_key_multi(self, tagline):
-        attrvals = dict(self._key_re.findall(tagline))
+        attrvals = dict((key, val)
+                        for key, val in self._key_re.findall(tagline)
+                        if key in self._key_attrs_set)
+        for attrname in self._transform_attrs:
+            attrvals[attrname] = (
+                self._apply_transforms(attrname, attrvals[attrname]))
         return b'\t'.join(attrvals.get(attrname, b'')
                           for attrname in self._key_attrs)
+
+    def _apply_transforms(self, attrname, value):
+        # sys.stderr.write('_apply_transforms(' + repr(attrname) + ', '
+        #                  + repr(value) + ') -> ')
+        value = value.decode('utf-8')
+        for transform in self._transform_funcs[attrname]:
+            value = transform(value)
+        # sys.stderr.write(repr(value) + '\n')
+        return value.encode('utf-8')
 
 
 if __name__ == '__main__':
