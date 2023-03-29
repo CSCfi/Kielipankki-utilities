@@ -45,16 +45,18 @@ class VrtSorter(InputProcessor):
     ARGSPECS = [
         ('--key|attribute = attrlist',
          '''Use attributes listed in attrlist (separated by spaces or
-            commas) as the sort keys: sort primarily by the first attribute,
-            secondarily by the second and so on. Each attribute name
-            may be followed by a colon and sort ordering option
-            characters recognized by the "sort" command: often one or
-            more of the following: b (ignore leading blanks), d
-            (dictionary order), f (ignore case), g (general numeric
-            sort), i (ignore nonprinting), M (month sort), h (human
-            numeric sort), R (random sort), r (reverse), V (version
-            sort).''',
-         {'required': True}),
+            commas) as the sort keys: sort primarily by the first
+            attribute, secondarily by the second and so on. Multiple
+            keys can also be specified by repeating the option. Each
+            attribute name may be followed by a colon and sort
+            ordering option characters recognized by the "sort"
+            command: often one or more of the following: b (ignore
+            leading blanks), d (dictionary order), f (ignore case), g
+            (general numeric sort), i (ignore nonprinting), M (month
+            sort), h (human numeric sort), R (random sort), r
+            (reverse), V (version sort).''',
+         {'required': True,
+          'action': 'append'}),
         ('--transform = attrname',
          '''Transform the value of the attribute attrname using code
             before using it as a sort key. attrname is one of the
@@ -88,7 +90,7 @@ class VrtSorter(InputProcessor):
 
     def check_args(self, args):
         super().check_args(args)
-        args.key = args.key.replace(',', ' ')
+        args.key = ' '.join(args.key).replace(',', ' ')
         keys = [key.partition(':') for key in args.key.split()]
         self._key_attrs = [key[0].encode() for key in keys]
         self._key_attrs_set = set(self._key_attrs)
