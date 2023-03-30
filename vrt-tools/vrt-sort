@@ -104,6 +104,7 @@ class VrtSorter(InputProcessor):
         self._sorter_key_opts = None
         self._transform_funcs = defaultdict(list)
         self._transform_attrs = set()
+        self._transform_sources = {}
 
     def check_args(self, args):
         super().check_args(args)
@@ -184,7 +185,28 @@ class VrtSorter(InputProcessor):
                 body = code
         funcdef = 'def transfunc(val):\n' + indent(body)
         # sys.stderr.write(funcdef + '\n')
-        exec(funcdef, globals())
+        try:
+            exec(funcdef, globals())
+        except SyntaxError as e:
+            self.error_exit(
+                f'Syntax error in transformation: {code}\n{e}:\n'
+                + indent(funcdef))
+        try:
+            _ = transfunc('')
+        except (ImportError, NameError, TypeError) as e:
+            self.error_exit(f'Invalid transformation: {code}\n'
+                            f'{e.__class__.__name__}: {e}:\n'
+                            + indent(funcdef))
+        except Exception:
+            # Should we also check some other exceptions here? At least
+            # IndexError, KeyError and ValueError may depend on the
+            # argument value, so they are checked when actually
+            # transforming values.
+            pass
+        self._transform_sources[transfunc] = {
+            'source': code,
+            'funcdef': funcdef,
+        }
         return transfunc
 
     def main(self, args, inf, ouf):
@@ -215,7 +237,9 @@ class VrtSorter(InputProcessor):
         # Tabs to be added between the primary key and top or bottom comment
         # lines
         comment_tabs = (self._key_attr_count + 1) * b'\t'
+        linenr = 0
         for line in inf:
+            linenr += 1
             if text_open:
                 if line[0] == LESS_THAN and line.startswith(b'</text>'):
                     text_open = False
@@ -225,7 +249,7 @@ class VrtSorter(InputProcessor):
                     if line.startswith(b'<text '):
                         # Prepend "1" to the key value to sort the data between
                         # the top and bottom comments
-                        key = b'1\t' + self._make_key(line) + b'\t'
+                        key = b'1\t' + self._make_key(line, linenr) + b'\t'
                         # sys.stderr.write(repr(key) + '\n')
                         if comments:
                             if text_seen:
@@ -255,32 +279,43 @@ class VrtSorter(InputProcessor):
         for proc in [sorter, cutter]:
             proc.wait()
 
-    def _make_key_single(self, tagline):
+    def _make_key_single(self, tagline, linenr):
         mo = self._key_re.search(tagline)
         if mo and mo.group(1) is not None:
             if self._transform_funcs:
-                return self._apply_transforms(self._key_attrs[0], mo.group(1))
+                return self._apply_transforms(
+                    self._key_attrs[0], mo.group(1), linenr)
             else:
                 return mo.group(1)
         else:
             return b''
 
-    def _make_key_multi(self, tagline):
+    def _make_key_multi(self, tagline, linenr):
         attrvals = dict((key, val)
                         for key, val in self._key_re.findall(tagline)
                         if key in self._key_attrs_set)
         for attrname in self._transform_attrs:
-            attrvals[attrname] = (
-                self._apply_transforms(attrname, attrvals[attrname]))
+            attrvals[attrname] = self._apply_transforms(
+                attrname, attrvals[attrname], linenr)
         return b'\t'.join(attrvals.get(attrname, b'')
                           for attrname in self._key_attrs)
 
-    def _apply_transforms(self, attrname, value):
+    def _apply_transforms(self, attrname, value, linenr):
         # sys.stderr.write('_apply_transforms(' + repr(attrname) + ', '
         #                  + repr(value) + ') -> ')
         value = value.decode('utf-8')
         for transform in self._transform_funcs[attrname]:
-            value = transform(value)
+            try:
+                value = transform(value)
+            except (ArithmeticError, AttributeError, LookupError, RuntimeError,
+                    ValueError) as e:
+                # Should we also catch other errors?
+                self.warn(f'input line {linenr}: returning "" for attribute'
+                          f' {attrname.decode()} with value "{value}":'
+                          f' transformation caused {e.__class__.__name__}:'
+                          f' {e}: '
+                          + self._transform_sources[transform]['source'])
+                value = ''
         # sys.stderr.write(repr(value) + '\n')
         return value.encode('utf-8')
 
