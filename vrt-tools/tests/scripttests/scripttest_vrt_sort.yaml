@@ -580,6 +580,13 @@
       </text>
 
 
+- name: 'vrt-sort: --transform with single expression, implicit str()'
+  input:
+    cmdline: vrt-sort --key "n" --transform "n:100 - int(val)"
+  output:
+    stdout: *output-3
+
+
 - name: 'vrt-sort: --transform with Python function body (explicit return)'
   input:
     cmdline: vrt-sort --key "n" --transform "n:val = 100 - int(val); return str(val)"

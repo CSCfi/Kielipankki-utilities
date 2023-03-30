@@ -86,7 +86,8 @@ class VrtSorter(InputProcessor):
             comments); (2) a single Python expression; or (3) the body
             of a Python function. In (2) and (3), the variable "val"
             refers to the value of the attribute (str), and they
-            return the result of the transformation. If (3) has no
+            return the result of the transformation (converted to
+            str). If (3) has no
             return statement, the value of "val" is returned. On an
             error depending on the value of "val", an empty string is
             returned. The option may be repeated to specify
@@ -334,7 +335,7 @@ class VrtSorter(InputProcessor):
                           + self._transform_sources[transform]['source'])
                 value = ''
         # sys.stderr.write(repr(value) + '\n')
-        return value.encode('utf-8')
+        return str(value).encode('utf-8')
 
 
 if __name__ == '__main__':
