@@ -273,6 +273,8 @@ class VrtSorter(InputProcessor):
             # end of the output (key "2")
             for comment in comments:
                 sorter.stdin.write(b'2' + comment_tabs + comment)
+        elif text_open:
+            self.warn('the last <text> structure in input not closed')
         sorter.stdin.close()
         # Is waiting needed? It is said to block but does it in practice in
         # this case?
