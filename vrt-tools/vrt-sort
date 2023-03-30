@@ -74,17 +74,22 @@ class VrtSorter(InputProcessor):
             before using it as a sort key. attrname is one of the
             attributes listed in the argument of --key. code may be
             one of the following: (1) a Perl-style substitution
-            "s/regexp/subst/flags" (where regexp and subst follow
-            Python regular expression syntax), (2) a single Python
-            expression, or (3) the body of a Python function. In (2)
-            and (3), the variable "val" refers to the value of the
-            attribute (str). If the body of a Python function has no
-            return statement, the value of "val" is returned. The
-            option may be repeated to specify transformations for
-            different attributes and/or multiple transformations for a
-            single attribute. Multiple transformations for an
-            attribute are processed in the order they are
-            specified.''',
+            "s/regexp/subst/[flags]", where regexp and subst follow
+            Python regular expression syntax and flags is zero or more
+            of the following letters: a (make \\w, \\W, \\b, \\B, \\d,
+            \\D match ASCII characters only instead of whole Unicode),
+            g (replace all matches and not only the first one), i
+            (match case-insensitively), l (make \\w, \\W, \\b, \\B
+            dependent on the current locale), x (ignore whitespace and
+            comments); (2) a single Python expression; or (3) the body
+            of a Python function. In (2) and (3), the variable "val"
+            refers to the value of the attribute (str). If the body of
+            a Python function has no return statement, the value of
+            "val" is returned. The option may be repeated to specify
+            transformations for different attributes and/or multiple
+            transformations for a single attribute. Multiple
+            transformations for an attribute are processed in the
+            order they are specified.''',
          {'metavar': 'attrname:code',   # colon cannot be used in spec above
           'action': 'append'}),
     ]
@@ -153,10 +158,11 @@ class VrtSorter(InputProcessor):
 
         body = ''
         if code.startswith('s/'):
-            mo = re.match(r's/((?:[^/]|\\/)+)/((?:[^/]|\\/)*)/([gix]*)', code)
+            mo = re.fullmatch(r's/((?:[^/]|\\/)+)/((?:[^/]|\\/)*)/([agilx]*)',
+                              code)
             if not mo:
                 self.error_exit(f'Perl-style substitution not of the form'
-                                f' s/regexp/repl/[flags]: {code}')
+                                f' s/regexp/repl/[agilx]*: {code}')
             regexp = mo.group(1)
             repl = mo.group(2)
             repl = re.sub(r'\$(\d)', r'\\\1', repl)
