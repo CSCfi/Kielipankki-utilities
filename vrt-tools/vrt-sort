@@ -72,7 +72,9 @@ class VrtSorter(InputProcessor):
         ('--transform = attrname',
          '''Transform the value of the attribute attrname using code
             before using it as a sort key. attrname is one of the
-            attributes listed in the argument of --key. code may be
+            attributes listed in the argument of --key. (attrname and
+            the colon may be omitted if only one key attribute is
+            specified.) code may be
             one of the following: (1) a Perl-style substitution
             "s/regexp/subst/[flags]", where regexp and subst follow
             Python regular expression syntax and flags is zero or more
@@ -92,7 +94,7 @@ class VrtSorter(InputProcessor):
             transformations for a single attribute. Multiple
             transformations for an attribute are processed in the
             order they are specified.''',
-         {'metavar': 'attrname:code',   # colon cannot be used in spec above
+         {'metavar': '[attrname:]code',   # colon cannot be used in spec above
           'action': 'append'}),
     ]
 
@@ -135,9 +137,20 @@ class VrtSorter(InputProcessor):
         self._transform_attrs = set(self._transform_funcs.keys())
 
     def _make_transforms(self, transforms):
+        attrname_re = re.compile('\s*([\w-]+)\s*:\s*')
         for transform in transforms:
-            key, _, code = transform.partition(':')
-            key = key.strip()
+            mo = attrname_re.match(transform)
+            if mo:
+                key = mo.group(1)
+                code = attrname_re.sub('', transform, 1)
+            elif self._key_attr_count == 1:
+                key = self._key_attrs[0].decode()
+                code = transform
+            else:
+                self.error_exit(
+                    'Multiple key attributes but transform does not '
+                    'specify to which one it applies: '
+                    + transform)
             key_b = key.encode()
             code = code.lstrip()
             if key_b not in self._key_attrs:

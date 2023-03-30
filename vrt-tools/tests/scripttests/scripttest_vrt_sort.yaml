@@ -68,6 +68,16 @@
     stdout: ''
 
 
+- name: 'vrt-sort: --transform without no key attribute with multiple keys'
+  input:
+    cmdline: vrt-sort --key "a b" --transform "s/x/y/"
+  output:
+    returncode: 1
+    stderr:
+      regex: '.*Multiple key attributes but transform does not specify to which one it applies: s/x/y/.*'
+    stdout: ''
+
+
 - name: 'vrt-sort: --transform: invalid Perl-style substitution'
   input:
     cmdline: vrt-sort --key a --transform "a:s/x/y"
@@ -164,6 +174,39 @@
   input:
     cmdline: vrt-sort --key b --key "n a"
   output: *output-1
+
+
+- name: 'vrt-sort: --transform without key attribute'
+  input:
+    cmdline: vrt-sort --key a --transform "s/a/z/g"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
 
 
 # Extra comments and other tags
