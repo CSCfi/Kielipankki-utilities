@@ -83,9 +83,11 @@ class VrtSorter(InputProcessor):
             dependent on the current locale), x (ignore whitespace and
             comments); (2) a single Python expression; or (3) the body
             of a Python function. In (2) and (3), the variable "val"
-            refers to the value of the attribute (str). If the body of
-            a Python function has no return statement, the value of
-            "val" is returned. The option may be repeated to specify
+            refers to the value of the attribute (str), and they
+            return the result of the transformation. If (3) has no
+            return statement, the value of "val" is returned. On an
+            error depending on the value of "val", an empty string is
+            returned. The option may be repeated to specify
             transformations for different attributes and/or multiple
             transformations for a single attribute. Multiple
             transformations for an attribute are processed in the
