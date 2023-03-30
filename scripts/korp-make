@@ -26,6 +26,8 @@ progdir=`dirname $0`
 
 mapdir=$progdir/../corp
 
+vrttoolsdir=$progdir/../vrt-tools
+
 vrt_subdir=vrt/CORPUS
 tsv_subdir=$vrt_subdir
 
@@ -355,7 +357,7 @@ config_file_optname=config-file
 
 vrt_rename_struct_attrs=$progdir/vrt-rename-struct-attrs.pl
 vrt_fix_attrs=$progdir/vrt-fix-attrs.py
-vrt_add_lemma_nobound=$progdir/../vrt-tools/vrt-add-lemma-nobound
+vrt_add_lemma_nobound=$vrttoolsdir/vrt-add-lemma-nobound
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
 vrt_sort_texts=$progdir/vrt-sort-texts.sh
 vrt_add_struct_ids=$progdir/vrt-add-struct-ids.sh
