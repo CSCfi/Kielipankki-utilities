@@ -107,6 +107,8 @@ class VrtSorter(InputProcessor):
         self._key_re = None
         self._make_key = None
         self._sorter_key_opts = None
+        self._concat_key0 = False
+        self._concat_all_keys = False
         self._transform_funcs = defaultdict(list)
         self._transform_attrs = set()
         self._transform_sources = {}
@@ -125,13 +127,24 @@ class VrtSorter(InputProcessor):
         else:
             self._make_key = self._make_key_multi
             self._key_re = re.compile(rb' ([\w-]+)="(.*?)"')
-        # The first key field indicates whether the line is part of the top
-        # comments (before the first text), the body or the bottom comments
-        # (after the last text). Sorting would be faster if it were prefixed to
-        # the first key field, but it would not work with all sort options.
-        key_opts[0:0] = ['']
-        self._sorter_key_opts = ['-k{0},{0}{1}'.format(i + 1, key_opts[i])
-                                for i in range(len(keys) + 1)]
+        # The first key field indicates whether the line is part of
+        # the top comments (before the first text), the body or the
+        # bottom comments (after the last text). Sorting is faster if
+        # it is prefixed to the first specified key field, but it does
+        # not work with all sort options; it should work with b, d, f,
+        # i, r (if the values are reversed, too).
+        if key_opts[0] == '' or all(opt in 'bdfir' for opt in key_opts[0]):
+            self._concat_key0 = True
+            if all(key_opts[i] == '' for i in range(len(key_opts))):
+                self._concat_all_keys = True
+        # self._concat_key0 = self._concat_all_keys = False
+        if not self._concat_key0:
+            key_opts[0:0] = ['']
+        if self._concat_all_keys:
+            self._sorter_key_opts = ['-k1,1']
+        else:
+            self._sorter_key_opts = ['-k{0},{0}{1}'.format(i + 1, key_opts[i])
+                                     for i in range(len(key_opts))]
         # sys.stderr.write(repr(self._key_attrs) + '\n'
         #                  + repr(self._sorter_key_opts) + '\n')
         self._make_transforms(args.transform or [])
@@ -226,6 +239,30 @@ class VrtSorter(InputProcessor):
         return transfunc
 
     def main(self, args, inf, ouf):
+
+        def make_part_prefixes():
+            # Top comment and tag lines, texts, bottom comment and tag
+            # lines
+            part_prefix = [b'0', b'1', b'2']
+            if not self._concat_key0:
+                # The prefix is a separate field, so append a tab
+                part_prefix = [prefix + b'\t' for prefix in part_prefix]
+            elif 'r' in self._sorter_key_opts[0][5:]:
+                # If the prefix is not a separate field and the
+                # primary key is sorted in reverse, reverse the
+                # prefixes, too
+                part_prefix.reverse()
+            # Tabs to be added between the prefix and top or bottom
+            # comment lines
+            if self._concat_all_keys:
+                # Effectively a single key
+                comment_tabs = b'\t'
+            else:
+                comment_tabs = self._key_attr_count * b'\t'
+            for i in (0, 2):
+                part_prefix[i] = part_prefix[i] + comment_tabs
+            return part_prefix
+
         LESS_THAN = '<'.encode('utf-8')[0]
         sorter = Popen(['sort', '-s', '-t\t'] + self._sorter_key_opts,
                        stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=-1)
@@ -239,17 +276,20 @@ class VrtSorter(InputProcessor):
                             + ''.join(sorter_errmsg))
         # tee = Popen(['tee', 'vrt-sort-keys.out'],
         #             stdin=sorter.stdout, stdout=PIPE, bufsize=-1)
+        if self._concat_all_keys:
+            key_count = 1
+        else:
+            key_count = self._key_attr_count + int(not self._concat_key0)
         cutter = Popen(['cut', '-d\t',
-                        '-f{0}-'.format(self._key_attr_count + 2)],
+                        '-f{0}-'.format(key_count + 1)],
                        stdin=sorter.stdout, stdout=ouf, bufsize=-1)
         sorter.stdout.close()
+        part_prefix = make_part_prefixes()
+        keysep = b'\x01' if self._concat_all_keys else b'\t'
         text_seen = False
         text_open = False
         comments = []
         key = ''
-        # Tabs to be added between the primary key and top or bottom comment
-        # lines
-        comment_tabs = (self._key_attr_count + 1) * b'\t'
         linenr = 0
         for line in inf:
             linenr += 1
@@ -262,7 +302,9 @@ class VrtSorter(InputProcessor):
                     if line.startswith(b'<text '):
                         # Prepend "1" to the key value to sort the data between
                         # the top and bottom comments
-                        key = b'1\t' + self._make_key(line, linenr) + b'\t'
+                        key = (part_prefix[1]
+                               + self._make_key(line, keysep, linenr)
+                               + b'\t')
                         # sys.stderr.write(repr(key) + '\n')
                         if comments:
                             if text_seen:
@@ -273,7 +315,7 @@ class VrtSorter(InputProcessor):
                                 # Preserve comments (and tags) before
                                 # the first text at the top of the
                                 # output by using key "0"
-                                comment_prefix = b'0' + comment_tabs
+                                comment_prefix = part_prefix[0]
                             for comment in comments:
                                 sorter.stdin.write(comment_prefix + comment)
                             comments = []
@@ -285,7 +327,7 @@ class VrtSorter(InputProcessor):
             # Preserve comments (and tags) after the last text at the
             # end of the output (key "2")
             for comment in comments:
-                sorter.stdin.write(b'2' + comment_tabs + comment)
+                sorter.stdin.write(part_prefix[2] + comment)
         elif text_open:
             self.warn('the last <text> structure in input not closed')
         sorter.stdin.close()
@@ -294,7 +336,7 @@ class VrtSorter(InputProcessor):
         for proc in [sorter, cutter]:
             proc.wait()
 
-    def _make_key_single(self, tagline, linenr):
+    def _make_key_single(self, tagline, keysep, linenr):
         mo = self._key_re.search(tagline)
         if mo and mo.group(1) is not None:
             if self._transform_funcs:
@@ -305,15 +347,15 @@ class VrtSorter(InputProcessor):
         else:
             return b''
 
-    def _make_key_multi(self, tagline, linenr):
+    def _make_key_multi(self, tagline, keysep, linenr):
         attrvals = dict((key, val)
                         for key, val in self._key_re.findall(tagline)
                         if key in self._key_attrs_set)
         for attrname in self._transform_attrs:
             attrvals[attrname] = self._apply_transforms(
                 attrname, attrvals[attrname], linenr)
-        return b'\t'.join(attrvals.get(attrname, b'')
-                          for attrname in self._key_attrs)
+        return keysep.join(attrvals.get(attrname, b'')
+                           for attrname in self._key_attrs)
 
     def _apply_transforms(self, attrname, value, linenr):
         # sys.stderr.write('_apply_transforms(' + repr(attrname) + ', '
