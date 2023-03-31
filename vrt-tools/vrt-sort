@@ -137,6 +137,8 @@ class VrtSorter(InputProcessor):
             self._concat_key0 = True
             if all(key_opts[i] == '' for i in range(len(key_opts))):
                 self._concat_all_keys = True
+        # For testing the previous behaviour, with separate prefix and
+        # keys:
         # self._concat_key0 = self._concat_all_keys = False
         if not self._concat_key0:
             key_opts[0:0] = ['']
@@ -222,7 +224,7 @@ class VrtSorter(InputProcessor):
                 + indent(funcdef))
         try:
             _ = transfunc('')
-        except (ImportError, NameError, TypeError) as e:
+        except (ImportError, NameError) as e:
             self.error_exit(f'Invalid transformation: {code}\n'
                             f'{e.__class__.__name__}: {e}:\n'
                             + indent(funcdef))
@@ -365,7 +367,7 @@ class VrtSorter(InputProcessor):
             try:
                 value = transform(value)
             except (ArithmeticError, AttributeError, LookupError, RuntimeError,
-                    ValueError) as e:
+                    TypeError, ValueError) as e:
                 # Should we also catch other errors?
                 self.warn(f'input line {linenr}: returning "" for attribute'
                           f' {attrname.decode()} with value "{value}":'
