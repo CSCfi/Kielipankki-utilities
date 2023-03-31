@@ -227,11 +227,8 @@ class VrtSorter(InputProcessor):
 
     def main(self, args, inf, ouf):
         LESS_THAN = '<'.encode('utf-8')[0]
-        env = os.environ
-        env['LC_ALL'] = 'C'
         sorter = Popen(['sort', '-s', '-t\t'] + self._sorter_key_opts,
-                       stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=-1,
-                       env=env)
+                       stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=-1)
         # Give sort time to start to see if it produces an error message
         sleep(0.1)
         sorter.poll()
