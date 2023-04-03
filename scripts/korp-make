@@ -205,17 +205,40 @@ overwrite-structure-ids|overwrite-element-ids !keep_struct_ids
 
 @ Sorting text structures
 
-text-sort-attribute=ATTR { add_text_sort_opt --attribute "$1" }
-    sort text elements in the corpus by the attribute ATTR; sort by
-    byte values into ascending order, without taking the locale into
-    account
-text-sort-transform=TRANSFORM '"'"' * { add_text_sort_opt --transform "$1" }
-    transform the sorting attribute values with the Perl regular
-    expression substitution (s/.../.../) TRANSFORM to get the key to
-    be used for sorting; this option may be specified multiple times,
-    in which case the substitutions are applied in the specified
-    order; if read from a configuration file, TRANSFORM is treated as
-    enclosed in single quotes, so you need not protect \\ nor \$
+text-sort-attribute=ATTRLIST * { add_text_sort_opt --key "$1" }
+    Sort text elements in the corpus by the attributes listed in
+    ATTRLIST, separated by spaces or commas. Sort primarily by the
+    first attribute, secondarily by the second and so on, by byte
+    values, without taking the locale into account. Multiple keys can
+    also be specified by repeating the option. Each attribute name may
+    be followed by a colon and sort ordering option characters
+    recognized by the "sort" command: often one or more of the
+    following: b (ignore leading blanks), d (dictionary order), f
+    (ignore case), g (general numeric sort), i (ignore nonprinting), M
+    (month sort), h (human numeric sort), R (random sort), r
+    (reverse), V (version sort).
+text-sort-transform=ATTR:TRANSFORM '"'"' * { add_text_sort_opt --transform "$1" }
+    Transform the value of the attribute attrname using TRANSFORM
+    before using it as a sort key. ATTR is one of the attributes
+    listed in the argument of --text-sort-attribute. (ATTR and the
+    colon may be omitted if only one key attribute is specified.)
+    TRANSFORM may be one of the following: (1) a Perl-style
+    substitution "s/regexp/subst/[flags]", where regexp and subst
+    follow Python regular expression syntax and flags is zero or more
+    of the following letters: a (make \\w, \\W, \\b, \\B, \\d, \\D
+    match ASCII characters only instead of whole Unicode), g (replace
+    all matches and not only the first one), i (match
+    case-insensitively), l (make \\w, \\W, \\b, \\B dependent on the
+    current locale), x (ignore whitespace and comments); (2) a single
+    Python expression; or (3) the body of a Python function. In (2)
+    and (3), the variable "val" refers to the value of the attribute
+    (str), and they return the result of the transformation (converted
+    to str). If (3) has no return statement, the value of "val" is
+    returned. On an error depending on the value of "val", an empty
+    string is returned. The option may be repeated to specify
+    transformations for different attributes and/or multiple
+    transformations for a single attribute. Multiple transformations
+    for an attribute are processed in the order they are specified.
 
 @ Omitting structures
 
@@ -359,7 +382,7 @@ vrt_rename_struct_attrs=$progdir/vrt-rename-struct-attrs.pl
 vrt_fix_attrs=$progdir/vrt-fix-attrs.py
 vrt_add_lemma_nobound=$vrttoolsdir/vrt-add-lemma-nobound
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
-vrt_sort_texts=$progdir/vrt-sort-texts.sh
+vrt_sort=$vrttoolsdir/vrt-sort
 vrt_add_struct_ids=$progdir/vrt-add-struct-ids.sh
 vrt_convert_chars=$progdir/vrt-convert-chars.py
 vrt_extract_timespans=$progdir/vrt-extract-timespans.py
@@ -399,7 +422,7 @@ add_auth_opts () {
 add_text_sort_opt () {
     local optname=$1
     local optarg=$2
-    if [ "x$optname" = "x--attribute" ]; then
+    if [ "x$optname" = "x--key" ]; then
 	sort_texts=1
     fi
     text_sort_opts="$text_sort_opts $optname $(quote_args_safe "$optarg")"
@@ -967,7 +990,7 @@ test_skip_add_datefromto () {
 sort_texts () {
     # Use eval to get the separate options in $text_sort_opts
     # correctly
-    eval process_vrt $vrt_sort_texts $text_sort_opts
+    eval process_vrt $vrt_sort $text_sort_opts
 }
 
 test_skip_sort_texts () {
