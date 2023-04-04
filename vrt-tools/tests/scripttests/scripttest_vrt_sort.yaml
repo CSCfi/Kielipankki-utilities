@@ -9,7 +9,7 @@
       envvars:
         # Simple byte sorting
         LC_ALL: C
-      stdin: |
+      stdin: &input-1 |
         <!-- #vrt positional-attributes: word -->
         <text a="aa" b="ba" c="ca" n="21">
         <sentence>
@@ -207,6 +207,15 @@
       a
       </sentence>
       </text>
+
+
+- name: 'vrt-sort: Input from file'
+  input:
+    cmdline: vrt-sort --key b --key "n a" in.vrt
+    stdin: ''
+    file:in.vrt:
+      *input-1
+  output: *output-1
 
 
 # Extra comments and other tags

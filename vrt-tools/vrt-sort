@@ -8,8 +8,12 @@ vrt-sort
 Sort text structures within VRT input by creating a sort key from text
 attribute values and using the Unix sort command to sort according to the key.
 
-The script uses the GNU/Unix "sort" command to do the actual sorting and "cut"
-to remove the sort key.
+The script uses the GNU/Unix "sort" command to do the actual sorting
+and "cut" to remove the sort key. The script reads the input and
+writes a temporary file with the keys and text start and end offsets,
+sorts the offset file and then reads the original input (or its
+temporary copy if the input is not seekable) using random access in
+the order of the sorted offset file and writes to output.
 """
 
 
@@ -35,6 +39,7 @@ import sys
 
 from collections import defaultdict
 from subprocess import Popen, PIPE, TimeoutExpired
+from tempfile import NamedTemporaryFile
 from time import sleep
 
 from vrtargsoolib import InputProcessor
@@ -127,22 +132,8 @@ class VrtSorter(InputProcessor):
         else:
             self._make_key = self._make_key_multi
             self._key_re = re.compile(rb' ([\w-]+)="(.*?)"')
-        # The first key field indicates whether the line is part of
-        # the top comments (before the first text), the body or the
-        # bottom comments (after the last text). Sorting is faster if
-        # it is prefixed to the first specified key field, but it does
-        # not work with all sort options; it should work with b, d, f,
-        # i, r (if the values are reversed, too).
-        if key_opts[0] == '' or all(opt in 'bdfir' for opt in key_opts[0]):
-            self._concat_key0 = True
-            if all(key_opts[i] == '' for i in range(len(key_opts))):
-                self._concat_all_keys = True
-        # For testing the previous behaviour, with separate prefix and
-        # keys:
-        # self._concat_key0 = self._concat_all_keys = False
-        if not self._concat_key0:
-            key_opts[0:0] = ['']
-        if self._concat_all_keys:
+        if all(key_opts[i] == '' for i in range(len(key_opts))):
+            self._concat_all_keys = True
             self._sorter_key_opts = ['-k1,1']
         else:
             self._sorter_key_opts = ['-k{0},{0}{1}'.format(i + 1, key_opts[i])
@@ -242,32 +233,24 @@ class VrtSorter(InputProcessor):
 
     def main(self, args, inf, ouf):
 
-        def make_part_prefixes():
-            # Top comment and tag lines, texts, bottom comment and tag
-            # lines
-            part_prefix = [b'0', b'1', b'2']
-            if not self._concat_key0:
-                # The prefix is a separate field, so append a tab
-                part_prefix = [prefix + b'\t' for prefix in part_prefix]
-            elif 'r' in self._sorter_key_opts[0][5:]:
-                # If the prefix is not a separate field and the
-                # primary key is sorted in reverse, reverse the
-                # prefixes, too
-                part_prefix.reverse()
-            # Tabs to be added between the prefix and top or bottom
-            # comment lines
-            if self._concat_all_keys:
-                # Effectively a single key
-                comment_tabs = b'\t'
-            else:
-                comment_tabs = self._key_attr_count * b'\t'
-            for i in (0, 2):
-                part_prefix[i] = part_prefix[i] + comment_tabs
-            return part_prefix
+        def make_sort_line(key, start, end):
+            return (b'\t'.join([key,
+                                str(start).encode(),
+                                str(end).encode()])
+                    + b'\n')
 
         LESS_THAN = '<'.encode('utf-8')[0]
+        # If the original input is not seekable, the input is copied
+        # to a seekable temporary file. Python 3.6.8 on Puhti seems to
+        # return seekable() == True for stdin, so also test for name
+        # "<stdin>".
+        write_tmp = not inf.seekable() or inf.name == '<stdin>'
+        seekable_inf = NamedTemporaryFile(delete=False) if write_tmp else inf
+        seekable_inf_name = seekable_inf.name
+        # print(inf.seekable(), write_tmp, inf, seekable_inf_name, file=sys.stderr)
         sorter = Popen(['sort', '-s', '-t\t'] + self._sorter_key_opts,
                        stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=-1)
+        # print(self._sorter_key_opts, file=sys.stderr)
         # Give sort time to start to see if it produces an error message
         sleep(0.1)
         sorter.poll()
@@ -278,65 +261,80 @@ class VrtSorter(InputProcessor):
                             + ''.join(sorter_errmsg))
         # tee = Popen(['tee', 'vrt-sort-keys.out'],
         #             stdin=sorter.stdout, stdout=PIPE, bufsize=-1)
-        if self._concat_all_keys:
-            key_count = 1
-        else:
-            key_count = self._key_attr_count + int(not self._concat_key0)
+        key_count = 1 if self._concat_all_keys else self._key_attr_count
+        orderf = NamedTemporaryFile(delete=False)
+        orderf_name = orderf.name
         cutter = Popen(['cut', '-d\t',
                         '-f{0}-'.format(key_count + 1)],
-                       stdin=sorter.stdout, stdout=ouf, bufsize=-1)
+                       stdin=sorter.stdout, stdout=orderf, bufsize=-1)
         sorter.stdout.close()
-        part_prefix = make_part_prefixes()
         keysep = b'\x01' if self._concat_all_keys else b'\t'
         text_seen = False
         text_open = False
-        comments = []
+        comment_offsets = {'initial': [0, 0], 'final': [0, 0]}
         key = ''
         linenr = 0
+        text_start_offset = 0
+        start_offset = end_offset = 0
+        # Write keys and text start and end offsets to the sorter pipe
+        # to be sorted
         for line in inf:
+            if write_tmp:
+                seekable_inf.write(line)
             linenr += 1
+            end_offset += len(line)
             if text_open:
                 if line[0] == LESS_THAN and line.startswith(b'</text>'):
                     text_open = False
-                sorter.stdin.write(key + line)
+                    sorter.stdin.write(
+                        make_sort_line(key, text_start_offset, end_offset))
+                    # Next text starts immediately after
+                    text_start_offset = end_offset
             else:
-                if line[0] == LESS_THAN:
-                    if line.startswith(b'<text '):
-                        # Prepend "1" to the key value to sort the data between
-                        # the top and bottom comments
-                        key = (part_prefix[1]
-                               + self._make_key(line, keysep, linenr)
-                               + b'\t')
-                        # sys.stderr.write(repr(key) + '\n')
-                        if comments:
-                            if text_seen:
-                                # Prepend comments between texts to
-                                # the following text
-                                comment_prefix = key
-                            else:
-                                # Preserve comments (and tags) before
-                                # the first text at the top of the
-                                # output by using key "0"
-                                comment_prefix = part_prefix[0]
-                            for comment in comments:
-                                sorter.stdin.write(comment_prefix + comment)
-                            comments = []
-                        text_open = text_seen = True
-                        sorter.stdin.write(key + line)
-                    else:
-                        comments.append(line)
-        if comments:
-            # Preserve comments (and tags) after the last text at the
-            # end of the output (key "2")
-            for comment in comments:
-                sorter.stdin.write(part_prefix[2] + comment)
-        elif text_open:
+                if line[0] == LESS_THAN and line.startswith(b'<text '):
+                    key = self._make_key(line, keysep, linenr)
+                    # Initial comments
+                    if not text_seen and linenr > 1:
+                        comment_offsets['initial'] = [0, start_offset]
+                        text_start_offset = start_offset
+                    text_open = text_seen = True
+            start_offset = end_offset
+        # Final comments
+        if text_open:
             self.warn('the last <text> structure in input not closed')
+            sorter.stdin.write(
+                make_sort_line(key, text_start_offset, end_offset))
+        elif text_start_offset != end_offset:
+            comment_offsets['final'] = [text_start_offset, end_offset]
         sorter.stdin.close()
+        if write_tmp:
+            seekable_inf.close()
         # Is waiting needed? It is said to block but does it in practice in
         # this case?
         for proc in [sorter, cutter]:
             proc.wait()
+        # Read text start and end offsets from the sorted file, read
+        # the texts from the input (or its copy) in that order and
+        # write to output
+        with open(seekable_inf_name, 'rb') as seekable_inf:
+            with open(orderf_name, 'rb') as orderf:
+                self._write_output(seekable_inf, ouf, orderf, comment_offsets)
+        os.remove(orderf_name)
+        if write_tmp:
+            os.remove(seekable_inf_name)
+
+    def _write_output(self, inf, ouf, orderf, comment_offsets):
+
+        def write_text(start, end):
+            if end > start:
+                inf.seek(start)
+                ouf.write(inf.read(end - start))
+
+        write_text(*comment_offsets['initial'])
+        for line in orderf:
+            start, _, end = line[:-1].partition(b'\t')
+            write_text(int(start), int(end))
+        write_text(*comment_offsets['final'])
 
     def _make_key_single(self, tagline, keysep, linenr):
         mo = self._key_re.search(tagline)
