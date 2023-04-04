@@ -667,14 +667,14 @@
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
-      <text a="a">
-      a
-      <!-- end -->
       <text a="b">
       b
       </text>
       <text a="c">
       c
       </text>
+      <text a="a">
+      a
+      <!-- end -->
     stderr: |
-      vrt-sort: Warning: the last <text> structure in input not closed
+      vrt-sort: Warning: the last <text> structure in input not closed; keeping it at the end

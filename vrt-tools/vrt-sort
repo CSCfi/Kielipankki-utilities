@@ -300,12 +300,11 @@ class VrtSorter(InputProcessor):
                     text_open = text_seen = True
             start_offset = end_offset
         # Final comments
-        if text_open:
-            self.warn('the last <text> structure in input not closed')
-            sorter.stdin.write(
-                make_sort_line(key, text_start_offset, end_offset))
-        elif text_start_offset != end_offset:
+        if text_start_offset != end_offset:
             comment_offsets['final'] = [text_start_offset, end_offset]
+            if text_open:
+                self.warn('the last <text> structure in input not closed;'
+                          ' keeping it at the end')
         sorter.stdin.close()
         if write_tmp:
             seekable_inf.close()
