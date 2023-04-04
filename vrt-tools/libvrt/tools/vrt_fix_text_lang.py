@@ -527,6 +527,10 @@ def rewrite(text, args):
         # both passes of repeat rules done ok
         pass
 
+    # finally set sentence attributes as rewritten (so original or
+    # xxx), unless the original language still remains in the text
+    # somewhere (then keep the original, regardless of rewriting)
+    remains = { sen.lang for sen in info } - { b'xxx' }
     for sen in info:
         [
             sen.attr[args.prefix + args.lang + args.suffix],
@@ -536,11 +540,12 @@ def rewrite(text, args):
             sen.attr.get(args.lang, b'NSA'),
             sen.attr.get(args.conf, b'0.0')
         ]
+        orig = sen.attr[args.lang]
         [
             sen.attr[args.lang],
             sen.attr[args.conf]
         ] = [
-            sen.lang,
+            orig if orig in remains else sen.lang,
             str(sen.conf).encode('UTF-8')
         ]
         # not bothering to check what line termination characters the
