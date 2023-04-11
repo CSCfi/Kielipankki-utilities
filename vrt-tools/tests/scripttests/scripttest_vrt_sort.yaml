@@ -58,6 +58,16 @@
     stdout: ''
 
 
+- name: 'vrt-sort: Invalid sort option'
+  input:
+    cmdline: vrt-sort --key a:x
+  output:
+    returncode: 1
+    stderr:
+      regex: '.*Invalid sort option; sort error message:.*'
+    stdout: ''
+
+
 - name: 'vrt-sort: --transform for non-key attribute'
   input:
     cmdline: vrt-sort --key a --transform "b:s/x/y/"
