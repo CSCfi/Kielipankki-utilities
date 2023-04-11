@@ -247,71 +247,74 @@ class VrtSorter(InputProcessor):
         write_tmp = not inf.seekable() or inf.name == '<stdin>'
         seekable_inf = NamedTemporaryFile(delete=False) if write_tmp else inf
         seekable_inf_name = seekable_inf.name
-        # print(inf.seekable(), write_tmp, inf, seekable_inf_name, file=sys.stderr)
-        sorter = Popen(['sort', '-s', '-t\t'] + self._sorter_key_opts,
-                       stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=-1)
-        # print(self._sorter_key_opts, file=sys.stderr)
-        # Give sort time to start to see if it produces an error message
-        sleep(0.1)
-        sorter.poll()
-        # TODO: Interpret the sort error message
-        if sorter.returncode is not None:
-            sorter_errmsg = [line.decode()[:-1] for line in sorter.stderr]
-            self.error_exit('Invalid sort option; sort error message:\n'
-                            + ''.join(sorter_errmsg))
-        # tee = Popen(['tee', 'vrt-sort-keys.out'],
-        #             stdin=sorter.stdout, stdout=PIPE, bufsize=-1)
-        key_count = 1 if self._concat_all_keys else self._key_attr_count
-        orderf = NamedTemporaryFile(delete=False)
-        orderf_name = orderf.name
-        cutter = Popen(['cut', '-d\t',
-                        '-f{0}-'.format(key_count + 1)],
-                       stdin=sorter.stdout, stdout=orderf, bufsize=-1)
-        sorter.stdout.close()
-        keysep = b'\x01' if self._concat_all_keys else b'\t'
-        text_seen = False
-        text_open = False
-        comment_offsets = {'initial': [0, 0], 'final': [0, 0]}
-        key = ''
-        linenr = 0
-        text_start_offset = 0
-        start_offset = end_offset = 0
-        # Write keys and text start and end offsets to the sorter pipe
-        # to be sorted
-        for line in inf:
-            if write_tmp:
-                seekable_inf.write(line)
-            linenr += 1
-            end_offset += len(line)
-            if text_open:
-                if line[0] == LESS_THAN and line.startswith(b'</text>'):
-                    text_open = False
-                    sorter.stdin.write(
-                        make_sort_line(key, text_start_offset, end_offset))
-                    # Next text starts immediately after
-                    text_start_offset = end_offset
-            else:
-                if line[0] == LESS_THAN and line.startswith(b'<text '):
-                    key = self._make_key(line, keysep, linenr)
-                    # Initial comments
-                    if not text_seen and linenr > 1:
-                        comment_offsets['initial'] = [0, start_offset]
-                        text_start_offset = start_offset
-                    text_open = text_seen = True
-            start_offset = end_offset
-        # Final comments
-        if text_start_offset != end_offset:
-            comment_offsets['final'] = [text_start_offset, end_offset]
-            if text_open:
-                self.warn('the last <text> structure in input not closed;'
-                          ' keeping it at the end')
-        sorter.stdin.close()
-        if write_tmp:
-            seekable_inf.close()
-        # Is waiting needed? It is said to block but does it in practice in
-        # this case?
-        for proc in [sorter, cutter]:
-            proc.wait()
+        # print(inf.seekable(), write_tmp, inf, seekable_inf_name,
+        #       file=sys.stderr)
+        # Use Popen as context manager to close standard file
+        # descriptors and wait for the process on exit
+        with Popen(['sort', '-s', '-t\t'] + self._sorter_key_opts,
+                   stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                   bufsize=-1) as sorter:
+            # print(self._sorter_key_opts, file=sys.stderr)
+            # Give sort time to start to see if it produces an error message
+            sleep(0.1)
+            sorter.poll()
+            # TODO: Interpret the sort error message
+            if sorter.returncode is not None:
+                sorter_errmsg = [line.decode()[:-1] for line in sorter.stderr]
+                self.error_exit('Invalid sort option; sort error message:\n'
+                                + ''.join(sorter_errmsg))
+            # tee = Popen(['tee', 'vrt-sort-keys.out'],
+            #             stdin=sorter.stdout, stdout=PIPE, bufsize=-1)
+            key_count = 1 if self._concat_all_keys else self._key_attr_count
+            orderf = NamedTemporaryFile(delete=False)
+            orderf_name = orderf.name
+            with Popen(['cut', '-d\t', '-f{0}-'.format(key_count + 1)],
+                       stdin=sorter.stdout, stdout=orderf,
+                       bufsize=-1) as cutter:
+                # Close sorter stdout to make it detect SIGPIPE
+                sorter.stdout.close()
+                keysep = b'\x01' if self._concat_all_keys else b'\t'
+                text_seen = False
+                text_open = False
+                comment_offsets = {'initial': [0, 0], 'final': [0, 0]}
+                key = ''
+                linenr = 0
+                text_start_offset = 0
+                start_offset = end_offset = 0
+                # Write keys and text start and end offsets to the
+                # sorter pipe to be sorted
+                for line in inf:
+                    if write_tmp:
+                        seekable_inf.write(line)
+                    linenr += 1
+                    end_offset += len(line)
+                    if text_open:
+                        if line[0] == LESS_THAN and line.startswith(b'</text>'):
+                            text_open = False
+                            sorter.stdin.write(
+                                make_sort_line(key, text_start_offset,
+                                               end_offset))
+                            # Next text starts immediately after
+                            text_start_offset = end_offset
+                    else:
+                        if line[0] == LESS_THAN and line.startswith(b'<text '):
+                            key = self._make_key(line, keysep, linenr)
+                            # Initial comments
+                            if not text_seen and linenr > 1:
+                                comment_offsets['initial'] = [0, start_offset]
+                                text_start_offset = start_offset
+                            text_open = text_seen = True
+                    start_offset = end_offset
+                # Final comments
+                if text_start_offset != end_offset:
+                    comment_offsets['final'] = [text_start_offset, end_offset]
+                    if text_open:
+                        self.warn(
+                            'the last <text> structure in input not closed;'
+                            ' keeping it at the end')
+                sorter.stdin.close()
+                if write_tmp:
+                    seekable_inf.close()
         # Read text start and end offsets from the sorted file, read
         # the texts from the input (or its copy) in that order and
         # write to output
