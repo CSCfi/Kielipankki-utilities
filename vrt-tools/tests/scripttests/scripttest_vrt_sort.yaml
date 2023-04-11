@@ -1,0 +1,690 @@
+
+# scripttestlib tests for vrt-sort
+
+
+# Default input and output
+
+- defaults:
+    input:
+      envvars:
+        # Simple byte sorting
+        LC_ALL: C
+      stdin: &input-1 |
+        <!-- #vrt positional-attributes: word -->
+        <text a="aa" b="ba" c="ca" n="21">
+        <sentence>
+        a
+        </sentence>
+        </text>
+        <text a="ab" b="ba" c="cb" n="1">
+        <sentence>
+        c
+        </sentence>
+        </text>
+        <text a="ac" b="ba" c="ca" n="10">
+        <sentence>
+        e
+        </sentence>
+        </text>
+        <text a="ad" b="bb" c="ca" n="2">
+        <sentence>
+        g
+        </sentence>
+        </text>
+        <text a="ae" b="bb" c="cb" n="3">
+        <sentence>
+        i
+        </sentence>
+        </text>
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+# Test cases
+
+
+# Argument checking and handling
+
+
+- name: 'vrt-sort: --key is required'
+  input:
+    cmdline: vrt-sort
+  output:
+    returncode: 2
+    stderr:
+      regex: '.*error: the following arguments are required: --key/--attribute.*'
+    stdout: ''
+
+
+- name: 'vrt-sort: Invalid sort option'
+  input:
+    cmdline: vrt-sort --key a:x
+  output:
+    returncode: 1
+    stderr:
+      regex: '.*Invalid sort option; sort error message:.*'
+    stdout: ''
+
+
+- name: 'vrt-sort: --transform for non-key attribute'
+  input:
+    cmdline: vrt-sort --key a --transform "b:s/x/y/"
+  output:
+    returncode: 1
+    stderr:
+      regex: '.*Transform attribute b not listed in the argument of --key.*'
+    stdout: ''
+
+
+- name: 'vrt-sort: --transform without no key attribute with multiple keys'
+  input:
+    cmdline: vrt-sort --key "a b" --transform "s/x/y/"
+  output:
+    returncode: 1
+    stderr:
+      regex: '.*Multiple key attributes but transform does not specify to which one it applies: s/x/y/.*'
+    stdout: ''
+
+
+- name: 'vrt-sort: --transform: invalid Perl-style substitution'
+  input:
+    cmdline: vrt-sort --key a --transform "a:s/x/y"
+  output:
+    returncode: 1
+    stderr:
+      regex: '.*Perl-style substitution not of the form s/regexp/repl/\[agilx\]\*: s/x/y.*'
+    stdout: ''
+
+
+- name: 'vrt-sort: --transform: invalid flags in Perl-style substitution'
+  input:
+    cmdline: vrt-sort --key a --transform "a:s/x/y/z"
+  output:
+    returncode: 1
+    stderr:
+      regex: '.*Perl-style substitution not of the form s/regexp/repl/\[agilx\]\*: s/x/y/z.*'
+    stdout: ''
+
+
+- name: 'vrt-sort: --transform: syntax error'
+  input:
+    cmdline: vrt-sort --key a --transform "a:if"
+  output:
+    returncode: 1
+    stderr: |
+      vrt-sort: Syntax error in transformation: if
+      invalid syntax (<string>, line 2):
+        def transfunc(val):
+          if
+          return val
+    stdout: ''
+
+
+- name: 'vrt-sort: --transform: name error'
+  input:
+    cmdline: vrt-sort --key a --transform "a:x"
+  output:
+    returncode: 1
+    stderr: |
+      vrt-sort: Invalid transformation: x
+      NameError: name 'x' is not defined:
+        def transfunc(val):
+          return x
+    stdout: ''
+
+
+- name: 'vrt-sort: --key attributes separated by spaces'
+  input:
+    cmdline: vrt-sort --key "b n"
+  output: &output-1
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+
+- name: 'vrt-sort: --key attributes separated by commas'
+  input:
+    cmdline: vrt-sort --key "b,n"
+  output: *output-1
+
+
+- name: 'vrt-sort: Multiple --key attributes'
+  input:
+    cmdline: vrt-sort --key b --key n
+  output: *output-1
+
+
+- name: 'vrt-sort: Multiple --key attributes with spaces'
+  input:
+    cmdline: vrt-sort --key b --key "n a"
+  output: *output-1
+
+
+- name: 'vrt-sort: --transform without key attribute'
+  input:
+    cmdline: vrt-sort --key a --transform "s/a/z/g"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+
+
+- name: 'vrt-sort: Input from file'
+  input:
+    cmdline: vrt-sort --key b --key "n a" in.vrt
+    stdin: ''
+    file:in.vrt:
+      *input-1
+  output: *output-1
+
+
+# Extra comments and other tags
+
+
+- name: 'vrt-sort: Preserve initial and final comments and tags and comments above texts'
+  input:
+    cmdline: vrt-sort --key n
+    stdin: |
+      <?xml>
+      <!-- #vrt positional-attributes: word -->
+      <!-- Another comment -->
+      <corpus name="test">
+      <!-- text 1 -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <!-- within text -->
+      <sentence>
+      a
+      </sentence>
+      <!-- within text, too -->
+      </text>
+      <!-- text 2 -->
+      <!-- text 2a -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <!-- text 3 -->
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <!-- text 4 -->
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <!-- text 5 -->
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+      </corpus>
+      <!-- End -->
+  output:
+    stdout: |
+      <?xml>
+      <!-- #vrt positional-attributes: word -->
+      <!-- Another comment -->
+      <corpus name="test">
+      <!-- text 1 -->
+      <!-- text 2 -->
+      <!-- text 2a -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <!-- text 3 -->
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <!-- text 4 -->
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="aa" b="ba" c="ca" n="21">
+      <!-- within text -->
+      <sentence>
+      a
+      </sentence>
+      <!-- within text, too -->
+      </text>
+      <!-- text 5 -->
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+      </corpus>
+      <!-- End -->
+
+
+# Sort stability
+
+
+# Is the following test enough to show sort stability? Couldn't the
+# output order be as is also by chance?
+
+- name: 'vrt-sort: Stable sorting: original order for equal key values'
+  input:
+    cmdline: vrt-sort --key c
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+
+# Sort options
+
+
+- name: 'vrt-sort: Reverse sort'
+  input:
+    cmdline: vrt-sort --key a:r
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+
+
+- name: 'vrt-sort: Numeric sort'
+  input:
+    cmdline: vrt-sort --key n:n
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+
+
+- name: 'vrt-sort: Reverse numeric sort'
+  input:
+    cmdline: vrt-sort --key n:nr
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+
+
+- name: 'vrt-sort: Reverse and numeric sort on separate keys'
+  input:
+    cmdline: vrt-sort --key "c:r,n:n"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+
+
+# Attribute value transformations
+
+
+- name: 'vrt-sort: --transform with Perl-style substitution'
+  input:
+    cmdline: vrt-sort --key "c" --transform "c:s/a/z/"
+  output: &output-2
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+
+
+- name: 'vrt-sort: --transform with Perl-style substitution with flag "i"'
+  input:
+    cmdline: vrt-sort --key "c" --transform "c:s/A/z/i"
+  output: *output-2
+
+
+- name: 'vrt-sort: --transform with Perl-style substitution with flag "g"'
+  input:
+    cmdline: vrt-sort --key "c n" --transform "c:s/[a-z]/z/g"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+
+- name: 'vrt-sort: --transform with single expression'
+  input:
+    cmdline: vrt-sort --key "n" --transform "n:str(100 - int(val))"
+  output:
+    stdout: &output-3 |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+
+
+- name: 'vrt-sort: --transform with single expression, implicit str()'
+  input:
+    cmdline: vrt-sort --key "n" --transform "n:100 - int(val)"
+  output:
+    stdout: *output-3
+
+
+- name: 'vrt-sort: --transform with Python function body (explicit return)'
+  input:
+    cmdline: vrt-sort --key "n" --transform "n:val = 100 - int(val); return str(val)"
+  output:
+    stdout: *output-3
+
+
+- name: 'vrt-sort: --transform with Python function body (implicit return)'
+  input:
+    cmdline: vrt-sort --key "n" --transform "n:val = str(100 - int(val))"
+  output:
+    stdout: *output-3
+
+
+- name: 'vrt-sort: --transform with warning on run-time error'
+  input:
+    cmdline: vrt-sort --key "n" --transform "n:val[1]"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+    stderr: |
+      vrt-sort: Warning: input line 7: returning "" for attribute n with value "1": transformation caused IndexError: string index out of range: val[1]
+      vrt-sort: Warning: input line 17: returning "" for attribute n with value "2": transformation caused IndexError: string index out of range: val[1]
+      vrt-sort: Warning: input line 22: returning "" for attribute n with value "3": transformation caused IndexError: string index out of range: val[1]
+
+
+# text open at the end of input
+
+
+- name: 'vrt-sort: <text> open at the end of input'
+  input:
+    cmdline: vrt-sort --key "a"
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="c">
+      c
+      </text>
+      <text a="b">
+      b
+      </text>
+      <text a="a">
+      a
+      <!-- end -->
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b">
+      b
+      </text>
+      <text a="c">
+      c
+      </text>
+      <text a="a">
+      a
+      <!-- end -->
+    stderr: |
+      vrt-sort: Warning: the last <text> structure in input not closed; keeping it at the end
