@@ -1,0 +1,538 @@
+
+# scripttestlib tests for vrt-filter
+
+
+# Default input and output
+
+- defaults:
+    input:
+      stdin: &input-1 |
+        <!-- #vrt positional-attributes: word -->
+        <text a="aa" b="ba" c="ca" n="21">
+        <sentence>
+        a
+        </sentence>
+        </text>
+        <text a="ab" b="ba" c="cb" n="1">
+        <sentence>
+        c
+        </sentence>
+        </text>
+        <text a="ac" b="ba" c="ca" n="10">
+        <sentence>
+        e
+        </sentence>
+        </text>
+        <text a="ad" b="bb" c="ca" n="2">
+        <sentence>
+        g
+        </sentence>
+        </text>
+        <text a="ae" b="bb" c="cb" n="3">
+        <sentence>
+        i
+        </sentence>
+        </text>
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+# Test cases
+
+
+# Argument checking and handling
+
+
+- name: 'vrt-filter: --test is required'
+  input:
+    cmdline: vrt-filter
+  output:
+    returncode: 2
+    stderr:
+      regex: '.*error: the following arguments are required: --test/--condition.*'
+    stdout: ''
+
+
+- name: 'vrt-filter: No "=" in attribute test'
+  input:
+    cmdline: vrt-filter --test a
+  output:
+    returncode: 1
+    stderr:
+      regex: '.*Attribute test not of the form attrname=regexp: a.*'
+    stdout: ''
+
+
+- name: 'vrt-filter: No attribute name in attribute test'
+  input:
+    cmdline: vrt-filter --test "=a"
+  output:
+    returncode: 1
+    stderr:
+      regex: '.*Attribute test not of the form attrname=regexp: =a.*'
+    stdout: ''
+
+
+# Extra comments and other tags
+
+
+- name: 'vrt-filter: Preserve initial and final comments and tags and comments above texts'
+  input:
+    cmdline: vrt-filter --test "b=bb"
+    stdin: |
+      <?xml>
+      <!-- #vrt positional-attributes: word -->
+      <!-- Another comment -->
+      <corpus name="test">
+      <!-- text 1 -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <!-- within text -->
+      <sentence>
+      a
+      </sentence>
+      <!-- within text, too -->
+      </text>
+      <!-- text 2 -->
+      <!-- text 2a -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <!-- text 3 -->
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <!-- text 4 -->
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <!-- text 5 -->
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+      </corpus>
+      <!-- End -->
+  output:
+    stdout: |
+      <?xml>
+      <!-- #vrt positional-attributes: word -->
+      <!-- Another comment -->
+      <corpus name="test">
+      <!-- text 1 -->
+      <!-- text 2 -->
+      <!-- text 2a -->
+      <!-- text 3 -->
+      <!-- text 4 -->
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <!-- text 5 -->
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+      </corpus>
+      <!-- End -->
+
+
+# Single attribute test
+
+
+- name: 'vrt-filter: Keep structures based on a single attribute test'
+  input:
+    cmdline: vrt-filter --test "b=.a"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+
+
+- name: 'vrt-filter: Remove structures based on a single attribute test'
+  input:
+    cmdline: vrt-filter --remove --test "b=.a"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+
+- name: 'vrt-filter: Attribute test requires a full match'
+  input:
+    cmdline: vrt-filter --test "n=."
+  output:
+    stdout: &output-1 |
+        <!-- #vrt positional-attributes: word -->
+        <text a="ab" b="ba" c="cb" n="1">
+        <sentence>
+        c
+        </sentence>
+        </text>
+        <text a="ad" b="bb" c="ca" n="2">
+        <sentence>
+        g
+        </sentence>
+        </text>
+        <text a="ae" b="bb" c="cb" n="3">
+        <sentence>
+        i
+        </sentence>
+        </text>
+
+
+# Verbose output
+
+
+- name: 'vrt-filter: Verbose output'
+  input:
+    cmdline: vrt-filter --test "n=." --verbose
+  output:
+    stdout: *output-1
+    stderr: |
+      5 text structures in input, kept 3, removed 2
+
+
+
+# Multiple attribute tests
+
+
+- name: 'vrt-filter: Keep structures based on both of two attribute tests'
+  input:
+    cmdline: vrt-filter --test "a=.[abc]" --test "c=ca"
+  output:
+    stdout: &output-2 |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+
+
+- name: 'vrt-filter: Attribute test order does not matter'
+  input:
+    cmdline: vrt-filter --test "c=ca" --test "a=.[abc]"
+  output:
+    stdout: *output-2
+
+
+- name: 'vrt-filter: Keep structures based on all of three attribute tests'
+  input:
+    cmdline: vrt-filter --test "a=.[abc]" --test "c=ca" --test "n=2."
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+
+
+- name: 'vrt-filter: Keep structures based on either of two attribute tests'
+  input:
+    cmdline: vrt-filter --any --test "a=.[abc]" --test "c=ca"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+
+
+- name: 'vrt-filter: Keep structures based on any of three attribute tests'
+  input:
+    cmdline: vrt-filter --any --test "a=.[ac]" --test "c=ca" --test "n=3"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+
+- name: 'vrt-filter: Remove structures based on both of two attribute tests'
+  input:
+    cmdline: vrt-filter --remove --test "a=.[abc]" --test "c=ca"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+
+- name: 'vrt-filter: Remove structures based on all of three attribute tests'
+  input:
+    cmdline: vrt-filter --remove --test "a=.[abc]" --test "c=ca" --test "n=2."
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+
+- name: 'vrt-filter: Remove structures based on either of two attribute tests'
+  input:
+    cmdline: vrt-filter --remove --any --test "a=.[abc]" --test "c=ca"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+
+- name: 'vrt-filter: Remove structures based on any of three attribute tests'
+  input:
+    cmdline: vrt-filter --remove --any --test "a=.[ac]" --test "c=ca" --test "n=3"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+
+
+# Filter structures other than text
+
+
+- name: 'vrt-filter: Filter paragraphs'
+  input:
+    cmdline: vrt-filter --remove --struct paragraph --test "d=p2"
+    stdin: &input-2 |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <paragraph d="p1">
+      <sentence e="s1">
+      a
+      </sentence>
+      </paragraph>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <paragraph d="p2">
+      <sentence e="s2">
+      c
+      </sentence>
+      </paragraph>
+      <paragraph d="p3">
+      <sentence e="s3">
+      e
+      </sentence>
+      <sentence e="s4">
+      g
+      </sentence>
+      <sentence e="s5">
+      i
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <paragraph d="p1">
+      <sentence e="s1">
+      a
+      </sentence>
+      </paragraph>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <paragraph d="p3">
+      <sentence e="s3">
+      e
+      </sentence>
+      <sentence e="s4">
+      g
+      </sentence>
+      <sentence e="s5">
+      i
+      </sentence>
+      </paragraph>
+      </text>
+
+
+- name: 'vrt-filter: Filter paragraphs, leaving an empty text'
+  input:
+    cmdline: vrt-filter --remove --struct paragraph --test "d=p1"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <paragraph d="p2">
+      <sentence e="s2">
+      c
+      </sentence>
+      </paragraph>
+      <paragraph d="p3">
+      <sentence e="s3">
+      e
+      </sentence>
+      <sentence e="s4">
+      g
+      </sentence>
+      <sentence e="s5">
+      i
+      </sentence>
+      </paragraph>
+      </text>
+
+
+- name: 'vrt-filter: Filter sentences'
+  input:
+    cmdline: vrt-filter --remove --struct sentence --test "e=s[45]"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <paragraph d="p1">
+      <sentence e="s1">
+      a
+      </sentence>
+      </paragraph>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <paragraph d="p2">
+      <sentence e="s2">
+      c
+      </sentence>
+      </paragraph>
+      <paragraph d="p3">
+      <sentence e="s3">
+      e
+      </sentence>
+      </paragraph>
+      </text>
+
+
+- name: 'vrt-filter: Filter sentences, leaving an empty paragraph and text'
+  input:
+    cmdline: vrt-filter --remove --struct sentence --test "e=s[13-5]"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <paragraph d="p1">
+      </paragraph>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <paragraph d="p2">
+      <sentence e="s2">
+      c
+      </sentence>
+      </paragraph>
+      <paragraph d="p3">
+      </paragraph>
+      </text>

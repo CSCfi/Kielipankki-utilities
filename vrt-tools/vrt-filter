@@ -1,0 +1,146 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+
+"""
+vrt-filter
+
+Filter (keep or remove) structures (elements) with attribute values
+matching specified regular expressions.
+"""
+
+
+# TODO:
+# - Warn if filtering leaves an outer structure empty: e.g., if
+#   filtering sentences leaves a paragraph or text empty
+
+
+import re
+import sys
+
+from enum import Enum
+from itertools import groupby
+
+from vrtargsoolib import InputProcessor
+
+
+class StructFilter(InputProcessor):
+
+    """
+    Filter (keep or remove) from the VRT input structures with
+    attribute values matching specified regular expressions.
+    """
+
+    DESCRIPTION = """
+    Filter (keep or remove) from the VRT input structures (elements)
+    with attribute values matching specified regular expressions.
+    """
+    ARGSPECS = [
+        ('--structure-name = struct = "text" -> struct_name',
+         'Filter structures struct.'),
+        ('#EXCLUSIVE',
+         (
+             ('--keep|--preserve -> keep',
+              'Output the structures matching the conditions (the default).',
+              # Make this work; if this had action='store_true',
+              # default=True and --drop had target "!keep", --keep
+              # would get metavar KEEP, which it should not
+              dict(action='store_const', const=True, default=True)),
+             ('--drop|--remove -> keep',
+              'Output the structures not matching the conditions.',
+              dict(action='store_const', const=False)),
+         )),
+        ('--test|--condition = test -> conds',
+         'Filter (keep or remove) a structure if its attribute attrname'
+         ' matches the (Python) regular expression regexp.'
+         ' regexp needs to match in full, so use .* at the beginning and/or'
+         ' end to allow substring matches.'
+         ' If multiple conditions are specified, the structure needs to match'
+         ' either all of them (the default) or at least one of them (with'
+         ' --any).',
+         dict(required=True,
+              metavar='attrname=regexp',
+              action='append')),
+        ('#EXCLUSIVE',
+         (
+             ('--all|--and -> all_conds',
+              'All conditions need to match (the default).',
+              dict(action='store_const', const=True, default=True)),
+             ('--any|--or -> all_conds',
+              'At least one condition needs to match.',
+              dict(action='store_const', const=False)),
+         )),
+        ('--verbose',
+         'Write to stderr the number of structures preserved and removed.'),
+    ]
+
+    def __init__(self):
+        super().__init__()
+
+    def check_args(self, args):
+        super().check_args(args)
+        conds = {}
+        for cond in args.conds:
+            attrname, _, regexp = cond.partition('=')
+            if '=' not in cond or not attrname:
+                self.error_exit(
+                    f'Attribute test not of the form attrname=regexp: {cond}')
+            conds[attrname.strip().encode()] = re.compile(regexp.lstrip())
+        args.conds = conds
+
+    def main(self, args, inf, ouf):
+
+        LESS_THAN = b'<'[0]
+        linenum = 1
+        struct_begin = b'<' + args.struct_name.encode() + b' '
+        struct_end = b'</' + args.struct_name.encode() + b'>'
+        verbose = args.verbose
+        # cond_func is a test function for attribute value matches
+        cond_func0 = all if args.all_conds else any
+        cond_func = cond_func0 if args.keep else lambda x: not cond_func0(x)
+        conds = args.conds
+
+        def make_attrdict(line):
+            # TODO: This could perhaps be optimized for a single
+            # attribute condition by having a separate function to
+            # extract only the value of a single attribute and by
+            # choosing the function to use in advance
+            return dict((name, val) for name, val
+                        in re.findall(rb' ([\w-]+)="(.*?)"', line))
+
+        def keep_struct(struct_line):
+            """Return true if struct_line begins a structure to be kept."""
+            attrdict = make_attrdict(struct_line)
+            return cond_func(
+                regexp.fullmatch(attrdict.get(attrname, b'').decode())
+                for attrname, regexp in conds.items())
+
+        struct_count = 0
+        keep_count = 0
+        in_struct = False
+        keep = True
+        for line in inf:
+            linenum += 1
+            if line[0] == LESS_THAN:
+                if line.startswith(struct_begin):
+                    keep = keep_struct(line)
+                    if verbose:
+                        struct_count += 1
+                        if keep:
+                            keep_count += 1
+                    in_struct = True
+                elif line.startswith(struct_end):
+                    in_struct = False
+            if keep:
+                ouf.write(line)
+            # Keep all lines outside the structures to be filtered
+            if not in_struct:
+                keep = True
+        if verbose:
+            sys.stderr.write(
+                f'{struct_count} {args.struct_name} structures in input,'
+                f' kept {keep_count}, removed {struct_count - keep_count}\n')
+
+
+if __name__ == '__main__':
+    StructFilter().run()
