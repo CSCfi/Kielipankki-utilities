@@ -222,9 +222,27 @@
     cmdline: vrt-select --test "n=." --verbose
   output:
     stdout: *output-1
-    stderr: |
+    stderr: &stderr-1 |
       5 text structures in input, kept 3, dropped 2
 
+
+- name: 'vrt-select: --comment'
+  input:
+    cmdline: vrt-select --test "n=." --comment
+  output:
+    stdout: &stdout-1
+      value: *output-1
+      transform-expected:
+        append: |
+          <!-- #vrt info: vrt-select: 5 text structures in input, kept 3, dropped 2 -->
+
+
+- name: 'vrt-select: --comment --verbose'
+  input:
+    cmdline: vrt-select --test "n=." --comment --verbose
+  output:
+    stdout: *stdout-1
+    stderr: *stderr-1
 
 
 # Multiple attribute tests

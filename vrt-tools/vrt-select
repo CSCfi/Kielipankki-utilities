@@ -26,6 +26,7 @@ from enum import Enum
 from itertools import groupby
 
 from vrtargsoolib import InputProcessor
+from vrtcommentlib import makebinvrtcomment
 
 
 class StructSelect(InputProcessor):
@@ -76,6 +77,9 @@ class StructSelect(InputProcessor):
               'At least one test needs to match.',
               dict(action='store_const', const=False)),
          )),
+        ('--comment|-c',
+         'Add a VRT comment to the end of output with the number of'
+         ' structures kept and dropped.'),
         ('--verbose|-v',
          'Write to stderr the number of structures kept and dropped.'),
     ]
@@ -108,7 +112,7 @@ class StructSelect(InputProcessor):
         linenum = 1
         struct_begin = b'<' + args.struct.encode() + b' '
         struct_end = b'</' + args.struct.encode() + b'>'
-        verbose = args.verbose
+        count = args.verbose or args.comment
         # test_func is a test function for attribute value matches
         test_func0 = all if args.all_tests else any
         test_func = test_func0 if args.keep else lambda x: not test_func0(x)
@@ -138,7 +142,7 @@ class StructSelect(InputProcessor):
             if line[0] == LESS_THAN:
                 if line.startswith(struct_begin):
                     keep = keep_struct(line)
-                    if verbose:
+                    if count:
                         struct_count += 1
                         if keep:
                             keep_count += 1
@@ -150,10 +154,15 @@ class StructSelect(InputProcessor):
             # Keep all lines outside the structures to be selected
             if not in_struct:
                 keep = True
-        if verbose:
-            sys.stderr.write(
+        if count:
+            infomsg = (
                 f'{struct_count} {args.struct} structures in input,'
-                f' kept {keep_count}, dropped {struct_count - keep_count}\n')
+                f' kept {keep_count}, dropped {struct_count - keep_count}')
+            if args.comment:
+                ouf.write(makebinvrtcomment(
+                    b'info', b'vrt-select: ' + infomsg.encode()))
+            if args.verbose:
+                sys.stderr.write(infomsg + '\n')
 
 
 if __name__ == '__main__':
