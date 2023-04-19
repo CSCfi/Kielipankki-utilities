@@ -15,13 +15,13 @@ from .bad import BadData, BadCode
 
 VERSION = '0.8.6 (2021-08-20)'
 
-def version_args(*, description):
+def version_args(*, description, epilog = None):
     '''Return an initial argument parser for a command line tool that
     specifies its own options but identifies itself as part of the vrt
     tools.
 
     '''
-    parser = ArgumentParser(description = description)
+    parser = ArgumentParser(description = description, epilog = epilog)
 
     parser.add_argument('--version',
                         action = 'version',
@@ -29,13 +29,13 @@ def version_args(*, description):
 
     return parser
 
-def transput_args(*, description, inplace = True):
+def transput_args(*, description, epilog = None, inplace = True):
     '''Return an initial argument parser for a command line tool that
     transforms a single input stream to a single output stream.
 
     '''
 
-    parser = ArgumentParser(description = description)
+    parser = ArgumentParser(description = description, epilog = epilog)
 
     parser.add_argument('infile', nargs = '?', metavar = 'file',
                         help = 'input file (default stdin)')
@@ -84,7 +84,7 @@ def transput_args(*, description, inplace = True):
 
     return parser
 
-def multiput_args(*, description):
+def multiput_args(*, description, epilog = None):
     '''Return an initial argument parser for a command line tool that
     produces for a single input file a number of output files, as
     siblings with names derived from the input file name, possibly
@@ -92,7 +92,7 @@ def multiput_args(*, description):
 
     '''
 
-    parser = ArgumentParser(description = description)
+    parser = ArgumentParser(description = description, epilog = epilog)
 
     parser.add_argument('infile', metavar = 'file',
                         help = 'input file')
@@ -125,7 +125,7 @@ def multiput_args(*, description):
 
     return parser
 
-def multiput2_args(*, description):
+def multiput2_args(*, description, epilog = None):
     '''Return an alternative initial argument parser for a command line
     tool that produces for a single input file a number of output
     files, as siblings with names derived from the input file name,
@@ -135,7 +135,7 @@ def multiput2_args(*, description):
 
     '''
 
-    parser = ArgumentParser(description = description)
+    parser = ArgumentParser(description = description, epilog = epilog)
 
     parser.add_argument('infile', nargs = '?', metavar = 'file',
                         help = 'input file (stdin)')
