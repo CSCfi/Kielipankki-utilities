@@ -3,9 +3,9 @@
 
 
 """
-vrt-filter
+vrt-select
 
-Filter (keep or remove) structures (elements) with attribute values
+Select (keep or drop) structures (elements) with attribute values
 matching specified regular expressions.
 """
 
@@ -13,6 +13,7 @@ matching specified regular expressions.
 # TODO:
 # - Warn if filtering leaves an outer structure empty: e.g., if
 #   filtering sentences leaves a paragraph or text empty
+# - Warn if dropping leaves an outer structure empty: e.g., if
 
 
 import re
@@ -24,20 +25,20 @@ from itertools import groupby
 from vrtargsoolib import InputProcessor
 
 
-class StructFilter(InputProcessor):
+class StructSelect(InputProcessor):
 
     """
-    Filter (keep or remove) from the VRT input structures with
+    Select (keep or drop) from the VRT input structures with
     attribute values matching specified regular expressions.
     """
 
     DESCRIPTION = """
-    Filter (keep or remove) from the VRT input structures (elements)
+    Select (keep or drop) from the VRT input structures (elements)
     with attribute values matching specified regular expressions.
     """
     ARGSPECS = [
         ('--structure-name = struct = "text" -> struct_name',
-         'Filter structures struct.'),
+         'Select structures struct.'),
         ('#EXCLUSIVE',
          (
              ('--keep|--preserve -> keep',
@@ -133,7 +134,7 @@ class StructFilter(InputProcessor):
                     in_struct = False
             if keep:
                 ouf.write(line)
-            # Keep all lines outside the structures to be filtered
+            # Keep all lines outside the structures to be selected
             if not in_struct:
                 keep = True
         if verbose:
@@ -143,4 +144,4 @@ class StructFilter(InputProcessor):
 
 
 if __name__ == '__main__':
-    StructFilter().run()
+    StructSelect().run()

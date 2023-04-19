@@ -1,5 +1,5 @@
 
-# scripttestlib tests for vrt-filter
+# scripttestlib tests for vrt-select
 
 
 # Default input and output
@@ -45,9 +45,9 @@
 # Argument checking and handling
 
 
-- name: 'vrt-filter: --test is required'
+- name: 'vrt-select: --test is required'
   input:
-    cmdline: vrt-filter
+    cmdline: vrt-select
   output:
     returncode: 2
     stderr:
@@ -55,9 +55,9 @@
     stdout: ''
 
 
-- name: 'vrt-filter: No "=" in attribute test'
+- name: 'vrt-select: No "=" in attribute test'
   input:
-    cmdline: vrt-filter --test a
+    cmdline: vrt-select --test a
   output:
     returncode: 1
     stderr:
@@ -65,9 +65,9 @@
     stdout: ''
 
 
-- name: 'vrt-filter: No attribute name in attribute test'
+- name: 'vrt-select: No attribute name in attribute test'
   input:
-    cmdline: vrt-filter --test "=a"
+    cmdline: vrt-select --test "=a"
   output:
     returncode: 1
     stderr:
@@ -78,9 +78,9 @@
 # Extra comments and other tags
 
 
-- name: 'vrt-filter: Preserve initial and final comments and tags and comments above texts'
+- name: 'vrt-select: Preserve initial and final comments and tags and comments above texts'
   input:
-    cmdline: vrt-filter --test "b=bb"
+    cmdline: vrt-select --test "b=bb"
     stdin: |
       <?xml>
       <!-- #vrt positional-attributes: word -->
@@ -150,9 +150,9 @@
 # Single attribute test
 
 
-- name: 'vrt-filter: Keep structures based on a single attribute test'
+- name: 'vrt-select: Keep structures based on a single attribute test'
   input:
-    cmdline: vrt-filter --test "b=.a"
+    cmdline: vrt-select --test "b=.a"
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -173,9 +173,9 @@
       </text>
 
 
-- name: 'vrt-filter: Remove structures based on a single attribute test'
+- name: 'vrt-select: Remove structures based on a single attribute test'
   input:
-    cmdline: vrt-filter --remove --test "b=.a"
+    cmdline: vrt-select --remove --test "b=.a"
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -191,9 +191,9 @@
       </text>
 
 
-- name: 'vrt-filter: Attribute test requires a full match'
+- name: 'vrt-select: Attribute test requires a full match'
   input:
-    cmdline: vrt-filter --test "n=."
+    cmdline: vrt-select --test "n=."
   output:
     stdout: &output-1 |
         <!-- #vrt positional-attributes: word -->
@@ -217,9 +217,9 @@
 # Verbose output
 
 
-- name: 'vrt-filter: Verbose output'
+- name: 'vrt-select: Verbose output'
   input:
-    cmdline: vrt-filter --test "n=." --verbose
+    cmdline: vrt-select --test "n=." --verbose
   output:
     stdout: *output-1
     stderr: |
@@ -230,9 +230,9 @@
 # Multiple attribute tests
 
 
-- name: 'vrt-filter: Keep structures based on both of two attribute tests'
+- name: 'vrt-select: Keep structures based on both of two attribute tests'
   input:
-    cmdline: vrt-filter --test "a=.[abc]" --test "c=ca"
+    cmdline: vrt-select --test "a=.[abc]" --test "c=ca"
   output:
     stdout: &output-2 |
       <!-- #vrt positional-attributes: word -->
@@ -248,16 +248,16 @@
       </text>
 
 
-- name: 'vrt-filter: Attribute test order does not matter'
+- name: 'vrt-select: Attribute test order does not matter'
   input:
-    cmdline: vrt-filter --test "c=ca" --test "a=.[abc]"
+    cmdline: vrt-select --test "c=ca" --test "a=.[abc]"
   output:
     stdout: *output-2
 
 
-- name: 'vrt-filter: Keep structures based on all of three attribute tests'
+- name: 'vrt-select: Keep structures based on all of three attribute tests'
   input:
-    cmdline: vrt-filter --test "a=.[abc]" --test "c=ca" --test "n=2."
+    cmdline: vrt-select --test "a=.[abc]" --test "c=ca" --test "n=2."
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -268,9 +268,9 @@
       </text>
 
 
-- name: 'vrt-filter: Keep structures based on either of two attribute tests'
+- name: 'vrt-select: Keep structures based on either of two attribute tests'
   input:
-    cmdline: vrt-filter --any --test "a=.[abc]" --test "c=ca"
+    cmdline: vrt-select --any --test "a=.[abc]" --test "c=ca"
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -296,9 +296,9 @@
       </text>
 
 
-- name: 'vrt-filter: Keep structures based on any of three attribute tests'
+- name: 'vrt-select: Keep structures based on any of three attribute tests'
   input:
-    cmdline: vrt-filter --any --test "a=.[ac]" --test "c=ca" --test "n=3"
+    cmdline: vrt-select --any --test "a=.[ac]" --test "c=ca" --test "n=3"
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -324,9 +324,9 @@
       </text>
 
 
-- name: 'vrt-filter: Remove structures based on both of two attribute tests'
+- name: 'vrt-select: Remove structures based on both of two attribute tests'
   input:
-    cmdline: vrt-filter --remove --test "a=.[abc]" --test "c=ca"
+    cmdline: vrt-select --remove --test "a=.[abc]" --test "c=ca"
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -347,9 +347,9 @@
       </text>
 
 
-- name: 'vrt-filter: Remove structures based on all of three attribute tests'
+- name: 'vrt-select: Remove structures based on all of three attribute tests'
   input:
-    cmdline: vrt-filter --remove --test "a=.[abc]" --test "c=ca" --test "n=2."
+    cmdline: vrt-select --remove --test "a=.[abc]" --test "c=ca" --test "n=2."
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -375,9 +375,9 @@
       </text>
 
 
-- name: 'vrt-filter: Remove structures based on either of two attribute tests'
+- name: 'vrt-select: Remove structures based on either of two attribute tests'
   input:
-    cmdline: vrt-filter --remove --any --test "a=.[abc]" --test "c=ca"
+    cmdline: vrt-select --remove --any --test "a=.[abc]" --test "c=ca"
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -388,9 +388,9 @@
       </text>
 
 
-- name: 'vrt-filter: Remove structures based on any of three attribute tests'
+- name: 'vrt-select: Remove structures based on any of three attribute tests'
   input:
-    cmdline: vrt-filter --remove --any --test "a=.[ac]" --test "c=ca" --test "n=3"
+    cmdline: vrt-select --remove --any --test "a=.[ac]" --test "c=ca" --test "n=3"
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -401,12 +401,12 @@
       </text>
 
 
-# Filter structures other than text
+# Select structures other than text
 
 
-- name: 'vrt-filter: Filter paragraphs'
+- name: 'vrt-select: Select paragraphs'
   input:
-    cmdline: vrt-filter --remove --struct paragraph --test "d=p2"
+    cmdline: vrt-select --remove --struct paragraph --test "d=p2"
     stdin: &input-2 |
       <!-- #vrt positional-attributes: word -->
       <text a="aa" b="ba" c="ca" n="21">
@@ -459,9 +459,9 @@
       </text>
 
 
-- name: 'vrt-filter: Filter paragraphs, leaving an empty text'
+- name: 'vrt-select: Select paragraphs, leaving an empty text'
   input:
-    cmdline: vrt-filter --remove --struct paragraph --test "d=p1"
+    cmdline: vrt-select --remove --struct paragraph --test "d=p1"
     stdin: *input-2
   output:
     stdout: |
@@ -488,9 +488,9 @@
       </text>
 
 
-- name: 'vrt-filter: Filter sentences'
+- name: 'vrt-select: Select sentences'
   input:
-    cmdline: vrt-filter --remove --struct sentence --test "e=s[45]"
+    cmdline: vrt-select --remove --struct sentence --test "e=s[45]"
     stdin: *input-2
   output:
     stdout: |
@@ -516,9 +516,9 @@
       </text>
 
 
-- name: 'vrt-filter: Filter sentences, leaving an empty paragraph and text'
+- name: 'vrt-select: Select sentences, leaving an empty paragraph and text'
   input:
-    cmdline: vrt-filter --remove --struct sentence --test "e=s[13-5]"
+    cmdline: vrt-select --remove --struct sentence --test "e=s[13-5]"
     stdin: *input-2
   output:
     stdout: |
