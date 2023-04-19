@@ -92,13 +92,14 @@ class StructSelect(InputProcessor):
 
     def check_args(self, args):
         super().check_args(args)
-        tests = {}
+        tests = []
         for test in args.tests:
             attrname, _, regexp = test.partition('=')
             if '=' not in test or not attrname:
                 self.error_exit(
                     f'Attribute test not of the form attrname=regexp: {test}')
-            tests[attrname.strip().encode()] = re.compile(regexp.lstrip())
+            tests.append(
+                (attrname.strip().encode(), re.compile(regexp.lstrip())))
         args.tests = tests
 
     def main(self, args, inf, ouf):
@@ -126,7 +127,7 @@ class StructSelect(InputProcessor):
             attrdict = make_attrdict(struct_line)
             return test_func(
                 regexp.fullmatch(attrdict.get(attrname, b'').decode())
-                for attrname, regexp in tests.items())
+                for attrname, regexp in tests)
 
         struct_count = 0
         keep_count = 0
