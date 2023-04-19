@@ -355,6 +355,8 @@ class BasicProcessor:
     strings representing argument names and argdict is a dictionary of
     the keyword arguments to be passed to
     `ArgumentParser.add_argument`."""
+    EPILOG = None
+    """Usage epilog shown after argument descriptions"""
 
     class OPTIONS:
         """Input processor option settings. Subclass this class in a
@@ -384,6 +386,7 @@ class BasicProcessor:
                 argspecs=self.ARGSPECS,
                 common_args=self.OPTIONS.common_args,
                 description=self.DESCRIPTION,
+                epilog=self.EPILOG,
                 **extra_kwargs
             )
         self._progname = self._argparser.prog
