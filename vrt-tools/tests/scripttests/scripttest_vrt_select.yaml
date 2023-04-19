@@ -51,7 +51,7 @@
   output:
     returncode: 2
     stderr:
-      regex: '.*error: the following arguments are required: --test/--condition.*'
+      regex: '.*error: the following arguments are required: --test.*'
     stdout: ''
 
 
@@ -173,9 +173,9 @@
       </text>
 
 
-- name: 'vrt-select: Remove structures based on a single attribute test'
+- name: 'vrt-select: Drop structures based on a single attribute test'
   input:
-    cmdline: vrt-select --remove --test "b=.a"
+    cmdline: vrt-select --drop --test "b=.a"
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -223,7 +223,7 @@
   output:
     stdout: *output-1
     stderr: |
-      5 text structures in input, kept 3, removed 2
+      5 text structures in input, kept 3, dropped 2
 
 
 
@@ -324,9 +324,9 @@
       </text>
 
 
-- name: 'vrt-select: Remove structures based on both of two attribute tests'
+- name: 'vrt-select: Drop structures based on both of two attribute tests'
   input:
-    cmdline: vrt-select --remove --test "a=.[abc]" --test "c=ca"
+    cmdline: vrt-select --drop --test "a=.[abc]" --test "c=ca"
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -347,9 +347,9 @@
       </text>
 
 
-- name: 'vrt-select: Remove structures based on all of three attribute tests'
+- name: 'vrt-select: Drop structures based on all of three attribute tests'
   input:
-    cmdline: vrt-select --remove --test "a=.[abc]" --test "c=ca" --test "n=2."
+    cmdline: vrt-select --drop --test "a=.[abc]" --test "c=ca" --test "n=2."
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -375,9 +375,9 @@
       </text>
 
 
-- name: 'vrt-select: Remove structures based on either of two attribute tests'
+- name: 'vrt-select: Drop structures based on either of two attribute tests'
   input:
-    cmdline: vrt-select --remove --any --test "a=.[abc]" --test "c=ca"
+    cmdline: vrt-select --drop --any --test "a=.[abc]" --test "c=ca"
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -388,9 +388,9 @@
       </text>
 
 
-- name: 'vrt-select: Remove structures based on any of three attribute tests'
+- name: 'vrt-select: Drop structures based on any of three attribute tests'
   input:
-    cmdline: vrt-select --remove --any --test "a=.[ac]" --test "c=ca" --test "n=3"
+    cmdline: vrt-select --drop --any --test "a=.[ac]" --test "c=ca" --test "n=3"
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
@@ -406,7 +406,7 @@
 
 - name: 'vrt-select: Select paragraphs'
   input:
-    cmdline: vrt-select --remove --struct paragraph --test "d=p2"
+    cmdline: vrt-select --drop --struct paragraph --test "d=p2"
     stdin: &input-2 |
       <!-- #vrt positional-attributes: word -->
       <text a="aa" b="ba" c="ca" n="21">
@@ -461,7 +461,7 @@
 
 - name: 'vrt-select: Select paragraphs, leaving an empty text'
   input:
-    cmdline: vrt-select --remove --struct paragraph --test "d=p1"
+    cmdline: vrt-select --drop --struct paragraph --test "d=p1"
     stdin: *input-2
   output:
     stdout: |
@@ -490,7 +490,7 @@
 
 - name: 'vrt-select: Select sentences'
   input:
-    cmdline: vrt-select --remove --struct sentence --test "e=s[45]"
+    cmdline: vrt-select --drop --struct sentence --test "e=s[45]"
     stdin: *input-2
   output:
     stdout: |
@@ -518,7 +518,7 @@
 
 - name: 'vrt-select: Select sentences, leaving an empty paragraph and text'
   input:
-    cmdline: vrt-select --remove --struct sentence --test "e=s[13-5]"
+    cmdline: vrt-select --drop --struct sentence --test "e=s[13-5]"
     stdin: *input-2
   output:
     stdout: |

@@ -11,9 +11,8 @@ matching specified regular expressions.
 
 
 # TODO:
-# - Warn if filtering leaves an outer structure empty: e.g., if
-#   filtering sentences leaves a paragraph or text empty
 # - Warn if dropping leaves an outer structure empty: e.g., if
+#   dropping sentences leaves a paragraph or text empty
 
 
 import re
@@ -37,26 +36,28 @@ class StructSelect(InputProcessor):
     with attribute values matching specified regular expressions.
     """
     ARGSPECS = [
-        ('--structure-name = struct = "text" -> struct_name',
-         'Select structures struct.'),
+        ('--structure|--element|-s|-e = struct = "text" -> struct_name',
+         'Select structures (elements) struct (default: %(default)s).'
+         ' Any lines outside structs are output intact.'),
         ('#EXCLUSIVE',
          (
-             ('--keep|--preserve -> keep',
-              'Output the structures matching the conditions (the default).',
-              # Make this work; if this had action='store_true',
-              # default=True and --drop had target "!keep", --keep
-              # would get metavar KEEP, which it should not
+             ('--keep|-k -> keep',
+              'Output the structures matching the tests (the default).',
+              # The following arguments make this work: if this had
+              # action='store_true', default=True and --drop had
+              # target "!keep", --keep would get metavar KEEP, which
+              # it should not
               dict(action='store_const', const=True, default=True)),
-             ('--drop|--remove -> keep',
-              'Output the structures not matching the conditions.',
+             ('--drop|-d -> keep',
+              'Output the structures not matching the tests.',
               dict(action='store_const', const=False)),
          )),
-        ('--test|--condition = test -> conds',
-         'Filter (keep or remove) a structure if its attribute attrname'
+        ('--test|-t = test -> conds',
+         'Select (keep or drop) a structure if its attribute attrname'
          ' matches the (Python) regular expression regexp.'
          ' regexp needs to match in full, so use .* at the beginning and/or'
          ' end to allow substring matches.'
-         ' If multiple conditions are specified, the structure needs to match'
+         ' If multiple tests are specified, the structure needs to match'
          ' either all of them (the default) or at least one of them (with'
          ' --any).',
          dict(required=True,
@@ -64,16 +65,23 @@ class StructSelect(InputProcessor):
               action='append')),
         ('#EXCLUSIVE',
          (
-             ('--all|--and -> all_conds',
-              'All conditions need to match (the default).',
+             ('--all -> all_conds',
+              'All tests need to match (the default).',
               dict(action='store_const', const=True, default=True)),
-             ('--any|--or -> all_conds',
-              'At least one condition needs to match.',
+             ('--any -> all_conds',
+              'At least one test needs to match.',
               dict(action='store_const', const=False)),
          )),
-        ('--verbose',
-         'Write to stderr the number of structures preserved and removed.'),
+        ('--verbose|-v',
+         'Write to stderr the number of structures kept and dropped.'),
     ]
+    EPILOG = """
+    Note that the tool does not warn if dropping structures leaves the
+    enclosing structure empty. Also, if the input contains overlapping
+    structures (such as pages), their start and end tags within
+    dropped structures are removed even if they continued beyond a
+    dropped structure.
+    """
 
     def __init__(self):
         super().__init__()
@@ -140,7 +148,7 @@ class StructSelect(InputProcessor):
         if verbose:
             sys.stderr.write(
                 f'{struct_count} {args.struct_name} structures in input,'
-                f' kept {keep_count}, removed {struct_count - keep_count}\n')
+                f' kept {keep_count}, dropped {struct_count - keep_count}\n')
 
 
 if __name__ == '__main__':
