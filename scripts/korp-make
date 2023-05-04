@@ -934,7 +934,6 @@ add_lemmas_without_boundaries () {
 		--add-name=lemmacomp --add-type=boundaries \
 		--add-after-name=lemma
     input_attrs=$(suffix_word "$input_attrs" lemma " lemmacomp")
-    # process_vrt vrt_replace_posattr_names "$input_attrs"
 }
 
 test_skip_add_lemmas_without_boundaries () {
@@ -959,7 +958,10 @@ add_lemgrams () {
 	exit_on_error false
     fi
     input_attrs="$input_attrs lex/"
-    # process_vrt vrt_replace_posattr_names "$input_attrs"
+    # This is some extra work but is needed to keep the
+    # positional-attributes comment in sync with the content as long
+    # as vrt-add-lemgrams does not handle the comment
+    adjust_posattrs_comment
 }
 
 test_skip_add_lemgrams () {
