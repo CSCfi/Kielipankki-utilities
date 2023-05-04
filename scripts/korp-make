@@ -625,7 +625,8 @@ run_stages () {
 # Stage functions and their descriptions
 stages=(
     "$stage1_fn" "$stage1_descr"
-    # Stage 2 information set in check_input_attrs if needed
+    check_input_attrs "Checking input attributes"
+    # Stage 3 information set in check_input_attrs if needed
     "" ""
     copy_struct_attrs "Copying structural attributes"
     rename_struct_attrs "Renaming structural attributes"
@@ -668,7 +669,6 @@ combine_input () {
 	    error "The number of tokens in the input ($input_token_count) differs from that in the existing corpus data ($existing_token_count)"
 	fi
     fi
-    check_input_attrs
 }
 
 test_skip_combine_input () {
@@ -716,6 +716,10 @@ check_input_attrs () {
     else
 	verbose safe_echo "No positional attributes named in the input VRT; using those listed with --input-attributes: $initial_input_attrs"
     fi
+    # FIXME: Testing for UD attributes (and setting lemgramp_posmap
+    # and wordpict_relmap accordingly) does not work if using an
+    # existing VRT file with the attributes already renamed, for
+    # example, if later adding lemgram or word picture data
     if has_only_ud_attrs $initial_input_attrs; then
         initial_input_attrs=$(rename_ud_attrs $initial_input_attrs)
         verbose safe_echo "Removing suffix _ud[12]? from positional attribute names, as no corresponding attributes without the suffix; modified input attributes: $initial_input_attrs"
