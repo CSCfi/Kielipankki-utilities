@@ -6,6 +6,9 @@ cmdline="$@"
 
 export LC_ALL=C
 
+# Detect subprocess errors also in non-final components of pipelines
+set -o pipefail
+
 shortopts="hc:f:r:o:v"
 longopts="help,corpus-name:,input-fields:,relation-map:,output-dir:,decode-input,optimize-memory,no-tar,no-archive,keep-temp-files,verbose"
 
@@ -123,6 +126,12 @@ tempdir_usage () {
     cut -d'	' -f1
 }
 
+check_subprocess_error () {
+    if [ "$1" != "0" ]; then
+        error "Aborting because of an error in a subprocess"
+    fi
+}
+
 sort_and_gzip () {
     for f in "$@"; do
 	mv $f $f.unsorted
@@ -133,6 +142,7 @@ sort_and_gzip () {
 		;;
 	esac
 	sort $sort_opts $f.unsorted | gzip > $f.gz
+        check_subprocess_error "$?"
     done
 }
 
@@ -146,6 +156,7 @@ process_raw_output () {
 	uniq -c |
 	sed -e "s/^ *\([0-9]\+\) \(.*\)/\2${tab}\1/" |
 	gzip > ${base_name}_${reltype}.tsv.gz
+        check_subprocess_error "$?"
     done
     fifo=$tmpfile_dir/rel_ids.fifo
     rel_ids_fname=$tmpfile_dir/rel_ids.tsv
@@ -162,11 +173,14 @@ process_raw_output () {
     tee $fifo |
     sed -e "s/^ *\([0-9]\+\)${tab} *\([0-9]\+\) \([^${tab}]\+\)${tab}\([^${tab}]\+${tab}[^${tab}]\+${tab}[^${tab}]\+\)/\1${tab}\4${tab}\2/" |
     gzip > ${base_name}.tsv.gz
+    check_subprocess_error "$?"
     wait $fifo_pid
+    check_subprocess_error "$?"
     sort -t"${tab}" -k1,1 ${base_name}_sentences.raw.tsv |
     join -t"${tab}" -j1 -o '2.2 1.2 1.3 1.4' - $rel_ids_fname |
     sort -n |
     gzip > ${base_name}_sentences.tsv.gz
+    check_subprocess_error "$?"
     sort_and_gzip ${base_name}_rel.tsv ${base_name}_strings.tsv
 }
 
