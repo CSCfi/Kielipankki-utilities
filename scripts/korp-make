@@ -692,8 +692,10 @@ test_skip_combine_input () {
 }
 
 check_input_attrs () {
-    local stage2_fn=
-    local stage2_descr=
+    local next_stage_fn=
+    local next_stage_descr=
+    local next_stage_descr2=
+    local next_stage_idx=
     local attrnum_word=
     local attrcount=
     local vrt_attrcount=
@@ -753,30 +755,31 @@ check_input_attrs () {
 	    [ "${initial_input_attrs#*-}" != "$initial_input_attrs" ] ||
             [ "x$omit_attrs" != x ]
     then
-	stage2_fn=filter_and_reorder_posattrs
-	stage2_descr="Filtering out positional attributes with name \"_\" or starting with \"-\" or specified with --omit-attributes"
+	next_stage_fn=filter_and_reorder_posattrs
+	next_stage_descr="Filtering out positional attributes with name \"_\" or starting with \"-\" or specified with --omit-attributes"
 	preprocess_posattrs=filter
     fi
     if [ "x$keep_attr_order" = x ] &&
 	   [ "$attrnum_word" != "-1" ] && [ "$attrnum_word" != "1" ]
     then
-	stage2_fn=filter_and_reorder_posattrs
-	stage2b_descr='moving "word" to be the first positional attribute'
-	if [ "x$stage2_descr" != x ]; then
-	    stage2_descr="$stage2_descr, and $stage2b_descr"
+	next_stage_fn=filter_and_reorder_posattrs
+	next_stage_descr2='moving "word" to be the first positional attribute'
+	if [ "x$next_stage_descr" != x ]; then
+	    next_stage_descr="$next_stage_descr, and $next_stage_descr2"
 	else
-	    stage2_descr=${stage2b_descr^}
+	    next_stage_descr=${next_stage_descr2^}
 	fi
 	preprocess_posattrs="$preprocess_posattrs reorder"
     fi
     # filter_and_reorder_posattrs adds a positional attributes comment
     # if it is missing, so if it will be run, do not do it here.
-    if [ "x$stage2_fn" = x ] && [ "x$initial_vrt_posattrs" = x ]; then
+    if [ "x$next_stage_fn" = x ] && [ "x$initial_vrt_posattrs" = x ]; then
 	process_vrt vrt_replace_posattr_names "$initial_input_attrs"
 	initial_vrt_posattrs=$initial_input_attrs
     fi
-    stages[2]=$stage2_fn
-    stages[3]=$stage2_descr
+    next_stage_idx=$(first_empty_elem_index "${stages[@]}")
+    stages[$next_stage_idx]=$next_stage_fn
+    stages[$(($next_stage_idx + 1))]=$next_stage_descr
     input_attrs=$initial_input_attrs
 }
 
@@ -815,6 +818,20 @@ rename_ud_attrs () {
         fi
     done
     echo "$attrs"
+}
+
+first_empty_elem_index () {
+    # Return the index of the first empty element in the argument array
+    local arr=("$@")
+    local i
+    i=0
+    while [ $i -lt ${#arr[@]} ]; do
+        if [ "${arr[$i]}" = "" ]; then
+            echo $i
+            return
+        fi
+        i=$(($i + 1))
+    done
 }
 
 filter_and_reorder_posattrs () {
