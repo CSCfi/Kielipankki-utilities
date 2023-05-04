@@ -1007,7 +1007,11 @@ add_datefromto () {
 }
 
 test_skip_add_datefromto () {
-    grep -q -s '^<text.* datefrom="' $vrt_file && echo "already present"
+    if ! grep -q -s '^<text ' $vrt_file; then
+        echo "no text structures"
+    elif grep -q -s '^<text.* datefrom="' $vrt_file; then
+        echo "already present"
+    fi
 }
 
 sort_texts () {
@@ -1097,8 +1101,34 @@ add_struct_ids () {
 }
 
 test_skip_add_struct_ids () {
-    [ "x$add_struct_ids" = x ] &&
-    echo "requested not to add"
+    local struct
+    local has_structs=
+    if [ "x$add_struct_ids" = x ]; then
+        echo "requested not to add"
+        return
+    fi
+    for struct in $add_struct_ids; do
+        if grep -q -s "^<$struct " "$vrt_file"; then
+            has_structs=1
+            break
+        fi
+    done
+    if [ "$has_structs" != 1 ]; then
+        echo "no structures ($(delimit ", " $add_struct_ids)) present"
+        return
+    fi
+    # It would be nice if this could modify $add_struct_ids to
+    # contain only the structures without ids, but the function is
+    # run as a subprocess, so the change would not propagate to
+    # the parent
+    for struct in $add_struct_ids; do
+        # FIXME (how?): The following also matches if an attribute
+        # value ends in "id="
+        if ! grep -m1 "^<$struct " "$vrt_file" | grep -q -s ' id="'; then
+            return
+        fi
+    done
+    echo "already present"
 }
 
 filter_new_attrs () {
