@@ -1286,23 +1286,39 @@ extract_wordpict_rels () {
 
 test_skip_extract_wordpict_rels () {
     local attr
+    # Suffixes in word picture relation database file names
+    local relfile_suffs=("" _dep_rel _head_rel _rel _sentences _strings)
+    local suff
+    local fname
     for attr in lemma pos deprel dephead ref; do
 	if ! { word_in $attr "$input_attrs" ||
 		word_in $attr/ "$input_attrs"; }
 	then
 	    echo "no attribute $attr"
-	    break
+	    return
 	fi
     done
     if [ "x$wordpicture" = x ]; then
 	echo "requested not to extract"
-    elif [ -s $tsvdir/${corpus}_rels.tsv.gz ]; then
-        if [ "x$remake_wordpicture_data" != x ]; then
-            rm -f $tsvdir/${corpus}_rels*.tsv.gz
-        else
-	    echo "already extracted"
-        fi
+        return
     fi
+    # Requested to remake
+    if [ "x$remake_wordpicture_data" != x ]; then
+        rm -f $tsvdir/${corpus}_rels*.tsv.gz
+        return
+    fi
+    # If any file does not exist or is empty (when uncompressed),
+    # remake all
+    for suff in "${relfile_suffs[@]}"; do
+        fname=$tsvdir/${corpus}_rels$suff.tsv.gz
+        if [ ! -r $fname ] || {
+               [ "$(wc -c < $fname)" -lt 80 ] &&
+                   [ "$(zcat $fname | wc -c)" = "0" ]; };
+        then
+            return
+        fi
+    done
+    echo "already extracted"
 }
 
 add_name_attrs () {
