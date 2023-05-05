@@ -336,6 +336,10 @@ no-name-attrs|no-name-attributes|skip-name-attrs|skip-name-attributes \
   !name_attrs
     do not add named-entity information based on a NER tag as the last
     positional attribute
+remake-wordpicture-data
+    force remaking word picture relations database tables; this option
+    is needed only if recreating word picture data that has been left
+    incomplete on a previous run
 
 @ Packaging
 
@@ -1293,7 +1297,11 @@ test_skip_extract_wordpict_rels () {
     if [ "x$wordpicture" = x ]; then
 	echo "requested not to extract"
     elif [ -s $tsvdir/${corpus}_rels.tsv.gz ]; then
-	echo "already extracted"
+        if [ "x$remake_wordpicture_data" != x ]; then
+            rm -f $tsvdir/${corpus}_rels*.tsv.gz
+        else
+	    echo "already extracted"
+        fi
     fi
 }
 
