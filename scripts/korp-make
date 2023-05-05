@@ -1290,14 +1290,22 @@ test_skip_extract_wordpict_rels () {
     local relfile_suffs=("" _dep_rel _head_rel _rel _sentences _strings)
     local suff
     local fname
+    local missing_attrs=
+    local pl=
     for attr in lemma pos deprel dephead ref; do
 	if ! { word_in $attr "$input_attrs" ||
 		word_in $attr/ "$input_attrs"; }
 	then
-	    echo "no attribute $attr"
-	    return
+            missing_attrs="$missing_attrs $attr"
 	fi
     done
+    if [ "x$missing_attrs" != x ]; then
+        if [ "$(count_words $missing_attrs)" -gt 1 ]; then
+            pl=s
+        fi
+        echo "no positional attribute$pl $(delimit ", " $missing_attrs)"
+        return
+    fi
     if [ "x$wordpicture" = x ]; then
 	echo "requested not to extract"
         return
