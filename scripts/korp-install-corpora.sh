@@ -383,17 +383,6 @@ install_db () {
     install_dbfiles tsv $filelistfile Importing
 }
 
-convert_timedata () {
-    local filelistfile
-    filelistfile=$1
-    echo "Converting time data"
-    # Find the physical (CWB) corpora in the corpus package
-    corpora=$(grep -E '^registry' $filelistfile | sed -e 's,.*/,,')
-    for corp in $corpora; do
-	$progdir/korp-convert-timedata.sh $corp
-    done
-}
-
 install_corpus () {
     local corp corpus_pkg pkgtime pkgsize pkghost install_base_msg
     corp=$1
@@ -450,7 +439,6 @@ install_corpus_step2 () {
     corpus_pkg=$3
     pkgtime=$4
     install_db $filelistfile
-    convert_timedata $filelistfile
     # Log to the list of installed corpora: current time, corpus name,
     # package file name, package file modification time, installing
     # user
