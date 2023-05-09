@@ -73,6 +73,11 @@ if [ "x$1" = x ]; then
 For more information, run '$0 --help'."
 fi
 
+dry_run_msg=
+if [ "x$dry_run" != x ]; then
+    dry_run_msg=" (dry run)"
+fi
+
 if [ "x$pkgdir" = "xCORPUS_ROOT/$pkgsubdir" ]; then
     pkgdir=${CORPUS_PKGDIR:-$corpus_root/$pkgsubdir}
 fi
@@ -383,17 +388,19 @@ install_dbfiles () {
     listfile=$(make_dbfile_list_filename $corp)
     files=$(grep -E '\.'$type'(\.(bz2|gz|xz))?$' $listfile)
     if [ "x$files" != "x" ]; then
-	echo "  $msg data into MySQL database"
+	echo "  $msg data into MySQL database$dry_run_msg"
 	for file in $files; do
 	    echo "    $file (size `filesize $corpus_root/$file`)"
-	    install_file_$type "$corpus_root/$file"
-	    if [ $? -ne 0 ]; then
-		error "Errors in loading $file"
-            else
-                grep -Fv "$file" $listfile > $listfile.new
-                replace_file $listfile $listfile.new
-                ensure_perms $listfile
-	    fi
+            if [ "x$dry_run" = x ]; then
+	        install_file_$type "$corpus_root/$file"
+	        if [ $? -ne 0 ]; then
+		    error "Errors in loading $file"
+                else
+                    grep -Fv "$file" $listfile > $listfile.new
+                    replace_file $listfile $listfile.new
+                    ensure_perms $listfile
+	        fi
+            fi
 	done
     fi
     if [ ! -s $listfile ]; then
@@ -465,12 +472,8 @@ install_corpus () {
 }
 
 install_corpora () {
-    local pkglistfile dry_run_msg corpname pkghost pkgfile pkgtime pkgsize
+    local pkglistfile corpname pkghost pkgfile pkgtime pkgsize
     pkglistfile=$1
-    dry_run_msg=
-    if [ "x$dry_run" != x ]; then
-	dry_run_msg=" (dry run)"
-    fi
     echo
     echo "Installing Korp corpora$dry_run_msg:"
     for corpname in $corpora_to_install; do
@@ -479,13 +482,12 @@ install_corpora () {
     while read corpname pkghost pkgfile pkgtime pkgsize; do
 	install_corpus $corpname "$pkgfile" $pkgtime $pkgsize $pkghost
     done < $pkglistfile
-    if [ "x$dry_run" = x ] && {
-           [ "x$delay_db" != x ] ||
-               [ "x$install_only_dbfiles_corpora" != x ]; }
+    if [ "x$install_only_dbfiles_corpora" != x ] || {
+           [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; }
     then
 	echo
-	echo Installing database files
-        if [ "x$delay_db" != x ]; then
+	echo "Installing database files$dry_run_msg"
+        if [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; then
             while read corpname pkghost pkgfile pkgtime pkgsize; do
                 install_db $corpname
             done < $pkglistfile
