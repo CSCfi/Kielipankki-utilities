@@ -381,10 +381,10 @@ install_file_tsv () {
 }
 
 install_dbfiles () {
-    local type corp msg listfile files file
+    local type msg corp listfile files file
     type=$1
-    corp=$2
-    msg=$3
+    msg=$2
+    corp=$3
     listfile=$(make_dbfile_list_filename $corp)
     files=$(grep -E '\.'$type'(\.(bz2|gz|xz))?$' $listfile)
     if [ "x$files" != "x" ]; then
@@ -411,8 +411,8 @@ install_dbfiles () {
 install_db () {
     local corp
     corp=$1
-    install_dbfiles sql $corp Loading
-    install_dbfiles tsv $corp Importing
+    install_dbfiles sql Loading $corp
+    install_dbfiles tsv Importing $corp
 }
 
 install_corpus () {
