@@ -38,9 +38,9 @@ backup-suffix=SUFFIX ".bak"
 f|force
     force installing a corpus package that is older than or as old as
     the currently installed package
-delay-database-import delay_db
-    begin importing database data only after all corpus packages have
-    been extracted
+immediate-database-import !delay_db
+    import database data immediately after extracting each corpus
+    package, instead of only after extracting all packages
 n|dry-run
     only report corpus packages that would be installed, but do not
     actually install them
@@ -458,7 +458,7 @@ install_corpus () {
     grep -E '\.(sql|tsv)(\.(bz2|gz|xz))?$' $filelistfile \
          > $(make_dbfile_list_filename $corp)
     if [ "x$delay_db" != x ]; then
-	echo "  (Delaying installing database files)"
+	echo "  (Installing database files after extracting all packages)"
     else
 	install_db $corp
     fi
