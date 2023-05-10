@@ -423,6 +423,19 @@ install_db () {
     install_dbfiles tsv Importing $corp "$tables_re"
 }
 
+install_corpora_dbtables () {
+    local install_fn corpora dbtable_order tables_re
+    install_fn=$1
+    corpora=$2
+    dbtable_order=$3
+    # The * and ? in $dbtable_order should not be expanded
+    set -o noglob
+    for tables_re in $dbtable_order; do
+	$install_fn "$corpora" "$tables_re"
+    done
+    set +o noglob
+}
+
 install_corpus () {
     local corp corpus_pkg pkgtime pkgsize pkghost install_base_msg tables_re
     corp=$1
@@ -475,33 +488,34 @@ install_corpus () {
     if [ "x$delay_db" != x ]; then
 	echo "  (Installing database files after extracting all packages)"
     else
-        # The * and ? in $dbtable_install_order should not be expanded
-        set -o noglob
-        for tables_re in $dbtable_install_order; do
-	    install_db $corp "$tables_re"
-        done
-        set +o noglob
+        install_corpora_dbtables install_db $corp "$dbtable_install_order"
     fi
 }
 
 install_corpora_db () {
-    local corpora tables_re corpname
+    local corpora tables_re
     corpora=$1
     tables_re=$2
     if [ "x$install_only_dbfiles_corpora" != x ]; then
-        for corpname in $install_only_dbfiles_corpora; do
-            install_db $corpname "$tables_re"
-        done
+        install_corpora_db_aux "$install_only_dbfiles_corpora" "$tables_re"
     fi
     if [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; then
-        for corpname in $corpora; do
-            install_db $corpname "$tables_re"
-        done
+        install_corpora_db_aux "$corpora" "$tables_re"
     fi
 }
 
+install_corpora_db_aux () {
+    local corpora tables_re corpname
+    corpora=$1
+    tables_re=$2
+    for corpname in $corpora; do
+        install_db $corpname "$tables_re"
+    done
+}
+
 install_corpora () {
-    local pkglistfile corpname pkghost pkgfile pkgtime pkgsize corpora tables_re
+    local pkglistfile corpname pkghost pkgfile pkgtime pkgsize corpora \
+          tables_re order
     pkglistfile=$1
     echo
     echo "Installing Korp corpora$dry_run_msg:"
@@ -518,20 +532,17 @@ install_corpora () {
     then
 	echo
 	echo "Installing database files$dry_run_msg"
-        # The * and ? in $dbtable_install_order should not be expanded
-        set -o noglob
         if [ "x$dry_run" != x ]; then
             # If dry run, showing tables ".*" last would also show
             # those matching the other table patterns in
             # $dbtable_install_order, as they are not actually
-            # installed, so show all tables at once
-            install_corpora_db "$corpora" ".*"
+            # installed, so show all tables at once, even though the
+            # order is different than the actual installation order
+            order=".*"
         else
-            for tables_re in $dbtable_install_order; do
-	        install_corpora_db "$corpora" "$tables_re"
-            done
+            order=$dbtable_install_order
         fi
-        set +o noglob
+        install_corpora_dbtables install_corpora_db "$corpora" "$order"
     fi
     echo
     echo "Installation complete$dry_run_msg"
