@@ -393,6 +393,9 @@ install_dbfiles () {
         tables_re=".*"
     fi
     listfile=$(make_dbfile_list_filename $corp)
+    if [ ! -e $listfile ]; then
+        return
+    fi
     files=$(grep -E '_'"$tables_re"'\.'$type'(\.(bz2|gz|xz))?$' $listfile)
     if [ "x$files" != "x" ]; then
 	echo "  $msg data into MySQL database$dry_run_msg"
