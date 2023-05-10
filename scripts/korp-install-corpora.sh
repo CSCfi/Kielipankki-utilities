@@ -488,13 +488,13 @@ install_corpora_db () {
     local corpora tables_re corpname
     corpora=$1
     tables_re=$2
-    if [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; then
-        for corpname in $corpora; do
+    if [ "x$install_only_dbfiles_corpora" != x ]; then
+        for corpname in $install_only_dbfiles_corpora; do
             install_db $corpname "$tables_re"
         done
     fi
-    if [ "x$install_only_dbfiles_corpora" != x ]; then
-        for corpname in $install_only_dbfiles_corpora; do
+    if [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; then
+        for corpname in $corpora; do
             install_db $corpname "$tables_re"
         done
     fi
