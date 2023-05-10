@@ -41,6 +41,7 @@ f|force
 immediate-database-import !delay_db
     import database data immediately after extracting each corpus
     package, instead of only after extracting all packages
+    (authorization data is always imported immediately)
 n|dry-run
     only report corpus packages that would be installed, but do not
     actually install them
@@ -68,7 +69,11 @@ pkglistfile=$tmp_prefix.pkgs
 timestamp_format="+%Y-%m-%dT%H:%M:%S"
 
 # The order in which database tables should be imported
-dbtable_install_order="auth_.* timedata(_date)? lemgrams .*"
+# Always installed immediately after extracting package
+dbtable_install_order_immediate="auth_.*"
+# Installed only after extracting all packages unless
+# --immediate-database-import
+dbtable_install_order="timedata(_date)? lemgrams .*"
 
 
 if [ "x$1" = x ]; then
@@ -480,16 +485,17 @@ install_corpus () {
 	ensure_perms $(cat $filelistfile)
     )
     adjust_registry $filelistfile
+    grep -E '\.(sql|tsv)(\.(bz2|gz|xz))?$' $filelistfile \
+         > $(make_dbfile_list_filename $corp)
+    install_corpora_dbtables install_db $corp "$dbtable_install_order_immediate"
     # Log to the list of installed corpora: current time, corpus name,
     # package file name, package file modification time, installing
     # user
     printf "%s\t%s\t%s\t%s\t%s\n" \
 	$(date "$timestamp_format") $corp $(basename "$corpus_pkg") \
 	$pkgtime $(whoami) >> $installed_list
-    grep -E '\.(sql|tsv)(\.(bz2|gz|xz))?$' $filelistfile \
-         > $(make_dbfile_list_filename $corp)
     if [ "x$delay_db" != x ]; then
-	echo "  (Installing database files after extracting all packages)"
+	echo "  (Installing (the rest of) the database files after extracting all packages)"
     else
         install_corpora_dbtables install_db $corp "$dbtable_install_order"
     fi
