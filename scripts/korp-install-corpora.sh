@@ -7,10 +7,6 @@
 # - Multiple or timestamped backups
 # - Backup to a different backup directory
 # - Verbosity control
-# - Resume a partial installation, e.g., no or only some database
-#   files installed
-# - Possibly write to the log also partial installations (when CWB
-#   files have been installed but database files not)
 
 
 progname=`basename $0`
@@ -42,9 +38,10 @@ backup-suffix=SUFFIX ".bak"
 f|force
     force installing a corpus package that is older than or as old as
     the currently installed package
-delay-database-import delay_db
-    begin importing database data only after all corpus packages have
-    been extracted
+immediate-database-import !delay_db
+    import database data immediately after extracting each corpus
+    package, instead of only after extracting all packages
+    (authorization data is always imported immediately)
 n|dry-run
     only report corpus packages that would be installed, but do not
     actually install them
@@ -66,15 +63,30 @@ eval "$optinfo_opt_handler"
 # This is only for compatibility with older corpus packages
 pkg_prefix=korpdata_
 
-filelistfile=$tmp_prefix.files
+# $filelistfile needs to be an absolute path as it is also accessed
+# from the corpus root when ensuring the permissions of the extracted
+# files (listed in $filelistfile)
+filelistfile=$(realpath $tmp_prefix.files)
 pkglistfile=$tmp_prefix.pkgs
 
 timestamp_format="+%Y-%m-%dT%H:%M:%S"
+
+# The order in which database tables should be imported
+# Always installed immediately after extracting package
+dbtable_install_order_immediate="auth_.*"
+# Installed only after extracting all packages unless
+# --immediate-database-import
+dbtable_install_order="timedata(_date)? lemgrams .*"
 
 
 if [ "x$1" = x ]; then
     error "Please specify the names of corpus packages or corpora to install.
 For more information, run '$0 --help'."
+fi
+
+dry_run_msg=
+if [ "x$dry_run" != x ]; then
+    dry_run_msg=" (dry run)"
 fi
 
 if [ "x$pkgdir" = "xCORPUS_ROOT/$pkgsubdir" ]; then
@@ -91,12 +103,28 @@ case $pkgdir in
 esac
 
 installed_list=$corpus_root/korp_installed_corpora.list
+install_state_dir=$corpus_root/korp-install-corpora
 
 if [ ! -e "$installed_list" ]; then
     touch "$installed_list"
     ensure_perms "$installed_list"
 fi
 
+if [ ! -e "$install_state_dir" ]; then
+    mkdir -p "$install_state_dir"
+    ensure_perms "$install_state_dir"
+fi
+
+dbfile_list_prefix=$install_state_dir/dbfile_queue-
+
+install_only_dbfiles_corpora=
+
+
+make_dbfile_list_filename () {
+    local corp
+    corp=$1
+    echo "$dbfile_list_prefix$corp.list"
+}
 
 host_is_remote () {
     test "x$1" != x$localhost && test "x$1" != x
@@ -249,7 +277,12 @@ filter_corpora () {
 		if [ "x$force" != x ]; then
 		    echo "  $corpname: installing $formatted_pkgname because of --force, even though $not_newer_msg" >> /dev/stderr
 		else
-		    echo "  $corpname: skipping $formatted_pkgname as $not_newer_msg" >> /dev/stderr
+                    if [ -s $(make_dbfile_list_filename $corpname) ]; then
+                        echo "  $corpname: $formatted_pkgname already installed but importing the database files not yet imported" >> /dev/stderr
+                        install_only_dbfiles_corpora="$install_only_dbfiles_corpora $corpname"
+                    else
+		        echo "  $corpname: skipping $formatted_pkgname as $not_newer_msg" >> /dev/stderr
+                    fi
 		    continue
 		fi
 	    fi
@@ -359,43 +392,63 @@ install_file_tsv () {
 }
 
 install_dbfiles () {
-    local type filelistfile msg files
+    local type msg corp tables_re listfile files file
     type=$1
-    filelistfile=$2
-    msg=$3
-    files=`grep -E '\.'$type'(\.(bz2|gz|xz))?$' $filelistfile`
+    msg=$2
+    corp=$3
+    tables_re=$4
+    if [ "x$tables_re" = x ]; then
+        tables_re=".*"
+    fi
+    listfile=$(make_dbfile_list_filename $corp)
+    if [ ! -e $listfile ]; then
+        return
+    fi
+    files=$(grep -E '_'"$tables_re"'\.'$type'(\.(bz2|gz|xz))?$' $listfile)
     if [ "x$files" != "x" ]; then
-	echo "  $msg data into MySQL database"
+	echo "  $msg data into MySQL database$dry_run_msg"
 	for file in $files; do
 	    echo "    $file (size `filesize $corpus_root/$file`)"
-	    install_file_$type "$corpus_root/$file"
-	    if [ $? -ne 0 ]; then
-		error "Errors in loading $file"
-	    fi
+            if [ "x$dry_run" = x ]; then
+	        install_file_$type "$corpus_root/$file"
+	        if [ $? -ne 0 ]; then
+		    error "Errors in loading $file"
+                else
+                    grep -Fv "$file" $listfile > $listfile.new
+                    replace_file $listfile $listfile.new
+                    ensure_perms $listfile
+	        fi
+            fi
 	done
+    fi
+    if [ ! -s $listfile ]; then
+        rm $listfile
     fi
 }
 
 install_db () {
-    local filelistfile
-    filelistfile=$1
-    install_dbfiles sql $filelistfile Loading
-    install_dbfiles tsv $filelistfile Importing
+    local corp tables_re
+    corp=$1
+    tables_re=$2
+    install_dbfiles sql Loading $corp "$tables_re"
+    install_dbfiles tsv Importing $corp "$tables_re"
 }
 
-convert_timedata () {
-    local filelistfile
-    filelistfile=$1
-    echo "Converting time data"
-    # Find the physical (CWB) corpora in the corpus package
-    corpora=$(grep -E '^registry' $filelistfile | sed -e 's,.*/,,')
-    for corp in $corpora; do
-	$progdir/korp-convert-timedata.sh $corp
+install_corpora_dbtables () {
+    local install_fn corpora dbtable_order tables_re
+    install_fn=$1
+    corpora=$2
+    dbtable_order=$3
+    # The * and ? in $dbtable_order should not be expanded
+    set -o noglob
+    for tables_re in $dbtable_order; do
+	$install_fn "$corpora" "$tables_re"
     done
+    set +o noglob
 }
 
 install_corpus () {
-    local corp corpus_pkg pkgtime pkgsize pkghost install_base_msg
+    local corp corpus_pkg pkgtime pkgsize pkghost install_base_msg tables_re
     corp=$1
     corpus_pkg=$2
     pkgtime=$3
@@ -435,52 +488,73 @@ install_corpus () {
 	ensure_perms $(cat $filelistfile)
     )
     adjust_registry $filelistfile
-    if [ "x$delay_db" != x ]; then
-	echo "  (Delaying installing database files)"
-	cp -p $filelistfile $filelistfile.$corp
-    else
-	install_corpus_step2 $filelistfile $corp "$corpus_pkg" $pkgtime
-    fi
-}
-
-install_corpus_step2 () {
-    local filelistfile corp corpus_pkg pkgtime
-    filelistfile=$1
-    corp=$2
-    corpus_pkg=$3
-    pkgtime=$4
-    install_db $filelistfile
-    convert_timedata $filelistfile
+    grep -E '\.(sql|tsv)(\.(bz2|gz|xz))?$' $filelistfile \
+         > $(make_dbfile_list_filename $corp)
+    install_corpora_dbtables install_db $corp "$dbtable_install_order_immediate"
     # Log to the list of installed corpora: current time, corpus name,
     # package file name, package file modification time, installing
     # user
     printf "%s\t%s\t%s\t%s\t%s\n" \
 	$(date "$timestamp_format") $corp $(basename "$corpus_pkg") \
 	$pkgtime $(whoami) >> $installed_list
+    if [ "x$delay_db" != x ]; then
+	echo "  (Installing (the rest of) the database files after extracting all packages)"
+    else
+        install_corpora_dbtables install_db $corp "$dbtable_install_order"
+    fi
+}
+
+install_corpora_db () {
+    local corpora tables_re
+    corpora=$1
+    tables_re=$2
+    if [ "x$install_only_dbfiles_corpora" != x ]; then
+        install_corpora_db_aux "$install_only_dbfiles_corpora" "$tables_re"
+    fi
+    if [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; then
+        install_corpora_db_aux "$corpora" "$tables_re"
+    fi
+}
+
+install_corpora_db_aux () {
+    local corpora tables_re corpname
+    corpora=$1
+    tables_re=$2
+    for corpname in $corpora; do
+        install_db $corpname "$tables_re"
+    done
 }
 
 install_corpora () {
-    local pkglistfile dry_run_msg corpname pkghost pkgfile pkgtime pkgsize
+    local pkglistfile corpname pkghost pkgfile pkgtime pkgsize corpora \
+          tables_re order
     pkglistfile=$1
-    dry_run_msg=
-    if [ "x$dry_run" != x ]; then
-	dry_run_msg=" (dry run)"
-    fi
     echo
     echo "Installing Korp corpora$dry_run_msg:"
-    for corp in $corpora_to_install; do
-	echo "  $corp"
+    for corpname in $corpora_to_install; do
+	echo "  $corpname"
     done
+    corpora=
     while read corpname pkghost pkgfile pkgtime pkgsize; do
 	install_corpus $corpname "$pkgfile" $pkgtime $pkgsize $pkghost
+        corpora="$corpora $corpname"
     done < $pkglistfile
-    if [ "x$delay_db" != x ] && [ "x$dry_run" = x ]; then
+    if [ "x$install_only_dbfiles_corpora" != x ] || {
+           [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; }
+    then
 	echo
-	echo Installing database files
-	while read corpname pkghost pkgfile pkgtime pkgsize; do
-	    install_corpus_step2 \
-		$filelistfile.$corpname $corpname "$pkgfile" $pkgtime
-	done < $pkglistfile
+	echo "Installing database files$dry_run_msg"
+        if [ "x$dry_run" != x ]; then
+            # If dry run, showing tables ".*" last would also show
+            # those matching the other table patterns in
+            # $dbtable_install_order, as they are not actually
+            # installed, so show all tables at once, even though the
+            # order is different than the actual installation order
+            order=".*"
+        else
+            order=$dbtable_install_order
+        fi
+        install_corpora_dbtables install_corpora_db "$corpora" "$order"
     fi
     echo
     echo "Installation complete$dry_run_msg"
@@ -497,7 +571,8 @@ fi
 # constructs the value of the variable corpora_to_install that the
 # latter uses
 filter_corpora $pkglistfile.base > $pkglistfile
-if [ "x$corpora_to_install" = x ]; then
+if [ "x$corpora_to_install" = x ] && [ "x$install_only_dbfiles_corpora" = x ];
+then
     error "No corpora to install"
 fi
 install_corpora $pkglistfile
