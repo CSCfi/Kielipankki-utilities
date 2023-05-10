@@ -63,7 +63,10 @@ eval "$optinfo_opt_handler"
 # This is only for compatibility with older corpus packages
 pkg_prefix=korpdata_
 
-filelistfile=$tmp_prefix.files
+# $filelistfile needs to be an absolute path as it is also accessed
+# from the corpus root when ensuring the permissions of the extracted
+# files (listed in $filelistfile)
+filelistfile=$(realpath $tmp_prefix.files)
 pkglistfile=$tmp_prefix.pkgs
 
 timestamp_format="+%Y-%m-%dT%H:%M:%S"
