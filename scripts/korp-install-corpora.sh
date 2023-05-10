@@ -67,6 +67,9 @@ pkglistfile=$tmp_prefix.pkgs
 
 timestamp_format="+%Y-%m-%dT%H:%M:%S"
 
+# The order in which database tables should be imported
+dbtable_install_order="auth_.* timedata(_date)? lemgrams .*"
+
 
 if [ "x$1" = x ]; then
     error "Please specify the names of corpus packages or corpora to install.
@@ -381,12 +384,16 @@ install_file_tsv () {
 }
 
 install_dbfiles () {
-    local type msg corp listfile files file
+    local type msg corp tables_re listfile files file
     type=$1
     msg=$2
     corp=$3
+    tables_re=$4
+    if [ "x$tables_re" = x ]; then
+        tables_re=".*"
+    fi
     listfile=$(make_dbfile_list_filename $corp)
-    files=$(grep -E '\.'$type'(\.(bz2|gz|xz))?$' $listfile)
+    files=$(grep -E '_'"$tables_re"'\.'$type'(\.(bz2|gz|xz))?$' $listfile)
     if [ "x$files" != "x" ]; then
 	echo "  $msg data into MySQL database$dry_run_msg"
 	for file in $files; do
@@ -409,14 +416,15 @@ install_dbfiles () {
 }
 
 install_db () {
-    local corp
+    local corp tables_re
     corp=$1
-    install_dbfiles sql Loading $corp
-    install_dbfiles tsv Importing $corp
+    tables_re=$2
+    install_dbfiles sql Loading $corp "$tables_re"
+    install_dbfiles tsv Importing $corp "$tables_re"
 }
 
 install_corpus () {
-    local corp corpus_pkg pkgtime pkgsize pkghost install_base_msg
+    local corp corpus_pkg pkgtime pkgsize pkghost install_base_msg tables_re
     corp=$1
     corpus_pkg=$2
     pkgtime=$3
@@ -467,36 +475,63 @@ install_corpus () {
     if [ "x$delay_db" != x ]; then
 	echo "  (Installing database files after extracting all packages)"
     else
-	install_db $corp
+        # The * and ? in $dbtable_install_order should not be expanded
+        set -o noglob
+        for tables_re in $dbtable_install_order; do
+	    install_db $corp "$tables_re"
+        done
+        set +o noglob
+    fi
+}
+
+install_corpora_db () {
+    local corpora tables_re corpname
+    corpora=$1
+    tables_re=$2
+    if [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; then
+        for corpname in $corpora; do
+            install_db $corpname "$tables_re"
+        done
+    fi
+    if [ "x$install_only_dbfiles_corpora" != x ]; then
+        for corpname in $install_only_dbfiles_corpora; do
+            install_db $corpname "$tables_re"
+        done
     fi
 }
 
 install_corpora () {
-    local pkglistfile corpname pkghost pkgfile pkgtime pkgsize
+    local pkglistfile corpname pkghost pkgfile pkgtime pkgsize corpora tables_re
     pkglistfile=$1
     echo
     echo "Installing Korp corpora$dry_run_msg:"
     for corpname in $corpora_to_install; do
 	echo "  $corpname"
     done
+    corpora=
     while read corpname pkghost pkgfile pkgtime pkgsize; do
 	install_corpus $corpname "$pkgfile" $pkgtime $pkgsize $pkghost
+        corpora="$corpora $corpname"
     done < $pkglistfile
     if [ "x$install_only_dbfiles_corpora" != x ] || {
            [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; }
     then
 	echo
 	echo "Installing database files$dry_run_msg"
-        if [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; then
-            while read corpname pkghost pkgfile pkgtime pkgsize; do
-                install_db $corpname
-            done < $pkglistfile
-        fi
-        if [ "x$install_only_dbfiles_corpora" != x ]; then
-            for corpname in $install_only_dbfiles_corpora; do
-                install_db $corpname
+        # The * and ? in $dbtable_install_order should not be expanded
+        set -o noglob
+        if [ "x$dry_run" != x ]; then
+            # If dry run, showing tables ".*" last would also show
+            # those matching the other table patterns in
+            # $dbtable_install_order, as they are not actually
+            # installed, so show all tables at once
+            install_corpora_db "$corpora" ".*"
+        else
+            for tables_re in $dbtable_install_order; do
+	        install_corpora_db "$corpora" "$tables_re"
             done
         fi
+        set +o noglob
     fi
     echo
     echo "Installation complete$dry_run_msg"
