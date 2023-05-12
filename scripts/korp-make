@@ -588,6 +588,28 @@ check_errors_from_log () {
     fi
 }
 
+# Check if data exists from a previous run and if it could be used or
+# if it should be removed
+check_for_existing_data () {
+    if [ "x$force" != x ]; then
+        remove_existing_data
+    else
+        if [ -r $vrt_file.gz ] && [ -s $vrt_file.gz ]; then
+            gunzip $vrt_file.gz
+        fi
+        # If any of specified the input files is newer than the
+        # existing VRT file and not augmenting data, remove existing
+        # data
+        if [ -r $vrt_file ] && [ -s $vrt_file ] &&
+               [ "x$augment_data" = x ] &&
+               [ "${#input_files[@]}" -gt 0 ] &&
+               ! file_newer $vrt_file "${input_files[@]}";
+        then
+            remove_existing_data
+        fi
+    fi
+}
+
 # Run a single stage function (name) after printing the description
 # (descr). If function test_skip_$name is defined and its output is
 # non-empty, skip the stage.
@@ -681,22 +703,10 @@ combine_input () {
 }
 
 test_skip_combine_input () {
-    if [ -r $vrt_file.gz ] && [ -s $vrt_file.gz ]; then
-	gunzip $vrt_file.gz
-    fi
-    if [ -r $vrt_file ] && [ -s $vrt_file ]; then
-        # If any of specified the input files is newer than the
-        # existing VRT file and not augmenting data, remove existing
-        # data
-        if [ "x$augment_data" = x ] &&
-               [ "${#input_files[@]}" -gt 0 ] &&
-               ! file_newer $vrt_file "${input_files[@]}";
-        then
-            remove_existing_data
-        else
-	    echo "using existing VRT file $vrt_file"
-        fi
-    fi
+    # If other conditions for not combining input have been met,
+    # $vrt_file has already been removed in check_for_existing_data
+    [ -r $vrt_file ] && [ -s $vrt_file ] &&
+	echo "using existing VRT file $vrt_file"
 }
 
 check_input_attrs () {
@@ -1409,9 +1419,7 @@ main () {
     top_stdout=3
     exec 3> /dev/stdout
     set -o pipefail
-    if [ "x$force" != x ]; then
-        remove_existing_data
-    fi
+    check_for_existing_data
     run_stages
     exec 3>&-
     ensure_perms $tsvdir/* $vrtdir/* $datadir/* $cwb_regdir/$corpus 2> /dev/null
