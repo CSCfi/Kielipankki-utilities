@@ -1419,7 +1419,7 @@ test_skip_extract_wordpict_rels () {
     # remake all
     for suff in "${relfile_suffs[@]}"; do
         fname=$tsvdir/${corpus}_rels$suff.tsv.gz
-        if [ ! -r $fname ] || [ -s $fname ] || {
+        if [ ! -r $fname ] || [ ! -s $fname ] || {
                [ "$(wc -c < $fname)" -lt 80 ] &&
                    [ "$(zcat $fname 2> /dev/null | wc -c)" = "0" ]; };
         then
