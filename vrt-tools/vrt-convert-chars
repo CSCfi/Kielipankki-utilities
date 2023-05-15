@@ -43,11 +43,7 @@ class CharConverter:
     def __init__(self, opts, input_encoding='utf-8-sig'):
         self._opts = opts
         self._input_encoding = input_encoding
-        self._convert_posattrs = (self._opts.attribute_types
-                                 in ['all', 'pos'])
-        self._convert_structattrs = (self._opts.attribute_types
-                                    in ['all', 'struct'])
-        self._convert_map = [(c, (opts.prefix + chr(i + opts.offset)))
+        self._convert_map = [(c, chr(i + opts.offset))
                              for (i, c) in enumerate(opts.chars)]
         self._add_xml_char_refs_to_convert_map()
         self._feat_set_attrs = set(
@@ -56,14 +52,12 @@ class CharConverter:
         # print repr(self._feat_set_struct_attrs)
         if opts.mode == 'decode':
             self._convert_map = [(enc, dec) for dec, enc in self._convert_map]
-        if (opts.mode == 'encode' and self._convert_posattrs
-            and self._feat_set_attrs):
+        if opts.mode == 'encode' and self._feat_set_attrs:
             self._convert_chars_in_pos_attrs = (
                 self._convert_chars_in_pos_attrs_featsets)
         else:
             self._convert_chars_in_pos_attrs = self._convert_chars
-        if (opts.mode == 'encode' and self._convert_structattrs
-            and self._feat_set_struct_attrs):
+        if opts.mode == 'encode' and self._feat_set_struct_attrs:
             self._convert_chars_in_struct_attrs = (
                 self._convert_chars_in_struct_attrs_featsets)
         else:
@@ -71,11 +65,7 @@ class CharConverter:
                 self._convert_chars_in_struct_attrs_simple)
         self._convert_map_featset = [
             (dec, enc) for dec, enc in self._convert_map if dec != '|']
-        self._struct_re = (
-            (r'</?(?:' + '|'.join(re.split(r'\s*[\s,]\s*',
-                                        self._opts.recognize_structs))
-             + r')(?:\s.*)?/?>\s*$')
-            if self._opts.recognize_structs else r'<.+>\s*$')
+        self._struct_re = r'<.+>\s*$'
 
     def _make_attr_list(self, attrnumlist):
         if attrnumlist:
@@ -112,23 +102,22 @@ class CharConverter:
         return set_struct_attrs
 
     def _add_xml_char_refs_to_convert_map(self):
-        if self._opts.convert_xml_char_refs:
-            if self._opts.mode == 'encode':
-                # When encoding, replace both literal characters and
-                # XML character entity references with the encoded
-                # characters.
-                self._convert_map.extend(
-                    (self._xml_char_entities[c1], c2)
-                    for c1, c2 in self._convert_map
-                    if c1 in self._xml_char_entities)
-            else:
-                # When decoding, replace the appropriate converted
-                # characters with XML character entity references and
-                # not the literal characters. The conversion map will
-                # be inverted only after this.
-                self._convert_map = [
-                    (self._xml_char_entities.get(c1, c1), c2)
-                    for c1, c2 in self._convert_map]
+        if self._opts.mode == 'encode':
+            # When encoding, replace both literal characters and
+            # XML character entity references with the encoded
+            # characters.
+            self._convert_map.extend(
+                (self._xml_char_entities[c1], c2)
+                for c1, c2 in self._convert_map
+                if c1 in self._xml_char_entities)
+        else:
+            # When decoding, replace the appropriate converted
+            # characters with XML character entity references and
+            # not the literal characters. The conversion map will
+            # be inverted only after this.
+            self._convert_map = [
+                (self._xml_char_entities.get(c1, c1), c2)
+                for c1, c2 in self._convert_map]
 
     def process_input(self, fnames):
         if not fnames:
@@ -143,9 +132,9 @@ class CharConverter:
             if line[0] == '<' and line.rstrip()[-1] == '>':
                 # Note: This does not skip multi-line XML comments, as
                 # cwb-encode does not recognize them
-                if self._convert_structattrs and line[1] not in '!?':
+                if line[1] not in '!?':
                     line = self._convert_chars_in_struct_attrs(line)
-            elif self._convert_posattrs:
+            else:
                 line = self._convert_chars_in_pos_attrs(line)
             sys.stdout.write(line)
 
@@ -195,13 +184,6 @@ def getopts():
 Encode or decode in VRT files special characters that are problematic in CWB."""
     optparser = OptionParser(usage=usage)
     optparser.add_option(
-        '--attribute-types', type='choice', choices=['all', 'pos', 'struct'],
-        default='all', metavar='TYPE',
-        help=('convert special characters in TYPE attributes, where TYPE is'
-              ' one of: pos (positional attributes only), struct (structural'
-              ' attributes only), or all (both positional and structural'
-              ' attributes) (default: %default)'))
-    optparser.add_option(
         '--chars', default=' /<>|',
         help=('the characters to be converted in their unencoded form'
               ' (default: "%default")'))
@@ -210,14 +192,6 @@ Encode or decode in VRT files special characters that are problematic in CWB."""
         help=('the code point offset for the encoded characters: the first'
               ' character in CHARS is encoded as OFFSET, the second as'
               ' OFFSET+1 and so on (default: %default)'))
-    optparser.add_option(
-        '--prefix', default='',
-        help='prefix the encoded characters with PREFIX (default: none)')
-    optparser.add_option(
-        '--no-convert-xml-character-entity-references', '--no-xml-char-refs',
-        dest='convert_xml_char_refs', default=True, action='store_false',
-        help=('do not encode XML character entity references that correspond '
-              ' to special characters to be encoded'))
     optparser.add_option(
         '--feature-set-attributes', '--feature-set-attrs',
         metavar='ATTRNUMLIST',
@@ -247,14 +221,6 @@ Encode or decode in VRT files special characters that are problematic in CWB."""
               ' equivalent.'
               ' This option can be repeated.'),
         metavar='ATTRSPEC')
-    optparser.add_option(
-        '--recognize-structs',
-        metavar='STRUCTLIST',
-        help=('recognize only the structural attribute names listed in'
-              ' STRUCTLIST, separated by spaces or commas; the characters in'
-              ' all other XML-tag-like tokens are encoded as positional'
-              ' attributes; by default, treat all lines beginning with < and'
-              ' ending in > as structural tags'))
     optparser.add_option(
         '--mode', type='choice', choices=['encode', 'decode'], default='encode',
         help=('MODE specifies the direction of conversion: encode or decode'
