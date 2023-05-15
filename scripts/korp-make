@@ -1322,8 +1322,26 @@ cwb_make () {
 test_skip_cwb_make () {
     [ "x$augment_data" = x ] &&
     [ "x$new_attrs" = x ] &&
-    [ -s $datadir/word.crx ] &&
+    datadir_has_all_index_files &&
+    # cwb-make removes *.corpus, *.corpus.rev, *.corpus.rdx after
+    # indexing and compressing
+    ! ls $datadir/*.corpus{,.rev,.rdx} &> /dev/null &&
     echo "already done"
+}
+
+# Check if the data directory has all the files it should contain for
+# all positional attributes after running cwb-make
+datadir_has_all_index_files () {
+    local attr fname
+    for attr in ${input_attrs///}; do
+        for fname in $attr{,corpus.cnt,cr[cx],hcd,huf{,.syn},lexicon{.idx,.srt}}
+        do
+            if [ ! -s $datadir/$fname ]; then
+                return 1
+            fi
+        done
+    done
+    return 0
 }
 
 convert_timedata () {
