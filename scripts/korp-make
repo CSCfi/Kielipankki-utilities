@@ -548,6 +548,11 @@ if [ "x$vrt_file" = "x" ]; then
     fi
 fi
 
+stages_file=$vrtdir/$corpus.stages
+opts_file=$vrtdir/$corpus.opts
+# Should the information from a previous run be checked
+check_prev_run=
+
 verbose_opt=
 if [ "x$verbose" != x ]; then
     verbose_opt=--verbose
@@ -556,7 +561,7 @@ fi
 
 remove_existing_data () {
     rm -f $datadir/* $cwb_regdir/$corpus $tsvdir/$corpus_*.tsv.gz \
-       $vrtdir/$corpus.vrt $vrtdir/$corpus.vrt.gz
+       $vrtdir/$corpus.vrt $vrtdir/$corpus.vrt.gz $stages_file $opts_file
 }
 
 run_cmd () {
@@ -606,8 +611,53 @@ check_for_existing_data () {
                ! file_newer $vrt_file "${input_files[@]}";
         then
             remove_existing_data
+        else
+            check_prev_run=1
+            echo_verb "Using existing data from previous runs"
         fi
     fi
+}
+
+# Check if korp-make has been run with the same options previously,
+# allowing skipping some or all stages. Return 0 if all stages have
+# already been completed, 1 otherwise.
+check_completed () {
+    local cmdline_args_effective=$(get_effective_cmdline_args)
+    if [ "x$check_prev_run" = x ]; then
+        safe_echo "$cmdline_args_effective" > "$opts_file"
+        return 1
+    fi
+    # CHECK: Should the data from the previous runs be handled
+    # differently if using one of the options --augment-data,
+    # --generate-input or --remake-wordpicture-data?
+    if [ -e "$opts_file" ]; then
+        # If the options are the same as on the previous run, the
+        # script can continue from where it was left
+        if [ "$(cat "$opts_file")" = "$cmdline_args_effective" ]; then
+            if [ "$(tail -n1 "$stages_file")" = "Completed" ]; then
+                return 0
+            fi
+        else
+            # TODO: If the options differ, check by option and stage
+            # if the option affects the stage
+            rm "$opts_file" "$stages_file"
+        fi
+    fi
+    safe_echo "$cmdline_args_effective" > "$opts_file"
+    return 1
+}
+
+# Get the command-line arguments affecting the processing of the data
+get_effective_cmdline_args () {
+    # Prepend space to recognize options at the beginning
+    local args=" $cmdline_args_processed"
+    local remove_opts="--force --times --quiet --verbose --no-logging --remake-wordpicture-data"
+    local opt
+    for opt in $remove_opts; do
+        args=${args/ $opt/}
+    done
+    # Remove leading space
+    safe_echo "${args# }"
 }
 
 # Run a single stage function (name) after printing the description
@@ -620,7 +670,19 @@ run_stage () {
     fi
     shift
     local descr="$@"
-    local msg exitstat
+    local run_always prev_run prev_msg msg exitstat
+    if [ "${name#\*}" != "$name" ]; then
+        run_always=1
+        name=${name#\*}
+    fi
+    if [ "x$check_prev_run" != x ] && [ "x$run_always" = x ]; then
+        prev_run="$(grep -s "^$name:" $stages_file)"
+        if [ "x$prev_run" != x ]; then
+            prev_msg=${prev_run#*: }
+            echo_verb "(Skipping ${descr,}: $prev_msg on a previous run)"
+            return
+        fi
+    fi
     if type -t "test_skip_$name" > /dev/null; then
 	msg=$(test_skip_$name 2> $tmp_prefix.errmsg)
 	exitstat=$?
@@ -634,29 +696,38 @@ run_stage () {
 	fi
 	if [ "x$msg" != "x" ]; then
 	    echo_verb "(Skipping ${descr,}: $msg)"
+            echo "$name: $msg" >> $stages_file
 	    return
 	fi
     fi
     echo_verb "$descr"
     time_stage exit_on_error $name
     check_errors_from_log
+    echo "$name: done" >> $stages_file
 }
 
 # Run all the stages in $stages sequentially.
 run_stages () {
     local stagecnt=${#stages[*]}
     local i=0
+    if check_completed; then
+        echo_verb "All processing stages completed on the previous run; use --force to force rerunning"
+        return
+    fi
     while [ $i -lt $stagecnt ]; do
 	run_stage ${stages[$i]} "${stages[$(($i + 1))]}"
 	i=$(($i + 2))
     done
+    echo "Completed" >> $stages_file
 }
 
 
 # Stage functions and their descriptions
 stages=(
     "$stage1_fn" "$stage1_descr"
-    check_input_attrs "Checking input attributes"
+    # A leading "*" marks the stage to be run always, even if it had
+    # been completed on a previous run
+    "*check_input_attrs" "Checking input attributes"
     # Stage 3 information set in check_input_attrs if needed
     "" ""
     copy_struct_attrs "Copying structural attributes"
@@ -1200,6 +1271,7 @@ add_attrs_to_registry () {
 
 cwb_encode () {
     local featset_attrnums convert_chars_opts structnames reg_opt
+    echo cwb_encode: "$input_attrs"
     featset_attrnums=$(
 	printf ${input_attrs// /\\n} |
 	grep -n '/$' |
