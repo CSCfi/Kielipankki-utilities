@@ -200,10 +200,10 @@ class CharConverter(InputProcessor):
         return '\t'.join(attrs)
 
     def _convert_chars_in_struct_attrs_simple(self, s):
-        """Encode the special characters in the double- or single-quoted
+        """Encode the special characters in the double-quoted
         substrings of s.
         """
-        return re.sub(r'''(([\"\']).*?\2)''',
+        return re.sub(r'(".*?")',
                       lambda mo: self._convert_chars(mo.group(0)), s)
 
     def _convert_chars_in_struct_attrs_featsets(self, s):
@@ -214,15 +214,14 @@ class CharConverter(InputProcessor):
                 if (mo.group(1) in self._feat_set_struct_attrs.get(elemname,
                                                                    set()))
                 else self._convert_map)
-            # Strip possible whitespace around the equals sign.
-            return (mo.group(1) + '='
+            return (mo.group(1) + "="
                     + self._convert_chars(mo.group(2), convert_map))
 
         elemname = re.search(r'(\w+)', s).group(1)
         convert_map = (None if elemname in self._feat_set_struct_attrs
                        else self._convert_map)
         # print elemname, convert_map
-        return re.sub(r'''(\w+)\s*=\s*(".*?"|'.*?')''',
+        return re.sub(r'(\w+)=(".*?")',
                       lambda mo: convert_attr(mo, convert_map, elemname), s)
 
 
