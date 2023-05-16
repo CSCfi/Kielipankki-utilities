@@ -177,7 +177,7 @@ class CharConverter(InputProcessor):
 
     def main(self, args, inf, ouf):
         for line in inf:
-            if line[0] == '<' and line.rstrip()[-1] == '>':
+            if line[0] == '<':
                 # Note: This does not skip multi-line XML comments, as
                 # cwb-encode does not recognize them
                 if line[1] not in '!?':
