@@ -13,6 +13,7 @@ import errno
 
 from vrtargsoolib import InputProcessor
 
+from vrtnamelib import isbinnames, binnamelist
 
 
 def replace_substrings(s, mapping):
@@ -47,10 +48,6 @@ class CharConverter(InputProcessor):
          '''the code point offset for the encoded characters: the first
             character in CHARS is encoded as OFFSET, the second as
             OFFSET+1 and so on'''),
-        ('--feature-set-attributes = attrnumlist',
-         '''do not encode vertical bars in positional attributes whose
-            numbers are listed in ATTRNUMLIST, separated by spaces or
-            commas; attribute numbering begins from 1'''),
         ('--feature-set-struct-attributes|set-struct-attrs = attrspec',
          '''Treat the structural attributes specified in the attribute
             specification ATTRSPEC as feature-set attributes and do
@@ -87,7 +84,7 @@ class CharConverter(InputProcessor):
         # Initialized in check_args
         self._convert_map = None
         self._convert_map_featset = None
-        self._feat_set_attrs = None
+        self._feat_set_attrs = set()
         self._feat_set_struct_attrs = None
         self._convert_chars_in_pos_attrs = None
         self._convert_chars_in_struct_attrs = None
@@ -98,18 +95,14 @@ class CharConverter(InputProcessor):
         self._convert_map = [(c.encode(), chr(i + args.offset).encode())
                              for (i, c) in enumerate(args.chars)]
         self._add_xml_char_refs_to_convert_map(args.mode)
-        self._feat_set_attrs = set(
-            self._make_attr_list(args.feature_set_attributes))
         self._feat_set_struct_attrs = self._make_feat_set_struct_attrs(
             args.feature_set_struct_attributes)
         # print repr(self._feat_set_struct_attrs)
         if args.mode == 'decode':
             self._convert_map = [(enc, dec) for dec, enc in self._convert_map]
-        if args.mode == 'encode' and self._feat_set_attrs:
-            self._convert_chars_in_pos_attrs = (
-                self._convert_chars_in_pos_attrs_featsets)
-        else:
-            self._convert_chars_in_pos_attrs = self._convert_chars
+        # This is modified in _get_feat_set_pos_attrs after seeing a
+        # positional-attributes comment with feature-set attributes
+        self._convert_chars_in_pos_attrs = self._convert_chars
         if args.mode == 'encode' and self._feat_set_struct_attrs:
             self._convert_chars_in_struct_attrs = (
                 self._convert_chars_in_struct_attrs_featsets)
@@ -118,13 +111,6 @@ class CharConverter(InputProcessor):
                 self._convert_chars_in_struct_attrs_simple)
         self._convert_map_featset = [
             (dec, enc) for dec, enc in self._convert_map if dec != b'|']
-
-    def _make_attr_list(self, attrnumlist):
-        if attrnumlist:
-            return [int(numstr) - 1
-                    for numstr in re.split(r'\s*[\s,]\s*', attrnumlist)]
-        else:
-            return []
 
     def _make_feat_set_struct_attrs(self, feat_set_struct_attrs):
         set_struct_attrs = {}
@@ -176,15 +162,28 @@ class CharConverter(InputProcessor):
 
     def main(self, args, inf, ouf):
         LESS_THAN = b'<'[0]
+        check_pos_attrs_comment = (args.mode == 'encode')
         for line in inf:
             if line[0] == LESS_THAN:
                 # Note: This does not skip multi-line XML comments, as
                 # cwb-encode does not recognize them
                 if line[1] not in b'!?':
                     line = self._convert_chars_in_struct_attrs(line)
+                elif check_pos_attrs_comment and isbinnames(line):
+                    self._get_feat_set_pos_attrs(line)
+                    check_pos_attrs_comment = False
             else:
                 line = self._convert_chars_in_pos_attrs(line)
             ouf.write(line)
+
+    def _get_feat_set_pos_attrs(self, line):
+        attrnames = binnamelist(line)
+        for idx, attrname in enumerate(attrnames):
+            if attrname[-1] == b'/'[0]:
+                self._feat_set_attrs.add(idx)
+        if self._feat_set_attrs:
+            self._convert_chars_in_pos_attrs = (
+                self._convert_chars_in_pos_attrs_featsets)
 
     def _convert_chars(self, s, convert_map=None):
         """Encode the special characters in s."""
