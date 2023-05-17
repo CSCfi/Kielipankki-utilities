@@ -211,3 +211,13 @@ delimit () {
     done
     printf "$1"
 }
+
+
+# integer number
+#
+# Output the integer part of number.
+integer () {
+    local num
+    num=$1
+    echo ${num%.*}
+}
