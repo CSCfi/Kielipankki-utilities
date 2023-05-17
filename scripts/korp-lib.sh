@@ -23,5 +23,5 @@ if [ "x$scriptdir" = x ]; then
 fi
 
 # Source all shlib components
-shlib_required_libs=${shlib_required_libs:-"base site cleanup str msgs file opts times vrt cwb mysql kielipankki"}
+shlib_required_libs=${shlib_required_libs:-"base site cleanup str msgs file sys opts times vrt cwb mysql kielipankki"}
 . $scriptdir/shlib/loadlibs.sh
