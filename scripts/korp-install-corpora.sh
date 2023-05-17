@@ -42,6 +42,10 @@ immediate-database-import !delay_db
     import database data immediately after extracting each corpus
     package, instead of only after extracting all packages
     (authorization data is always imported immediately)
+load-limit=LIMIT "$num_cpus"
+    install corpus data only if the CPU load is below LIMIT (a
+    positive integer); otherwise wait for the load to decrease;
+    checked before each corpus package and database table file
 n|dry-run
     only report corpus packages that would be installed, but do not
     actually install them
@@ -56,9 +60,18 @@ pkgsubdir=pkgs
 
 . $progdir/korp-lib.sh
 
+
+# The number of CPUs (cores) for the --load-limit default to be shown
+# in the usage message, even if it does not seem to be set the default
+num_cpus=$(get_num_cpus)
+
 # Process options
 eval "$optinfo_opt_handler"
 
+# Set the default for --load-limit if empty
+if [ "x$load_limit" = x ]; then
+    load_limit=$num_cpus
+fi
 
 # This is only for compatibility with older corpus packages
 pkg_prefix=korpdata_
@@ -119,6 +132,28 @@ dbfile_list_prefix=$install_state_dir/dbfile_queue-
 
 install_only_dbfiles_corpora=
 
+
+wait_for_low_load () {
+    local load load_int wait_min
+    # Dry run regardless of CPU load
+    if [ "x$dry_run" != x ]; then
+        return
+    fi
+    load=$(get_cpu_load)
+    load_int=$(integer $load)
+    while [ "$load_int" -ge "$load_limit" ] &&
+              [ "$load" != "$load_limit.00" ];
+    do
+        # Heuristic for how long to wait based on the load and limit
+        # TODO: Take into account whether the load is increasing or
+        # decreasing
+        wait_min=$(($load_int / $load_limit * 2))
+        echo "CPU load $load exceeds the limit $load_limit; waiting $wait_min minutes for the load to decrease"
+        sleep $(($wait_min * 60))
+        load=$(get_cpu_load)
+        load_int=$(integer $load)
+    done
+}
 
 make_dbfile_list_filename () {
     local corp
@@ -410,6 +445,7 @@ install_dbfiles () {
 	for file in $files; do
 	    echo "    $file (size `filesize $corpus_root/$file`)"
             if [ "x$dry_run" = x ]; then
+                wait_for_low_load
 	        install_file_$type "$corpus_root/$file"
 	        if [ $? -ne 0 ]; then
 		    error "Errors in loading $file"
@@ -461,6 +497,7 @@ install_corpus () {
 	return
     fi
     echo "Installing $install_base_msg"
+    wait_for_low_load
     if [ "x$backups" != x ]; then
 	backup_corpus $corpus_pkg $pkghost
     fi
