@@ -71,13 +71,17 @@ class CharConverter(InputProcessor):
          dict(action='append', default=[]))
     ]
 
+    class OPTIONS(InputProcessor.OPTIONS):
+        in_as_text = True
+        out_as_text = True
+
     _xml_char_entities = {
-        b'&': b'&amp;',
-        b'<': b'&lt;',
-        b'>': b'&gt;',
-        b'\'': b'&apos;',
-        b'"': b'&quot;'
-    }
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '\'': '&apos;',
+        '"': '&quot;'
+        }
 
     def __init__(self):
         super().__init__()
@@ -92,7 +96,7 @@ class CharConverter(InputProcessor):
 
     def check_args(self, args):
         args.offset = int(args.offset, base=0)
-        self._convert_map = [(c.encode(), chr(i + args.offset).encode())
+        self._convert_map = [(c, chr(i + args.offset))
                              for (i, c) in enumerate(args.chars)]
         self._add_xml_char_refs_to_convert_map(args.mode)
         self._feat_set_struct_attrs = self._make_feat_set_struct_attrs(
@@ -110,13 +114,12 @@ class CharConverter(InputProcessor):
             self._convert_chars_in_struct_attrs = (
                 self._convert_chars_in_struct_attrs_simple)
         self._convert_map_featset = [
-            (dec, enc) for dec, enc in self._convert_map if dec != b'|']
+            (dec, enc) for dec, enc in self._convert_map if dec != '|']
 
     def _make_feat_set_struct_attrs(self, feat_set_struct_attrs):
         set_struct_attrs = {}
         for attr_spec_list in (feat_set_struct_attrs or []):
             for attr_spec in attr_spec_list.split():
-                attr_spec = attr_spec
                 if ':' in attr_spec:
                     elemname, attrnames_str = attr_spec.split(':', 1)
                     attrnames = re.split(r'[,+]', attrnames_str)
@@ -136,10 +139,8 @@ class CharConverter(InputProcessor):
                     elemname, attrname = attr_spec.split('_', 1)
                     attrnames = [attrname]
                 if attrnames:
-                    elem_attrs = set_struct_attrs.setdefault(
-                        elemname.encode(), set())
-                    elem_attrs |= set(attrname.encode()
-                                      for attrname in attrnames)
+                    elem_attrs = set_struct_attrs.setdefault(elemname, set())
+                    elem_attrs |= set(attrnames)
         return set_struct_attrs
 
     def _add_xml_char_refs_to_convert_map(self, mode):
@@ -161,13 +162,12 @@ class CharConverter(InputProcessor):
                 for c1, c2 in self._convert_map]
 
     def main(self, args, inf, ouf):
-        LESS_THAN = b'<'[0]
         check_pos_attrs_comment = (args.mode == 'encode')
         for line in inf:
-            if line[0] == LESS_THAN:
+            if line[0] == '<':
                 # Note: This does not skip multi-line XML comments, as
                 # cwb-encode does not recognize them
-                if line[1] not in b'!?':
+                if line[1] not in '!?':
                     line = self._convert_chars_in_struct_attrs(line)
                 elif check_pos_attrs_comment and isbinnames(line):
                     self._get_feat_set_pos_attrs(line)
@@ -190,19 +190,19 @@ class CharConverter(InputProcessor):
         return replace_substrings(s, convert_map or self._convert_map)
 
     def _convert_chars_in_pos_attrs_featsets(self, s):
-        attrs = s.split(b'\t')
+        attrs = s.split('\t')
         for attrnum, attr in enumerate(attrs):
             attrs[attrnum] = replace_substrings(
                 attr, (self._convert_map_featset
                        if attrnum in self._feat_set_attrs
                        else self._convert_map))
-        return b'\t'.join(attrs)
+        return '\t'.join(attrs)
 
     def _convert_chars_in_struct_attrs_simple(self, s):
         """Encode the special characters in the double-quoted
         substrings of s.
         """
-        return re.sub(br'(".*?")',
+        return re.sub(r'(".*?")',
                       lambda mo: self._convert_chars(mo.group(0)), s)
 
     def _convert_chars_in_struct_attrs_featsets(self, s):
@@ -213,14 +213,14 @@ class CharConverter(InputProcessor):
                 if (mo.group(1) in self._feat_set_struct_attrs.get(elemname,
                                                                    set()))
                 else self._convert_map)
-            return (mo.group(1) + b'='
+            return (mo.group(1) + "="
                     + self._convert_chars(mo.group(2), convert_map))
 
-        elemname = re.search(br'(\w+)', s).group(1)
+        elemname = re.search(r'(\w+)', s).group(1)
         convert_map = (None if elemname in self._feat_set_struct_attrs
                        else self._convert_map)
         # print elemname, convert_map
-        return re.sub(br'(\w+)=(".*?")',
+        return re.sub(r'(\w+)=(".*?")',
                       lambda mo: convert_attr(mo, convert_map, elemname), s)
 
 
