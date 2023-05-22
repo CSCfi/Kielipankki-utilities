@@ -597,19 +597,23 @@ install_corpora () {
     echo "Installation complete$dry_run_msg"
 }
 
+main () {
+    echo Searching for corpus packages to install
+    find_package_candidates $pkglistfile.base "$@"
+    if [ ! -s $pkglistfile.base ]; then
+        error "No matching corpus packages found"
+    fi
+    # The following two cannot be in a pipeline, because the former
+    # constructs the value of the variable corpora_to_install that the
+    # latter uses
+    filter_corpora $pkglistfile.base > $pkglistfile
+    if [ "x$corpora_to_install" = x ] &&
+           [ "x$install_only_dbfiles_corpora" = x ];
+    then
+        error "No corpora to install"
+    fi
+    install_corpora $pkglistfile
+}
 
-echo Searching for corpus packages to install
-find_package_candidates $pkglistfile.base "$@"
-if [ ! -s $pkglistfile.base ]; then
-    error "No matching corpus packages found"
-fi
 
-# The following two cannot be in a pipeline, because the former
-# constructs the value of the variable corpora_to_install that the
-# latter uses
-filter_corpora $pkglistfile.base > $pkglistfile
-if [ "x$corpora_to_install" = x ] && [ "x$install_only_dbfiles_corpora" = x ];
-then
-    error "No corpora to install"
-fi
-install_corpora $pkglistfile
+main "$@"
