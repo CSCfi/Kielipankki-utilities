@@ -17,6 +17,10 @@ matching specified regular expressions.
 #   dropping sentences leaves a paragraph or text empty
 # - Keep tags of overlapping structures within dropped structures
 #   (might not be easy)
+# - Add option --find=regexp for substring matches (a shorthand for
+#   --test=.*regexp.*). It is in principle simple, but the difficult
+#   part is to require at least one --test or --find but allow both
+#   (required but not mutually exclusive).
 
 
 import re
