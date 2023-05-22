@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 # -*- coding: utf-8 -*-
 
 # Install Korp corpora of the latest corpora package
@@ -49,6 +49,9 @@ load-limit=LIMIT "$num_cpus"
 n|dry-run
     only report corpus packages that would be installed, but do not
     actually install them
+times
+    show timestamps and the time used for installing individual corpus
+    packages and database files and the whole process
 '
 
 usage_footer="Note: The backup copy of a corpus is overwritten by subsequent updates of the
@@ -132,6 +135,20 @@ dbfile_list_prefix=$install_state_dir/dbfile_queue-
 
 install_only_dbfiles_corpora=
 
+# If not --times, use empty TIMEFORMAT not to print times.
+# This requires Bash; does not work on Dash.
+if [ "x$times" != x ]; then
+    TIMEFORMAT="[Elapsed %E, user %U, system %S]"
+else
+    TIMEFORMAT=
+fi
+
+
+timestamp () {
+    if [ "x$times" != x ]; then
+        date +'[%F %T]'
+    fi
+}
 
 wait_for_low_load () {
     local load load_int wait_min
@@ -443,10 +460,11 @@ install_dbfiles () {
     if [ "x$files" != "x" ]; then
 	echo "  $msg data into MySQL database$dry_run_msg"
 	for file in $files; do
+            timestamp
 	    echo "    $file (size `filesize $corpus_root/$file`)"
             if [ "x$dry_run" = x ]; then
                 wait_for_low_load
-	        install_file_$type "$corpus_root/$file"
+	        time install_file_$type "$corpus_root/$file"
 	        if [ $? -ne 0 ]; then
 		    error "Errors in loading $file"
                 else
@@ -496,13 +514,14 @@ install_corpus () {
 	echo "Would install $install_base_msg (dry run)"
 	return
     fi
+    timestamp
     echo "Installing $install_base_msg"
     wait_for_low_load
     if [ "x$backups" != x ]; then
 	backup_corpus $corpus_pkg $pkghost
     fi
     echo "  Copying CWB files"
-    run_command "$pkghost" "cat '$corpus_pkg'" |
+    time run_command "$pkghost" "cat '$corpus_pkg'" |
     tar xvp -C $corpus_root -f- $(get_tar_compress_opt $corpus_pkg) \
 	--wildcards --wildcards-match-slash \
 	--transform 's,.*/\(data\|registry\|sql\)/,\1/,' \
@@ -598,6 +617,7 @@ install_corpora () {
 }
 
 main () {
+    timestamp
     echo Searching for corpus packages to install
     find_package_candidates $pkglistfile.base "$@"
     if [ ! -s $pkglistfile.base ]; then
@@ -613,7 +633,8 @@ main () {
         error "No corpora to install"
     fi
     install_corpora $pkglistfile
+    timestamp
 }
 
 
-main "$@"
+time main "$@"
