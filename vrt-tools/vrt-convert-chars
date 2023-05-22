@@ -13,7 +13,7 @@ import errno
 
 from vrtargsoolib import InputProcessor
 
-from vrtnamelib import isbinnames, binnamelist
+from vrtnamelib import isnames, namelist
 
 
 def replace_substrings(s, mapping):
@@ -169,7 +169,7 @@ class CharConverter(InputProcessor):
                 # cwb-encode does not recognize them
                 if line[1] not in '!?':
                     line = self._convert_chars_in_struct_attrs(line)
-                elif check_pos_attrs_comment and isbinnames(line):
+                elif check_pos_attrs_comment and isnames(line):
                     self._get_feat_set_pos_attrs(line)
                     check_pos_attrs_comment = False
             else:
@@ -177,9 +177,9 @@ class CharConverter(InputProcessor):
             ouf.write(line)
 
     def _get_feat_set_pos_attrs(self, line):
-        attrnames = binnamelist(line)
+        attrnames = namelist(line)
         for idx, attrname in enumerate(attrnames):
-            if attrname[-1] == b'/'[0]:
+            if attrname[-1] == '/':
                 self._feat_set_attrs.add(idx)
         if self._feat_set_attrs:
             self._convert_chars_in_pos_attrs = (
