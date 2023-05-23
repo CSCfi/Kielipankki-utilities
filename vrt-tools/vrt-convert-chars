@@ -116,9 +116,6 @@ class CharConverter(InputProcessor):
         # print repr(self._feat_set_struct_attrs)
         if args.mode == 'decode':
             self._convert_map = [(enc, dec) for dec, enc in self._convert_map]
-        # This is modified in _get_feat_set_pos_attrs after seeing a
-        # positional-attributes comment with feature-set attributes
-        self._convert_chars_in_pos_attrs = self._convert_chars
         if args.mode == 'encode' and self._feat_set_struct_attrs:
             self._convert_chars_in_struct_attrs = (
                 self._convert_chars_in_struct_attrs_featsets)
@@ -135,6 +132,9 @@ class CharConverter(InputProcessor):
         self._trans_table_featset = maketrans(self._convert_map_featset)
         self._transcode = {'encode': self._encode,
                            'decode': self._decode}[args.mode]
+        # This is modified in _get_feat_set_pos_attrs after seeing a
+        # positional-attributes comment with feature-set attributes
+        self._convert_chars_in_pos_attrs = self._transcode
         # Support only encoding < and >, not &, ", '
         # TODO: An error if trying to encode &, " or '
         self._encode_xml = '<' in args.chars or '>' in args.chars
@@ -208,14 +208,14 @@ class CharConverter(InputProcessor):
         attrseqs = []
         start = 0
         convert_chars_in_featsets = (
-            lambda s: self._convert_chars(s, self._trans_table_featset))
+            lambda s: self._transcode(s, self._trans_table_featset))
         for is_featset, attrs in groupby(attrnames, lambda a: a[-1] == '/'):
             seqlen = len(list(attrs))
             attrseqs.append(
                 (start, start + seqlen,
                  (convert_chars_in_featsets
                   if is_featset
-                  else self._convert_chars)))
+                  else self._transcode)))
             start += seqlen
         if len(attrseqs) > 1:
             self._convert_chars_in_pos_attrs = (
@@ -226,10 +226,6 @@ class CharConverter(InputProcessor):
             self._pos_attr_seqs = attrseqs
         elif attrnames[0][-1] == '/':
             self._convert_chars_in_pos_attrs = convert_chars_in_featsets
-
-    def _convert_chars(self, s, trans_table=None):
-        """Encode the special characters in s."""
-        return self._transcode(s, trans_table or self._trans_table)
 
     def _convert_chars_in_pos_attrs_featsets(self, s):
         attrs = s.split('\t')
@@ -246,14 +242,14 @@ class CharConverter(InputProcessor):
         substrings of s.
         """
         return re.sub(r'(".*?")',
-                      lambda mo: self._convert_chars(mo.group(0)), s)
+                      lambda mo: self._transcode(mo.group(0)), s)
 
     def _convert_chars_in_struct_attrs_featsets(self, s):
         ATTRSEP = '\x01'
         elemname = re.search(r'(\w+)', s).group(1)
         if elemname not in self._feat_set_struct_attrs:
             attrs = re.findall(r'(\w+=".*?")', s)
-            result = self._convert_chars(ATTRSEP.join(attrs), self._trans_table)
+            result = self._transcode(ATTRSEP.join(attrs), self._trans_table)
         else:
             # Another option, used previously, would be to use re.sub
             # with a substitution function that chooses between the
@@ -272,9 +268,9 @@ class CharConverter(InputProcessor):
                     ATTRSEP.join(attr[0] + '=' + attr[1]
                                  for attr in attrs[start:start + attrcount]))
                 result_list.append(
-                    self._convert_chars(attrvals,
-                                        self._trans_table_featset if is_featset
-                                        else self._trans_table))
+                    self._transcode(attrvals,
+                                    self._trans_table_featset if is_featset
+                                    else self._trans_table))
                 start += attrcount
             result = ' '.join(result_list)
         return '<' + elemname + ' ' + result.replace(ATTRSEP, ' ') + '>\n'
