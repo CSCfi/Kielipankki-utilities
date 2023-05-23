@@ -2,6 +2,19 @@
 # -*- coding: utf-8 -*-
 
 
+"""
+vrt-convert-chars
+
+Encode or decode in VRT files special characters that are problematic
+in CWB output for Korp, as they are used as delimiters.
+
+This script supersedes the old ../scripts/vrt-convert-chars.py.
+
+This might be made unnecessary if Korp made use of some options added
+to CWB changing the delimiters.
+"""
+
+
 # TODO:
 # - Add an option not to decode encoded vertical bars in feature set
 #   attributes to allow correct round-trip conversion.
@@ -32,7 +45,7 @@ class CharConverter(InputProcessor):
 
     DESCRIPTION = """
     Encode or decode in VRT files special characters that are
-    problematic in CWB.
+    problematic in CWB for Korp.
     """
     ARGSPECS = [
         ('#EXCLUSIVE #REQUIRED', [
