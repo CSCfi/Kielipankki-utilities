@@ -249,22 +249,35 @@ class CharConverter(InputProcessor):
                       lambda mo: self._convert_chars(mo.group(0)), s)
 
     def _convert_chars_in_struct_attrs_featsets(self, s):
-
-        def convert_attr(mo, trans_table=None, elemname=None):
-            trans_table = trans_table or (
-                self._trans_table_featset
-                if (mo.group(1) in self._feat_set_struct_attrs.get(elemname,
-                                                                   set()))
-                else self._trans_table)
-            return (mo.group(1) + '='
-                    + self._convert_chars(mo.group(2), trans_table))
-
+        ATTRSEP = '\x01'
         elemname = re.search(r'(\w+)', s).group(1)
-        trans_table = (None if elemname in self._feat_set_struct_attrs
-                       else self._trans_table)
-        # print(elemname, trans_table)
-        return re.sub(r'(\w+)=(".*?")',
-                      lambda mo: convert_attr(mo, trans_table, elemname), s)
+        if elemname not in self._feat_set_struct_attrs:
+            attrs = re.findall(r'(\w+=".*?")', s)
+            result = self._convert_chars(ATTRSEP.join(attrs), self._trans_table)
+        else:
+            # Another option, used previously, would be to use re.sub
+            # with a substitution function that chooses between the
+            # feature-set and normal translation table for transcoding
+            # depending on the attribute name. The speed difference is
+            # negligible and neither is significantly simpler than the
+            # other.
+            result_list = []
+            start = 0
+            attrs = re.findall(r'(\w+)=(".*?")', s)
+            for is_featset, attrgroup in groupby(
+                    attrs,
+                    lambda a: a[0] in self._feat_set_struct_attrs[elemname]):
+                attrcount = len(list(attrgroup))
+                attrvals = (
+                    ATTRSEP.join(attr[0] + '=' + attr[1]
+                                 for attr in attrs[start:start + attrcount]))
+                result_list.append(
+                    self._convert_chars(attrvals,
+                                        self._trans_table_featset if is_featset
+                                        else self._trans_table))
+                start += attrcount
+            result = ' '.join(result_list)
+        return '<' + elemname + ' ' + result.replace(ATTRSEP, ' ') + '>\n'
 
     def _encode(self, s, trans_table=None):
         s = s.translate(trans_table or self._trans_table)
