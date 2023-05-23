@@ -81,7 +81,7 @@ class CharConverter(InputProcessor):
         '>': '&gt;',
         '\'': '&apos;',
         '"': '&quot;'
-        }
+    }
 
     def __init__(self):
         super().__init__()
@@ -92,9 +92,16 @@ class CharConverter(InputProcessor):
         self._feat_set_struct_attrs = None
         self._convert_chars_in_pos_attrs = None
         self._convert_chars_in_struct_attrs = None
-        self._struct_re = r'<.+>\s*$'
+        self._encode_xml = False
+        self._encode_lt = '&lt;'
+        self._encode_gt = '&gt;'
 
     def check_args(self, args):
+
+        def maketrans(convert_map):
+            return str.maketrans(dict((k, v) for k, v in convert_map
+                                      if len(k) == 1))
+
         args.offset = int(args.offset, base=0)
         self._convert_map = [(c, chr(i + args.offset))
                              for (i, c) in enumerate(args.chars)]
@@ -115,6 +122,21 @@ class CharConverter(InputProcessor):
                 self._convert_chars_in_struct_attrs_simple)
         self._convert_map_featset = [
             (dec, enc) for dec, enc in self._convert_map if dec != '|']
+        # str.translate can translate characters to strings (decode
+        # encoded XML character entities) but not strings to
+        # characters, so XML character entities need to be encoded
+        # separately
+        self._trans_table = maketrans(self._convert_map)
+        self._trans_table_featset = maketrans(self._convert_map_featset)
+        self._transcode = {'encode': self._encode,
+                           'decode': self._decode}[args.mode]
+        # Support only encoding < and >, not &, ", '
+        # TODO: An error if trying to encode &, " or '
+        self._encode_xml = '<' in args.chars or '>' in args.chars
+        if '<' in args.chars:
+            self._encode_lt = chr(args.chars.index('<') + args.offset)
+        if '>' in args.chars:
+            self._encode_gt = chr(args.chars.index('>') + args.offset)
 
     def _make_feat_set_struct_attrs(self, feat_set_struct_attrs):
         set_struct_attrs = {}
@@ -185,17 +207,17 @@ class CharConverter(InputProcessor):
             self._convert_chars_in_pos_attrs = (
                 self._convert_chars_in_pos_attrs_featsets)
 
-    def _convert_chars(self, s, convert_map=None):
+    def _convert_chars(self, s, trans_table=None):
         """Encode the special characters in s."""
-        return replace_substrings(s, convert_map or self._convert_map)
+        return self._transcode(s, trans_table or self._trans_table)
 
     def _convert_chars_in_pos_attrs_featsets(self, s):
         attrs = s.split('\t')
         for attrnum, attr in enumerate(attrs):
-            attrs[attrnum] = replace_substrings(
-                attr, (self._convert_map_featset
+            attrs[attrnum] = self._convert_chars(
+                attr, (self._trans_table_featset
                        if attrnum in self._feat_set_attrs
-                       else self._convert_map))
+                       else self._trans_table))
         return '\t'.join(attrs)
 
     def _convert_chars_in_struct_attrs_simple(self, s):
@@ -207,21 +229,31 @@ class CharConverter(InputProcessor):
 
     def _convert_chars_in_struct_attrs_featsets(self, s):
 
-        def convert_attr(mo, convert_map=None, elemname=None):
-            convert_map = convert_map or (
-                self._convert_map_featset
+        def convert_attr(mo, trans_table=None, elemname=None):
+            trans_table = trans_table or (
+                self._trans_table_featset
                 if (mo.group(1) in self._feat_set_struct_attrs.get(elemname,
                                                                    set()))
-                else self._convert_map)
-            return (mo.group(1) + "="
-                    + self._convert_chars(mo.group(2), convert_map))
+                else self._trans_table)
+            return (mo.group(1) + '='
+                    + self._convert_chars(mo.group(2), trans_table))
 
         elemname = re.search(r'(\w+)', s).group(1)
-        convert_map = (None if elemname in self._feat_set_struct_attrs
-                       else self._convert_map)
-        # print elemname, convert_map
+        trans_table = (None if elemname in self._feat_set_struct_attrs
+                       else self._trans_table)
+        # print(elemname, trans_table)
         return re.sub(r'(\w+)=(".*?")',
-                      lambda mo: convert_attr(mo, convert_map, elemname), s)
+                      lambda mo: convert_attr(mo, trans_table, elemname), s)
+
+    def _encode(self, s, trans_table=None):
+        s = s.translate(trans_table or self._trans_table)
+        if '&' in s:
+            s = (s.replace('&lt;', self._encode_lt)
+                 .replace('&gt;', self._encode_gt))
+        return s
+
+    def _decode(self, s, trans_table=None):
+        return s.translate(trans_table or self._trans_table)
 
 
 if __name__ == "__main__":
