@@ -11,6 +11,8 @@ import sys
 import re
 import errno
 
+from itertools import groupby
+
 from vrtargsoolib import InputProcessor
 
 from vrtnamelib import isnames, namelist
@@ -95,6 +97,9 @@ class CharConverter(InputProcessor):
         self._encode_xml = False
         self._encode_lt = '&lt;'
         self._encode_gt = '&gt;'
+        # Sequences of positional attributes of the same type (either
+        # normal or feature-set)
+        self._pos_attr_seqs = []
 
     def check_args(self, args):
 
@@ -200,12 +205,27 @@ class CharConverter(InputProcessor):
 
     def _get_feat_set_pos_attrs(self, line):
         attrnames = namelist(line)
-        for idx, attrname in enumerate(attrnames):
-            if attrname[-1] == '/':
-                self._feat_set_attrs.add(idx)
-        if self._feat_set_attrs:
+        attrseqs = []
+        start = 0
+        convert_chars_in_featsets = (
+            lambda s: self._convert_chars(s, self._trans_table_featset))
+        for is_featset, attrs in groupby(attrnames, lambda a: a[-1] == '/'):
+            seqlen = len(list(attrs))
+            attrseqs.append(
+                (start, start + seqlen,
+                 (convert_chars_in_featsets
+                  if is_featset
+                  else self._convert_chars)))
+            start += seqlen
+        if len(attrseqs) > 1:
             self._convert_chars_in_pos_attrs = (
                 self._convert_chars_in_pos_attrs_featsets)
+            # self._pos_attr_seqs is a list of triples (start, end,
+            # convert_func) with convert_func to be used to attributes
+            # [start:end]
+            self._pos_attr_seqs = attrseqs
+        elif attrnames[0][-1] == '/':
+            self._convert_chars_in_pos_attrs = convert_chars_in_featsets
 
     def _convert_chars(self, s, trans_table=None):
         """Encode the special characters in s."""
@@ -213,12 +233,13 @@ class CharConverter(InputProcessor):
 
     def _convert_chars_in_pos_attrs_featsets(self, s):
         attrs = s.split('\t')
-        for attrnum, attr in enumerate(attrs):
-            attrs[attrnum] = self._convert_chars(
-                attr, (self._trans_table_featset
-                       if attrnum in self._feat_set_attrs
-                       else self._trans_table))
-        return '\t'.join(attrs)
+        result = []
+        # This is faster than converting each attribute value
+        # separately, in particular with only a single feature-set
+        # attribute as the last attribute
+        for start, end, convert_func in self._pos_attr_seqs:
+            result.append(convert_func('\t'.join(attrs[start:end])))
+        return '\t'.join(result)
 
     def _convert_chars_in_struct_attrs_simple(self, s):
         """Encode the special characters in the double-quoted
