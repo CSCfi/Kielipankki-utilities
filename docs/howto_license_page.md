@@ -7,21 +7,30 @@ On Windows, you can use OpenVPNGUI -> Connect -> "hy". ("hu-tun" is not enough a
 
 License pages (and portal pages in general) can be created from scratch or using an existing page as a starting point.
 
-From scratch:
+From scratch, if the license is included in the "standard" CLARIN PUB/ACA/RES licenses:
 
     - Choose "+ Uusi -> Sivu" from upper bar.
     - Choose "Sivun ominaisuudet -> Pohja: License template - generic" and "Yläsivu: lic" from right column.
+    
+From scratch, in cases where the license is a "special" one, or one of the public licenses, e.g., CC BY, whose original legal text is not curated by the Language Bank of Finland:
+
+    - Look up the template draft pages (Finnish and English) of the corresponding under lic/ in the Portal, and copy each language version (let's call it "existing-page") into a new draft page (choose "Kopioi uudeksi luonnokseksi" from right corner of upper bar).
+    - Don't forget to edit "Kestolinkki -> Polkutunnus". Otherwise the new page will be named "existing-page-2" or similar.
+    - Update the title and the links in the header part of the license page according to the resource (group) in question:
+        - Fill in "Resource name (EN)" and "Kielivaran nimi (FI)". (same as in META-SHARE)
+        - Fill in "URN of resource" (see the persistent identifier in META-SHARE) and "Copyright holder" (= the right holder(s) in the deposition agreement, or the Licensor in META-SHARE).
+    - NB: the URNs of each language version of the license will probably need to be redirected to point to the physical pages, e.g., https://www.kielipankki.fi/lic/uspenskij-4bat-fin instead of the dynamic address https://www.kielipankki.fi/lic/uspenskij-4bat/?lang=fi.
 
 Using an existing page:
 
     - Go to a page you want to use (let's call it "existing-page") and choose "Kopioi uudeksi luonnokseksi" from right corner of upper bar.
-    - Don't forget to edit "Kestolinkki -> Polkutunnus" in the in the right column. Otherwise the new page will be named "existing-page-2" or similar.
+    - Don't forget to edit "Kestolinkki -> Polkutunnus". Otherwise the new page will be named "existing-page-2" or similar.
 
 Adding or modifying information for the license template:
 
     - Choose the correct license type.
     - Fill in "Resource name (EN)" and "Kielivaran nimi (FI)". (same as in META-SHARE)
-    - Fill in "URN of resource" (see META-SHARE) and "Copyright holder".
+    - Fill in "URN of resource" (see the persistent identifier in META-SHARE) and "Copyright holder" (= the right holder(s) in the deposition agreement, or the Licensor in META-SHARE).
     - Choose the appropriate "Tags: ID & Access", "Tags: Usage", and "Tags: Distribution".
 
 Saving, previewing, and publishing a page:
