@@ -201,6 +201,12 @@ tmpfname_base=$tmp_prefix.tmp
 import_errorfile=$tmpfname_base.import_error
 progress_errorfile=$tmpfname_base.progress_error
 
+# File containing the period of time under which new database imports
+# are not started (as start and end time as hh:mm[:ss] on the same
+# line, separated by whitespace; comment lines beginning with a # are
+# ignored)
+pause_period_fname=$corpus_root/mysql-import-pause.txt
+
 
 usage () {
     cat <<EOF
@@ -323,6 +329,107 @@ done
 
 mysql_opts="$mysql_opts --local-infile --skip-reconnect $mysql_extra_opts"
 
+
+# If $pause_period_fname exists and if the current time is within the
+# period specified in the file, sleep until the end of the period
+check_pause_import () {
+    local start end tmpfile
+    if [ ! -r "$pause_period_fname" ]; then
+        return
+    fi
+    tmpfile=$tmp_prefix.pause_period
+    # Allow comment lines beginning with a #
+    # No pipe, so that start and end are set in this process
+    grep -v '^ *#' "$pause_period_fname" > $tmpfile
+    read start end < $tmpfile
+    if ! time_is_valid start "$start" || ! time_is_valid end "$end"; then
+        return
+    fi
+    if time_is_between $start $end; then
+        echo "Pausing importing until $(strip_seconds $end) as specified in $pause_period_fname"
+        sleep_until $end
+    fi
+}
+
+# Return success if the argument is a valid time (hh:mm[:ss]);
+# otherwise, output a warning and return failure
+time_is_valid () {
+    local type time
+    type=$1
+    time=$2
+    if echo "$time" |
+            grep -Esq '^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$';
+    then
+        return 0
+    else
+        warn "Invalid pause $type time in $pause_period_fname: \"$time\""
+        return 1
+    fi
+}
+
+# Return success if the current time is between the times given as
+# arguments (as hh:mm[:ss])
+time_is_between () {
+    local current start end
+    start=$(convert_to_minutes $1)
+    end=$(convert_to_minutes $2)
+    current=$(get_current_time)
+    if [ $start -lt $end ]; then
+        # 02:00 04:00
+        if [ $current -ge $start ] && [ $current -lt $end ]; then
+            return 0
+        fi
+    elif [ $current -ge $start ] || [ $current -lt $end ]; then
+        # 23:00 01:00
+        return 0
+    fi
+    return 1
+}
+
+# Output the current time in minutes since midnight
+get_current_time () {
+    echo $(convert_to_minutes $(date '+%H:%M'))
+}
+
+# Convert hh:mm[:ss] to minutes (hh * 60 + mm)
+convert_to_minutes () {
+    local time
+    time=$(strip_seconds $1)
+    echo $(( $(strip_zero ${time%:*}) * 60 + $(strip_zero ${time#*:}) ))
+}
+
+# Strip seconds from argument: convert hh:mm[:ss] to hh:mm
+strip_seconds () {
+    local time
+    time=$1
+    if [ "${time%:*}" != "${time%%:*}" ]; then
+        time=${time%:*}
+    fi
+    echo "$time"
+}
+
+# Strip leading zero from the argument
+strip_zero () {
+    local time
+    time=$1
+    echo "${time#0}"
+}
+
+# Sleep until the time given as an argument (hh:mm[:ss]), at minute
+# precision
+sleep_until () {
+    local endtime current mins
+    endtime=$(convert_to_minutes $1)
+    current=$(get_current_time)
+    if [ $current -le $endtime ]; then
+        mins=$(( $endtime - $current ))
+    else
+        # If $endtime < $current, count the minutes from $current to
+        # midnight and add $endtime
+        mins=$(( 24 * 60 - $current + $endtime ))
+    fi
+    sleep $(( $mins * 60 ))
+}
 
 init_table_column_counts () {
     for tabletype in $relations_table_types; do
@@ -733,6 +840,7 @@ mysql_import () {
 	warn "Could not find columns specification for file $file; skipping"
 	return
     fi
+    check_pause_import
     echo Importing $fname into table $tablename
     if [ "x$verbose" != x ]; then
 	case $colspec_name in
