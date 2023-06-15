@@ -1,0 +1,47 @@
+#! /usr/bin/env python3
+
+# nlf-get-titles
+#
+# Usage: nlf-get-titles titles.json < input.tsv > output.tsv
+#
+# Get titles of newspapers and journals from the National Library of
+# Finland title information in JSON, corresponding to the (normalized)
+# titles used in some METS data, based on ISSNs.
+#
+# titles.json: Retrieved from
+#   https://digi.kansalliskirjasto.fi/api/newspaper/titles?language=fi
+#   and
+#   https://digi.kansalliskirjasto.fi/api/journal/titles?language=fi
+#   (concatenated to a single list)
+# input.tsv fields: id (ISSN), publication title in METS
+# output.tsv fields: id, publication title in METS, retrieved title
+
+
+import sys
+import json
+
+
+class TitleRetriever:
+
+    def __init__(self):
+        self._titles = {}
+
+    def main(self):
+        self._read_json(sys.argv[1])
+        for line in sys.stdin:
+            issn, title_mets = line[:-1].split('\t')
+            title_metadata = self._titles.get(issn) or '_'
+            sys.stdout.write(f'{issn}\t{title_mets}\t{title_metadata}\n')
+            if title_metadata == '_':
+                sys.stderr.write(
+                    f'No title information found for {issn}: {title_mets}\n')
+
+    def _read_json(self, fname):
+        with open(fname, 'r') as jsonf:
+            data = json.load(jsonf)
+        for title_info in data:
+            self._titles[title_info['identification']] = title_info['title']
+
+
+if __name__ == '__main__':
+    TitleRetriever().main()
