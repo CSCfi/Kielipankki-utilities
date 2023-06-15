@@ -1,0 +1,70 @@
+#! /bin/sh
+# -*- coding: utf-8 -*-
+
+
+# TODO:
+# - Add error checking
+
+
+progname=`basename $0`
+progdir=`dirname $0`
+
+usage_header="Usage: $progname [options] corpus ... > output.tsv
+
+Output the values of specified attributes of specified structures of a
+corpus in TSV format, in the order the structures occur in the corpus.
+
+If multiple corpora are specified, the output from all corpora is
+concatenated. Corpus ids may contain shell wildcards."
+
+optspecs='
+struct-name|structural-attribute-name|element-name=STRUCT "text"
+    Add the attributes to structural attribute (element) STRUCT.
+attribute-names=ATTRNAMELIST attrnames
+    Output the attributes listed in ATTRNAMELIST, separated by spaces.
+field-headings
+    Output first a field (column) heading row with attribute names.
+'
+
+
+. $progdir/korp-lib.sh
+
+# cleanup_on_exit=
+
+cwb_s_decode=$cwb_bindir/cwb-s-decode
+decode_special_chars="$progdir/vrt-convert-chars.py --decode"
+
+
+# Process options
+eval "$optinfo_opt_handler"
+
+
+extract_attr () {
+    local attrname corpus
+    attrname=$1
+    shift
+    for corpus in "$@"; do
+        $cwb_s_decode -n $corpus -S ${struct_name}_$attrname |
+            $decode_special_chars
+    done > $tmp_prefix.$attrname
+}
+
+main () {
+    local attrname
+    if [ "x$@" = "x" ]; then
+        error "Please specify at least one corpus id as an argument"
+    fi
+    if [ "x$attrnames" = x ]; then
+	error "Please specify attribute name(s) via --attribute-names"
+    fi
+    for attrname in $attrnames; do
+        extract_attr $attrname $(list_corpora "$@")
+    done
+    if [ "x$column_headings" != x ]; then
+        echo $attrnames | tr ' ' "$tab"
+    fi
+    paste $(add_prefix "$tmp_prefix." $attrnames)
+}
+
+
+main "$@"
