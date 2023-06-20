@@ -442,7 +442,7 @@ add_lemgram_opt () {
     local optarg=$2
     # optarg may not contain spaces, but in this case they should not
     # occur
-    add_lemgrams_opts="$lemgram_opts $optname $optarg"
+    add_lemgrams_opts="$add_lemgrams_opts $optname $optarg"
 }
 
 # Process options
