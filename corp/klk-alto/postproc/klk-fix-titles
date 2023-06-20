@@ -1,0 +1,82 @@
+#! /usr/bin/env python3
+
+# klk-fix-titles
+#
+# Usage: klk-fix-text-attrs fixed-titles.tsv < input.tsv > output.tsv
+#
+# Output fixed values for the text attributes issue_title, label and
+# publ_title for the KLK corpus (the Newspaper and Periodical Corpus
+# of the National Library of Finland), given original values from the
+# METS data and a mapping for fixing titles.
+#
+# The script handles basically two cases:
+#   1. label = "xxx", issue_title = "_" and publ_title contains the
+#      information usually in label (issue title, number and date). In
+#      this case, label gets the value of issue_title, and the issue
+#      title is extracted to issue_title and publ_title.
+#   2. publ_title, issue_title and label all contain the issue title
+#      in all-lowercase ASCII, without any spaces or punctuation. In
+#      this case, a mapping from such labels to the actual ones is
+#      used to fix the title in all these attributes. The mapping can
+#      be generated with the script nlf-get-titles.
+#
+# fixed-titles.tsv fields:
+#   publication id (ISSN), title to be fixed, fixed title
+# input.tsv and output.tsv fields (text attributes):
+#   issue_title, label, publ_title
+
+
+import re
+import sys
+
+
+class TitleFixer:
+
+    def __init__(self):
+        self._fixed_titles = {}
+
+    def main(self):
+
+        def get_publ_title(title):
+            # Get the title before the issue number
+            if ' no. ' in title:
+                title = title[:title.index(' no. ')]
+            if title.endswith(' PDF'):
+                title = title[:-4]
+            return title
+        
+        self._read_titles(sys.argv[1])
+        for line in sys.stdin:
+            issue_title, label, publ_title = line[:-1].split('\t')
+            # These are apparently not OCR'd but acquired as digital
+            # versions
+            if label == 'xxx' or issue_title == '_':
+                title = get_publ_title(publ_title)
+                # publ_title contains the information usually in label
+                label = publ_title
+                # Remove " PDF" in label
+                if ' PDF ' in label:
+                    label = re.sub(' PDF', '', label)
+                # issue_title and publ_title should contain the title
+                issue_title = publ_title = title
+            else:
+                title = self._fixed_titles.get(publ_title, publ_title)
+                # Fix the title in label
+                if title != publ_title and label.startswith(publ_title):
+                    label = title + label[len(publ_title):]
+                if issue_title == publ_title:
+                    issue_title = title
+                publ_title = title
+            sys.stdout.write(
+                '\t'.join([issue_title, label, publ_title]) + '\n')
+
+    def _read_titles(self, fname):
+        """Read the title mapping from fname"""
+        with open(fname, 'r') as titlef:
+            for line in titlef:
+                _, title_old, title_fixed = line[:-1].split('\t')
+                self._fixed_titles[title_old] = title_fixed
+
+
+if __name__ == '__main__':
+    TitleFixer().main()
