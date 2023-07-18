@@ -44,10 +44,12 @@ NB: To make sure that the lists are rendered correctly, the text should be paste
 
 The task category marker is an italicized (slanted) and bolded two-character string. The first character is _+_ for obligatory tasks and _?_ for optional ones, and the task category markers are:
 
+- _*MANAGE*_: general management and coordination of the corpus publication process and the related tasks (requires Jira permissions)
 - _*SUPPORT*_: advising and communicating with the data depositor (requires knowledge of data management practices and the applicable instructions)
 - _*META*_: metadata editing & curation (requires META-SHARE permissions)
-- _*COORDINATION*_: Decisions about priorities, schedule and distribution of work (often requires a team meeting and/or consultation with leadership)
-- _*AGREEMENTS*_: negotiations and administration regarding deposition agreements, license conditions, data protection practices etc. (requires legal knowledge)
+- _*DISCUSS*_: Decisions about priorities, schedule and distribution of work (often requires a team meeting and/or consultation with leadership)
+- _*AGREEMENTS*_: negotiations and administration regarding deposition agreements, license conditions, data protection practices etc. (requires legal knowledge, may require the opinion of a legal expert at UHEL)
+- _*LEGAL*_: Legal decisions and formal contracts involving the University of Helsinki (requires a meeting with a legal expert)
 - _*PORTAL*_: editing web pages in the Portal (requires Portal permissions)
 - _*DB*_: modifying content in the resource database (requires Portal permissions)
 - _*GITHUB*_: creating and assigning PIDs via the GitHub repository; modifying version-controlled files on GitHub (requires permissions for CSC GitHub)
@@ -90,8 +92,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure the resource is displayed on the list of upcoming corpora
 # [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the source data
 # [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the data
-# [ ] _*?COORDINATION*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
-# [ ] _*+COORDINATION*_ Allocate the resources for the technical processing of the corpus in Kielipankki (who shall take care of it?)
+# [ ] _*?DISCUSS*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
+# [ ] _*+DISCUSS*_ Allocate the resources for the technical processing of the corpus in Kielipankki (who shall take care of it?)
 \\
 ```
 
@@ -127,7 +129,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?A*_ If required, request URNs for license pages (and the PRIV condition pages)
 # [ ] _*+PORTAL*_ Update the license PIDs in the resource database
 # [ ] _*+META*_ Create/update the META-SHARE record, including the license information [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*?COORDINATION*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
+# [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
 \\
 ```
 
