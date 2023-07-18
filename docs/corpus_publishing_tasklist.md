@@ -182,7 +182,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*?IDA*_ Get the data from IDA
 # [ ] _*+META*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+A*_ Request URNs (for META-SHARE, Korp, license pages)
+# [ ] _*+GITHUB*_ Request URNs (for META-SHARE, Korp, license pages)
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure it is on the list of upcoming resources and citable
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*+META*_ Add citation information to the META-SHARE record
