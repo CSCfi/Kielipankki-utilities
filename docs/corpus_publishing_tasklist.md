@@ -11,7 +11,7 @@ we need a list of the relevant tasks that must be completed.
    
    - Replace "_shortname_" with the short name of the resource in question (use the "base" name only, excluding "-src" etc.).
    - Replace "XXX" with the common title of the resource group in question, to make the issue easier to find in Jira.
-   - Both the Epic Summary and Epic Name fields of the Jira Epic issue should contain identical text (= the name mentioned above).
+   - NB: Both the Epic Name and Summary fields of the Jira Epic issue should contain identical text (= the name mentioned above).
 
 ### 2. Copy the following list of section titles to the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
 
