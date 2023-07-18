@@ -5,7 +5,9 @@ After discovering a new resource that should be made available via Kielipankki,
 we need a list of the relevant tasks that must be completed.
 
 ### 1. For each new resource (or a new version of an existing resource), create an "Epic" issue on Jira. 
-   - Name the Epic as "shortname: Publish XXX in Kielipankki (Korp/Download/…)". Replace "_shortname_" with the short name of the resource in question (use the "base" name only, excluding "-src" etc.).
+   - Name the Epic as:
+    _shortname: Publish XXX in Kielipankki (Korp/Download/…)__
+   - Replace "_shortname_" with the short name of the resource in question (use the "base" name only, excluding "-src" etc.).
    - Both the Epic Summary and Epic Name fields of the Jira Epic issue should contain identical text (= the name mentioned above).
 
 ### 2. Copy the following list of section titles to the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
@@ -62,7 +64,7 @@ In the old versions of the task lists that may still exist on Jira, the second c
 - _*D*_: data processing
 - _*K*_: Korp configuration
 - _*T*_: testing
-
+	
 
 ## The task lists for the Stories in Epic
 
