@@ -6,7 +6,9 @@ we need a list of the relevant tasks that must be completed.
 
 ### 1. For each new resource (or a new version of an existing resource), create an "Epic" issue on Jira. 
    - Name the Epic as:
-    _shortname: Publish XXX in Kielipankki (Korp/Download/…)__
+   
+    _shortname: Publish XXX in Kielipankki (Korp/Download/…)_
+   
    - Replace "_shortname_" with the short name of the resource in question (use the "base" name only, excluding "-src" etc.).
    - Both the Epic Summary and Epic Name fields of the Jira Epic issue should contain identical text (= the name mentioned above).
 
