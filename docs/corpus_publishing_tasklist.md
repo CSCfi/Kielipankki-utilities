@@ -11,7 +11,7 @@ we need a list of the relevant tasks that must be completed.
    
    - Replace "_shortname_" with the short name of the resource in question (use the "base" name only, excluding "-src" etc.).
    - Replace "XXX" with the common title of the resource group in question, to make the issue easier to find in Jira.
-   - In angle brackets, you may specify the resource variant(s) that is/are to be published during this Epic, according to current plan: just the Download, and/or Korp, etc. 
+   - In brackets, you may specify the resource variant(s) that is/are to be published during this Epic, according to current plan: just the Download, and/or Korp, etc. 
    - NB: Both the _Epic Name_ and _Summary_ fields of the Jira Epic issue should contain identical text (= the name mentioned above).
 
 
