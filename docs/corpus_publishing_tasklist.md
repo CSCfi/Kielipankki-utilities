@@ -18,20 +18,21 @@ we need a list of the relevant tasks that must be completed.
 ### 2. Copy the following list of section titles to the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
 
 ```
-## [ ] Enter the new resource to the pipeline
-## [ ] Clear the license for the resource
-## [ ] Publish the end-user license
-## [ ] Acquire source data
-## [ ] Publish the source data in Download
-## [ ] Publish the resource in Korp
-## [ ] Publish the VRT data in Download
+## [ ] _shortname_: Enter the new resource to the pipeline
+## [ ] _shortname_: Clear the license for the resource
+## [ ] _shortname_: Publish the end-user license
+## [ ] _shortname_: Acquire source data
+## [ ] _shortname_: Publish the source data in Download
+## [ ] _shortname_: Publish the resource in Korp
+## [ ] _shortname_: Publish the VRT data in Download
 ```
 
-NB: To make sure that the lists are rendered correctly, the text should be pasted when the Jira description input field is in “Text” mode, not “Visual”.
+   - Again, replace "_shortname_" with the short name of the resource in question.
+   - NB: To make sure that the lists are rendered correctly, the text should be pasted when the Jira description input field is in “Text” mode, not “Visual”.
 
 
 ### 3. In the Epic, create a "Story" for each of the applicable task list sections which were previously copied to the Epic description. 
-  - Use the section title of the task list below as the name of the Story.
+  - Use the corresponding section title in the task list as the name of the Story.
   - Replace "_shortname_" with the short name of the resource in question (use the "base" name only, excluding "-src" etc.). This makes it easier to see which resource is addressed in each individual Jira ticket.
   - Copy & paste the appropriate task list from below to the description field of the Story.
   - In case the resource is a completely new one and it has not been decided what should be done with it, just create the first story ("_shortname:_ Enter the new resource to the pipeline", see the first section of tasks below).
@@ -65,7 +66,7 @@ The task category marker is an italicized (slanted) and bolded two-character str
 - _*TEST*_: testing
 - Other platforms can be added in a similar way if required.
 
-In the old versions of the task lists that may still exist on Jira, the second character indicates the rough type of the task by one of the following letters:
+NB: In previous versions of the task lists (a lot of which still exist on Jira), the second character indicates the rough type of the task by one of the following letters:
 
 - _*A*_: administrative
 - _*D*_: data processing
