@@ -4,11 +4,11 @@
 After discovering a new resource that should be made available via Kielipankki, 
 we need a list of the relevant tasks that must be completed.
 
-1. For each new resource (or a new version of an existing resource), create an "Epic" issue on Jira. 
+### 1. For each new resource (or a new version of an existing resource), create an "Epic" issue on Jira. 
    - Name the Epic as "shortname: Publish XXX in Kielipankki (Korp/Download/…)". Replace "_shortname_" with the short name of the resource in question (use the "base" name only, excluding "-src" etc.).
    - Both the Epic Summary and Epic Name fields of the Jira Epic issue should contain identical text (= the name mentioned above).
 
-2. Copy the following list of section titles to the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
+### 2. Copy the following list of section titles to the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
 
 ```
 ## [ ] Enter the new resource to the pipeline
@@ -23,7 +23,7 @@ we need a list of the relevant tasks that must be completed.
 NB: To make sure that the lists are rendered correctly, the text should be pasted when the Jira description input field is in “Text” mode, not “Visual”.
 
 
-3. In the Epic, create a "Story" for each of the applicable task list sections which were previously copied to the Epic description. 
+### 3. In the Epic, create a "Story" for each of the applicable task list sections which were previously copied to the Epic description. 
   - Use the section title of the task list below as the name of the Story.
   - Replace "_shortname_" with the short name of the resource in question (use the "base" name only, excluding "-src" etc.). This makes it easier to see which resource is addressed in each individual Jira ticket.
   - Copy & paste the appropriate task list from below to the description field of the Story.
@@ -31,7 +31,7 @@ NB: To make sure that the lists are rendered correctly, the text should be paste
   - In each Story, you may adjust the list items and their order as appropriate for the resource in question. 
   For example, LBR records are only needed for RES licensed corpora. Thus, if you already know the corpus license will not be RES, you may remove or overstrike the LBR-related tasks.
 
-4. Each task description is preceded by “[ ]”, representing a checkbox, and a tag representing the task type. 
+### 4. Each task description is preceded by “[ ]”, representing a checkbox, and a tag representing the task type. 
 
   - When you start working on an individual task item, write your name between the square brackets (“[Name]”). 
   - When a task is completed, replace "[YourName]" with an “[X]”.
@@ -64,9 +64,9 @@ In the old versions of the task lists that may still exist on Jira, the second c
 - _*T*_: testing
 
 
-The following lists should contain the tasks required for publishing a corpus. The tasks are in the rough order in which they should typically be completed.
-
 ## The task lists for the Stories in Epic
+
+The following lists should contain the tasks required for publishing a corpus. The tasks are in the rough order in which they should typically be completed.
 
 *Recap: For each of the section titles below, create a Story and assign it as "In Epic", providing the name/number of the Epic of the resource in question. Copy & paste the appropriate task lists from below to the description field of the corresponding Jira stories.*
 
