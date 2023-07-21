@@ -45,7 +45,7 @@ we need a list of the relevant tasks that must be completed.
   - When a task is completed, replace "[YourName]" with an “[X]”.
   - When all tasks in a Story are complete, you may edit the description in the main Epic and mark the corresponding section with an [X].
 
-The task category marker is an italicized (slanted) and bolded two-character string. The first character is _+_ for obligatory tasks and _?_ for optional ones, and the task category markers are:
+The task category marker is an italicized (slanted) and bolded character string. The first character is _+_ for obligatory tasks and _?_ for optional ones, and the task category markers are:
 
 - _*MANAGE*_: general management and coordination of the corpus publication process and the related tasks (requires Jira permissions)
 - _*SUPPORT*_: advising and communicating with the data depositor (requires knowledge of data management practices and the applicable instructions)
