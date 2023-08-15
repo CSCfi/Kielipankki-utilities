@@ -142,8 +142,11 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DATA*_ Receive, download or harvest the data
 # [ ] _*+DATA*_ Check the data: format and validity
 ## [ ] _*?DATA*_ Clean up the data
-# [ ] _*+IDA*_ Package the data for IDA
+# [ ] _*+DATA*_ Create a simple README.txt for the source data. Include: 1) resource title; 2) PID; 3) either the license PID, a plain link to the license, or a statement of the rightholder and the known restrictions of use for the source data, 4) any other relevant information regarding the technical structure of the source data, if applicable.
+# [ ] _*+IDA*_ Package the data for IDA, including the README.txt
+# [ ] _*+IDA*_ Upload the README.txt separately to IDA (under corpora/shortname/shortname-src/
 # [ ] _*+IDA*_ Upload the data package to IDA
+# [ ] _*+IDA*_ Freeze the contents of the source data folder in IDA
 \\
 ```
 
