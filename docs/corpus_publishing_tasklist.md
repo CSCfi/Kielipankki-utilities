@@ -103,7 +103,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Clear the license for the resource
 
 ```
-# [ ] _*+DB*_ Add the corpus to the list of licenses
+# [ ] _*+DB*_ In the resource database, create a new (preliminary) license for the resource, or link an existing license instance to the resource, if available
 # [ ] _*?AGREEMENT*_ Clear the license terms and conditions regarding copyrighted material
 ## [ ] _*?AGREEMENT*_ In case the corpus contains third-party copyrighted material, find out if the depositor has the rights to distribute it via the Language Bank (e.g., explicit license or permission from copyright holders)
 ## [ ] _*?LEGAL*_ When in doubt, bring the case up in a legal meeting
