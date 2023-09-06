@@ -630,7 +630,7 @@ check_completed () {
     # CHECK: Should the data from the previous runs be handled
     # differently if using one of the options --augment-data,
     # --generate-input or --remake-wordpicture-data?
-    if [ -e "$opts_file" ] && [ -e "$stages_file"]; then
+    if [ -e "$opts_file" ] && [ -e "$stages_file" ]; then
         # If the options are the same as on the previous run, the
         # script can continue from where it was left
         if [ "$(cat "$opts_file")" = "$cmdline_args_effective" ]; then
