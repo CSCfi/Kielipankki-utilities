@@ -22,6 +22,7 @@ def main():
     linenr = 0
     with open(infile, 'rb') as inf:
         for line in inf:
+            line_orig = line
             linenr += 1
             for encoding in encodings:
                 try:
@@ -31,6 +32,10 @@ def main():
                 else:
                     break
             if isinstance(line, str):
+                # The few cases with a literal \xa0 in the source seem
+                # to be á (cp437) and not NBSP (windows-1252)
+                if '\xa0' in line and encoding != encodings[-1]:
+                    line = line_orig.decode('cp437')
                 sys.stdout.write(line)
             else:
                 # The line could not be decoded with any of the
