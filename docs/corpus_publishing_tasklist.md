@@ -121,7 +121,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*+LEGAL*_ Make the final decision as to whether the resource can be distributed via the Language Bank of Finland (bring the case up in legal meeting, if necessary)
 ## [ ] _*+AGREEMENT*_ Prepare the final draft of the deposition license agreement and send it to corpus owner who should fill in the remaining gaps (ask for legal advice if needed)
 ## [ ] _*+AGREEMENT*_ Check the final deposition agreement, combine all parts into a single pdf file and upload the document to the UniSign system for electronic signing by the rightholder (+ the data controller) and finally by the head of department at the University of Helsinki, https://unisign.helsinki.fi/sign/#/dashboard
-## [ ] _*+IDA*_ Archive the signed deposition agreement (pdf) in IDA, https://ida.fairdata.fi/apps/files/?dir=/tlp0063%252B/FIN-CLARIN%20Administration/agreements
+## [ ] _*+IDA*_ Upload the signed deposition agreement Upload the signed deposition agreement (or similar proof of the distribution license) as a pdf file (named as shortname_yyyymmdd.pdf, according to the date of the last signature in the document) in IDA, under Administration/agreements/shortname.
+## [ ] _*+HYSTORE*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (named as shortname_yyyymmdd.pdf, according to the date of the last signature in the document) to the HFST server, under data/corpora/agreements/shortname.
 \\
 ```
 
