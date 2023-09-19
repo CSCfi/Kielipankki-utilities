@@ -57,6 +57,7 @@ The task category marker is an italicized (slanted) and bolded character string.
 - _*DB*_: modifying content in the resource database (requires Portal permissions)
 - _*GITHUB*_: creating and assigning PIDs via the GitHub repository; modifying version-controlled files on GitHub (requires permissions for CSC GitHub)
 - _*IDA*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating file packages and standard documentation files included in the archived data (requires permissions for IDA)
+- _*HYSTORE*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating file packages and standard documentation files included in the archived data (requires permissions to access the HFST server of the University of Helsinki)
 - _*PUHTI*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating standard documents for the archived data (requires permissions for CSC computing environment)
 - _*ALLAS*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating standard documents for the archived data (requires permissions for CSC computing environment)
 - _*DATA*_: receiving source data, data (pre-)processing and cleanup (tasks that may be completed in different environments)
@@ -136,31 +137,32 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Acquire source data
+### _shortname_: Acquire the original data
 
 ```
 # [ ] _*+DATA*_ Receive, download or harvest the data
 # [ ] _*+DATA*_ Check the data: format and validity
 ## [ ] _*?DATA*_ Clean up the data
-# [ ] _*+DATA*_ Create a simple README.txt for the source data. Include: 1) resource title; 2) PID; 3) either the license PID, a plain link to the license, or a statement of the rightholder and the known restrictions of use for the source data, 4) any other relevant information regarding the technical structure of the source data, if applicable.
-# [ ] _*+IDA*_ Package the data for IDA, including the README.txt
-# [ ] _*+IDA*_ Upload the README.txt separately to IDA (under corpora/shortname/shortname-src/
-# [ ] _*+IDA*_ Upload the data package to IDA
-# [ ] _*+IDA*_ Freeze the contents of the source data folder in IDA
+# [ ] _*+DATA*_ Create a simple shortname-orig_yyyymmdd_README.txt for the original data. Include: 1) resource title; 2) PID(s) for the metadata record(s) of the first version(s); 3) link(s) to Jira issue(s).
+# [ ] _*+IDA*_ Upload the original data as a zip file (named as shortname-orig_yyyymmdd.zip) and the separate shortname-orig_yyyymmdd_README.txt file to IDA, under the folder with the resource group shortname, in lowercase characters.
+# [ ] _*+IDA*_ Freeze the new files in the original data folder in IDA
+# [ ] _*+HYSTORE*_ Upload the original data as a zip file (named as shortname-orig_yyyymmdd.zip) and the separate shortname-orig_yyyymmdd_README.txt file to the HFST server, under data/corpora/originals/.
 \\
 ```
 
 ### _shortname_: Publish the source data in Download
 
 ```
-# [ ] _*?IDA*_ Get the data from IDA
+# [ ] _*?IDA*_ Get the original data from IDA
 # [ ] _*+META*_ Update the META-SHARE record (or create a new record, if missing) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request access location URN for download version (and check that the URNs for META-SHARE and license pages are available and working)
 # [ ] _*+DB*_ Make sure that the corpus is on the list of upcoming resources and citable, and update the resource database if required
 # [ ] _*+META*_ Add citation information to the META-SHARE record
+# [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained, upload the data as a zip file (named as shortname-src_yyyymmdd.zip) and the separate shortname-src_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
 # [ ] _*+PUHTI*_ Create a download package
-## [ ] _*+PUHTI*_ Create and add the downloadable readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
-## [ ] _*+PUHTI*_ Zip the data and the readme and license files
+# [ ] _*+DATA*_ Create a publishable README.txt for the source data, to be shown to the end-users. Include: 1) resource title; 2) PID; 3) either the license PID, a plain link to the license, or a statement of the rightholder and the known restrictions of use for the source data, 4) any other relevant information regarding the technical structure of the source data, if applicable.
+## [ ] _*+PUHTI*_ Create and add the readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
+## [ ] _*+PUHTI*_ Zip the data and the readme and license files into a package named as shortname-src.zip.
 ## [ ] _*+PUHTI*_ Compute an MD5 checksum for the zip package
 # [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
 # [ ] _*+TEST*_ Have the package tested
@@ -174,21 +176,21 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the META-SHARE record also contains a link to the resource group page
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
 # [ ] _*?SUPPORT*_ Inform the depositor/rightholder about the publication
-# [ ] _*+IDA*_ Upload the source package to IDA
-## [ ] _*+IDA*_ Freeze the IDA package
 # [ ] _*?CSC*_ Ask Martin (CSC) to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti if the source data is to be published there
+
 \\
 ```
 
 ### _shortname_: Publish the resource in Korp
 
 ```
-# [ ] _*?IDA*_ Get the data from IDA
+# [ ] _*?DATA*_ Get the source (or original) data from IDA, from the download service, or from the HFST server.
 # [ ] _*+META*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request URNs (for META-SHARE, Korp, license pages)
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure it is on the list of upcoming resources and citable
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*+META*_ Add citation information to the META-SHARE record
+# [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-korp_yyyymmdd.zip) and the separate shortname-korp_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
 # [ ] _*?DATA*_ Convert the data to HRT
 # [ ] _*?DATA*_ Convert HRT to VRT (tokenizing)
 # [ ] _*?DATA*_ Convert the data directly to VRT (alternative to HRT->VRT)
@@ -201,6 +203,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DATA*_ Validate the VRT data
 # [ ] _*+DATA*_ Check the positional attributes
 ## [ ] _*?DATA*_ Re-order to the commonly used order if necessary
+# [ ] _*?HYSTORE*_ In case the data is only published as a scrambled version, upload the unscrambled base data as a zip file (named as shortname-korp-base_yyyymmdd.zip) and the separate shortname-korp-base_yyyymmdd_README.txt file to the HFST server, under data/corpora/korp-base/.
 # [ ] _*+DATA*_ Create a Korp corpus package ({{{}korp-make{}}})
 ## [ ] _*+KORP*_ Install the corpus package on the Korp server (or ask someone with the rights to do that)
 # [ ] _*+GITHUB*_ Add corpus configuration to Korp (currently, a new branch in [Kielipankki-korp-frontend|https://https//github.com/CSCfi/Kielipankki-korp-frontend])
@@ -213,7 +216,6 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*?SUPPORT*_ Ask feedback from the corpus owner (depending on how involved they wish to be)
 # [ ] _*?DATA*_ Fix corpus data and re-publish (if needed)
 # [ ] _*?GITHUB*_ Fix Korp configuration and re-publish (if needed)
-# [ ] _*+IDA*_ Upload the Korp corpus package to IDA
 # [ ] _*+KORP*_ Publish the corpus in Korp as a beta test version
 ## [ ] _*+GITHUB*_ Merge the corpus configuration branch to branch {{master}}
 ## [ ] _*+GITHUB*_ Add news about this new corpus to the Korp newsdesk ([https://github.com/CSCfi/Kielipankki-korp-frontend/tree/news/master])
@@ -227,12 +229,10 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PORTAL*_ Publish news about this new corpus in the portal
 # [ ] _*?SUPPORT*_ Inform corpus owner and possibly interested researchers on the corpus in Korp and ask them to test it
 # [ ] _*?DATA*_ Fix corpus data based on feedback and re-publish (if needed)
-## [ ] _*?IDA*_ Upload a fixed Korp corpus package to IDA
 # [ ] _*?KORP*_ Fix corpus configuration in Korp and re-publish (if needed)
 # [ ] _*+KORP*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
 ## [ ] _*+KORP*_ Remove beta status from Korp configuration ({{{}master{}}}), push and install the updated {{master}}
 ## [ ] _*+META*_ Remove beta status from the META-SHARE record and resource group page
-# [ ] _*+IDA*_ Freeze the IDA package
 \\
 ```
 
@@ -246,6 +246,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DB*_ Add the details of the corpus variant to the resource database, status "upcoming"
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*+META*_ Add citation information to the META-SHARE record
+# [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-vrt_yyyymmdd.zip) and the separate shortname-vrt_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
 # [ ] _*+PUHTI*_ Create a download package
 ## [ ] _*+PUHTI*_ Create and add the downloadable readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 ## [ ] _*+PUHTI*_ Zip the data and the readme and license files
@@ -266,8 +267,6 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*?PUHTI*_ Compute MD5 checksum for the zip package
 ## [ ] _*?CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
 ## [ ] _*?META*_ Remove beta status from the META-SHARE record and resource group page
-# [ ] _*+IDA*_ Upload the VRT package to IDA
-## [ ] _*+IDA*_ Freeze the IDA package
 # [ ] _*?CSC*_ Ask Martin to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti (if the corpus is PUB or ACA)
 \\
 ```
