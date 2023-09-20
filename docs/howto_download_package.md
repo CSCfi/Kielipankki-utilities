@@ -1,9 +1,9 @@
 # Publish source data/VRT data in Download
 Source data of a resource as well as its VRT version can be offered in the download service of Kielipankki [http://www.kielipankki.fi/download](http://www.kielipankki.fi/download "http://www.kielipankki.fi/download").
 
-The **source data** is offered as is, meaning that usually it is not changed by us, except for packaging the data (in zip files) in a suitable way. All data should be available in IDA, so it can be taken from there to create a download package.
+The **source data** is offered as is, meaning that usually it is not changed by us, except for packaging the data (in zip files) in a suitable way. The original data should be available in IDA, so it can be taken from there to create a download package.
 
-If the **VRT data** is not yet stored in IDA, it can be extracted from Korp in order to create a download package. You have to ask someone with access rights to the Korp server for this.
+The **VRT data** can be extracted from Korp in order to create a download package. You have to ask someone with access rights to the Korp server for this.
 
 As for all resources and all their versions, a META-SHARE record has to be created, URNs to be requested, the resource has to be added to the list of upcoming resources, if not there yet. (See [instructions](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/))
 
@@ -11,7 +11,7 @@ The name of the **source version** of a resource should contain the additional i
 
 Accordingly, the name of the **VRT version** of a resource should contain the information 'VRT', e.g. `Yle Finnish News Archive 2011-2018, VRT`. The short name should have the suffix '-vrt', e.g. `ylenews-fi-2011-2018-vrt`. Please follow Kielipankki's [Language resource naming conventions](https://www.kielipankki.fi/development/language-resource-naming-conventions/).
 
-In case of data with restricted access rights, license pages in the portal have to be created and linked to from META-SHARE.
+License pages in the portal have to be created and linked to from META-SHARE.
 Citation information also has to be added to the META-SHARE record.
 
 ## Creating the download package
@@ -20,7 +20,7 @@ Download the data from IDA to your work directory on CSC's computing environment
 Create a README.txt containing at least the following information:
 long name of the corpus, shortname, metadata PID, license information, short description of the corpus as given in META-SHARE, link to the resource group page. Add an explanation of the structure of the download package if needed.
 
-Create a LICENSE.txt, if the access to the resource is restricted. The text of this file should be taken from the respective license page in the portal.
+Create a LICENSE.txt. The text of this file should be taken from the respective license page in the portal.
 
 The README and LICENSE files should be offered twice: once included in the download package and once uncompressed included in the download folder on the same level as the download package.
 
@@ -79,7 +79,7 @@ Ask someone from CSC to upload the package to the download service.
 For a RES corpus, ask also to create an LBR record.
 
 Check the uploaded resource, or better, have it checked by someone else of the team.
-Check:
+Check if:
 
 - the download folder has the correct name (short-name)
 - the description has the correct name (possibly slightly shortened) and links via URN to META-SHARE
@@ -100,5 +100,3 @@ Publish news about the new corpus in the portal, see [docs: howto create news in
 More information on how to publish a corpus in the download service:
 [Kielipankki: corpus data publication for download at the language-bank](https://www.kielipankki.fi/development/corpus-data-publication-for-download-at-the-language-bank/)
 
-## Archiving the VRT download package in IDA
-After publishing the VRT data in download, the VRT download package should be uploaded to the particular corpus folder in IDA. Instructions on how to upload data to the [IDA storage service](https://ida.fairdata.fi/) can be found in [docs: how to archive packages in ida](howto_archive_pkgs_ida.md).
