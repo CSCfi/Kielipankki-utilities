@@ -21,7 +21,7 @@ we need a list of the relevant tasks that must be completed.
 # [ ] _shortname_: Enter the new resource to the pipeline
 # [ ] _shortname_: Clear the license for the resource
 # [ ] _shortname_: Publish the end-user license
-# [ ] _shortname_: Acquire source data
+# [ ] _shortname_: Acquire the original data
 # [ ] _shortname_: Publish the source data in Download
 # [ ] _shortname_: Publish the resource in Korp
 # [ ] _shortname_: Publish the VRT data in Download
@@ -60,7 +60,7 @@ The task category marker is an italicized (slanted) and bolded character string.
 - _*HYSTORE*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating file packages and standard documentation files included in the archived data (requires permissions to access the HFST server of the University of Helsinki)
 - _*PUHTI*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating standard documents for the archived data (requires permissions for CSC computing environment)
 - _*ALLAS*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating standard documents for the archived data (requires permissions for CSC computing environment)
-- _*DATA*_: receiving source data, data (pre-)processing and cleanup (tasks that may be completed in different environments)
+- _*DATA*_: receiving original data, data (pre-)processing and cleanup (tasks that may be completed in different environments)
 - _*KORP*_: Korp configuration (requires Korp server permissions)
 - _*LBR*_: the task requires LBR administrator privileges (at this point, an issue needs to be created and handed over to the CSC team)
 - _*CSC*_: the task requires administrator privileges of other specific services (at this point, an issue needs to be created and handed over to the CSC team)
@@ -94,7 +94,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+GITHUB*_ Request a URN for the META-SHARE record
 # [ ] _*+META*_ Update the META-SHARE record with the URN and inform the depositor about citation practices, if relevant
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure the resource is displayed on the list of upcoming corpora
-# [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the source data
+# [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
 # [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the data
 # [ ] _*?DISCUSS*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
 # [ ] _*+DISCUSS*_ Allocate the resources for the technical processing of the corpus in Kielipankki (who shall take care of it?)
