@@ -1,16 +1,16 @@
 # Create a resource group page in the portal
 
-Resource group pages are created for all our resources (corpora, lexical resources, tools and web services). A resource group page contains all the relevant information about the resource and offers an overview of the latest versions, may it be source, VRT or Korp. 
+Resource group pages are created for all resources (corpora, lexical resources, tools and web services). A resource group page contains all the relevant information about the resource and offers an overview of the latest versions, may it be source, VRT or Korp. 
 
 Tools are mostly accessible via a web interface, or they can be installed via download from e.g. GitHub or Korp. Some tools were developed by member organizations of FIN-CLARIN / CLARIN ERIC. A resource group page offers detailed information about the tool, its usage, links to developers' webpages, user instuctions or download location. 
 
-A resource group page is linked to from [Kielipankki's resource families page](https://www.kielipankki.fi/corpora/resource-families-fin-clarin/). 
+All resource group pages are linked to from [Kielipankki's resource families page](https://www.kielipankki.fi/corpora/resource-families-fin-clarin/). 
 
-It should be tagged with categories (the particular Clarin resource family), to provide search possibilities in the portal. A resource can belong to more than one resource family. 
+A group page in the portal should be tagged with categories (the particular Clarin resource family), to provide search possibilities in the portal. A resource can belong to more than one resource family. 
 
 Each resource group page has to have a PID. For instructions on how to request a PID, see [docs: how to request a PID](howto_request_pid.md)
 
-The resource group page is linked to from the respective META-SHARE record of the resource as well as from the [list of published corpora](https://www.kielipankki.fi/corpora/) in the portal (column 'help') with the help of its PID. (NOTE: Resources and tools not directly offered by Kielipankki, but by a member organization of FIN-CLARIN, might not have a META-SHARE record.)
+The resource group page is linked to from the respective META-SHARE record of the resource as well as from the [list of published corpora](https://www.kielipankki.fi/corpora/) in the portal (column 'Resource group and help') via its PID. (NOTE: Resources and tools not directly offered by Kielipankki, but by a member organization of FIN-CLARIN, might not have a META-SHARE record.)
 
 In the [list of tools](https://www.kielipankki.fi/tools/) the link to the resource group page is added to the column 'Info'.
 
@@ -32,7 +32,7 @@ The content of a resource group page is usually:
 - A PID
 
 In the WordPress page editor, in the window on the right, you should choose one or more of the given categories (resource families). 
-If a category is missing, you can add it here.
+If a category is missing, you can add it here (please note, that in this case the missing family has to be added to the corpus database as well, with the help of CSC).
 
 A page created in Kielipankki can be put to 'privat' first. Then it is only visible to the author.
 
@@ -45,5 +45,7 @@ After everything is done, the page should be put to 'public' and be published.
 
 The page can be moved in the 'tree view' in the menu on the left (e.g. to the folder 'corpora'). This can also be done after publishing the page.
 
-The PID of the resource group page should then be added to the [resource families page](https://www.kielipankki.fi/corpora/resource-families-fin-clarin/ "resource families page"), to the resource's META-SHARE record and to the list of published resources or the list of tools respectively.
+The PID of the resource group page should then be added to the [resource families page](https://www.kielipankki.fi/corpora/resource-families-fin-clarin/ "resource families page"), to the resource's META-SHARE record and to the corpus database or the list of tools respectively.<br/>
+After a new resource group is added to the corpus database, the particular resource group can be chosen from the dropdown list of the field 'Resource group' within a corpus entry. 
+The particular Clarin resource family/families are to be chosen from the selection lists of the fields 'Clarin Resource Family' in English and Finnish.
 
