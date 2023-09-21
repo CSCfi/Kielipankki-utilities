@@ -5,7 +5,7 @@ You need the rights to edit in META-SHARE (ask for access from CSC, if you do no
 In order to create a new article, open the menu under "Manage Resources" and choose "Manage your own resources" or "Manage all resources".
 In the upper left corner, choose "Add Resource +". 
 Select a resource type (corpus, tool or lexical resource).
-You must fill in all the required fields to be able to save the page. It is possible to edit the article and add information anytime, even when it is already published.
+You must fill in all the required fields to be able to save the page. Please see here for the [minimum set of details](https://www.kielipankki.fi/development/creating-metadata-records/) that should be included in a metadata record that is published on META-SHARE. It is possible to edit the article and add information anytime, even when it is already published.
 If unsure about some details, it is possible to fill in a kind of a placeholder (e.g. for 'size' you could put '1') and add the needed information later.
 You will have to enter the correct name and short name for the resource. Please follow Kielipankki's [Language resource naming conventions](https://www.kielipankki.fi/development/language-resource-naming-conventions/).
 Also you should check, whether there are (related) resources with this name in META-SHARE already.
