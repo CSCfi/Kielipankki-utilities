@@ -21,7 +21,7 @@ we need a list of the relevant tasks that must be completed.
 # [ ] _shortname_: Enter the new resource to the pipeline
 # [ ] _shortname_: Clear the license for the resource
 # [ ] _shortname_: Publish the end-user license
-# [ ] _shortname_: Acquire original data
+# [ ] _shortname_: Acquire the original data
 # [ ] _shortname_: Publish the source data in Download
 # [ ] _shortname_: Publish the resource in Korp
 # [ ] _shortname_: Publish the VRT data in Download
@@ -169,7 +169,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+TEST*_ Have the package tested
 # [ ] _*?LBR*_ Create an LBR record (for a RES corpus)
 # [ ] _*+CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
-# [ ] _*+TEST_ Have it tested again (access rights!)
+# [ ] _*+TEST*_ Have it tested again (access rights!)
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
 # [ ] _*+META*_ Update the META-SHARE record: (update and) add the location PID and add the Availability start date (under Distribution)
 # [ ] _*?PORTAL*_ If applicable, add the new resource version to the license page of the previous versions [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
