@@ -1,0 +1,49 @@
+#! /usr/bin/env python3
+
+# byu-txt-fix-encoding
+#
+# Fix the character encoding of the input text file line by line: If
+# the line is not valid UTF-8, try Windows-1252; if that does not
+# work, try cp437.
+#
+# Usage: byu-txt-fix-encoding input.txt > output.txt
+
+
+import sys
+
+
+def main():
+    # Try encodings in this order
+    encodings = ['utf-8', 'windows-1252', 'cp437']
+    if len(sys.argv) != 2:
+        sys.stderr.write(f'Usage: {sys.argv[0]} input.txt > output.txt\n')
+        exit(1)
+    infile = sys.argv[1]
+    linenr = 0
+    with open(infile, 'rb') as inf:
+        for line in inf:
+            line_orig = line
+            linenr += 1
+            for encoding in encodings:
+                try:
+                    line = line.decode(encoding)
+                except UnicodeError:
+                    pass
+                else:
+                    break
+            if isinstance(line, str):
+                # The few cases with a literal \xa0 in the source seem
+                # to be á (cp437) and not NBSP (windows-1252)
+                if '\xa0' in line and encoding != encodings[-1]:
+                    line = line_orig.decode('cp437')
+                sys.stdout.write(line)
+            else:
+                # The line could not be decoded with any of the
+                # encodings
+                sys.stderr.write(
+                    f'Error decoding line {linenr} with any of {encodings}:\n')
+                sys.stderr.write(repr(line) + '\n')
+
+
+if __name__ == '__main__':
+    main()
