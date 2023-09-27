@@ -16,7 +16,11 @@ def main():
     ]
     remove_re = [re.compile(regex, re.IGNORECASE) for regex in remove_re_src]
     for line in sys.stdin:
-        fields = line[:-1].split('\t')
+        fields = line[:-1].rstrip('\r').split('\t')
+        # Some lines have a spurious tab and thus an extra (7th) empty
+        # field at the end; remove it. We cannot just remove a
+        # trailing tab as some lines contain an empty title.
+        fields = fields[:6]
         title = fields[-1].strip()
         title = title.replace('^', '\'')
         for regex in remove_re:
