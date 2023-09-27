@@ -1,20 +1,83 @@
 #! /usr/bin/env python3
 
+# byu-sources-fix-titles
+#
+# Add a cleaned-up title column to the sources.txt of Mark Davies's
+# corpora: for example, decode character entity references, remove
+# HTML tags (mostly) and replace ^ with ' (mostly). See the code for
+# more details.
+#
+# Usage: byu-sources-fix-titles < sources.txt > sources-clean.txt
+
 
 import re
 import sys
 
 
 def main():
+    replacements = [
+        # Character entity references
+        ('&lt;', '<'),
+        ('&gt;', '>'),
+        ('&quot;', '"'),
+        ('&apos;', "'"),
+        ('&amp;', '&'),
+        # Also fix doubly encoded entity references, such as "&amp;quot;"
+        ('&quot;', '"'),
+        ('&amp;', '&'),
+        # Convert NBSP to a single normal space
+        ('&nbsp;', ' '),
+        ('\xa0', ' '),
+        # Remove soft hyphens
+        ('&shy;', ''),
+        ('\xad', ''),
+        # Some HTML character entities, some incorrect ones interpreted
+        ('&eacute;', 'é'),
+        ('&eactute;', 'é'),
+        ('&eacutemont;', 'émont'),
+        ('&IACUTE;', 'Í'),
+        ('&OACUTE;', 'Ó'),
+        ('&oslash;', 'ø'),
+        ('&rsquo;', '’'),
+        ('&UACUTE;', 'Ú'),
+        # ^ usually denotes '
+        ('^', '\''),
+        # But ^ should be kept as is in "R^3" and "Re^3"
+        ("R'3", 'R^3'),
+        ("Re'3", 'Re^3'),
+        # And ^sup X^ means superscript X (two cases); keep it as is
+        # (alternatives: use Unicode superscript X or just plain X)
+        ("'sup 2'", '^sup 2^'),
+        ("'sup +'", '^sup +^'),
+        # Remove backslashes followed by a single or double quotation mark
+        ('\\"', '"'),
+        ("\\'", "'"),
+        # "ï¬" is apparently an incorrectly decoded ligature "fi"
+        ('ï¬', 'fi'),
+        # A couple of titles have an incomplete tag "p/>" in the middle
+        ('p/>', ' '),
+    ]
+    replace_re_src = [
+        (r'<br */?>', ' '),
+        # Numeric character entity references
+        (r'&#x([0-9a-zA-Z][0-9a-zA-Z]+);',
+         lambda mo: chr(int(mo.group(1), base=16))),
+        (r'&#([0-9][0-9]+);', lambda mo: chr(int(mo.group(1)))),
+    ]
     remove_re_src = [
-        r'<a .*?(>|$)',
-        r'</a>',
         r'<img .*?>',
-        r'<br>',
-        r'</?(i|b|strong|p|sub)( .*?)?>',
-        '</?B?\r?$',
+        # If an element name is followed by a space and something
+        # else, it should contain an equals sign
+        r'</?(a|em|h1|i|b|strong|p|sub)( .*=.*?)? *>',
+        '</?(B|em)?\r?$',
+        r'<a[^>]*$',
+        # A couple of special cases
+        r'^topiclabel>',
+        r'^target=".*?">',
     ]
     remove_re = [re.compile(regex, re.IGNORECASE) for regex in remove_re_src]
+    replace_re = [(re.compile(regex, re.IGNORECASE), repl)
+                  for (regex, repl) in replace_re_src]
     for line in sys.stdin:
         fields = line[:-1].rstrip('\r').split('\t')
         # Some lines have a spurious tab and thus an extra (7th) empty
@@ -22,9 +85,21 @@ def main():
         # trailing tab as some lines contain an empty title.
         fields = fields[:6]
         title = fields[-1].strip()
-        title = title.replace('^', '\'')
+        # Make the replacements
+        for s, repl in replacements:
+            title = title.replace(s, repl)
+        for regex, repl in replace_re:
+            title = regex.sub(repl, title)
+        # ú followed by a digit should be £
+        if 'ú' in title:
+            title = re.sub(r'ú([0-9])', r'£\1', title)
+        # Remove what is to be removed
         for regex in remove_re:
             title = regex.sub('', title)
+        # Remove leading and trailing spaces (possibly introduced when
+        # removing something else) and collapse multiple spaces into
+        # single ones
+        title = re.sub(r'\s\s+', ' ', title.strip())
         print('\t'.join(fields + [title]))
 
 
