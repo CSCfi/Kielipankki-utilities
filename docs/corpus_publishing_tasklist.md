@@ -231,6 +231,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?SUPPORT*_ Inform corpus owner and possibly interested researchers on the corpus in Korp and ask them to test it
 # [ ] _*?DATA*_ Fix corpus data based on feedback and re-publish (if needed)
 # [ ] _*?KORP*_ Fix corpus configuration in Korp and re-publish (if needed)
+# [ ] _*?META*_ If there are known errors, bugs or anomalies remaining in the published data, add a "Known errors" note in the metadata record (end of the Description field).
 # [ ] _*+KORP*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
 ## [ ] _*+KORP*_ Remove beta status from Korp configuration ({{{}master{}}}), push and install the updated {{master}}
 ## [ ] _*+META*_ Remove beta status from the META-SHARE record and resource group page
