@@ -18,7 +18,6 @@
 # For usage and some more details, run "cwbdata-calc-stats --help".
 
 # TODO:
-# - Add column headings (optionally)
 # - Handle specified attributes missing from (some) corpora
 
 
@@ -118,6 +117,9 @@ class StatsCalculator:
                     sense to count them. If ATTRLIST is empty, count
                     only tokens (the default).''')
         argparser.add_argument(
+            '--heading-row', action='store_true',
+            help='''Output a column heading row as the first row.''')
+        argparser.add_argument(
             '--quiet', action='store_true',
             help='''Do not print progress information to stderr.''')
         argparser.add_argument(
@@ -162,6 +164,17 @@ class StatsCalculator:
         prev_key = None
         prev_vals = [None] * num_counts
 
+        def output_heading():
+            headings = ['corpus_id']
+            headings.extend(attr for attr in self._args.key_attrs
+                            if attr[0] != '?')
+            count_attrs = ''
+            for attr in self._args.count_attrs:
+                count_attrs += (',' if count_attrs else '') + attr
+                headings.append(f'count({count_attrs})')
+            headings.append('count(tokens)')
+            print('\t'.join(headings))
+
         def output():
             '''Output the statistics in counts for prev_key'''
             print('\t'.join([corpus, prev_key] + [str(cnt) for cnt in counts]))
@@ -173,6 +186,8 @@ class StatsCalculator:
                 counts[j] += 1
                 prev_vals[j] = fields[j + key_attr_end]
 
+        if self._args.heading_row:
+            output_heading()
         # cwb-scan-corpus outputs token frequencies for each combination
         # of attribute values, sorted in canonical order (with -S).
         # Use line buffering (universal_newlines=True, bufsize=1) to read
