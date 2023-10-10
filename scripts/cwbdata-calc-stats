@@ -104,6 +104,14 @@ class StatsCalculator:
         self._args = argparser.parse_args()
         self._args.key_attrs = self._args.key_attrs.split()
         self._args.count_attrs = self._args.count_attrs.split()
+        count_constr = [attr for attr in self._args.count_attrs
+                        if attr[0] == '?']
+        if count_constr:
+            sys.stderr.write(
+                'cwbdata-calc-stats: Warning: Ignoring constraint attribute(s)'
+                ' in --count: ' + ', '.join(count_constr) + '\n')
+            self._args.count_attrs = [attr for attr in self._args.count_attrs
+                                      if attr[0] != '?']
 
     def _get_corpora(self):
         '''Return corpora matching self._args.corpus'''
@@ -123,7 +131,8 @@ class StatsCalculator:
         num_counts = len(self._args.count_attrs)
         # Add token count
         counts = [0] * (num_counts + 1)
-        key_attr_end = len(self._args.key_attrs) + 1
+        key_attr_end = len([attr for attr in self._args.key_attrs
+                            if attr[0] != '?']) + 1
         count_attr_end = key_attr_end + num_counts
         prev_key = None
         prev_vals = [None] * num_counts
