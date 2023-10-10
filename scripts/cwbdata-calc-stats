@@ -25,6 +25,7 @@
 import argparse
 import glob
 import re
+import shutil
 import sys
 import textwrap
 
@@ -46,10 +47,11 @@ class StatsCalculator:
 
     def _parse_args(self):
         '''Parse command-line arguments'''
+        usage_width = (shutil.get_terminal_size((80, 24)).columns or 80) - 2
 
         def format_paragraphs(text):
             '''Remove indentation and fill each text paragraph separately'''
-            return '\n\n'.join(textwrap.fill(para, width=78)
+            return '\n\n'.join(textwrap.fill(para, width=usage_width)
                                for para in textwrap.dedent(text).split('\n\n'))
 
         description = format_paragraphs('''\
