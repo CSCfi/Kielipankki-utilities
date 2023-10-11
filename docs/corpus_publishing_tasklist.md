@@ -175,6 +175,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?PORTAL*_ If applicable, add the new resource version to the license page of the previous versions [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the META-SHARE record also contains a link to the resource group page
+# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
 # [ ] _*?SUPPORT*_ Inform the depositor/rightholder about the publication
 # [ ] _*?CSC*_ Ask Martin (CSC) to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti if the source data is to be published there
@@ -227,11 +228,11 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+META*_ Add "beta" status information to META-SHARE record
 # [ ] _*+PORTAL*_ Add "beta" status information to the resource group page
+# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
 # [ ] _*+PORTAL*_ Publish news about this new corpus in the portal
 # [ ] _*?SUPPORT*_ Inform corpus owner and possibly interested researchers on the corpus in Korp and ask them to test it
 # [ ] _*?DATA*_ Fix corpus data based on feedback and re-publish (if needed)
 # [ ] _*?KORP*_ Fix corpus configuration in Korp and re-publish (if needed)
-# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data, and make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
 # [ ] _*+KORP*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
 ## [ ] _*+KORP*_ Remove beta status from Korp configuration ({{{}master{}}}), push and install the updated {{master}}
 ## [ ] _*+META*_ Remove beta status from the META-SHARE record and resource group page
@@ -262,6 +263,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+META*_ Update the META-SHARE record; add location PID and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+PORTAL*_ Create or update the resource group page
+# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
 # [ ] _*?SUPPORT*_ Inform the depositor/rightholder about the VRT publication
 # [ ] _*?PUHTI*_ If the package was published as beta (during the beta stage of the corresponding Korp corpus), remove the beta status after removing the beta status from Korp
