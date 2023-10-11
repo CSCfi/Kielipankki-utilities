@@ -3,7 +3,7 @@ The original data, received by the data provider or harvested by Kielipankki, sh
 The data should be accompanied by a simple readme file to explain the content of the zip package. The readme file and the zip package should be named similarly to make clear their affiliation. The name should contain the shortname of the resource, the string 'orig' and the time when the data was obtained.
 For the time being, the original data is stored in IDA as well as on the HFST server.
 
-##Instructions in detail:
+## Instructions in detail:
 1. Create a simple shortname-orig_yyyymmdd_README.txt for the original data. Mandatory content: 
   - resource title
   - PID for the metadata record of the first version
