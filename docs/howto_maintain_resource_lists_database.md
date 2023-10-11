@@ -1,4 +1,4 @@
-#The Kielipankki resource database
+# The Kielipankki resource database
 
 The database is available in the intranet of Kielipankki: https://www.kielipankki.fi/intra/resource-management/corpora/
 (login with uni account, you need the VPN if working remotely).
@@ -41,7 +41,7 @@ NOTE: Attribution details are created automatically to the portal (with informat
 NOTE2: Use the attribution details in the format: https://www.kielipankki.fi/viittaus/?key=urn:nbn:fi:lb-2022102101&lang=en (using the URN as identifier!)
 
 
-##Licenses
+## Licenses
 The database offers information on the license of each corpus.
 Some corpora are directly available (PUB), some may be accessed by signing in (ACA) or by applying for individual access rights (RES).
 
@@ -53,7 +53,7 @@ Note: In the portal lists of corpora (see links above) license information will 
 
 
 
-##Link to LBR
+## Link to LBR
 Protected corpora can be accessed following the link to LBR (Language Bank Rights) in the 'Apply' column of the portal list of published corpora.
 
 In order to offer a link to LBR for a resource, add the PID of the LBR record to the field 'Lbr Urn' in the corpus database. 
@@ -62,18 +62,18 @@ On [https://lbr.csc.fi/](https://lbr.csc.fi/) you can find the correct URN, whic
 
 
 
-##Download/Puhti links
+## Download/Puhti links
 All downloadable CLARIN PUB or ACA licensed corpora should be also available in CSC's Puhti computing environment in the directory /appl/data/kielipankki/.
 In the corpus entry in the database you can choose the location 'Puhti' additionally to the location 'Download'.
 
 
-##Resource groups
+## Resource groups
 Corpora are connected with their corresponding resource group via the 'Resource Group ID', which is the 'Group Name' in the entry of a Resource group.
 After adding a resource group to the collection of resource groups in the database, the name of the resource group is added to the selection list in the corporas' view.
 
 
 
-##Add a tool to the list of tools
+## Add a tool to the list of tools
 The list of tools is offered in English: [tools](https://www.kielipankki.fi/tools/) and in Finnish: [työkalut](https://www.kielipankki.fi/tyokalut/)
 
 The list of tools is (not yet) implemented in the database, but maintained manually. That means the tables for both languages, English and Finnish, have to be updated separately,
