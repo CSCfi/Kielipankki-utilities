@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- mode: Python; -*-
 
+from collections import OrderedDict
 import html
 from itertools import groupby, chain
 import os, re, sys, traceback
@@ -55,6 +56,12 @@ def parsearguments():
                         leave the standard few as such, replacing the
                         rest with an actual character (or an identifying
                         string when the character is not allowed)''')
+
+    parser.add_argument('--amp-entities',
+                        action = 'store_true',
+                        help = '''repair character entity references
+                        with the initial & encoded as &amp;, such as
+                        "&amp;quot;"; generally use with --entities''')
 
     parser.add_argument('--control',
                         action = 'store_true',
@@ -115,6 +122,21 @@ def parsearguments():
                         with \N{BULLET}
                         ''')
 
+    parser.add_argument('--unsorted',
+                        action = 'store_true',
+                        help = '''retain input attribute order
+                        (default: sort alphabetically)''')
+
+    parser.add_argument('--allow-empty',
+                        action = 'store_true',
+                        help = '''keep empty field values empty
+                        (default: replace with _)''')
+
+    parser.add_argument('--apos',
+                        action = 'store_true',
+                        help = '''encode ' as &apos; in attributes
+                        (default: keep ' literal)''')
+
     args = parser.parse_args()
     args.prog = parser.prog
     return args
@@ -145,8 +167,15 @@ def implement_main(args, ins, ous):
     def issome(line): return not line.isspace()
     def ismeta(line): return line.startswith('<')
 
+    # Is assigned to if args.apos
+    global QUOTES
+
     anames = set(args.attributes)
     fnames = set(args.fields)
+    emptyfield = '' if args.allow_empty else '_'
+    attrsort = (lambda s: s) if args.unsorted else sorted
+    if args.apos:
+        QUOTES = QUOTES_APOS
 
     if not (anames or fnames):
         print('{}: warning: no attributes or fields specified'
@@ -169,7 +198,8 @@ def implement_main(args, ins, ous):
                     continue
 
                 # line is a start tag and may contain attributes
-                print(fixmeta(args, line, anames), end = '', file = ous)
+                print(fixmeta(args, line, anames, attrsort),
+                      end = '', file = ous)
                 continue
 
         # groupisdata aka token lines
@@ -181,21 +211,22 @@ def implement_main(args, ins, ous):
             record = asrecord(line)
 
             for ix in fix:
-                record[ix] = fixdata(args, record[ix])
+                record[ix] = fixdata(args, record[ix]) or emptyfield
 
             print(*record, sep = '\t', file = ous)
 
-def fixmeta(args, start, anames):
+def fixmeta(args, start, anames, attrsort):
     '''Return fixed start-tag line'''
     if not anames: return start
     tag, attrs = parsemeta(start)
     for aname in anames:
         if aname not in attrs: continue
         attrs[aname] = fixattr(args, attrs[aname])
-    return composemeta(tag, attrs, end = '\n')
+    return composemeta(tag, attrs, end = '\n', attrsort = attrsort)
 
 def fixattr(args, value):
     '''Return fixed attribute value'''
+    if args.amp_entities: value = amp_entity.sub(r'&\1', value)
     if args.entities: value = re.sub(entitylike, unbreakity_quote, value)
     if args.identify or args.abuse: value = miscode(args, value)
     if args.control: value = ''.join(fixchar(args, value, catControl))
@@ -208,6 +239,7 @@ def fixattr(args, value):
 
 def fixdata(args, value):
     '''Return fixed positional-field value'''
+    if args.amp_entities: value = amp_entity.sub(r'&\1', value)
     if args.entities: value = re.sub(entitylike, unbreakity, value)
     if args.identify or args.abuse: value = miscode(args, value)
     if args.control: value = ''.join(fixchar(args, value, catControl))
@@ -216,7 +248,7 @@ def fixdata(args, value):
     if args.reservd: value = ''.join(fixchar(args, value, catReservd))
     if args.surrogt: value = ''.join(fixchar(args, value, catSurrogt))
     # return '[{}]'.format(value) # testing
-    return value or '_'
+    return value
 
 def unbreakity(match, quote = False):
     '''Consider any &\w+; an attempted named entity (ASCII only), also
@@ -270,10 +302,24 @@ entitylike = re.compile(R'''
     # eventual semicolon is mandatory on an entity sequence
     # or the entity sequence will not be recognized as such
 
-    (?: & [a-z] +
+    (?: & [a-z] [a-z0-9] *
       | & \# [0-9] +
       | & \# x [0-9a-f] + ) + ;
     | [&<>"']
+
+''', re.ASCII | re.IGNORECASE | re.VERBOSE)
+
+# &amp; followed by something like an entity name (or numeric
+# reference) and ; (grouped for re.sub)
+amp_entity = re.compile(R'''
+
+    &amp;
+    (
+      (?: [a-z] [a-z0-9] *
+        | \# [0-9] +
+        | \# x [0-9a-f] + )
+      ;
+    )
 
 ''', re.ASCII | re.IGNORECASE | re.VERBOSE)
 
@@ -288,11 +334,21 @@ ENTITIES = {
 }
 
 QUOTES = {
-    # Two more characters are entified in meta
+    # One more character is entified in meta; ' need not, but
+    # recognize it to support --apos
     '&quot;' : '&quot;',
-    '&apos;' : '&apos;',
+    '&apos;' : "'",
     '"' : '&quot;',
-    "'" : '&apos;'
+    "'" : "'"
+}
+
+QUOTES_APOS = {
+    # With --apos (previously, always), two more characters are
+    # entified in meta
+    '&quot;' : '&quot;',
+    '&apos;' : "&apos;",
+    '"' : '&quot;',
+    "'" : "&apos;"
 }
 
 TANKEROES = {
@@ -935,9 +991,9 @@ def parsemeta(start):
 
     name = name.group(1)
     rest = re.finditer(R'(\S+?)="([^"]*)"', start)
-    return name, dict(mo.groups() for mo in rest)
+    return name, OrderedDict(mo.groups() for mo in rest)
 
-def composemeta(name, attrs, end = ''):
+def composemeta(name, attrs, end = '', attrsort = sorted):
     '''Given element name and a dictionary of attributes, properly
     entified and all, construct the start tag line, sorted, spaced,
     double-quoted.
@@ -949,7 +1005,7 @@ def composemeta(name, attrs, end = ''):
                                        .format(name = name,
                                                value = value) )
                                      for name, value
-                                     in sorted(attrs.items())),
+                                     in attrsort(attrs.items())),
                      end = end) )
 
 if __name__ == '__main__':

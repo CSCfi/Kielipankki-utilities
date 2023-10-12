@@ -208,6 +208,54 @@ def test_C0_hex_data(tmpdir):
     assert not err
     assert proc.returncode == 0
 
+def test_entity_name_digits(tmpdir):
+    '''Entity name with digits, such as &frac12;.
+
+    '''
+    names = makenameline(b'word'.split())
+    send = b''.join((names,
+                     b'&frac12; kg\n'
+    ))
+    want = b''.join((names,
+                     '½ kg\n'.encode('UTF-8'),
+    ))
+    proc = Popen([ './vrt-fix-characters',
+                   '--field', 'word',
+                   '--entities' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0
+
+def test_amp_entities(tmpdir):
+    '''Decode mis-encoded entity references such as &amp;quot;.
+
+    '''
+    names = makenameline(b'word'.split())
+    send = b''.join(
+        (names,
+         b'<text a="&amp;quot; &amp; lt; &amp;lt; &amp;dollar; &amp;#42;">\n',
+         b'&amp;quot; &amp; lt; &amp;lt; &amp;dollar; &amp;#42;\n'))
+    want = b''.join(
+        (names,
+         b'<text a="&quot; &amp; lt; &lt; $ *">\n',
+         b'" &amp; lt; &lt; $ *\n'))
+    proc = Popen([ './vrt-fix-characters',
+                   '--field', 'word',
+                   '--attr', 'a',
+                   '--entities',
+                   '--amp-entities' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0
+
 def test_eq_end_attr(tmpdir):
     '''Attribute parsing, "=" at end of value: head="VAL=" gen="WEV".
     Nothing to fix, other than normalize the order of attributes, but
@@ -229,4 +277,127 @@ def test_eq_end_attr(tmpdir):
     out, err = proc.communicate(input = send, timeout = 5)
     assert not err
     assert out == want
+    assert proc.returncode == 0
+
+def test_unsorted_attr(tmpdir):
+    '''With --unsorted, output attributes in the order they are in the
+    input.
+
+    '''
+    names = makenameline(b'word'.split())
+    send = b''.join((names,
+                     b'<text head="VAL" gen="WEV">\n'))
+    want = b''.join((names,
+                     b'<text head="VAL" gen="WEV">\n'))
+    proc = Popen([ './vrt-fix-characters',
+                   '--entities',
+                   '--attr', 'head',
+                   '--replace=identify',
+                   '--unsorted' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert not err
+    assert out == want
+    assert proc.returncode == 0
+
+def test_replace_empty_field(tmpdir):
+    '''By default, replace empty field values with an underscore.
+
+    '''
+    # Need more than one attribute as completely empty lines are
+    # skipped
+    names = makenameline(b'word lemma'.split())
+    send = b''.join((names,
+                     b'x\t\n',
+                     b'\ty\n',
+    ))
+    want = b''.join((names,
+                     b'x\t_\n',
+                     b'_\ty\n',
+    ))
+    proc = Popen([ './vrt-fix-characters',
+                   '--field', 'word',
+                   '--field', 'lemma',
+                   '--entities' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0
+
+def test_allow_empty_field(tmpdir):
+    '''With --allow-empty, keep empty field values empty, do not replace
+    with an underscore.
+
+    '''
+    # Need more than one attribute as completely empty lines are
+    # skipped
+    names = makenameline(b'word lemma'.split())
+    send = b''.join((names,
+                     b'x\t\n',
+                     b'\ty\n',
+    ))
+    want = send
+    proc = Popen([ './vrt-fix-characters',
+                   '--field', 'word',
+                   '--field', 'lemma',
+                   '--allow-empty',
+                   '--entities' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0
+
+def test_literal_apostrophe(tmpdir):
+    '''By default, keep ' literal even in attribute values.
+
+    '''
+    names = makenameline(b'word'.split())
+    send = b''.join((names,
+                     b'<text a="\'&dollar;&quot;&apos;">\n',
+                     b'\'&dollar;&quot;&apos;\n'))
+    want = b''.join((names,
+                     b'<text a="\'$&quot;\'">\n',
+                     b'\'$"\'\n'))
+    proc = Popen([ './vrt-fix-characters',
+                   '--field', 'word',
+                   '--attr', 'a',
+                   '--entities' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
+    assert proc.returncode == 0
+
+def test_apos(tmpdir):
+    '''With --apos, encode ' as &apos in attribute values.
+
+    '''
+    names = makenameline(b'word'.split())
+    send = b''.join((names,
+                     b'<text a="\'&dollar;&quot;&apos;">\n',
+                     b'\'&dollar;&quot;&apos;\n'))
+    want = b''.join((names,
+                     b'<text a="&apos;$&quot;&apos;">\n',
+                     b'\'$"\'\n'))
+    proc = Popen([ './vrt-fix-characters',
+                   '--field', 'word',
+                   '--attr', 'a',
+                   '--entities',
+                   '--apos' ],
+                 stdin = PIPE,
+                 stdout = PIPE,
+                 stderr = PIPE)
+    out, err = proc.communicate(input = send, timeout = 5)
+    assert out == want
+    assert not err
     assert proc.returncode == 0
