@@ -35,7 +35,8 @@ def parsestructattrs(option, attrstype=list, valuetype=bytes):
     of structural attribute names separated by any number of commas or
     spaces (or both). A structural attribute can be specified as
     struct_attr or struct:attr. "a:b c d" is interpreted as "a_b a_c
-    a_d", whereas "a:b c:d" is interepreted as "a_b c_d".
+    a_d", whereas "a:b c:d" is interepreted as "a_b c_d" and "a:b c_d"
+    as "a_b a_c_d".
 
     Returns a dict of lists (or sets) of bytes (or str):
     {b'struct1': [b'attr1', b'attr2'], b'struct2': [b'attr3']}.
@@ -76,14 +77,25 @@ def parsestructattrs(option, attrstype=list, valuetype=bytes):
     idx = 0
     while idx < listlen:
         item = structlist[idx]
-        if idx + 1 < listlen and structlist[idx + 1] == b':':
-            # next item is a colon, so this is structure name
+        if idx + 2 < listlen and structlist[idx + 1] == b':':
+            # next item is a colon and it is followed by another item,
+            # so this is structure name
             structprefix = item
             if b'_' in structprefix:
                 raise BadData('structure name may not contain underscore: {}'
                               .format(structprefix.decode('UTF-8')))
             idx += 2
             continue
+        elif item == b':':
+            # colon at the beginning or end or after another colon
+            if idx == 0:
+                msg = 'colon at the beginning'
+            elif idx == listlen - 1:
+                msg = 'colon at the end'
+            else:
+                msg = 'consecutive colons'
+            raise BadData(f'invalid structural attribute list: {msg}: "'
+                          + b' '.join(option).decode('UTF-8') + '"')
         elif structprefix is None:
             # no colon seen, so this item should be struct_attr
             struct, _, attr = item.partition(b'_')
