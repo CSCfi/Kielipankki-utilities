@@ -54,7 +54,7 @@ def parsestructattrs(option, attrstype=list, valuetype=bytes):
 
     valuetype is the type of names: bytes (default) or set.
 
-    An empty list is allowed. The list is not checked for duplicates.
+    An empty list is allowed. Duplicates are not allowed.
 
     '''
     if issubclass(attrstype, list):
@@ -116,6 +116,9 @@ def parsestructattrs(option, attrstype=list, valuetype=bytes):
             attr = item
         struct = decode(struct)
         result.setdefault(struct, attrstype())
+        if attr in result[struct]:
+            raise BadData('duplicate structural attribute: {}_{}'
+                          .format(struct.decode('UTF-8'), attr.decode('UTF-8')))
         additem(result[struct], decode(attr))
         idx += 1
 
