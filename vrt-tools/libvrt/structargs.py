@@ -12,8 +12,16 @@ import re
 
 from libvrt.bad import BadData
 
-def _structattrbagtype(text, seps):
-    if re.fullmatch(f'([a-zA-Z_][a-zA-Z0-9_.]*/?|[{seps}])*', text):
+def _structattrbagtype(text, allowany=False):
+    # struct_attr | struct : attr (, attr)*
+    anyre = '|\\*' if allowany else ''
+    structnamere = f'(?:[a-zA-Z][a-zA-Z0-9]*{anyre})'
+    # attrnamere also covers style "structname_attrname"
+    attrnamere = f'(?:[a-zA-Z_][a-zA-Z0-9_.]*/?{anyre})'
+    namere = rf'(?:{structnamere}\s*:\s*)?{attrnamere}'
+    sepre = '[,\s]+'
+    text = text.strip()
+    if re.fullmatch(fr'{namere}({sepre}{namere})*', text):
         return text.encode('UTF-8')
     raise ArgumentTypeError(
         'not structural attribute names: {}'.format(repr(text)))
@@ -22,12 +30,12 @@ def structattrbagtype(text):
     '''List of structural attributes separated by spaces or commas,
     structure and its attributes separated by a colon.
     '''
-    return _structattrbagtype(text, ', :')
+    return _structattrbagtype(text, False)
 
 def structattranybagtype(text):
     '''As structattrbagtype, but allow * to denote any.
     '''
-    return _structattrbagtype(text, ', :*')
+    return _structattrbagtype(text, True)
 
 def parsestructattrs(option, attrstype=list, valuetype=bytes):
     '''Parse an option value that specifies structural attribute names.
