@@ -1,0 +1,156 @@
+
+# scripttestlib tests for vrt-convert-chars
+
+
+# Default input and output
+
+- defaults:
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+# Test cases
+
+
+# Encode and decode round-trip
+
+
+- name: 'vrt-convert-chars: Encode and decode round-trip, without feature-set attributes'
+  input:
+    cmdline: vrt-convert-chars --encode | vrt-convert-chars --decode
+    shell: true
+    stdin: &input-1 |
+      <!-- #vrt positional-attributes: word x -->
+      <text a="a&lt;&gt; /|" b="|a&lt;|&gt; /|">
+      <sentence a="a&lt;&gt; /|" b="|a&lt;|&gt; /|">
+      a b&lt;&gt;/|c	|a b&lt;&gt;/|c|
+      </sentence>
+      </text>
+  output:
+    stdout: *input-1
+
+
+- name: 'vrt-convert-chars: Encode and decode round-trip, with feature-set attributes'
+  input:
+    cmdline: vrt-convert-chars --encode --feature-set-struct "text:b sentence:b" | vrt-convert-chars --decode
+    shell: true
+    stdin: &input-2 |
+      <!-- #vrt positional-attributes: word x/ -->
+      <text a="a&lt;&gt; /|" b="|a&lt;|&gt; /|">
+      <sentence a="a&lt;&gt; /|" b="|a&lt;|&gt; /|">
+      a b&lt;&gt;/|c	|a b&lt;&gt;/|c|
+      </sentence>
+      </text>
+  output:
+    stdout: *input-2
+
+
+- name: 'vrt-convert-chars: Encode and decode round-trip, with feature-set and non-feature-set attributes interleaved'
+  input:
+    cmdline: vrt-convert-chars --encode --feature-set-struct "text:b,d sentence:b,d" | vrt-convert-chars --decode
+    shell: true
+    stdin: &input-3 |
+      <!-- #vrt positional-attributes: word x/ y z/ zz -->
+      <text a="a&lt;&gt; /|" b="|a&lt;|&gt; /|" c="a&lt;&gt; /|" d="|a&lt;|&gt; /|" e="a&lt;&gt; /|">
+      <sentence a="a&lt;&gt; /|" b="|a&lt;|&gt; /|" c="a&lt;&gt; /|" d="|a&lt;|&gt; /|" e="a&lt;&gt; /|">
+      a b&lt;&gt;/|c	|a b&lt;&gt;/|c|	a b&lt;&gt;/|c	|a b&lt;&gt;/|c|	a b&lt;&gt;/|c
+      </sentence>
+      </text>
+  output:
+    stdout: *input-3
+
+- name: 'vrt-convert-chars: Encode and decode round-trip, with feature-set and non-feature-set attributes interleaved, different offset'
+  input:
+    cmdline: vrt-convert-chars --encode --feature-set-struct "text:b,d sentence:b,d" --offset 0x84 | vrt-convert-chars --decode --offset 0x84
+    shell: true
+    stdin: *input-3
+  output:
+    stdout: *input-3
+
+
+# Encode
+
+
+- name: 'vrt-convert-chars: Encode, without feature-set attributes'
+  input:
+    cmdline: vrt-convert-chars --encode
+    stdin: *input-1
+  output:
+    stdout: &output-1 "<!-- #vrt positional-attributes: word x -->\n<text a=\"a\x81\x82\x7f\x80\x83\" b=\"\x83a\x81\x83\x82\x7f\x80\x83\">\n<sentence a=\"a\x81\x82\x7f\x80\x83\" b=\"\x83a\x81\x83\x82\x7f\x80\x83\">\na\x7fb\x81\x82\x80\x83c\t\x83a\x7fb\x81\x82\x80\x83c\x83\n</sentence>\n</text>\n"
+
+
+- name: 'vrt-convert-chars: Encode, with feature-set attributes as elem:attr'
+  input:
+    cmdline: vrt-convert-chars --encode --feature-set-struct "text:b sentence:b/"
+    stdin: *input-2
+  output:
+    stdout: &output-2 "<!-- #vrt positional-attributes: word x/ -->\n<text a=\"a\x81\x82\x7f\x80\x83\" b=\"|a\x81|\x82\x7f\x80|\">\n<sentence a=\"a\x81\x82\x7f\x80\x83\" b=\"|a\x81|\x82\x7f\x80|\">\na\x7fb\x81\x82\x80\x83c\t|a\x7fb\x81\x82\x80|c|\n</sentence>\n</text>\n"
+
+
+- name: 'vrt-convert-chars: Encode, with feature-set struct attributes as elem_attr'
+  input:
+    cmdline: vrt-convert-chars --encode --feature-set-struct "text_b sentence_b"
+    stdin: *input-2
+  output:
+    stdout: *output-2
+
+
+- name: 'vrt-convert-chars: Encode, with feature-set struct attributes as elem:n+attr/'
+  input:
+    cmdline: vrt-convert-chars --encode --feature-set-struct "text:0+a+b/ sentence:0+a+b/"
+    stdin: *input-2
+  output:
+    stdout: *output-2
+
+
+- name: 'vrt-convert-chars: Encode, with multiple feature-set struct attributes options'
+  input:
+    cmdline: vrt-convert-chars --encode --feature-set-struct "text:0+a+b/" --feature-set-struct "sentence_b"
+    stdin: *input-2
+  output:
+    stdout: *output-2
+
+
+- name: 'vrt-convert-chars: Encode, with feature-set and non-feature-set attributes interleaved'
+  input:
+    cmdline: vrt-convert-chars --encode --feature-set-struct "text:b,d sentence:b,d"
+    stdin: *input-3
+  output:
+    stdout: &output-3 "<!-- #vrt positional-attributes: word x/ y z/ zz -->\n<text a=\"a\x81\x82\x7f\x80\x83\" b=\"|a\x81|\x82\x7f\x80|\" c=\"a\x81\x82\x7f\x80\x83\" d=\"|a\x81|\x82\x7f\x80|\" e=\"a\x81\x82\x7f\x80\x83\">\n<sentence a=\"a\x81\x82\x7f\x80\x83\" b=\"|a\x81|\x82\x7f\x80|\" c=\"a\x81\x82\x7f\x80\x83\" d=\"|a\x81|\x82\x7f\x80|\" e=\"a\x81\x82\x7f\x80\x83\">\na\x7fb\x81\x82\x80\x83c\t|a\x7fb\x81\x82\x80|c|\ta\x7fb\x81\x82\x80\x83c\t|a\x7fb\x81\x82\x80|c|\ta\x7fb\x81\x82\x80\x83c\n</sentence>\n</text>\n"
+
+
+- name: 'vrt-convert-chars: Encode, with feature-set and non-feature-set attributes interleaved, different offset'
+  input:
+    cmdline: vrt-convert-chars --encode --feature-set-struct "text:b,d sentence:b,d" --offset 0x84
+    stdin: *input-3
+  output:
+    stdout: &output-3b "<!-- #vrt positional-attributes: word x/ y z/ zz -->\n<text a=\"a\x86\x87\x84\x85\x88\" b=\"|a\x86|\x87\x84\x85|\" c=\"a\x86\x87\x84\x85\x88\" d=\"|a\x86|\x87\x84\x85|\" e=\"a\x86\x87\x84\x85\x88\">\n<sentence a=\"a\x86\x87\x84\x85\x88\" b=\"|a\x86|\x87\x84\x85|\" c=\"a\x86\x87\x84\x85\x88\" d=\"|a\x86|\x87\x84\x85|\" e=\"a\x86\x87\x84\x85\x88\">\na\x84b\x86\x87\x85\x88c\t|a\x84b\x86\x87\x85|c|\ta\x84b\x86\x87\x85\x88c\t|a\x84b\x86\x87\x85|c|\ta\x84b\x86\x87\x85\x88c\n</sentence>\n</text>\n"
+
+
+# Decode
+
+
+- name: 'vrt-convert-chars: Decode, without feature-set attributes'
+  input:
+    cmdline: vrt-convert-chars --decode
+    stdin: *output-1
+  output:
+    stdout: *input-1
+
+
+- name: 'vrt-convert-chars: Decode, with feature-set attributes'
+  input:
+    cmdline: vrt-convert-chars --decode
+    stdin: *output-3
+  output:
+    stdout: *input-3
+
+
+- name: 'vrt-convert-chars: Decode, with feature-set attributes, different offset'
+  input:
+    cmdline: vrt-convert-chars --decode --offset 0x84
+    stdin: *output-3b
+  output:
+    stdout: *input-3
