@@ -393,7 +393,7 @@ vrt_add_lemma_nobound=$vrttoolsdir/vrt-add-lemma-nobound
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
 vrt_sort=$vrttoolsdir/vrt-sort
 vrt_add_struct_ids=$progdir/vrt-add-struct-ids.sh
-vrt_convert_chars=$progdir/vrt-convert-chars.py
+vrt_convert_chars=$vrttoolsdir/vrt-convert-chars
 vrt_extract_timespans=$progdir/vrt-extract-timespans.py
 vrt_list_struct_attrs=$progdir/vrt-list-struct-attrs.py
 korp_convert_timedata=$progdir/korp-convert-timedata.sh
@@ -1270,19 +1270,8 @@ add_attrs_to_registry () {
 }
 
 cwb_encode () {
-    local featset_attrnums convert_chars_opts structnames reg_opt
+    local structnames reg_opt
     echo cwb_encode: "$input_attrs"
-    featset_attrnums=$(
-	printf ${input_attrs// /\\n} |
-	grep -n '/$' |
-	cut -d: -f1 |
-	tr '\n' ',' |
-	sed -e 's/,$//'
-    )
-    convert_chars_opts=
-    if [ "x$featset_attrnums" != "x" ]; then
-	convert_chars_opts="--feature-set-attrs $featset_attrnums"
-    fi
     echo_verb "  Inferring structural attributes from the VRT file"
     structnames=$(grep '^<' $vrt_file | run_cmd $vrt_list_struct_attrs)
     mkdir_perms $datadir
@@ -1293,8 +1282,8 @@ cwb_encode () {
     fi
     # $input_attrs contains "word" (unless --no-word-attribute), so
     # use "cwb-encode -p -" to avoid adding "word" twice
-    run_cmd $vrt_convert_chars $convert_chars_opts \
-	--feature-set-struct-attributes "$structnames" < $vrt_file |
+    run_cmd $vrt_convert_chars \
+	--encode --feature-set-struct-attributes "$structnames" < $vrt_file |
     tee $tmp_prefix.tee |
     run_cmd $cwb_encode -d $datadir $reg_opt -p - \
 	-xsB -c utf8 $(add_prefix "-P " $input_attrs) \
