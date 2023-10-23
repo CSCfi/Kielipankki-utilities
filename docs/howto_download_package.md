@@ -87,7 +87,7 @@ Check if:
 - the subdirectory contains the uncompressed README.txt and sometimes separate LICENSE.txt
 - for restricted corpora a license and acceptance page opens, that needs to be approved before download
 
-Move the resource from the list of upcoming resources to the list of published resources. See instructions under [docs: how to maintain resources lists](howto_maintain_resources_lists_database.md)
+Move the resource from the list of upcoming resources to the list of published resources. See instructions under [docs: how to maintain resources lists](howto_maintain_resource_lists_database.md)
 
 Update the META-SHARE record and add the location PID.
 
