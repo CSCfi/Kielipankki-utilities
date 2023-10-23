@@ -75,7 +75,7 @@ Remember to copy the re-packed data back from local scratch to either your work 
 ## Publishing the resource
 Have the package on `/scratch/clarin/download_preview/'CORPUS'/` on Puhti tested by someone else of the team.
 
-Ask someone from CSC to upload the package to the download service.
+Ask someone with the needed access rights to upload the package to the download service.
 For a RES corpus, ask also to create an LBR record.
 
 Check the uploaded resource, or better, have it checked by someone else of the team.
@@ -87,7 +87,7 @@ Check if:
 - the subdirectory contains the uncompressed README.txt and sometimes separate LICENSE.txt
 - for restricted corpora a license and acceptance page opens, that needs to be approved before download
 
-Move the resource from the list of upcoming resources to the list of published resources. See instructions under [docs: how to maintain resources lists](howto_maintain_resources_lists.md)
+Move the resource from the list of upcoming resources to the list of published resources. See instructions under [docs: how to maintain resources lists](howto_maintain_resources_lists_database.md)
 
 Update the META-SHARE record and add the location PID.
 
