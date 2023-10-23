@@ -121,6 +121,57 @@
     stdout: &output-3 "<!-- #vrt positional-attributes: word x/ y z/ zz -->\n<text a=\"a\x81\x82\x7f\x80\x83\" b=\"|a\x81|\x82\x7f\x80|\" c=\"a\x81\x82\x7f\x80\x83\" d=\"|a\x81|\x82\x7f\x80|\" e=\"a\x81\x82\x7f\x80\x83\">\n<sentence a=\"a\x81\x82\x7f\x80\x83\" b=\"|a\x81|\x82\x7f\x80|\" c=\"a\x81\x82\x7f\x80\x83\" d=\"|a\x81|\x82\x7f\x80|\" e=\"a\x81\x82\x7f\x80\x83\">\na\x7fb\x81\x82\x80\x83c\t|a\x7fb\x81\x82\x80|c|\ta\x7fb\x81\x82\x80\x83c\t|a\x7fb\x81\x82\x80|c|\ta\x7fb\x81\x82\x80\x83c\n</sentence>\n</text>\n"
 
 
+- name: 'vrt-convert-chars: Encode, with feature-set and non-feature-set attributes interleaved, --positional-attributes'
+  input:
+    cmdline: vrt-convert-chars --encode --feature-set-struct "text:b,d sentence:b,d" --positional-attributes "word x/ y z/ zz"
+    stdin:
+      value: *input-3
+      transform: &rm-posattrs-comment
+        filter-out: "^<!-- #vrt positional-attributes.*\n"
+  output:
+    stdout:
+      value: *output-3
+      transform-expected: *rm-posattrs-comment
+
+
+- name: 'vrt-convert-chars: Encode, with feature-set and non-feature-set attributes interleaved, --positional-attributes separated by commas'
+  input:
+    cmdline: vrt-convert-chars --encode --feature-set-struct "text:b,d sentence:b,d" --positional-attributes "word,x/,y,z/,zz"
+    stdin:
+      value: *input-3
+      transform: *rm-posattrs-comment
+  output:
+    stdout:
+      value: *output-3
+      transform-expected: *rm-posattrs-comment
+
+
+- name: 'vrt-convert-chars: Encode, with feature-set and non-feature-set attributes interleaved, --positional-attributes overriding positional-attributes comment'
+  input:
+    cmdline: vrt-convert-chars --encode --feature-set-struct "text:b,d sentence:b,d" --positional-attributes "word x/ y z/ zz"
+    stdin:
+      value: *input-3
+      transform: &change-posattrs-comment
+        shell: "awk '/^<!-- #vrt positional-attributes/ { gsub(\"/\", \"\") } { print }'"
+  output:
+    stdout:
+      value: *output-3
+      transform-expected: *change-posattrs-comment
+
+
+- name: 'vrt-convert-chars: Encode, with feature-set and non-feature-set attributes interleaved, no --positional-attributes, feature-set attributes not marked in positional-attributes comment'
+  input:
+    cmdline: vrt-convert-chars --encode --feature-set-struct "text:b,d sentence:b,d"
+    stdin:
+      value: *input-3
+      transform: *change-posattrs-comment
+  output:
+    stdout:
+      value: *output-3
+      transform-expected: *change-posattrs-comment
+      test: "!="
+
+
 - name: 'vrt-convert-chars: Encode, with feature-set and non-feature-set attributes interleaved, different offset'
   input:
     cmdline: vrt-convert-chars --encode --feature-set-struct "text:b,d sentence:b,d" --offset 0x84

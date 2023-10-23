@@ -83,7 +83,15 @@ class CharConverter(InputProcessor):
             elem_attr2", "elem:attr1,attr2" and
             "elem:0+attr0+attr1/+attr2/" are equivalent. This option
             can be repeated. (default: none)''',
-         dict(action='append', default=[]))
+         dict(action='append', default=[])),
+        ('--positional-attributes = attrlist',
+         '''Specify the positional attributes in the input in
+            ATTRLIST, instead of taking them from the
+            positional-attributes comment in the input, overriding the
+            latter if it exists. ATTRLIST is a list of attribute
+            names, separated by spaces or commas. The list of names is
+            only used with --encode to mark feature-set-valued
+            attributes, whose names have a trailing slash.'''),
     ]
 
     class OPTIONS(InputProcessor.OPTIONS):
@@ -146,8 +154,12 @@ class CharConverter(InputProcessor):
         self._transcode = {'encode': self._encode,
                            'decode': self._decode}[args.mode]
         # This is modified in _get_feat_set_pos_attrs after seeing a
-        # positional-attributes comment with feature-set attributes
+        # positional-attributes comment (or args.positional_attributes)
+        # with feature-set attributes
         self._convert_chars_in_pos_attrs = self._transcode
+        if args.positional_attributes:
+            self._get_feat_set_pos_attrs(
+                re.split(r'[,\s]+', args.positional_attributes))
         # Support only encoding < and >, not &, ", '
         # TODO: An error if trying to encode &, " or '
         self._encode_xml = '<' in args.chars or '>' in args.chars
@@ -202,7 +214,8 @@ class CharConverter(InputProcessor):
                 for c1, c2 in self._convert_map]
 
     def main(self, args, inf, ouf):
-        check_pos_attrs_comment = (args.mode == 'encode')
+        check_pos_attrs_comment = (
+            args.mode == 'encode' and not args.positional_attributes)
         for line in inf:
             if line[0] == '<':
                 # Note: This does not skip multi-line XML comments, as
@@ -210,14 +223,13 @@ class CharConverter(InputProcessor):
                 if line[1] not in '!?/':
                     line = self._convert_chars_in_struct_attrs(line)
                 elif check_pos_attrs_comment and isnames(line):
-                    self._get_feat_set_pos_attrs(line)
+                    self._get_feat_set_pos_attrs(namelist(line))
                     check_pos_attrs_comment = False
             else:
                 line = self._convert_chars_in_pos_attrs(line)
             ouf.write(line)
 
-    def _get_feat_set_pos_attrs(self, line):
-        attrnames = namelist(line)
+    def _get_feat_set_pos_attrs(self, attrnames):
         attrseqs = []
         start = 0
         convert_chars_in_featsets = (
