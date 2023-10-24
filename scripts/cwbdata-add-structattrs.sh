@@ -6,6 +6,8 @@
 # - Ensure that field headings work
 # - Fix fieldspec mappings to work
 # - Ordered input by default
+# - Convert to use vrt-convert-chars instead of vrt-convert-chars.py
+#   (not quite straightforward)
 
 
 progname=`basename $0`
