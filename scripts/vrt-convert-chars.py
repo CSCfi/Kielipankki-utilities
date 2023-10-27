@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 
+# NOTE: This script is OBSOLETE; use ../vrt-tools/vrt-convert-chars
+# instead.
+
+
 # This script has been converted from Python 2 to Python 3.
 
 
@@ -191,6 +195,8 @@ class CharConverter:
 
 def getopts():
     usage = """%prog [options] input.vrt ... > output.vrt
+
+This script is OBSOLETE; please use ../vrt-tools/vrt-convert-chars instead.
 
 Encode or decode in VRT files special characters that are problematic in CWB."""
     optparser = OptionParser(usage=usage)

@@ -1,0 +1,315 @@
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+
+"""
+vrt-convert-chars
+
+Encode or decode in VRT files special characters that are problematic
+in CWB output for Korp, as they are used as delimiters.
+
+This script supersedes the old ../scripts/vrt-convert-chars.py.
+
+This might be made unnecessary if Korp made use of some options added
+to CWB changing the delimiters.
+"""
+
+
+# TODO:
+# - Add an option not to decode encoded vertical bars in feature set
+#   attributes to allow correct round-trip conversion.
+
+
+import sys
+import re
+import errno
+
+from itertools import groupby
+
+from vrtargsoolib import InputProcessor
+
+from vrtnamelib import isnames, namelist
+
+
+def replace_substrings(s, mapping):
+    """Replace substrings in s according to mapping (a sequence of
+    pairs (string, replacement): replace each string with the
+    corresponding replacement.
+    """
+    for (s1, repl) in mapping:
+        s = s.replace(s1, repl)
+    return s
+
+
+class CharConverter(InputProcessor):
+
+    DESCRIPTION = """
+    Encode or decode in VRT files special characters that are
+    problematic in CWB for Korp.
+    """
+    ARGSPECS = [
+        ('#EXCLUSIVE #REQUIRED', [
+            ('--encode',
+             'encode special characters',
+             dict(action='store_const', dest='mode', const='encode')),
+            ('--decode',
+             'decode encoded special characters',
+             dict(action='store_const', dest='mode', const='decode')),
+        ]),
+        ('--chars = chars',
+         'the characters to be converted in their unencoded form',
+         dict(default=" /<>|")),
+        ('--offset = offset "0x7F"',
+         '''the code point offset for the encoded characters: the first
+            character in CHARS is encoded as OFFSET, the second as
+            OFFSET+1 and so on'''),
+        ('--feature-set-struct-attributes|set-struct-attrs = attrspec',
+         '''Treat the structural attributes specified in the attribute
+            specification ATTRSPEC as feature-set attributes and do
+            not convert the vertical bar characters in them. ATTRSPEC
+            is a space-separated list of element definitions, of the
+            form ELEMNAME_ATTRNAME, ELEMNAME:ATTRNAMELIST or
+            ELEMNAME:N+ATTRNAMELIST, where ELEMNAME is the name of the
+            XML element, ATTRNAME is a single attribute name and
+            ATTRNAMELIST is a list of attribute names separated by
+            commas or pluses. The third form corresponds to a
+            structural attribute specification for cwb-encode where N
+            is a non-negative integer (ignored), and the feature-set
+            attribute names in ATTRNAMELIST must be suffixed by a
+            slash; others are ignored. In contrast, in the second
+            form, all the attributes listed in ATTRLIST are considered
+            feature-set attributes regardless of whether they end in a
+            slash or not. For example, the values "elem_attr1
+            elem_attr2", "elem:attr1,attr2" and
+            "elem:0+attr0+attr1/+attr2/" are equivalent. This option
+            can be repeated. (default: none)''',
+         dict(action='append', default=[])),
+        ('--positional-attributes = attrlist',
+         '''Specify the positional attributes in the input in
+            ATTRLIST, instead of taking them from the
+            positional-attributes comment in the input, overriding the
+            latter if it exists. ATTRLIST is a list of attribute
+            names, separated by spaces or commas. The list of names is
+            only used with --encode to mark feature-set-valued
+            attributes, whose names have a trailing slash.'''),
+    ]
+
+    class OPTIONS(InputProcessor.OPTIONS):
+        in_as_text = True
+        out_as_text = True
+
+    _xml_char_entities = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '\'': '&apos;',
+        '"': '&quot;'
+    }
+
+    def __init__(self):
+        super().__init__()
+        # Initialized in check_args
+        self._convert_map = None
+        self._convert_map_featset = None
+        self._feat_set_attrs = set()
+        self._feat_set_struct_attrs = None
+        self._convert_chars_in_pos_attrs = None
+        self._convert_chars_in_struct_attrs = None
+        self._encode_xml = False
+        self._encode_lt = '&lt;'
+        self._encode_gt = '&gt;'
+        # Sequences of positional attributes of the same type (either
+        # normal or feature-set)
+        self._pos_attr_seqs = []
+
+    def check_args(self, args):
+
+        def maketrans(convert_map):
+            return str.maketrans(dict((k, v) for k, v in convert_map
+                                      if len(k) == 1))
+
+        args.offset = int(args.offset, base=0)
+        self._convert_map = [(c, chr(i + args.offset))
+                             for (i, c) in enumerate(args.chars)]
+        self._add_xml_char_refs_to_convert_map(args.mode)
+        self._feat_set_struct_attrs = self._make_feat_set_struct_attrs(
+            args.feature_set_struct_attributes)
+        # print repr(self._feat_set_struct_attrs)
+        if args.mode == 'decode':
+            self._convert_map = [(enc, dec) for dec, enc in self._convert_map]
+        if args.mode == 'encode' and self._feat_set_struct_attrs:
+            self._convert_chars_in_struct_attrs = (
+                self._convert_chars_in_struct_attrs_featsets)
+        else:
+            self._convert_chars_in_struct_attrs = (
+                self._convert_chars_in_struct_attrs_simple)
+        self._convert_map_featset = [
+            (dec, enc) for dec, enc in self._convert_map if dec != '|']
+        # str.translate can translate characters to strings (decode
+        # encoded XML character entities) but not strings to
+        # characters, so XML character entities need to be encoded
+        # separately
+        self._trans_table = maketrans(self._convert_map)
+        self._trans_table_featset = maketrans(self._convert_map_featset)
+        self._transcode = {'encode': self._encode,
+                           'decode': self._decode}[args.mode]
+        # This is modified in _get_feat_set_pos_attrs after seeing a
+        # positional-attributes comment (or args.positional_attributes)
+        # with feature-set attributes
+        self._convert_chars_in_pos_attrs = self._transcode
+        if args.positional_attributes:
+            self._get_feat_set_pos_attrs(
+                re.split(r'[,\s]+', args.positional_attributes))
+        # Support only encoding < and >, not &, ", '
+        # TODO: An error if trying to encode &, " or '
+        self._encode_xml = '<' in args.chars or '>' in args.chars
+        if '<' in args.chars:
+            self._encode_lt = chr(args.chars.index('<') + args.offset)
+        if '>' in args.chars:
+            self._encode_gt = chr(args.chars.index('>') + args.offset)
+
+    def _make_feat_set_struct_attrs(self, feat_set_struct_attrs):
+        set_struct_attrs = {}
+        for attr_spec_list in (feat_set_struct_attrs or []):
+            for attr_spec in attr_spec_list.split():
+                if ':' in attr_spec:
+                    elemname, attrnames_str = attr_spec.split(':', 1)
+                    attrnames = re.split(r'[,+]', attrnames_str)
+                    # A structural attribute specification for
+                    # cwb-encode, recognized from the first element
+                    # being numeric: only take the attribute names
+                    # ending in a slash
+                    if attrnames[0].isdigit():
+                        attrnames = [attrname[:-1] for attrname in attrnames[1:]
+                                     if attrname[-1] == '/']
+                    else:
+                        # Otherwise, allow but do not require a
+                        # trailing slash
+                        attrnames = [
+                            attrname.strip('/') for attrname in attrnames]
+                elif '_' in attr_spec:
+                    elemname, attrname = attr_spec.split('_', 1)
+                    attrnames = [attrname]
+                if attrnames:
+                    elem_attrs = set_struct_attrs.setdefault(elemname, set())
+                    elem_attrs |= set(attrnames)
+        return set_struct_attrs
+
+    def _add_xml_char_refs_to_convert_map(self, mode):
+        if mode == 'encode':
+            # When encoding, replace both literal characters and
+            # XML character entity references with the encoded
+            # characters.
+            self._convert_map.extend(
+                (self._xml_char_entities[c1], c2)
+                for c1, c2 in self._convert_map
+                if c1 in self._xml_char_entities)
+        else:
+            # When decoding, replace the appropriate converted
+            # characters with XML character entity references and
+            # not the literal characters. The conversion map will
+            # be inverted only after this.
+            self._convert_map = [
+                (self._xml_char_entities.get(c1, c1), c2)
+                for c1, c2 in self._convert_map]
+
+    def main(self, args, inf, ouf):
+        check_pos_attrs_comment = (
+            args.mode == 'encode' and not args.positional_attributes)
+        for line in inf:
+            if line[0] == '<':
+                # Note: This does not skip multi-line XML comments, as
+                # cwb-encode does not recognize them
+                if line[1] not in '!?/':
+                    line = self._convert_chars_in_struct_attrs(line)
+                elif check_pos_attrs_comment and isnames(line):
+                    self._get_feat_set_pos_attrs(namelist(line))
+                    check_pos_attrs_comment = False
+            else:
+                line = self._convert_chars_in_pos_attrs(line)
+            ouf.write(line)
+
+    def _get_feat_set_pos_attrs(self, attrnames):
+        attrseqs = []
+        start = 0
+        convert_chars_in_featsets = (
+            lambda s: self._transcode(s, self._trans_table_featset))
+        for is_featset, attrs in groupby(attrnames, lambda a: a[-1] == '/'):
+            seqlen = len(list(attrs))
+            attrseqs.append(
+                (start, start + seqlen,
+                 (convert_chars_in_featsets
+                  if is_featset
+                  else self._transcode)))
+            start += seqlen
+        if len(attrseqs) > 1:
+            self._convert_chars_in_pos_attrs = (
+                self._convert_chars_in_pos_attrs_featsets)
+            # self._pos_attr_seqs is a list of triples (start, end,
+            # convert_func) with convert_func to be used to attributes
+            # [start:end]
+            self._pos_attr_seqs = attrseqs
+        elif attrnames[0][-1] == '/':
+            self._convert_chars_in_pos_attrs = convert_chars_in_featsets
+
+    def _convert_chars_in_pos_attrs_featsets(self, s):
+        attrs = s.split('\t')
+        result = []
+        # This is faster than converting each attribute value
+        # separately, in particular with only a single feature-set
+        # attribute as the last attribute
+        for start, end, convert_func in self._pos_attr_seqs:
+            result.append(convert_func('\t'.join(attrs[start:end])))
+        return '\t'.join(result)
+
+    def _convert_chars_in_struct_attrs_simple(self, s):
+        """Encode the special characters in the double-quoted
+        substrings of s.
+        """
+        return re.sub(r'(".*?")',
+                      lambda mo: self._transcode(mo.group(0)), s)
+
+    def _convert_chars_in_struct_attrs_featsets(self, s):
+        ATTRSEP = '\x01'
+        elemname = re.search(r'(\w+)', s).group(1)
+        if elemname not in self._feat_set_struct_attrs:
+            attrs = re.findall(r'(\w+=".*?")', s)
+            result = self._transcode(ATTRSEP.join(attrs), self._trans_table)
+        else:
+            # Another option, used previously, would be to use re.sub
+            # with a substitution function that chooses between the
+            # feature-set and normal translation table for transcoding
+            # depending on the attribute name. The speed difference is
+            # negligible and neither is significantly simpler than the
+            # other.
+            result_list = []
+            start = 0
+            attrs = re.findall(r'(\w+)=(".*?")', s)
+            for is_featset, attrgroup in groupby(
+                    attrs,
+                    lambda a: a[0] in self._feat_set_struct_attrs[elemname]):
+                attrcount = len(list(attrgroup))
+                attrvals = (
+                    ATTRSEP.join(attr[0] + '=' + attr[1]
+                                 for attr in attrs[start:start + attrcount]))
+                result_list.append(
+                    self._transcode(attrvals,
+                                    self._trans_table_featset if is_featset
+                                    else self._trans_table))
+                start += attrcount
+            result = ' '.join(result_list)
+        return '<' + elemname + ' ' + result.replace(ATTRSEP, ' ') + '>\n'
+
+    def _encode(self, s, trans_table=None):
+        s = s.translate(trans_table or self._trans_table)
+        if '&' in s:
+            s = (s.replace('&lt;', self._encode_lt)
+                 .replace('&gt;', self._encode_gt))
+        return s
+
+    def _decode(self, s, trans_table=None):
+        return s.translate(trans_table or self._trans_table)
+
+
+if __name__ == "__main__":
+    CharConverter().run()
