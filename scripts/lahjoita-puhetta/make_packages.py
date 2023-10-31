@@ -276,12 +276,12 @@ if __name__ == "__main__":
             )
             continue
         tally += recording["duration"]
-        recordings_added.append((recording["recordingId"], str(next_file_number)))
-        new_filepath = filepath.with_stem(str(next_file_number))
+        new_stem = str(next_file_number).zfill(5)
+        recordings_added.append((recording["recordingId"], new_stem))
+        new_filepath = filepath.with_stem(new_stem)
         filepath.rename(new_filepath)
         print(f'ADDED {recording["recordingId"]} as {new_filepath}', file=sys.stderr)
         next_file_number += 1
-        # print(make_aws_command(recording["path"], args))
     print(
         f"Saved {next_file_number - orig_next_file_number} files with a total duration of {time_format(tally)}",
         file=sys.stderr,
