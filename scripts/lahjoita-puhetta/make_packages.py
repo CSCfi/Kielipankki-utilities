@@ -7,6 +7,7 @@ import pathlib
 import json
 import random
 import re
+import subprocess
 
 from parse_lp_config import *
 
@@ -71,13 +72,33 @@ def looks_like_uuid(s):
     )
 
 
-def make_aws_command(path, args):
+def download_audio(path, args):
     parts = path.parts
-    name = path.stem
     while not looks_like_uuid(parts[0]):
         parts = parts[1:]
     target_path = "/".join(parts[:-1])  # just the directory
-    return f'aws s3 sync --exclude "*" --include "{name}*" --exclude "*.json" s3://vake-puhe-content-prod/uploads/audio_and_metadata/{target_path} {args.download_dir}'
+    result = subprocess.run(
+        [
+            "aws",
+            "s3",
+            "sync",
+            "--exclude",
+            "*",
+            "--include",
+            f"{path.stem}.*",
+            "--exclude",
+            "*.json",
+            f"s3://vake-puhe-content-prod/uploads/audio_and_metadata/{target_path}",
+            f"{args.download_dir}",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    downloaded_files = re.findall(
+        rf"download: .+({args.download_dir}[^\n]+)\n", result.stdout.decode()
+    )
+    assert len(downloaded_files) == 1
+    return pathlib.Path(downloaded_files[0])
 
 
 def info(wanted_itemIds, args):
@@ -122,14 +143,40 @@ def round_robin_selection(upto_10_sec, upto_30_sec, upto_60_sec, upto_3_min, arg
         i += 1
 
 
+def is_silent(path, duration):
+    result = subprocess.run(
+        [
+            "ffmpeg",
+            "-i",
+            path,
+            "-af",
+            "silencedetect=noise=-50dB:d=1",  # detect silences below -50dB of over 1 sec duration
+            "-f",
+            "null",
+            "-",  # don't write an output file
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    total_silence = sum(
+        [
+            float(duration)
+            for duration in re.findall(
+                r"silence_duration: (.+)\n", result.stderr.decode()
+            )
+        ]
+    )
+    return total_silence / duration > 0.9
+
+
 if __name__ == "__main__":
     argparser = get_base_argparser()
     argparser.formatter_class = argparse.ArgumentDefaultsHelpFormatter
     argparser.description = """Make packages of Lahjoita Puhetta audio files for sending to transcription services.
 
-    This program assumes the presence of metadata describing the service ("theme" and "schedule"), and of course the metadata of the recordings themselves ("metadata"). It will output a series of aws commands, which you are then supposed to run as shell commands. You need to set up aws yourself.
+    This program assumes the presence of metadata describing the service ("theme" and "schedule"), and of course the metadata of the recordings themselves ("metadata"). It also assumes an aws client configured for s3 access to the Lahjoita Puhetta production site (read-only access is enough), and ffmpeg for ignoring silent files.
 
-    If you make more than one package, you'll want to avoid repeating the same files. To do this, figure out the UUIDs of the files you've already gotten and give a list of them to this program to ignore in the selection process.
+    The program also writes a log of correspondences between UUIDs and file numbers. Keep this file around, it is your record of what is what. It is also used (by appending to if it already exists) to avoid repeating the same files if you are making multiple packages. The file can be controlled with command line options.
 
     If you want to make a 60 minute package of Swedish audio files, ignoring files under 5 seconds, and you have the directories configuration/, theme/ and metadata/ present in the working directory, do:
 
@@ -161,16 +208,17 @@ if __name__ == "__main__":
         help="In minutes",
     )
     argparser.add_argument(
-        "--ignore-ids-file",
+        "--package_log_file",
         type=pathlib.Path,
-        help="Path of file with list of recodingIds to ignore",
+        help="Path to write or append a log of UUID-file number correspondences",
+        default=pathlib.Path("./uuid-files.log"),
     )
     argparser.add_argument("--info", action="store_true", help="Print information only")
     argparser.add_argument(
         "--download-dir",
         type=pathlib.Path,
-        default="./audio",
-        help="Path where aws will be told to download files. If there are multiple packages being made, multiple directories will be created there.",
+        default=pathlib.Path("./audio"),
+        help="Path where aws will be told to download files.",
     )
     args = argparser.parse_args()
 
@@ -185,9 +233,21 @@ if __name__ == "__main__":
         info(wanted_itemIds, args)
         exit(0)
 
-    ignore_set = set()
-    if args.ignore_ids_file:
-        ignore_set.update([line.strip() for line in open(args.ignore_ids_file)])
+    ignore_list = []
+    next_file_number = 1
+    if (
+        args.package_log_file != argparser.get_default("package_log_file")
+        or args.package_log_file.exists()
+    ):
+        # try to read the log if the user set one or if the default one exists
+        for line in open(args.package_log_file):
+            parts = line.strip().split()
+            ignore_list.append(parts[0])
+            try:
+                next_file_number = max(next_file_number, int(parts[1]))
+            except ValueError:
+                continue  # this was a rejected file we want to ignore
+    ignore_set = set(ignore_list)
 
     def recording_selection_filter(r):
         return (
@@ -200,9 +260,34 @@ if __name__ == "__main__":
     random.seed(args.random_seed)
     random.shuffle(recordings)
 
+    print("\nDownloading audio...", file=sys.stderr)
+    recordings_added = []
     tally = 0
+    orig_next_file_number = next_file_number
     for recording in recordings:
         if tally + recording["duration"] > args.package_size:
             break
+        filepath = download_audio(recording["path"], args)
+        if is_silent(filepath, recording["duration"]):
+            filepath.unlink()
+            recordings_added.append((recording["recordingId"], "SKIPPED_SILENCE"))
+            print(
+                f'REJECTED {recording["recordingId"]} due to silence', file=sys.stderr
+            )
+            continue
         tally += recording["duration"]
-        print(make_aws_command(recording["path"], args))
+        recordings_added.append((recording["recordingId"], str(next_file_number)))
+        new_filepath = filepath.with_stem(str(next_file_number))
+        filepath.rename(new_filepath)
+        print(f'ADDED {recording["recordingId"]} as {new_filepath}', file=sys.stderr)
+        next_file_number += 1
+        # print(make_aws_command(recording["path"], args))
+    print(
+        f"Saved {next_file_number - orig_next_file_number} files with a total duration of {time_format(tally)}",
+        file=sys.stderr,
+    )
+
+    with open(args.package_log_file, mode="a", encoding="utf-8") as fobj:
+        for uuid, target in recordings_added:
+            print(uuid, target, file=fobj)
+    print(f"\nWrote logs to {args.package_log_file}", file=sys.stderr)
