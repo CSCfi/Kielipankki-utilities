@@ -1,11 +1,11 @@
 # Creating a license page in the portal
-A resource with restricted access rights (ACA or RES) needs to have a separate license page in the portal. This page always has to be created in two language variants; in English and in Finnish.
+If adding a new version of an existing resource group, check if the previously existing license page (or one of them) covers the new resource version. If so, you can just insert the details of the new resource to the license page. Otherwise, you need to create a new license page in the portal. This page always has to be created in two language variants; in English and in Finnish.
 The pages both need a PID (instructions on [how to request a PID](howto_request_pid.md)). From the META-SHARE record of this resource at least the English license page has to be referred to via its PID.
 
 In order to create a license page in the portal, login at [kielipankki.fi/wp-admin](https://www.kielipankki.fi/wp-admin/). A VPN connection to the university is required. 
 On Windows, you can use OpenVPNGUI -> Connect -> "hy". ("hu-tun" is not enough as it uses VPN only for University services).
 
-License pages (and portal pages in general) can be created from scratch or using an existing page as a starting point.
+License pages (and portal pages in general) can be created from scratch or using an existing page as a starting point (see also [How to create a license page in the portal](https://www.kielipankki.fi/intra/creating-license-pages/))
 
 From scratch, if the license is included in the "standard" CLARIN PUB/ACA/RES licenses:
 
