@@ -39,13 +39,14 @@ A page created in Kielipankki can be put to 'privat' first. Then it is only visi
 You can check the appearance of your page by pressing the 'preview' button.
 
 Remember to choose the correct language of the page below. Then the other language options on the page are shown correctly.
-Most of the resource group pages are written in English.
+Generally for each resource a resource group page should be offered in both languages, one in English and one in Finnish. 
+For some of the older resources only an English or Finnish version might be available. The other language version has to be created at some point.
 
 After everything is done, the page should be put to 'public' and be published.
 
 The page can be moved in the 'tree view' in the menu on the left (e.g. to the folder 'corpora'). This can also be done after publishing the page.
 
-The PID of the resource group page should then be added to the [resource families page](https://www.kielipankki.fi/corpora/resource-families-fin-clarin/ "resource families page"), to the resource's META-SHARE record and to the corpus database or the list of tools respectively.
+The PID of the (English) resource group page should then be added to the [resource families page](https://www.kielipankki.fi/corpora/resource-families-fin-clarin/ "resource families page"), to the resource's META-SHARE record and to the corpus database or the list of tools respectively.
 
 After a new resource group is added to the **corpus database**, the particular resource group can be chosen from the dropdown list of the field 'Resource group' within a corpus entry. 
 The particular Clarin resource family/families are to be chosen from the selection lists of the fields 'Clarin Resource Family' in English and Finnish.
