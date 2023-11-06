@@ -22,7 +22,8 @@ NOTE: Your changes and additions will come into effect only the following day!
 A resource usually needs PIDs for the following pages:
 
 - META-SHARE article
+- access location
 - LICENSE in English
 - LICENSE in Finnish
-- location PID
-- resource group page
+- resource group page in English
+- resource group page in Finnish
