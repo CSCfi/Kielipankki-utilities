@@ -1,4 +1,6 @@
 # Maintain the resource lists in the portal
+**NOTE: This page is outdated. Please see the description on [docs: how to maintain resource lists with the corpus database](howto_maintain_resource_lists_database.md)**
+
 
 The resources offered by Kielipankki are listed in the portal, separated after language corpora and tools.
 
