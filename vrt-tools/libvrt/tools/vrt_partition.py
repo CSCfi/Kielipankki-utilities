@@ -48,6 +48,7 @@ def parsearguments(argv, *, prog = None):
     parser = multiput2_args(description = description)
 
     parser.add_argument('--attr', '-a', metavar = 'spec',
+                        type = str.encode,
                         help = '''
 
                         text attributes on which to partition
@@ -61,7 +62,7 @@ def parsearguments(argv, *, prog = None):
 
                         tag by majority language codes and any fin,
                         swe, eng in a summary attribute (sum_lang,
-                        override with -a)
+                        unless specified with --attr option)
 
                         ''')
     method.add_argument('--klk-year', action = 'store_true',
@@ -69,7 +70,7 @@ def parsearguments(argv, *, prog = None):
 
                         tag by publication year, extracted from
                         datefrom, date, or issue_date attribute
-                        (ignores -a)
+                        (ignores --attr option)
 
                         ''')
 
@@ -121,7 +122,6 @@ def main(args, ins, outdir):
     # print('tmpname pattern:', tmpname)
     # print('outname pattern:', outname)
     # print('args.tag:', args.tag)
-    # print('PART:', PART)
 
     # set partition method according to the options
     method = (
@@ -169,8 +169,6 @@ def klk_main_lang(line, args):
     and the languages generally of most interest to the Language Bank
     of Finland (those being fin, swe, eng).
 
-    Called through PART (below) when arts.tag == 'klk-main-lang'.
-
     '''
 
     # expecting b'wev=10,xxx=10,etc=8' syntax,
@@ -180,7 +178,7 @@ def klk_main_lang(line, args):
     # their counts consist of ASCII digits, ok)
 
     meta = mapping(line)
-    counts = meta.get(args.attr, b'')
+    counts = meta[args.attr or b'sum_lang']
 
     proper = [
         (lang, int(freq.decode('UTF-8')))
