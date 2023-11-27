@@ -260,6 +260,9 @@ def report_differences(first, second, args):
             failed,
         )
 
+    # If we later want to go as far as to count that hits actually look the
+    # same, something like:
+    #
     # cmp1 = first["simple_query_summary"]["kwic_summary"]["charsum"]
     # cmp2 = second["simple_query_summary"]["kwic_summary"]["charsum"]
     # failed = cmp1 != cmp2
