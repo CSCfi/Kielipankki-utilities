@@ -57,6 +57,7 @@ def time_format(s):
 
 
 def query_korp_with_args(argdict, version):
+    argdict["cache"] = "false"
     assert version in (1, 2)
     if version == 1:
         url_args = "&".join((f"{k}={v}" for k, v in argdict.items()))
