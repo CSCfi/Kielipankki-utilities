@@ -1,6 +1,7 @@
 """Run some checks on Korp corpora to see that they are returning expected results.
 """
 
+import urllib
 from urllib import request
 import json
 import argparse
@@ -112,7 +113,7 @@ def iterate_batch(batch, result_dict, version):
         result_dict["corpora_processed"] += 1
         try:
             single_result = make_simple_query([corpus], version)
-        except HTTPError:
+        except urllib.error.HTTPError:
             print(f"      {corpus} failed with an HTTPError")
         if "ERROR" in single_result:
             print(f'      {corpus}: {single_result["ERROR"]}')
@@ -136,7 +137,7 @@ def simple_query_summary(corpora, version):
         done = False
         try:
             result = make_simple_query(batch, version)
-        except HTTPError:
+        except urllib.error.HTTPError:
             print(
                 f"    some corpora failed with an HTTPError in batch {batch_start + 1} - {batch_start + len(batch)}, retrying each one..."
             )
