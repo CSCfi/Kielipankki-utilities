@@ -287,7 +287,7 @@ if __name__ == "__main__":
         "--outfile-first", help="Filename in which to write dump from --first"
     )
     argparser.add_argument(
-        "--outfile-second", help="Filename in which to write dump from --first"
+        "--outfile-second", help="Filename in which to write dump from --second"
     )
     argparser.add_argument(
         "--logfile", help="Filename in which to write log from comparison"
