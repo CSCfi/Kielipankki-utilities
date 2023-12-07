@@ -28,13 +28,11 @@ For more complex explanations on a change add a **CHANGE LOG** with the current 
   
 Remember to add a link to the resource's group page via its URN under 'documentation', and name it **Resource group page**. If a resource group page is not created yet, you can add it later. See [docs: Instructions on how to create a resource group page](howto_resource_group_page.md).
 
-The link to the attribution details (citing information) should be added with the name **How to cite**. The link is offered in the column 'Cite' of the list of corpora and can be copied from there. It is a good idea to use the URN instead of the shortname within the citation link, so that it always resolves, even if the name for some reason is changed or misspelled.
+The link to the attribution details (citing information) should be added with the name **How to cite**. The link is offered in the column 'Cite' of the list of corpora and can be copied from there. You can also create the citation link yourself according to the following model, just exchange the URN of the resource.
 
-Example: The following two links show the same citing information
+Example: The following link shows the citation information for The Swedish sub-corpus of the Classics Library of the National Library of Finland - Kielipankki version
 
-    https://www.kielipankki.fi/viittaus/?key=nlfcl-sv-korp&lang=en
-
-    https://www.kielipankki.fi/viittaus/?key=urn:nbn:fi:lb-201804041&lang=en
+        https://www.kielipankki.fi/viittaus/?key=urn:nbn:fi:lb-201804041&lang=en
 
 
 The license's portal page should be referred to via its URN with the name **License**.
@@ -73,4 +71,9 @@ The link will still be displayed in META-SHARE, and the relation is much more le
 what the target resource is, without clicking on the link. Also, if you need to link to the same resource
 later, META-SHARE will suggest it when you type a part of the corpus title.
 
+## Corpus Text Info
+In order to specify the languages of the text(s) included in the resource, the following links might help to find the correct **language codes**:
 
+https://kotoistus.fi/suositukset/suositukset-kielet-fi-koodi/
+
+https://iso639-3.sil.org/code_tables/639/data/all
