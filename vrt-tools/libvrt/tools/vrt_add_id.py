@@ -2,6 +2,7 @@
 
 '''Implementation of vrt-add-id.'''
 
+from argparse import ArgumentTypeError
 from itertools import count
 import re
 
