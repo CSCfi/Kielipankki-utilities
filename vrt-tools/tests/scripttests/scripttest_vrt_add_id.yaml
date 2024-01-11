@@ -1,0 +1,251 @@
+
+# scripttestlib tests for vrt-add-id
+
+
+# Default input and output
+
+- defaults:
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+# Tests for the functionality of the original script by Jussi
+# Piitulainen
+
+
+- name: 'vrt-add-id: Default options'
+  input:
+    cmdline: vrt-add-id
+    stdin: &input-1 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a">
+      a
+      </sentence>
+      <sentence a="b">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c">
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="1">
+      a
+      </sentence>
+      <sentence a="b" id="2">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="3">
+      c
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-id: --element=text'
+  input:
+    cmdline: vrt-add-id --element="text"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text id="1" n="1">
+      <sentence a="a">
+      a
+      </sentence>
+      <sentence a="b">
+      b
+      </sentence>
+      </text>
+      <text id="2" n="2">
+      <sentence a="c">
+      c
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-id: Non-existent element (no change)'
+  input:
+    cmdline: vrt-add-id --element=x
+    stdin: *input-1
+  output:
+    stdout: *input-1
+
+
+- name: 'vrt-add-id: --id'
+  input:
+    cmdline: vrt-add-id --id="sid"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" sid="1">
+      a
+      </sentence>
+      <sentence a="b" sid="2">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" sid="3">
+      c
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-id: --start=0'
+  input:
+    cmdline: vrt-add-id --start=0
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="0">
+      a
+      </sentence>
+      <sentence a="b" id="1">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="2">
+      c
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-id: --prefix'
+  input:
+    cmdline: vrt-add-id --prefix=s-
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="s-1">
+      a
+      </sentence>
+      <sentence a="b" id="s-2">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="s-3">
+      c
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-id: Existing id attribute (without --force)'
+  input:
+    cmdline: vrt-add-id --id=a
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+    stderr: |
+      vrt-add-id: element has id already
+      vrt-add-id: non-zero status 1
+    returncode: 1
+
+- name: 'vrt-add-id: Overwrite existing id attribute with --force'
+  input:
+    cmdline: vrt-add-id --id=a --force
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="1">
+      a
+      </sentence>
+      <sentence a="2">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="3">
+      c
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-id: All options'
+  input:
+    cmdline: vrt-add-id --element=text --id=n --start=0 --prefix=t- --force
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="t-0">
+      <sentence a="a">
+      a
+      </sentence>
+      <sentence a="b">
+      b
+      </sentence>
+      </text>
+      <text n="t-1">
+      <sentence a="c">
+      c
+      </sentence>
+      </text>
+
+
+# Invalid option values
+
+- name: 'vrt-add-id: Invalid element name'
+  input:
+    cmdline: vrt-add-id --element="-x"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      - regex: '^usage'
+      - regex: "vrt-add-id: error: argument --element: not a field name: b'-x'"
+    returncode: 2
+
+- name: 'vrt-add-id: Invalid attribute name'
+  input:
+    cmdline: vrt-add-id --id="-x"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      - regex: '^usage'
+      - regex: "vrt-add-id: error: argument --id: not a field name: b'-x'"
+    returncode: 2
+
+- name: 'vrt-add-id: Non-integer --start value'
+  input:
+    cmdline: vrt-add-id --start=x
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      - regex: '^usage'
+      - regex: "vrt-add-id: error: argument --start: invalid int value: 'x'"
+    returncode: 2
+
+- name: 'vrt-add-id: Invalid --prefix value'
+  input:
+    cmdline: vrt-add-id --prefix=@x
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      - regex: '^usage'
+      - regex: "vrt-add-id: error: argument --prefix: affix out of spec"
+    returncode: 2
