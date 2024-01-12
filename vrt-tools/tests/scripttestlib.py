@@ -748,6 +748,12 @@ def _assert_in(exp, val, item_descr, *opts):
 def _assert_not_in(exp, val, item_descr, *opts):
     assert val not in exp
 
+def _assert_contains(exp, val, item_descr, *opts):
+    assert exp in val
+
+def _assert_not_contains(exp, val, item_descr, *opts):
+    assert exp not in val
+
 def _assert_regex(exp, val, item_descr, *opts):
     assert _re_search(exp, val, *opts) is not None
 

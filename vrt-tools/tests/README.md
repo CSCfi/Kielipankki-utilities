@@ -178,6 +178,8 @@ test case:
         *expected*
     -   `in`: *actual* is contained in *expected*
     -   `not-in`: *actual* is not contained in *expected*
+    -   `contains`: *actual* contains *expected*
+    -   `not-contains`: *actual* does not contain *expected*
     -   `regex`, `matches`: *actual* matches the Python regular
         expression *expected* (using `re.search`)
     -   `not-regex`, `not-matches`: *actual* does not match the Python

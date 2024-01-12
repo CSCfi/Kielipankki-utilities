@@ -375,7 +375,7 @@ _testcase_files_content = [
              },
          },
          {
-             'name': 'Test: test in, not-in',
+             'name': 'Test: test in, not-in, contains, not-contains',
              'input': {
                  'cmdline': 'cat',
                  'stdin': 'test1\ntest2\n'
@@ -395,6 +395,14 @@ _testcase_files_content = [
                             'a',
                             'b',
                          ],
+                     },
+                     {
+                         'test': 'contains',
+                         'value': 'test',
+                     },
+                     {
+                         'test': 'not-contains',
+                         'value': 'test3',
                      },
                  ],
                  'stderr': '',
