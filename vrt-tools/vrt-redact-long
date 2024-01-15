@@ -2,13 +2,19 @@
 # -*- mode: Python; -*-
 
 from itertools import groupby, chain
+from collections import OrderedDict
 import os, re, sys, traceback
 
 from vrtargslib import trans_args, trans_main
 from vrtargslib import BadData, BadCode
 
-from vrtnamelib import xname, isnames, namelist, nameindex
-from vrtdatalib import asrecord, unescape, escape
+from vrtnamelib import isbinnames, binnamelist, nameindices
+from vrtdatalib import binasrecord
+from vrtdatalib import binunescape as unescape, binescape as escape
+from libvrt.nameargs import bagtype, parsenames
+from libvrt.structargs import structattrbagtype, parsestructattrs
+from libvrt.metaline import unescape as metaunescape, escape as metaescape
+from libvrt.metaline import starttag
 
 def parsearguments():
     description = '''
@@ -23,10 +29,37 @@ def parsearguments():
 
     parser = trans_args(description = description)
 
+    parser.add_argument('--field', '-f',
+                        metavar = 'name,*',
+                        dest = 'fields', default = [],
+                        type = bagtype, action = 'append',
+                        help = '''
+
+                        fields to redact, separate names by commas or
+                        spaces, or repeat the option (default: word,
+                        or none if --struct is specified)
+
+                        ''')
+
     parser.add_argument('--word', '-w',
-                        metavar = 'name',
-                        type = xname, default = 'word',
-                        help = 'the field to redact (default: word)')
+                        metavar = 'name,*',
+                        dest = 'fields', default = [],
+                        type = bagtype, action = 'append',
+                        help = '(deprecated) use --field/-f instead')
+
+    parser.add_argument('--struct', '-s',
+                        metavar = 'attr,*',
+                        dest = 'structs', default = [],
+                        type = structattrbagtype, action = 'append',
+                        help = '''
+
+                        structural attributes to redact, of the form
+                        "struct_attrname" or
+                        "struct:attrname1,attrname2" separate
+                        structure or attribute names by commas or
+                        spaces, or repeat the option (default: none)
+
+                        ''')
 
     parser.add_argument('--long', type = int, default = 70,
                         metavar = 'N',
@@ -55,6 +88,18 @@ def parsearguments():
 
                         the number of final characters to keep
                         (default: 12)
+
+                        ''')
+
+    parser.add_argument('--bytes', action = 'store_true',
+                        help = '''
+
+                        the arguments of --long, --after and --before
+                        denote bytes instead of characters; to keep
+                        the UTF-8 encoding valid, the prefix and
+                        suffix of the redacted value may be slightly
+                        shorter than specified with --after and
+                        --before
 
                         ''')
 
@@ -88,11 +133,23 @@ def parsearguments():
 
 def main(args, inf, ouf):
 
+    if args.fields:
+        args.fields = parsenames(args.fields)
+    elif not args.structs:
+        # default to --field word
+        args.fields = [b'word']
+
+    if args.structs:
+        args.structs = parsestructattrs(args.structs, attrstype=set)
+
     if args.after < 0 or args.before < 0 or args.long < 1:
         raise BadData('numbers make no sense')
 
     if args.after + args.before > args.long:
         raise BadData('after and before are already long')
+
+    if args.bytes:
+        args.text = args.text.encode('UTF-8')
 
     # *all* these exceptions should probably go to trans_main, q.v.
 
@@ -116,41 +173,122 @@ def main(args, inf, ouf):
 def implement_main(args, ins, ous):
 
     def issome(line): return not line.isspace()
-    def ismeta(line): return line.startswith('<')
+    def ismeta(line): return line.startswith(b'<')
 
-    islike = dict(word = islikeword,
-                  link = islikelink,
-                  other = isother,
-                  any = isany) [args.like]
+    if args.bytes:
+        maybe_redact = maybe_redact_bin
+        islike = dict(word = binislikeword,
+                      link = binislikelink,
+                      other = binisother,
+                      any = isany) [args.like]
+    else:
+        maybe_redact = maybe_redact_str
+        islike = dict(word = islikeword,
+                      link = islikelink,
+                      other = isother,
+                      any = isany) [args.like]
 
-    wordix = None
+    wordixs = None
     for groupismeta, group in groupby(filter(issome, ins), ismeta):
 
         if groupismeta:
             for line in group:
-                print(line, end = '', file = ous)
-                if isnames(line):
-                    wordix = nameindex(namelist(line), args.word)
+                if isbinnames(line):
+                    wordixs = nameindices(binnamelist(line), *args.fields)
+                elif args.structs and line[1] not in b'/!' and b' ' in line:
+                    line = redact_struct_attrs(args, line, maybe_redact, islike)
+                ous.write(line)
             continue
 
         # groupisdata aka token lines
 
-        if wordix is None:
+        if not args.fields:
+            for line in group:
+                ous.write(line)
+            continue
+
+        if wordixs is None:
             raise BadData('no names before tokens')
 
         for line in group:
-            record = asrecord(line)
-            word = unescape(record[wordix])
+            record = binasrecord(line)
+            for wordix in wordixs:
+                record[wordix] = maybe_redact(
+                    args, record[wordix], islike, escape, unescape)
 
-            if len(word) >= args.long and islike(word):
-                record[wordix] = escape(redact(args, word))
+            ous.write(b'\t'.join(record) + b'\n')
 
-            print(*record, sep = '\t', file = ous)
+def redact_struct_attrs(args, line, maybe_redact, islike):
+
+    def attributes(line):
+        return OrderedDict(re.findall(br'(\S+?)="([^"]*)"', line))
+
+    struct, _, attrstr = line[1:].partition(b' ')
+
+    if struct in args.structs:
+        attrs = attributes(attrstr)
+
+        for attrname in args.structs[struct]:
+            attrval = attrs.get(attrname)
+            if attrval is None:
+                continue
+            attrs[attrname] = maybe_redact(
+                args, attrval, islike, metaescape, metaunescape)
+
+        return starttag(struct, attrs)
+
+    else:
+        return line
+
+def maybe_redact_str(args, binvalue, islike, escape, unescape):
+    value = unescape(binvalue).decode('UTF-8')
+    if len(value) >= args.long and islike(value):
+        return escape(redact(args, value).encode('UTF-8'))
+    return binvalue
+
+def maybe_redact_bin(args, binvalue, islike, escape, unescape):
+    value = unescape(binvalue)
+    if len(value) >= args.long and islike(value):
+        return escape(binredact(args, value))
+    return binvalue
 
 def redact(args, word):
     return '{}{}{}'.format(word[:args.after],
                            args.text,
                            word[-args.before:] if args.before else '')
+
+def binredact(args, word):
+    return (binprefix(word, args.after)
+            + args.text
+            + (binsuffix(word, args.before) if args.before else b''))
+
+def binprefix(bs, length):
+    result = bs[:length]
+    # Would the validity of a UTF-8 byte string be checked more easily
+    # and efficiently?
+    while len(result) > 0:
+        # remove additional bytes from the end until the result is
+        # valid UTF-8
+        try:
+            _ = result.decode('UTF-8')
+        except UnicodeDecodeError:
+            result = result[:-1]
+        else:
+            break
+    return result
+
+def binsuffix(bs, length):
+    result = bs[-length:]
+    while len(result) > 0:
+        # remove additional bytes from the beginning until the result
+        # is valid UTF-8
+        try:
+            _ = result.decode('UTF-8')
+        except UnicodeDecodeError:
+            result = result[1:]
+        else:
+            break
+    return result
 
 def islikeword(word):
     return re.fullmatch(R'[\w\-]+', word)
@@ -171,5 +309,21 @@ def isother(word):
 def isany(word):
     return True
 
+def binislikeword(word):
+    # allow Unicode letters; re.fullmatch on bytes would only take
+    # ASCII letters into account
+    return islikeword(word.decode('UTF-8'))
+
+def binislikelink(word):
+    if word.startswith((b'http:', b'https:', b'ftp:')):
+        return True
+    return False
+
+def binisother(word):
+    return not (
+        binislikeword(word) or
+        binislikelink(word)
+    )
+
 if __name__ == '__main__':
-    trans_main(parsearguments(), main)
+    trans_main(parsearguments(), main, in_as_text=False, out_as_text=False)

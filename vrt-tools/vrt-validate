@@ -19,11 +19,17 @@ from unicodedata import category
 
 from vrtnamelib import isxname, isnames
 
+from libvrt.metaline import strunescape as unescapemeta
+
 from vrtargslib import VERSION
 
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+# CWB (or cwb-encode) limits
+VRT_LINE_MAX_BYTES = 65534
+ATTR_VALUE_MAX_BYTES = 4095
 
 class GiveUp(Exception):
     pass
@@ -70,6 +76,11 @@ def validate(k, byteline, respond):
     except UnicodeDecodeError:
         respond(k, 'code', 'error', 'not even UTF-8')
         return
+
+    if len(byteline) > VRT_LINE_MAX_BYTES:
+        # error as cwb-encode halts on longer lines
+        respond(k, 'length', 'error',
+                'line over {} bytes long'.format(VRT_LINE_MAX_BYTES))
 
     if line.endswith('\r\n'):
         respond(k, 'code', 'info', 'CR LF line terminator')
@@ -339,7 +350,7 @@ def validateattributes(k, element, attributes, respond):
         validateattribute(k, element, name, respond)
         label = '{} of {}'.format(name, element)
 
-        validatevalue(k, label, value, respond)
+        validatevalue(k, label, unescapemeta(value, tabs=False), respond)
 
         # some attributes may have particular validators
         attributevalidator.get(name, ignore)(k, value, label, respond)
@@ -452,6 +463,12 @@ def validatevalue(k, label, value, respond):
         respond(k, 'data', 'error',
                 'tab in value: {}'
                 .format(label))
+
+    if len(value.encode('UTF-8')) > ATTR_VALUE_MAX_BYTES:
+        # only warn as cwb-encode truncates longer values
+        respond(k, 'length', 'warning',
+                'value over {} bytes long: {}'
+                .format(ATTR_VALUE_MAX_BYTES, label))
 
 def validatereferences(k, line, kind, respond):
     if '&' in line:
