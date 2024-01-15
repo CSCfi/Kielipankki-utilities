@@ -10,6 +10,7 @@ from libvrt.args import BadData
 from libvrt.args import transput_args
 
 from libvrt.metaname import nametype # need checked
+from libvrt.metaline import mapping, starttag
 
 def affix(arg):
     if re.fullmatch('[A-Za-z0-9_\-+/.:]*', arg):
@@ -88,17 +89,11 @@ def main(args, ins, ous):
 
     for line in ins:
         if line.startswith(kind):
-            attrs = dict(re.findall(b'(\S+)="(.*?)"', line))
+            attrs = mapping(line)
             if args.force or args.idn not in attrs:
                 attrs[args.idn] = next(ids)
             else:
                 raise BadData('element has id already')
-            ous.write(b'<')
-            ous.write(args.element)
-            ous.write(b' ')
-            ous.write(b' '.join(name + b'="' + value + b'"'
-                                for name, value
-                                in sorted(attrs.items())))
-            ous.write(b'>\n')
+            ous.write(starttag(args.element, attrs, sort=True))
         else:
             ous.write(line)
