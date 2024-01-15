@@ -130,28 +130,32 @@ def strescape(value):
              .replace('"', '&quot;')
     )
 
-def starttag(struct, attrs):
+def starttag(struct, attrs, sort=False):
     '''Start tag line for struct (bytes) with attrs (dict[bytes, bytes]).
 
     attrs should be an OrderedDict to preserve attribute order for
     Python versions prior to 3.8.
+
+    If sort == True, sort the attributes by name.
 
     This function does not escape attribute values in attrs nor check
     their escaping, so that should be done by the caller.
 
     '''
 
+    sortfn = sorted if sort else lambda x: x
     attrstr = b' '.join(name + b'="' + val + b'"'
-                        for name, val in attrs.items())
+                        for name, val in sortfn(attrs.items()))
     return b'<' + struct + (b' ' + attrstr if attrstr else b'') + b'>\n'
 
-def strstarttag(struct, attrs):
+def strstarttag(struct, attrs, sort=False):
     '''Start tag line for struct (str) with attrs (dict[str, str]).
 
     This works the same way for strings as starttag for bytes.
 
     '''
 
+    sortfn = sorted if sort else lambda x: x
     attrstr = ' '.join(name + '="' + val + '"'
-                       for name, val in attrs.items())
+                       for name, val in sortfn(attrs.items()))
     return '<' + struct + (' ' + attrstr if attrstr else '') + '>\n'
