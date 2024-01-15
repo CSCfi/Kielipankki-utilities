@@ -7,11 +7,13 @@ Warning: this is not a validator.
 import re
 import sys
 
+from collections import OrderedDict
+
 def attributes(line):
     return tuple(name for name, value in pairs(line))
 
 def mapping(line):
-    it = dict(pairs(line))
+    it = OrderedDict(pairs(line))
     return it
 
 def pairs(line):
