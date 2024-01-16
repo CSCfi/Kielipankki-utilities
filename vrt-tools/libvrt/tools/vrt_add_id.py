@@ -71,6 +71,14 @@ def parsearguments(argv, *, prog = None):
 
                         ''')
 
+    parser.add_argument('--sort', action = 'store_true',
+                        help = '''
+
+                        sort element attributes alphabetically
+                        (default: keep input order)
+
+                        ''')
+
     args = parser.parse_args()
     args.prog = prog or parser.prog
 
@@ -94,6 +102,6 @@ def main(args, ins, ous):
                 attrs[args.idn] = next(ids)
             else:
                 raise BadData('element has id already')
-            ous.write(starttag(args.element, attrs, sort=True))
+            ous.write(starttag(args.element, attrs, sort=args.sort))
         else:
             ous.write(line)
