@@ -456,3 +456,111 @@
       vrt-add-id: more than 2 elements encountered; please increase --end
       vrt-add-id: non-zero status 1
     returncode: 1
+
+
+# --format
+
+- name: 'vrt-add-id: --counter --format'
+  input:
+    cmdline: vrt-add-id --counter --start=10 --format="*{id:03x}*"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="*00a*">
+      a
+      </sentence>
+      <sentence a="b" id="*00b*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="*00c*">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: --counter --format --prefix'
+  input:
+    cmdline: vrt-add-id --counter --start=10 --format="*{id:03x}*" --prefix="x-"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="x-*00a*">
+      a
+      </sentence>
+      <sentence a="b" id="x-*00b*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="x-*00c*">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: --random --format'
+  input:
+    cmdline: vrt-add-id --random --seed=1 --end=10 --format="*{id:03d}*"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="*005*">
+      a
+      </sentence>
+      <sentence a="b" id="*008*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="*009*">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: --random --format --prefix'
+  input:
+    cmdline: vrt-add-id --random --seed=1 --end=10 --format="*{id:03d}*" --prefix="x-"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="x-*005*">
+      a
+      </sentence>
+      <sentence a="b" id="x-*008*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="x-*009*">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: --random --format; double {id}'
+  input:
+    cmdline: vrt-add-id --random --seed=1 --end=100 --format="*{id:03d}-{id:02x}*"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="*045-2d*">
+      a
+      </sentence>
+      <sentence a="b" id="*065-41*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="*072-48*">
+      c
+      </sentence>
+      </text>

@@ -113,12 +113,26 @@ def parsearguments(argv, *, prog = None):
 
                         ''')
 
+    parser.add_argument('--format', metavar = 'format',
+                        help = '''
+
+                        format string for id, with "{id}" replaced
+                        with the id value; supports Python
+                        str.format-style formatting (default: with
+                        --counter, "{id}"; with --random, "{id:0*x}"
+                        where * is the minimum number of hex digits to
+                        represent the maximum value)
+
+                        ''')
+
     parser.add_argument('--prefix', metavar = 'affix',
                         type = affix,
                         default = '',
                         help = '''
 
-                        additional prefix text to each id ("")
+                        additional prefix text to each formatted id,
+                        prepended to the format string specified with
+                        --format ("")
 
                         ''')
 
@@ -142,6 +156,13 @@ def parsearguments(argv, *, prog = None):
         args.type = 'counter'
     if not args.seed:
         args.seed = None
+    args.format = args.prefix + (
+        args.format or (
+            '{id'
+            + (':0' + str(get_hexvalue_len(args.end)) + 'x}'
+               if args.type == 'random'
+               else '}'))
+    )
     args.prog = prog or parser.prog
 
     return args
@@ -154,15 +175,12 @@ def main(args, ins, ous):
     kind = (b''.join((b'<', args.element, b'>')),
             b''.join((b'<', args.element, b' ')))
 
-    width = get_hexvalue_len(args.end)
-    fmt = '{}{:0' + str(width) + 'x}' if args.type == 'random' else '{}{}'
-
     for line in ins:
         if line.startswith(kind):
             attrs = mapping(line)
             if args.force or args.idn not in attrs:
                 attrs[args.idn] = (
-                    fmt.format(args.prefix, next(ids)).encode('UTF-8'))
+                    args.format.format(id=next(ids)).encode('UTF-8'))
             else:
                 raise BadData('element has id already')
             ous.write(starttag(args.element, attrs, sort=args.sort))
