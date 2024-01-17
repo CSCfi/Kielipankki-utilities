@@ -271,3 +271,80 @@
       - regex: '^usage'
       - regex: "vrt-add-id: error: argument --prefix: affix out of spec"
     returncode: 2
+
+
+# Tests for functionality added by Jyrki Niemi
+
+
+- name: 'vrt-add-id: --counter (default)'
+  input:
+    cmdline: vrt-add-id --counter --element=text --id=n --start=0 --prefix=t- --force
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="t-0">
+      <sentence a="a">
+      a
+      </sentence>
+      <sentence a="b">
+      b
+      </sentence>
+      </text>
+      <text n="t-1">
+      <sentence a="c">
+      c
+      </sentence>
+      </text>
+
+
+- name: 'vrt-add-id: --random (implicit random seed)'
+  input:
+    cmdline: vrt-add-id --random
+    stdin: *input-1
+  output:
+    stdout: &output-random
+      regex: |
+        <!-- #vrt positional-attributes: word -->
+        <text n="1">
+        <sentence a="a" id="[0-9a-f]{8}">
+        a
+        </sentence>
+        <sentence a="b" id="[0-9a-f]{8}">
+        b
+        </sentence>
+        </text>
+        <text n="2">
+        <sentence a="c" id="[0-9a-f]{8}">
+        c
+        </sentence>
+        </text>
+
+- name: 'vrt-add-id: --random --seed="" (explicit random seed)'
+  input:
+    cmdline: vrt-add-id --random --seed=""
+    stdin: *input-1
+  output:
+    stdout: *output-random
+
+
+- name: 'vrt-add-id: --random --seed=1'
+  input:
+    cmdline: vrt-add-id --random --seed=1
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="def75f99">
+      a
+      </sentence>
+      <sentence a="b" id="013ed027">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="0f1462b4">
+      c
+      </sentence>
+      </text>
