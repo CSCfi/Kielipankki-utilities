@@ -348,3 +348,111 @@
       c
       </sentence>
       </text>
+
+
+# --random --end
+
+- name: 'vrt-add-id: --random --end=3'
+  input:
+    cmdline: vrt-add-id --random --end=3 --seed=1
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="1">
+      a
+      </sentence>
+      <sentence a="b" id="2">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="0">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: --random --end=20 (decimal, values of 2 hex digits)'
+  input:
+    cmdline: vrt-add-id --random --end=20 --seed=1
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="0b">
+      a
+      </sentence>
+      <sentence a="b" id="10">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="12">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: --random --end=0x1000 (hex, values of 3 hex digits)'
+  input:
+    cmdline: vrt-add-id --random --end=0x1000 --seed=1
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="b66">
+      a
+      </sentence>
+      <sentence a="b" id="027">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="bb1">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: --random --end=2^8 (power, values of 2 hex digits)'
+  input:
+    cmdline: vrt-add-id --random --end=2^8 --seed=1
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="b6">
+      a
+      </sentence>
+      <sentence a="b" id="02">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="bb">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: --random --end=2 (too small value)'
+  input:
+    cmdline: vrt-add-id --random --end=2 --seed=1
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="1">
+      a
+      </sentence>
+      <sentence a="b" id="0">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+    stderr: |
+      vrt-add-id: more than 2 elements encountered; please increase --end
+      vrt-add-id: non-zero status 1
+    returncode: 1

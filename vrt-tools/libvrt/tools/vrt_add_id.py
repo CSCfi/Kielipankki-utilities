@@ -4,6 +4,7 @@
 
 from argparse import ArgumentTypeError
 from itertools import count
+import math
 import random
 import re
 
@@ -13,12 +14,22 @@ from libvrt.args import transput_args
 from libvrt.metaname import nametype # need checked
 from libvrt.metaline import mapping, starttag
 
+# Default maximum random id value (DEFAULT_RAND_END - 1)
 DEFAULT_RAND_END = pow(2, 32)
 
 def affix(arg):
     if re.fullmatch('[A-Za-z0-9_\-+/.:]*', arg):
         return arg
     raise ArgumentTypeError('affix out of spec')
+
+def intpow(arg):
+    '''argparse argument type check for non-negative integer, 0x... or n^k'''
+    if re.fullmatch('[0-9]+|0x[0-9A-Fa-f]+', arg):
+        return int(arg, base=0)
+    elif re.fullmatch(r'[0-9]+\^[0-9]+', arg):
+        base, exp = arg.split('^')
+        return pow(int(base), int(exp))
+    raise ArgumentTypeError('number out of spec')
 
 def parsearguments(argv, *, prog = None):
 
@@ -68,8 +79,7 @@ def parsearguments(argv, *, prog = None):
                        const = 'random',
                        help = '''
 
-                       id values are unique 32-bit random integers (8
-                       hex digits)
+                       id values are unique random integers
 
                        ''')
 
@@ -88,6 +98,18 @@ def parsearguments(argv, *, prog = None):
                         help = '''
 
                         initial value for the counter (1)
+
+                        ''')
+
+    parser.add_argument('--end', metavar = 'number',
+                        type = intpow,
+                        default = DEFAULT_RAND_END,
+                        help = '''
+
+                        maximum random id value is number - 1; a
+                        non-negative integer, hexadecimal if prefixed
+                        with "0x", or n^k for n to the power of k
+                        (default: 2^32)
 
                         ''')
 
@@ -132,7 +154,8 @@ def main(args, ins, ous):
     kind = (b''.join((b'<', args.element, b'>')),
             b''.join((b'<', args.element, b' ')))
 
-    fmt = '{}{:08x}' if args.type == 'random' else '{}{}'
+    width = get_hexvalue_len(args.end)
+    fmt = '{}{:0' + str(width) + 'x}' if args.type == 'random' else '{}{}'
 
     for line in ins:
         if line.startswith(kind):
@@ -159,7 +182,7 @@ def get_idgen(args):
         # Multiple generators use different seeds
         if args.seed:
             args.seed += '1'
-        return randint_uniq(DEFAULT_RAND_END, args.seed)
+        return randint_uniq(args.end, args.seed)
 
 def randint_uniq(end, seed=None):
     '''Generator for unique random integers in [0, end[ with seed.'''
@@ -167,7 +190,7 @@ def randint_uniq(end, seed=None):
     # Values already generated
     used = set()
     rnd = random.Random(seed)
-    errmsg = f'more than {end} elements encountered'
+    errmsg = f'more than {end} elements encountered; please increase --end'
 
     while True:
         if len(used) >= end:
@@ -183,3 +206,7 @@ def randint_uniq(end, seed=None):
                 raise BadData(errmsg)
         used.add(r)
         yield r
+
+def get_hexvalue_len(value):
+    '''Return the number of hex digits required to represent value - 1'''
+    return math.ceil(math.log(value) / math.log(16))
