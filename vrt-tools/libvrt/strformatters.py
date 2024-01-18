@@ -18,7 +18,7 @@ class PartialStringFormatter(Formatter):
     A string formatter handling missing keys.
 
     A string formatter that outputs an empty (or other specified)
-    string when a format key would cause a `KeyError` or
+    string when a format key would cause a `KeyError`, `IndexError` or
     `AttributeError`.
 
     Adapted from
@@ -35,7 +35,7 @@ class PartialStringFormatter(Formatter):
         # Handle missing fields
         try:
             return super().get_field(field_name, args, kwargs)
-        except (KeyError, AttributeError):
+        except (KeyError, IndexError, AttributeError):
             return None, field_name
 
     def format_field(self, value, spec):
