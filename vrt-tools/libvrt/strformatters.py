@@ -29,7 +29,7 @@ class PartialStringFormatter(Formatter):
     def __init__(self, missing=''):
         """Initialize formatter; replace missing values with `missing`."""
         super().__init__()
-        self.missing = missing
+        self._missing = missing
 
     def get_field(self, field_name, args, kwargs):
         # Handle missing fields
@@ -40,6 +40,6 @@ class PartialStringFormatter(Formatter):
 
     def format_field(self, value, spec):
         if value is None:
-            return self.missing
+            return self._missing
         else:
             return super().format_field(value, spec)
