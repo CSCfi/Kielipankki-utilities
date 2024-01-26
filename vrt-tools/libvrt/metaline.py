@@ -159,3 +159,40 @@ def strstarttag(struct, attrs, sort=False):
     attrstr = ' '.join(name + '="' + val + '"'
                        for name, val in sortfn(attrs.items()))
     return '<' + struct + (' ' + attrstr if attrstr else '') + '>\n'
+
+def ismeta(line):
+    '''line (bytes) is metaline.'''
+    return line and line[0] in b'<'
+
+def strismeta(line):
+    '''line (str) is metaline.'''
+    return line and line[0] == '<'
+
+# Should the following functions call ismeta(line) (or
+# strismeta(line)) or not? Currently they don't, to reduce overhead
+# when ismeta is tested first by the caller.
+
+def isstarttag(line):
+    '''line (bytes) is a start tag, assuming ismeta(line).'''
+    return line[1] not in b'/!'
+
+def strisstarttag(line):
+    '''line (str) is a start tag, assuming strismeta(line).'''
+    return line[1] not in '/!'
+
+def isendtag(line):
+    '''line (bytes) is an end tag, assuming ismeta(line).'''
+    # This is faster than line[1].startswith(b'/')
+    return line[1] in b'/'
+
+def strisendtag(line):
+    '''line (str) is an end tag, assuming strismeta(line).'''
+    return line[1] == '/'
+
+def iscomment(line):
+    '''line (bytes) is a comment, assuming ismeta(line).'''
+    return line.startswith(b'<!--')
+
+def striscomment(line):
+    '''line (str) is a comment, assuming strismeta(line).'''
+    return line.startswith('<!--')
