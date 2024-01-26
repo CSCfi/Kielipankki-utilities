@@ -8,7 +8,7 @@ Pytest tests for libvrt.strformatters.
 
 import pytest
 
-from libvrt.strformatters import PartialStringFormatter
+from libvrt.strformatters import PartialStringFormatter, BytesFormatter
 
 
 class Namespace:
@@ -167,3 +167,50 @@ class TestPartialStringFormatter:
         ns.a = 0
         result = psf.format('{ns.a} {ns.b}', ns=ns)
         assert result == '0 '
+
+
+class TestBytesFormatter:
+
+    """Tests for BytesFormatter"""
+
+    def test_format_strings(self):
+        """Test formatting strings with BytesFormatter."""
+        bf = BytesFormatter()
+        ns = Namespace()
+        ns.a = '2'
+        result = bf.format('|{0}|{1[0]}|{2.a}|{a}|{b[a]}|{ns.a}|',
+                           0, [1, 2], ns, a='a', b={'a': 'b'}, ns=ns)
+        assert result == '|0|1|2|a|b|2|'
+
+    def test_format_bytes_as_string(self):
+        """Test formatting with converting bytes values to strings."""
+        bf = BytesFormatter()
+        result = bf.format('{0}{a}', b'0', a=b'a')
+        assert result == '0a'
+
+    def test_format_bytes_list_item_as_string(self):
+        """Test formatting with converting bytes list item values to strings."""
+        bf = BytesFormatter()
+        result = bf.format('{0[0]}{a[1]}', [b'0', b'1'], a=[b'a', b'b'])
+        assert result == '0b'
+
+    def test_format_bytes_dict_value_as_string(self):
+        """Test formatting with converting bytes dict values to strings."""
+        bf = BytesFormatter()
+        result = bf.format('{0[a]}{a[b]}', {'a': b'0'}, a={'b': b'b'})
+        assert result == '0b'
+
+    def test_format_bytes_attr_value_as_string(self):
+        """Test formatting with converting bytes attribute values to strings."""
+        bf = BytesFormatter()
+        ns = Namespace()
+        ns.a = b'a'
+        ns.b = b'b'
+        result = bf.format('{0.a}{ns.b}', ns, ns=ns)
+        assert result == 'ab'
+
+    def test_format_bytes_dict_key_as_string(self):
+        """Test formatting with converting bytes dict keys to strings."""
+        bf = BytesFormatter()
+        result = bf.format('{0[a]}{a[b]}', {b'a': b'0'}, a={b'b': b'b'})
+        assert result == '0b'

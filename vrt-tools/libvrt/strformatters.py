@@ -146,3 +146,58 @@ class PartialStringFormatter(Formatter):
             else:
                 value = self._missing
         return super().convert_field(value, conversion)
+
+
+def _bytes_to_string(bs):
+    """If `bs` is `bytes` (UTF-8), decode it to `str`, else return as is."""
+    return bs.decode('UTF-8') if isinstance(bs, bytes) else bs
+
+
+class BytesFormatter(Formatter):
+
+    """
+    A string formatter converting bytes to strings
+
+    This string formatter converts bytes to strings in replacement
+    values. Moreover, if accessing a dict value with a string key
+    fails, it tries the key encoded to UTF-8 bytes.
+    """
+
+    def __init__(self):
+        """Initialize formatter."""
+        super().__init__()
+
+    def get_field(self, field_name, args, kwargs):
+        """Override `Formatter.get_field`.
+
+        If calling superclass `get_field` raises a `KeyError` and
+        `field_name` contains key indexing and no attribute access,
+        try indexing with a key to UTF-8 bytes.
+        """
+        try:
+            value, used_key = super().get_field(field_name, args, kwargs)
+        except KeyError:
+            if field_name[-1] == ']' and '.' not in field_name:
+                field_name, _, idx = field_name[:-1].partition('[')
+                if field_name.isdigit():
+                    field_name = int(field_name)
+                obj = self.get_value(field_name, args, kwargs)
+                if idx.isdigit():
+                    # This probably is not needed, as it would not
+                    # have raised a KeyError
+                    value = obj[int(idx)]
+                else:
+                    value = obj[idx.encode('UTF-8')]
+                value = _bytes_to_string(value)
+                used_key = field_name
+            else:
+                raise
+        return _bytes_to_string(value), used_key
+
+    def get_value(self, key, args, kwargs):
+        """Override `Formatter.get_value`.
+
+        Call superclass `get_value` and convert the result to `str` if
+        it is `bytes`.
+        """
+        return _bytes_to_string(super().get_value(key, args, kwargs))
