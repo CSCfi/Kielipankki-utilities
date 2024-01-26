@@ -564,3 +564,67 @@
       c
       </sentence>
       </text>
+
+
+# --hash
+
+- name: 'vrt-add-id: --hash; format with {hash}'
+  input:
+    cmdline: vrt-add-id --counter --hash=abc --format="{hash}-{id:03d}"
+    stdin: *input-1
+  output:
+    stdout: &output-hash |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="a9993e364706816aba3e25717850c26c9cd0d89d-001">
+      a
+      </sentence>
+      <sentence a="b" id="a9993e364706816aba3e25717850c26c9cd0d89d-002">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="a9993e364706816aba3e25717850c26c9cd0d89d-003">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: --hash; format with {hash1}'
+  input:
+    cmdline: vrt-add-id --counter --hash=abc --format="{hash1}-{id:03d}"
+    stdin: *input-1
+  output:
+    stdout: *output-hash
+
+- name: 'vrt-add-id: Multiple --hash'
+  input:
+    cmdline: vrt-add-id --counter --hash=abc --hash=def --hash=ghi --format="{hash1:.4}-{hash2:.4}-{hash3:.6}-{id:03d}"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="a999-589c-481743-001">
+      a
+      </sentence>
+      <sentence a="b" id="a999-589c-481743-002">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="a999-589c-481743-003">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: Format refers to non-existent {hashN}'
+  input:
+    cmdline: vrt-add-id --counter --hash=abc --format="{hash1:.4}-{hash2:.4}-{id:03d}"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+    stderr:
+      contains: "KeyError: 'hash2'"
+    returncode: 1

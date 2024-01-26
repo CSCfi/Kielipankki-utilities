@@ -3,6 +3,7 @@
 '''Implementation of vrt-add-id.'''
 
 from argparse import ArgumentTypeError
+from hashlib import sha1
 from itertools import count
 import math
 import random
@@ -13,6 +14,8 @@ from libvrt.args import transput_args
 
 from libvrt.metaname import nametype # need checked
 from libvrt.metaline import mapping, starttag
+
+from libvrt.strformatters import PartialStringFormatter
 
 # Default maximum random id value (DEFAULT_RAND_END - 1)
 DEFAULT_RAND_END = pow(2, 32)
@@ -136,6 +139,17 @@ def parsearguments(argv, *, prog = None):
 
                         ''')
 
+    parser.add_argument('--hash', metavar = 'string',
+                        action = 'append',
+                        help = '''
+
+                        make "{hash}" in the id format string refer to
+                        the hex digest of the SHA-1 hash of string; if
+                        the option is repeated, "{hashN}" refers to
+                        the Nth value
+
+                        ''')
+
     parser.add_argument('--force', action = 'store_true',
                         help = '''
 
@@ -157,7 +171,7 @@ def parsearguments(argv, *, prog = None):
     if not args.seed:
         args.seed = None
     args.format = args.prefix + (
-        args.format or (
+        expand_hashes(args.format, args.hash) or (
             '{id'
             + (':0' + str(get_hexvalue_len(args.end)) + 'x}'
                if args.type == 'random'
@@ -166,6 +180,27 @@ def parsearguments(argv, *, prog = None):
     args.prog = prog or parser.prog
 
     return args
+
+def expand_hashes(format_, strlist):
+    '''Expand {hashN} in format_ to SHA-1 hex digest of strlist[N].
+
+    {hash} is an alias for {hash1}.
+
+    As hash values are constant for all ids, it suffices to expand
+    them once in the id format string, avoiding the need to re-expand
+    them for each id.
+    '''
+
+    if not strlist:
+        return format_
+
+    hashvals = {}
+    for i, s in enumerate(strlist):
+        hashvals[f'hash{i + 1}'] = sha1(s.encode('UTF-8')).hexdigest()
+    hashvals['hash'] = hashvals['hash1']
+
+    # This keeps the non-hash format specs in format_ intact
+    return PartialStringFormatter(None).format(format_, **hashvals)
 
 def main(args, ins, ous):
     '''Transput VRT (bytes) in ins to VRT (bytes) in ous.'''
