@@ -63,6 +63,12 @@ class TestPartialStringFormatter:
         result = psf.format('{ns.a} {ns.b}', ns=ns)
         assert result == '0 '
 
+    def test_missing_args_none(self):
+        """Test missing arguments, with None values."""
+        psf = PartialStringFormatter()
+        result = psf.format('|{0}|{1}|{a}|{b}|', None, a=None)
+        assert result == '|None||None||'
+
     def test_alternative_replacement_value(self):
         """Test a case with an alternative replacement value for missing."""
         psf = PartialStringFormatter('*')

@@ -28,6 +28,13 @@ class PartialStringFormatter(Formatter):
     https://gist.github.com/navarroj/7689682
     """
 
+    class _Missing:
+        """Empty class for a unique value to represent missing value."""
+        pass
+
+    # Unique value to represent a missing value
+    _MISSING = _Missing()
+
     # Temporary replacements of double and single curly brackets for
     # protection from replacement; the mapping needs to be ordered, as
     # double curly brackets need to be replaced before single ones
@@ -109,21 +116,20 @@ class PartialStringFormatter(Formatter):
     def get_field(self, field_name, args, kwargs):
         """Override `Formatter.get_field`.
 
-        Call `Formatter.get_field`; on error, return (`None`,
+        Call `Formatter.get_field`; on error, return (`self._MISSING`,
         `field_name`).
         """
         try:
             return super().get_field(field_name, args, kwargs)
         except (KeyError, IndexError, AttributeError):
-            return None, field_name
+            return self._MISSING, field_name
 
     def format_field(self, value, spec):
         """Override `Formatter.format_field`.
 
-        If `value` is `None`, return `self._missing`, otherwise call
-        `Formatter.format_field`
+        Call `Formatter.format_field` on `value` or `self._missing` if
+        `value` is `self._MISSING`.
         """
-        if value is None:
-            return self._missing or ''
-        else:
-            return super().format_field(value, spec)
+        if value is self._MISSING:
+            value = self._missing if self._missing is not None else ''
+        return super().format_field(value, spec)
