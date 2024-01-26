@@ -628,3 +628,27 @@
     stderr:
       contains: "KeyError: 'hash2'"
     returncode: 1
+
+
+# --format containing {elem[attr]}
+
+- name: 'vrt-add-id: --format with {elem[attr]}'
+  input:
+    cmdline: vrt-add-id --counter --format="{sentence[a]}-{id:03d}"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="a-001">
+      a
+      </sentence>
+      <sentence a="b" id="b-002">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="c-003">
+      c
+      </sentence>
+      </text>

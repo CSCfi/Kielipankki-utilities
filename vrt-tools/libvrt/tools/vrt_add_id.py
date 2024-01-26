@@ -16,6 +16,7 @@ from libvrt.metaname import nametype # need checked
 from libvrt.metaline import mapping, starttag
 
 from libvrt.strformatters import PartialStringFormatter
+from libvrt.strformatters import BytesFormatter
 
 # Default maximum random id value (DEFAULT_RAND_END - 1)
 DEFAULT_RAND_END = pow(2, 32)
@@ -120,11 +121,13 @@ def parsearguments(argv, *, prog = None):
                         help = '''
 
                         format string for id, with "{id}" replaced
-                        with the id value; supports Python
-                        str.format-style formatting (default: with
-                        --counter, "{id}"; with --random, "{id:0*x}"
-                        where * is the minimum number of hex digits to
-                        represent the maximum value)
+                        with the id value and "{elem[attr]}" with the
+                        value of the existing attribute attr in the
+                        element elem to which ids are added; supports
+                        Python str.format-style formatting (default:
+                        with --counter, "{id}"; with --random,
+                        "{id:0*x}" where * is the minimum number of
+                        hex digits to represent the maximum value)
 
                         ''')
 
@@ -207,6 +210,8 @@ def main(args, ins, ous):
 
     ids = get_idgen(args)
 
+    formatter = BytesFormatter()
+
     kind = (b''.join((b'<', args.element, b'>')),
             b''.join((b'<', args.element, b' ')))
 
@@ -215,7 +220,11 @@ def main(args, ins, ous):
             attrs = mapping(line)
             if args.force or args.idn not in attrs:
                 attrs[args.idn] = (
-                    args.format.format(id=next(ids)).encode('UTF-8'))
+                    formatter.format(
+                        args.format,
+                        id=next(ids),
+                        **{args.element.decode('UTF-8'): attrs}
+                    ).encode('UTF-8'))
             else:
                 raise BadData('element has id already')
             ous.write(starttag(args.element, attrs, sort=args.sort))
