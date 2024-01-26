@@ -69,39 +69,39 @@ class TestPartialStringFormatter:
         result = psf.format('{0}{1} a {a} b {b}', 'x', a=1)
         assert result == 'x* a 1 b *'
 
-    def test_keep_formatspecs_missing_arg(self):
-        """Test keeping formatspecs referring to missing arguments."""
+    def test_keep_replfields_missing_arg(self):
+        """Test keeping replacement fields referring to missing arguments."""
         psf = PartialStringFormatter(None)
         result = psf.format('{0}{1} a {a} b {b}', 'x', a=1)
         assert result == 'x{1} a 1 b {b}'
 
-    def test_keep_formatspecs_missing_args_all(self):
-        """Test keeping all formatspecs (no arguments)."""
+    def test_keep_replfields_missing_args_all(self):
+        """Test keeping all replacement fields (no arguments)."""
         psf = PartialStringFormatter(None)
         fmt = '{0}{1} a {a} b {b}'
         result = psf.format(fmt)
         assert result == fmt
 
-    def test_keep_formatspecs_missing_args_double_curlies(self):
-        """Test keeping formatspecs, format with double curly brackets."""
+    def test_keep_replfields_missing_args_double_curlies(self):
+        """Test keeping replacement fields, format with double curly brackets."""
         psf = PartialStringFormatter(None)
         result = psf.format('{0}{1} {{0}} a {a} b {b} {{a}}', 'x', a=1)
         assert result == 'x{1} {0} a 1 b {b} {a}'
 
-    def test_keep_formatspecs_missing_list_item(self):
-        """Test keeping a formatspec with a missing item in a list."""
+    def test_keep_replfields_missing_list_item(self):
+        """Test keeping a replacement field with a missing item in a list."""
         psf = PartialStringFormatter(None)
         result = psf.format('{a[0]} {a[1]}', a=[0])
         assert result == '0 '
 
-    def test_keep_formatspecs_missing_dict_key(self):
-        """Test keeping a formatspec with a missing key in a dict."""
+    def test_keep_replfields_missing_dict_key(self):
+        """Test keeping a replacement field with a missing key in a dict."""
         psf = PartialStringFormatter(None)
         result = psf.format('{a[a]} {a[b]}', a={'a': 0})
         assert result == '0 '
 
-    def test_keep_formatspecs_missing_attr(self):
-        """Test keeping a formatspec with a missing attribute."""
+    def test_keep_replfields_missing_attr(self):
+        """Test keeping a replacement field with a missing attribute."""
         psf = PartialStringFormatter(None)
         ns = Namespace()
         ns.a = 0
