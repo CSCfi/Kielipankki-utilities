@@ -133,3 +133,16 @@ class PartialStringFormatter(Formatter):
         if value is self._MISSING:
             value = self._missing if self._missing is not None else ''
         return super().format_field(value, spec)
+
+    def convert_field(self, value, conversion):
+        """Override `Formatter.convert_field`.
+
+        If `value` is `self._MISSING`, return it as such; otherwise,
+        call `Formatter.convert_field` on `value`.
+        """
+        if value is self._MISSING:
+            if self._missing is None:
+                return value
+            else:
+                value = self._missing
+        return super().convert_field(value, conversion)
