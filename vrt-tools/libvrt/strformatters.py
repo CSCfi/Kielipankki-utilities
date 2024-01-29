@@ -13,7 +13,7 @@ from collections import OrderedDict
 from string import Formatter
 
 
-class PartialStringFormatter(Formatter):
+class PartialFormatter(Formatter):
 
     """
     A string formatter handling missing objects.
