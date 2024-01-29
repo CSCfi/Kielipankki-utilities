@@ -15,7 +15,7 @@ from libvrt.args import transput_args
 from libvrt.metaname import nametype # need checked
 from libvrt.metaline import mapping, starttag
 
-from libvrt.strformatters import PartialStringFormatter
+from libvrt.strformatters import PartialFormatter
 from libvrt.strformatters import BytesFormatter
 
 # Default maximum random id value (DEFAULT_RAND_END - 1)
@@ -203,7 +203,7 @@ def expand_hashes(format_, strlist):
     hashvals['hash'] = hashvals['hash1']
 
     # This keeps the non-hash format specs in format_ intact
-    return PartialStringFormatter(None).format(format_, **hashvals)
+    return PartialFormatter(None).format(format_, **hashvals)
 
 def main(args, ins, ous):
     '''Transput VRT (bytes) in ins to VRT (bytes) in ous.'''
