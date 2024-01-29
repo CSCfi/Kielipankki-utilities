@@ -652,3 +652,50 @@
       c
       </sentence>
       </text>
+
+- name: 'vrt-add-id: --format with {elem[attr]} for enclosing elements'
+  input:
+    cmdline: vrt-add-id --counter --format="{text[n]:0>2s}-{paragraph[p]}-{sentence[a]}-{id:03d}"
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph p="p1">
+      <sentence a="a">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2">
+      <sentence a="b">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph p="p3">
+      <sentence a="c">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph p="p1">
+      <sentence a="a" id="01-p1-a-001">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2">
+      <sentence a="b" id="01-p2-b-002">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph p="p3">
+      <sentence a="c" id="02-p3-c-003">
+      c
+      </sentence>
+      </paragraph>
+      </text>

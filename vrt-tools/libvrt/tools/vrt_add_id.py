@@ -13,7 +13,8 @@ from libvrt.args import BadData
 from libvrt.args import transput_args
 
 from libvrt.metaname import nametype # need checked
-from libvrt.metaline import mapping, starttag
+from libvrt.metaline import (
+    mapping, starttag, ismeta, isstarttag, isendtag, element)
 
 from libvrt.strformatters import PartialFormatter
 from libvrt.strformatters import BytesFormatter
@@ -123,11 +124,12 @@ def parsearguments(argv, *, prog = None):
                         format string for id, with "{id}" replaced
                         with the id value and "{elem[attr]}" with the
                         value of the existing attribute attr in the
-                        element elem to which ids are added; supports
-                        Python str.format-style formatting (default:
-                        with --counter, "{id}"; with --random,
-                        "{id:0*x}" where * is the minimum number of
-                        hex digits to represent the maximum value)
+                        element elem to which ids are added or an
+                        enclosing element; supports Python
+                        str.format-style formatting (default: with
+                        --counter, "{id}"; with --random, "{id:0*x}"
+                        where * is the minimum number of hex digits to
+                        represent the maximum value)
 
                         ''')
 
@@ -212,24 +214,29 @@ def main(args, ins, ous):
 
     formatter = BytesFormatter()
 
-    kind = (b''.join((b'<', args.element, b'>')),
-            b''.join((b'<', args.element, b' ')))
+    id_elem_name = args.element.decode('UTF-8')
+    elem_attrs = {}
 
     for line in ins:
-        if line.startswith(kind):
-            attrs = mapping(line)
-            if args.force or args.idn not in attrs:
-                attrs[args.idn] = (
-                    formatter.format(
-                        args.format,
-                        id=next(ids),
-                        **{args.element.decode('UTF-8'): attrs}
-                    ).encode('UTF-8'))
-            else:
-                raise BadData('element has id already')
-            ous.write(starttag(args.element, attrs, sort=args.sort))
-        else:
-            ous.write(line)
+        if ismeta(line):
+            elem = element(line).decode('UTF-8')
+            if isendtag(line):
+                del elem_attrs[elem]
+            elif isstarttag(line):
+                attrs = elem_attrs[elem] = mapping(line)
+                if elem == id_elem_name:
+                    if args.force or args.idn not in attrs:
+                        attrs[args.idn] = (
+                            formatter.format(
+                                args.format,
+                                id=next(ids),
+                                **elem_attrs
+                            ).encode('UTF-8'))
+                    else:
+                        raise BadData('element has id already')
+                    ous.write(starttag(args.element, attrs, sort=args.sort))
+                    continue
+        ous.write(line)
 
 def get_idgen(args):
     '''Return id generator based on args.'''
