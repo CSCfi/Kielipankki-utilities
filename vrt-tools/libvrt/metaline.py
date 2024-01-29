@@ -19,6 +19,16 @@ def mapping(line):
 def pairs(line):
     return re.findall(br'(\S+)="([^""]*)"', line)
 
+def element(line):
+    '''Get start or end tag element name from line (bytes).'''
+    mo = re.search(rb'\w+', line)
+    return mo.group(0) if mo else None
+
+def strelement(line):
+    '''Get start or end tag element name from line (str).'''
+    mo = re.search(r'\w+', line)
+    return mo.group(0) if mo else None
+
 def valuegetter(head, *,
                 missing, # missing value mark (safe bytes)
                 warn = True,

@@ -11,6 +11,53 @@ import pytest
 import libvrt.metaline as ml
 
 
+class TestElement:
+
+    """Tests for vrtlib.metaline functions .element, strelement."""
+
+    @pytest.mark.parametrize('input,expected',
+                             [(b'<elem>', b'elem'),
+                              (b'<elem2>', b'elem2')])
+    def test_element_starttag_without_attrs(self, input, expected):
+        """Test element() for a start tag without attributes."""
+        assert ml.element(input) == expected
+
+    @pytest.mark.parametrize('input,expected',
+                             [(b'<elem a="a">', b'elem'),
+                              (b'<elem2  b="b" c="c">', b'elem2')])
+    def test_element_starttag_with_attrs(self, input, expected):
+        """Test element() for a start tag with attributes."""
+        assert ml.element(input) == expected
+
+    @pytest.mark.parametrize('input,expected',
+                             [(b'</elem>', b'elem'),
+                              (b'</elem2>', b'elem2')])
+    def test_element_endtag(self, input, expected):
+        """Test element() for an end tag."""
+        assert ml.element(input) == expected
+
+    @pytest.mark.parametrize('input,expected',
+                             [('<elem>', 'elem'),
+                              ('<elem2>', 'elem2')])
+    def test_strelement_starttag_without_attrs(self, input, expected):
+        """Test strelement() for a start tag without attributes."""
+        assert ml.strelement(input) == expected
+
+    @pytest.mark.parametrize('input,expected',
+                             [('<elem a="a">', 'elem'),
+                              ('<elem2  b="b" c="c">', 'elem2')])
+    def test_strelement_starttag_with_attrs(self, input, expected):
+        """Test strelement() for a start tag with attributes."""
+        assert ml.strelement(input) == expected
+
+    @pytest.mark.parametrize('input,expected',
+                             [('</elem>', 'elem'),
+                              ('</elem2>', 'elem2')])
+    def test_strelement_endtag(self, input, expected):
+        """Test strelement() for an end tag."""
+        assert ml.strelement(input) == expected
+
+
 @pytest.mark.parametrize('line,expected',
                          [('a', False),
                           ('&lt;', False),
