@@ -51,116 +51,6 @@ def parsearguments(argv, *, prog = None):
 
     parser = transput_args(description = description)
 
-    parser.add_argument('--element', metavar = 'name',
-                        action = grouping_arg(),
-                        type = nametype,
-                        # Default for --element is set only later, to
-                        # make it work correctly with grouping_arg
-                        # default = b'sentence',
-                        help = '''
-
-                        name of the VRT element to use; if no element
-                        is specified, use "sentence"; if multiple
-                        elements are specified, the options below
-                        apply to the element after which they are
-                        specified, or become defaults for all elements
-                        if specified before any --element
-
-                        ''')
-
-    parser.add_argument('--id', dest = 'idn', metavar = 'name',
-                        action = grouped_arg(),
-                        type = nametype,
-                        default = b'id',
-                        help = '''
-
-                        name of the "id" attribute ("id")
-
-                        ''')
-
-    parser.add_argument('--counter',
-                        action = grouped_arg('store_const'),
-                        dest = 'type',
-                        const = 'counter',
-                        help = '''
-
-                        id values are integers based on a counter (the
-                        default)
-
-                        ''')
-
-    parser.add_argument('--random',
-                        action = grouped_arg('store_const'),
-                        dest = 'type',
-                        const = 'random',
-                        help = '''
-
-                        id values are unique random integers (overrides
-                        --counter)
-
-                       ''')
-
-    parser.add_argument('--seed', metavar = 'string',
-                        action = grouped_arg(),
-                        default = '',
-                        help = '''
-
-                        random number generator seed for random ids
-                        (default: "" = non-reproducible)
-
-                        ''')
-
-    parser.add_argument('--start', metavar = 'number',
-                        action = grouped_arg(),
-                        type = int,
-                        default = 1,
-                        help = '''
-
-                        initial value for the counter (1)
-
-                        ''')
-
-    parser.add_argument('--end', metavar = 'number',
-                        action = grouped_arg(),
-                        type = intpow,
-                        default = DEFAULT_RAND_END,
-                        help = '''
-
-                        maximum random id value is number - 1; a
-                        non-negative integer, hexadecimal if prefixed
-                        with "0x", or n^k for n to the power of k
-                        (default: 2^32)
-
-                        ''')
-
-    parser.add_argument('--format', metavar = 'format',
-                        action = grouped_arg(),
-                        help = '''
-
-                        format string for id, with "{id}" replaced
-                        with the id value and "{elem[attr]}" with the
-                        value of the existing attribute attr in the
-                        element elem to which ids are added or an
-                        enclosing element; supports Python
-                        str.format-style formatting (default: with
-                        --counter, "{id}"; with --random, "{id:0*x}"
-                        where * is the minimum number of hex digits to
-                        represent the maximum value)
-
-                        ''')
-
-    parser.add_argument('--prefix', metavar = 'affix',
-                        action = grouped_arg(),
-                        type = affix,
-                        default = '',
-                        help = '''
-
-                        additional prefix text to each formatted id,
-                        prepended to the format string specified with
-                        --format ("")
-
-                        ''')
-
     parser.add_argument('--hash', metavar = 'string',
                         action = 'append',
                         help = '''
@@ -186,6 +76,124 @@ def parsearguments(argv, *, prog = None):
                         (default: keep input order)
 
                         ''')
+
+    parser.add_argument('--element', metavar = 'name',
+                        action = grouping_arg(),
+                        type = nametype,
+                        # Default for --element is set only later, to
+                        # make it work correctly with grouping_arg
+                        # default = b'sentence',
+                        help = '''
+
+                        name of the VRT element to use; can be
+                        repeated; if no --element is specified, use
+                        "sentence"
+
+                        ''')
+
+    group = parser.add_argument_group(
+        'element-specific options',
+        '''
+
+        The following options can be specified multiple times: each
+        occurrence applies to the --element after which it is
+        specified. If an option is specified before any --element, it
+        becomes the default for all elements.
+
+        ''')
+
+    group.add_argument('--id', dest = 'idn', metavar = 'name',
+                       action = grouped_arg(),
+                       type = nametype,
+                       default = b'id',
+                       help = '''
+
+                       name of the "id" attribute ("id")
+
+                       ''')
+
+    group.add_argument('--counter',
+                       action = grouped_arg('store_const'),
+                       dest = 'type',
+                       const = 'counter',
+                       help = '''
+
+                       id values are integers based on a counter (the
+                       default)
+
+                       ''')
+
+    group.add_argument('--random',
+                       action = grouped_arg('store_const'),
+                       dest = 'type',
+                       const = 'random',
+                       help = '''
+
+                       id values are unique random integers (overrides
+                       --counter)
+
+                       ''')
+
+    group.add_argument('--seed', metavar = 'string',
+                       action = grouped_arg(),
+                       default = '',
+                       help = '''
+
+                       random number generator seed for random ids
+                       (default: "" = non-reproducible)
+
+                       ''')
+
+    group.add_argument('--start', metavar = 'number',
+                       action = grouped_arg(),
+                       type = int,
+                       default = 1,
+                       help = '''
+
+                       initial value for the counter (1)
+
+                       ''')
+
+    group.add_argument('--end', metavar = 'number',
+                       action = grouped_arg(),
+                       type = intpow,
+                       default = DEFAULT_RAND_END,
+                       help = '''
+
+                       maximum random id value is number - 1; a
+                       non-negative integer, hexadecimal if prefixed
+                       with "0x", or n^k for n to the power of k
+                       (default: 2^32)
+
+                       ''')
+
+    group.add_argument('--format', metavar = 'format',
+                       action = grouped_arg(),
+                       help = '''
+
+                       format string for id, with "{id}" replaced
+                       with the id value and "{elem[attr]}" with the
+                       value of the existing attribute attr in the
+                       element elem to which ids are added or an
+                       enclosing element; supports Python
+                       str.format-style formatting (default: with
+                       --counter, "{id}"; with --random, "{id:0*x}"
+                       where * is the minimum number of hex digits to
+                       represent the maximum value)
+
+                       ''')
+
+    group.add_argument('--prefix', metavar = 'affix',
+                       action = grouped_arg(),
+                       type = affix,
+                       default = '',
+                       help = '''
+
+                       additional prefix text to each formatted id,
+                       prepended to the format string specified with
+                       --format ("")
+
+                       ''')
 
     args = parser.parse_args()
     # If no elements have been specified, make all options pertain to
