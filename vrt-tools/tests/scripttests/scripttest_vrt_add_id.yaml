@@ -656,7 +656,7 @@
 - name: 'vrt-add-id: --format with {elem[attr]} for enclosing elements'
   input:
     cmdline: vrt-add-id --counter --format="{text[n]:0>2s}-{paragraph[p]}-{sentence[a]}-{id:03d}"
-    stdin: |
+    stdin: &input-para |
       <!-- #vrt positional-attributes: word -->
       <text n="1">
       <paragraph p="p1">
@@ -695,6 +695,144 @@
       <text n="2">
       <paragraph p="p3">
       <sentence a="c" id="02-p3-c-003">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+
+
+# Multiple different elements
+
+- name: 'vrt-add-id: text, paragraph, sentence with completely different options'
+  input:
+    cmdline: vrt-add-id --element=text --counter --start=0 --id=tid --element=paragraph --counter --start=10 --id=pid --format="p-{id:02x}" --element=sentence --random --id=sid --seed=0 --end=2^16 --format="{id:04x}"
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" tid="0">
+      <paragraph p="p1" pid="p-0a">
+      <sentence a="a" sid="b1fd">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" pid="p-0b">
+      <sentence a="b" sid="391f">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" tid="1">
+      <paragraph p="p3" pid="p-0c">
+      <sentence a="c" sid="3d2b">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+
+- name: 'vrt-add-id: text, paragraph, sentence with same options'
+  input:
+    cmdline: vrt-add-id --id=xid --random --seed=0 --end=2^16 --format="{id:04x}" --element=text --element=paragraph --element=sentence
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" xid="b1fd">
+      <paragraph p="p1" xid="b1fd">
+      <sentence a="a" xid="b1fd">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" xid="391f">
+      <sentence a="b" xid="391f">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" xid="391f">
+      <paragraph p="p3" xid="3d2b">
+      <sentence a="c" xid="3d2b">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+
+- name: 'vrt-add-id: text, paragraph, sentence with default options'
+  input:
+    cmdline: vrt-add-id --element=text --element=paragraph --element=sentence
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="1">
+      <paragraph p="p1" id="1">
+      <sentence a="a" id="1">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="2">
+      <sentence a="b" id="2">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="2">
+      <paragraph p="p3" id="3">
+      <sentence a="c" id="3">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+
+- name: 'vrt-add-id: text, paragraph, sentence with some common options'
+  input:
+    cmdline: vrt-add-id --id=id --random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --prefix="p-" --seed=1 --element=sentence --prefix="s-" --seed=2
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-b1fd">
+      <paragraph p="p1" id="p-b667">
+      <sentence a="a" id="s-7b6f">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-027d">
+      <sentence a="b" id="s-50dc">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-391f">
+      <paragraph p="p3" id="p-bb1d">
+      <sentence a="c" id="s-275c">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+
+- name: 'vrt-add-id: text, paragraph, sentence; format referring to added ids'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="{text[id]}-p-{id:04x}" --seed=1 --element=sentence --format="{paragraph[id]}-s-{id:04x}" --seed=2
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-b1fd">
+      <paragraph p="p1" id="t-b1fd-p-b667">
+      <sentence a="a" id="t-b1fd-p-b667-s-7b6f">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="t-b1fd-p-027d">
+      <sentence a="b" id="t-b1fd-p-027d-s-50dc">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-391f">
+      <paragraph p="p3" id="t-391f-p-bb1d">
+      <sentence a="c" id="t-391f-p-bb1d-s-275c">
       c
       </sentence>
       </paragraph>

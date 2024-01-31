@@ -12,6 +12,8 @@ import re
 from libvrt.args import BadData
 from libvrt.args import transput_args
 
+from libvrt.groupargs import grouping_arg, grouped_arg
+
 from libvrt.metaname import nametype # need checked
 from libvrt.metaline import (
     mapping, starttag, ismeta, isstarttag, isendtag, element)
@@ -38,6 +40,8 @@ def intpow(arg):
 
 def parsearguments(argv, *, prog = None):
 
+    default_element = b'sentence'
+
     description = '''
 
     Add or overwrite an "id" attribute to each element of the
@@ -48,15 +52,24 @@ def parsearguments(argv, *, prog = None):
     parser = transput_args(description = description)
 
     parser.add_argument('--element', metavar = 'name',
+                        action = grouping_arg(),
                         type = nametype,
-                        default = b'sentence',
+                        # Default for --element is set only later, to
+                        # make it work correctly with grouping_arg
+                        # default = b'sentence',
                         help = '''
 
-                        name of the VRT element to use ("sentence")
+                        name of the VRT element to use; if no element
+                        is specified, use "sentence"; if multiple
+                        elements are specified, the options below
+                        apply to the element after which they are
+                        specified, or become defaults for all elements
+                        if specified before any --element
 
                         ''')
 
     parser.add_argument('--id', dest = 'idn', metavar = 'name',
+                        action = grouped_arg(),
                         type = nametype,
                         default = b'id',
                         help = '''
@@ -65,30 +78,30 @@ def parsearguments(argv, *, prog = None):
 
                         ''')
 
-    group = parser.add_mutually_exclusive_group()
+    parser.add_argument('--counter',
+                        action = grouped_arg('store_const'),
+                        dest = 'type',
+                        const = 'counter',
+                        help = '''
 
-    group.add_argument('--counter',
-                       action = 'store_const',
-                       dest = 'type',
-                       const = 'counter',
-                       help = '''
-
-                       id values are integers based on a counter (the
-                       default)
+                        id values are integers based on a counter (the
+                        default)
 
                         ''')
 
-    group.add_argument('--random',
-                       action = 'store_const',
-                       dest = 'type',
-                       const = 'random',
-                       help = '''
+    parser.add_argument('--random',
+                        action = grouped_arg('store_const'),
+                        dest = 'type',
+                        const = 'random',
+                        help = '''
 
-                       id values are unique random integers
+                        id values are unique random integers (overrides
+                        --counter)
 
                        ''')
 
     parser.add_argument('--seed', metavar = 'string',
+                        action = grouped_arg(),
                         default = '',
                         help = '''
 
@@ -98,6 +111,7 @@ def parsearguments(argv, *, prog = None):
                         ''')
 
     parser.add_argument('--start', metavar = 'number',
+                        action = grouped_arg(),
                         type = int,
                         default = 1,
                         help = '''
@@ -107,6 +121,7 @@ def parsearguments(argv, *, prog = None):
                         ''')
 
     parser.add_argument('--end', metavar = 'number',
+                        action = grouped_arg(),
                         type = intpow,
                         default = DEFAULT_RAND_END,
                         help = '''
@@ -119,6 +134,7 @@ def parsearguments(argv, *, prog = None):
                         ''')
 
     parser.add_argument('--format', metavar = 'format',
+                        action = grouped_arg(),
                         help = '''
 
                         format string for id, with "{id}" replaced
@@ -134,6 +150,7 @@ def parsearguments(argv, *, prog = None):
                         ''')
 
     parser.add_argument('--prefix', metavar = 'affix',
+                        action = grouped_arg(),
                         type = affix,
                         default = '',
                         help = '''
@@ -171,20 +188,29 @@ def parsearguments(argv, *, prog = None):
                         ''')
 
     args = parser.parse_args()
-    if not args.type:
-        args.type = 'counter'
-    if not args.seed:
-        args.seed = None
-    args.format = args.prefix + (
-        expand_hashes(args.format, args.hash) or (
+    # If no elements have been specified, make all options pertain to
+    # default_element
+    if not args.element:
+        args.element = {default_element: args}
+    # Set some defaults for all elements
+    for elem_args in args.element.values():
+        set_defaults(elem_args, args)
+    args.prog = prog or parser.prog
+    return args
+
+def set_defaults(elem_args, args):
+    '''Set some defaults in `elem_args` from `args`.'''
+    if not elem_args.type:
+        elem_args.type = 'counter'
+    if not elem_args.seed:
+        elem_args.seed = None
+    elem_args.format = elem_args.prefix + (
+        expand_hashes(elem_args.format, args.hash) or (
             '{id'
-            + (':0' + str(get_hexvalue_len(args.end)) + 'x}'
-               if args.type == 'random'
+            + (':0' + str(get_hexvalue_len(elem_args.end)) + 'x}'
+               if elem_args.type == 'random'
                else '}'))
     )
-    args.prog = prog or parser.prog
-
-    return args
 
 def expand_hashes(format_, strlist):
     '''Expand {hashN} in format_ to SHA-1 hex digest of strlist[N].
@@ -210,31 +236,42 @@ def expand_hashes(format_, strlist):
 def main(args, ins, ous):
     '''Transput VRT (bytes) in ins to VRT (bytes) in ous.'''
 
-    ids = get_idgen(args)
+    # Names of elements to which to add ids
+    id_elem_names = [elem for elem in args.element.keys()]
+
+    # Id generators for each element
+    ids = {}
+    for elem in id_elem_names:
+        ids[elem] = get_idgen(args.element[elem])
 
     formatter = BytesFormatter()
 
-    id_elem_name = args.element.decode('UTF-8')
+    # elem_attrs keys are string values for elem, as they are used as
+    # keyword argument names to formatter.format and bytes values
+    # cannot be used as keyword argument names
     elem_attrs = {}
 
     for line in ins:
         if ismeta(line):
-            elem = element(line).decode('UTF-8')
+            elem = element(line)
+            elem_s = elem.decode('UTF-8')
             if isendtag(line):
-                del elem_attrs[elem]
+                del elem_attrs[elem_s]
             elif isstarttag(line):
-                attrs = elem_attrs[elem] = mapping(line)
-                if elem == id_elem_name:
-                    if args.force or args.idn not in attrs:
-                        attrs[args.idn] = (
+                attrs = elem_attrs[elem_s] = mapping(line)
+                if elem in id_elem_names:
+                    # Element-specific options
+                    elem_args = args.element[elem]
+                    if args.force or elem_args.idn not in attrs:
+                        attrs[elem_args.idn] = (
                             formatter.format(
-                                args.format,
-                                id=next(ids),
+                                elem_args.format,
+                                id=next(ids[elem]),
                                 **elem_attrs
                             ).encode('UTF-8'))
                     else:
                         raise BadData('element has id already')
-                    ous.write(starttag(args.element, attrs, sort=args.sort))
+                    ous.write(starttag(elem, attrs, sort=args.sort))
                     continue
         ous.write(line)
 
