@@ -112,25 +112,15 @@ def parsearguments(argv, *, prog = None):
 
                        ''')
 
-    group.add_argument('--counter',
-                       action = grouped_arg('store_const'),
-                       dest = 'type',
-                       const = 'counter',
+    group.add_argument('--type',
+                       action = grouped_arg(),
+                       choices = ['counter', 'random'],
+                       default = 'counter',
                        help = '''
 
-                       id values are integers based on a counter (the
-                       default)
-
-                       ''')
-
-    group.add_argument('--random',
-                       action = grouped_arg('store_const'),
-                       dest = 'type',
-                       const = 'random',
-                       help = '''
-
-                       id values are unique random integers (overrides
-                       --counter)
+                       type of id values: "counter" for integers based
+                       on a counter, "random" for unique random
+                       integers ("counter")
 
                        ''')
 
@@ -177,9 +167,9 @@ def parsearguments(argv, *, prog = None):
                        element elem to which ids are added or an
                        enclosing element; supports Python
                        str.format-style formatting (default: with
-                       --counter, "{id}"; with --random, "{id:0*x}"
-                       where * is the minimum number of hex digits to
-                       represent the maximum value)
+                       --type=counter, "{id}"; with --type=random,
+                       "{id:0*x}" where * is the minimum number of hex
+                       digits to represent the maximum value)
 
                        ''')
 
