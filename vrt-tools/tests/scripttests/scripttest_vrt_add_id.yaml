@@ -701,6 +701,77 @@
       </text>
 
 
+# Format with "{this[attr]}"
+
+- name: 'vrt-add-id: --format with {this[attr]}'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{this[a]}-{id:03d}"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="a-001">
+      a
+      </sentence>
+      <sentence a="b" id="b-002">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="c-003">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: text, paragraph, sentence with same options and {this[attr]}'
+  input:
+    cmdline: vrt-add-id --id=xid --type=random --seed=0 --end=2^16 --format="{this[x]}-{id:04x}" --element=text --element=paragraph --element=sentence
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text x="1">
+      <paragraph x="p1">
+      <sentence x="a">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph x="p2">
+      <sentence x="b">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text x="2">
+      <paragraph x="p3">
+      <sentence x="c">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text x="1" xid="1-b1fd">
+      <paragraph x="p1" xid="p1-b1fd">
+      <sentence x="a" xid="a-b1fd">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph x="p2" xid="p2-391f">
+      <sentence x="b" xid="b-391f">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text x="2" xid="2-391f">
+      <paragraph x="p3" xid="p3-3d2b">
+      <sentence x="c" xid="c-3d2b">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+
+
 # Multiple different elements
 
 - name: 'vrt-add-id: text, paragraph, sentence with completely different options'

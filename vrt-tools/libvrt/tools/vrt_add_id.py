@@ -161,11 +161,12 @@ def parsearguments(argv, *, prog = None):
                        action = grouped_arg(),
                        help = '''
 
-                       format string for id, with "{id}" replaced
-                       with the id value and "{elem[attr]}" with the
-                       value of the existing attribute attr in the
-                       element elem to which ids are added or an
-                       enclosing element; supports Python
+                       format string for id, with "{id}" replaced with
+                       the id value and "{elem[attr]}" with the value
+                       of the existing attribute attr in the element
+                       elem to which ids are added or an enclosing
+                       element (the current element can also be
+                       referred to as "this"); supports Python
                        str.format-style formatting (default: with
                        --type=counter, "{id}"; with --type=random,
                        "{id:0*x}" where * is the minimum number of hex
@@ -265,6 +266,7 @@ def main(args, ins, ous):
                             formatter.format(
                                 elem_args.format,
                                 id=next(ids[elem]),
+                                this=attrs,
                                 **elem_attrs
                             ).encode('UTF-8'))
                     else:
