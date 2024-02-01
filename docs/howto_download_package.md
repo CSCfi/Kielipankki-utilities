@@ -5,7 +5,7 @@ The **source data** is offered as is, meaning that usually it is not changed by 
 
 The **VRT data** can be extracted from Korp in order to create a download package. You have to ask someone with access rights to the Korp server for this.
 
-As for all resources and all their versions, a META-SHARE record has to be created, URNs to be requested, the resource has to be added to the list of upcoming resources, if not there yet. (See [instructions](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/))
+As for all resources and all their versions, a META-SHARE record has to be created, URNs to be requested, the resource has to be added to the list of upcoming resources, if not there yet. (See the respective [instructions](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/))
 
 The name of the **source version** of a resource should contain the additional information 'source', e.g. `Yle Finnish News Archive 2011-2018, source`. The short name should have the suffix '-src', e.g. `ylenews-fi-2011-2018-src`.
 
@@ -15,12 +15,13 @@ License pages in the portal have to be created and linked to from META-SHARE.
 Citation information also has to be added to the META-SHARE record.
 
 ## Creating the download package
-Download the data from IDA to your work directory on CSC's computing environment (Puhti) in a separate folder. 
+Download the data from IDA or the HFST server to your work directory on CSC's computing environment (Puhti) in a separate folder. 
 
-Create a README.txt containing at least the following information:
+Create a **README.txt** containing at least the following information:
 long name of the corpus, shortname, metadata PID, license information, short description of the corpus as given in META-SHARE, link to the resource group page. Add an explanation of the structure of the download package if needed.
+For a model of the README.txt, please see [docs: model of the download package README.txt](model_download-package-README.md)
 
-Create a LICENSE.txt. The text of this file should be taken from the respective license page in the portal.
+Create a **LICENSE.txt**. The content of this file should be copied from the respective license page in the portal.
 
 The README and LICENSE files should be offered twice: once included in the download package and once uncompressed included in the download folder on the same level as the download package.
 
@@ -93,7 +94,7 @@ Update the META-SHARE record and add the location PID.
 
 Create or upate the resource group page, see [docs: how to create a resource group page](howto_resource_group_page.md).
 
-Publish news about the new corpus in the portal, see [docs: howto create news in the portal](howto_portal_news.md) .
+Publish news about the new corpus in the portal, see [docs: how to create news in the portal](howto_portal_news.md) .
 
 
 
