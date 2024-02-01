@@ -186,6 +186,24 @@ def parsearguments(argv, *, prog = None):
 
                        ''')
 
+    group.add_argument('--rename', metavar = 'name',
+                       action = grouped_arg(),
+                       nargs = '?',
+                       type = lambda s: s.encode('UTF-8'),
+                       # const value used if no argument
+                       const = b'{}_orig',
+                       help = '''
+
+                       rename possible existing id attribute to name;
+                       name may contain "{}" to be replaced with the
+                       original name; if also the renamed attribute
+                       already exists, append to the name "_N" where N
+                       is the smallest positive integer for which the
+                       resulting attribute does not exist; if name is
+                       omitted, "{}_orig" is used
+
+                       ''')
+
     args = parser.parse_args()
     # If no elements have been specified, make all options pertain to
     # default_element
@@ -261,7 +279,10 @@ def main(args, ins, ous):
                 if elem in id_elem_names:
                     # Element-specific options
                     elem_args = args.element[elem]
-                    if args.force or elem_args.idn not in attrs:
+                    if (args.force or elem_args.rename
+                            or elem_args.idn not in attrs):
+                        if elem_args.rename and elem_args.idn in attrs:
+                            rename_attr(attrs, elem_args.idn, elem_args.rename)
                         attrs[elem_args.idn] = (
                             formatter.format(
                                 elem_args.format,
@@ -312,6 +333,28 @@ def randint_uniq(end, seed=None):
                 raise BadData(errmsg)
         used.add(r)
         yield r
+
+def rename_attr(attrs, old, new):
+    '''Rename attribute old to new in dict attrs.
+
+    If new contains "{}", replace it with old. If an attribute with
+    the resulting name exists in attrs, append "_N" to the name where
+    N is the smallest positive integer for which the resulting
+    attribute name does not exist in attrs.
+
+    Effectively adds new with the value of old and deletes old, so the
+    order attributes in of attrs changes.
+    '''
+
+    if b'{}' in new:
+        new = new.replace(b'{}', old)
+    new_base = new + b'_'
+    n = 1
+    while new in attrs:
+        new = new_base + str(n).encode('UTF-8')
+        n += 1
+    attrs[new] = attrs[old]
+    del attrs[old]
 
 def get_hexvalue_len(value):
     '''Return the number of hex digits required to represent value - 1'''

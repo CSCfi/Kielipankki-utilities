@@ -908,3 +908,146 @@
       </sentence>
       </paragraph>
       </text>
+
+
+# --rename
+
+- name: 'vrt-add-id: --rename, no existing attribute'
+  input:
+    cmdline: vrt-add-id --id=x --rename
+    stdin: &input-multiattr |
+      <!-- #vrt positional-attributes: word -->
+      <text a="a" n="1" n_1="a" n_2="b">
+      <sentence a="a" id="1">
+      a
+      </sentence>
+      <sentence a="b" id="2">
+      b
+      </sentence>
+      </text>
+      <text a="a" n="2" n_1="b" n_2="c">
+      <sentence a="c" id="3">
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="a" n="1" n_1="a" n_2="b">
+      <sentence a="a" id="1" x="1">
+      a
+      </sentence>
+      <sentence a="b" id="2" x="2">
+      b
+      </sentence>
+      </text>
+      <text a="a" n="2" n_1="b" n_2="c">
+      <sentence a="c" id="3" x="3">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: --rename without argument, existing attribute'
+  input:
+    cmdline: vrt-add-id --id=a --rename
+    stdin: *input-multiattr
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="a" n="1" n_1="a" n_2="b">
+      <sentence id="1" a_orig="a" a="1">
+      a
+      </sentence>
+      <sentence id="2" a_orig="b" a="2">
+      b
+      </sentence>
+      </text>
+      <text a="a" n="2" n_1="b" n_2="c">
+      <sentence id="3" a_orig="c" a="3">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: --rename fixed name, existing attribute'
+  input:
+    cmdline: vrt-add-id --id=a --rename=b
+    stdin: *input-multiattr
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="a" n="1" n_1="a" n_2="b">
+      <sentence id="1" b="a" a="1">
+      a
+      </sentence>
+      <sentence id="2" b="b" a="2">
+      b
+      </sentence>
+      </text>
+      <text a="a" n="2" n_1="b" n_2="c">
+      <sentence id="3" b="c" a="3">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: --rename with {}, text and sentence, existing attributes'
+  input:
+    cmdline: vrt-add-id --rename="{}_" --element=text --id=n_1 --element=sentence --id=a
+    stdin: *input-multiattr
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="a" n="1" n_2="b" n_1_="a" n_1="1">
+      <sentence id="1" a_="a" a="1">
+      a
+      </sentence>
+      <sentence id="2" a_="b" a="2">
+      b
+      </sentence>
+      </text>
+      <text a="a" n="2" n_2="c" n_1_="b" n_1="2">
+      <sentence id="3" a_="c" a="3">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: text and sentence, different renames, existing attributes'
+  input:
+    cmdline: vrt-add-id --element=text --id=n_1 --rename="{}_" --element=sentence --id=a --rename="{}a"
+    stdin: *input-multiattr
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="a" n="1" n_2="b" n_1_="a" n_1="1">
+      <sentence id="1" aa="a" a="1">
+      a
+      </sentence>
+      <sentence id="2" aa="b" a="2">
+      b
+      </sentence>
+      </text>
+      <text a="a" n="2" n_2="c" n_1_="b" n_1="2">
+      <sentence id="3" aa="c" a="3">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-add-id: text and sentence, rename requiring suffix _N, existing attributes'
+  input:
+    cmdline: vrt-add-id --element=text --id=a --rename=n --element=sentence --id=a --rename=id
+    stdin: *input-multiattr
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" n_1="a" n_2="b" n_3="a" a="1">
+      <sentence id="1" id_1="a" a="1">
+      a
+      </sentence>
+      <sentence id="2" id_1="b" a="2">
+      b
+      </sentence>
+      </text>
+      <text n="2" n_1="b" n_2="c" n_3="a" a="2">
+      <sentence id="3" id_1="c" a="3">
+      c
+      </sentence>
+      </text>
