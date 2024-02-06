@@ -8,7 +8,12 @@ Pytest tests for libvrt.strformatters.
 
 import pytest
 
-from libvrt.strformatters import PartialFormatter, BytesFormatter
+from libvrt.strformatters import (
+    PartialFormatter,
+    BytesFormatter,
+    SubstitutingFormatter,
+    SubstitutingBytesFormatter
+)
 
 
 class Namespace:
@@ -214,3 +219,135 @@ class TestBytesFormatter:
         bf = BytesFormatter()
         result = bf.format('{0[a]}{a[b]}', {b'a': b'0'}, a={b'b': b'b'})
         assert result == '0b'
+
+
+class TestSubstitutingFormatter:
+
+    """Tests for SubstitutingFormatter"""
+
+    @pytest.fixture(autouse=True)
+    def set_formatter(self):
+        """Set self.sf to a SubstitutingFormatter instance."""
+        self.sf = SubstitutingFormatter()
+
+    def test_simple_substitution(self):
+        """Test simple substitution for a simple field."""
+        result = self.sf.format('{0/a/b/} {a/b+/c/}', 'aabbcc', a='aabbcc')
+        assert result == 'bbbbcc aaccc'
+
+    def test_simple_substitution_items(self):
+        """Test simple substitution for a indexed field and attribute."""
+        ns = Namespace()
+        ns.a = 'ccddee'
+        result = self.sf.format('{0[1]/a/b/} {a[a]/b+/c/} {ns.a/c/x/}',
+                                ['', 'aabbcc'],
+                                a={'a': 'aabbcc'},
+                                ns=ns)
+        assert result == 'bbbbcc aaccc xxddee'
+
+    def test_substitution_with_format_spec(self):
+        """Test substitution with a format specification."""
+        result = self.sf.format('|{0/a/b/:8s}|{a/b+/c/:@^10s}|',
+                                'aabbcc', a='aabbcc')
+        assert result == '|bbbbcc  |@@aaccc@@@|'
+
+    def test_substitution_with_conversion(self):
+        """Test substitution with conversion."""
+        result = self.sf.format('{0/a/b/!r} {a/b+/c/!s}',
+                                'aabbcc', a='aabbcc')
+        assert result == '\'bbbbcc\' aaccc'
+
+    def test_multiple_substitutions(self):
+        """Test multiple substitutions with different separators."""
+        result = self.sf.format('{0 /a/b/, /b+/cc/ ; /c/dd/ /e/f//f/g/}',
+                                'aabbccddeeff')
+        assert result == 'ddddddddddgggg'
+
+    def test_substitution_groups(self):
+        """Test substitution with groups."""
+        result = self.sf.format(
+            r'{0/^([a-z])(.+?)(?P<x>[0-9]+)(.+)([a-z])$/\g<5>\g<4>\g<x>\3\2\1/}',
+            'abc123def')
+        assert result == 'fde123123bca'
+
+    def test_protect_slashes(self):
+        """Test substitutions with backslash-protected slashes."""
+        result = self.sf.format(r'{0/\//\/\//} {1/(.)\/(.)/\2x\1}',
+                                'a//b', 'b/a')
+        assert result == r'a////b axb'
+
+    def test_handle_double_backslashes(self):
+        """Test substitutions with double backslashes."""
+        # Important to test in particular at the end of a pattern or
+        # substitution
+        result = self.sf.format(r'{0/a\\b/b\\a/} {1/\\/\\\\/}',
+                                r'aa\bb', r'b\a')
+        assert result == r'ab\ab b\\a'
+
+
+class TestSubstitutingBytesFormatter:
+
+    """Tests for SubstitutingBytesFormatter"""
+
+    # This class effectively duplicates TestSubstitutingFormatter with
+    # SubstitutingBytesFormatter and bytes values for format arguments.
+    # How could they be combined?
+
+    @pytest.fixture(autouse=True)
+    def set_formatter(self):
+        """Set self.sf to a SubstitutingBytesFormatter instance."""
+        self.sf = SubstitutingBytesFormatter()
+
+    def test_simple_substitution(self):
+        """Test simple substitution for a simple field."""
+        result = self.sf.format('{0/a/b/} {a/b+/c/}', b'aabbcc', a=b'aabbcc')
+        assert result == 'bbbbcc aaccc'
+
+    def test_simple_substitution_items(self):
+        """Test simple substitution for a indexed field and attribute."""
+        ns = Namespace()
+        ns.a = b'ccddee'
+        result = self.sf.format('{0[1]/a/b/} {a[a]/b+/c/} {ns.a/c/x/}',
+                                [b'', b'aabbcc'],
+                                a={b'a': b'aabbcc'},
+                                ns=ns)
+        assert result == 'bbbbcc aaccc xxddee'
+
+    def test_substitution_with_format_spec(self):
+        """Test substitution with a format specification."""
+        result = self.sf.format('|{0/a/b/:8s}|{a/b+/c/:@^10s}|',
+                                b'aabbcc', a=b'aabbcc')
+        assert result == '|bbbbcc  |@@aaccc@@@|'
+
+    def test_substitution_with_conversion(self):
+        """Test substitution with conversion."""
+        result = self.sf.format('{0/a/b/!r} {a/b+/c/!s}',
+                                b'aabbcc', a=b'aabbcc')
+        assert result == '\'bbbbcc\' aaccc'
+
+    def test_multiple_substitutions(self):
+        """Test multiple substitutions with different separators."""
+        result = self.sf.format('{0 /a/b/, /b+/cc/ ; /c/dd/ /e/f//f/g/}',
+                                b'aabbccddeeff')
+        assert result == 'ddddddddddgggg'
+
+    def test_substitution_groups(self):
+        """Test substitution with groups."""
+        result = self.sf.format(
+            r'{0/^([a-z])(.+?)(?P<x>[0-9]+)(.+)([a-z])$/\g<5>\g<4>\g<x>\3\2\1/}',
+            b'abc123def')
+        assert result == 'fde123123bca'
+
+    def test_protect_slashes(self):
+        """Test substitutions with backslash-protected slashes."""
+        result = self.sf.format(r'{0/\//\/\//} {1/(.)\/(.)/\2x\1}',
+                                b'a//b', b'b/a')
+        assert result == r'a////b axb'
+
+    def test_handle_double_backslashes(self):
+        """Test substitutions with double backslashes."""
+        # Important to test in particular at the end of a pattern or
+        # substitution
+        result = self.sf.format(r'{0/a\\b/b\\a/} {1/\\/\\\\/}',
+                                br'aa\bb', br'b\a')
+        assert result == r'ab\ab b\\a'

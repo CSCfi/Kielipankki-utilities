@@ -201,3 +201,91 @@ class BytesFormatter(Formatter):
         it is `bytes`.
         """
         return _bytes_to_string(super().get_value(key, args, kwargs))
+
+
+class SubstitutingFormatter(Formatter):
+
+    r"""
+    A string formatter allowing regexp substitutions in replacement values
+
+    This class extends replacement field names to allow specifying
+    regular expression substitutions in replacement values.
+    Substitutions are of the form `/regexp/subst/`. They follow
+    possible attribute name or element index but precede conversion
+    and format specification. Multiple substitutions can be specified
+    for a single field, separated by an empty string, single comma or
+    semicolon optionally surrounded by spaces. All matching strings
+    are replaced. The substitution expressions may contain
+    backreferences `\N` and `\g<...>` to refer to substrings matched
+    by groups in the regular expression. Slashes in the regular
+    expressions and substitution expressions should be protected by a
+    backslash.
+
+    Example:
+
+    >>> sf = SubstitutingFormatter()
+    >>> sf.format('<{x[a]/a/b/,/z/x\/x/,/([a-z])/\\1+/:15s}>', x={'a': 'aazz'})
+    '<b+b+x+/x+x+/x+ >'
+    """
+
+    def __init__(self):
+        """Initialize formatter."""
+        super().__init__()
+
+    def get_field(self, field_name, args, kwargs):
+        """Override `Formatter.get_field`.
+
+        Handle substitution expressions `/regexp/subst/` at the end of
+        `field_name`.
+        """
+
+        def apply_substs(value, substs):
+            """Apply substitutions `substs` to string `value`."""
+            # TODO: Conversion substs -> substlist could perhaps be
+            # cached
+            # Handle backslash-protected slashes \/; also handle cases
+            # such as \\/, where the slash is not protected
+            substs = substs.replace(r'\\', '\x01').replace(r'\/', '\x02')
+            substlist = [subst.replace('\x01', r'\\').replace('\x02', '/')
+                         for subst in substs.split('/')]
+            i = 0
+            # Process three items at a time: pattern, substitution,
+            # (separator)
+            while i + 1 < len(substlist):
+                patt, subst = substlist[i], substlist[i + 1]
+                value = re.sub(patt, subst, value)
+                if i + 2 < len(substlist):
+                    sep = substlist[i + 2]
+                    if sep and not re.fullmatch(r'\s*[,;\s]\s*', sep):
+                        raise ValueError(
+                            f'unrecognized substitution separator "{sep}"'
+                            ' instead of a comma, semicolon or space')
+                i += 3
+            return value
+
+        field_name, _, substs = field_name.partition('/')
+        # Allow space around the slash
+        field_name = field_name.rstrip()
+        substs = substs.strip()
+        value, used_key = super().get_field(field_name, args, kwargs)
+        if substs:
+            value = apply_substs(value, substs)
+        return value, used_key
+
+
+class SubstitutingBytesFormatter(SubstitutingFormatter, BytesFormatter):
+
+    # The superclasses need to be in the above order for this class to
+    # work as intended
+
+    """
+    A substituting string formatter converting bytes to strings
+
+    This class is a combination of `SubstitutingFormatter` and
+    `BytesFormatter`: it allows substitutions in replacement field
+    name and converts bytes to strings in replacement values.
+    """
+
+    def __init__(self):
+        """Initialize formatter."""
+        super().__init__()
