@@ -46,190 +46,178 @@ class TestPartialFormatter:
 
     """Tests for PartialFormatter"""
 
+    def check_formatted(self, missing, expected, format, *args, **kwargs):
+        """Assert that the result of PartialFormatter.format is expected.
+
+        missing is passed to PartialFormatter; format, *args and
+        **kwargs to PartialFormatter.format.
+        """
+        # The argument order with expected second might not be the
+        # most natural, but we cannot have it after **kwargs
+        pf = PartialFormatter(missing)
+        result = pf.format(format, *args, **kwargs)
+        assert result == expected
+
     def test_all_keys_exist(self):
         """Test a case in which all format keys exist."""
-        pf = PartialFormatter()
-        result = pf.format('{0}{1} a {a} b {b} c {c[0]} d {d[a]} e {ns.x}',
-                           'x', 'y', a=1, b=2, c=[0], d={'a': 3},
-                           ns=Namespace(x=4))
-        assert result == 'xy a 1 b 2 c 0 d 3 e 4'
+        self.check_formatted(
+            '', 'xy a 1 b 2 c 0 d 3 e 4',
+            '{0}{1} a {a} b {b} c {c[0]} d {d[a]} e {ns.x}',
+            'x', 'y', a=1, b=2, c=[0], d={'a': 3}, ns=Namespace(x=4))
 
     def test_missing_arg(self):
         """Test a case with missing positional argument."""
-        pf = PartialFormatter()
-        result = pf.format('{0}{1} a {a} b {b}', 'x', a=1, b=2)
-        assert result == 'x a 1 b 2'
+        self.check_formatted('', 'x a 1 b 2',
+                             '{0}{1} a {a} b {b}', 'x', a=1, b=2)
 
     def test_missing_kwarg(self):
         """Test a case with missing keyword argument."""
-        pf = PartialFormatter()
-        result = pf.format('{0}{1} a {a} b {b}', 'x', 'y', a=1)
-        assert result == 'xy a 1 b '
+        self.check_formatted('', 'xy a 1 b ',
+                             '{0}{1} a {a} b {b}', 'x', 'y', a=1)
 
     def test_missing_list_item(self):
         """Test a case with a missing item in a list."""
-        pf = PartialFormatter()
-        result = pf.format('{a[0]} {a[1]}', a=[0])
-        assert result == '0 '
+        self.check_formatted('', '0 ',
+                             '{a[0]} {a[1]}', a=[0])
 
     def test_missing_dict_key(self):
         """Test a case with a missing key in a dict."""
-        pf = PartialFormatter()
-        result = pf.format('{a[a]} {a[b]}', a={'a': 0})
-        assert result == '0 '
+        self.check_formatted('', '0 ',
+                             '{a[a]} {a[b]}', a={'a': 0})
 
     def test_missing_attr(self):
         """Test a case with a missing attribute."""
-        pf = PartialFormatter()
-        result = pf.format('{ns.a} {ns.b}', ns=Namespace(a=0))
-        assert result == '0 '
+        self.check_formatted('', '0 ',
+                             '{ns.a} {ns.b}', ns=Namespace(a=0))
 
     def test_missing_args_none(self):
         """Test missing arguments, with None values."""
-        pf = PartialFormatter()
-        result = pf.format('|{0}|{1}|{a}|{b}|', None, a=None)
-        assert result == '|None||None||'
+        self.check_formatted('', '|None||None||',
+                             '|{0}|{1}|{a}|{b}|', None, a=None)
 
     def test_missing_args_with_formatspecs(self):
         """Test missing arguments, replacement fields with format specs."""
-        pf = PartialFormatter()
-        result = pf.format('|{0:2}|{1:2}|{a:2}|{b:2}|', 'x', a=1)
-        assert result == '|x |  | 1|  |'
+        self.check_formatted('', '|x |  | 1|  |',
+                             '|{0:2}|{1:2}|{a:2}|{b:2}|', 'x', a=1)
 
     def test_missing_args_with_conversions(self):
         """Test missing arguments, replacement fields with conversions."""
-        pf = PartialFormatter()
-        result = pf.format('|{0!s:2}|{1!s:2}|{a!s:2}|{b!s:2}|', 'x', a=1)
-        assert result == '|x |  |1 |  |'
+        self.check_formatted('', '|x |  |1 |  |',
+                             '|{0!s:2}|{1!s:2}|{a!s:2}|{b!s:2}|', 'x', a=1)
 
     def test_missing_args_with_conversions_none(self):
         """Test missing arguments, with conversions and None values."""
-        pf = PartialFormatter()
-        result = pf.format('|{0!s:2}|{1!s:2}|{a!s:2}|{b!s:2}|', None, a=None)
-        assert result == '|None|  |None|  |'
+        self.check_formatted('', '|None|  |None|  |',
+                             '|{0!s:2}|{1!s:2}|{a!s:2}|{b!s:2}|', None, a=None)
 
     def test_missing_args_with_conversions_repr_none(self):
         """Test missing arguments, with !r conversions and None values."""
-        pf = PartialFormatter()
-        result = pf.format('|{0!r:2}|{1!r:2}|{a!r:2}|{b!r:2}|', None, a=None)
-        assert result == '|None|\'\'|None|\'\'|'
+        self.check_formatted('', '|None|\'\'|None|\'\'|',
+                             '|{0!r:2}|{1!r:2}|{a!r:2}|{b!r:2}|', None, a=None)
 
     def test_alternative_replacement_value(self):
         """Test a case with an alternative replacement value for missing."""
-        pf = PartialFormatter('*')
-        result = pf.format('{0}{1} a {a} b {b}', 'x', a=1)
-        assert result == 'x* a 1 b *'
+        self.check_formatted('*', 'x* a 1 b *',
+                             '{0}{1} a {a} b {b}', 'x', a=1)
 
     def test_alt_repl_value_with_formatspecs(self):
         """Test missing arguments, alternative replacement, format specs."""
-        pf = PartialFormatter('*')
-        result = pf.format('|{0:2}|{1:2}|{a:2}|{b:2}|', 'x', a=1)
-        assert result == '|x |* | 1|* |'
+        self.check_formatted('*', '|x |* | 1|* |',
+                             '|{0:2}|{1:2}|{a:2}|{b:2}|', 'x', a=1)
 
     def test_alt_repl_value_with_repr_conversions(self):
         """Test missing arguments, alt replacement, format specs, !r."""
-        pf = PartialFormatter('*')
-        result = pf.format('|{0!r:2}|{1!r:2}|{a!r:2}|{b!r:2}|', 'x', a=1)
-        assert result == '|\'x\'|\'*\'|1 |\'*\'|'
+        self.check_formatted('*', '|\'x\'|\'*\'|1 |\'*\'|',
+                             '|{0!r:2}|{1!r:2}|{a!r:2}|{b!r:2}|', 'x', a=1)
 
     def test_alt_repl_int_value_with_formatspecs(self):
         """Test missing arguments, int replacement, format specs."""
-        pf = PartialFormatter(0)
-        result = pf.format('|{0:2}|{1:2}|{a:2}|{b:2}|', 'x', a=1)
-        assert result == '|x | 0| 1| 0|'
+        self.check_formatted(0, '|x | 0| 1| 0|',
+                             '|{0:2}|{1:2}|{a:2}|{b:2}|', 'x', a=1)
 
     def test_alt_repl_int_value_with_conversions(self):
         """Test missing arguments, int replacement, format specs, conversion."""
-        pf = PartialFormatter(0)
-        result = pf.format('|{0!s:2}|{1!s:2}|{a!s:2}|{b!s:2}|', 'x', a=1)
-        assert result == '|x |0 |1 |0 |'
+        self.check_formatted(0, '|x |0 |1 |0 |',
+                             '|{0!s:2}|{1!s:2}|{a!s:2}|{b!s:2}|', 'x', a=1)
 
     def test_alt_repl_int_value_with_repr_conversions(self):
         """Test missing arguments, int replacement, format specs, !r."""
-        pf = PartialFormatter(0)
-        result = pf.format('|{0!r:2}|{1!r:2}|{a!r:2}|{b!r:2}|', 'x', a=1)
-        assert result == '|\'x\'|0 |1 |0 |'
+        self.check_formatted(0, '|\'x\'|0 |1 |0 |',
+                             '|{0!r:2}|{1!r:2}|{a!r:2}|{b!r:2}|', 'x', a=1)
 
     def test_keep_replfields_missing_arg(self):
         """Test keeping replacement fields referring to missing arguments."""
-        pf = PartialFormatter(None)
-        result = pf.format('{0}{1} a {a} b {b}', 'x', a=1)
-        assert result == 'x{1} a 1 b {b}'
+        self.check_formatted(None, 'x{1} a 1 b {b}',
+                             '{0}{1} a {a} b {b}', 'x', a=1)
 
     def test_keep_replfields_missing_args_all(self):
         """Test keeping all replacement fields (no arguments)."""
-        pf = PartialFormatter(None)
         fmt = '{0}{1} a {a} b {b}'
-        result = pf.format(fmt)
-        assert result == fmt
+        self.check_formatted(None, fmt, fmt)
 
     def test_keep_replfields_missing_args_double_curlies(self):
         """Test keeping replacement fields, format with double curly brackets."""
-        pf = PartialFormatter(None)
-        result = pf.format('{0}{1} {{0}} a {a} b {b} {{a}}', 'x', a=1)
-        assert result == 'x{1} {0} a 1 b {b} {a}'
+        self.check_formatted(None, 'x{1} {0} a 1 b {b} {a}',
+                             '{0}{1} {{0}} a {a} b {b} {{a}}', 'x', a=1)
 
     def test_keep_replfields_missing_list_item(self):
         """Test keeping a replacement field with a missing item in a list."""
-        pf = PartialFormatter(None)
-        result = pf.format('{a[0]} {a[1]}', a=[0])
-        assert result == '0 '
+        self.check_formatted(None, '0 ',
+                             '{a[0]} {a[1]}', a=[0])
 
     def test_keep_replfields_missing_dict_key(self):
         """Test keeping a replacement field with a missing key in a dict."""
-        pf = PartialFormatter(None)
-        result = pf.format('{a[a]} {a[b]}', a={'a': 0})
-        assert result == '0 '
+        self.check_formatted(None, '0 ',
+                             '{a[a]} {a[b]}', a={'a': 0})
 
     def test_keep_replfields_missing_attr(self):
         """Test keeping a replacement field with a missing attribute."""
-        pf = PartialFormatter(None)
-        result = pf.format('{ns.a} {ns.b}', ns=Namespace(a=0))
-        assert result == '0 '
+        self.check_formatted(None, '0 ',
+                             '{ns.a} {ns.b}', ns=Namespace(a=0))
 
 
 class TestBytesFormatter:
 
     """Tests for BytesFormatter"""
 
+    def check_formatted(self, expected, format, *args, **kwargs):
+        """Assert that the result of BytesFormatter.format is expected."""
+        bf = BytesFormatter()
+        result = bf.format(format, *args, **kwargs)
+        assert result == expected
+
     def test_format_strings(self):
         """Test formatting strings with BytesFormatter."""
-        bf = BytesFormatter()
         ns = Namespace(a='2')
-        result = bf.format('|{0}|{1[0]}|{2.a}|{a}|{b[a]}|{ns.a}|',
-                           0, [1, 2], ns, a='a', b={'a': 'b'}, ns=ns)
-        assert result == '|0|1|2|a|b|2|'
+        self.check_formatted('|0|1|2|a|b|2|',
+                             '|{0}|{1[0]}|{2.a}|{a}|{b[a]}|{ns.a}|',
+                             0, [1, 2], ns, a='a', b={'a': 'b'}, ns=ns)
 
     def test_format_bytes_as_string(self):
         """Test formatting with converting bytes values to strings."""
-        bf = BytesFormatter()
-        result = bf.format('{0}{a}', b'0', a=b'a')
-        assert result == '0a'
+        self.check_formatted('0a',
+                             '{0}{a}', b'0', a=b'a')
 
     def test_format_bytes_list_item_as_string(self):
         """Test formatting with converting bytes list item values to strings."""
-        bf = BytesFormatter()
-        result = bf.format('{0[0]}{a[1]}', [b'0', b'1'], a=[b'a', b'b'])
-        assert result == '0b'
+        self.check_formatted('0b',
+                             '{0[0]}{a[1]}', [b'0', b'1'], a=[b'a', b'b'])
 
     def test_format_bytes_dict_value_as_string(self):
         """Test formatting with converting bytes dict values to strings."""
-        bf = BytesFormatter()
-        result = bf.format('{0[a]}{a[b]}', {'a': b'0'}, a={'b': b'b'})
-        assert result == '0b'
+        self.check_formatted('0b',
+                             '{0[a]}{a[b]}', {'a': b'0'}, a={'b': b'b'})
 
     def test_format_bytes_attr_value_as_string(self):
         """Test formatting with converting bytes attribute values to strings."""
-        bf = BytesFormatter()
         ns = Namespace(a=b'a', b=b'b')
-        result = bf.format('{0.a}{ns.b}', ns, ns=ns)
-        assert result == 'ab'
+        self.check_formatted('ab',
+                             '{0.a}{ns.b}', ns, ns=ns)
 
     def test_format_bytes_dict_key_as_string(self):
         """Test formatting with converting bytes dict keys to strings."""
-        bf = BytesFormatter()
-        result = bf.format('{0[a]}{a[b]}', {b'a': b'0'}, a={b'b': b'b'})
-        assert result == '0b'
+        self.check_formatted('0b',
+                             '{0[a]}{a[b]}', {b'a': b'0'}, a={b'b': b'b'})
 
 
 def substituting_format(format, *args, **kwargs):
