@@ -269,6 +269,18 @@ class TestSubstitutingFormatters:
                           ns=Namespace(a=b'ccddee'))
         assert result == 'bbbbcc aaccc xxddee'
 
+    def test_empty_substitution(self, formatfn):
+        """Test empty substitution (removal)."""
+        result = formatfn('{0/a//} {a/b+//}',
+                          b'aabbcc', a=b'aabbcc')
+        assert result == 'bbcc aacc'
+
+    def test_empty_regexp(self, formatfn):
+        """Test empty regexp (insertion everywhere)."""
+        result = formatfn('{0//+/} {a//x/}',
+                          b'aabbcc', a=b'aabbcc')
+        assert result == '+a+a+b+b+c+c+ xaxaxbxbxcxcx'
+
     def test_substitution_with_format_spec(self, formatfn):
         """Test substitution with a format specification."""
         result = formatfn('|{0/a/b/:8s}|{a/b+/c/:@^10s}|',
@@ -286,6 +298,12 @@ class TestSubstitutingFormatters:
         result = formatfn('{0 /a/b/, /b+/cc/ ; /c/dd/ /e/f//f/g/}',
                           b'aabbccddeeff')
         assert result == 'ddddddddddgggg'
+
+    def test_multiple_substitutions_with_empty(self, formatfn):
+        """Test multiple substitutions, including empty (removal)."""
+        result = formatfn('{0 /a/b/, /b+// ; /c/dd/ /e/f//f//}',
+                          b'aabbccddeeff')
+        assert result == 'dddddd'
 
     def test_substitution_groups(self, formatfn):
         """Test substitution with groups."""
