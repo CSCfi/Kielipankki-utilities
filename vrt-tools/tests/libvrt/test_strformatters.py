@@ -20,7 +20,10 @@ class Namespace:
 
     """Empty class to be used as a namespace."""
 
-    pass
+    def __init__(self, **kwargs):
+        """Set instance attributes from kwargs."""
+        for key, val in kwargs.items():
+            setattr(self, key, val)
 
 
 def decode(val):
@@ -46,10 +49,9 @@ class TestPartialFormatter:
     def test_all_keys_exist(self):
         """Test a case in which all format keys exist."""
         pf = PartialFormatter()
-        ns = Namespace()
-        ns.x = 4
         result = pf.format('{0}{1} a {a} b {b} c {c[0]} d {d[a]} e {ns.x}',
-                           'x', 'y', a=1, b=2, c=[0], d={'a': 3}, ns=ns)
+                           'x', 'y', a=1, b=2, c=[0], d={'a': 3},
+                           ns=Namespace(x=4))
         assert result == 'xy a 1 b 2 c 0 d 3 e 4'
 
     def test_missing_arg(self):
@@ -79,9 +81,7 @@ class TestPartialFormatter:
     def test_missing_attr(self):
         """Test a case with a missing attribute."""
         pf = PartialFormatter()
-        ns = Namespace()
-        ns.a = 0
-        result = pf.format('{ns.a} {ns.b}', ns=ns)
+        result = pf.format('{ns.a} {ns.b}', ns=Namespace(a=0))
         assert result == '0 '
 
     def test_missing_args_none(self):
@@ -184,9 +184,7 @@ class TestPartialFormatter:
     def test_keep_replfields_missing_attr(self):
         """Test keeping a replacement field with a missing attribute."""
         pf = PartialFormatter(None)
-        ns = Namespace()
-        ns.a = 0
-        result = pf.format('{ns.a} {ns.b}', ns=ns)
+        result = pf.format('{ns.a} {ns.b}', ns=Namespace(a=0))
         assert result == '0 '
 
 
@@ -197,8 +195,7 @@ class TestBytesFormatter:
     def test_format_strings(self):
         """Test formatting strings with BytesFormatter."""
         bf = BytesFormatter()
-        ns = Namespace()
-        ns.a = '2'
+        ns = Namespace(a='2')
         result = bf.format('|{0}|{1[0]}|{2.a}|{a}|{b[a]}|{ns.a}|',
                            0, [1, 2], ns, a='a', b={'a': 'b'}, ns=ns)
         assert result == '|0|1|2|a|b|2|'
@@ -224,9 +221,7 @@ class TestBytesFormatter:
     def test_format_bytes_attr_value_as_string(self):
         """Test formatting with converting bytes attribute values to strings."""
         bf = BytesFormatter()
-        ns = Namespace()
-        ns.a = b'a'
-        ns.b = b'b'
+        ns = Namespace(a=b'a', b=b'b')
         result = bf.format('{0.a}{ns.b}', ns, ns=ns)
         assert result == 'ab'
 
@@ -280,12 +275,10 @@ class TestSubstitutingFormatters:
 
     def test_simple_substitution_items(self, formatfn):
         """Test simple substitution for a indexed field and attribute."""
-        ns = Namespace()
-        ns.a = b'ccddee'
         result = formatfn('{0[1]/a/b/} {a[a]/b+/c/} {ns.a/c/x/}',
                           [b'', b'aabbcc'],
                           a={b'a': b'aabbcc'},
-                          ns=ns)
+                          ns=Namespace(a=b'ccddee'))
         assert result == 'bbbbcc aaccc xxddee'
 
     def test_substitution_with_format_spec(self, formatfn):
