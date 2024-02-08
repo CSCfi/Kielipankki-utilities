@@ -1051,3 +1051,33 @@
       c
       </sentence>
       </text>
+
+
+# Subtitutions in formats
+
+- name: 'vrt-add-id: text, paragraph, sentence; format referring to added ids, with substitutions'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{text[id]/t-//}-{id:04x}" --seed=1 --element=sentence --format="s-{paragraph[id]/p-//,/-/+/}-{id:04x}" --seed=2
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-b1fd">
+      <paragraph p="p1" id="p-b1fd-b667">
+      <sentence a="a" id="s-b1fd+b667-7b6f">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-b1fd-027d">
+      <sentence a="b" id="s-b1fd+027d-50dc">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-391f">
+      <paragraph p="p3" id="p-391f-bb1d">
+      <sentence a="c" id="s-391f+bb1d-275c">
+      c
+      </sentence>
+      </paragraph>
+      </text>

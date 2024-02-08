@@ -19,7 +19,7 @@ from libvrt.metaline import (
     mapping, starttag, ismeta, isstarttag, isendtag, element)
 
 from libvrt.strformatters import PartialFormatter
-from libvrt.strformatters import BytesFormatter
+from libvrt.strformatters import SubstitutingBytesFormatter
 
 # Default maximum random id value (DEFAULT_RAND_END - 1)
 DEFAULT_RAND_END = pow(2, 32)
@@ -167,10 +167,17 @@ def parsearguments(argv, *, prog = None):
                        elem to which ids are added or an enclosing
                        element (the current element can also be
                        referred to as "this"); supports Python
-                       str.format-style formatting (default: with
-                       --type=counter, "{id}"; with --type=random,
-                       "{id:0*x}" where * is the minimum number of hex
-                       digits to represent the maximum value)
+                       str.format-style formatting, extended with
+                       regular expression substitutions, so that
+                       "{elem[attr]/regexp/subst/}" is "{elem[attr]}"
+                       with all matches of regexp replaced with subst;
+                       subst may refer to groups in regexp as \\N,
+                       \\g<N> or \\g<name>; multiple substitutions are
+                       separated by commas, semicolons or spaces
+                       (default: with --type=counter, "{id}"; with
+                       --type=random, "{id:0*x}" where * is the
+                       minimum number of hex digits to represent the
+                       maximum value)
 
                        ''')
 
@@ -261,7 +268,7 @@ def main(args, ins, ous):
     for elem in id_elem_names:
         ids[elem] = get_idgen(args.element[elem])
 
-    formatter = BytesFormatter()
+    formatter = SubstitutingBytesFormatter()
 
     # elem_attrs keys are string values for elem, as they are used as
     # keyword argument names to formatter.format and bytes values
