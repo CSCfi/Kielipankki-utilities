@@ -161,23 +161,23 @@ def parsearguments(argv, *, prog = None):
                        action = grouped_arg(),
                        help = '''
 
-                       format string for id, with "{id}" replaced with
-                       the id value and "{elem[attr]}" with the value
-                       of the existing attribute attr in the element
-                       elem to which ids are added or an enclosing
-                       element (the current element can also be
-                       referred to as "this"); supports Python
-                       str.format-style formatting, extended with
-                       regular expression substitutions, so that
-                       "{elem[attr]/regexp/subst/}" is "{elem[attr]}"
-                       with all matches of regexp replaced with subst;
-                       subst may refer to groups in regexp as \\N,
-                       \\g<N> or \\g<name>; multiple substitutions are
-                       separated by commas, semicolons or spaces
-                       (default: with --type=counter, "{id}"; with
-                       --type=random, "{id:0*x}" where * is the
-                       minimum number of hex digits to represent the
-                       maximum value)
+                       format string for id, with Python
+                       str.format-style formatting: "{id}" is replaced
+                       with the id value, "{idnum[elem]}" with the id
+                       value for element elem, and "{elem[attr]}" with
+                       the value of the existing attribute attr in the
+                       current or an enclosing element (the current
+                       element can also be referred to as "this");
+                       formatting is extended with regular expression
+                       substitutions: "{elem[attr]/regexp/subst/}" is
+                       "{elem[attr]}" with all matches of regexp
+                       replaced with subst; subst may refer to groups
+                       in regexp as \\N, \\g<N> or \\g<name>; multiple
+                       substitutions are separated by commas,
+                       semicolons or spaces (default: with
+                       --type=counter, "{id}"; with --type=random,
+                       "{id:0*x}" where * is the minimum number of hex
+                       digits to represent the maximum value)
 
                        ''')
 
@@ -270,6 +270,9 @@ def main(args, ins, ous):
 
     formatter = SubstitutingBytesFormatter()
 
+    # The numeric, unformatted base ids of each currently open element
+    # to which ids are added
+    idnums = dict((elem, None) for elem in id_elem_names)
     # elem_attrs keys are string values for elem, as they are used as
     # keyword argument names to formatter.format and bytes values
     # cannot be used as keyword argument names
@@ -290,11 +293,14 @@ def main(args, ins, ous):
                             or elem_args.idn not in attrs):
                         if elem_args.rename and elem_args.idn in attrs:
                             rename_attr(attrs, elem_args.idn, elem_args.rename)
+                        id = next(ids[elem])
+                        idnums[elem] = id
                         attrs[elem_args.idn] = (
                             formatter.format(
                                 elem_args.format,
-                                id=next(ids[elem]),
+                                id=id,
                                 this=attrs,
+                                idnum=idnums,
                                 **elem_attrs
                             ).encode('UTF-8'))
                     else:

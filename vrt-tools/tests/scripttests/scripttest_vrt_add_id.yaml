@@ -1060,7 +1060,7 @@
     cmdline: vrt-add-id --id=id --type=random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{text[id]/t-//}-{id:04x}" --seed=1 --element=sentence --format="s-{paragraph[id]/p-//,/-/+/}-{id:04x}" --seed=2
     stdin: *input-para
   output:
-    stdout: |
+    stdout: &output-para-subst |
       <!-- #vrt positional-attributes: word -->
       <text n="1" id="t-b1fd">
       <paragraph p="p1" id="p-b1fd-b667">
@@ -1081,3 +1081,15 @@
       </sentence>
       </paragraph>
       </text>
+
+
+# idnum[elem] in format
+
+- name: 'vrt-add-id: text, paragraph, sentence; format referring to idnum[elem]'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
+    stdin: *input-para
+  output:
+    # This is another way to achieve the same result as with the
+    # substitutions above
+    stdout: *output-para-subst
