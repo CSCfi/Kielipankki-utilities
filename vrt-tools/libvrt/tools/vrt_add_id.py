@@ -261,7 +261,7 @@ def main(args, ins, ous):
     '''Transput VRT (bytes) in ins to VRT (bytes) in ous.'''
 
     # Names of elements to which to add ids
-    id_elem_names = [elem for elem in args.element.keys()]
+    id_elem_names = set(elem for elem in args.element.keys())
 
     # Id generators for each element
     ids = {}
@@ -305,8 +305,7 @@ def main(args, ins, ous):
                             ).encode('UTF-8'))
                     else:
                         raise BadData('element has id already')
-                    ous.write(starttag(elem, attrs, sort=args.sort))
-                    continue
+                    line = starttag(elem, attrs, sort=args.sort)
         ous.write(line)
 
 def get_idgen(args):
