@@ -238,6 +238,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+KORP*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
 ## [ ] _*+KORP*_ Remove beta status from Korp configuration ({{{}master{}}}), push and install the updated {{master}}
 ## [ ] _*+META*_ Remove beta status from the META-SHARE record and resource group page
+# [ ] _*+TEST*_ Remove the corpus from the testing environment of Korp (Korp test version)
 \\
 ```
 
