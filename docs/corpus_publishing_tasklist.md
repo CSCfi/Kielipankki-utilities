@@ -205,6 +205,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DATA*_ Validate the VRT data
 # [ ] _*+DATA*_ Check the positional attributes
 ## [ ] _*?DATA*_ Re-order to the commonly used order if necessary
+# [ ] _*+META*_ Record annotation information and tools used during the corpus processing pipeline, in order to be added to META_SHARE
 # [ ] _*?HYSTORE*_ In case the data is only published as a scrambled version, upload the unscrambled base data as a zip file (named as shortname-korp-base_yyyymmdd.zip) and the separate shortname-korp-base_yyyymmdd_README.txt file to the HFST server, under data/corpora/korp-base/.
 # [ ] _*+DATA*_ Create a Korp corpus package ({{{}korp-make{}}})
 ## [ ] _*+KORP*_ Install the corpus package on the Korp server (or ask someone with the rights to do that)
@@ -226,6 +227,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published (add status "beta" to the name!)
 # [ ] _*+META*_ Update META-SHARE record; add location PID and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
+# [ ] _*?META*_ Update the META-SHARE record: add annotation information and tools used during the corpus processing pipeline
 # [ ] _*+META*_ Add "beta" status information to META-SHARE record
 # [ ] _*+PORTAL*_ Add "beta" status information to the resource group page
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
