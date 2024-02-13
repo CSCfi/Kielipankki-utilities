@@ -52,7 +52,13 @@ test case:
 
 -   `name`: A name or description of the test (`str`)
 
--   `input`: A dict containing input information for the test:
+-   `input`: A dict or a list of dicts containing input information
+    for the test. If the value is a list of dicts, a separate test is
+    generated for each item with the same output information. The
+    input dict may contain the following keys:
+    -   `name`: a name or description of the (sub-)test, mainly useful
+        if `input` is a list of dicts, generating multiple tests
+        (`str`)
     -   `prog`: program (script) name (`str`). The program is searched
         in `$PATH` as usual, but for tests under this directory, the
         `vrt-tools` directory is added to `$PATH`, so the bare name of

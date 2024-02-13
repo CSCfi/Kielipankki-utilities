@@ -195,7 +195,39 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                 result[i] = result[i][0]
         return result
 
-    def make_subcases(name, input_, output):
+    def make_subcases(fname, tc, tcnum, default_input, default_output):
+        """Generate sub-testcases, expanding inputs and output.
+
+        Generate sub-testcases for testcase `tc` (number `tcnum`) in
+        file `fname`, with defaults `default_input` and
+        `default_output`. If the input specification is a list, each
+        item in it generates a separate test for each test case in the
+        output. The return value is a list of tuples to be used as
+        parameters to `check_program_run`.
+        """
+        inputs = tc.get('input')
+        if not isinstance(inputs, list):
+            inputs = [inputs]
+        # Name format depends on whether the input is a list or not
+        name_format = ('{fname} {num:d}: {name}' if len(inputs) == 1
+                       else '{fname} {num:d}.{inputnum:d}: {name}')
+        # print(inputs, file=sys.stderr)
+        subcases = []
+        tcname = tc.get('name') or ''
+        for inputnum, input_ in enumerate(inputs):
+            # print(tcname, inputnum, input_, file=sys.stderr)
+            inputname = (input_ or {}).get('name') or ''
+            subcase_name = (tcname + (' (' + inputname + ')'
+                                      if inputname else ''))
+            subcases.extend(make_output_subcases(
+                name_format.format(
+                    fname=fname, num=tcnum + 1, inputnum=inputnum + 1,
+                    name=subcase_name),
+                get_value(default_input, input_),
+                get_value(default_output, get_output_value(tc))))
+        return subcases
+
+    def make_output_subcases(name, input_, output):
         """Generate sub-testcases, expanding `output`
 
         Each test case in `output` becomes its own item, with the same
@@ -334,12 +366,8 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
             if (('input' not in tc and not default_input)
                     or ('output' not in tc and not default_output)):
                 continue
-            subcases = make_subcases(
-                '{} {:d}: {}'.format(fname, tcnum + 1, tc.get('name', '')),
-                get_value(default_input, tc.get('input')),
-                get_value(default_output, get_output_value(tc)))
-            # If status starts with "xfail", "skip" or "skipif", mark the test
-            # accordingly.
+            subcases = make_subcases(fname, tc, tcnum,
+                                     default_input, default_output)
             status_value = tc.get('status') or default_status
             if status_value:
                 status, _, reason = status_value.partition(':')

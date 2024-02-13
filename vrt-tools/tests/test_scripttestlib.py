@@ -1012,6 +1012,43 @@ _testcase_files_content = [
                  'returncode': 0,
              },
          },
+         # Multiple inputs with the same output
+         {
+             'name': 'Test: multiple inputs with same output',
+             'input': [
+                 {
+                     'name': 'cat file',
+                     'cmdline': 'cat infile.txt',
+                     'file:infile.txt': 'test1\ntest2\n'
+                 },
+                 {
+                     'name': 'cat redirect file',
+                     'cmdline': 'cat < infile.txt',
+                     'shell': True,
+                     'file:infile.txt': 'test1\ntest2\n'
+                 },
+                 {
+                     'name': 'cat stdin',
+                     'cmdline': 'cat',
+                     'stdin': 'test1\ntest2\n'
+                 },
+                 {
+                     # Without 'name'
+                     'prog': 'cat',
+                     'stdin': 'test1\ntest2\n'
+                 },
+                 {
+                     'name': 'printf',
+                     'cmdline': 'printf "test1\\ntest2\\n"',
+                     'shell': True,
+                 },
+             ],
+             'output': {
+                 'stdout': 'test1\ntest2\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
          # Note that the tests do not really check whether the tests marked to
          # be skipped or xfailing really are skipped or xfail. How could that
          # be tested?
