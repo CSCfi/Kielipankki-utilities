@@ -94,6 +94,27 @@ test case:
 			expression that is the value of the option. The value of
 			the option may also be a list of regular expressions, in
 			which case their matches are removed in order.
+        -   `replace`: replace a substring or regular expression match
+            with a replacement. The value can be a `dict`, `str` or
+            `list` of `dict` or `str`. A `dict` value may contain the
+            following keys (`str` and `regex` are mutually exclusive):
+            -   `str`: fixed string to be replaced
+            -   `regex`: regular expression whose matches are to be
+                replaced
+            -   `with`: replacement string (empty string if omitted);
+                with regular expressions, may also refer to parts
+                matching parenthesized groups as `\N` or `\g<N>` where
+                _N_ is the number of the group in the regular
+                expression, or to named groups (`(?P<name>regex)`) as
+                `\g<name>`
+            -   `count`: the number of replacements (optional;
+                default: all)
+
+            A `str` value is of the form `/`_regex_`/`_with_`/`
+            replacing matches of regular expression _regex_ with
+            _with_. Instead of the slash, another punctuation
+            character may be used. If the value is a `list`, its each
+            item is processed in order as above.
 		-   `python`: Python 3 code to transform `value`: the body of
             a function of one argument named `value` containing the
             base value and returning the transformed value. The Python

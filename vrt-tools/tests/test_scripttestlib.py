@@ -894,6 +894,238 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: replace string in stdin',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'str': 'b',
+                             'with': 'x',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nxar\nxaz\n',
+             },
+         },
+         {
+             'name': 'Test: replace string in stdin, without "with"',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'str': 'b',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nar\naz\n',
+             },
+         },
+         {
+             'name': 'Test: replace string in stdin, with count',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'str': 'b',
+                             'with': 'x',
+                             'count': 1,
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nxar\nbaz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '[ao]',
+                             'with': 'V',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fVV\nbVr\nbVz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, refer to groups',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '(.)([ao]+)',
+                             'with': '\\2\\1',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'oof\nabr\nabz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, refer to named groups',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '(?P<c>.)(?P<v>[ao]+)',
+                             'with': '\\g<v>\\g<c>',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'oof\nabr\nabz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, /.../.../',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': '/[ao]/V/',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fVV\nbVr\nbVz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, /.../.../, alt delim',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': '![ao]!V!',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fVV\nbVr\nbVz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, /.../.../, refer to groups',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': '/(?P<c>.)(?P<v>[ao]+)/\\g<v>\\g<c>/',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'oof\nabr\nabz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, without "with"',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '[ao]',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'f\nbr\nbz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, with "count"',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '[ao]',
+                             'with': 'V',
+                             'count': 2,
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fVV\nbar\nbaz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '[ao]',
+                             'with': 'V',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fVV\nbVr\nbVz\n',
+             },
+         },
+         {
+             'name': 'Test: list of replacements in stdin',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': [
+                             {
+                                 'regex': '[ao]',
+                                 'with': 'V',
+                             },
+                             {
+                                 'str': 'b',
+                                 'with': 'x',
+                             },
+                             '/[xz]/a/',
+                         ],
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fVV\naVr\naVa\n',
+             },
+         },
+         {
              'name': 'Test: transformation sequences',
              'input': {
                  'cmdline': 'cat',

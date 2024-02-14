@@ -813,6 +813,41 @@ def _transform_value_filter_out(value, regexps):
     return value
 
 
+def _transform_value_replace(value, args):
+    """Replace strings or regular expression matches in `value`.
+
+    `args` can be a `dict`, `str` or `list` of `dict` or `str`. A
+    `dict` value may contain the following keys: either `"str"` for
+    the string to be replaced or `"regex"` for a regular expression,
+    `"with"` for the replacement string (empty string if omitted), and
+    optionally `"count"` for the number of replacements (default:
+    all). A `str` value is of the form `/regex/with/` replacing
+    matches of regular expression `regex` with `with`. Instead of the
+    slash, another punctuation character may be used. If `args` is a
+    `list`, each item in the list is processed in order as above.
+    """
+    if isinstance(args, list):
+        for item in args:
+            value = _transform_value_replace(value, item)
+    elif isinstance(args, str):
+        if args:
+            parts = args[1:].split(args[0])
+            if len(parts) == 1:
+                parts.append('')
+            value = re.sub(parts[0], parts[1], value)
+    elif isinstance(args, dict):
+        repl = args.get('with', '')
+        count = int(args.get('count', 0))
+        if 'str' in args:
+            # For str.replace, -1 replaces all
+            if count == 0:
+                count = -1
+            value = value.replace(args['str'], repl, count)
+        elif 'regex' in args:
+            value = re.sub(args['regex'], repl, value, count)
+    return value
+
+
 def _transform_value_python(value, code):
     """Return value transformed with Python code (function body)."""
     funcdef = ('def transfunc(value):\n '
