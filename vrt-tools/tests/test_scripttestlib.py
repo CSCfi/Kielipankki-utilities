@@ -894,6 +894,20 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: transform cmdline',
+             'input': {
+                 'cmdline': {
+                     'value': 'echo "foobar"',
+                     'transform': {
+                         'replace': '/foo/bar/',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'barbar\n',
+             },
+         },
+         {
              'name': 'Test: replace string in stdin',
              'input': {
                  'cmdline': 'cat',

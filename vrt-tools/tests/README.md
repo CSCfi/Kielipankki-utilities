@@ -68,8 +68,9 @@ test case:
     -   `args`: a list of command-line arguments, either a single
         string with arguments quoted as in shell, or as a list of
         unquoted strings (`str`)
-    -   `cmdline`: complete command line (`str`), with arguments
-        quoted as in shell (an alternative to `prog` and `args`)
+    -   `cmdline`: complete command line (`str` or `dict`; see below),
+        with arguments quoted as in shell (an alternative to `prog`
+        and `args`)
 	-   `shell`: if `True`, pass `cmdline` to shell, allowing the use
         of pipes, redirection and other features. Note that this works
         only with `cmdline`, not with `prog` and `args`.
@@ -131,9 +132,9 @@ test case:
         dictionaries, the transformations are applied in the list
         order, each transformation to the output of the preceding one.
 
-	`stdin`, `file:FNAME` and the values under `files` may be either
-    plain strings containing the content, or dicts of one or two
-    items:
+	`cmdline`, `stdin`, `file:FNAME` and the values under `files` may
+    be either plain strings containing the content, or dicts of one or
+    two items:
 
 	-   `value`: the base value (obligatory), subject to
         transformations specified in `transform` (`str`)
@@ -141,7 +142,8 @@ test case:
         actual content. The options are those listed above for all
         inputs. If transformations are defined for both specific
         inputs and for all inputs, the input-specific transformations
-        are applied after the general ones.
+        are applied after the general ones. (Transformations for all
+        inputs do not apply to `cmdline`.)
 
 	The dict variant of the input could be used in conjunction with
     [defining common values that can be reused in multiple
@@ -230,7 +232,7 @@ test case:
     DOTALL|VERBOSE`, corresponding to `re.search(`*expected* `,
     `*actual* `, re.DOTALL|re.VERBOSE)`.
 
-	Transformaing actual values is useful in particular for removing
+	Transforming actual values is useful in particular for removing
     such parts of the output that change on each run, such as
     timestamps.
 

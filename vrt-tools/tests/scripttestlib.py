@@ -571,7 +571,7 @@ class ProgramRunner:
             shell = input_.get('shell', False)
             if 'cmdline' in input_:
                 # Complete command line
-                cmdline = input_['cmdline']
+                cmdline = _make_value(input_['cmdline'], 'transform')
                 if not cmdline:
                     raise ValueError('Empty cmdline in test "' + name + '"')
                 if shell:
