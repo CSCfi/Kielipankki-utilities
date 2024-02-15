@@ -22,6 +22,7 @@ import sys
 
 from collections import defaultdict
 from copy import deepcopy
+from itertools import product
 from subprocess import Popen, PIPE
 
 import pytest
@@ -208,10 +209,11 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         inputs = tc.get('input')
         if not isinstance(inputs, list):
             inputs = [inputs]
+        inputs = expand_inputs(inputs)
         # Name format depends on whether the input is a list or not
         name_format = ('{fname} {num:d}: {name}' if len(inputs) == 1
                        else '{fname} {num:d}.{inputnum:d}: {name}')
-        # print(inputs, file=sys.stderr)
+        # print(tcnum, inputs)
         subcases = []
         tcname = tc.get('name') or ''
         for inputnum, input_ in enumerate(inputs):
@@ -226,6 +228,82 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                 get_value(default_input, input_),
                 get_value(default_output, get_output_value(tc))))
         return subcases
+
+    def expand_inputs(inputs):
+        """Expand `inputs`: all item combinations of list-valued values.
+
+        Return a list of input dicts generated from each item of
+        `inputs` so that the result contains each combination (element
+        of cross-product) of items of list-valued values.
+
+        For example, `{cmdline: [c1, c2], stdin: [s1, s2]}` becomes
+        `[{cmdline: c1, stdin: s1}, {cmdline: c1, stdin: s2},
+        {cmdline: c2, stdin: s1}, {cmdline: c2, stdin: s2}]`.
+        """
+        # The keys whose values are not expanded
+        exclude_keys = {'name', 'args', 'shell', 'transform'}
+        expanded = []
+        for input_ in inputs:
+            # input_ may be None
+            if not input_:
+                continue
+            # Keys whose values should be expanded
+            expand_keys = [
+                key for key, val in input_.items()
+                if key not in exclude_keys and isinstance(val, list)]
+            if expand_keys:
+                expanded.extend(expand_input(input_, expand_keys))
+            else:
+                expanded.append(input_)
+        return expanded
+
+    def expand_input(input_, expand_keys):
+        """Expand `input_`: return all item combinations of `expand_keys`.
+
+        Return a list of copies of `input_` dict with one copy for
+        each combination of items in the value lists of keys
+        `expand_keys`.
+        """
+        expanded = []
+        # Cross product containing tuples for all combinations of
+        # indices for the values of keys in expand_keys in input_
+        value_indices_iter = product(*(range(len(input_[key]))
+                                       for key in expand_keys))
+        for value_indices in value_indices_iter:
+            # Tuple containing the actual values corresponding to
+            # indices in value_indices
+            values = tuple(input_[expand_keys[keynum]][index]
+                           for keynum, index in enumerate(value_indices))
+            expanded.append(make_input_item(input_, expand_keys,
+                                            values, value_indices))
+        return expanded
+
+    def make_input_item(input_, expand_keys, values, value_indices):
+        """Make and return a single input item from the arguments.
+
+        Return a deep copy of `input_` dict with the values of keys
+        listed in `expand_keys` replaced with values in tuple `values`
+        (whose values are in the same order as key names in
+        `expand_keys`. `value_indices` is a list of indices indicating
+        the index of each value in `values` in the original list value
+        in the input; it is used to add or append to the `name` of the
+        input.
+        """
+        result = deepcopy(input_)
+        # print('make_input_item', input_, values, expand_keys)
+        for i, value in enumerate(values):
+            # CHECK: Should we make a deep copy of value, too?
+            result[expand_keys[i]] = value
+            # print(i, value, expand_keys[i], result)
+        # Generate a list "key1 i1, key2 i2, ..." for the expanded
+        # keys and value indices, to be added as (or appended to) name
+        name = ', '.join(expand_keys[keynum] + ' ' + str(index + 1)
+                         for keynum, index in enumerate(value_indices))
+        # If the input already has a name, append to it after a colon
+        if 'name' in input_:
+            name = result['name'] + ': ' + name
+        result['name'] = name
+        return result
 
     def make_output_subcases(name, input_, output):
         """Generate sub-testcases, expanding `output`

@@ -1281,6 +1281,146 @@ _testcase_files_content = [
                  'returncode': 0,
              },
          },
+         {
+             'name': 'Test: multiple cmdlines in input',
+             'input': {
+                 'cmdline': [
+                     'cat infile.txt',
+                     'cat < infile.txt',
+                     'printf "test1\\ntest2\\n"',
+                 ],
+                 'shell': True,
+                 'file:infile.txt': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': 'test1\ntest2\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: multiple cmdlines and alternative input files',
+             'input': {
+                 'cmdline': [
+                     'grep -h "test" infile1.txt infile2.txt',
+                     'grep -hv "[abc]" infile1.txt infile2.txt',
+                     'cat infile1.txt infile2.txt | grep "test"',
+                 ],
+                 'shell': True,
+                 'file:infile1.txt': [
+                     'aaaa\ntest1\n',
+                     'bbbb\ntest1\n',
+                     'cccc\ntest1\n',
+                 ],
+                 'file:infile2.txt': [
+                     'aaaa\ntest2\n',
+                     'bbbb\ntest2\n',
+                     'cccc\ntest2\n',
+                 ],
+             },
+             'output': {
+                 'stdout': 'test1\ntest2\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: multiple cmdlines and alt input files as "files"',
+             'input': {
+                 'cmdline': [
+                     'grep -h "test" infile1.txt infile2.txt',
+                     'grep -hv "[abc]" infile1.txt infile2.txt',
+                 ],
+                 'shell': True,
+                 'files': [
+                     {
+                         'infile1.txt': 'aaaa\ntest1\n',
+                         'infile2.txt': 'aaaa\ntest2\n',
+                     },
+                     {
+                         'infile1.txt': '',
+                         'infile2.txt': 'aaaa\ntest1\ntest2\n',
+                     },
+                 ],
+             },
+             'output': {
+                 'stdout': 'test1\ntest2\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: multiple cmdlines and envvars',
+             'input': {
+                 'cmdline': [
+                     'echo "$FOO$SEP$BAR"',
+                     'echo "$FOO-$BAR"',
+                 ],
+                 'shell': True,
+                 'envvars': [
+                     {
+                         'FOO': 'x',
+                         'SEP': '-',
+                         'BAR': 'y',
+                     },
+                     {
+                         'FOO0': 'x',
+                         'FOO': '$FOO0',
+                         'SEP': '-',
+                         'BAR': 'y',
+                     },
+                 ],
+             },
+             'output': {
+                 'stdout': 'x-y\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: multiple named inputs with multiple alternatives',
+             'input': [
+                 {
+                     'name': 'grep',
+                     'cmdline': [
+                         'grep -h "test" infile1.txt infile2.txt',
+                         'grep -hv "[abc]" infile1.txt infile2.txt',
+                     ],
+                     'shell': True,
+                     'file:infile1.txt': [
+                         'aaaa\ntest1\n',
+                         'bbbb\ntest1\n',
+                     ],
+                     'file:infile2.txt': [
+                         'aaaa\ntest2\n',
+                         'bbbb\ntest2\n',
+                     ],
+                 },
+                 {
+                     'name': 'cat',
+                     'cmdline': [
+                         'cat infile1.txt infile2.txt',
+                         'cat infile3.txt',
+                     ],
+                     'file:infile1.txt': 'test1\n',
+                     'file:infile2.txt': 'test2\n',
+                     'file:infile3.txt': 'test1\ntest2\n',
+                 },
+                 {
+                     'name': 'printf',
+                     'cmdline': [
+                         'printf "test1\\ntest2\\n"',
+                         'printf "test1\ntest2\n"',
+                     ],
+                     'shell': True,
+                 },
+             ],
+             'output': {
+                 'stdout': 'test1\ntest2\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
          # Note that the tests do not really check whether the tests marked to
          # be skipped or xfailing really are skipped or xfail. How could that
          # be tested?

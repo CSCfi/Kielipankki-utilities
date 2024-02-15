@@ -54,8 +54,10 @@ test case:
 
 -   `input`: A dict or a list of dicts containing input information
     for the test. If the value is a list of dicts, a separate test is
-    generated for each item with the same output information. The
-    input dict may contain the following keys:
+    generated for each item with the same output information.
+
+    The input dict may contain the following keys:
+
     -   `name`: a name or description of the (sub-)test, mainly useful
         if `input` is a list of dicts, generating multiple tests
         (`str`)
@@ -144,6 +146,13 @@ test case:
 	The dict variant of the input could be used in conjunction with
     [defining common values that can be reused in multiple
     places](#reusable-definitions), for example.
+
+    For all keys except `name`, `args`, `shell` and `transform`, the
+    value for the key may be a list of values of the indicated type,
+    in which case separate tests are generated for each combination of
+    list items. For example, `{cmdline: [c1, c2], stdin: [s1, s2]}`
+    corresponds to inputs `[{cmdline: c1, stdin: s1}, {cmdline: c1,
+    stdin: s2}, {cmdline: c2, stdin: s1}, {cmdline: c2, stdin: s2}]`
 
 -   `output`: Expected output for the test and options transforming
     the output:
