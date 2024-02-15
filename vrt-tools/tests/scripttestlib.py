@@ -567,6 +567,48 @@ class ProgramRunner:
         returned instead of running the program again.
         """
 
+        def get_prog_args(input_):
+            shell = input_.get('shell', False)
+            if 'cmdline' in input_:
+                # Complete command line
+                cmdline = input_['cmdline']
+                if not cmdline:
+                    raise ValueError('Empty cmdline in test "' + name + '"')
+                if shell:
+                    args = cmdline
+                    prog = None
+                else:
+                    args = shlex.split(cmdline)
+                    prog = args[0]
+            else:
+                # prog and/or args
+                shell = False
+                args = input_.get('args', [])
+                args = shlex.split(args) if isinstance(args, str) else args
+                prog = input_.get('prog')
+                if prog:
+                    args[0:0] = [prog]
+                elif args:
+                    # If args only, prog is args[0]
+                    prog = args[0]
+                else:
+                    raise ValueError(
+                        'Missing or empty prog and args in test "' + name + '"')
+            return prog, args, shell
+
+        def make_env(input_):
+            # Update environment variables
+            if 'envvars' in input_ or progpath is not None:
+                env = dict(os.environ)
+                if 'envvars' in input_:
+                    update_env(env, input_['envvars'])
+                if progpath is not None:
+                    env['PATH'] = progpath.format(PATH=env.get('PATH'))
+            else:
+                env = None
+            # print(env)
+            return env
+
         def update_env(env, new_vars):
             # Replace self-references with values from the original environment
             for var, value in new_vars.items():
@@ -586,57 +628,31 @@ class ProgramRunner:
                 env[var] = env[var].replace('$$', '$')
             return env
 
+        def create_files(input_):
+            input_trans = input_.get('transform', [])
+            stdin = (_make_value(input_.get('stdin', ''), 'transform',
+                                 input_trans)
+                     .encode('UTF-8'))
+            _convert_files_dict(input_, 'input')
+            # Create input files
+            for key, value in input_.items():
+                if key.startswith('file:'):
+                    fname = key.split(':', maxsplit=1)[1]
+                    dirname = os.path.dirname(fname)
+                    if dirname:
+                        os.makedirs(os.path.join(tmpdir, dirname),
+                                    exist_ok=True)
+                    with open(os.path.join(tmpdir, fname), 'w') as f:
+                        f.write(_make_value(value, 'transform', input_trans))
+            return stdin
+
         if input_ == cls._input:
             return cls._output
         cls._input = input_
         # print(input_, expected)
-        shell = input_.get('shell', False)
-        if 'cmdline' in input_:
-            # Complete command line
-            if not input_['cmdline']:
-                raise ValueError('Empty cmdline in test "' + name + '"')
-            if shell:
-                args = input_['cmdline']
-            else:
-                args = shlex.split(input_['cmdline'])
-                prog = args[0]
-        else:
-            # prog and/or args
-            shell = False
-            args = input_.get('args', [])
-            args = shlex.split(args) if isinstance(args, str) else args
-            prog = input_.get('prog')
-            if prog:
-                args[0:0] = [prog]
-            elif args:
-                # If args only, prog is args[0]
-                prog = args[0]
-            else:
-                raise ValueError(
-                    'Missing or empty prog and args in test "' + name + '"')
-        # Update environment variables
-        if 'envvars' in input_ or progpath is not None:
-            env = dict(os.environ)
-            if 'envvars' in input_:
-                update_env(env, input_['envvars'])
-            if progpath is not None:
-                env['PATH'] = progpath.format(PATH=env.get('PATH'))
-        else:
-            env = None
-        # print(env)
-        input_trans = input_.get('transform', [])
-        stdin = (_make_value(input_.get('stdin', ''), 'transform', input_trans)
-                 .encode('UTF-8'))
-        _convert_files_dict(input_, 'input')
-        # Create input files
-        for key, value in input_.items():
-            if key.startswith('file:'):
-                fname = key.split(':', maxsplit=1)[1]
-                dirname = os.path.dirname(fname)
-                if dirname:
-                    os.makedirs(os.path.join(tmpdir, dirname), exist_ok=True)
-                with open(os.path.join(tmpdir, fname), 'w') as f:
-                    f.write(_make_value(value, 'transform', input_trans))
+        prog, args, shell = get_prog_args(input_)
+        env = make_env(input_)
+        stdin = create_files(input_)
         # Run the command
         proc = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env,
                      shell=shell, cwd=tmpdir)
