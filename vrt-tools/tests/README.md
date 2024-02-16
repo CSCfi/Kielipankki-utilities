@@ -232,6 +232,10 @@ test case:
     DOTALL|VERBOSE`, corresponding to `re.search(`*expected* `,
     `*actual* `, re.DOTALL|re.VERBOSE)`.
 
+    The value for a non-existent file is `None` in Python, and `null`,
+    `~` or an empty value in YAML, so you can test that file
+    `outfile.txt` does not exist as `file:outfile.txt: null` (YAML).
+
 	Transforming actual values is useful in particular for removing
     such parts of the output that change on each run, such as
     timestamps.

@@ -323,7 +323,7 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
             # Transformations are handled below
             if key.startswith('transform'):
                 continue
-            if expected_vals is None:
+            if expected_vals is None and not key.startswith('file:'):
                 expected_vals = ['']
             elif not isinstance(expected_vals, list):
                 expected_vals = [expected_vals]
@@ -534,21 +534,16 @@ class ProgramRunner:
             """Like dict.get, but with special treatment of keys "file:FNAME"
 
             If `key` is of the form "file:FNAME", return the content
-            of the file ``FNAME`` in self._tmpdir.
+            of the file ``FNAME`` in `self._tmpdir`, or `None` if
+            ``FNAME`` does not exist.
             """
-
-            def assert_exists(fname):
-                """Assert that file fname exists"""
-                assert os.path.isfile(fname)
-
             if key in self:
                 return self[key]
             elif key.startswith('file:'):
                 fname = os.path.join(
                     self._tmpdir, key.split(':', maxsplit=1)[1])
-                # Assertion in a separate function to make the pytest assertion
-                # error somewhat easier to understand
-                assert_exists(fname)
+                if not os.path.isfile(fname):
+                    return None
                 with open(fname, 'r') as f:
                     value = f.read()
                 return value

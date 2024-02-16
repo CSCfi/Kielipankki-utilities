@@ -475,6 +475,22 @@ _testcase_files_content = [
                  'returncode': 0,
              },
          },
+         {
+             'name': 'Test: (non-)existence of files',
+             'input': {
+                 'cmdline': 'printf "test\ntest\n" > test.out',
+                 'shell': True,
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': '',
+                 'returncode': 0,
+                 'file:test.out': {
+                     '!=': None,
+                 },
+                 'file:test2.out': None,
+             },
+         },
          # Test default values
          {
              'defaults': {
@@ -1619,7 +1635,8 @@ def test_collect_testcases(testcase_files, tmpdir):
                     or (isinstance(exp_val, int)
                         and inputitem == 'returncode')
                     or (isinstance(exp_val, list)
-                        and expected['test'] in ['in', 'not-in']))
+                        and expected['test'] in ['in', 'not-in'])
+                    or (exp_val is None and inputitem.startswith('file:')))
             testcase_num += 1
 
 
