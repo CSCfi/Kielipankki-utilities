@@ -218,15 +218,18 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         tcname = tc.get('name') or ''
         for inputnum, input_ in enumerate(inputs):
             # print(tcname, inputnum, input_, file=sys.stderr)
+            _convert_files_dict(input_, 'input')
             inputname = (input_ or {}).get('name') or ''
             subcase_name = (tcname + (' (' + inputname + ')'
                                       if inputname else ''))
+            output = get_value(default_output, get_output_value(tc))
+            _convert_files_dict(output, 'output')
             subcases.extend(make_output_subcases(
                 name_format.format(
                     fname=fname, num=tcnum + 1, inputnum=inputnum + 1,
                     name=subcase_name),
                 get_value(default_input, input_),
-                get_value(default_output, get_output_value(tc))))
+                output))
         return subcases
 
     def expand_inputs(inputs):
@@ -316,7 +319,6 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         # print('make_subcases', name, input_, output)
         result = []
         subcases = []
-        _convert_files_dict(output, 'output')
         for key, expected_vals in sorted(output.items()):
             # Transformations are handled below
             if key.startswith('transform'):
@@ -633,7 +635,6 @@ class ProgramRunner:
             stdin = (_make_value(input_.get('stdin', ''), 'transform',
                                  input_trans)
                      .encode('UTF-8'))
-            _convert_files_dict(input_, 'input')
             # Create input files
             for key, value in input_.items():
                 if key.startswith('file:'):
