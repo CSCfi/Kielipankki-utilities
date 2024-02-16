@@ -118,6 +118,8 @@ test case:
             _with_. Instead of the slash, another punctuation
             character may be used. If the value is a `list`, its each
             item is processed in order as above.
+        -   `set-value`: set the value of `value` (replace completely)
+            (`str`)
 		-   `python`: Python 3 code to transform `value`: the body of
             a function of one argument named `value` containing the
             base value and returning the transformed value. The Python

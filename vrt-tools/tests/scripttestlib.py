@@ -891,6 +891,11 @@ def _transform_value_append(value, append_value):
     return value + append_value
 
 
+def _transform_value_set_value(value, new_value):
+    """Return `new_value`, discarding `value`."""
+    return new_value
+
+
 def _transform_value_filter_out(value, regexps):
     """Replace regexp `regexp` matches with "" `in `value`."""
     if not isinstance(regexps, list):

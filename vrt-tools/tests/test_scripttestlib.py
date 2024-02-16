@@ -835,6 +835,22 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: completely replace output file content',
+             'input': {
+                 'cmdline': 'cat > file.out',
+                 'shell': True,
+                 'stdin': 'foo\nbar\nbaz\n'
+             },
+             'output': {
+                 'file:file.out': {
+                     'value': 'bar\n',
+                     'transform-expected': {
+                         'set-value': 'foo\nbar\nbaz\n',
+                     },
+                 },
+             },
+         },
+         {
              'name': 'Test: transform stdin with shell (+ append)',
              'input': {
                  'cmdline': 'cat',
