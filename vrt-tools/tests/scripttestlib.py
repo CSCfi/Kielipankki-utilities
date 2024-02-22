@@ -638,8 +638,12 @@ class ProgramRunner:
                     if dirname:
                         os.makedirs(os.path.join(tmpdir, dirname),
                                     exist_ok=True)
-                    with open(os.path.join(tmpdir, fname), 'w') as f:
-                        f.write(_make_value(value, 'transform', input_trans))
+                    # print('create_files 0', key, value)
+                    value = _make_value(value, 'transform', input_trans)
+                    # print('create_files 1', key, value)
+                    if value is not None:
+                        with open(os.path.join(tmpdir, fname), 'w') as f:
+                            f.write(value)
             return stdin
 
         if input_ == cls._input:
@@ -745,20 +749,25 @@ def _make_value(value, trans_key, global_trans=None, actual_value=None):
         trans_value = actual_value
     else:
         trans_value = value
-    if isinstance(trans_value, str):
-        trans_value = _transform_value(trans_value, global_trans)
-        trans_value = _transform_value(trans_value, trans)
+    # print('_make_value before transform', repr(trans_value))
+    trans_value = _transform_value(trans_value, global_trans)
+    trans_value = _transform_value(trans_value, trans)
+    # print('_make_value after transform', repr(trans_value))
     return trans_value
 
 
 def _transform_value(value, trans):
     """Return value transformed according to trans.
 
-    trans is a dict whose keys KEY should correspond to functions
-    _transform_value_KEY.
+    `trans` is a `dict` whose keys ``KEY`` should correspond to
+    functions `_transform_value_KEY` (hyphens in ``KEY`` converted to
+    underscores).
+
+    Functions `_transform_value_KEY` should return the value intact if
+    the transformation is not applicable to the type of the value.
     """
     # print('_transform_value', repr(value), repr(trans))
-    if not isinstance(value, str) or not trans:
+    if not trans:
         return value
     # Convert a dict to a list of single-item dicts
     if isinstance(trans, dict):
@@ -883,21 +892,32 @@ def _assert_not_regex(exp, val, item_descr, *opts):
 
 def _transform_value_prepend(value, prepend_value):
     """Return value with prepend_value prepended."""
+    if value is None:
+        value = ''
+    elif not isinstance(value, str):
+        return value
     return prepend_value + value
 
 
 def _transform_value_append(value, append_value):
     """Return value with append_value appended."""
+    if value is None:
+        value = ''
+    elif not isinstance(value, str):
+        return value
     return value + append_value
 
 
 def _transform_value_set_value(value, new_value):
-    """Return `new_value`, discarding `value`."""
-    return new_value
+    """Return `new_value`, discarding `value` if they have the same type."""
+    return (new_value if isinstance(value, int) == isinstance(new_value, int)
+            else value)
 
 
 def _transform_value_filter_out(value, regexps):
     """Replace regexp `regexp` matches with "" `in `value`."""
+    if not isinstance(value, str):
+        return value
     if not isinstance(regexps, list):
         regexps = [regexps]
     for regexp in regexps:
@@ -921,6 +941,8 @@ def _transform_value_replace(value, args):
     slash, another punctuation character may be used. If `args` is a
     `list`, each item in the list is processed in order as above.
     """
+    if not isinstance(value, str):
+        return value
     if isinstance(args, list):
         for item in args:
             value = _transform_value_replace(value, item)
@@ -953,6 +975,10 @@ def _transform_value_python(value, code):
 
 def _transform_value_shell(value, code):
     """Return value transformed with shell commands code."""
+    if value is None:
+        return value
+    valuetype = type(value)
     proc = Popen(code, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
-    stdout, stderr = proc.communicate(value.encode('UTF-8'))
-    return stdout.decode('UTF-8')
+    stdout, stderr = proc.communicate(str(value).encode('UTF-8'))
+    value = stdout.decode('UTF-8')
+    return valuetype(value)

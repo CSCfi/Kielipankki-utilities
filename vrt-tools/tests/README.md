@@ -91,14 +91,18 @@ test case:
         all input files according to the specified options
         (`list(dict)` or `dict`). Currently the following options are
         supported:
-		-   `prepend`: content to prepend to `value` (`str`)
-		-   `append`: content to append to `value` (`str`)
+		-   `prepend`: content to prepend to `value` (`str`); `None`
+            is treated as an empty string, `int` returned intact
+		-   `append`: content to append to `value` (`str`); `None`
+            is treated as an empty string, `int` returned intact
 		-   `filter-out`: remove the substrings matching the regular
 			expression that is the value of the option. The value of
 			the option may also be a list of regular expressions, in
-			which case their matches are removed in order.
+			which case their matches are removed in order. `int` and
+			`None` are returned intact.
         -   `replace`: replace a substring or regular expression match
-            with a replacement. The value can be a `dict`, `str` or
+            with a replacement. `int` and `None` are returned intact.
+            The value can be a `dict`, `str` or
             `list` of `dict` or `str`. A `dict` value may contain the
             following keys (`str` and `regex` are mutually exclusive):
             -   `str`: fixed string to be replaced
@@ -118,15 +122,19 @@ test case:
             _with_. Instead of the slash, another punctuation
             character may be used. If the value is a `list`, its each
             item is processed in order as above.
-        -   `set-value`: set the value of `value` (replace completely)
-            (`str`)
+        -   `set-value`: the value to replace `value` with completely.
+            An `int` can only be replaced with an `int`, whereas
+            `None` can replace `str` and vice versa; other type
+            combinations return the original value intact.
 		-   `python`: Python 3 code to transform `value`: the body of
             a function of one argument named `value` containing the
             base value and returning the transformed value. The Python
             regular expression module `re` is available for the code.
 		-   `shell`: shell command line reading `value` from standard
             input and writing the transformed value to standard
-            output. The shell used is the default shell.
+            output. The shell used is the default shell. An `int`
+            `value` is converted to a string for processing and the
+            returned value back to `int`; a `None` is returned intact.
 
 		If the value is a plain dictionary, the order of the
         transformations is not defined, so they should be independent

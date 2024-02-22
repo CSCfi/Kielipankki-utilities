@@ -1172,6 +1172,169 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: transformations of None',
+             'input': {
+                 'cmdline': 'cat f1.txt f2.txt f3.txt f4.txt f5.txt f6.txt f7.txt',
+                 'file:f1.txt': {
+                     'value': None,
+                     'transform': {
+                         'prepend': 'foo\n'
+                     },
+                 },
+                 'file:f2.txt': {
+                     'value': None,
+                     'transform': {
+                         'append': 'foo\n'
+                     },
+                 },
+                 'file:f3.txt': {
+                     'value': None,
+                     'transform': {
+                         'filter-out': 'o'
+                     },
+                 },
+                 'file:f4.txt': {
+                     'value': None,
+                     'transform': {
+                         'replace': '/o/x/'
+                     },
+                 },
+                 'file:f5.txt': {
+                     'value': None,
+                     'transform': {
+                         'set-value': 'zz\n'
+                     },
+                 },
+                 'file:f6.txt': {
+                     'value': None,
+                     'transform': {
+                         'python': 'return "x\\n" if value is None else "y\\n"'
+                     },
+                 },
+                 'file:f7.txt': {
+                     'value': None,
+                     'transform': {
+                         'shell': 'tr "a" "b"'
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nfoo\nzz\nx\n',
+                 'stderr': ('cat: f3.txt: No such file or directory\n'
+                            'cat: f4.txt: No such file or directory\n'
+                            'cat: f7.txt: No such file or directory\n'),
+             },
+         },
+         {
+             'name': 'Test: transformations of int: set-value',
+             'input': {
+                 'cmdline': 'cat foo',
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': 'cat: foo: No such file or directory\n',
+                 'returncode': {
+                     'value': 0,
+                     'transform-expected': [
+                         {'set-value': 1},
+                     ],
+                 },
+             },
+         },
+         {
+             'name': 'Test: transformations of int: keep intact',
+             'input': {
+                 'cmdline': 'cat foo',
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': 'cat: foo: No such file or directory\n',
+                 'returncode': {
+                     'value': 1,
+                     'transform-expected': [
+                         {'prepend': 2},
+                         {'append': 3},
+                         {'filter-out': '3'},
+                         {'replace': '/3/4/'},
+                         {'set-value': 'foo'},
+                         {'set-value': None},
+                     ],
+                 },
+             },
+         },
+         {
+             'name': 'Test: transformations of int: Python',
+             'input': {
+                 'cmdline': 'cat foo',
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': 'cat: foo: No such file or directory\n',
+                 'returncode': {
+                     'value': 0,
+                     'transform-expected': [
+                         {'python': 'return value + 1'},
+                     ],
+                 },
+             },
+         },
+         {
+             'name': 'Test: transformations of int: shell',
+             'input': {
+                 'cmdline': 'cat foo',
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': 'cat: foo: No such file or directory\n',
+                 'returncode': {
+                     'value': 0,
+                     'transform-expected': [
+                         {'shell': 'tr 0 1'},
+                     ],
+                 },
+             },
+         },
+         {
+             'name': 'Test: transformation set-value str and None',
+             'input': {
+                 'cmdline': 'cat f1.txt f2.txt f3.txt f4.txt',
+                 'file:f1.txt': {
+                     'value': 'foo\n',
+                     'transform': {
+                         # Should not change
+                         'set-value': 1,
+                     },
+                 },
+                 'file:f2.txt': {
+                     'value': 'bar\n',
+                     'transform': {
+                         # Should change
+                         'set-value': None,
+                     },
+                 },
+                 'file:f3.txt': {
+                     'value': None,
+                     'transform': {
+                         # Should not change
+                         'set-value': 1,
+                     },
+                 },
+                 'file:f4.txt': {
+                     'value': None,
+                     'transform': {
+                         # Should change
+                         'set-value': 'baz\n',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nbaz\n',
+                 'stderr': ('cat: f2.txt: No such file or directory\n'
+                            'cat: f3.txt: No such file or directory\n'),
+                 'returncode': 1,
+             },
+         },
+         {
              'name': 'Test: transformation sequences',
              'input': {
                  'cmdline': 'cat',
