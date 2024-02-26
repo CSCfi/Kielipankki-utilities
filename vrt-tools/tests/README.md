@@ -287,6 +287,10 @@ test case:
     Grouped transformations are applied to values after global and
     file-specific ones.
 
+    **Note** that grouped transformations currently work only with
+    expected values that are strings, integers or `dict`s with key
+    `"value"`, not with other types of values.
+
     If untransformed tests should also be generated, the list must
     also include an empty `dict` `{}`.
 

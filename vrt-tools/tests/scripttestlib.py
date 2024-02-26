@@ -498,20 +498,25 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         to be tested. `transformation_items` can be a dict or a list
         of dicts. Return `target` with the transformation appended.
         """
-        # TODO: Support other types of values than plain strings and
-        # dicts with "value"
+        # TODO: Support other types of values than plain strings (and
+        # ints) and dicts with "value"
         # print("add_new_transform", transform_key, target, transform_items)
-        if isinstance(target, dict):
+        if isinstance(target, dict) and 'value' in target:
             target.setdefault(transform_key, [])
             if isinstance(target[transform_key], dict):
                 target[transform_key] = [target[transform_key]]
-        else:
+        elif isinstance(target, (str, int)):
             # If target is not a dict, convert it to one, with the
             # original value as the value of key 'value'
             target = {
                 'value': target,
                 transform_key: [],
             }
+        else:
+            # print(target, transform_key, transform_items)
+            raise ValueError(
+                'Grouped transformations currently work only with string'
+                ' values and dicts with key "value": ' + repr(target))
         if isinstance(transform_items, dict):
             transform_items = [transform_items]
         for transform_item in transform_items:
