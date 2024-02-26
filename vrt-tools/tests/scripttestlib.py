@@ -220,16 +220,24 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
             # print(tcname, inputnum, input_, file=sys.stderr)
             _convert_files_dict(input_, 'input')
             inputname = (input_ or {}).get('name') or ''
-            subcase_name = (tcname + (' (' + inputname + ')'
-                                      if inputname else ''))
+            input_ = get_value(default_input, input_)
             output = get_value(default_output, get_output_value(tc))
             _convert_files_dict(output, 'output')
-            subcases.extend(make_output_subcases(
-                name_format.format(
+            input_output = [(input_, output)]
+            if 'transform' in tc:
+                # Expand grouped transformations
+                input_output = expand_grouped_transforms(
+                    input_output, tc['transform'])
+                name_format = name_format.replace('}:', '}:{transformnum:d}:')
+            # print('name_format', name_format)
+            for trnum, (real_input, real_output) in enumerate(input_output):
+                subcase_name = (tcname + (' (' + inputname + ')'
+                                          if inputname else ''))
+                full_name = name_format.format(
                     fname=fname, num=tcnum + 1, inputnum=inputnum + 1,
-                    name=subcase_name),
-                get_value(default_input, input_),
-                output))
+                    transformnum=trnum + 1, name=subcase_name)
+                subcases.extend(make_output_subcases(
+                    full_name, real_input, real_output))
         return subcases
 
     def expand_inputs(inputs):
@@ -415,6 +423,101 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         #     print(len(result[i]), result[i])
         # print(len(result))
         return result
+
+    def expand_grouped_transforms(input_outputs, transform_groups):
+        """Expand grouped transformations `transform_groups` in `input_outputs`.
+
+        Return `input_outputs` with a separate test generated for each
+        input and output pair and transform group in
+        `transform_groups`.
+
+        `input_outputs` is a list of pairs (input, output): the input
+        and its expected output.
+        `transform_groups` is a list of dicts, each dict containing
+        transformations to be applied to each (input, output) pair as
+        a group. Such a dict may contain keys ``input``,
+        ``output-expected`` and ``output-actual`` for adding
+        transformations to input, expected output and actual output
+        items.
+        """
+        result = []
+        for input_, output in input_outputs:
+            for transform_group in transform_groups:
+                if transform_group:
+                    result.append(
+                        add_transform_group(input_, output, transform_group))
+                else:
+                    # If the transformation is empty, return input_
+                    # and output as is
+                    result.append((input_, output))
+        return result
+
+    def add_transform_group(input_, output, transform_group):
+        """Return copy of [`input_`, `output`] with `transform_group` added.
+
+        Add to a deep copy of `input_` and `output` the applicable
+        transformations in `transform_group` and return them as a pair
+        list. `input_` and `output` correspond to the dicts ``input``
+        and ``output`` in a scripttestlib test.
+        """
+        result = [deepcopy(input_), deepcopy(output)]
+        # Input and output top targets
+        target_tops = {'input': result[0], 'output': result[1]}
+        # print('add_transform_group', result, transform_group)
+        # transform_group is a dict that may contain keys "input",
+        # "output-expected", "output-actual"
+        for transform_top_name, transform_top in transform_group.items():
+            # target_top is "input" or "output"
+            target_top, sep, kind = transform_top_name.partition('-')
+            # The key for these transformations in input_ or output:
+            # "transform", "transform-expected" or "transform-actual"
+            transform_key = f'transform{sep}{kind}'
+            # Convert files: {FILE: ...} to file:FILE
+            _convert_files_dict(transform_top,
+                                'transform:' + transform_top_name)
+            # print(transform_top_name, target_top, transform_key,
+            #       transform_top)
+            # target is test target (stdin, stdout, file, returncode),
+            # transform_item the transform to be applied to it
+            for target, transform_item in transform_top.items():
+                # print(transform_key, target, transform_group,
+                #       transform_item, result)
+                # Add the transformation; if the target item does not
+                # exist, default to None (non-existing)
+                target_tops[target_top][target] = add_new_transform(
+                    target_tops[target_top].get(target, {'value': None}),
+                    transform_key, transform_item)
+        # print('add_transform_group ->', result)
+        return result
+
+    def add_new_transform(target, transform_key, transform_items):
+        """Append `transform_items` to `transform_key` of `target`.
+
+        Append transformations in `transform_items` to the
+        transformation type `transform_key` of `target` whose value is
+        to be tested. `transformation_items` can be a dict or a list
+        of dicts. Return `target` with the transformation appended.
+        """
+        # TODO: Support other types of values than plain strings and
+        # dicts with "value"
+        # print("add_new_transform", transform_key, target, transform_items)
+        if isinstance(target, dict):
+            target.setdefault(transform_key, [])
+            if isinstance(target[transform_key], dict):
+                target[transform_key] = [target[transform_key]]
+        else:
+            # If target is not a dict, convert it to one, with the
+            # original value as the value of key 'value'
+            target = {
+                'value': target,
+                transform_key: [],
+            }
+        if isinstance(transform_items, dict):
+            transform_items = [transform_items]
+        for transform_item in transform_items:
+            target[transform_key].append(transform_item)
+        # print("added", target)
+        return target
 
     # print(fname_testcases_dictlist)
     for fname, testcases_dictlist in fname_testcases_dictlist:
@@ -654,6 +757,7 @@ class ProgramRunner:
         env = make_env(input_)
         stdin = create_files(input_)
         # Run the command
+        # print('running', args)
         proc = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env,
                      shell=shell, cwd=tmpdir)
         stdout, stderr = proc.communicate(stdin)
@@ -712,6 +816,7 @@ def check_program_run(name, input_, outputitem, expected, tmpdir,
     def getfirst(value):
         return value[0] if is_list_or_tuple(value) else value
 
+    # print("run", input_, outputitem, expected)
     output = ProgramRunner.run(
         getfirst(name), getfirst(input_), tmpdir, progpath)
     if not is_list_or_tuple(outputitem):
@@ -796,6 +901,7 @@ def _check_output(name, output, outputitem, expected):
           and possible transformations (dict)
     """
     actual = output.get(outputitem)
+    # print('_check_output', name, output, outputitem, expected, actual)
     exp_val = _transform_value(expected.get('value'),
                                expected.get('transform-expected'))
     act_val = _transform_value(actual, expected.get('transform-actual'))

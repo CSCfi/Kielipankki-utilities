@@ -1429,6 +1429,219 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: global transformation groups',
+             'input': {
+                 'cmdline': 'cat',
+                 'shell': True,
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'foo\nbar\nbaz\n',
+                 },
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': [
+                             {'append': 'zoo\n'},
+                             {'replace': '/o/a/'},
+                         ],
+                     },
+                     'output-expected': {
+                         'stdout': [
+                             {'append': 'zoo\n'},
+                             {'replace': '/o/a/'},
+                         ],
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'xxx\n',
+                         },
+                     },
+                     'output-actual': {
+                         'stdout': {
+                             'filter-out': 'xxx\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: global transformation group, mixing files, file:F',
+             'input': {
+                 'cmdline': 'cat input.txt > output.txt',
+                 'shell': True,
+                 'file:input.txt': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 'files': {
+                     'output.txt': 'foo\nbar\nbaz\n',
+                 },
+             },
+             'transform': [
+                 {
+                     'input': {
+                         'files': {
+                             'input.txt': {
+                                 'append': 'zoo\n',
+                             },
+                         },
+                     },
+                     'output-expected': {
+                         'file:output.txt': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: global transformation group, transform cmdline',
+             'input': {
+                 'cmdline': 'cat input.txt',
+                 'shell': True,
+                 'file:input.txt': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 'stdout': 'foo\nbar\nbaz\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+             'transform': [
+                 {
+                     'input': {
+                         'cmdline': {
+                             'append': ' > output.txt'
+                         },
+                     },
+                     'output-expected': {
+                         'file:output.txt': {
+                             'set-value': 'foo\nbar\nbaz\n',
+                         },
+                         'stdout': {
+                             'set-value': '',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'cmdline': {
+                             'append': ' input2.txt'
+                         },
+                         'file:input2.txt': {
+                             'set-value': 'zoo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'cmdline': {
+                             'append': ' input2.txt',
+                         },
+                     },
+                     'output-expected': {
+                         'stderr': {
+                             'set-value': 'cat: input2.txt: No such file or directory\n',
+                         },
+                         'returncode': {
+                             'set-value': 1,
+                         }
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: transformation groups and global transformations',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 # Global transformations
+                 'transform-expected': [
+                     {'filter-out': 'z'},
+                 ],
+                 'transform-actual': [
+                     {'filter-out': 'z'},
+                 ],
+                 'stdout': 'foo\nbar\nbaz\n',
+                 # After transformation: 'foo\nbar\nba\n'
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             # Global transformations applied before this
+                             'append': 'oo\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: transformation groups and file-specific transformations',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 # File-specific transformations
+                 'stdout': {
+                     # After transformation: 'foo\nbar\nba\n'
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform-expected': [
+                         {'filter-out': 'z'},
+                     ],
+                     'transform-actual': [
+                         {'filter-out': 'z'},
+                     ],
+                 },
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             # File-specific transformations applied before this
+                             'append': 'oo\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
              'name': 'Test: "files" in input and output',
              'input': {
                  'cmdline': 'cat a.txt b.txt | tee out1.txt > out2.txt',

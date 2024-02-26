@@ -260,6 +260,36 @@ test case:
     transformations, and all those transformations are applied to the
     tests after the batch.
 
+-   `transform`: Grouped transformations: a list of `dict`s of
+    transformations to be applied at the same time. These are used to
+    generate multiple separate tests from the same base data with
+    certain transformations. Each item in the list is used to generate
+    a new test (or a set of tests) with the specified transformations
+    applied. For example, adding a command line argument could be
+    accompanied with a change to the output.
+
+    The `dict`s in the list can contain the following keys:
+
+    -   `input`: Transformations to be added to input files and
+        command line (`transform`).
+    -   `output-expected`: Transformations to be added to output
+        (`transform-expected`).
+    -   `output-actual`: Transformations to be added to output
+        (`transform-actual`).
+
+    The value of each of these is a `dict` with keys corresponding to
+    (transformable) items in the `input` and `output` `dict`s of a
+    test (files, `cmdline`, `stdin`, `stdout`, `stderr`, `returncode`)
+    and values transformation `dict`s or lists of them, as for
+    `transform` of `input` items and `transform-expected` and
+    `transform-actual` of `output` items.
+
+    Grouped transformations are applied to values after global and
+    file-specific ones.
+
+    If untransformed tests should also be generated, the list must
+    also include an empty `dict` `{}`.
+
 -   `status`: The status of the test (optional). Tests should pass by
     default, but `status` can mark otherwise. Allowed values are:
 
