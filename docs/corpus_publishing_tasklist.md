@@ -134,6 +134,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?A*_ If required, request URNs for license pages (and the PRIV condition pages)
 # [ ] _*+PORTAL*_ Update the license PIDs in the resource database
 # [ ] _*+META*_ Create/update the META-SHARE record, including the license information [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+PORTAL*_ In case the resource has a RES license, add it to the page Katselmointiprosessi (https://www.kielipankki.fi/intra/katselmointiprosessi/)
 # [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
 \\
 ```
