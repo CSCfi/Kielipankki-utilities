@@ -1642,6 +1642,92 @@ _testcase_files_content = [
              ],
          },
          {
+             'name': 'Test: transformation groups and test-specific transformations',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 'stdout': [
+                     {'value': 'foo\nbar\nbaz\n'},
+                     # Test-specific transformations
+                     {
+                         'transform-expected': [
+                             {'filter-out': 'x'},
+                         ],
+                         'transform-actual': [
+                             {'filter-out': 'z'},
+                         ],
+                     },
+                     # After transformation: 'foo\nbar\nba\n'
+                     {'value': 'foox\nbarx\nba\n'},
+                 ],
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     # These should work for the above value tests
+                     # both before and after the test-specific
+                     # transformations
+                     'input': {
+                         'stdin': {
+                             'append': 'yyy\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'append': 'yyy\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: transformation groups and dict with test names',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 'stdout': {
+                     '==': 'foo\nbar\nbaz\n',
+                     '!=': 'goo',
+                     'contains': [
+                         'foo\n',
+                         'baz\n',
+                     ],
+                     'regex': 'b..\n',
+                 },
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     'input': {
+                         'stdin': {
+                             'replace': '/\n/yyy\n/',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'replace': '/\n/yyy\n/',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'xxx\n',
+                         },
+                     },
+                     'output-actual': {
+                         'stdout': {
+                             'filter-out': 'xxx\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
              'name': 'Test: "files" in input and output',
              'input': {
                  'cmdline': 'cat a.txt b.txt | tee out1.txt > out2.txt',

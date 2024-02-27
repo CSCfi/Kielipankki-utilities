@@ -284,12 +284,8 @@ test case:
     `transform` of `input` items and `transform-expected` and
     `transform-actual` of `output` items.
 
-    Grouped transformations are applied to values after global and
-    file-specific ones.
-
-    **Note** that grouped transformations currently work only with
-    expected values that are strings, integers or `dict`s with key
-    `"value"`, not with other types of values.
+    Grouped transformations are applied to values after global,
+    file-specific and test-specific ones.
 
     If untransformed tests should also be generated, the list must
     also include an empty `dict` `{}`.

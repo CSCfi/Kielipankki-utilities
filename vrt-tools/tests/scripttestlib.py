@@ -385,6 +385,7 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                     else:
                         test_num = 0
                         for test, exp_vals in expected_val.items():
+                            # print('test', test, exp_vals)
                             test_num += 1
                             test, *test_opts = test.split()
                             if not isinstance(exp_vals, list):
@@ -397,6 +398,7 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                                     'transform-expected': expected_trans,
                                     'transform-actual': actual_trans,
                                 }
+                                # print(exp_val_num, exp_val, exp_output)
                                 subitem_descr = item_descr
                                 if granularity == 'value':
                                     subitem_descr += ' ' + str(test_num)
@@ -498,13 +500,35 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         to be tested. `transformation_items` can be a dict or a list
         of dicts. Return `target` with the transformation appended.
         """
-        # TODO: Support other types of values than plain strings (and
-        # ints) and dicts with "value"
         # print("add_new_transform", transform_key, target, transform_items)
-        if isinstance(target, dict) and 'value' in target:
-            target.setdefault(transform_key, [])
-            if isinstance(target[transform_key], dict):
-                target[transform_key] = [target[transform_key]]
+        if isinstance(target, list):
+            return [add_new_transform(subtarget, transform_key, transform_items)
+                    for subtarget in target]
+        elif isinstance(target, dict):
+            if 'value' in target:
+                target.setdefault(transform_key, [])
+                if isinstance(target[transform_key], dict):
+                    target[transform_key] = [target[transform_key]]
+            elif 'transform-expected' in target or 'transform-actual' in target:
+                # Return test-specific transformations (a
+                # transformation dict within a list) intact
+                return target
+            else:
+                # Dict with test names as keys
+                result = []
+                for test_name, test_vals in target.items():
+                    if test_name in _test_names:
+                        # The value can be a list of values to test
+                        if not isinstance(test_vals, list):
+                            test_vals = [test_vals]
+                        for test_val in test_vals:
+                            result.append(add_new_transform(
+                                {
+                                    'test': test_name,
+                                    'value': test_val,
+                                },
+                                transform_key, transform_items))
+                return result
         elif isinstance(target, (str, int)):
             # If target is not a dict, convert it to one, with the
             # original value as the value of key 'value'
@@ -997,6 +1021,13 @@ def _assert_regex(exp, val, item_descr, *opts):
 
 def _assert_not_regex(exp, val, item_descr, *opts):
     assert _re_search(exp, val, *opts) is None
+
+
+# Supported test names
+_test_names = set(
+    list(name[len('_assert_'):] for name in dir()
+         if name.startswith('_assert_'))
+    + list(_assert_name_map.keys()))
 
 
 # Value transformation functions
