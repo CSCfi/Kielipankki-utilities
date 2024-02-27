@@ -52,7 +52,15 @@ test case:
 
 -   `name`: A name or description of the test (`str`)
 
--   `input`: A dict containing input information for the test:
+-   `input`: A dict or a list of dicts containing input information
+    for the test. If the value is a list of dicts, a separate test is
+    generated for each item with the same output information.
+
+    The input dict may contain the following keys:
+
+    -   `name`: a name or description of the (sub-)test, mainly useful
+        if `input` is a list of dicts, generating multiple tests
+        (`str`)
     -   `prog`: program (script) name (`str`). The program is searched
         in `$PATH` as usual, but for tests under this directory, the
         `vrt-tools` directory is added to `$PATH`, so the bare name of
@@ -60,8 +68,9 @@ test case:
     -   `args`: a list of command-line arguments, either a single
         string with arguments quoted as in shell, or as a list of
         unquoted strings (`str`)
-    -   `cmdline`: complete command line (`str`), with arguments
-        quoted as in shell (an alternative to `prog` and `args`)
+    -   `cmdline`: complete command line (`str` or `dict`; see below),
+        with arguments quoted as in shell (an alternative to `prog`
+        and `args`)
 	-   `shell`: if `True`, pass `cmdline` to shell, allowing the use
         of pipes, redirection and other features. Note that this works
         only with `cmdline`, not with `prog` and `args`.
@@ -82,19 +91,50 @@ test case:
         all input files according to the specified options
         (`list(dict)` or `dict`). Currently the following options are
         supported:
-		-   `prepend`: content to prepend to `value` (`str`)
-		-   `append`: content to append to `value` (`str`)
+		-   `prepend`: content to prepend to `value` (`str`); `None`
+            is treated as an empty string, `int` returned intact
+		-   `append`: content to append to `value` (`str`); `None`
+            is treated as an empty string, `int` returned intact
 		-   `filter-out`: remove the substrings matching the regular
 			expression that is the value of the option. The value of
 			the option may also be a list of regular expressions, in
-			which case their matches are removed in order.
+			which case their matches are removed in order. `int` and
+			`None` are returned intact.
+        -   `replace`: replace a substring or regular expression match
+            with a replacement. `int` and `None` are returned intact.
+            The value can be a `dict`, `str` or
+            `list` of `dict` or `str`. A `dict` value may contain the
+            following keys (`str` and `regex` are mutually exclusive):
+            -   `str`: fixed string to be replaced
+            -   `regex`: regular expression whose matches are to be
+                replaced
+            -   `with`: replacement string (empty string if omitted);
+                with regular expressions, may also refer to parts
+                matching parenthesized groups as `\N` or `\g<N>` where
+                _N_ is the number of the group in the regular
+                expression, or to named groups (`(?P<name>regex)`) as
+                `\g<name>`
+            -   `count`: the number of replacements (optional;
+                default: all)
+
+            A `str` value is of the form `/`_regex_`/`_with_`/`
+            replacing matches of regular expression _regex_ with
+            _with_. Instead of the slash, another punctuation
+            character may be used. If the value is a `list`, its each
+            item is processed in order as above.
+        -   `set-value`: the value to replace `value` with completely.
+            An `int` can only be replaced with an `int`, whereas
+            `None` can replace `str` and vice versa; other type
+            combinations return the original value intact.
 		-   `python`: Python 3 code to transform `value`: the body of
             a function of one argument named `value` containing the
             base value and returning the transformed value. The Python
             regular expression module `re` is available for the code.
 		-   `shell`: shell command line reading `value` from standard
             input and writing the transformed value to standard
-            output. The shell used is the default shell.
+            output. The shell used is the default shell. An `int`
+            `value` is converted to a string for processing and the
+            returned value back to `int`; a `None` is returned intact.
 
 		If the value is a plain dictionary, the order of the
         transformations is not defined, so they should be independent
@@ -102,9 +142,9 @@ test case:
         dictionaries, the transformations are applied in the list
         order, each transformation to the output of the preceding one.
 
-	`stdin`, `file:FNAME` and the values under `files` may be either
-    plain strings containing the content, or dicts of one or two
-    items:
+	`cmdline`, `stdin`, `file:FNAME` and the values under `files` may
+    be either plain strings containing the content, or dicts of one or
+    two items:
 
 	-   `value`: the base value (obligatory), subject to
         transformations specified in `transform` (`str`)
@@ -112,11 +152,19 @@ test case:
         actual content. The options are those listed above for all
         inputs. If transformations are defined for both specific
         inputs and for all inputs, the input-specific transformations
-        are applied after the general ones.
+        are applied after the general ones. (Transformations for all
+        inputs do not apply to `cmdline`.)
 
 	The dict variant of the input could be used in conjunction with
     [defining common values that can be reused in multiple
     places](#reusable-definitions), for example.
+
+    For all keys except `name`, `args`, `shell` and `transform`, the
+    value for the key may be a list of values of the indicated type,
+    in which case separate tests are generated for each combination of
+    list items. For example, `{cmdline: [c1, c2], stdin: [s1, s2]}`
+    corresponds to inputs `[{cmdline: c1, stdin: s1}, {cmdline: c1,
+    stdin: s2}, {cmdline: c2, stdin: s1}, {cmdline: c2, stdin: s2}]`
 
 -   `output`: Expected output for the test and options transforming
     the output:
@@ -194,7 +242,20 @@ test case:
     DOTALL|VERBOSE`, corresponding to `re.search(`*expected* `,
     `*actual* `, re.DOTALL|re.VERBOSE)`.
 
-	Transformaing actual values is useful in particular for removing
+    For the tests `in` and `not-in`, the expected value may be either
+    `str` or `list`: if `str`, the actual value should be contained in
+    the expected one, and if `list`, the actual value should be one of
+    the values in the list. Note that when using a `dict` with test
+    names as keys, a `list` value should be enclosed in another
+    `list`, so that it is not interpreted as multiple individual `str`
+    values. A `list` value is transformed by transforming each item
+    separately.
+
+    The value for a non-existent file is `None` in Python, and `null`,
+    `~` or an empty value in YAML, so you can test that file
+    `outfile.txt` does not exist as `file:outfile.txt: null` (YAML).
+
+	Transforming actual values is useful in particular for removing
     such parts of the output that change on each run, such as
     timestamps.
 
@@ -207,6 +268,36 @@ test case:
     transformations of a batch are appended to the existing list of
     transformations, and all those transformations are applied to the
     tests after the batch.
+
+-   `transform`: Grouped transformations: a list of `dict`s of
+    transformations to be applied at the same time. These are used to
+    generate multiple separate tests from the same base data with
+    certain transformations. Each item in the list is used to generate
+    a new test (or a set of tests) with the specified transformations
+    applied. For example, adding a command line argument could be
+    accompanied with a change to the output.
+
+    The `dict`s in the list can contain the following keys:
+
+    -   `input`: Transformations to be added to input files and
+        command line (`transform`).
+    -   `output-expected`: Transformations to be added to output
+        (`transform-expected`).
+    -   `output-actual`: Transformations to be added to output
+        (`transform-actual`).
+
+    The value of each of these is a `dict` with keys corresponding to
+    (transformable) items in the `input` and `output` `dict`s of a
+    test (files, `cmdline`, `stdin`, `stdout`, `stderr`, `returncode`)
+    and values transformation `dict`s or lists of them, as for
+    `transform` of `input` items and `transform-expected` and
+    `transform-actual` of `output` items.
+
+    Grouped transformations are applied to values after global,
+    file-specific and test-specific ones.
+
+    If untransformed tests should also be generated, the list must
+    also include an empty `dict` `{}`.
 
 -   `status`: The status of the test (optional). Tests should pass by
     default, but `status` can mark otherwise. Allowed values are:
