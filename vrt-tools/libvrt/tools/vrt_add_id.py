@@ -33,7 +33,7 @@ def affix(arg):
 def intpow(arg):
     '''argparse argument type check for non-negative integer, 0x... or n^k'''
     if re.fullmatch('[0-9]+|0x[0-9A-Fa-f]+', arg):
-        return int(arg, base=0)
+        return int(arg, base = 0)
     elif re.fullmatch(r'[0-9]+\^[0-9]+', arg):
         base, exp = arg.split('^')
         return pow(int(base), int(exp))
@@ -347,14 +347,19 @@ def main(args, ins, ous):
     # The names of elements whose contents have been checked for
     # optimization
     checked_elems = set()
+
     for line in ins:
+
         if ismeta(line):
             elem = element(line)
             elem_s = elem.decode('UTF-8')
+
             if isendtag(line):
                 del elem_attrs[elem_s]
+
             elif isstarttag(line):
                 attrs = elem_attrs[elem_s] = mapping(line)
+
                 if elem in id_elem_names:
                     # Element-specific options
                     elem_args = args.element[elem]
@@ -384,14 +389,14 @@ def main(args, ins, ous):
                         attrs[elem_args.idn] = (
                             formatter.format(
                                 elem_args.format,
-                                id=id,
-                                this=attrs,
-                                idnum=idnums,
+                                id = id,
+                                this = attrs,
+                                idnum = idnums,
                                 **elem_attrs
                             ).encode('UTF-8'))
                     else:
                         raise BadData('element has id already')
-                    line = starttag(elem, attrs, sort=args.sort)
+                    line = starttag(elem, attrs, sort = args.sort)
 
         ous.write(line)
 
@@ -505,7 +510,7 @@ def get_idgen(args):
             args.seed += '1'
         return randint_uniq(args.end, args.seed)
 
-def randint_uniq(end, seed=None):
+def randint_uniq(end, seed = None):
     '''Generator for unique random integers in [0, end[ with seed.'''
 
     # Values already generated
