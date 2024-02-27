@@ -382,6 +382,7 @@ _testcase_files_content = [
              },
              'output': {
                  'stdout': [
+                     # "in", "not-in" with list value
                      {
                          'test': 'in',
                          'value': [
@@ -392,10 +393,41 @@ _testcase_files_content = [
                      {
                          'test': 'not-in',
                          'value': [
-                            'a',
+                            'test0\ntest1\ntest2\n',
                             'b',
                          ],
                      },
+                     # "in", "not-in" with string value
+                     {
+                         'test': 'in',
+                         'value': 'test0\ntest1\ntest2\n',
+                     },
+                     {
+                         'test': 'not-in',
+                         'value': 'test0\ntest2\n',
+                     },
+                     # "in", "not-in" with test name as key, str value
+                     {
+                         'in': 'test0\ntest1\ntest2\n',
+                         'not-in': 'test0\ntest2\n',
+                     },
+                     # "in", "not-in" with test name as key, list value
+                     {
+                         'in': [
+                             [
+                                 'a',
+                                 'test1\ntest2\n',
+                             ],
+                             'test0\ntest1\ntest2\n',
+                         ],
+                     },
+                     {
+                         'not-in': [[
+                            'test0\ntest1\ntest2\n',
+                            'b',
+                         ]],
+                     },
+                     # "contains", "not-contains"
                      {
                          'test': 'contains',
                          'value': 'test',
@@ -473,6 +505,22 @@ _testcase_files_content = [
                  'stdout': '',
                  'stderr': '',
                  'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: (non-)existence of files',
+             'input': {
+                 'cmdline': 'printf "test\ntest\n" > test.out',
+                 'shell': True,
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': '',
+                 'returncode': 0,
+                 'file:test.out': {
+                     '!=': None,
+                 },
+                 'file:test2.out': None,
              },
          },
          # Test default values
@@ -819,6 +867,22 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: completely replace output file content',
+             'input': {
+                 'cmdline': 'cat > file.out',
+                 'shell': True,
+                 'stdin': 'foo\nbar\nbaz\n'
+             },
+             'output': {
+                 'file:file.out': {
+                     'value': 'bar\n',
+                     'transform-expected': {
+                         'set-value': 'foo\nbar\nbaz\n',
+                     },
+                 },
+             },
+         },
+         {
              'name': 'Test: transform stdin with shell (+ append)',
              'input': {
                  'cmdline': 'cat',
@@ -892,6 +956,616 @@ _testcase_files_content = [
                  'stderr': '',
                  'returncode': 0,
              },
+         },
+         {
+             'name': 'Test: transform cmdline',
+             'input': {
+                 'cmdline': {
+                     'value': 'echo "foobar"',
+                     'transform': {
+                         'replace': '/foo/bar/',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'barbar\n',
+             },
+         },
+         {
+             'name': 'Test: replace string in stdin',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'str': 'b',
+                             'with': 'x',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nxar\nxaz\n',
+             },
+         },
+         {
+             'name': 'Test: replace string in stdin, without "with"',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'str': 'b',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nar\naz\n',
+             },
+         },
+         {
+             'name': 'Test: replace string in stdin, with count',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'str': 'b',
+                             'with': 'x',
+                             'count': 1,
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nxar\nbaz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '[ao]',
+                             'with': 'V',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fVV\nbVr\nbVz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, refer to groups',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '(.)([ao]+)',
+                             'with': '\\2\\1',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'oof\nabr\nabz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, refer to named groups',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '(?P<c>.)(?P<v>[ao]+)',
+                             'with': '\\g<v>\\g<c>',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'oof\nabr\nabz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, /.../.../',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': '/[ao]/V/',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fVV\nbVr\nbVz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, /.../.../, alt delim',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': '![ao]!V!',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fVV\nbVr\nbVz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, /.../.../, refer to groups',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': '/(?P<c>.)(?P<v>[ao]+)/\\g<v>\\g<c>/',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'oof\nabr\nabz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, without "with"',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '[ao]',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'f\nbr\nbz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, with "count"',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '[ao]',
+                             'with': 'V',
+                             'count': 2,
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fVV\nbar\nbaz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '[ao]',
+                             'with': 'V',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fVV\nbVr\nbVz\n',
+             },
+         },
+         {
+             'name': 'Test: list of replacements in stdin',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': [
+                             {
+                                 'regex': '[ao]',
+                                 'with': 'V',
+                             },
+                             {
+                                 'str': 'b',
+                                 'with': 'x',
+                             },
+                             '/[xz]/a/',
+                         ],
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fVV\naVr\naVa\n',
+             },
+         },
+         {
+             'name': 'Test: transformations of None',
+             'input': {
+                 'cmdline': 'cat f1.txt f2.txt f3.txt f4.txt f5.txt f6.txt f7.txt',
+                 'file:f1.txt': {
+                     'value': None,
+                     'transform': {
+                         'prepend': 'foo\n'
+                     },
+                 },
+                 'file:f2.txt': {
+                     'value': None,
+                     'transform': {
+                         'append': 'foo\n'
+                     },
+                 },
+                 'file:f3.txt': {
+                     'value': None,
+                     'transform': {
+                         'filter-out': 'o'
+                     },
+                 },
+                 'file:f4.txt': {
+                     'value': None,
+                     'transform': {
+                         'replace': '/o/x/'
+                     },
+                 },
+                 'file:f5.txt': {
+                     'value': None,
+                     'transform': {
+                         'set-value': 'zz\n'
+                     },
+                 },
+                 'file:f6.txt': {
+                     'value': None,
+                     'transform': {
+                         'python': 'return "x\\n" if value is None else "y\\n"'
+                     },
+                 },
+                 'file:f7.txt': {
+                     'value': None,
+                     'transform': {
+                         'shell': 'tr "a" "b"'
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nfoo\nzz\nx\n',
+                 'stderr': ('cat: f3.txt: No such file or directory\n'
+                            'cat: f4.txt: No such file or directory\n'
+                            'cat: f7.txt: No such file or directory\n'),
+             },
+         },
+         {
+             'name': 'Test: transformations of int: set-value',
+             'input': {
+                 'cmdline': 'cat foo',
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': 'cat: foo: No such file or directory\n',
+                 'returncode': {
+                     'value': 0,
+                     'transform-expected': [
+                         {'set-value': 1},
+                     ],
+                 },
+             },
+         },
+         {
+             'name': 'Test: transformations of int: keep intact',
+             'input': {
+                 'cmdline': 'cat foo',
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': 'cat: foo: No such file or directory\n',
+                 'returncode': {
+                     'value': 1,
+                     'transform-expected': [
+                         {'prepend': 2},
+                         {'append': 3},
+                         {'filter-out': '3'},
+                         {'replace': '/3/4/'},
+                         {'set-value': 'foo'},
+                         {'set-value': None},
+                     ],
+                 },
+             },
+         },
+         {
+             'name': 'Test: transformations of int: Python',
+             'input': {
+                 'cmdline': 'cat foo',
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': 'cat: foo: No such file or directory\n',
+                 'returncode': {
+                     'value': 0,
+                     'transform-expected': [
+                         {'python': 'return value + 1'},
+                     ],
+                 },
+             },
+         },
+         {
+             'name': 'Test: transformations of int: shell',
+             'input': {
+                 'cmdline': 'cat foo',
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': 'cat: foo: No such file or directory\n',
+                 'returncode': {
+                     'value': 0,
+                     'transform-expected': [
+                         {'shell': 'tr 0 1'},
+                     ],
+                 },
+             },
+         },
+         {
+             'name': 'Test: transformation set-value str and None',
+             'input': {
+                 'cmdline': 'cat f1.txt f2.txt f3.txt f4.txt',
+                 'file:f1.txt': {
+                     'value': 'foo\n',
+                     'transform': {
+                         # Should not change
+                         'set-value': 1,
+                     },
+                 },
+                 'file:f2.txt': {
+                     'value': 'bar\n',
+                     'transform': {
+                         # Should change
+                         'set-value': None,
+                     },
+                 },
+                 'file:f3.txt': {
+                     'value': None,
+                     'transform': {
+                         # Should not change
+                         'set-value': 1,
+                     },
+                 },
+                 'file:f4.txt': {
+                     'value': None,
+                     'transform': {
+                         # Should change
+                         'set-value': 'baz\n',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'foo\nbaz\n',
+                 'stderr': ('cat: f2.txt: No such file or directory\n'
+                            'cat: f3.txt: No such file or directory\n'),
+                 'returncode': 1,
+             },
+         },
+         {
+             'name': 'Test: transformations of expected list (test "in")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\n',
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'test': 'in',
+                         'value': [
+                             'foo\nbar\n',
+                             'xxx\n',
+                         ],
+                     },
+                 ],
+             },
+             'transform': [
+                 {},
+                 {
+                     'input': {
+                         'stdin': {
+                             'prepend': 'foo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'prepend': 'foo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'foo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'append': 'foo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'filter-out': 'foo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'filter-out': 'foo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'replace': '/f/b/',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'replace': '/f/b/',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'set-value': 'zzz\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'set-value': 'zzz\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'python': 'return value[2:]',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'python': 'return value[2:]',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'shell': 'tr z x',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'shell': 'tr z x',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
+             # "not-in" is tested separately from "in", as
+             # transformation "set-value" would not produce
+             # correct-results for "not-in"
+             'name': 'Test: transformations of expected list (test "not-in")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\n',
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'test': 'not-in',
+                         'value': [
+                             'foo\nbar\nbaz\n',
+                             'xxx\n',
+                         ],
+                     },
+                 ],
+             },
+             'transform': [
+                 {},
+                 {
+                     'input': {
+                         'stdin': {
+                             'prepend': 'foo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'prepend': 'foo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'foo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'append': 'foo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'filter-out': 'foo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'filter-out': 'foo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'replace': '/f/b/',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'replace': '/f/b/',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'python': 'return value[2:]',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'python': 'return value[2:]',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'shell': 'tr z x',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'shell': 'tr z x',
+                         },
+                     },
+                 },
+             ],
          },
          {
              'name': 'Test: transformation sequences',
@@ -988,6 +1662,305 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: global transformation groups',
+             'input': {
+                 'cmdline': 'cat',
+                 'shell': True,
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'foo\nbar\nbaz\n',
+                 },
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': [
+                             {'append': 'zoo\n'},
+                             {'replace': '/o/a/'},
+                         ],
+                     },
+                     'output-expected': {
+                         'stdout': [
+                             {'append': 'zoo\n'},
+                             {'replace': '/o/a/'},
+                         ],
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'xxx\n',
+                         },
+                     },
+                     'output-actual': {
+                         'stdout': {
+                             'filter-out': 'xxx\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: global transformation group, mixing files, file:F',
+             'input': {
+                 'cmdline': 'cat input.txt > output.txt',
+                 'shell': True,
+                 'file:input.txt': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 'files': {
+                     'output.txt': 'foo\nbar\nbaz\n',
+                 },
+             },
+             'transform': [
+                 {
+                     'input': {
+                         'files': {
+                             'input.txt': {
+                                 'append': 'zoo\n',
+                             },
+                         },
+                     },
+                     'output-expected': {
+                         'file:output.txt': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: global transformation group, transform cmdline',
+             'input': {
+                 'cmdline': 'cat input.txt',
+                 'shell': True,
+                 'file:input.txt': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 'stdout': 'foo\nbar\nbaz\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+             'transform': [
+                 {
+                     'input': {
+                         'cmdline': {
+                             'append': ' > output.txt'
+                         },
+                     },
+                     'output-expected': {
+                         'file:output.txt': {
+                             'set-value': 'foo\nbar\nbaz\n',
+                         },
+                         'stdout': {
+                             'set-value': '',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'cmdline': {
+                             'append': ' input2.txt'
+                         },
+                         'file:input2.txt': {
+                             'set-value': 'zoo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'cmdline': {
+                             'append': ' input2.txt',
+                         },
+                     },
+                     'output-expected': {
+                         'stderr': {
+                             'set-value': 'cat: input2.txt: No such file or directory\n',
+                         },
+                         'returncode': {
+                             'set-value': 1,
+                         }
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: transformation groups and global transformations',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 # Global transformations
+                 'transform-expected': [
+                     {'filter-out': 'z'},
+                 ],
+                 'transform-actual': [
+                     {'filter-out': 'z'},
+                 ],
+                 'stdout': 'foo\nbar\nbaz\n',
+                 # After transformation: 'foo\nbar\nba\n'
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             # Global transformations applied before this
+                             'append': 'oo\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: transformation groups and file-specific transformations',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 # File-specific transformations
+                 'stdout': {
+                     # After transformation: 'foo\nbar\nba\n'
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform-expected': [
+                         {'filter-out': 'z'},
+                     ],
+                     'transform-actual': [
+                         {'filter-out': 'z'},
+                     ],
+                 },
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             # File-specific transformations applied before this
+                             'append': 'oo\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: transformation groups and test-specific transformations',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 'stdout': [
+                     {'value': 'foo\nbar\nbaz\n'},
+                     # Test-specific transformations
+                     {
+                         'transform-expected': [
+                             {'filter-out': 'x'},
+                         ],
+                         'transform-actual': [
+                             {'filter-out': 'z'},
+                         ],
+                     },
+                     # After transformation: 'foo\nbar\nba\n'
+                     {'value': 'foox\nbarx\nba\n'},
+                 ],
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     # These should work for the above value tests
+                     # both before and after the test-specific
+                     # transformations
+                     'input': {
+                         'stdin': {
+                             'append': 'yyy\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'append': 'yyy\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: transformation groups and dict with test names',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 'stdout': {
+                     '==': 'foo\nbar\nbaz\n',
+                     '!=': 'goo',
+                     'contains': [
+                         'foo\n',
+                         'baz\n',
+                     ],
+                     'regex': 'b..\n',
+                 },
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     'input': {
+                         'stdin': {
+                             'replace': '/\n/yyy\n/',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'replace': '/\n/yyy\n/',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'xxx\n',
+                         },
+                     },
+                     'output-actual': {
+                         'stdout': {
+                             'filter-out': 'xxx\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
              'name': 'Test: "files" in input and output',
              'input': {
                  'cmdline': 'cat a.txt b.txt | tee out1.txt > out2.txt',
@@ -1008,6 +1981,183 @@ _testcase_files_content = [
                      },
                  },
                  'stdout': '',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         # Multiple inputs with the same output
+         {
+             'name': 'Test: multiple inputs with same output',
+             'input': [
+                 {
+                     'name': 'cat file',
+                     'cmdline': 'cat infile.txt',
+                     'file:infile.txt': 'test1\ntest2\n'
+                 },
+                 {
+                     'name': 'cat redirect file',
+                     'cmdline': 'cat < infile.txt',
+                     'shell': True,
+                     'file:infile.txt': 'test1\ntest2\n'
+                 },
+                 {
+                     'name': 'cat stdin',
+                     'cmdline': 'cat',
+                     'stdin': 'test1\ntest2\n'
+                 },
+                 {
+                     # Without 'name'
+                     'prog': 'cat',
+                     'stdin': 'test1\ntest2\n'
+                 },
+                 {
+                     'name': 'printf',
+                     'cmdline': 'printf "test1\\ntest2\\n"',
+                     'shell': True,
+                 },
+             ],
+             'output': {
+                 'stdout': 'test1\ntest2\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: multiple cmdlines in input',
+             'input': {
+                 'cmdline': [
+                     'cat infile.txt',
+                     'cat < infile.txt',
+                     'printf "test1\\ntest2\\n"',
+                 ],
+                 'shell': True,
+                 'file:infile.txt': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': 'test1\ntest2\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: multiple cmdlines and alternative input files',
+             'input': {
+                 'cmdline': [
+                     'grep -h "test" infile1.txt infile2.txt',
+                     'grep -hv "[abc]" infile1.txt infile2.txt',
+                     'cat infile1.txt infile2.txt | grep "test"',
+                 ],
+                 'shell': True,
+                 'file:infile1.txt': [
+                     'aaaa\ntest1\n',
+                     'bbbb\ntest1\n',
+                     'cccc\ntest1\n',
+                 ],
+                 'file:infile2.txt': [
+                     'aaaa\ntest2\n',
+                     'bbbb\ntest2\n',
+                     'cccc\ntest2\n',
+                 ],
+             },
+             'output': {
+                 'stdout': 'test1\ntest2\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: multiple cmdlines and alt input files as "files"',
+             'input': {
+                 'cmdline': [
+                     'grep -h "test" infile1.txt infile2.txt',
+                     'grep -hv "[abc]" infile1.txt infile2.txt',
+                 ],
+                 'shell': True,
+                 'files': [
+                     {
+                         'infile1.txt': 'aaaa\ntest1\n',
+                         'infile2.txt': 'aaaa\ntest2\n',
+                     },
+                     {
+                         'infile1.txt': '',
+                         'infile2.txt': 'aaaa\ntest1\ntest2\n',
+                     },
+                 ],
+             },
+             'output': {
+                 'stdout': 'test1\ntest2\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: multiple cmdlines and envvars',
+             'input': {
+                 'cmdline': [
+                     'echo "$FOO$SEP$BAR"',
+                     'echo "$FOO-$BAR"',
+                 ],
+                 'shell': True,
+                 'envvars': [
+                     {
+                         'FOO': 'x',
+                         'SEP': '-',
+                         'BAR': 'y',
+                     },
+                     {
+                         'FOO0': 'x',
+                         'FOO': '$FOO0',
+                         'SEP': '-',
+                         'BAR': 'y',
+                     },
+                 ],
+             },
+             'output': {
+                 'stdout': 'x-y\n',
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: multiple named inputs with multiple alternatives',
+             'input': [
+                 {
+                     'name': 'grep',
+                     'cmdline': [
+                         'grep -h "test" infile1.txt infile2.txt',
+                         'grep -hv "[abc]" infile1.txt infile2.txt',
+                     ],
+                     'shell': True,
+                     'file:infile1.txt': [
+                         'aaaa\ntest1\n',
+                         'bbbb\ntest1\n',
+                     ],
+                     'file:infile2.txt': [
+                         'aaaa\ntest2\n',
+                         'bbbb\ntest2\n',
+                     ],
+                 },
+                 {
+                     'name': 'cat',
+                     'cmdline': [
+                         'cat infile1.txt infile2.txt',
+                         'cat infile3.txt',
+                     ],
+                     'file:infile1.txt': 'test1\n',
+                     'file:infile2.txt': 'test2\n',
+                     'file:infile3.txt': 'test1\ntest2\n',
+                 },
+                 {
+                     'name': 'printf',
+                     'cmdline': [
+                         'printf "test1\\ntest2\\n"',
+                         'printf "test1\ntest2\n"',
+                     ],
+                     'shell': True,
+                 },
+             ],
+             'output': {
+                 'stdout': 'test1\ntest2\n',
                  'stderr': '',
                  'returncode': 0,
              },
@@ -1196,7 +2346,8 @@ def test_collect_testcases(testcase_files, tmpdir):
                     or (isinstance(exp_val, int)
                         and inputitem == 'returncode')
                     or (isinstance(exp_val, list)
-                        and expected['test'] in ['in', 'not-in']))
+                        and expected['test'] in ['in', 'not-in'])
+                    or (exp_val is None and inputitem.startswith('file:')))
             testcase_num += 1
 
 

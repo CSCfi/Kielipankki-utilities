@@ -22,6 +22,7 @@ import sys
 
 from collections import defaultdict
 from copy import deepcopy
+from itertools import product
 from subprocess import Popen, PIPE
 
 import pytest
@@ -195,7 +196,127 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                 result[i] = result[i][0]
         return result
 
-    def make_subcases(name, input_, output):
+    def make_subcases(fname, tc, tcnum, default_input, default_output):
+        """Generate sub-testcases, expanding inputs and output.
+
+        Generate sub-testcases for testcase `tc` (number `tcnum`) in
+        file `fname`, with defaults `default_input` and
+        `default_output`. If the input specification is a list, each
+        item in it generates a separate test for each test case in the
+        output. The return value is a list of tuples to be used as
+        parameters to `check_program_run`.
+        """
+        inputs = tc.get('input')
+        if not isinstance(inputs, list):
+            inputs = [inputs]
+        inputs = expand_inputs(inputs)
+        # Name format depends on whether the input is a list or not
+        name_format = ('{fname} {num:d}: {name}' if len(inputs) == 1
+                       else '{fname} {num:d}.{inputnum:d}: {name}')
+        # print(tcnum, inputs)
+        subcases = []
+        tcname = tc.get('name') or ''
+        for inputnum, input_ in enumerate(inputs):
+            # print(tcname, inputnum, input_, file=sys.stderr)
+            _convert_files_dict(input_, 'input')
+            inputname = (input_ or {}).get('name') or ''
+            input_ = get_value(default_input, input_)
+            output = get_value(default_output, get_output_value(tc))
+            _convert_files_dict(output, 'output')
+            input_output = [(input_, output)]
+            if 'transform' in tc:
+                # Expand grouped transformations
+                input_output = expand_grouped_transforms(
+                    input_output, tc['transform'])
+                name_format = name_format.replace('}:', '}:{transformnum:d}:')
+            # print('name_format', name_format)
+            for trnum, (real_input, real_output) in enumerate(input_output):
+                subcase_name = (tcname + (' (' + inputname + ')'
+                                          if inputname else ''))
+                full_name = name_format.format(
+                    fname=fname, num=tcnum + 1, inputnum=inputnum + 1,
+                    transformnum=trnum + 1, name=subcase_name)
+                subcases.extend(make_output_subcases(
+                    full_name, real_input, real_output))
+        return subcases
+
+    def expand_inputs(inputs):
+        """Expand `inputs`: all item combinations of list-valued values.
+
+        Return a list of input dicts generated from each item of
+        `inputs` so that the result contains each combination (element
+        of cross-product) of items of list-valued values.
+
+        For example, `{cmdline: [c1, c2], stdin: [s1, s2]}` becomes
+        `[{cmdline: c1, stdin: s1}, {cmdline: c1, stdin: s2},
+        {cmdline: c2, stdin: s1}, {cmdline: c2, stdin: s2}]`.
+        """
+        # The keys whose values are not expanded
+        exclude_keys = {'name', 'args', 'shell', 'transform'}
+        expanded = []
+        for input_ in inputs:
+            # input_ may be None
+            if not input_:
+                continue
+            # Keys whose values should be expanded
+            expand_keys = [
+                key for key, val in input_.items()
+                if key not in exclude_keys and isinstance(val, list)]
+            if expand_keys:
+                expanded.extend(expand_input(input_, expand_keys))
+            else:
+                expanded.append(input_)
+        return expanded
+
+    def expand_input(input_, expand_keys):
+        """Expand `input_`: return all item combinations of `expand_keys`.
+
+        Return a list of copies of `input_` dict with one copy for
+        each combination of items in the value lists of keys
+        `expand_keys`.
+        """
+        expanded = []
+        # Cross product containing tuples for all combinations of
+        # indices for the values of keys in expand_keys in input_
+        value_indices_iter = product(*(range(len(input_[key]))
+                                       for key in expand_keys))
+        for value_indices in value_indices_iter:
+            # Tuple containing the actual values corresponding to
+            # indices in value_indices
+            values = tuple(input_[expand_keys[keynum]][index]
+                           for keynum, index in enumerate(value_indices))
+            expanded.append(make_input_item(input_, expand_keys,
+                                            values, value_indices))
+        return expanded
+
+    def make_input_item(input_, expand_keys, values, value_indices):
+        """Make and return a single input item from the arguments.
+
+        Return a deep copy of `input_` dict with the values of keys
+        listed in `expand_keys` replaced with values in tuple `values`
+        (whose values are in the same order as key names in
+        `expand_keys`. `value_indices` is a list of indices indicating
+        the index of each value in `values` in the original list value
+        in the input; it is used to add or append to the `name` of the
+        input.
+        """
+        result = deepcopy(input_)
+        # print('make_input_item', input_, values, expand_keys)
+        for i, value in enumerate(values):
+            # CHECK: Should we make a deep copy of value, too?
+            result[expand_keys[i]] = value
+            # print(i, value, expand_keys[i], result)
+        # Generate a list "key1 i1, key2 i2, ..." for the expanded
+        # keys and value indices, to be added as (or appended to) name
+        name = ', '.join(expand_keys[keynum] + ' ' + str(index + 1)
+                         for keynum, index in enumerate(value_indices))
+        # If the input already has a name, append to it after a colon
+        if 'name' in input_:
+            name = result['name'] + ': ' + name
+        result['name'] = name
+        return result
+
+    def make_output_subcases(name, input_, output):
         """Generate sub-testcases, expanding `output`
 
         Each test case in `output` becomes its own item, with the same
@@ -206,12 +327,11 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         # print('make_subcases', name, input_, output)
         result = []
         subcases = []
-        _convert_files_dict(output, 'output')
         for key, expected_vals in sorted(output.items()):
             # Transformations are handled below
             if key.startswith('transform'):
                 continue
-            if expected_vals is None:
+            if expected_vals is None and not key.startswith('file:'):
                 expected_vals = ['']
             elif not isinstance(expected_vals, list):
                 expected_vals = [expected_vals]
@@ -265,6 +385,7 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                     else:
                         test_num = 0
                         for test, exp_vals in expected_val.items():
+                            # print('test', test, exp_vals)
                             test_num += 1
                             test, *test_opts = test.split()
                             if not isinstance(exp_vals, list):
@@ -277,6 +398,7 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                                     'transform-expected': expected_trans,
                                     'transform-actual': actual_trans,
                                 }
+                                # print(exp_val_num, exp_val, exp_output)
                                 subitem_descr = item_descr
                                 if granularity == 'value':
                                     subitem_descr += ' ' + str(test_num)
@@ -303,6 +425,128 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         #     print(len(result[i]), result[i])
         # print(len(result))
         return result
+
+    def expand_grouped_transforms(input_outputs, transform_groups):
+        """Expand grouped transformations `transform_groups` in `input_outputs`.
+
+        Return `input_outputs` with a separate test generated for each
+        input and output pair and transform group in
+        `transform_groups`.
+
+        `input_outputs` is a list of pairs (input, output): the input
+        and its expected output.
+        `transform_groups` is a list of dicts, each dict containing
+        transformations to be applied to each (input, output) pair as
+        a group. Such a dict may contain keys ``input``,
+        ``output-expected`` and ``output-actual`` for adding
+        transformations to input, expected output and actual output
+        items.
+        """
+        result = []
+        for input_, output in input_outputs:
+            for transform_group in transform_groups:
+                if transform_group:
+                    result.append(
+                        add_transform_group(input_, output, transform_group))
+                else:
+                    # If the transformation is empty, return input_
+                    # and output as is
+                    result.append((input_, output))
+        return result
+
+    def add_transform_group(input_, output, transform_group):
+        """Return copy of [`input_`, `output`] with `transform_group` added.
+
+        Add to a deep copy of `input_` and `output` the applicable
+        transformations in `transform_group` and return them as a pair
+        list. `input_` and `output` correspond to the dicts ``input``
+        and ``output`` in a scripttestlib test.
+        """
+        result = [deepcopy(input_), deepcopy(output)]
+        # Input and output top targets
+        target_tops = {'input': result[0], 'output': result[1]}
+        # print('add_transform_group', result, transform_group)
+        # transform_group is a dict that may contain keys "input",
+        # "output-expected", "output-actual"
+        for transform_top_name, transform_top in transform_group.items():
+            # target_top is "input" or "output"
+            target_top, sep, kind = transform_top_name.partition('-')
+            # The key for these transformations in input_ or output:
+            # "transform", "transform-expected" or "transform-actual"
+            transform_key = f'transform{sep}{kind}'
+            # Convert files: {FILE: ...} to file:FILE
+            _convert_files_dict(transform_top,
+                                'transform:' + transform_top_name)
+            # print(transform_top_name, target_top, transform_key,
+            #       transform_top)
+            # target is test target (stdin, stdout, file, returncode),
+            # transform_item the transform to be applied to it
+            for target, transform_item in transform_top.items():
+                # print(transform_key, target, transform_group,
+                #       transform_item, result)
+                # Add the transformation; if the target item does not
+                # exist, default to None (non-existing)
+                target_tops[target_top][target] = add_new_transform(
+                    target_tops[target_top].get(target, {'value': None}),
+                    transform_key, transform_item)
+        # print('add_transform_group ->', result)
+        return result
+
+    def add_new_transform(target, transform_key, transform_items):
+        """Append `transform_items` to `transform_key` of `target`.
+
+        Append transformations in `transform_items` to the
+        transformation type `transform_key` of `target` whose value is
+        to be tested. `transformation_items` can be a dict or a list
+        of dicts. Return `target` with the transformation appended.
+        """
+        # print("add_new_transform", transform_key, target, transform_items)
+        if isinstance(target, list):
+            return [add_new_transform(subtarget, transform_key, transform_items)
+                    for subtarget in target]
+        elif isinstance(target, dict):
+            if 'value' in target:
+                target.setdefault(transform_key, [])
+                if isinstance(target[transform_key], dict):
+                    target[transform_key] = [target[transform_key]]
+            elif 'transform-expected' in target or 'transform-actual' in target:
+                # Return test-specific transformations (a
+                # transformation dict within a list) intact
+                return target
+            else:
+                # Dict with test names as keys
+                result = []
+                for test_name, test_vals in target.items():
+                    if test_name in _test_names:
+                        # The value can be a list of values to test
+                        if not isinstance(test_vals, list):
+                            test_vals = [test_vals]
+                        for test_val in test_vals:
+                            result.append(add_new_transform(
+                                {
+                                    'test': test_name,
+                                    'value': test_val,
+                                },
+                                transform_key, transform_items))
+                return result
+        elif isinstance(target, (str, int)):
+            # If target is not a dict, convert it to one, with the
+            # original value as the value of key 'value'
+            target = {
+                'value': target,
+                transform_key: [],
+            }
+        else:
+            # print(target, transform_key, transform_items)
+            raise ValueError(
+                'Grouped transformations currently work only with string'
+                ' values and dicts with key "value": ' + repr(target))
+        if isinstance(transform_items, dict):
+            transform_items = [transform_items]
+        for transform_item in transform_items:
+            target[transform_key].append(transform_item)
+        # print("added", target)
+        return target
 
     # print(fname_testcases_dictlist)
     for fname, testcases_dictlist in fname_testcases_dictlist:
@@ -334,12 +578,8 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
             if (('input' not in tc and not default_input)
                     or ('output' not in tc and not default_output)):
                 continue
-            subcases = make_subcases(
-                '{} {:d}: {}'.format(fname, tcnum + 1, tc.get('name', '')),
-                get_value(default_input, tc.get('input')),
-                get_value(default_output, get_output_value(tc)))
-            # If status starts with "xfail", "skip" or "skipif", mark the test
-            # accordingly.
+            subcases = make_subcases(fname, tc, tcnum,
+                                     default_input, default_output)
             status_value = tc.get('status') or default_status
             if status_value:
                 status, _, reason = status_value.partition(':')
@@ -426,21 +666,16 @@ class ProgramRunner:
             """Like dict.get, but with special treatment of keys "file:FNAME"
 
             If `key` is of the form "file:FNAME", return the content
-            of the file ``FNAME`` in self._tmpdir.
+            of the file ``FNAME`` in `self._tmpdir`, or `None` if
+            ``FNAME`` does not exist.
             """
-
-            def assert_exists(fname):
-                """Assert that file fname exists"""
-                assert os.path.isfile(fname)
-
             if key in self:
                 return self[key]
             elif key.startswith('file:'):
                 fname = os.path.join(
                     self._tmpdir, key.split(':', maxsplit=1)[1])
-                # Assertion in a separate function to make the pytest assertion
-                # error somewhat easier to understand
-                assert_exists(fname)
+                if not os.path.isfile(fname):
+                    return None
                 with open(fname, 'r') as f:
                     value = f.read()
                 return value
@@ -461,6 +696,48 @@ class ProgramRunner:
         returned instead of running the program again.
         """
 
+        def get_prog_args(input_):
+            shell = input_.get('shell', False)
+            if 'cmdline' in input_:
+                # Complete command line
+                cmdline = _make_value(input_['cmdline'], 'transform')
+                if not cmdline:
+                    raise ValueError('Empty cmdline in test "' + name + '"')
+                if shell:
+                    args = cmdline
+                    prog = None
+                else:
+                    args = shlex.split(cmdline)
+                    prog = args[0]
+            else:
+                # prog and/or args
+                shell = False
+                args = input_.get('args', [])
+                args = shlex.split(args) if isinstance(args, str) else args
+                prog = input_.get('prog')
+                if prog:
+                    args[0:0] = [prog]
+                elif args:
+                    # If args only, prog is args[0]
+                    prog = args[0]
+                else:
+                    raise ValueError(
+                        'Missing or empty prog and args in test "' + name + '"')
+            return prog, args, shell
+
+        def make_env(input_):
+            # Update environment variables
+            if 'envvars' in input_ or progpath is not None:
+                env = dict(os.environ)
+                if 'envvars' in input_:
+                    update_env(env, input_['envvars'])
+                if progpath is not None:
+                    env['PATH'] = progpath.format(PATH=env.get('PATH'))
+            else:
+                env = None
+            # print(env)
+            return env
+
         def update_env(env, new_vars):
             # Replace self-references with values from the original environment
             for var, value in new_vars.items():
@@ -480,58 +757,36 @@ class ProgramRunner:
                 env[var] = env[var].replace('$$', '$')
             return env
 
+        def create_files(input_):
+            input_trans = input_.get('transform', [])
+            stdin = (_make_value(input_.get('stdin', ''), 'transform',
+                                 input_trans)
+                     .encode('UTF-8'))
+            # Create input files
+            for key, value in input_.items():
+                if key.startswith('file:'):
+                    fname = key.split(':', maxsplit=1)[1]
+                    dirname = os.path.dirname(fname)
+                    if dirname:
+                        os.makedirs(os.path.join(tmpdir, dirname),
+                                    exist_ok=True)
+                    # print('create_files 0', key, value)
+                    value = _make_value(value, 'transform', input_trans)
+                    # print('create_files 1', key, value)
+                    if value is not None:
+                        with open(os.path.join(tmpdir, fname), 'w') as f:
+                            f.write(value)
+            return stdin
+
         if input_ == cls._input:
             return cls._output
         cls._input = input_
         # print(input_, expected)
-        shell = input_.get('shell', False)
-        if 'cmdline' in input_:
-            # Complete command line
-            if not input_['cmdline']:
-                raise ValueError('Empty cmdline in test "' + name + '"')
-            if shell:
-                args = input_['cmdline']
-            else:
-                args = shlex.split(input_['cmdline'])
-                prog = args[0]
-        else:
-            # prog and/or args
-            shell = False
-            args = input_.get('args', [])
-            args = shlex.split(args) if isinstance(args, str) else args
-            prog = input_.get('prog')
-            if prog:
-                args[0:0] = [prog]
-            elif args:
-                # If args only, prog is args[0]
-                prog = args[0]
-            else:
-                raise ValueError(
-                    'Missing or empty prog and args in test "' + name + '"')
-        # Update environment variables
-        if 'envvars' in input_ or progpath is not None:
-            env = dict(os.environ)
-            if 'envvars' in input_:
-                update_env(env, input_['envvars'])
-            if progpath is not None:
-                env['PATH'] = progpath.format(PATH=env.get('PATH'))
-        else:
-            env = None
-        # print(env)
-        input_trans = input_.get('transform', [])
-        stdin = (_make_value(input_.get('stdin', ''), 'transform', input_trans)
-                 .encode('UTF-8'))
-        _convert_files_dict(input_, 'input')
-        # Create input files
-        for key, value in input_.items():
-            if key.startswith('file:'):
-                fname = key.split(':', maxsplit=1)[1]
-                dirname = os.path.dirname(fname)
-                if dirname:
-                    os.makedirs(os.path.join(tmpdir, dirname), exist_ok=True)
-                with open(os.path.join(tmpdir, fname), 'w') as f:
-                    f.write(_make_value(value, 'transform', input_trans))
+        prog, args, shell = get_prog_args(input_)
+        env = make_env(input_)
+        stdin = create_files(input_)
         # Run the command
+        # print('running', args)
         proc = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env,
                      shell=shell, cwd=tmpdir)
         stdout, stderr = proc.communicate(stdin)
@@ -590,6 +845,7 @@ def check_program_run(name, input_, outputitem, expected, tmpdir,
     def getfirst(value):
         return value[0] if is_list_or_tuple(value) else value
 
+    # print("run", input_, outputitem, expected)
     output = ProgramRunner.run(
         getfirst(name), getfirst(input_), tmpdir, progpath)
     if not is_list_or_tuple(outputitem):
@@ -627,24 +883,32 @@ def _make_value(value, trans_key, global_trans=None, actual_value=None):
         trans_value = actual_value
     else:
         trans_value = value
-    if isinstance(trans_value, str):
-        trans_value = _transform_value(trans_value, global_trans)
-        trans_value = _transform_value(trans_value, trans)
+    # print('_make_value before transform', repr(trans_value))
+    trans_value = _transform_value(trans_value, global_trans)
+    trans_value = _transform_value(trans_value, trans)
+    # print('_make_value after transform', repr(trans_value))
     return trans_value
 
 
 def _transform_value(value, trans):
     """Return value transformed according to trans.
 
-    trans is a dict whose keys KEY should correspond to functions
-    _transform_value_KEY.
+    `trans` is a `dict` whose keys ``KEY`` should correspond to
+    functions `_transform_value_KEY` (hyphens in ``KEY`` converted to
+    underscores).
+
+    Functions `_transform_value_KEY` should return the value intact if
+    the transformation is not applicable to the type of the value.
     """
     # print('_transform_value', repr(value), repr(trans))
-    if not isinstance(value, str) or not trans:
+    if not trans:
         return value
     # Convert a dict to a list of single-item dicts
     if isinstance(trans, dict):
         trans = (dict([(key, val)]) for key, val in trans.items())
+    # If value is a list, transform each item separately
+    if isinstance(value, list):
+        return [_transform_value(item, trans) for item in value]
     for transitem in trans:
         for transname, transval in transitem.items():
             # print(transname, transval)
@@ -669,6 +933,7 @@ def _check_output(name, output, outputitem, expected):
           and possible transformations (dict)
     """
     actual = output.get(outputitem)
+    # print('_check_output', name, output, outputitem, expected, actual)
     exp_val = _transform_value(expected.get('value'),
                                expected.get('transform-expected'))
     act_val = _transform_value(actual, expected.get('transform-actual'))
@@ -761,20 +1026,43 @@ def _assert_not_regex(exp, val, item_descr, *opts):
     assert _re_search(exp, val, *opts) is None
 
 
+# Supported test names
+_test_names = set(
+    list(name[len('_assert_'):] for name in dir()
+         if name.startswith('_assert_'))
+    + list(_assert_name_map.keys()))
+
+
 # Value transformation functions
 
 def _transform_value_prepend(value, prepend_value):
     """Return value with prepend_value prepended."""
+    if value is None:
+        value = ''
+    elif not isinstance(value, str):
+        return value
     return prepend_value + value
 
 
 def _transform_value_append(value, append_value):
     """Return value with append_value appended."""
+    if value is None:
+        value = ''
+    elif not isinstance(value, str):
+        return value
     return value + append_value
+
+
+def _transform_value_set_value(value, new_value):
+    """Return `new_value`, discarding `value` if they have the same type."""
+    return (new_value if isinstance(value, int) == isinstance(new_value, int)
+            else value)
 
 
 def _transform_value_filter_out(value, regexps):
     """Replace regexp `regexp` matches with "" `in `value`."""
+    if not isinstance(value, str):
+        return value
     if not isinstance(regexps, list):
         regexps = [regexps]
     for regexp in regexps:
@@ -782,6 +1070,43 @@ def _transform_value_filter_out(value, regexps):
             value = re.sub(regexp, '', value)
         except TypeError:
             pass
+    return value
+
+
+def _transform_value_replace(value, args):
+    """Replace strings or regular expression matches in `value`.
+
+    `args` can be a `dict`, `str` or `list` of `dict` or `str`. A
+    `dict` value may contain the following keys: either `"str"` for
+    the string to be replaced or `"regex"` for a regular expression,
+    `"with"` for the replacement string (empty string if omitted), and
+    optionally `"count"` for the number of replacements (default:
+    all). A `str` value is of the form `/regex/with/` replacing
+    matches of regular expression `regex` with `with`. Instead of the
+    slash, another punctuation character may be used. If `args` is a
+    `list`, each item in the list is processed in order as above.
+    """
+    if not isinstance(value, str):
+        return value
+    if isinstance(args, list):
+        for item in args:
+            value = _transform_value_replace(value, item)
+    elif isinstance(args, str):
+        if args:
+            parts = args[1:].split(args[0])
+            if len(parts) == 1:
+                parts.append('')
+            value = re.sub(parts[0], parts[1], value)
+    elif isinstance(args, dict):
+        repl = args.get('with', '')
+        count = int(args.get('count', 0))
+        if 'str' in args:
+            # For str.replace, -1 replaces all
+            if count == 0:
+                count = -1
+            value = value.replace(args['str'], repl, count)
+        elif 'regex' in args:
+            value = re.sub(args['regex'], repl, value, count)
     return value
 
 
@@ -795,6 +1120,10 @@ def _transform_value_python(value, code):
 
 def _transform_value_shell(value, code):
     """Return value transformed with shell commands code."""
+    if value is None:
+        return value
+    valuetype = type(value)
     proc = Popen(code, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
-    stdout, stderr = proc.communicate(value.encode('UTF-8'))
-    return stdout.decode('UTF-8')
+    stdout, stderr = proc.communicate(str(value).encode('UTF-8'))
+    value = stdout.decode('UTF-8')
+    return valuetype(value)
