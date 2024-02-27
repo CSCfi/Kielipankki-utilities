@@ -382,6 +382,7 @@ _testcase_files_content = [
              },
              'output': {
                  'stdout': [
+                     # "in", "not-in" with list value
                      {
                          'test': 'in',
                          'value': [
@@ -392,10 +393,41 @@ _testcase_files_content = [
                      {
                          'test': 'not-in',
                          'value': [
-                            'a',
+                            'test0\ntest1\ntest2\n',
                             'b',
                          ],
                      },
+                     # "in", "not-in" with string value
+                     {
+                         'test': 'in',
+                         'value': 'test0\ntest1\ntest2\n',
+                     },
+                     {
+                         'test': 'not-in',
+                         'value': 'test0\ntest2\n',
+                     },
+                     # "in", "not-in" with test name as key, str value
+                     {
+                         'in': 'test0\ntest1\ntest2\n',
+                         'not-in': 'test0\ntest2\n',
+                     },
+                     # "in", "not-in" with test name as key, list value
+                     {
+                         'in': [
+                             [
+                                 'a',
+                                 'test1\ntest2\n',
+                             ],
+                             'test0\ntest1\ntest2\n',
+                         ],
+                     },
+                     {
+                         'not-in': [[
+                            'test0\ntest1\ntest2\n',
+                            'b',
+                         ]],
+                     },
+                     # "contains", "not-contains"
                      {
                          'test': 'contains',
                          'value': 'test',
@@ -1333,6 +1365,207 @@ _testcase_files_content = [
                             'cat: f3.txt: No such file or directory\n'),
                  'returncode': 1,
              },
+         },
+         {
+             'name': 'Test: transformations of expected list (test "in")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\n',
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'test': 'in',
+                         'value': [
+                             'foo\nbar\n',
+                             'xxx\n',
+                         ],
+                     },
+                 ],
+             },
+             'transform': [
+                 {},
+                 {
+                     'input': {
+                         'stdin': {
+                             'prepend': 'foo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'prepend': 'foo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'foo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'append': 'foo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'filter-out': 'foo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'filter-out': 'foo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'replace': '/f/b/',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'replace': '/f/b/',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'set-value': 'zzz\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'set-value': 'zzz\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'python': 'return value[2:]',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'python': 'return value[2:]',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'shell': 'tr z x',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'shell': 'tr z x',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
+             # "not-in" is tested separately from "in", as
+             # transformation "set-value" would not produce
+             # correct-results for "not-in"
+             'name': 'Test: transformations of expected list (test "not-in")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\n',
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'test': 'not-in',
+                         'value': [
+                             'foo\nbar\nbaz\n',
+                             'xxx\n',
+                         ],
+                     },
+                 ],
+             },
+             'transform': [
+                 {},
+                 {
+                     'input': {
+                         'stdin': {
+                             'prepend': 'foo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'prepend': 'foo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'foo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'append': 'foo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'filter-out': 'foo\n',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'filter-out': 'foo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'replace': '/f/b/',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'replace': '/f/b/',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'python': 'return value[2:]',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'python': 'return value[2:]',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': {
+                             'shell': 'tr z x',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'shell': 'tr z x',
+                         },
+                     },
+                 },
+             ],
          },
          {
              'name': 'Test: transformation sequences',

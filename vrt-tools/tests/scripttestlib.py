@@ -906,6 +906,9 @@ def _transform_value(value, trans):
     # Convert a dict to a list of single-item dicts
     if isinstance(trans, dict):
         trans = (dict([(key, val)]) for key, val in trans.items())
+    # If value is a list, transform each item separately
+    if isinstance(value, list):
+        return [_transform_value(item, trans) for item in value]
     for transitem in trans:
         for transname, transval in transitem.items():
             # print(transname, transval)

@@ -242,6 +242,15 @@ test case:
     DOTALL|VERBOSE`, corresponding to `re.search(`*expected* `,
     `*actual* `, re.DOTALL|re.VERBOSE)`.
 
+    For the tests `in` and `not-in`, the expected value may be either
+    `str` or `list`: if `str`, the actual value should be contained in
+    the expected one, and if `list`, the actual value should be one of
+    the values in the list. Note that when using a `dict` with test
+    names as keys, a `list` value should be enclosed in another
+    `list`, so that it is not interpreted as multiple individual `str`
+    values. A `list` value is transformed by transforming each item
+    separately.
+
     The value for a non-existent file is `None` in Python, and `null`,
     `~` or an empty value in YAML, so you can test that file
     `outfile.txt` does not exist as `file:outfile.txt: null` (YAML).
