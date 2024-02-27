@@ -4,7 +4,8 @@
 
 from argparse import ArgumentTypeError
 from hashlib import sha1
-from itertools import count
+from itertools import count, chain
+from collections import defaultdict
 import math
 import random
 import re
@@ -49,7 +50,21 @@ def parsearguments(argv, *, prog = None):
 
     '''
 
-    parser = transput_args(description = description)
+    epilog = '''
+
+    The program contains two alternative methods of adding id
+    attributes: a slower one with more features and a faster one with
+    fewer features. The slower one is used in following cases: (1)
+    with one or more of the options --no-optimize, --force, --sort and
+    --rename; (2) if an id format refers to other replacement fields
+    than {id}, {idnum[elem]}, {hash} and {hashN}; (3) if {id} or
+    {idnum[elem]} for a certain element occurs with several different
+    format specifications; or (4) if a format specification does not
+    match the regular expression "0?[0-9][dxX]".
+
+    '''
+
+    parser = transput_args(description = description, epilog = epilog)
 
     parser.add_argument('--hash', metavar = 'string',
                         action = 'append',
@@ -74,6 +89,16 @@ def parsearguments(argv, *, prog = None):
 
                         sort element attributes alphabetically
                         (default: keep input order)
+
+                        ''')
+
+    parser.add_argument('--no-optimize', action = 'store_false',
+                        dest = 'optimize',
+                        default = True,
+                        help = '''
+
+                        use the slower method even if the faster one
+                        could be used (see below)
 
                         ''')
 
@@ -216,9 +241,13 @@ def parsearguments(argv, *, prog = None):
     # default_element
     if not args.element:
         args.element = {default_element: args}
+    # Faster method cannot overwrite existing attributes nor sort them
+    args.optimize = args.optimize and not (args.force or args.sort)
+    # print(args)
     # Set some defaults for all elements
-    for elem_args in args.element.values():
+    for elem, elem_args in args.element.items():
         set_defaults(elem_args, args)
+        args.optimize = args.optimize and is_optimizable(elem, elem_args)
     args.prog = prog or parser.prog
     return args
 
@@ -235,6 +264,35 @@ def set_defaults(elem_args, args):
                if elem_args.type == 'random'
                else '}'))
     )
+
+def is_optimizable(elem, elem_args):
+    '''Check if elem_args for elem would allow using a faster method.'''
+
+    # The faster method cannot rename attributes
+    if elem_args.rename:
+        return False
+
+    # Format can contain only {id} and {idnum[*]}, optionally with
+    # simple formatting :0?[0-9][dxX]
+    fmt = elem_args.format.replace('{{', '').replace('}}', '')
+    # idnum[elem] is the same as id
+    fmt = fmt.replace('{idnum[{' + elem.decode('UTF-8') + '}]', '{id')
+    repl_fields = re.findall(r'\{(.*?)\}', fmt)
+    if not all(re.fullmatch(r'(id|idnum\[[a-z0-9]+\])(:0?[0-9]+[dxX])?',
+                            repl_field)
+               for repl_field in repl_fields):
+        return False
+
+    # Check that the same idnum[elem] is not used with different
+    # formats
+    id_formats = defaultdict(set)
+    for repl_field in repl_fields:
+        fieldname, _, format = repl_field[1:-1].partition(':')
+        id_formats[fieldname].add(format)
+        if len(id_formats[fieldname]) > 1:
+            return False
+
+    return True
 
 def expand_hashes(format_, strlist):
     '''Expand {hashN} in format_ to SHA-1 hex digest of strlist[N].
@@ -260,6 +318,12 @@ def expand_hashes(format_, strlist):
 def main(args, ins, ous):
     '''Transput VRT (bytes) in ins to VRT (bytes) in ous.'''
 
+    # If args.optimize == True, check if the faster method in
+    # fast_main can be used: check the first instance of each type of
+    # element for not having an attribute with the name of the id
+    # attribute, process the lines that far in this function and the
+    # rest in fast_main; otherwise, process all lines here.
+
     # Names of elements to which to add ids
     id_elem_names = set(elem for elem in args.element.keys())
 
@@ -278,6 +342,11 @@ def main(args, ins, ous):
     # cannot be used as keyword argument names
     elem_attrs = {}
 
+    # Whether to check for optimization
+    check_optimize = args.optimize
+    # The names of elements whose contents have been checked for
+    # optimization
+    checked_elems = set()
     for line in ins:
         if ismeta(line):
             elem = element(line)
@@ -289,6 +358,23 @@ def main(args, ins, ous):
                 if elem in id_elem_names:
                     # Element-specific options
                     elem_args = args.element[elem]
+
+                    if check_optimize:
+                        if elem_args.idn in attrs:
+                            # If the id attribute already exists,
+                            # cannot optimize (and this causes
+                            # "element has id already")
+                            check_optimize = False
+                        else:
+                            checked_elems.add(elem)
+                            if checked_elems == id_elem_names:
+                                # If all types of elements have been
+                                # checked, use the faster method for
+                                # this line and the rest of ins
+                                fast_main(args, chain([line], ins),
+                                          ous, id_elem_names, ids, idnums)
+                                return
+
                     if (args.force or elem_args.rename
                             or elem_args.idn not in attrs):
                         if elem_args.rename and elem_args.idn in attrs:
@@ -306,6 +392,102 @@ def main(args, ins, ous):
                     else:
                         raise BadData('element has id already')
                     line = starttag(elem, attrs, sort=args.sort)
+
+        ous.write(line)
+
+def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr):
+    '''A faster main loop.
+
+    args, ins and ous are as for main. id_elem_names are the names of
+    elements to which to add ids (bytes), ids is a dict of id
+    generators and idnums_curr are the currently active numeric id
+    values.
+
+    This function does not work with --force, --sort, --rename, nor
+    with id formats that contain other replacement fields than {id},
+    {idnum[elem]} (and {hash*}, which are expanded earlier), nor if
+    the same {id} or {idnum[elem]} occur with different format
+    specifications, nor if a format specification does not match the
+    regular expression "0?[0-9][dxX]". These should be checked in
+    advance.
+    '''
+
+    def make_format_funcs(elem, fmt, idnums):
+        '''Make formatting functions for idnum and whole id of elem with fmt.'''
+        # It seems that idnums need to be passed as an argument for it
+        # to be accessible in the eval'ed lambda: it does not work if
+        # it is defined in the outer function above this one even if
+        # passing globals() and/or locals() to eval().
+
+        # Protect double curly brackets
+        fmt = fmt.replace('{{', '\x01').replace('}}', '\x02')
+        idnum_format_func = None
+        # Split fmt to replacement fields and fixed strings
+        parts = re.findall(r'{.*?}|[^{]+', fmt)
+
+        for i, part in enumerate(parts):
+            if part[0] == '{':
+                # Replacement field
+                part = part[1:-1]
+                # Split replacement field to field name and format
+                # spec
+                part, _, formatspec = part.partition(':')
+                if part in ('id', f'idnum[{elem}]'):
+                    # Id num for the current element
+                    part = f'idnums[{elem}]'
+                    # f'{id}' seems to be faster than str(id), at
+                    # least in Python 3.10.12
+                    func_text = (
+                        'lambda id: f"{id'
+                        + (':' + formatspec if formatspec else '')
+                        + '}"')
+                    # print(func_text)
+                    idnum_format_func = eval(func_text)
+                else:
+                    # Id num for an enclosing element
+                    part = re.sub(r'idnum\[(.*?)\]', r'idnums[b"\1"]',
+                                  part)
+                parts[i] = part
+            else:
+                # Fixed string
+                part = part.replace('\x01', '{{').replace('\x02', '}}')
+                parts[i] = f'b"{part}"'
+
+        func_text = 'lambda: ' + ' + '.join(parts)
+        # print(func_text)
+        format_func = eval(func_text, locals())
+        return format_func, idnum_format_func
+
+    def append_attr(line, name, value):
+        '''Return line (VRT/XML start tag) with name="value" appended.'''
+        return line[:-2] + b' ' + name + b'="' + value + b'">\n'
+
+    # Whole id formatting functions for each element type
+    format_id = {}
+    # Id number formatting functions for each element type
+    format_idnum = {}
+
+    # The formatted id numbers for each element type
+    idnums = dict((elem, None) for elem in id_elem_names)
+
+    for elem in args.element:
+        # Make the whole id and id number formatting functions for
+        # elem
+        format_id[elem], format_idnum[elem] = make_format_funcs(
+            elem, args.element[elem].format, idnums)
+        # Format the current id numbers for the start tags to which
+        # ids were added in main
+        if idnums_curr[elem]:
+            idnums[elem] = format_idnum[elem](idnums_curr[elem]).encode('UTF-8')
+
+    for line in ins:
+        if ismeta(line) and isstarttag(line):
+            elem = element(line)
+            if elem in id_elem_names:
+                elem_args = args.element[elem]
+                id = next(ids[elem])
+                idnums[elem] = format_idnum[elem](id).encode('UTF-8')
+                line = append_attr(line, elem_args.idn, format_id[elem]())
         ous.write(line)
 
 def get_idgen(args):
