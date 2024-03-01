@@ -61,7 +61,7 @@ def parsearguments(argv, *, prog = None):
     than {id}, {idnum[elem]}, {hash} and {hashN}; (3) if {id} or
     {idnum[elem]} for a certain element occurs with several different
     format specifications; or (4) if a format specification does not
-    match the regular expression "0?[0-9][dxX]".
+    match the regular expression "[0-9]*[dxX]?".
 
     '''
 
@@ -348,12 +348,12 @@ def is_optimizable(elem, elem_args):
         return False
 
     # Format can contain only {id} and {idnum[*]}, optionally with
-    # simple formatting :0?[0-9][dxX]
+    # simple formatting :[0-9]*[dxX]?
     fmt = elem_args.format.replace('{{', '').replace('}}', '')
     # idnum[elem] is the same as id
     fmt = fmt.replace('{idnum[{' + elem.decode('UTF-8') + '}]', '{id')
     repl_fields = re.findall(r'\{(.*?)\}', fmt)
-    if not all(re.fullmatch(r'(id|idnum\[[a-z0-9]+\])(:0?[0-9]+[dxX])?',
+    if not all(re.fullmatch(r'(id|idnum\[[a-z0-9]+\])(:[0-9]*[dxX]?)?',
                             repl_field)
                for repl_field in repl_fields):
         return False
@@ -493,7 +493,7 @@ def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr):
     {idnum[elem]} (and {hash*}, which are expanded earlier), nor if
     the same {id} or {idnum[elem]} occur with different format
     specifications, nor if a format specification does not match the
-    regular expression "0?[0-9][dxX]". These should be checked in
+    regular expression "[0-9]*[dxX]?". These should be checked in
     advance.
     '''
 

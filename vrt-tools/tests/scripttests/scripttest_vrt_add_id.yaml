@@ -496,6 +496,50 @@
       </text>
   transform: *no-optimize
 
+- name: 'vrt-add-id: --type=counter --format without width'
+  input:
+    cmdline: vrt-add-id --type=counter --start=10 --format="*{id:x}*"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="*a*">
+      a
+      </sentence>
+      <sentence a="b" id="*b*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="*c*">
+      c
+      </sentence>
+      </text>
+  transform: *no-optimize
+
+- name: 'vrt-add-id: --type=counter --format with width, default type'
+  input:
+    cmdline: vrt-add-id --type=counter --start=10 --format="*{id:03}*"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="*010*">
+      a
+      </sentence>
+      <sentence a="b" id="*011*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="*012*">
+      c
+      </sentence>
+      </text>
+  transform: *no-optimize
+
 - name: 'vrt-add-id: --type=counter --format --prefix'
   input:
     cmdline: vrt-add-id --type=counter --start=10 --format="*{id:03x}*" --prefix="x-"
