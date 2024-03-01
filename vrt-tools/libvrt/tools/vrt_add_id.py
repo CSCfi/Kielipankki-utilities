@@ -5,7 +5,7 @@
 from argparse import ArgumentTypeError
 from hashlib import sha1
 from itertools import count, chain
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import math
 import random
 import re
@@ -100,6 +100,14 @@ def parsearguments(argv, *, prog = None):
 
                         use the slower method even if the faster one
                         could be used (see below)
+
+                        ''')
+
+    parser.add_argument('--verbose', action = 'store_true',
+                        help = '''
+
+                        output to stderr the method used and the
+                        number of ids added
 
                         ''')
 
@@ -245,6 +253,10 @@ def parsearguments(argv, *, prog = None):
     if not args.element:
         args.element = {default_element: args}
     # Faster method cannot overwrite existing attributes nor sort them
+    explain_slower(args,
+                   [(not args.optimize, '--no-optimize'),
+                    (args.force, '--force'),
+                    (args.sort, '--sort')])
     args.optimize = args.optimize and not (args.force or args.sort)
     # print(args)
     elem_names = [name.decode('UTF-8') for name in args.element.keys()]
@@ -252,8 +264,35 @@ def parsearguments(argv, *, prog = None):
     for elem, elem_args in args.element.items():
         set_defaults(elem_args, args)
         check_format(elem_args.format, elem_names, args.prog)
-        args.optimize = args.optimize and is_optimizable(elem, elem_args)
+        optimizable, reason = check_optimizable(elem, elem_args)
+        if args.optimize and not optimizable:
+            explain_slower(args, reason)
+            args.optimize = False
     return args
+
+def explain_slower(args, tests):
+    '''Explain why the slower method is used.
+
+    tests is either a list of pairs (test, reason), where test is a
+    Boolean and reason a string, or a single string corresponding to
+    [(True, string)]. If args.verbose and at least one of the tests is
+    True, print to stderr the reason corresponding to the first test
+    that is True.
+    '''
+
+    if args.verbose:
+        if not isinstance(tests, list):
+            tests = [(True, tests)]
+        for test, reason in tests:
+            if test:
+                print_verbose(
+                    args, f'using the slower method because of {reason}')
+                break
+
+def print_verbose(args, *print_args, **kwargs):
+    '''If args.verbose, print *print_args (with **kwargs)'''
+    if args.verbose:
+        print(args.prog + ':', *print_args, **kwargs, file=sys.stderr)
 
 def set_defaults(elem_args, args):
     '''Set some defaults in `elem_args` from `args`.'''
@@ -340,34 +379,52 @@ def get_format_fields(fmt):
     fmt = fmt.replace('{{', '').replace('}}', '')
     return re.findall(r'\{(.*?)\}', fmt)
 
-def is_optimizable(elem, elem_args):
-    '''Check if elem_args for elem would allow using a faster method.'''
+def check_optimizable(elem, elem_args):
+    '''Check if elem_args for elem would allow using a faster method.
+
+    Return a pair (optimizable: bool, reason: str), where reason
+    explains why the faster method cannot be used, or (True, None), if
+    the faster method can be used.
+    '''
 
     # The faster method cannot rename attributes
     if elem_args.rename:
-        return False
+        return (False, '--rename')
 
     # Format can contain only {id} and {idnum[*]}, optionally with
     # simple formatting :[0-9]*[dxX]?
-    fmt = elem_args.format.replace('{{', '').replace('}}', '')
     # idnum[elem] is the same as id
-    fmt = fmt.replace('{idnum[{' + elem.decode('UTF-8') + '}]', '{id')
-    repl_fields = re.findall(r'\{(.*?)\}', fmt)
-    if not all(re.fullmatch(r'(id|idnum\[[a-z0-9]+\])(:[0-9]*[dxX]?)?',
-                            repl_field)
-               for repl_field in repl_fields):
-        return False
+    fmt = elem_args.format.replace(
+        '{idnum[{' + elem.decode('UTF-8') + '}]', '{id')
+    repl_fields = get_format_fields(fmt)
+    non_optimizable_fields = [
+        repl_field for repl_field in repl_fields
+        if not re.fullmatch(r'(id|idnum\[[a-z0-9]+\])(:.*)?', repl_field)]
+    if non_optimizable_fields:
+        return (False,
+                '--format replacement field other than {id} or {idnum[elem]}: {'
+                + non_optimizable_fields[0] + '}')
+    too_complex_format = [
+        repl_field for repl_field in repl_fields
+        if not re.fullmatch(r'([^:]+)(:[0-9]*[dxX]?)?', repl_field)]
+    if too_complex_format:
+        return (False,
+                'format specification not matching "[0-9]*[dxX]?": {'
+                + too_complex_format[0] + '}')
 
     # Check that the same idnum[elem] is not used with different
-    # formats
-    id_formats = defaultdict(set)
+    # formats; use the keys of OrderedDict to preserve the input order
+    # unlike set
+    id_formats = defaultdict(OrderedDict)
     for repl_field in repl_fields:
-        fieldname, _, format = repl_field[1:-1].partition(':')
-        id_formats[fieldname].add(format)
+        fieldname, _, format_ = repl_field.partition(':')
+        id_formats[fieldname][format_] = ''
         if len(id_formats[fieldname]) > 1:
-            return False
+            return (False, ('using {' + fieldname + '} with different format'
+                            ' specifications: '
+                            + ', '.join(id_formats[fieldname].keys())))
 
-    return True
+    return (True, None)
 
 def expand_hashes(format_, strlist):
     '''Expand {hashN} in format_ to SHA-1 hex digest of strlist[N].
@@ -399,8 +456,9 @@ def main(args, ins, ous):
     # attribute, process the lines that far in this function and the
     # rest in fast_main; otherwise, process all lines here.
 
+    id_elem_names_list = list(args.element.keys())
     # Names of elements to which to add ids
-    id_elem_names = set(elem for elem in args.element.keys())
+    id_elem_names = set(elem for elem in id_elem_names_list)
 
     # Id generators for each element
     ids = {}
@@ -416,12 +474,15 @@ def main(args, ins, ous):
     # keyword argument names to formatter.format and bytes values
     # cannot be used as keyword argument names
     elem_attrs = {}
+    # Number of ids added (used only with --verbose)
+    id_counts = dict((elem, 0) for elem in id_elem_names_list)
 
     # Whether to check for optimization
     check_optimize = args.optimize
     # The names of elements whose contents have been checked for
     # optimization
     checked_elems = set()
+    verbose = args.verbose
 
     for line in ins:
 
@@ -451,9 +512,11 @@ def main(args, ins, ous):
                                 # If all types of elements have been
                                 # checked, use the faster method for
                                 # this line and the rest of ins
+                                print_verbose(args, 'using the faster method')
                                 fast_main(args, chain([line], ins),
-                                          ous, id_elem_names, ids, idnums)
-                                return
+                                          ous, id_elem_names, ids, idnums,
+                                          id_counts)
+                                break
 
                     if (args.force or elem_args.rename
                             or elem_args.idn not in attrs):
@@ -474,13 +537,27 @@ def main(args, ins, ous):
                             raise BadData(
                                 'format replacement field '
                                 f'{elem_args.format}: key {e} not found')
+                        if verbose:
+                            id_counts[elem] += 1
                     else:
                         raise BadData('element has id already')
                     line = starttag(elem, attrs, sort = args.sort)
 
         ous.write(line)
 
-def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr):
+    if check_optimize and verbose:
+        # Some element types did not occur
+        non_occurring_elems = [
+            elem.decode('UTF-8')
+            for elem in sorted(id_elem_names - checked_elems)]
+        if non_occurring_elems:
+            explain_slower(
+                args, 'not finding elements ' + ', '.join(non_occurring_elems))
+    elems_added = ', '.join(f'{id_counts[elem]} {elem.decode("UTF-8")} ids'
+                            for elem in id_elem_names_list)
+    print_verbose(args, 'added ' + elems_added)
+
+def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr, id_counts):
     '''A faster main loop.
 
     args, ins and ous are as for main. id_elem_names are the names of
@@ -555,6 +632,8 @@ def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr):
     # The formatted id numbers for each element type
     idnums = dict((elem, None) for elem in id_elem_names)
 
+    verbose = args.verbose
+
     for elem in args.element:
         # Make the whole id and id number formatting functions for
         # elem
@@ -572,6 +651,8 @@ def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr):
                 elem_args = args.element[elem]
                 id = next(ids[elem])
                 idnums[elem] = format_idnum[elem](id).encode('UTF-8')
+                if verbose:
+                    id_counts[elem] += 1
                 line = append_attr(line, elem_args.idn, format_id[elem]())
         ous.write(line)
 
