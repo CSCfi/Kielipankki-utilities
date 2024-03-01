@@ -637,6 +637,16 @@
       c
       </sentence>
       </text>
+
+- name: 'vrt-add-id: Format refers to {hash} with no --hash options'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{hash:.4}"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: invalid format replacement field as no --hash options were specified: {hash:.4}
+    returncode: 1
   transform: *no-optimize
 
 - name: 'vrt-add-id: Format refers to non-existent {hashN}'
@@ -644,11 +654,9 @@
     cmdline: vrt-add-id --type=counter --hash=abc --format="{hash1:.4}-{hash2:.4}-{id:03d}"
     stdin: *input-1
   output:
-    stdout: |
-      <!-- #vrt positional-attributes: word -->
-      <text n="1">
-    stderr:
-      contains: "KeyError: 'hash2'"
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: invalid format replacement field as fewer than 2 --hash options were specified: {hash2:.4}
     returncode: 1
   transform: *no-optimize
 
@@ -797,6 +805,175 @@
       </paragraph>
       </text>
   transform: *no-optimize
+
+
+# Invalid --format
+
+- name: 'vrt-add-id: --format with unsupported replacement field'
+  input:
+    cmdline: vrt-add-id --format="{a}"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: unsupported format replacement field: {a}
+    returncode: 1
+  transform:
+  - {}
+  - input:
+      cmdline:
+        replace: '/\{a/{a.b/'
+    output-expected:
+      stderr:
+        replace: '/\{a/{a.b/'
+  - input:
+      cmdline:
+        replace: '/\{a/{Text[a]/'
+    output-expected:
+      stderr:
+        replace: '/\{a/{Text[a]/'
+  - input:
+      cmdline:
+        replace: '/\{a/{text[A]/'
+    output-expected:
+      stderr:
+        replace: '/\{a/{text[A]/'
+
+- name: 'vrt-add-id: --format with idnum[elem] where no ids added to elem'
+  input:
+    cmdline: vrt-add-id --format="{idnum[text]}"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: elem in format replacement field idnum[elem] must be the name of one of the elements to which ids are added: {idnum[text]}
+    returncode: 1
+
+- name: 'vrt-add-id: --format with substitution for int-valued field'
+  input:
+    cmdline: vrt-add-id --format="{id/x/y/}"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: substitutions not allowed for integer-valued format replacement fields id and idnum[elem]: {id/x/y/}
+    returncode: 1
+  transform:
+  - {}
+  - &replace-id-idnum-sent
+    input:
+      cmdline: &repl-id-idnum-sent
+        replace:
+          str: '{id'
+          with: '{idnum[sentence]'
+    output-expected:
+      stderr: *repl-id-idnum-sent
+
+- name: 'vrt-add-id: --format with presentation "s" for int-valued field'
+  input:
+    cmdline: vrt-add-id --format="{id:8s}"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: invalid format specification for an integer-valued format replacement field: unknown format code 's' for object of type 'int': {id:8s}
+    returncode: 1
+  transform:
+  - {}
+  - *replace-id-idnum-sent
+  - *transf-no-optimize
+
+- name: 'vrt-add-id: --format with invalid format spec for int-valued field'
+  input:
+    # Incomplete cmdline, to be augmented in grouped transformations
+    cmdline: 'vrt-add-id --format="{id:'
+    stdin: *input-1
+  output:
+    stdout: ''
+    # Incomplete stderr, to be augmented in grouped transformations
+    stderr: 'vrt-add-id: error: invalid format specification for an integer-valued format replacement field: '
+    returncode: 1
+  transform:
+  # No {}: the values above should always be augmented
+  - input:
+      cmdline:
+        append: 'Z}"'
+    output-expected:
+      stderr:
+        append: |
+          unknown format code 'Z' for object of type 'int': {id:Z}
+  - input:
+      cmdline:
+        append: '.d}"'
+    output-expected:
+      stderr:
+        append: |
+          format specifier missing precision: {id:.d}
+
+- name: 'vrt-add-id: --format with invalid format spec for string field'
+  input:
+    # Incomplete cmdline, to be augmented in grouped transformations
+    cmdline: 'vrt-add-id --format="{sentence[a]:'
+    stdin: *input-1
+  output:
+    stdout: ''
+    # Incomplete stderr, to be augmented in grouped transformations
+    stderr: 'vrt-add-id: error: invalid format specification for a string-valued format replacement field: '
+    returncode: 1
+  transform:
+  # No {}: the values above should always be augmented
+  - input:
+      cmdline:
+        append: '8d}"'
+    output-expected:
+      stderr:
+        append: |
+          unknown format code 'd' for object of type 'str': {sentence[a]:8d}
+  - input:
+      cmdline:
+        append: 'Z}"'
+    output-expected:
+      stderr:
+        append: |
+          unknown format code 'Z' for object of type 'str': {sentence[a]:Z}
+  - input:
+      cmdline:
+        append: '-s}"'
+    output-expected:
+      stderr:
+        append: |
+          sign not allowed in string format specifier: {sentence[a]:-s}
+  - input:
+      cmdline:
+        append: ',s}"'
+    output-expected:
+      stderr:
+        append: |
+          cannot specify ',' with 's': {sentence[a]:,s}
+
+- name: 'vrt-add-id: --format referring to non-existent element or attribute'
+  input:
+    cmdline: vrt-add-id --format="{paragraph[z]}"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+    stderr: |
+      vrt-add-id: format replacement field {paragraph[z]}: key 'paragraph' not found
+      vrt-add-id: non-zero status 1
+    returncode: 1
+  transform:
+  - {}
+  # {text[z]}
+  - input:
+      cmdline:
+        replace: '/paragraph/text/'
+    output-expected:
+      stderr:
+        replace:
+        - '/\{paragraph/{text/'
+        - "/'paragraph/b'z"
 
 
 # Multiple different elements

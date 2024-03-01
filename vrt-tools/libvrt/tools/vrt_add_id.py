@@ -9,6 +9,7 @@ from collections import defaultdict
 import math
 import random
 import re
+import sys
 
 from libvrt.args import BadData
 from libvrt.args import transput_args
@@ -188,12 +189,13 @@ def parsearguments(argv, *, prog = None):
 
                        format string for id, with Python
                        str.format-style formatting: "{id}" is replaced
-                       with the id value, "{idnum[elem]}" with the id
-                       value for element elem, and "{elem[attr]}" with
-                       the value of the existing attribute attr in the
-                       current or an enclosing element (the current
-                       element can also be referred to as "this");
-                       formatting is extended with regular expression
+                       with the integer id value, "{idnum[elem]}" with
+                       the integer id value for element elem, and
+                       "{elem[attr]}" with the string value of the
+                       existing attribute attr in the current or an
+                       enclosing element (the current element can also
+                       be referred to as "this"); formatting string
+                       values is extended with regular expression
                        substitutions: "{elem[attr]/regexp/subst/}" is
                        "{elem[attr]}" with all matches of regexp
                        replaced with subst; subst may refer to groups
@@ -237,6 +239,7 @@ def parsearguments(argv, *, prog = None):
                        ''')
 
     args = parser.parse_args()
+    args.prog = prog or parser.prog
     # If no elements have been specified, make all options pertain to
     # default_element
     if not args.element:
@@ -244,11 +247,12 @@ def parsearguments(argv, *, prog = None):
     # Faster method cannot overwrite existing attributes nor sort them
     args.optimize = args.optimize and not (args.force or args.sort)
     # print(args)
+    elem_names = [name.decode('UTF-8') for name in args.element.keys()]
     # Set some defaults for all elements
     for elem, elem_args in args.element.items():
         set_defaults(elem_args, args)
+        check_format(elem_args.format, elem_names, args.prog)
         args.optimize = args.optimize and is_optimizable(elem, elem_args)
-    args.prog = prog or parser.prog
     return args
 
 def set_defaults(elem_args, args):
@@ -264,6 +268,77 @@ def set_defaults(elem_args, args):
                if elem_args.type == 'random'
                else '}'))
     )
+
+def error(prog, *args):
+    '''Print "{prog}: error: {*args}" to stderr and exit with code 1.'''
+    print(f'{prog}: error:', *args, file=sys.stderr)
+    exit(1)
+
+def check_format(fmt, elem_names, prog):
+    '''If fmt contains an invalid replacement field or format, exit with error.
+
+    elem_names is a list of element names (str) to which to add ids;
+    prog is the name of the script (for error messages).
+    '''
+
+    def _error(repl_field, msg):
+        '''Error message ending in msg: {repl_field}.'''
+        error(prog, f'{msg}: {{{repl_field}}}')
+
+    def check_formatspec(repl_field, formatspec, type_):
+        '''Error if formatting using formatspec for type_ fails.'''
+        typestr = 'an integer' if type_ == int else 'a string'
+        try:
+            f'{{:{formatspec}}}'.format(type_(1))
+        except ValueError as e:
+            msg = str(e).rstrip('.')
+            msg = msg[0].lower() + msg[1:]
+            _error(repl_field,
+                   f'invalid format specification for {typestr}-valued'
+                   f' format replacement field: {msg}')
+
+    repl_fields = get_format_fields(fmt)
+    elemnames_re = '(?:' + '|'.join(elem_names) + ')'
+    for repl_field in repl_fields:
+        mo = re.fullmatch(r'(.*?)(?:(/.*?/.*?/))?(?::(.*?))?', repl_field)
+        fieldname, subst, formatspec = mo.groups()
+        if re.fullmatch(r'hash([1-9][0-9]?)?', fieldname):
+            # {hashN} for specified hash values have already been
+            # expanded
+            num = int(fieldname[4:] or 1)
+            msgpart = 'no' if num == 1 else f'fewer than {num}'
+            _error(repl_field, ('invalid format replacement field as'
+                                f' {msgpart} --hash options were specified'))
+        elif not re.fullmatch(
+                r'(id|([a-z][a-z0-9]*)\[([a-z0-9_]+)\])', fieldname):
+            # Replacement field name must be "id", "idnum[elem]" or
+            # "elem[attr]"
+            _error(repl_field, 'unsupported format replacement field')
+        elif (re.fullmatch(r'idnum\[.*?\]', fieldname)
+              and not re.fullmatch(rf'id|idnum\[{elemnames_re}\]', fieldname)):
+            # idnum[elem] only works if ids are added to elem
+            _error(repl_field,
+                   'elem in format replacement field idnum[elem] must be the'
+                   ' name of one of the elements to which ids are added')
+        elif re.fullmatch(rf'id|idnum\[{elemnames_re}\]', fieldname):
+            # id and idnum[elem] are int-valued
+            if subst:
+                _error(repl_field,
+                       'substitutions not allowed for integer-valued format'
+                       ' replacement fields id and idnum[elem]')
+            elif formatspec:
+                # If a format specification is specified, try to
+                # format an integer to see if it works
+                check_formatspec(repl_field, formatspec, int)
+        elif formatspec:
+            # Others are string-valued; if a format specification is
+            # specified, try to format a string to see if it works
+            check_formatspec(repl_field, formatspec, str)
+
+def get_format_fields(fmt):
+    '''Return replacement fields (no curly brackets) in format string fmt.'''
+    fmt = fmt.replace('{{', '').replace('}}', '')
+    return re.findall(r'\{(.*?)\}', fmt)
 
 def is_optimizable(elem, elem_args):
     '''Check if elem_args for elem would allow using a faster method.'''
@@ -386,14 +461,19 @@ def main(args, ins, ous):
                             rename_attr(attrs, elem_args.idn, elem_args.rename)
                         id = next(ids[elem])
                         idnums[elem] = id
-                        attrs[elem_args.idn] = (
-                            formatter.format(
-                                elem_args.format,
-                                id = id,
-                                this = attrs,
-                                idnum = idnums,
-                                **elem_attrs
-                            ).encode('UTF-8'))
+                        try:
+                            attrs[elem_args.idn] = (
+                                formatter.format(
+                                    elem_args.format,
+                                    id = id,
+                                    this = attrs,
+                                    idnum = idnums,
+                                    **elem_attrs
+                                ).encode('UTF-8'))
+                        except KeyError as e:
+                            raise BadData(
+                                'format replacement field '
+                                f'{elem_args.format}: key {e} not found')
                     else:
                         raise BadData('element has id already')
                     line = starttag(elem, attrs, sort = args.sort)
