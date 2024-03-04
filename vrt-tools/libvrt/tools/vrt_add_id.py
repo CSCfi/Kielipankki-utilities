@@ -163,7 +163,12 @@ def parsearguments(argv, *, prog = None):
                        default = '',
                        help = '''
 
-                       random number generator seed for random ids
+                       random number generator seed for random ids; if
+                       specified before any --element, the element
+                       name is included in the seed, producing a
+                       different seed for each element type; to use
+                       the same seed for multiple element types,
+                       specify it explicitly after each --element
                        (default: "" = non-reproducible)
 
                        ''')
@@ -262,7 +267,7 @@ def parsearguments(argv, *, prog = None):
     elem_names = [name.decode('UTF-8') for name in args.element.keys()]
     # Set some defaults for all elements
     for elem, elem_args in args.element.items():
-        set_defaults(elem_args, args)
+        set_defaults(elem, elem_args, args)
         check_format(elem_args.format, elem_names, args.prog)
         optimizable, reason = check_optimizable(elem, elem_args)
         if args.optimize and not optimizable:
@@ -294,12 +299,16 @@ def print_verbose(args, *print_args, **kwargs):
     if args.verbose:
         print(args.prog + ':', *print_args, **kwargs, file=sys.stderr)
 
-def set_defaults(elem_args, args):
-    '''Set some defaults in `elem_args` from `args`.'''
+def set_defaults(elem, elem_args, args):
+    '''Set some defaults in `elem_args` (for element `elem`) from `args`.'''
     if not elem_args.type:
         elem_args.type = 'counter'
     if not elem_args.seed:
         elem_args.seed = None
+    elif elem_args.seed == args.seed:
+        # If using the seed specified as a default, prepend element
+        # name to use different seeds for different elements
+        elem_args.seed = elem.decode('UTF-8') + elem_args.seed
     elem_args.format = elem_args.prefix + (
         expand_hashes(elem_args.format, args.hash) or (
             '{id'
@@ -666,9 +675,6 @@ def get_idgen(args):
         )
 
     else:
-        # Multiple generators use different seeds
-        if args.seed:
-            args.seed += '1'
         return randint_uniq(args.end, args.seed)
 
 def randint_uniq(end, seed = None):

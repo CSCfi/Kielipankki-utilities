@@ -449,15 +449,15 @@
     stdout: |
       <!-- #vrt positional-attributes: word -->
       <text n="1">
-      <sentence a="a" id="def75f99">
+      <sentence a="a" id="e91f0e05">
       a
       </sentence>
-      <sentence a="b" id="013ed027">
+      <sentence a="b" id="5ea89fed">
       b
       </sentence>
       </text>
       <text n="2">
-      <sentence a="c" id="0f1462b4">
+      <sentence a="c" id="0ab0a68c">
       c
       </sentence>
       </text>
@@ -468,7 +468,7 @@
 
 - name: 'vrt-add-id: --type=random --end=3'
   input:
-    cmdline: vrt-add-id --type=random --end=3 --seed=1
+    cmdline: vrt-add-id --type=random --end=3 --seed=2
     stdin: *input-1
   output:
     stdout: |
@@ -496,15 +496,15 @@
     stdout: |
       <!-- #vrt positional-attributes: word -->
       <text n="1">
-      <sentence a="a" id="0b">
+      <sentence a="a" id="05">
       a
       </sentence>
-      <sentence a="b" id="10">
+      <sentence a="b" id="0b">
       b
       </sentence>
       </text>
       <text n="2">
-      <sentence a="c" id="12">
+      <sentence a="c" id="08">
       c
       </sentence>
       </text>
@@ -518,15 +518,15 @@
     stdout: |
       <!-- #vrt positional-attributes: word -->
       <text n="1">
-      <sentence a="a" id="b66">
+      <sentence a="a" id="568">
       a
       </sentence>
-      <sentence a="b" id="027">
+      <sentence a="b" id="bd5">
       b
       </sentence>
       </text>
       <text n="2">
-      <sentence a="c" id="bb1">
+      <sentence a="c" id="8af">
       c
       </sentence>
       </text>
@@ -540,15 +540,15 @@
     stdout: |
       <!-- #vrt positional-attributes: word -->
       <text n="1">
-      <sentence a="a" id="b6">
+      <sentence a="a" id="56">
       a
       </sentence>
-      <sentence a="b" id="02">
+      <sentence a="b" id="bd">
       b
       </sentence>
       </text>
       <text n="2">
-      <sentence a="c" id="bb">
+      <sentence a="c" id="8a">
       c
       </sentence>
       </text>
@@ -556,7 +556,7 @@
 
 - name: 'vrt-add-id: --type=random --end=2 (too small value)'
   input:
-    cmdline: vrt-add-id --type=random --end=2 --seed=1
+    cmdline: vrt-add-id --type=random --end=2 --seed=2
     stdin: *input-1
   output:
     stdout: |
@@ -584,6 +584,75 @@
         prepend: |
           vrt-add-id: using the faster method
   - *transf-verbose-noopt-prepend
+
+
+# --type=random --seed
+
+- name: 'vrt-add-id: --type=random, default seed for multiple element types'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --end=0x100 --element=text --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="e9">
+      <sentence a="a" id="56">
+      a
+      </sentence>
+      <sentence a="b" id="bd">
+      b
+      </sentence>
+      </text>
+      <text n="2" id="24">
+      <sentence a="c" id="8a">
+      c
+      </sentence>
+      </text>
+  transform: &transform-fast-t2s3
+  - {}
+  # Default --seed, same value explicitly for sentence
+  - input:
+      cmdline:
+        append: ' --seed=1'
+  - *transf-no-optimize
+  # Test the command with --verbose
+  - &transf-verbose-fast-t2s3
+    input: *cmdline-verbose
+    output-expected:
+      stderr:
+        set-value: |
+          vrt-add-id: using the faster method
+          vrt-add-id: added 2 text ids, 3 sentence ids
+  # Test the command with --verbose --no-optimize
+  - &transf-verbose-noopt-t2s3
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr:
+        set-value: |
+          vrt-add-id: using the slower method because of --no-optimize
+          vrt-add-id: added 2 text ids, 3 sentence ids
+
+- name: 'vrt-add-id: --type=random, explicitly same for multiple element types'
+  input:
+    cmdline: vrt-add-id --type=random --end=0x100 --element=text --seed=1 --element=sentence --seed=1
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="f4">
+      <sentence a="a" id="f4">
+      a
+      </sentence>
+      <sentence a="b" id="16">
+      b
+      </sentence>
+      </text>
+      <text n="2" id="16">
+      <sentence a="c" id="3b">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-t2s3
 
 
 # --format
@@ -684,15 +753,15 @@
     stdout: |
       <!-- #vrt positional-attributes: word -->
       <text n="1">
-      <sentence a="a" id="*005*">
+      <sentence a="a" id="*002*">
       a
       </sentence>
-      <sentence a="b" id="*008*">
+      <sentence a="b" id="*005*">
       b
       </sentence>
       </text>
       <text n="2">
-      <sentence a="c" id="*009*">
+      <sentence a="c" id="*004*">
       c
       </sentence>
       </text>
@@ -706,15 +775,15 @@
     stdout: |
       <!-- #vrt positional-attributes: word -->
       <text n="1">
-      <sentence a="a" id="x-*005*">
+      <sentence a="a" id="x-*002*">
       a
       </sentence>
-      <sentence a="b" id="x-*008*">
+      <sentence a="b" id="x-*005*">
       b
       </sentence>
       </text>
       <text n="2">
-      <sentence a="c" id="x-*009*">
+      <sentence a="c" id="x-*004*">
       c
       </sentence>
       </text>
@@ -728,15 +797,15 @@
     stdout: |
       <!-- #vrt positional-attributes: word -->
       <text n="1">
-      <sentence a="a" id="*045-2d*">
+      <sentence a="a" id="*021-15*">
       a
       </sentence>
-      <sentence a="b" id="*065-41*">
+      <sentence a="b" id="*047-2f*">
       b
       </sentence>
       </text>
       <text n="2">
-      <sentence a="c" id="*072-48*">
+      <sentence a="c" id="*034-22*">
       c
       </sentence>
       </text>
@@ -982,21 +1051,21 @@
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
-      <text x="1" xid="1-b1fd">
-      <paragraph x="p1" xid="p1-b1fd">
-      <sentence x="a" xid="a-b1fd">
+      <text x="1" xid="1-9031">
+      <paragraph x="p1" xid="p1-678f">
+      <sentence x="a" xid="a-3277">
       a
       </sentence>
       </paragraph>
-      <paragraph x="p2" xid="p2-391f">
-      <sentence x="b" xid="b-391f">
+      <paragraph x="p2" xid="p2-2af3">
+      <sentence x="b" xid="b-960b">
       b
       </sentence>
       </paragraph>
       </text>
-      <text x="2" xid="2-391f">
-      <paragraph x="p3" xid="p3-3d2b">
-      <sentence x="c" xid="c-3d2b">
+      <text x="2" xid="2-0e08">
+      <paragraph x="p3" xid="p3-a606">
+      <sentence x="c" xid="c-68c2">
       c
       </sentence>
       </paragraph>
@@ -1202,19 +1271,19 @@
       <!-- #vrt positional-attributes: word -->
       <text n="1" tid="0">
       <paragraph p="p1" pid="p-0a">
-      <sentence a="a" sid="b1fd">
+      <sentence a="a" sid="b92f">
       a
       </sentence>
       </paragraph>
       <paragraph p="p2" pid="p-0b">
-      <sentence a="b" sid="391f">
+      <sentence a="b" sid="294c">
       b
       </sentence>
       </paragraph>
       </text>
       <text n="2" tid="1">
       <paragraph p="p3" pid="p-0c">
-      <sentence a="c" sid="3d2b">
+      <sentence a="c" sid="8350">
       c
       </sentence>
       </paragraph>
@@ -1244,21 +1313,21 @@
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
-      <text n="1" xid="b1fd">
-      <paragraph p="p1" xid="b1fd">
-      <sentence a="a" xid="b1fd">
+      <text n="1" xid="9031">
+      <paragraph p="p1" xid="678f">
+      <sentence a="a" xid="3277">
       a
       </sentence>
       </paragraph>
-      <paragraph p="p2" xid="391f">
-      <sentence a="b" xid="391f">
+      <paragraph p="p2" xid="2af3">
+      <sentence a="b" xid="960b">
       b
       </sentence>
       </paragraph>
       </text>
-      <text n="2" xid="391f">
-      <paragraph p="p3" xid="3d2b">
-      <sentence a="c" xid="3d2b">
+      <text n="2" xid="0e08">
+      <paragraph p="p3" xid="a606">
+      <sentence a="c" xid="68c2">
       c
       </sentence>
       </paragraph>
@@ -1300,21 +1369,21 @@
   output:
     stdout: &output-para-1 |
       <!-- #vrt positional-attributes: word -->
-      <text n="1" id="t-b1fd">
-      <paragraph p="p1" id="p-b667">
-      <sentence a="a" id="s-7b6f">
+      <text n="1" id="t-b92f">
+      <paragraph p="p1" id="p-f4dc">
+      <sentence a="a" id="s-a6de">
       a
       </sentence>
       </paragraph>
-      <paragraph p="p2" id="p-027d">
-      <sentence a="b" id="s-50dc">
+      <paragraph p="p2" id="p-f4cb">
+      <sentence a="b" id="s-7475">
       b
       </sentence>
       </paragraph>
       </text>
-      <text n="2" id="t-391f">
-      <paragraph p="p3" id="p-bb1d">
-      <sentence a="c" id="s-275c">
+      <text n="2" id="t-294c">
+      <paragraph p="p3" id="p-16a6">
+      <sentence a="c" id="s-1f16">
       c
       </sentence>
       </paragraph>
@@ -1328,21 +1397,21 @@
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
-      <text n="1" id="t-b1fd">
-      <paragraph p="p1" id="t-b1fd-p-b667">
-      <sentence a="a" id="t-b1fd-p-b667-s-7b6f">
+      <text n="1" id="t-b92f">
+      <paragraph p="p1" id="t-b92f-p-f4dc">
+      <sentence a="a" id="t-b92f-p-f4dc-s-a6de">
       a
       </sentence>
       </paragraph>
-      <paragraph p="p2" id="t-b1fd-p-027d">
-      <sentence a="b" id="t-b1fd-p-027d-s-50dc">
+      <paragraph p="p2" id="t-b92f-p-f4cb">
+      <sentence a="b" id="t-b92f-p-f4cb-s-7475">
       b
       </sentence>
       </paragraph>
       </text>
-      <text n="2" id="t-391f">
-      <paragraph p="p3" id="t-391f-p-bb1d">
-      <sentence a="c" id="t-391f-p-bb1d-s-275c">
+      <text n="2" id="t-294c">
+      <paragraph p="p3" id="t-294c-p-16a6">
+      <sentence a="c" id="t-294c-p-16a6-s-1f16">
       c
       </sentence>
       </paragraph>
@@ -1541,21 +1610,21 @@
   output:
     stdout: &output-para-subst |
       <!-- #vrt positional-attributes: word -->
-      <text n="1" id="t-b1fd">
-      <paragraph p="p1" id="p-b1fd-b667">
-      <sentence a="a" id="s-b1fd+b667-7b6f">
+      <text n="1" id="t-b92f">
+      <paragraph p="p1" id="p-b92f-f4dc">
+      <sentence a="a" id="s-b92f+f4dc-a6de">
       a
       </sentence>
       </paragraph>
-      <paragraph p="p2" id="p-b1fd-027d">
-      <sentence a="b" id="s-b1fd+027d-50dc">
+      <paragraph p="p2" id="p-b92f-f4cb">
+      <sentence a="b" id="s-b92f+f4cb-7475">
       b
       </sentence>
       </paragraph>
       </text>
-      <text n="2" id="t-391f">
-      <paragraph p="p3" id="p-391f-bb1d">
-      <sentence a="c" id="s-391f+bb1d-275c">
+      <text n="2" id="t-294c">
+      <paragraph p="p3" id="p-294c-16a6">
+      <sentence a="c" id="s-294c+16a6-1f16">
       c
       </sentence>
       </paragraph>
