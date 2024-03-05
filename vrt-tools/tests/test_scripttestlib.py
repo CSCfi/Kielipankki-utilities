@@ -883,6 +883,83 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: completely replace output file content (implicit set-value)',
+             'input': {
+                 'cmdline': 'cat > file.out',
+                 'shell': True,
+                 'stdin': 'foo\nbar\nbaz\n'
+             },
+             'output': {
+                 'file:file.out': {
+                     'value': 'bar\n',
+                     'transform-expected': 'foo\nbar\nbaz\n',
+                 },
+             },
+         },
+         {
+             'name': 'Test: transform with implicit set-value in list',
+             'input': {
+                 'cmdline': 'cat foo',
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': {
+                     'value': '',
+                     'transform-expected': [
+                         'cat: foo: ',
+                         {'append': 'No such file or directory\n'},
+                     ],
+                 },
+                 'returncode': {
+                     'value': 0,
+                     'transform-expected': 1,
+                 },
+             },
+         },
+         {
+             'name': 'Test: transform with implicit set-value None',
+             'input': {
+                 'cmdline': 'cat foo bar',
+                 'file:foo': {
+                     'value': 'foo\n',
+                     'transform': [
+                         None,
+                     ],
+                 },
+                 'file:bar': {
+                     'value': '',
+                     'transform': 'bar\n',
+                 },
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'foo\n',
+                     'transform-expected': 'bar\n',
+                 },
+                 'stderr': {
+                     'value': '',
+                     'transform-expected': [
+                         'cat: foo: ',
+                         {'append': 'No such file or directory\n'},
+                     ],
+                 },
+                 'file:foo': {
+                     'value': 'foo\n',
+                     'transform-expected': [
+                         None,
+                     ],
+                 },
+                 'file:bar': {
+                     'value': 'baz\n',
+                     'transform-expected': 'bar\n',
+                 },
+                 'returncode': {
+                     'value': 0,
+                     'transform-expected': 1,
+                 },
+             },
+         },
+         {
              'name': 'Test: transform stdin with shell (+ append)',
              'input': {
                  'cmdline': 'cat',
@@ -1274,6 +1351,20 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: transformations of int: implicit set-value',
+             'input': {
+                 'cmdline': 'cat foo',
+             },
+             'output': {
+                 'stdout': '',
+                 'stderr': 'cat: foo: No such file or directory\n',
+                 'returncode': {
+                     'value': 0,
+                     'transform-expected': 1,
+                 },
+             },
+         },
+         {
              'name': 'Test: transformations of int: keep intact',
              'input': {
                  'cmdline': 'cat foo',
@@ -1290,6 +1381,9 @@ _testcase_files_content = [
                          {'replace': '/3/4/'},
                          {'set-value': 'foo'},
                          {'set-value': None},
+                         # Implicit set-value
+                         'bar',
+                         None,
                      ],
                  },
              },
@@ -1800,6 +1894,16 @@ _testcase_files_content = [
                          'returncode': {
                              'set-value': 1,
                          }
+                     },
+                 },
+                 # Implicit set-value
+                 {
+                     'input': {
+                         'cmdline': 'cat input.txt input2.txt',
+                     },
+                     'output-expected': {
+                         'stderr': 'cat: input2.txt: No such file or directory\n',
+                         'returncode': 1,
                      },
                  },
              ],

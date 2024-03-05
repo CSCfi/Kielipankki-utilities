@@ -89,8 +89,8 @@ test case:
         be used, but each file must be specified only once.
     -   `transform`: transform the base content of standard input and
         all input files according to the specified options
-        (`list(dict)` or `dict`). Currently the following options are
-        supported:
+        (`list(dict)`, `dict`, `str` or `int`). Currently the
+        following options are supported:
 		-   `prepend`: content to prepend to `value` (`str`); `None`
             is treated as an empty string, `int` returned intact
 		-   `append`: content to append to `value` (`str`); `None`
@@ -141,6 +141,9 @@ test case:
         of each other. If the value is a list of single-item
         dictionaries, the transformations are applied in the list
         order, each transformation to the output of the preceding one.
+        If the value is a plain `str` or `int`, or a list contains a
+        plain `str` or `int` (or `None`), it is treated as replacing
+        the value completely (implicit `set-value`).
 
 	`cmdline`, `stdin`, `file:FNAME` and the values under `files` may
     be either plain strings containing the content, or dicts of one or

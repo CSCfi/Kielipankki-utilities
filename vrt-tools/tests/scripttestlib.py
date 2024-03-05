@@ -181,6 +181,8 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         # print('add_transforms', base, add)
         if isinstance(add, dict):
             add = [{key: val} for key, val in add.items()]
+        elif add is None or isinstance(add, (str, int)):
+            add = [add]
         base.extend(add)
         return base
 
@@ -541,7 +543,7 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
             raise ValueError(
                 'Grouped transformations currently work only with string'
                 ' values and dicts with key "value": ' + repr(target))
-        if isinstance(transform_items, dict):
+        if not isinstance(transform_items, list):
             transform_items = [transform_items]
         for transform_item in transform_items:
             target[transform_key].append(transform_item)
@@ -905,11 +907,18 @@ def _transform_value(value, trans):
         return value
     # Convert a dict to a list of single-item dicts
     if isinstance(trans, dict):
-        trans = (dict([(key, val)]) for key, val in trans.items())
+        trans = [dict([(key, val)]) for key, val in trans.items()]
+    # str or int is converted to a list containing the value
+    elif isinstance(trans, (str, int)):
+        trans = [trans]
     # If value is a list, transform each item separately
     if isinstance(value, list):
         return [_transform_value(item, trans) for item in value]
     for transitem in trans:
+        # If the transformation item is not a dict, treat the value as
+        # the complete new value
+        if not isinstance(transitem, dict):
+            transitem = {'set-value': transitem}
         for transname, transval in transitem.items():
             # print(transname, transval)
             try:
