@@ -537,7 +537,7 @@
     cmdline: vrt-add-id --type=random --end=2^8 --seed=1
     stdin: *input-1
   output:
-    stdout: |
+    stdout: &stdout-random-256-seed-1 |
       <!-- #vrt positional-attributes: word -->
       <text n="1">
       <sentence a="a" id="56">
@@ -608,7 +608,7 @@
       c
       </sentence>
       </text>
-  transform: &transform-fast-t2s3
+  transform: &transform-fast-t2s3-seed
   - {}
   # Default --seed, same value explicitly for sentence
   - input:
@@ -631,6 +631,19 @@
         set-value: |
           vrt-add-id: using the slower method because of --no-optimize
           vrt-add-id: added 2 text ids, 3 sentence ids
+  # Read seed from file
+  - input:
+      cmdline:
+        replace: '/seed=1/seed="<seed.txt"/'
+      file:seed.txt:
+        set-value: '1'
+  # Read seed from file, explicitly the same seed for sentence
+  - input:
+      cmdline:
+      - replace: '/seed=1/seed="<seed.txt"/'
+      - append: ' --seed="<seed.txt"'
+      file:seed.txt:
+        set-value: '1'
 
 - name: 'vrt-add-id: --type=random, explicitly same for multiple element types'
   input:
@@ -652,7 +665,86 @@
       c
       </sentence>
       </text>
-  transform: *transform-fast-t2s3
+  transform: *transform-fast-t2s3-seed
+
+
+# Random seed from file
+
+- name: 'vrt-add-id: --type=random, seed from file'
+  input:
+    cmdline: vrt-add-id --type=random --end=2^8 --seed="<seed.txt"
+    stdin: *input-1
+    file:seed.txt: '1'
+  output:
+    stdout: *stdout-random-256-seed-1
+  transform:
+  - {}
+  - *transf-no-optimize
+  - *transf-verbose-fast-s3
+  - *transf-verbose-noopt-s3
+  # Test that the seed read from file produces the same result as the
+  # same seed literally
+  - input:
+      cmdline:
+        replace: '/<seed\.txt/1/'
+  # Test that spaces around the file name are stripped
+  - input:
+      cmdline:
+        replace: '/<seed.txt/< \tseed.txt \t/'
+
+- name: 'vrt-add-id: --type=random, seed from 1 MiB file'
+  input:
+    cmdline: vrt-add-id --type=random --end=2^8 --seed="<seed.txt"
+    stdin: *input-1
+    file:seed.txt:
+      value: ''
+      transform:
+        python: return pow(2, 20) * '0'
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="c7">
+      a
+      </sentence>
+      <sentence a="b" id="94">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="b6">
+      c
+      </sentence>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - *transf-verbose-fast-s3
+  - *transf-verbose-noopt-s3
+  # The seed file with something appended should produce the same
+  # result, as only the first 1 MiB of the seed file is used
+  - input:
+      file:seed.txt:
+        append: 'foobar'
+  # A one byte shorter seed file should produce different ids
+  - input:
+      file:seed.txt:
+        python: return value[:-1]
+    output-expected:
+      stdout:
+      - replace: '/c7/72/'
+      - replace: '/94/ba/'
+      - replace: '/b6/97/'
+
+- name: 'vrt-add-id: --type=random, non-existent seed file'
+  input:
+    cmdline: vrt-add-id --type=random --end=2^8 --seed="<seed.txt"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: cannot read random seed from file seed.txt: [Errno 2] No such file or directory: 'seed.txt'
+    returncode: 1
 
 
 # --format

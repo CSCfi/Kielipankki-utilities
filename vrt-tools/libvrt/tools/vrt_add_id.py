@@ -26,6 +26,9 @@ from libvrt.strformatters import SubstitutingBytesFormatter
 # Default maximum random id value (DEFAULT_RAND_END - 1)
 DEFAULT_RAND_END = pow(2, 32)
 
+# Maximum number of bytes to read from a random seed file
+MAX_SEED_BYTES = pow(2, 20)
+
 def affix(arg):
     if re.fullmatch('[A-Za-z0-9_\-+/.:]*', arg):
         return arg
@@ -168,8 +171,10 @@ def parsearguments(argv, *, prog = None):
                        name is included in the seed, producing a
                        different seed for each element type; to use
                        the same seed for multiple element types,
-                       specify it explicitly after each --element
-                       (default: "" = non-reproducible)
+                       specify it explicitly after each --element; if
+                       string begins with "<", the rest is the name of
+                       the file whose content (up to 1 MiB) to use as
+                       the seed (default: "" = non-reproducible)
 
                        ''')
 
@@ -305,10 +310,16 @@ def set_defaults(elem, elem_args, args):
         elem_args.type = 'counter'
     if not elem_args.seed:
         elem_args.seed = None
-    elif elem_args.seed == args.seed:
+    else:
         # If using the seed specified as a default, prepend element
         # name to use different seeds for different elements
-        elem_args.seed = elem.decode('UTF-8') + elem_args.seed
+        prefix = elem if elem_args.seed == args.seed else b''
+        if elem_args.seed[0] == '<':
+            elem_args.seed = read_file_content(elem_args.seed[1:].strip(),
+                                               MAX_SEED_BYTES, args.prog)
+        else:
+            elem_args.seed = elem_args.seed.encode('UTF-8')
+        elem_args.seed = prefix + elem_args.seed
     elem_args.format = elem_args.prefix + (
         expand_hashes(elem_args.format, args.hash) or (
             '{id'
@@ -316,6 +327,21 @@ def set_defaults(elem, elem_args, args):
                if elem_args.type == 'random'
                else '}'))
     )
+
+def read_file_content(filename, max_bytes, prog='vrt-add-id'):
+    '''Return up to max_bytes bytes from the beginning of file filename.
+
+    An IOError when trying to read the file causes the program to
+    terminate with an error message and exit code 1.
+    '''
+
+    try:
+        with open(filename, 'rb') as f:
+            return f.read(max_bytes)
+    except IOError as e:
+        error(prog, f'cannot read random seed from file {filename}: {e}')
+    # Should never get here
+    return None
 
 def error(prog, *args):
     '''Print "{prog}: error: {*args}" to stderr and exit with code 1.'''
