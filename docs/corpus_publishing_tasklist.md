@@ -240,6 +240,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*+KORP*_ Remove beta status from Korp configuration ({{{}master{}}}), push and install the updated {{master}}
 ## [ ] _*+META*_ Remove beta status from the META-SHARE record and resource group page
 # [ ] _*+TEST*_ Remove the corpus from the testing environment of Korp (Korp test version)
+# [ ] _*+PUHTI*_ Remove any corpus data, used or created during the conversion process, from scratch on Puhti (after ensuring that the source data has been backed up on the HFST server and the package has been published on the Korp server)
 \\
 ```
 
@@ -276,5 +277,6 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*?CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
 ## [ ] _*?META*_ Remove beta status from the META-SHARE record and resource group page
 # [ ] _*?CSC*_ Ask Martin to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti (if the corpus is PUB or ACA)
+# [ ] _*+PUHTI*_ Remove the download package, MD5 checksum file and readme and license files from the directory {{/scratch/clarin/download_preview}} on Puhti
 \\
 ```
