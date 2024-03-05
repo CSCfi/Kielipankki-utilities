@@ -2065,6 +2065,45 @@ _testcase_files_content = [
              ],
          },
          {
+             'name': 'Test: transformation group names',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 'stdout': 'foo\nbar\nbaz\n',
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     'name': 'trans 1',
+                     'input': {
+                         'stdin': {
+                             'replace': '/\n/yyy\n/',
+                         },
+                     },
+                     'output-expected': {
+                         'stdout': {
+                             'replace': '/\n/yyy\n/',
+                         },
+                     },
+                 },
+                 {
+                     'name': 'trans 2',
+                     'input': {
+                         'stdin': {
+                             'append': 'xxx\n',
+                         },
+                     },
+                     'output-actual': {
+                         'stdout': {
+                             'filter-out': 'xxx\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
              'name': 'Test: "files" in input and output',
              'input': {
                  'cmdline': 'cat a.txt b.txt | tee out1.txt > out2.txt',

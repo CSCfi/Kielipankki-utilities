@@ -282,19 +282,22 @@ test case:
 
     The `dict`s in the list can contain the following keys:
 
-    -   `input`: Transformations to be added to input files and
-        command line (`transform`).
-    -   `output-expected`: Transformations to be added to output
-        (`transform-expected`).
-    -   `output-actual`: Transformations to be added to output
-        (`transform-actual`).
+    -   `name`: descriptive name for the transformation group
+        (`str`)
+    -   `input`: transformations to be added to input files and
+        command line (`transform`)
+    -   `output-expected`: transformations to be added to output
+        (`transform-expected`)
+    -   `output-actual`: transformations to be added to output
+        (`transform-actual`)
 
-    The value of each of these is a `dict` with keys corresponding to
-    (transformable) items in the `input` and `output` `dict`s of a
-    test (files, `cmdline`, `stdin`, `stdout`, `stderr`, `returncode`)
-    and values transformation `dict`s or lists of them, as for
-    `transform` of `input` items and `transform-expected` and
-    `transform-actual` of `output` items.
+    The value of `input`, `output-expected` and `output-actual` is a
+    `dict` with keys corresponding to (transformable) items in the
+    `input` and `output` `dict`s of a test (files, `cmdline`, `stdin`,
+    `stdout`, `stderr`, `returncode`) and values corresponding to
+    transformation `dict`s or lists of them, as for `transform` of
+    `input` items and `transform-expected` and `transform-actual` of
+    `output` items.
 
     Grouped transformations are applied to values after global,
     file-specific and test-specific ones.
