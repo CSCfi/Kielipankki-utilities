@@ -12,6 +12,11 @@ information.
 """
 
 
+# TODO:
+# - Support overriding "status" (xfail, skip, skipif) in a grouped
+#   transformation and in an individual test specified as a dict.
+
+
 import glob
 import importlib
 import os
