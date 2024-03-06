@@ -53,11 +53,13 @@
   - {}
   # Test that the command with --no-optimize produces the same result
   - &transf-no-optimize
+    name: --no-optimize
     input: &cmdline-no-optimize
       cmdline:
         append: ' --no-optimize'
   # Test the command with --verbose
   - &transf-verbose-fast-s3
+    name: --verbose
     input: &cmdline-verbose
       cmdline:
         append: ' --verbose'
@@ -67,6 +69,7 @@
         vrt-add-id: added 3 sentence ids
   # Test the command with --verbose --no-optimize
   - &transf-verbose-noopt-s3
+    name: --verbose --no-optimize
     input: &cmdline-verbose-no-optimize
       cmdline:
         append: ' --verbose --no-optimize'
@@ -100,12 +103,14 @@
   - {}
   - *transf-no-optimize
   - &transf-verbose-fast-t2
+    name: --verbose
     input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the faster method
         vrt-add-id: added 2 text ids
   - &transf-verbose-noopt-t2
+    name: --verbose --no-optimize
     input: *cmdline-verbose-no-optimize
     output-expected:
       stderr: |
@@ -122,12 +127,14 @@
   transform:
   - {}
   - *transf-no-optimize
-  - input: *cmdline-verbose
+  - name: --verbose
+    input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of not finding elements x
         vrt-add-id: added 0 x ids
-  - input: *cmdline-verbose-no-optimize
+  - name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --no-optimize
@@ -226,7 +233,8 @@
   transform:
   - {}
   - *transf-no-optimize
-  - input: *cmdline-verbose
+  - name: --verbose
+    input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --sort
@@ -249,8 +257,10 @@
   transform:
   - {}
   - *transf-no-optimize
-  - input: *cmdline-verbose
+  - name: --verbose
+    input: *cmdline-verbose
   - &transf-verbose-noopt-prepend
+    name: --verbose --no-optimize
     input: *cmdline-verbose-no-optimize
     output-expected:
       stderr:
@@ -281,7 +291,8 @@
   transform:
   - {}
   - *transf-no-optimize
-  - input: *cmdline-verbose
+  - name: --verbose
+    input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --force
@@ -313,6 +324,7 @@
   - {}
   - *transf-no-optimize
   - &transf-verbose-force-t2
+    name: --verbose
     input: *cmdline-verbose
     output-expected:
       stderr: |
@@ -569,6 +581,7 @@
   - {}
   - *transf-no-optimize
   - &transf-verbose-fast-prepend
+    name: --verbose
     input: *cmdline-verbose
     output-expected:
       stderr:
@@ -602,12 +615,14 @@
   transform: &transform-fast-t2s3-seed
   - {}
   # Default --seed, same value explicitly for sentence
-  - input:
+  - name: default --seed, explicitly same value for sentence
+    input:
       cmdline:
         append: ' --seed=1'
   - *transf-no-optimize
   # Test the command with --verbose
   - &transf-verbose-fast-t2s3
+    name: --verbose
     input: *cmdline-verbose
     output-expected:
       stderr: |
@@ -615,18 +630,21 @@
         vrt-add-id: added 2 text ids, 3 sentence ids
   # Test the command with --verbose --no-optimize
   - &transf-verbose-noopt-t2s3
+    name: --verbose --no-optimize
     input: *cmdline-verbose-no-optimize
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --no-optimize
         vrt-add-id: added 2 text ids, 3 sentence ids
   # Read seed from file
-  - input:
+  - name: seed from file
+    input:
       cmdline:
         replace: '/seed=1/seed="<seed.txt"/'
       file:seed.txt: '1'
   # Read seed from file, explicitly the same seed for sentence
-  - input:
+  - name: seed from file, explicitly same seed for sentence
+    input:
       cmdline:
       - replace: '/seed=1/seed="<seed.txt"/'
       - append: ' --seed="<seed.txt"'
@@ -671,11 +689,13 @@
   - *transf-verbose-noopt-s3
   # Test that the seed read from file produces the same result as the
   # same seed literally
-  - input:
+  - name: seed from file same as literal seed
+    input:
       cmdline:
         replace: '/<seed\.txt/1/'
   # Test that spaces around the file name are stripped
-  - input:
+  - name: spaces around file name stripped
+    input:
       cmdline:
         replace: '/<seed.txt/< \tseed.txt \t/'
 
@@ -710,11 +730,13 @@
   - *transf-verbose-noopt-s3
   # The seed file with something appended should produce the same
   # result, as only the first 1 MiB of the seed file is used
-  - input:
+  - name: append to 1 MiB seed
+    input:
       file:seed.txt:
         append: 'foobar'
   # A one byte shorter seed file should produce different ids
-  - input:
+  - name: truncate 1 MiB seed
+    input:
       file:seed.txt:
         python: return value[:-1]
     output-expected:
@@ -891,7 +913,8 @@
   transform:
   - {}
   - *transf-no-optimize
-  - input: *cmdline-verbose
+  - name: --verbose
+    input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of using {id} with different format specifications: 03d, 02x
@@ -1003,7 +1026,8 @@
   transform:
   - {}
   - *transf-no-optimize
-  - input: *cmdline-verbose
+  - name: --verbose
+    input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {sentence[a]}
@@ -1059,7 +1083,8 @@
   transform:
   - {}
   - *transf-no-optimize
-  - input: *cmdline-verbose
+  - name: --verbose
+    input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {text[n]:0>2s}
@@ -1092,7 +1117,8 @@
   transform:
   - {}
   - *transf-no-optimize
-  - input: *cmdline-verbose
+  - name: --verbose
+    input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {this[a]}
@@ -1148,12 +1174,14 @@
   transform:
   - {}
   - *transf-no-optimize
-  - input: *cmdline-verbose
+  - name: --verbose
+    input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {this[x]}
         vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
-  - input: *cmdline-verbose-no-optimize
+  - name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --no-optimize
@@ -1173,19 +1201,22 @@
     returncode: 1
   transform:
   - {}
-  - input:
+  - name: attribute access
+    input:
       cmdline:
         replace: '/\{a/{a.b/'
     output-expected:
       stderr:
         replace: '/\{a/{a.b/'
-  - input:
+  - name: capitalized element name
+    input:
       cmdline:
         replace: '/\{a/{Text[a]/'
     output-expected:
       stderr:
         replace: '/\{a/{Text[a]/'
-  - input:
+  - name: capitalized attribute name
+    input:
       cmdline:
         replace: '/\{a/{text[A]/'
     output-expected:
@@ -1216,6 +1247,7 @@
   transform:
   - {}
   - &replace-id-idnum-sent
+    name: 'idnum[sentence]'
     input:
       cmdline: &repl-id-idnum-sent
         replace:
@@ -1251,14 +1283,16 @@
     returncode: 1
   transform:
   # No {}: the values above should always be augmented
-  - input:
+  - name: format code "Z"
+    input:
       cmdline:
         append: 'Z}"'
     output-expected:
       stderr:
         append: |
           unknown format code 'Z' for object of type 'int': {id:Z}
-  - input:
+  - name: format spec ".d"
+    input:
       cmdline:
         append: '.d}"'
     output-expected:
@@ -1278,28 +1312,32 @@
     returncode: 1
   transform:
   # No {}: the values above should always be augmented
-  - input:
+  - name: format spec "8d"
+    input:
       cmdline:
         append: '8d}"'
     output-expected:
       stderr:
         append: |
           unknown format code 'd' for object of type 'str': {sentence[a]:8d}
-  - input:
+  - name: format spec "Z"
+    input:
       cmdline:
         append: 'Z}"'
     output-expected:
       stderr:
         append: |
           unknown format code 'Z' for object of type 'str': {sentence[a]:Z}
-  - input:
+  - name: format spec "-s"
+    input:
       cmdline:
         append: '-s}"'
     output-expected:
       stderr:
         append: |
           sign not allowed in string format specifier: {sentence[a]:-s}
-  - input:
+  - name: format spec ",s"
+    input:
       cmdline:
         append: ',s}"'
     output-expected:
@@ -1322,7 +1360,8 @@
   transform:
   - {}
   # {text[z]}
-  - input:
+  - name: 'text[z]'
+    input:
       cmdline:
         replace: '/paragraph/text/'
     output-expected:
@@ -1365,12 +1404,14 @@
   - {}
   - *transf-no-optimize
   - &transf-fast-t2p3s3
+    name: --verbose
     input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the faster method
         vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
   - &transf-noopt-t2p3s3
+    name: --verbose --no-optimize
     input: *cmdline-verbose-no-optimize
     output-expected:
       stderr: |
@@ -1490,7 +1531,8 @@
   transform:
   - {}
   - *transf-no-optimize
-  - input: *cmdline-verbose
+  - name: --verbose
+    input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {text[id]}
@@ -1537,7 +1579,8 @@
   transform: &transform-rename-s3
   - {}
   - *transf-no-optimize
-  - input: *cmdline-verbose
+  - name: --verbose
+    input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --rename
@@ -1633,12 +1676,14 @@
   transform: &transform-rename-t2s3
   - {}
   - *transf-no-optimize
-  - input: *cmdline-verbose
+  - name: --verbose
+    input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --rename
         vrt-add-id: added 2 text ids, 3 sentence ids
   - &transf-noopt-t2s3
+    name: --verbose --no-optimize
     input: *cmdline-verbose-no-optimize
     output-expected:
       stderr: |
@@ -1699,7 +1744,8 @@
   transform:
   - {}
   - *transf-no-optimize
-  - input: *cmdline-verbose
+  - name: --verbose
+    input: *cmdline-verbose
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {text[id]/t-//}
@@ -1736,7 +1782,8 @@
       vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
   transform:
   - {}
-  - input: *cmdline-no-optimize
+  - name: --no-optimize
+    input: *cmdline-no-optimize
     output-expected:
       stderr:
         replace: '/faster method/slower method because of --no-optimize/'
@@ -1752,43 +1799,52 @@
       vrt-add-id: added 3 sentence ids
   transform:
   - {}
-  - input:
+  - name: format spec "x"
+    input:
       cmdline:
       - replace: '/:d/:x/'
-  - input:
+  - name: format spec "1"
+    input:
       cmdline:
       - replace: '/:d/:1/'
-  - input:
+  - name: format spec "X"
+    input:
       cmdline:
       - replace: '/:d/:X/'
-  - input:
+  - name: empty format spec
+    input:
       cmdline:
       - replace: '/:d/:/'
-  - input:
+  - name: format spec "2d"
+    input:
       cmdline:
       - replace: '/:d/:2d/'
     output-expected:
       stdout:
       - replace: '/id="/id=" /'
-  - input:
+  - name: format spec "2"
+    input:
       cmdline:
       - replace: '/:d/:2/'
     output-expected:
       stdout:
       - replace: '/id="/id=" /'
-  - input:
+  - name: format spec "2x"
+    input:
       cmdline:
       - replace: '/:d/:2x/'
     output-expected:
       stdout:
       - replace: '/id="/id=" /'
-  - input:
+  - name: format spec "03x"
+    input:
       cmdline:
       - replace: '/:d/:03x/'
     output-expected:
       stdout:
       - replace: '/id="/id="00/'
-  - input: *cmdline-no-optimize
+  - name: --no-optimize
+    input: *cmdline-no-optimize
     output-expected:
       stderr:
         replace: '/faster method/slower method because of --no-optimize/'
@@ -1804,7 +1860,8 @@
       vrt-add-id: added 3 sentence ids
   transform:
   - {}
-  - input:
+  - name: format spec "<5d"
+    input:
       cmdline:
         replace: '/<1/<5/'
     output-expected:
@@ -1812,7 +1869,8 @@
         replace: '/(id=".)/\1    /'
       stderr:
         replace: '/<1/<5/'
-  - input:
+  - name: format spec ">5d"
+    input:
       cmdline:
         replace: '/<1/>5/'
     output-expected:
@@ -1820,7 +1878,8 @@
         replace: '/id="(.)/id="    \1/'
       stderr:
         replace: '/<1/>5/'
-  - input:
+  - name: format spec "^5d"
+    input:
       cmdline:
         replace: '/<1/^5/'
     output-expected:
@@ -1828,7 +1887,8 @@
         replace: '/id="(.)/id="  \1  /'
       stderr:
         replace: '/<1/^5/'
-  - input:
+  - name: format spec "-^5d"
+    input:
       cmdline:
         replace: '/<1/-^5/'
     output-expected:
@@ -1836,7 +1896,8 @@
         replace: '/id="(.)/id="--\1--/'
       stderr:
         replace: '/<1/-^5/'
-  - input:
+  - name: format spec "#04x"
+    input:
       cmdline:
         replace: '/<1d/#04x/'
     output-expected:
@@ -1844,7 +1905,8 @@
         replace: '/id="(.)/id="0x0\1/'
       stderr:
         replace: '/<1d/#04x/'
-  - input: *cmdline-no-optimize
+  - name: --no-optimize
+    input: *cmdline-no-optimize
     output-expected:
       stderr:
         replace: '/format specification.*/--no-optimize/'
