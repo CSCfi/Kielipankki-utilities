@@ -40,6 +40,9 @@ class SeedExtractor(InputProcessor):
         ('--distance = dist',
          '''the distance between the words to extract''',
          dict(type=posint, default=100)),
+        ('--separator = sep',
+         '''separate words in output with sep''',
+         dict(default='')),
     ]
 
     def __init__(self):
@@ -68,4 +71,4 @@ class SeedExtractor(InputProcessor):
                 attrnum = nameindex(binnamelist(line), b'word')
                 splitcount = attrnum + 1
                 check_posattrs = False
-        ouf.write(b''.join(result) + b'\n')
+        ouf.write(args.separator.encode('utf-8').join(result) + b'\n')

@@ -153,3 +153,39 @@
       contains: |
         vrt-extract-seed: error: argument --distance: positive integer required
     returncode: 2
+
+
+# --separator
+
+- name: 'vrt-extract-seed: --separator=" "'
+  input:
+    cmdline: vrt-extract-seed --distance=2 --separator=" "
+    stdin: *input-1
+  output:
+    stdout: |
+      bar aaa ccc ee gg ii kk
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --separator="++"'
+  input:
+    cmdline: vrt-extract-seed --distance=2 --separator="++"
+    stdin: *input-1
+  output:
+    stdout: |
+      bar++aaa++ccc++ee++gg++ii++kk
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --separator="\n"'
+  input:
+    cmdline: "vrt-extract-seed --distance=2 --separator='\n'"
+    stdin: *input-1
+  output:
+    stdout: |
+      bar
+      aaa
+      ccc
+      ee
+      gg
+      ii
+      kk
+  transform: *transforms-basic
