@@ -12,6 +12,11 @@ information.
 """
 
 
+# TODO:
+# - Support overriding "status" (xfail, skip, skipif) in a grouped
+#   transformation and in an individual test specified as a dict.
+
+
 import glob
 import importlib
 import os
@@ -181,6 +186,8 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         # print('add_transforms', base, add)
         if isinstance(add, dict):
             add = [{key: val} for key, val in add.items()]
+        elif add is None or isinstance(add, (str, int)):
+            add = [add]
         base.extend(add)
         return base
 
@@ -228,14 +235,21 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                 # Expand grouped transformations
                 input_output = expand_grouped_transforms(
                     input_output, tc['transform'])
-                name_format = name_format.replace('}:', '}:{transformnum:d}:')
+                name_format = name_format.replace('}:', '}:{transnum:d}:')
             # print('name_format', name_format)
-            for trnum, (real_input, real_output) in enumerate(input_output):
-                subcase_name = (tcname + (' (' + inputname + ')'
-                                          if inputname else ''))
+            for trnum, input_output_item in enumerate(input_output):
+                real_input, real_output = input_output_item[0:2]
+                transname = (
+                    ': ' + input_output_item[2] if len(input_output_item) > 2
+                    else '')
+                subcase_name = (
+                    tcname
+                    + (f' ({inputname})' if inputname else '')
+                    + (f' (transform {trnum + 1}{transname})'
+                       if 'transform' in tc else ''))
                 full_name = name_format.format(
                     fname=fname, num=tcnum + 1, inputnum=inputnum + 1,
-                    transformnum=trnum + 1, name=subcase_name)
+                    transnum=trnum + 1, name=subcase_name)
                 subcases.extend(make_output_subcases(
                     full_name, real_input, real_output))
         return subcases
@@ -458,17 +472,22 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         """Return copy of [`input_`, `output`] with `transform_group` added.
 
         Add to a deep copy of `input_` and `output` the applicable
-        transformations in `transform_group` and return them as a pair
-        list. `input_` and `output` correspond to the dicts ``input``
-        and ``output`` in a scripttestlib test.
+        transformations in `transform_group` and return them as list
+        of pairs or triples (lists). (The optional third item is the
+        value of the ``name`` of the transformation group.)`input_`
+        and `output` correspond to the dicts ``input`` and ``output``
+        in a scripttestlib test.
         """
         result = [deepcopy(input_), deepcopy(output)]
         # Input and output top targets
         target_tops = {'input': result[0], 'output': result[1]}
         # print('add_transform_group', result, transform_group)
         # transform_group is a dict that may contain keys "input",
-        # "output-expected", "output-actual"
+        # "output-expected", "output-actual", "name"
         for transform_top_name, transform_top in transform_group.items():
+            if transform_top_name == 'name':
+                result.append(transform_top)
+                continue
             # target_top is "input" or "output"
             target_top, sep, kind = transform_top_name.partition('-')
             # The key for these transformations in input_ or output:
@@ -541,7 +560,7 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
             raise ValueError(
                 'Grouped transformations currently work only with string'
                 ' values and dicts with key "value": ' + repr(target))
-        if isinstance(transform_items, dict):
+        if not isinstance(transform_items, list):
             transform_items = [transform_items]
         for transform_item in transform_items:
             target[transform_key].append(transform_item)
@@ -905,11 +924,18 @@ def _transform_value(value, trans):
         return value
     # Convert a dict to a list of single-item dicts
     if isinstance(trans, dict):
-        trans = (dict([(key, val)]) for key, val in trans.items())
+        trans = [dict([(key, val)]) for key, val in trans.items()]
+    # str or int is converted to a list containing the value
+    elif isinstance(trans, (str, int)):
+        trans = [trans]
     # If value is a list, transform each item separately
     if isinstance(value, list):
         return [_transform_value(item, trans) for item in value]
     for transitem in trans:
+        # If the transformation item is not a dict, treat the value as
+        # the complete new value
+        if not isinstance(transitem, dict):
+            transitem = {'set-value': transitem}
         for transname, transval in transitem.items():
             # print(transname, transval)
             try:
