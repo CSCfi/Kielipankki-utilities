@@ -62,20 +62,18 @@
       cmdline:
         append: ' --verbose'
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the faster method
-          vrt-add-id: added 3 sentence ids
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 3 sentence ids
   # Test the command with --verbose --no-optimize
   - &transf-verbose-noopt-s3
     input: &cmdline-verbose-no-optimize
       cmdline:
         append: ' --verbose --no-optimize'
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --no-optimize
-          vrt-add-id: added 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 3 sentence ids
 
 
 - name: 'vrt-add-id: --element=text'
@@ -104,17 +102,15 @@
   - &transf-verbose-fast-t2
     input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the faster method
-          vrt-add-id: added 2 text ids
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 2 text ids
   - &transf-verbose-noopt-t2
     input: *cmdline-verbose-no-optimize
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --no-optimize
-          vrt-add-id: added 2 text ids
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids
 
 
 - name: 'vrt-add-id: Non-existent element (no change)'
@@ -128,16 +124,14 @@
   - *transf-no-optimize
   - input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of not finding elements x
-          vrt-add-id: added 0 x ids
+      stderr: |
+        vrt-add-id: using the slower method because of not finding elements x
+        vrt-add-id: added 0 x ids
   - input: *cmdline-verbose-no-optimize
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --no-optimize
-          vrt-add-id: added 0 x ids
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 0 x ids
 
 
 - name: 'vrt-add-id: --id'
@@ -234,10 +228,9 @@
   - *transf-no-optimize
   - input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --sort
-          vrt-add-id: added 2 text ids
+      stderr: |
+        vrt-add-id: using the slower method because of --sort
+        vrt-add-id: added 2 text ids
   - *transf-verbose-noopt-t2
 
 
@@ -290,10 +283,9 @@
   - *transf-no-optimize
   - input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --force
-          vrt-add-id: added 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --force
+        vrt-add-id: added 3 sentence ids
   - *transf-verbose-noopt-s3
 
 
@@ -323,10 +315,9 @@
   - &transf-verbose-force-t2
     input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --force
-          vrt-add-id: added 2 text ids
+      stderr: |
+        vrt-add-id: using the slower method because of --force
+        vrt-add-id: added 2 text ids
   - *transf-verbose-noopt-t2
 
 
@@ -619,31 +610,27 @@
   - &transf-verbose-fast-t2s3
     input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the faster method
-          vrt-add-id: added 2 text ids, 3 sentence ids
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 2 text ids, 3 sentence ids
   # Test the command with --verbose --no-optimize
   - &transf-verbose-noopt-t2s3
     input: *cmdline-verbose-no-optimize
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --no-optimize
-          vrt-add-id: added 2 text ids, 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids, 3 sentence ids
   # Read seed from file
   - input:
       cmdline:
         replace: '/seed=1/seed="<seed.txt"/'
-      file:seed.txt:
-        set-value: '1'
+      file:seed.txt: '1'
   # Read seed from file, explicitly the same seed for sentence
   - input:
       cmdline:
       - replace: '/seed=1/seed="<seed.txt"/'
       - append: ' --seed="<seed.txt"'
-      file:seed.txt:
-        set-value: '1'
+      file:seed.txt: '1'
 
 - name: 'vrt-add-id: --type=random, explicitly same for multiple element types'
   input:
@@ -906,10 +893,9 @@
   - *transf-no-optimize
   - input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of using {id} with different format specifications: 03d, 02x
-          vrt-add-id: added 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of using {id} with different format specifications: 03d, 02x
+        vrt-add-id: added 3 sentence ids
   - *transf-verbose-noopt-s3
 
 
@@ -1019,10 +1005,9 @@
   - *transf-no-optimize
   - input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {sentence[a]}
-          vrt-add-id: added 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {sentence[a]}
+        vrt-add-id: added 3 sentence ids
   - *transf-verbose-noopt-s3
 
 - name: 'vrt-add-id: --format with {elem[attr]} for enclosing elements'
@@ -1076,10 +1061,9 @@
   - *transf-no-optimize
   - input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {text[n]:0>2s}
-          vrt-add-id: added 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {text[n]:0>2s}
+        vrt-add-id: added 3 sentence ids
   - *transf-verbose-noopt-s3
 
 
@@ -1110,10 +1094,9 @@
   - *transf-no-optimize
   - input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {this[a]}
-          vrt-add-id: added 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {this[a]}
+        vrt-add-id: added 3 sentence ids
   - *transf-verbose-noopt-s3
 
 - name: 'vrt-add-id: text, paragraph, sentence with same options and {this[attr]}'
@@ -1167,16 +1150,14 @@
   - *transf-no-optimize
   - input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {this[x]}
-          vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {this[x]}
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
   - input: *cmdline-verbose-no-optimize
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --no-optimize
-          vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
 
 
 # Invalid --format
@@ -1386,17 +1367,15 @@
   - &transf-fast-t2p3s3
     input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the faster method
-          vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
   - &transf-noopt-t2p3s3
     input: *cmdline-verbose-no-optimize
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --no-optimize
-          vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
 
 - name: 'vrt-add-id: text, paragraph, sentence with same options'
   input:
@@ -1513,10 +1492,9 @@
   - *transf-no-optimize
   - input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {text[id]}
-          vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {text[id]}
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
   - *transf-noopt-t2p3s3
 
 
@@ -1561,10 +1539,9 @@
   - *transf-no-optimize
   - input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --rename
-          vrt-add-id: added 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --rename
+        vrt-add-id: added 3 sentence ids
   - *transf-verbose-noopt-s3
 
 - name: 'vrt-add-id: --rename without argument, existing attribute'
@@ -1658,17 +1635,15 @@
   - *transf-no-optimize
   - input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --rename
-          vrt-add-id: added 2 text ids, 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --rename
+        vrt-add-id: added 2 text ids, 3 sentence ids
   - &transf-noopt-t2s3
     input: *cmdline-verbose-no-optimize
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --no-optimize
-          vrt-add-id: added 2 text ids, 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids, 3 sentence ids
 
 - name: 'vrt-add-id: text and sentence, rename requiring suffix _N, existing attributes'
   input:
@@ -1726,10 +1701,9 @@
   - *transf-no-optimize
   - input: *cmdline-verbose
     output-expected:
-      stderr:
-        set-value: |
-          vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {text[id]/t-//}
-          vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+      stderr: |
+        vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {text[id]/t-//}
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
   - *transf-noopt-t2p3s3
 
 
