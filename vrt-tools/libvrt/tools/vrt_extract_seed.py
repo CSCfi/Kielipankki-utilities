@@ -53,7 +53,6 @@ class SeedExtractor(InputProcessor):
         LT = b'<'[0]
         check_posattrs = True
         attrnum = 0
-        splitcount = attrnum + 1
         add_tokennums = self._make_add_tokennums(args)
         next_add_tokennum = next(add_tokennums)
         result = []
@@ -62,7 +61,7 @@ class SeedExtractor(InputProcessor):
         for line in inf:
             if line[0] != LT:
                 if tokennum == next_add_tokennum:
-                    result.append(line[:-1].split(b'\t', splitcount)[attrnum])
+                    result.append(line[:-1].split(b'\t', attrnum + 1)[attrnum])
                     tokencount += 1
                     try:
                         next_add_tokennum = next(add_tokennums)
@@ -71,7 +70,6 @@ class SeedExtractor(InputProcessor):
                 tokennum += 1
             elif check_posattrs and isbinnames(line):
                 attrnum = nameindex(binnamelist(line), b'word')
-                splitcount = attrnum + 1
                 check_posattrs = False
         ouf.write(args.separator.encode('utf-8').join(result) + b'\n')
 
