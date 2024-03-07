@@ -51,24 +51,31 @@ class SeedExtractor(InputProcessor):
     def main(self, args, inf, ouf):
         """Read `inf`, write to `ouf`, using options `args`."""
         LT = b'<'[0]
-        count = args.count
-        distance = args.distance
         check_posattrs = True
         attrnum = 0
         splitcount = attrnum + 1
+        add_tokennums = self._make_add_tokennums(args)
+        next_add_tokennum = next(add_tokennums)
         result = []
         tokencount = 0
         tokennum = 0
         for line in inf:
             if line[0] != LT:
-                tokennum += 1
-                if tokennum % distance == 0:
+                if tokennum == next_add_tokennum:
                     result.append(line[:-1].split(b'\t', splitcount)[attrnum])
                     tokencount += 1
-                    if tokencount == count:
+                    try:
+                        next_add_tokennum = next(add_tokennums)
+                    except StopIteration:
                         break
+                tokennum += 1
             elif check_posattrs and isbinnames(line):
                 attrnum = nameindex(binnamelist(line), b'word')
                 splitcount = attrnum + 1
                 check_posattrs = False
         ouf.write(args.separator.encode('utf-8').join(result) + b'\n')
+
+    def _make_add_tokennums(self, args):
+        """Return iterator for the numbers of tokens to be output."""
+        return iter(
+            range(args.distance - 1, args.count * args.distance, args.distance))
