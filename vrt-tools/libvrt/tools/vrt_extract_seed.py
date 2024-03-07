@@ -25,6 +25,21 @@ def posint(arg):
     raise ArgumentTypeError('positive integer required')
 
 
+# Value for args.distance with --distance="even"
+DIST_EVEN = -1
+
+
+def distance_arg(arg):
+    """`ArgumentParser` type check: `arg` is positive integer or ``even``. """
+    try:
+        return posint(arg)
+    except ArgumentTypeError:
+        if arg == 'even':
+            return DIST_EVEN
+        else:
+            raise ArgumentTypeError('positive integer or "even" required')
+
+
 class SeedExtractor(InputProcessor):
 
     """Class implementing vrt-extract-seed functionality."""
@@ -38,8 +53,15 @@ class SeedExtractor(InputProcessor):
          '''the maximum number of words to extract for the seed''',
          dict(type=posint, default=100)),
         ('--distance = dist',
-         '''the distance between the words to extract''',
-         dict(type=posint, default=100)),
+         '''the distance between the words to extract: positive
+            integer, or "even" for evenly distributed up to the token
+            number specified with --last''',
+         dict(type=distance_arg, default=100)),
+        ('--last = num',
+         '''the number of the last token to include in the seed
+            (typically the number of tokens in the input VRT), to be
+            used with --distance=even''',
+         dict(type=posint)),
         ('--separator = sep',
          '''separate words in output with sep''',
          dict(default='')),
@@ -47,6 +69,11 @@ class SeedExtractor(InputProcessor):
 
     def __init__(self):
         super().__init__()
+
+    def check_args(self, args):
+        """Check the validity of `args` (combinations of options)."""
+        if args.distance == DIST_EVEN and not args.last:
+            self.error_exit('error: --distance=even requires specifying --last')
 
     def main(self, args, inf, ouf):
         """Read `inf`, write to `ouf`, using options `args`."""
@@ -61,10 +88,12 @@ class SeedExtractor(InputProcessor):
         for line in inf:
             if line[0] != LT:
                 if tokennum == next_add_tokennum:
-                    result.append(line[:-1].split(b'\t', attrnum + 1)[attrnum])
+                    word = line[:-1].split(b'\t', attrnum + 1)[attrnum]
+                    result.append(word)
                     tokencount += 1
                     try:
-                        next_add_tokennum = next(add_tokennums)
+                        while next_add_tokennum == tokennum:
+                            next_add_tokennum = next(add_tokennums)
                     except StopIteration:
                         break
                 tokennum += 1
@@ -75,5 +104,21 @@ class SeedExtractor(InputProcessor):
 
     def _make_add_tokennums(self, args):
         """Return iterator for the numbers of tokens to be output."""
-        return iter(
-            range(args.distance - 1, args.count * args.distance, args.distance))
+
+        def make_iter(count, dist, prec=1):
+            """Return iterator for `count` int values with approx. `dist` step.
+
+            `dist` may be a float, in which case `prec` is the
+            precision with which it is taken ito account.
+            """
+            return (i // prec for i in range(int(dist * prec - 1),
+                                             int(count * dist * prec),
+                                             int(dist * prec)))
+
+        if args.distance == DIST_EVEN:
+            # Note that "evenly distributed" does not mean "with equal
+            # distances", as the distances may differ by one to get an
+            # even distribution up to args.last
+            return make_iter(args.count, args.last / args.count, 100)
+        else:
+            return make_iter(args.count, args.distance)
