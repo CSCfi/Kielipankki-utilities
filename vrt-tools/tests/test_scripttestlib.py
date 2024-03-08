@@ -1029,6 +1029,28 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: transform actual stdout with shell command referring to environment',
+             'input': {
+                 'cmdline': 'echo "$foo"',
+                 'shell': True,
+                 'envvars': {
+                     'foo': 'bar',
+                 },
+             },
+             'output': {
+                 'stdout': [
+                     'bar\n',
+                     {
+                         'test': '==',
+                         'value': 'barbar\n',
+                         'transform-actual': {'shell': 'echo "$foo$foo"'},
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
              'name': 'Test: transform stdin with Python (+ append)',
              'input': {
                  'cmdline': 'cat',

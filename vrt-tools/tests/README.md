@@ -134,11 +134,13 @@ test case:
             input and writing the transformed value to standard
             output. The shell used is the default shell. The command
             line is executed in the temporary directory containing the
-            input and output files. *Note* that the command should
-            *not* change the input and output files, as their values
-            may be cached for tests with the same input. An `int`
-            `value` is converted to a string for processing and the
-            returned value back to `int`; a `None` is returned intact.
+            input and output files and with the environment variables
+            specified in `envvars` of `input`. *Note* that the command
+            should *not* change the input and output files, as their
+            values may be cached for tests with the same input. An
+            `int` `value` is converted to a string for processing and
+            the returned value back to `int`; a `None` is returned
+            intact.
 
 		If the value is a plain dictionary, the order of the
         transformations is not defined, so they should be independent

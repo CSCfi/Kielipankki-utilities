@@ -674,12 +674,13 @@ class ProgramRunner:
         Class wrapping the output of a program run
         """
 
-        def __init__(self, val, tmpdir=''):
-            """Initialize with the dict `val`, files in `tmpdir`"""
+        def __init__(self, val, tmpdir='', env=None):
+            """Initialize with the dict `val`, files in `tmpdir`, env `env`."""
             super().__init__()
             if isinstance(val, dict):
                 self.update(val)
             self.tmpdir = tmpdir
+            self.env = env
 
         def get(self, key, default=None):
             """Like dict.get, but with special treatment of keys "file:FNAME"
@@ -813,7 +814,7 @@ class ProgramRunner:
             'stdout': stdout.decode('UTF-8'),
             'stderr': stderr.decode('UTF-8'),
             'returncode': proc.returncode,
-        }, tmpdir=tmpdir)
+        }, tmpdir=tmpdir, env=env)
         return cls._output
 
 
@@ -909,13 +910,14 @@ def _make_value(value, trans_key, global_trans=None, actual_value=None):
     return trans_value
 
 
-def _transform_value(value, trans, tmpdir=None):
+def _transform_value(value, trans, tmpdir=None, env=None):
     """Return value transformed according to trans.
 
     `trans` is a `dict` whose keys ``KEY`` should correspond to
     functions `_transform_value_KEY` (hyphens in ``KEY`` converted to
-    underscores). `tmpdir` is the directory containing output files
-    (may be used in shell transformations).
+    underscores). `tmpdir` is the directory containing output files,
+    `env` a dict containing environment variables (may be used in
+    shell transformations).
 
     Functions `_transform_value_KEY` should return the value intact if
     the transformation is not applicable to the type of the value.
@@ -944,7 +946,7 @@ def _transform_value(value, trans, tmpdir=None):
                                       + transname.replace('-', '_')]
             except KeyError as e:
                 raise ValueError('Unknown transformation "' + transname + '"')
-            value = transfunc(value, transval, tmpdir=tmpdir)
+            value = transfunc(value, transval, tmpdir=tmpdir, env=env)
     # print('->', repr(value))
     return value
 
@@ -962,10 +964,11 @@ def _check_output(name, output, outputitem, expected):
     actual = output.get(outputitem)
     # print('_check_output', name, output, outputitem, expected, actual)
     tmpdir = output.tmpdir
+    env = output.env
     exp_val = _transform_value(
-        expected.get('value'), expected.get('transform-expected'), tmpdir)
+        expected.get('value'), expected.get('transform-expected'), tmpdir, env)
     act_val = _transform_value(
-        actual, expected.get('transform-actual'), tmpdir)
+        actual, expected.get('transform-actual'), tmpdir, env)
     # print('_check_output', repr(expected), repr(actual),
     #       repr(exp_val), repr(act_val))
     _assert(expected.get('test'), exp_val, act_val, name,
@@ -1153,7 +1156,7 @@ def _transform_value_shell(value, code, **kwargs):
         return value
     valuetype = type(value)
     proc = Popen(code, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True,
-                 cwd=kwargs.get('tmpdir'))
+                 cwd=kwargs.get('tmpdir'), env=kwargs.get('env'))
     stdout, stderr = proc.communicate(str(value).encode('UTF-8'))
     value = stdout.decode('UTF-8')
     return valuetype(value)
