@@ -972,7 +972,7 @@ def _check_output(name, output, outputitem, expected):
     # print('_check_output', repr(expected), repr(actual),
     #       repr(exp_val), repr(act_val))
     _assert(expected.get('test'), exp_val, act_val, name,
-            expected.get('test-opts'))
+            opts=expected.get('test-opts'))
 
 
 def _re_search(patt, val, flags=''):
@@ -1000,7 +1000,7 @@ _assert_name_map = {
 }
 
 
-def _assert(test_name, expected, actual, *opts):
+def _assert(test_name, expected, actual, item_descr, **kwargs):
     """Call the assertion function corresponding to test_name with the args."""
     test_name_orig = test_name
     # Replace hyphens with underscores in the test name. The test name cannot
@@ -1008,7 +1008,8 @@ def _assert(test_name, expected, actual, *opts):
     test_name = test_name.replace('-', '_')
     test_name = _assert_name_map.get(test_name, test_name)
     try:
-        globals()['_assert_' + test_name](expected, actual, *opts)
+        globals()['_assert_' + test_name](expected, actual, item_descr,
+                                          **kwargs)
     except KeyError:
         raise ValueError('Unknown test "' + test_name_orig + '"')
 
@@ -1016,46 +1017,48 @@ def _assert(test_name, expected, actual, *opts):
 # Assertion functions: the first argument is the expected and the second the
 # actual value. item_descr describes the test item; it is not used in the
 # functions but it shows up in pytest traceback providing more information on
-# the exact test within a single test case. *opts may be used to pass options
-# to the function, such as regular expression flags.
+# the exact test within a single test case. **kwargs is used to pass
+# information to functions that is not needed by all: 'opts' may be used to
+# pass options to the function, such as regular expression flags.
 
-def _assert_equal(exp, val, item_descr, *opts):
+def _assert_equal(exp, val, item_descr, **kwargs):
     # This order or values makes the pytest value diff more natural
     assert exp == val
 
-def _assert_not_equal(exp, val, item_descr, *opts):
+def _assert_not_equal(exp, val, item_descr, **kwargs):
     # This order or values makes the pytest value diff more natural
     assert exp != val
 
-def _assert_less(exp, val, item_descr, *opts):
+def _assert_less(exp, val, item_descr, **kwargs):
     assert val < exp
 
-def _assert_less_equal(exp, val, item_descr, *opts):
+def _assert_less_equal(exp, val, item_descr, **kwargs):
     assert val <= exp
 
-def _assert_greater(exp, val, item_descr, *opts):
+def _assert_greater(exp, val, item_descr, **kwargs):
     assert val > exp
 
-def _assert_greater_equal(exp, val, item_descr, *opts):
+def _assert_greater_equal(exp, val, item_descr, **kwargs):
     assert val >= exp
 
-def _assert_in(exp, val, item_descr, *opts):
+def _assert_in(exp, val, item_descr, **kwargs):
     assert val in exp
 
-def _assert_not_in(exp, val, item_descr, *opts):
+def _assert_not_in(exp, val, item_descr, **kwargs):
     assert val not in exp
 
-def _assert_contains(exp, val, item_descr, *opts):
+def _assert_contains(exp, val, item_descr, **kwargs):
     assert exp in val
 
-def _assert_not_contains(exp, val, item_descr, *opts):
+def _assert_not_contains(exp, val, item_descr, **kwargs):
     assert exp not in val
 
-def _assert_regex(exp, val, item_descr, *opts):
-    assert _re_search(exp, val, *opts) is not None
+def _assert_regex(exp, val, item_descr, **kwargs):
+    assert _re_search(exp, val, kwargs.get('opts')) is not None
 
-def _assert_not_regex(exp, val, item_descr, *opts):
-    assert _re_search(exp, val, *opts) is None
+def _assert_not_regex(exp, val, item_descr, **kwargs):
+    assert _re_search(exp, val, kwargs.get('opts')) is None
+
 
 
 # Supported test names
