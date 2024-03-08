@@ -1144,10 +1144,7 @@ def _transform_value_replace(value, args, **kwargs):
 
 def _transform_value_python(value, code, **kwargs):
     """Return value transformed with Python code (function body)."""
-    funcdef = ('def transfunc(value):\n '
-               + re.sub(r'^', '    ', code, flags=re.MULTILINE))
-    exec(funcdef, globals())
-    return transfunc(value)
+    return _exec_python_func(code, value)
 
 
 def _transform_value_shell(value, code, **kwargs):
@@ -1155,8 +1152,22 @@ def _transform_value_shell(value, code, **kwargs):
     if value is None:
         return value
     valuetype = type(value)
-    proc = Popen(code, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True,
-                 cwd=kwargs.get('tmpdir'), env=kwargs.get('env'))
-    stdout, stderr = proc.communicate(str(value).encode('UTF-8'))
-    value = stdout.decode('UTF-8')
+    value = _exec_shell(code, str(value), tmpdir=kwargs.get('tmpdir'),
+                        env=kwargs.get('env'))
     return valuetype(value)
+
+
+def _exec_python_func(code, value):
+    """Execute Python code `code` (function body) with arg `value`."""
+    funcdef = ('def func(value):\n '
+               + re.sub(r'^', '    ', code, flags=re.MULTILINE))
+    exec(funcdef, globals())
+    return func(value)
+
+
+def _exec_shell(code, stdin, tmpdir=None, env=None):
+    """Execute shell `code` with `stdin` input in `tmpdir` with env `env`."""
+    proc = Popen(code, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True,
+                 cwd=tmpdir, env=env)
+    stdout, stderr = proc.communicate(stdin.encode('UTF-8'))
+    return stdout.decode('UTF-8')
