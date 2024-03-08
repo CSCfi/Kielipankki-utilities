@@ -679,20 +679,20 @@ class ProgramRunner:
             super().__init__()
             if isinstance(val, dict):
                 self.update(val)
-            self._tmpdir = tmpdir
+            self.tmpdir = tmpdir
 
         def get(self, key, default=None):
             """Like dict.get, but with special treatment of keys "file:FNAME"
 
             If `key` is of the form "file:FNAME", return the content
-            of the file ``FNAME`` in `self._tmpdir`, or `None` if
+            of the file ``FNAME`` in `self.tmpdir`, or `None` if
             ``FNAME`` does not exist.
             """
             if key in self:
                 return self[key]
             elif key.startswith('file:'):
                 fname = os.path.join(
-                    self._tmpdir, key.split(':', maxsplit=1)[1])
+                    self.tmpdir, key.split(':', maxsplit=1)[1])
                 if not os.path.isfile(fname):
                     return None
                 with open(fname, 'r') as f:
@@ -909,12 +909,13 @@ def _make_value(value, trans_key, global_trans=None, actual_value=None):
     return trans_value
 
 
-def _transform_value(value, trans):
+def _transform_value(value, trans, tmpdir=None):
     """Return value transformed according to trans.
 
     `trans` is a `dict` whose keys ``KEY`` should correspond to
     functions `_transform_value_KEY` (hyphens in ``KEY`` converted to
-    underscores).
+    underscores). `tmpdir` is the directory containing output files
+    (may be used in shell transformations).
 
     Functions `_transform_value_KEY` should return the value intact if
     the transformation is not applicable to the type of the value.
@@ -943,7 +944,7 @@ def _transform_value(value, trans):
                                       + transname.replace('-', '_')]
             except KeyError as e:
                 raise ValueError('Unknown transformation "' + transname + '"')
-            value = transfunc(value, transval)
+            value = transfunc(value, transval, tmpdir=tmpdir)
     # print('->', repr(value))
     return value
 
@@ -960,9 +961,11 @@ def _check_output(name, output, outputitem, expected):
     """
     actual = output.get(outputitem)
     # print('_check_output', name, output, outputitem, expected, actual)
-    exp_val = _transform_value(expected.get('value'),
-                               expected.get('transform-expected'))
-    act_val = _transform_value(actual, expected.get('transform-actual'))
+    tmpdir = output.tmpdir
+    exp_val = _transform_value(
+        expected.get('value'), expected.get('transform-expected'), tmpdir)
+    act_val = _transform_value(
+        actual, expected.get('transform-actual'), tmpdir)
     # print('_check_output', repr(expected), repr(actual),
     #       repr(exp_val), repr(act_val))
     _assert(expected.get('test'), exp_val, act_val, name,
@@ -1061,7 +1064,7 @@ _test_names = set(
 
 # Value transformation functions
 
-def _transform_value_prepend(value, prepend_value):
+def _transform_value_prepend(value, prepend_value, **kwargs):
     """Return value with prepend_value prepended."""
     if value is None:
         value = ''
@@ -1070,7 +1073,7 @@ def _transform_value_prepend(value, prepend_value):
     return prepend_value + value
 
 
-def _transform_value_append(value, append_value):
+def _transform_value_append(value, append_value, **kwargs):
     """Return value with append_value appended."""
     if value is None:
         value = ''
@@ -1079,13 +1082,13 @@ def _transform_value_append(value, append_value):
     return value + append_value
 
 
-def _transform_value_set_value(value, new_value):
+def _transform_value_set_value(value, new_value, **kwargs):
     """Return `new_value`, discarding `value` if they have the same type."""
     return (new_value if isinstance(value, int) == isinstance(new_value, int)
             else value)
 
 
-def _transform_value_filter_out(value, regexps):
+def _transform_value_filter_out(value, regexps, **kwargs):
     """Replace regexp `regexp` matches with "" `in `value`."""
     if not isinstance(value, str):
         return value
@@ -1099,7 +1102,7 @@ def _transform_value_filter_out(value, regexps):
     return value
 
 
-def _transform_value_replace(value, args):
+def _transform_value_replace(value, args, **kwargs):
     """Replace strings or regular expression matches in `value`.
 
     `args` can be a `dict`, `str` or `list` of `dict` or `str`. A
@@ -1136,7 +1139,7 @@ def _transform_value_replace(value, args):
     return value
 
 
-def _transform_value_python(value, code):
+def _transform_value_python(value, code, **kwargs):
     """Return value transformed with Python code (function body)."""
     funcdef = ('def transfunc(value):\n '
                + re.sub(r'^', '    ', code, flags=re.MULTILINE))
@@ -1144,12 +1147,13 @@ def _transform_value_python(value, code):
     return transfunc(value)
 
 
-def _transform_value_shell(value, code):
+def _transform_value_shell(value, code, **kwargs):
     """Return value transformed with shell commands code."""
     if value is None:
         return value
     valuetype = type(value)
-    proc = Popen(code, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+    proc = Popen(code, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True,
+                 cwd=kwargs.get('tmpdir'))
     stdout, stderr = proc.communicate(str(value).encode('UTF-8'))
     value = stdout.decode('UTF-8')
     return valuetype(value)

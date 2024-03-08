@@ -996,6 +996,39 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: transform actual stdout with shell command referring to input or output file',
+             'input': {
+                 'cmdline': 'cat in.txt | tee out.txt',
+                 'shell': True,
+                 'file:in.txt': '1\n2\n3\n',
+             },
+             'output': {
+                 'stdout': [
+                     '1\n2\n3\n',
+                     {
+                         'test': '==',
+                         'value': '',
+                         'transform-actual': {'shell': 'diff - in.txt'},
+                     },
+                     {
+                         'test': '==',
+                         'value': '',
+                         'transform-actual': {'shell': 'diff - out.txt'},
+                     },
+                 ],
+                 'file:out.txt': [
+                     '1\n2\n3\n',
+                     {
+                         'test': '==',
+                         'value': '',
+                         'transform-actual': {'shell': 'diff - in.txt'},
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
              'name': 'Test: transform stdin with Python (+ append)',
              'input': {
                  'cmdline': 'cat',

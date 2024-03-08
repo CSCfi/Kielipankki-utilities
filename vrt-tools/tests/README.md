@@ -132,7 +132,11 @@ test case:
             regular expression module `re` is available for the code.
 		-   `shell`: shell command line reading `value` from standard
             input and writing the transformed value to standard
-            output. The shell used is the default shell. An `int`
+            output. The shell used is the default shell. The command
+            line is executed in the temporary directory containing the
+            input and output files. *Note* that the command should
+            *not* change the input and output files, as their values
+            may be cached for tests with the same input. An `int`
             `value` is converted to a string for processing and the
             returned value back to `int`; a `None` is returned intact.
 
