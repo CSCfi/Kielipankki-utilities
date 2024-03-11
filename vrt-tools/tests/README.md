@@ -199,7 +199,8 @@ test case:
     1. a simple scalar value, in which case the actual value is
        compared for equality with it;
     2. a dict with `value` and possibly other optional items:
-	   -   `value`: the expected value (obligatory)
+	   -   `value`: the expected value (obligatory): `str`, `int`,
+           `None` or a `dict` of one item (see below)
 	   -   `test`: the test name: one of the values shown below; if
 		   omitted, defaults to `==`, that is, equality)
        -   `reflags`: regular expression flags for regular expression
@@ -271,6 +272,22 @@ test case:
     `list`, so that it is not interpreted as multiple individual `str`
     values. A `list` value is transformed by transforming each item
     separately.
+
+    A value may also be specified as a single-item `dict` with one of
+    the following keys and value *val*, based on which the expected
+    value (`str`) is generated as follows:
+
+    -   `file`: the content of the file *val* in the temporary
+        directory containing the input and output files (`None` if the
+        file *val* does not exist).
+    -   `python`: the value returned by the Python 3 function whose
+        body is *val*; the function has no arguments.
+    -   `shell`: the standard output produced by the shell command
+        line *val*. The shell used is the default shell. The command
+        line is executed in the temporary directory containing the
+        input and output files and with the environment variables
+        specified in `envvars` of `input`. The command should *not*
+        change the input and output files.
 
     The value for a non-existent file is `None` in Python, and `null`,
     `~` or an empty value in YAML, so you can test that file

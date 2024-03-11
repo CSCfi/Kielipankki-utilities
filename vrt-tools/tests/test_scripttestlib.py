@@ -531,6 +531,110 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: expected value from file',
+             'input': {
+                 'cmdline': 'cat in.txt | tee out.txt',
+                 'shell': True,
+                 'file:in.txt': 'test1\ntest2\n',
+             },
+             'output': {
+                 'stdout': [
+                     {'value': {'file': 'in.txt'}},
+                     {'value': {'file': 'out.txt'}},
+                 ],
+                 'file:out.txt': [
+                     {'value': {'file': 'in.txt'}},
+                     {'==': {'file': 'in.txt'}},
+                     # Test transformation with value from file
+                     {
+                         'test': 'contains',
+                         'value': {'file': 'in.txt'},
+                         'transform-actual': {
+                             'prepend': 'test0\n',
+                         },
+                     },
+                     {
+                         'test': 'in',
+                         'value': {'file': 'in.txt'},
+                         'transform-expected': {
+                             'prepend': 'test0\n',
+                         },
+                     },
+                 ],
+             },
+         },
+         {
+             'name': 'Test: expected value generated with Python code',
+             'input': {
+                 'cmdline': 'cat in.txt | tee out.txt',
+                 'shell': True,
+                 'file:in.txt': 'test1\ntest2\n',
+             },
+             'output': {
+                 'stdout': [
+                     {'value': {'python': 'return "test1\\ntest2\\n"'}},
+                 ],
+                 'file:out.txt': [
+                     {'value': {'python': 'return "test1\\ntest2\\n"'}},
+                     {'==': {'python': 'return "test1\\ntest2\\n"'}},
+                     {'!=': {'python': 'return "test1\\n"'}},
+                     # Test transformation with value generated with Python
+                     {
+                         'test': 'contains',
+                         'value': {'python': 'return "test1\\ntest2\\n"'},
+                         'transform-actual': {
+                             'prepend': 'test0\n',
+                         },
+                     },
+                     {
+                         'test': 'in',
+                         'value': {'python': 'return "test1\\ntest2\\n"'},
+                         'transform-expected': {
+                             'prepend': 'test0\n',
+                         },
+                     },
+                 ],
+             },
+         },
+         {
+             'name': 'Test: expected value generated with shell command',
+             'input': {
+                 'cmdline': 'cat in.txt | tee out.txt',
+                 'shell': True,
+                 'file:in.txt': 'test1\ntest2\n',
+                 'envvars': {
+                     'foo': 'test1',
+                 },
+             },
+             'output': {
+                 'stdout': [
+                     {'value': {'shell': 'echo test1; echo test2'}},
+                 ],
+                 'file:out.txt': [
+                     {'value': {'shell': 'echo test1; echo test2'}},
+                     {'==': {'shell': 'echo test1; echo test2'}},
+                     {'!=': {'shell': 'echo test1'}},
+                     # Environment variable access
+                     {'value': {'shell': 'echo "$foo"; echo test2'}},
+                     # Test transformation with value generated with shell
+                     {
+                         'test': 'contains',
+                         'value': {'shell': 'echo test1; echo test2'},
+                         'transform-actual': {
+                             'prepend': 'test0\n',
+                         },
+                     },
+                     {
+                         'test': 'in',
+                         'value': {'shell': 'echo test1; echo test2'},
+                         'transform-expected': {
+                             'prepend': 'test0\n',
+                         },
+                     },
+                 ],
+             },
+         },
+         {
              'name': 'Test: pipe with shell = True',
              'input': {
                  'cmdline': 'printf "test\ntest\n" | wc -l',
@@ -2593,6 +2697,9 @@ def test_collect_testcases(testcase_files, tmpdir):
                         and inputitem == 'returncode')
                     or (isinstance(exp_val, list)
                         and expected['test'] in ['in', 'not-in'])
+                    or (isinstance(exp_val, dict) and len(exp_val) == 1
+                        and list(exp_val.keys())[0] in ['file', 'python',
+                                                        'shell'])
                     or (exp_val is None and inputitem.startswith('file:')))
             testcase_num += 1
 
