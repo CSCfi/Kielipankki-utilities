@@ -733,7 +733,10 @@ class ProgramRunner:
                 # prog and/or args
                 shell = False
                 args = input_.get('args', [])
-                args = shlex.split(args) if isinstance(args, str) else args
+                # If args is a list, make a copy of it, so that _input
+                # remains intact even if prog is modified below
+                args = (shlex.split(args) if isinstance(args, str)
+                        else args.copy())
                 prog = input_.get('prog')
                 if prog:
                     args[0:0] = [prog]
