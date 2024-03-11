@@ -241,6 +241,18 @@ test case:
         expression *expected* (using `re.search`)
     -   `not-regex`, `not-matches`: *actual* does not match the Python
         regular expression *expected* (using `re.search`)
+    -   `python`: Python 3 code to test *actual*: the body of a
+        function of one argument named `value` containing the actual
+        value and returning `True` (when cast to `bool`) if the test
+        passes. The Python regular expression module `re` is available
+        for the code.
+    -   `shell`: shell command line reading *actual* from standard
+        input and returning true (0) if the test passes. The shell
+        used is the default shell. The command line is executed in the
+        temporary directory containing the input and output files and
+        with the environment variables specified in `envvars` of
+        `input`. The command should *not* change the input and output
+        files.
 
     For the tests `regex` (`matches`) and `not-regex` (`not-matches`),
     a value for the `flags` parameter to the `re.search` function can

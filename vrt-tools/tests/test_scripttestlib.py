@@ -483,6 +483,54 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: test "python"',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n',
+             },
+             'output': {
+                 'stdout': [
+                     {'python': 'return value == "test1\\ntest2\\n"'},
+                     # Test availability of module re
+                     {'python': 'return re.search(r".*1", value) is not None'},
+                     {
+                         'test': 'python',
+                         'value': 'return "test3" not in value',
+                     },
+                 ],
+             },
+         },
+         {
+             'name': 'Test: test "shell"',
+             'input': {
+                 'cmdline': 'cat in.txt | tee out.txt',
+                 'shell': True,
+                 'file:in.txt': 'test1\ntest2\n',
+                 'envvars': {
+                     'foo': 'bar',
+                 },
+             },
+             'output': {
+                 'stdout': [
+                     {'shell': 'test "x" = "x"'},
+                     {'shell': 'diff - in.txt'},
+                     # Test that input and output files are accessible
+                     {'shell': 'diff in.txt out.txt'},
+                     # Test environment variables
+                     {'shell': 'test "$foo" = "bar"'},
+                     # Test $(...)
+                     {
+                         'test': 'shell',
+                         'value': 'test "$(wc -l < out.txt)" = 2',
+                     },
+                 ],
+                 # Test that file content works
+                 'file:out.txt': [
+                     {'shell': 'diff - in.txt'},
+                 ],
+             },
+         },
+         {
              'name': 'Test: pipe with shell = True',
              'input': {
                  'cmdline': 'printf "test\ntest\n" | wc -l',
