@@ -695,13 +695,8 @@ class ProgramRunner:
             if key in self:
                 return self[key]
             elif key.startswith('file:'):
-                fname = os.path.join(
-                    self.tmpdir, key.split(':', maxsplit=1)[1])
-                if not os.path.isfile(fname):
-                    return None
-                with open(fname, 'r') as f:
-                    value = f.read()
-                return value
+                return _get_file_content(key.split(':', maxsplit=1)[1],
+                                         self.tmpdir)
             return default
 
     @classmethod
@@ -879,6 +874,16 @@ def check_program_run(name, input_, outputitem, expected, tmpdir,
         expected = [expected]
     for itemnum, outputitem_item in enumerate(outputitem):
         _check_output(name, output, outputitem_item, expected[itemnum])
+
+
+def _get_file_content(fname, dir_):
+    """Return the content of file `fname` in directory `dir_`."""
+    fname = os.path.join(dir_, fname)
+    if not os.path.isfile(fname):
+        return None
+    with open(fname, 'r') as f:
+        value = f.read()
+    return value
 
 
 def _make_value(value, trans_key, global_trans=None, actual_value=None):
