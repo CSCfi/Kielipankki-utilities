@@ -223,6 +223,8 @@ test case:
            `None` or a `dict` of one item (see below)
 	   -   `test`: the test name: one of the values shown below; if
 		   omitted, defaults to `==`, that is, equality)
+       -   `name`: a name for the subtest (useful when multiple
+           different test conditions are used)
        -   `reflags`: regular expression flags for regular expression
            match tests
        -   `transform-expected`: transformations of the expected value

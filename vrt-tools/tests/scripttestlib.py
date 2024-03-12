@@ -358,8 +358,11 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
             # print('trans', expected_trans, actual_trans)
             expected_val_count = len(expected_vals)
             for expected_val_num, expected_val in enumerate(expected_vals):
+                subname = name
+                if isinstance(expected_val, dict) and 'name' in expected_val:
+                    subname += f' ({expected_val["name"]})'
                 item_descr = item_descr_format.format(
-                    name=name, key=key,
+                    name=subname, key=key,
                     num=(' ' + str(expected_val_num + 1)
                          if expected_val_count > 1 else ''))
                 if isinstance(expected_val, dict):

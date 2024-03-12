@@ -213,6 +213,32 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: multiple expected tests with names',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'name': 'not foo',
+                         'test': '!=',
+                         'value': 'foo',
+                     },
+                     {
+                         'name': 'regexp match 1',
+                         'test': 'regex',
+                         'value': 'test1',
+                     },
+                     {
+                         'name': 'regexp match 2',
+                         'test': 'regex',
+                         'value': 'test2',
+                     },
+                 ],
+             },
+         },
+         {
              'name': 'Test: multiple expected tests (list(dict): test:value)',
              'input': {
                  'cmdline': 'cat',
