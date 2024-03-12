@@ -2929,6 +2929,31 @@ def test_empty_values(tmpdir):
                           tmpdir=str(tmpdir))
 
 
+def test_unknown_keys(tmpdir):
+    """Test with unknown keys in test cases."""
+    # Unknown key at top level
+    with pytest.raises(ValueError) as e_info:
+        expand_testcases([('fname', [{'unknown': 'test'}])])
+    # Unknown key in "input"
+    with pytest.raises(ValueError) as e_info:
+        expand_testcases([('fname', [{'input': {'cmdlinex': 'test'},
+                                      'output': {'stdout': ''}}])])
+    # Unknown key in "output"
+    with pytest.raises(ValueError) as e_info:
+        expand_testcases([('fname', [{'input': {'cmdline': 'test'},
+                                      'output': {'transform': 'test'}}])])
+    # Unknown key in "transform"
+    with pytest.raises(ValueError) as e_info:
+        expand_testcases([('fname', [{'input': {'cmdline': 'test'},
+                                      'output': {'stdout': ''},
+                                      'transform': [{'output': 'test'}]}])])
+    # Unknown key in "defaults"
+    with pytest.raises(ValueError) as e_info:
+        expand_testcases([('fname', [{'defaults': {'test': 'test'}}])])
+    # "defs" should allow any keys
+    expand_testcases([('fname', [{'defs': {'a': 'b', 'c': 'd'}}])])
+
+
 def test_duplicate_filename(tmpdir):
     """Test with a file specified as both file:fname and files: {fname}."""
     with pytest.raises(ValueError) as e_info:

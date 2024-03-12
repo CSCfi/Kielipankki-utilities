@@ -414,7 +414,7 @@ previous default values. To clear the default values completely, use
 In a test specified in YAML, the sequence of test cases may contain
 items defining reusable values with YAML anchors (`&`*anchor*) that
 can be referenced to elsewhere via alias nodes (`*`*anchor*). These
-items conventionally consist of a mapping with a single key `defs`,
+items consist of a mapping with a single key `defs`,
 whose value is sequence of items with YAML anchors. Alternatively, a
 test case itself may contain `defs` with similar content.
 

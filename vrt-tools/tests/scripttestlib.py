@@ -144,6 +144,84 @@ def collect_testcases(*filespecs, basedir=None, granularity=None):
     return expand_testcases(testcases, granularity=granularity)
 
 
+# Keys allowed in test cases: top level as a dict with second-level
+# values as sets of strings (regular expressions)
+_allowed_keys = {
+    'defaults': {
+        'input',
+        'output',
+        'status',
+    },
+    # Reusable definitions may contain any keys
+    'defs': {
+        '.*',
+    },
+    # name and status are not dicts
+    'name': set(),
+    'status': set(),
+    'input': {
+        'name',
+        'prog',
+        'args',
+        'cmdline',
+        'shell',
+        'envvars',
+        'stdin',
+        'files',
+        'file:.+',
+        'transform',
+        'defs',
+    },
+    'output': {
+        'returncode',
+        'stdout',
+        'stderr',
+        'files',
+        'file:.+',
+        'transform-expected',
+        'transform-actual',
+        'defs',
+    },
+    'transform': {
+        'name',
+        'input',
+        'output-expected',
+        'output-actual',
+        'defs',
+    },
+}
+
+# Keys allowed in top level
+_allowed_keys_top = set(_allowed_keys.keys())
+
+# Keys allowed on the second level: regular expressions based on
+# _allowed_keys
+_allowed_keys_re = dict((key, re.compile('|'.join(vals)))
+                        for key, vals in _allowed_keys.items())
+
+
+def _check_testcase_keys(obj, branch=None):
+    """Check that keys in `obj` in `branch` of a testcase are allowed.
+
+    Raise `ValueError` if a non-allowed key is found. The allowed keys
+    for each "branch" are listed in the `_allowed_keys` global
+    variable above. If `branch` is `None`, treat `obj` as a complete
+    testcase and check the top-level keys.
+    """
+    obj_keys = obj.keys()
+    if branch is None:
+        unknown = set(obj_keys) - _allowed_keys_top
+        branch = 'top level'
+    else:
+        unknown = set(key for key in obj_keys
+                      if not _allowed_keys_re[branch].fullmatch(key))
+        branch = f'"{branch}"'
+    if unknown:
+        pl = 's' if len(unknown) > 1 else ''
+        raise ValueError(f'Unrecognized key{pl} in test case {branch}: '
+                         + ', '.join(unknown))
+
+
 def expand_testcases(fname_testcases_dictlist, granularity=None):
     """Convert a list of (filename, test case dict) to a list of tuples.
 
@@ -228,8 +306,10 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
             _convert_files_dict(input_, 'input')
             inputname = (input_ or {}).get('name') or ''
             input_ = get_value(default_input, input_)
+            _check_testcase_keys(input_, 'input')
             output = get_value(default_output, get_output_value(tc))
             _convert_files_dict(output, 'output')
+            _check_testcase_keys(output, 'output')
             input_output = [(input_, output)]
             if 'transform' in tc:
                 # Expand grouped transformations
@@ -482,6 +562,7 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         # print('add_transform_group', result, transform_group)
         # transform_group is a dict that may contain keys "input",
         # "output-expected", "output-actual", "name"
+        _check_testcase_keys(transform_group, 'transform')
         for transform_top_name, transform_top in transform_group.items():
             if transform_top_name == 'name':
                 result.append(transform_top)
@@ -571,11 +652,13 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         default_output = {}
         default_status = None
         for tcnum, tc in enumerate(testcases_dictlist):
+            _check_testcase_keys(tc)
             if 'defaults' in tc:
                 # New defaults override (are merged to) possibly existing
                 # defaults
                 # print('Defaults:', tc['defaults'])
                 defaults = tc['defaults']
+                _check_testcase_keys(defaults, 'defaults')
                 # If defaults is empty, clear both input and output; without
                 # this, get for them would return None, so dict_deep_update
                 # would not update the values.
