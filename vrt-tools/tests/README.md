@@ -116,6 +116,12 @@ test case:
                 `\g<name>`
             -   `count`: the number of replacements (optional;
                 default: all)
+            -   `reflags`: regular expression flags for `regex`. The
+                value is as in Python, except that the names of the
+                flag constants need not be prefixed by `re.`; e.g.,
+                `DOTALL|VERBOSE` is the same as
+                `re.DOTALL|re.VERBOSE`. Alternatively, the flags can
+                be suffixed to the *key* `regex` following a space.
 
             A `str` value is of the form `/`_regex_`/`_with_`/`
             replacing matches of regular expression _regex_ with

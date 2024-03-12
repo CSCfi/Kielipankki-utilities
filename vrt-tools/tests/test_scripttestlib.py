@@ -1463,6 +1463,80 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: replace regex in stdin, with "reflags" (with "re.")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '[or] . b',
+                             'with': '-',
+                             'reflags': 're.DOTALL|re.VERBOSE',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fo-a-az\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, with "reflags" (without "re.")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '[or] . b',
+                             'with': '-',
+                             'reflags': 'DOTALL|VERBOSE',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fo-a-az\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, flags appended to "regex" (with "re.")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex re.DOTALL|re.VERBOSE': '[or] . b',
+                             'with': '-',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fo-a-az\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, flags appended to "regex" (without "re.")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex DOTALL|VERBOSE': '[or] . b',
+                             'with': '-',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fo-a-az\n',
+             },
+         },
+         {
              'name': 'Test: list of replacements in stdin',
              'input': {
                  'cmdline': 'cat',

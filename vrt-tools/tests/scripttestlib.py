@@ -1068,6 +1068,9 @@ def _make_re_flags(flags=''):
     return flags or 0
 
 
+def _re_sub(patt, repl, val, count=0, flags=''):
+    """Wrap re.sub: flags as a string (re. prefixes can be omitted)."""
+    return re.sub(patt, repl, val, count, flags=_make_re_flags(flags))
 
 
 # Map test names to assertion function names (following _assert_)
@@ -1231,8 +1234,13 @@ def _transform_value_replace(value, args, **kwargs):
             if count == 0:
                 count = -1
             value = value.replace(args['str'], repl, count)
-        elif 'regex' in args:
-            value = re.sub(args['regex'], repl, value, count)
+        else:
+            # Also handle cases with keys like "regex FLAGS"
+            for key in args:
+                if key.startswith('regex'):
+                    _, opts = _get_key_opts(key, args)
+                    value = _re_sub(args[key], repl, value, count, opts)
+                    break
     return value
 
 
