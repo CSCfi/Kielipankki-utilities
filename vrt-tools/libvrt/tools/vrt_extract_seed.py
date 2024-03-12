@@ -8,6 +8,8 @@ Please run "vrt-extract-seed -h" for more information.
 """
 
 
+import random
+
 from argparse import ArgumentTypeError
 
 from vrtargsoolib import InputProcessor
@@ -25,8 +27,9 @@ def posint(arg):
     raise ArgumentTypeError('positive integer required')
 
 
-# Value for args.distance with --distance="even"
+# Values for args.distance with --distance="even", --distance="random"
 DIST_EVEN = -1
+DIST_RANDOM = -2
 
 
 def distance_arg(arg):
@@ -36,8 +39,11 @@ def distance_arg(arg):
     except ArgumentTypeError:
         if arg == 'even':
             return DIST_EVEN
+        elif arg == 'random':
+            return DIST_RANDOM
         else:
-            raise ArgumentTypeError('positive integer or "even" required')
+            raise ArgumentTypeError(
+                'positive integer, "even" or "random" required')
 
 
 class SeedExtractor(InputProcessor):
@@ -54,14 +60,20 @@ class SeedExtractor(InputProcessor):
          dict(type=posint, default=100)),
         ('--distance = dist',
          '''the distance between the words to extract: positive
-            integer, or "even" for evenly distributed up to the token
-            number specified with --last''',
+            integer, or "even" for evenly distributed or "random" for
+            uniformly randomly distributed up to the token number
+            specified with --last''',
          dict(type=distance_arg, default=100)),
         ('--last = num',
          '''the number of the last token to include in the seed
             (typically the number of tokens in the input VRT), to be
-            used with --distance=even''',
+            used with --distance=even and --distance=random''',
          dict(type=posint)),
+        ('--baseseed = str',
+         '''use str as the random number generator seed for
+            --distance=random (default: "" = non-reproducible
+            output)''',
+         dict(default='')),
         ('--separator = sep',
          '''separate words in output with sep''',
          dict(default='')),
@@ -74,6 +86,17 @@ class SeedExtractor(InputProcessor):
         """Check the validity of `args` (combinations of options)."""
         if args.distance == DIST_EVEN and not args.last:
             self.error_exit('error: --distance=even requires specifying --last')
+        elif args.distance == DIST_RANDOM:
+            if not args.last:
+                self.error_exit(
+                    'error: --distance=random requires specifying --last')
+            elif args.count > args.last:
+                self.error_exit('error: --count cannot be larger than --last'
+                                ' with --distance=random')
+        if args.baseseed == '':
+            # Non-reproducibly random
+            args.baseseed = None
+        random.seed(args.baseseed)
 
     def main(self, args, inf, ouf):
         """Read `inf`, write to `ouf`, using options `args`."""
@@ -115,10 +138,18 @@ class SeedExtractor(InputProcessor):
                                              int(count * dist * prec),
                                              int(dist * prec)))
 
+        def make_random_iter(count, last):
+            """Return iterator for `count` random int values in [0, `last`)."""
+            # Count cannot be larger than last
+            count = min(count, last)
+            return iter(sorted(random.sample(range(last), count)))
+
         if args.distance == DIST_EVEN:
             # Note that "evenly distributed" does not mean "with equal
             # distances", as the distances may differ by one to get an
             # even distribution up to args.last
             return make_iter(args.count, args.last / args.count, 100)
+        elif args.distance == DIST_RANDOM:
+            return make_random_iter(args.count, args.last)
         else:
             return make_iter(args.count, args.distance)

@@ -89,10 +89,10 @@
   input:
     cmdline: vrt-extract-seed
     stdin: &input-100000
-      value: |
-        <!-- #vrt positional-attributes: word -->
-      transform:
-        shell: (cat; seq 100000)
+      value:
+        shell: |
+          echo '<!-- #vrt positional-attributes: word -->';
+          seq 100000
   output:
     stdout: |
       10020030040050060070080090010001100120013001400150016001700180019002000210022002300240025002600270028002900300031003200330034003500360037003800390040004100420043004400450046004700480049005000510052005300540055005600570058005900600061006200630064006500660067006800690070007100720073007400750076007700780079008000810082008300840085008600870088008900900091009200930094009500960097009800990010000
@@ -151,7 +151,7 @@
     stdout: ''
     stderr:
       contains: |
-        vrt-extract-seed: error: argument --distance: positive integer or "even" required
+        vrt-extract-seed: error: argument --distance: positive integer, "even" or "random" required
     returncode: 2
 
 
@@ -271,3 +271,93 @@
       contains: |
         vrt-extract-seed: error: argument --last: positive integer required
     returncode: 2
+
+
+# --distance=random --last
+
+- name: 'vrt-extract-seed: --distance=random, --last with token count'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=random --last=14 --baseseed=0 --separator=" "
+    stdin: *input-1
+  output:
+    stdout: |
+      bar bbb ccc kk
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=random, --last less than token count'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=random --last=10 --baseseed=0 --separator=" "
+    stdin: *input-1
+  output:
+    stdout: |
+      bar baz bbb ccc
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=random, --last greater than token count'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=random --last=20 --baseseed=0 --separator=" "
+    stdin: *input-1
+  output:
+    stdout: |
+      baz ff ii
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=random, --last with token count (large)'
+  input:
+    cmdline: vrt-extract-seed --count=20 --distance=random --last=100000 --baseseed=0 --separator=" "
+    stdin: *input-100000
+  output:
+    stdout: |
+      3975 6411 8686 10573 12969 24668 27880 28599 31340 31681 33617 34473 36022 42911 45738 47408 47565 49378 56799 76760
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=random, random --baseseed'
+  # Two consecutive runs with a random random seed should produce
+  # different results
+  input:
+    cmdline: |
+      vrt-extract-seed --count=20 --distance=random --last=100000 --baseseed='' --separator='
+      ' 100000.vrt > seed1.txt;
+      vrt-extract-seed --count=20 --distance=random --last=100000 --baseseed='' --separator='
+      ' 100000.vrt > seed2.txt
+    shell: true
+    file:100000.vrt: *input-100000
+  output:
+    stdout: ''
+    file:seed1.txt:
+    - &lines-20
+      name: file has 20 lines
+      transform-actual:
+        shell: wc -l
+      test: '=='
+      value: "20\n"
+    file:seed2.txt:
+    - *lines-20
+    # The content of seed2.txt should be different from that of
+    # seed1.txt, as the random seed is random
+    - name: two runs produce different results
+      test: '!='
+      value:
+        file: seed1.txt
+
+- name: 'vrt-extract-seed: --distance=random without --last'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=random
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      contains: |
+        vrt-extract-seed: error: --distance=random requires specifying --last
+    returncode: 1
+
+- name: 'vrt-extract-seed: --distance=random, --count larger than --last'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=random --last=3
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      contains: |
+        vrt-extract-seed: error: --count cannot be larger than --last with --distance=random
+    returncode: 1
