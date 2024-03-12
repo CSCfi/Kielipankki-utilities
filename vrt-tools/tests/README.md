@@ -162,7 +162,8 @@ test case:
     two items:
 
 	-   `value`: the base value (obligatory), subject to
-        transformations specified in `transform` (`str`)
+        transformations specified in `transform` (`str` or a
+        single-item `dict`; see below)
 	-   `transform`: options for transforming the base value to the
         actual content. The options are those listed above for all
         inputs. If transformations are defined for both specific
@@ -173,6 +174,19 @@ test case:
 	The dict variant of the input could be used in conjunction with
     [defining common values that can be reused in multiple
     places](#reusable-definitions), for example.
+
+    If the value of `value` is a single-item `dict`, it must have one
+    of the following keys and value *val*, based on which the real
+    input value (`str`) is generated as follows:
+
+    -   `python`: the value returned by the Python 3 function whose
+        body is *val*; the function has no arguments.
+    -   `shell`: the standard output produced by the shell command
+        line *val*. The shell used is the default shell. The command
+        line is executed in the temporary directory to which input and
+        output files are generated (although they do not exist at this
+        stage) and with the environment variables specified in
+        `envvars`.
 
     For all keys except `name`, `args`, `shell` and `transform`, the
     value for the key may be a list of values of the indicated type,

@@ -789,10 +789,10 @@ class ProgramRunner:
                 env[var] = env[var].replace('$$', '$')
             return env
 
-        def create_files(input_):
+        def create_files(input_, tmpdir, env):
             input_trans = input_.get('transform', [])
             stdin = (_make_value(input_.get('stdin', ''), 'transform',
-                                 input_trans)
+                                 input_trans, tmpdir, env)
                      .encode('UTF-8'))
             # Create input files
             for key, value in input_.items():
@@ -803,7 +803,8 @@ class ProgramRunner:
                         os.makedirs(os.path.join(tmpdir, dirname),
                                     exist_ok=True)
                     # print('create_files 0', key, value)
-                    value = _make_value(value, 'transform', input_trans)
+                    value = _make_value(value, 'transform', input_trans,
+                                        tmpdir, env)
                     # print('create_files 1', key, value)
                     if value is not None:
                         with open(os.path.join(tmpdir, fname), 'w') as f:
@@ -816,7 +817,7 @@ class ProgramRunner:
         # print(input_, expected)
         prog, args, shell = get_prog_args(input_)
         env = make_env(input_)
-        stdin = create_files(input_)
+        stdin = create_files(input_, tmpdir, env)
         # Run the command
         # print('running', args)
         proc = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env,
@@ -897,7 +898,8 @@ def _get_file_content(fname, dir_):
     return value
 
 
-def _make_value(value, trans_key, global_trans=None, actual_value=None):
+def _make_value(value, trans_key, global_trans=None, tmpdir=None, env=None,
+                actual_value=None):
     """Apply possible transformations to value.
 
     value is the literal value or a dict containing key "value" and
@@ -907,7 +909,8 @@ def _make_value(value, trans_key, global_trans=None, actual_value=None):
     applied before the local ones. actual_value overrides value: it is
     used when processing actual values, whose transformations are
     defined in the expected value (as actual values cannot be present in
-    the test case).
+    the test case). tmpdir and env are used when the value of "value" is
+    a dict with key "shell".
     """
     # print('_make_value', repr(value), trans_key, global_trans,
     #       repr(actual_value))
@@ -921,6 +924,8 @@ def _make_value(value, trans_key, global_trans=None, actual_value=None):
             raise ValueError('Missing key "value"')
         else:
             trans_value = value.get('value')
+        trans_value = _handle_special_value(
+            trans_value, 'input', tmpdir, env, ['python', 'shell'])
     elif actual_value is not None:
         trans_value = actual_value
     else:

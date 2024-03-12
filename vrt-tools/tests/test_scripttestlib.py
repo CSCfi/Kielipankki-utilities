@@ -635,6 +635,46 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: input value generated with Python code',
+             'input': {
+                 'cmdline': 'cat in1.txt in2.txt',
+                 'shell': True,
+                 'file:in1.txt': {
+                     'value': {'python': 'return "test1\\ntest2\\n"'},
+                 },
+                 # With transformation
+                 'file:in2.txt': {
+                     'value': {'python': 'return "test1\\ntest2\\n"'},
+                     'transform': {
+                         'replace': '/[0-9]/*/',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'test1\ntest2\ntest*\ntest*\n',
+             },
+         },
+         {
+             'name': 'Test: input value generated with shell command',
+             'input': {
+                 'cmdline': 'cat in1.txt in2.txt',
+                 'shell': True,
+                 'file:in1.txt': {
+                     'value': {'shell': 'echo test1; echo test2'},
+                 },
+                 # With transformation
+                 'file:in2.txt': {
+                     'value': {'shell': 'echo test1; echo test2'},
+                     'transform': {
+                         'replace': '/[0-9]/*/',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'test1\ntest2\ntest*\ntest*\n',
+             },
+         },
+         {
              'name': 'Test: pipe with shell = True',
              'input': {
                  'cmdline': 'printf "test\ntest\n" | wc -l',
