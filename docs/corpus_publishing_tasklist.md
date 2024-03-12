@@ -97,7 +97,6 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
 # [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the data
 # [ ] _*?DISCUSS*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
-# [ ] _*+DISCUSS*_ Allocate the resources for the technical processing of the corpus in Kielipankki (who shall take care of it?)
 \\
 ```
 
