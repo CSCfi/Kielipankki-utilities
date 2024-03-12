@@ -20,10 +20,12 @@ After discovering a new *tool/service/piece of software** that needs to be made 
 # [ ] _shortname_: Enter the new tool to the pipeline
 # [ ] _shortname_: Clear the license for the tool
 # [ ] _shortname_: Publish the end-user license
+# [ ] _shortname_: Publish a tool available outside Kielipankki
 # [ ] _shortname_: Acquire and test the original software
 # [ ] _shortname_: Publish the source code and/or installer in Download
 # [ ] _shortname_: Install the tool in the computing environment
 # [ ] _shortname_: Make the tool available via an online interface
+# [ ] _shortname_: Review the tool, to continue lifecycle
 ```
 
    - Again, replace "_shortname_" with the short name of the resource in question.
@@ -46,7 +48,7 @@ After discovering a new *tool/service/piece of software** that needs to be made 
 
 The task category marker is an italicized (slanted) and bolded character string. The first character is _+_ for obligatory tasks and _?_ for optional ones, and the task category markers are:
 
-- _*MANAGE*_: general management and coordination of the corpus publication process and the related tasks (requires Jira permissions)
+- _*MANAGE*_: general management and coordination of the resource publication process and the related tasks (requires Jira permissions)
 - _*SUPPORT*_: advising and communicating with the data depositor (requires knowledge of data management practices and the applicable instructions)
 - _*META*_: metadata editing & curation (requires META-SHARE permissions)
 - _*DISCUSS*_: Decisions about priorities, schedule and distribution of work (often requires a team meeting and/or consultation with leadership)
@@ -76,55 +78,33 @@ The following lists should contain the tasks required for publishing a tool. The
 
 ### _shortname_: Enter the new tool to the pipeline
 
-NB: THIS IS A COPY OF THE CORPORA PIPELINE, SHOULD BE EDITED FOR TOOLS!
-
 ```
 # [ ] _*+MANAGE*_ Make an initial decision on whether the upcoming resource could potentially be distributed
-# [ ] _*+MANAGE*_ Create a Jira Epic issue called "shortname: Publish XXX in Kielipankki (Korp/Download/…)" and insert relevant parts of this task list (sections under linked Jira Stories)
+# [ ] _*+MANAGE*_ Create a Jira Epic issue called "shortname: Publish XXX in Kielipankki" and insert relevant parts of this task list (sections under linked Jira Stories)
 # [ ] _*?SUPPORT*_ Contact the potential depositor (by email; arrange a meeting if required) 
-# [ ] _*?SUPPORT*_ Ask the depositor to submit the basic details of the new corpus or resource (e-form: http://urn.fi/urn:nbn:fi:lb-2021121421)
+# [ ] _*?SUPPORT*_ Ask the depositor to submit the basic details of the new tool (e-form: http://urn.fi/urn:nbn:fi:lb-2021121421)
 # [ ] _*+META*_ Create and publish a preliminary META-SHARE record (skeletal information only) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
 # [ ] _*+GITHUB*_ Request a URN for the META-SHARE record
 # [ ] _*+META*_ Update the META-SHARE record with the URN and inform the depositor about citation practices, if relevant
-# [ ] _*+DB*_ Add the corpus to the resource database and make sure the resource is displayed on the list of upcoming corpora
 # [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
-# [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the data
-# [ ] _*?DISCUSS*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
-# [ ] _*+DISCUSS*_ Allocate the resources for the technical processing of the corpus in Kielipankki (who shall take care of it?)
+# [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the tool and any additional material
+# [ ] _*?DISCUSS*_ If the size and technical specifications of the tool (or the additional material) seem "non-standard" in some respect, discuss the details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
+# [ ] _*+DISCUSS*_ Allocate the resources for publishing the tool in Kielipankki (who shall take care of it?)
 \\
 ```
 
 ### _shortname_: Clear the license for the tool
 
-NB: THIS IS A COPY OF THE CORPORA PIPELINE, SHOULD BE EDITED FOR TOOLS!
+NB: Quite often, especially for tools developed outside Kielipankki, we just offer a link to the license given in the tool's documentation
 
 ```
-# [ ] _*+DB*_ In the resource database, create a new (preliminary) license for the resource, or link an existing license instance to the resource, if available
-# [ ] _*?AGREEMENT*_ Clear the license terms and conditions regarding copyrighted material
-## [ ] _*?AGREEMENT*_ In case the corpus contains third-party copyrighted material, find out if the depositor has the rights to distribute it via the Language Bank (e.g., explicit license or permission from copyright holders)
-## [ ] _*?LEGAL*_ When in doubt, bring the case up in a legal meeting
-# [ ] _*?AGREEMENT*_ Clear the data protection terms and conditions (PRIV)
-## [ ] _*?AGREEMENT*_ Find out who the data controller is
-## [ ] _*?SUPPORT*_ Find out how the depositor informed the data subjects about the purpose of processing and to what the participants gave their permission/consent (is Kielipankki or similar mentioned?)
-## [ ] _*?AGREEMENT*_ Ask the depositor to show their data protection information sheet (or the documents that passed ethical review, if applicable)
-## [ ] _*?AGREEMENT*_ Obtain (or create) a description of the personal data categories that are included in the corpus
-## [ ] _*?AGREEMENT*_ Find out if some further risk assessment (or a DPIA) was/is required and discuss further actions with the depositor if necessary
-## [ ] _*?SUPPORT*_ Provide the depositor with further references regarding personal data minimization and safeguards that may be applied prior to submitting the corpus for distribution
-# [ ] _*+AGREEMENT*_ Prepare a preliminary version of the deposition license agreement for discussion
-## [ ] _*?AGREEMENT*_ Make arrangements to meet the depositor about the details of the deposition agreement
-## [ ] _*?SUPPORT*_ Meet with the depositor/rightholder and take note of the action points
-## [ ] _*+LEGAL*_ Make the final decision as to whether the resource can be distributed via the Language Bank of Finland (bring the case up in legal meeting, if necessary)
-## [ ] _*+AGREEMENT*_ Prepare the final draft of the deposition license agreement and send it to corpus owner who should fill in the remaining gaps (ask for legal advice if needed)
-## [ ] _*+AGREEMENT*_ Check the final deposition agreement, combine all parts into a single pdf file and upload the document to the UniSign system for electronic signing by the rightholder (+ the data controller) and finally by the head of department at the University of Helsinki, https://unisign.helsinki.fi/sign/#/dashboard
-## [ ] _*+IDA*_ Upload the signed deposition agreement (or similar proof of the distribution license) as a pdf file (named as shortname_yyyymmdd.pdf, according to the date of the last signature in the document) in IDA, under Administration/agreements/shortname.
-## [ ] _*+HYSTORE*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (named as shortname_yyyymmdd.pdf, according to the date of the last signature in the document) to the HFST server, under data/corpora/agreements/shortname.
+# [ ] _*+MANAGE*_ Add the license type to the META-SHARE record
+# [ ] _*+MANAGE*_ Add the link to the license to the META-SHARE record
 \\
 ```
 
 ### _shortname_: Publish the end-user license
-
-NB: THIS IS A COPY OF THE CORPORA PIPELINE, SHOULD BE EDITED FOR TOOLS!
 
 ```
 # [ ] _*+PORTAL*_ Create the license pages if required ([how to create license pages)|https://www.kielipankki.fi/intra/creating-license-pages/]
@@ -136,28 +116,39 @@ NB: THIS IS A COPY OF THE CORPORA PIPELINE, SHOULD BE EDITED FOR TOOLS!
 \\
 ```
 
+### _shortname_: Publish a tool available outside Kielipankki
+```
+# [ ] _*+TEST*_ Check that the access to the tool and its material is working
+# [ ] _*+META*_ Create or update the META-SHARE record 
+# [ ] _*+GITHUB*_ Request URN for the META-SHARE record and add it to the META-SHARE record
+# [ ] _*+GITHUB*_ Request URN for the access location and add it to the META-SHARE record OR add the external access link to the META-SHARE record
+# [ ] _*+META*_ Add references to documentation and any other material to the META-SHARE record
+# [ ] _*+META*_ Create or update the resource group page and assign it a URN
+# [ ] _*+META*_ Add references to documentation and any other material to the resource group page
+# [ ] _*+META*_ Link to the tool's resource group page from the list of resource families (http://urn.fi/urn:nbn:fi:lb-2021052505)
+# [ ] _*+META*_ Add the new tool to the list of tools in the portal (NOTE: there are separate lists for English, Finnish and Swedish)
+\\
+```
+
 ### _shortname_: Acquire and test the original software
 
-NB: THIS IS A COPY OF THE CORPORA PIPELINE, SHOULD BE EDITED FOR TOOLS!
-
 ```
-# [ ] _*+DATA*_ Receive, download or harvest the data
-# [ ] _*+DATA*_ Check the data: format and validity
-## [ ] _*?DATA*_ Clean up the data
+# [ ] _*+DATA*_ Receive, download or harvest the tool and any additional material (documentation, user guide ect.)
+# [ ] _*+TEST*_ Test the tool: availability and functionality
+# [ ] _*+DATA*_ Check the additional material: format and validity
+## [ ] _*?DATA*_ Clean up the data if needed
 # [ ] _*+DATA*_ Create a simple shortname-orig_yyyymmdd_README.txt for the original data. Include: 1) resource title; 2) PID(s) for the metadata record(s) of the first version(s); 3) link(s) to Jira issue(s).
-# [ ] _*+IDA*_ Upload the original data as a zip file (named as shortname-orig_yyyymmdd.zip) and the separate shortname-orig_yyyymmdd_README.txt file to IDA, under the folder with the resource group shortname, in lowercase characters.
-# [ ] _*+IDA*_ Freeze the new files in the original data folder in IDA
-# [ ] _*+HYSTORE*_ Upload the original data as a zip file (named as shortname-orig_yyyymmdd.zip) and the separate shortname-orig_yyyymmdd_README.txt file to the HFST server, under data/corpora/originals/.
+# [ ] _*+HYSTORE*_ Upload the original data as a zip file (named as shortname-orig_yyyymmdd.zip) and the separate shortname-orig_yyyymmdd_README.txt file to the HFST server, under data/tools/.
 \\
 ```
 
 ### _shortname_: Publish the source code and/or installer in Download
 
 ```
-# [ ] _*?IDA*_ Get the original data from IDA
+# [ ] _*?DATA*_ Get the source (or original) tool from IDA, GitHub, or from the HFST server.
+# [ ] _*+META*_ Create documentation/user guide for the tool
 # [ ] _*+META*_ Update the META-SHARE record (or create a new record, if missing) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request access location URN for download version (and check that the URNs for META-SHARE and license pages are available and working)
-# [ ] _*+DB*_ Make sure that the corpus is on the list of upcoming resources and citable, and update the resource database if required
 # [ ] _*+META*_ Add citation information to the META-SHARE record
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained, upload the data as a zip file (named as shortname-src_yyyymmdd.zip) and the separate shortname-src_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
 # [ ] _*+PUHTI*_ Create a download package
@@ -170,14 +161,14 @@ NB: THIS IS A COPY OF THE CORPORA PIPELINE, SHOULD BE EDITED FOR TOOLS!
 # [ ] _*?LBR*_ Create an LBR record (for a RES corpus)
 # [ ] _*+CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
 # [ ] _*+TEST*_ Have it tested again (access rights!)
-# [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
 # [ ] _*+META*_ Update the META-SHARE record: (update and) add the location PID and add the Availability start date (under Distribution)
 # [ ] _*?PORTAL*_ If applicable, add the new resource version to the license page of the previous versions [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
-# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the META-SHARE record also contains a link to the resource group page
+# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the META-SHARE record also contains a link to the resource group page.
+# [ ] _*+PORTAL*_ Link to the group page from the list of resource families (http://urn.fi/urn:nbn:fi:lb-2021052505)
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
-# [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
-# [ ] _*?SUPPORT*_ Inform the depositor/rightholder about the publication
+# [ ] _*+META*_ Add the new tool to the list of tools in the portal (NOTE: there are separate lists for English, Finnish and Swedish)
+# [ ] _*+PORTAL*_ Publish news about the new tool on the Portal
 # [ ] _*?CSC*_ Ask Martin (CSC) to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti if the source data is to be published there
 
 \\
@@ -186,55 +177,25 @@ NB: THIS IS A COPY OF THE CORPORA PIPELINE, SHOULD BE EDITED FOR TOOLS!
 ### _shortname_: Install the tool in the computing environment
 
 ```
-# [ ] _*?DATA*_ Get the source (or original) data from IDA, from the download service, or from the HFST server.
+# [ ] _*?DATA*_ Get the source (or original) tool from IDA, GitHub, or from the HFST server.
 # [ ] _*+META*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+GITHUB*_ Request URNs (for META-SHARE, Korp, license pages)
-# [ ] _*+DB*_ Add the corpus to the resource database and make sure it is on the list of upcoming resources and citable
+# [ ] _*+GITHUB*_ Request URNs (for META-SHARE and access location)
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*+META*_ Add citation information to the META-SHARE record
-# [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-korp_yyyymmdd.zip) and the separate shortname-korp_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
-# [ ] _*?DATA*_ Convert the data to HRT
-# [ ] _*?DATA*_ Convert HRT to VRT (tokenizing)
-# [ ] _*?DATA*_ Convert the data directly to VRT (alternative to HRT->VRT)
-# [ ] _*?DATA*_ Parse the data (for corpora in languages with a parser)
-# [ ] _*?DATA*_ Re-order or group the data (e.g. chapters, articles)
-# [ ] _*?DATA*_ Add additional annotations
-## [ ] _*?DATA*_ Add name annotations
-## [ ] _*?DATA*_ Add sentiment annotations
-## [ ] _*?DATA*_ Add identified languages
-# [ ] _*+DATA*_ Validate the VRT data
-# [ ] _*+DATA*_ Check the positional attributes
-## [ ] _*?DATA*_ Re-order to the commonly used order if necessary
-# [ ] _*?HYSTORE*_ In case the data is only published as a scrambled version, upload the unscrambled base data as a zip file (named as shortname-korp-base_yyyymmdd.zip) and the separate shortname-korp-base_yyyymmdd_README.txt file to the HFST server, under data/corpora/korp-base/.
-# [ ] _*+DATA*_ Create a Korp corpus package ({{{}korp-make{}}})
-## [ ] _*+KORP*_ Install the corpus package on the Korp server (or ask someone with the rights to do that)
-# [ ] _*+GITHUB*_ Add corpus configuration to Korp (currently, a new branch in [Kielipankki-korp-frontend|https://https//github.com/CSCfi/Kielipankki-korp-frontend])
-## [ ] _*+DATA*_ Add the configuration proper to a Korp mode file
-## [ ] _*+DATA*_ Add translations of new attribute names (and values)
-## [ ] _*+GITHUB*_ Push the branch to GitHub
-## [ ] _*+KORP*_ Create a Korp test instance and install the new configuration branch to it (or ask someone with the rights to do that)
-# [ ] _*?KORP*_ For a non-PUB corpus, add temporary access rights for the people who should test it (with the {{authing/auth}} script on the Korp server)
-# [ ] _*+TEST*_ Test the corpus in Korp (Korp test version) and ask someone else to test it, too
-## [ ] _*?SUPPORT*_ Ask feedback from the corpus owner (depending on how involved they wish to be)
-# [ ] _*?DATA*_ Fix corpus data and re-publish (if needed)
-# [ ] _*?GITHUB*_ Fix Korp configuration and re-publish (if needed)
-# [ ] _*+KORP*_ Publish the corpus in Korp as a beta test version
-## [ ] _*+GITHUB*_ Merge the corpus configuration branch to branch {{master}}
-## [ ] _*+GITHUB*_ Add news about this new corpus to the Korp newsdesk ([https://github.com/CSCfi/Kielipankki-korp-frontend/tree/news/master])
-## [ ] _*+KORP*_ Install the updated {{master}} branch to production Korp (or ask someone with the rights to do that)
-# [ ] _*?LBR*_ Create an LBR record (for a RES corpus, if the corpus does not yet have one)
-# [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published (add status "beta" to the name!)
+# [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-korp_yyyymmdd.zip) and the separate shortname-korp_yyyymmdd_README.txt file to the HFST server, under data/tools/wip/ (= “work in progress”).
+# [ ] _*+META*_ Install the tool in the computing environment
+# [ ] _*+TEST*_ Test the tool in the computing environment
+# [ ] _*+KORP*_ Publish the tool as a beta test version
 # [ ] _*+META*_ Update META-SHARE record; add location PID and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
+# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the META-SHARE record also contains a link to the resource group page.
+# [ ] _*+PORTAL*_ Link to the tool's group page from the list of resource families (http://urn.fi/urn:nbn:fi:lb-2021052505)
 # [ ] _*+META*_ Add "beta" status information to META-SHARE record
 # [ ] _*+PORTAL*_ Add "beta" status information to the resource group page
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
-# [ ] _*+PORTAL*_ Publish news about this new corpus in the portal
-# [ ] _*?SUPPORT*_ Inform corpus owner and possibly interested researchers on the corpus in Korp and ask them to test it
-# [ ] _*?DATA*_ Fix corpus data based on feedback and re-publish (if needed)
-# [ ] _*?KORP*_ Fix corpus configuration in Korp and re-publish (if needed)
-# [ ] _*+KORP*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
-## [ ] _*+KORP*_ Remove beta status from Korp configuration ({{{}master{}}}), push and install the updated {{master}}
+# [ ] _*+META*_ Add the new tool to the list of tools in the portal (NOTE: there are separate lists for English, Finnish and Swedish)
+# [ ] _*+PORTAL*_ Publish news about this new tool in the portal
+# [ ] _*+PUHTI*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
 ## [ ] _*+META*_ Remove beta status from the META-SHARE record and resource group page
 \\
 ```
@@ -242,35 +203,35 @@ NB: THIS IS A COPY OF THE CORPORA PIPELINE, SHOULD BE EDITED FOR TOOLS!
 ### _shortname_: Make the tool available via an online interface
 
 ```
-# [ ] _*+IDA*_ Get the data from IDA (unless the latest content is available as a Korp version)
-# [ ] _*+KORP*_ Extract the data from Korp (unless more recent content can be acquired in VRT format from outside Korp)
+# [ ] _*?DATA*_ Get the source (or original) tool from IDA, GitHub, or from the HFST server.
 # [ ] _*+META*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+GITHUB*_ Request URNs (for META-SHARE, download, license pages)
-# [ ] _*+DB*_ Add the details of the corpus variant to the resource database, status "upcoming"
+# [ ] _*+GITHUB*_ Request URNs (for META-SHARE and access location)
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*+META*_ Add citation information to the META-SHARE record
-# [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-vrt_yyyymmdd.zip) and the separate shortname-vrt_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
-# [ ] _*+PUHTI*_ Create a download package
-## [ ] _*+PUHTI*_ Create and add the downloadable readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
-## [ ] _*+PUHTI*_ Zip the data and the readme and license files
-## [ ] _*+PUHTI*_ Compute MD5 checksum for the zip package
-# [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
-# [ ] _*+TEST*_ Have the package tested
-# [ ] _*+CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
-# [ ] _*?LBR*_ Create an LBR record (for a RES corpus, if the corpus does not yet have one)
-# [ ] _*+TEST*_ Have it tested again (access rights!)
-# [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
+# [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-vrt_yyyymmdd.zip) and the separate shortname-vrt_yyyymmdd_README.txt file to the HFST server, under data/tools/wip/ (= “work in progress”).
+## [ ] _*+PUHTI*_ Create and add any additional material (documentation, user guide ect.)
+# [ ] _*+PUHTI*_ Upload the tool and any additional material to the online interface, mark it as beta test version
+# [ ] _*+TEST*_ Test the tool on the online interface
 # [ ] _*+META*_ Update the META-SHARE record; add location PID and Availability start date (under Distribution)
-# [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
-# [ ] _*+PORTAL*_ Create or update the resource group page
+# [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the tool
+# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the META-SHARE record also contains a link to the resource group page.
+# [ ] _*+PORTAL*_ Link to the tool's group page from the list of resource families (http://urn.fi/urn:nbn:fi:lb-2021052505)
+# [ ] _*+META*_ Add "beta" status information to META-SHARE record
+# [ ] _*+PORTAL*_ Add "beta" status information to the resource group page
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
-# [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
-# [ ] _*?SUPPORT*_ Inform the depositor/rightholder about the VRT publication
-# [ ] _*?PUHTI*_ If the package was published as beta (during the beta stage of the corresponding Korp corpus), remove the beta status after removing the beta status from Korp
-## [ ] _*?PUHTI*_ Create a new download package with the beta status removed from the readme file and file names
-## [ ] _*?PUHTI*_ Compute MD5 checksum for the zip package
-## [ ] _*?CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
-## [ ] _*?META*_ Remove beta status from the META-SHARE record and resource group page
-# [ ] _*?CSC*_ Ask Martin to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti (if the corpus is PUB or ACA)
+# [ ] _*+META*_ Add the new tool to the list of tools in the portal (NOTE: there are separate lists for English, Finnish and Swedish)
+# [ ] _*+PORTAL*_ Publish news about the new tool on the Portal
+# [ ] _*+PUHTI*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
+## [ ] _*+META*_ Remove beta status from the META-SHARE record and resource group page
+\\
+```
+
+### _shortname_: Review the software (or resource), to continue lifecycle
+
+```
+# [ ] _*+META*_ Check for new versions of the tool
+# [ ] _*+TEST*_ Test the functionality of the tool
+# [ ] _*+TEST*_ Test if links to the tool and its documentation are still working
+# [ ] _*+META*_ Update the META-SHARE record
 \\
 ```

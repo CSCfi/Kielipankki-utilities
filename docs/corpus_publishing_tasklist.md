@@ -51,7 +51,7 @@ The task category marker is an italicized (slanted) and bolded character string.
 - _*SUPPORT*_: advising and communicating with the data depositor (requires knowledge of data management practices and the applicable instructions)
 - _*META*_: metadata editing & curation (requires META-SHARE permissions)
 - _*DISCUSS*_: Decisions about priorities, schedule and distribution of work (often requires a team meeting and/or consultation with leadership)
-- _*AGREEMENTS*_: negotiations and administration regarding deposition agreements, license conditions, data protection practices etc. (requires legal knowledge, may require the opinion of a legal expert at UHEL)
+- _*AGREEMENT*_: negotiations and administration regarding deposition agreements, license conditions, data protection practices etc. (requires legal knowledge, may require the opinion of a legal expert at UHEL, requires write access to the contract register at UHEL)
 - _*LEGAL*_: Legal decisions and formal contracts involving the University of Helsinki (requires a meeting with a legal expert)
 - _*PORTAL*_: editing web pages in the Portal (requires Portal permissions)
 - _*DB*_: modifying content in the resource database (requires Portal permissions)
@@ -89,15 +89,15 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+MANAGE*_ Create a Jira Epic issue called "shortname: Publish XXX in Kielipankki (Korp/Download/…)" and insert relevant parts of this task list (sections under linked Jira Stories)
 # [ ] _*?SUPPORT*_ Contact the potential depositor (by email; arrange a meeting if required) 
 # [ ] _*?SUPPORT*_ Ask the depositor to submit the basic details of the new corpus or resource (e-form: http://urn.fi/urn:nbn:fi:lb-2021121421)
-# [ ] _*+META*_ Create and publish a preliminary META-SHARE record (skeletal information only) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+META*_ Create and publish a preliminary META-SHARE record (skeletal information only) for the source version, which is ususally the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
 # [ ] _*+GITHUB*_ Request a URN for the META-SHARE record
-# [ ] _*+META*_ Update the META-SHARE record with the URN and inform the depositor about citation practices, if relevant
+# [ ] _*+META*_ Update the META-SHARE record with the URN
+# [ ] _*?SUPPORT*_ Inform the depositor about citation practices, if relevant
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure the resource is displayed on the list of upcoming corpora
 # [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
 # [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the data
 # [ ] _*?DISCUSS*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
-# [ ] _*+DISCUSS*_ Allocate the resources for the technical processing of the corpus in Kielipankki (who shall take care of it?)
 \\
 ```
 
@@ -121,8 +121,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*+LEGAL*_ Make the final decision as to whether the resource can be distributed via the Language Bank of Finland (bring the case up in legal meeting, if necessary)
 ## [ ] _*+AGREEMENT*_ Prepare the final draft of the deposition license agreement and send it to corpus owner who should fill in the remaining gaps (ask for legal advice if needed)
 ## [ ] _*+AGREEMENT*_ Check the final deposition agreement, combine all parts into a single pdf file and upload the document to the UniSign system for electronic signing by the rightholder (+ the data controller) and finally by the head of department at the University of Helsinki, https://unisign.helsinki.fi/sign/#/dashboard
-## [ ] _*+IDA*_ Upload the signed deposition agreement (or similar proof of the distribution license) as a pdf file (named as shortname_yyyymmdd.pdf, according to the date of the last signature in the document) in IDA, under Administration/agreements/shortname.
-## [ ] _*+HYSTORE*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (named as shortname_yyyymmdd.pdf, according to the date of the last signature in the document) to the HFST server, under data/corpora/agreements/shortname.
+## [ ] _*+IDA*_ Upload the signed deposition agreement (or similar proof of the distribution license) as a pdf file (named as KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document) in IDA, under Administration/agreements/shortname.
+## [ ] _*+HYSTORE*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (named as KP_yyyymmdd_AINEISTO_shortname.pdf, according to the date of the last signature in the document) to the HFST server, under data/corpora/agreements/shortname.
+## [ ] _*+AGREEMENT*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (filename KP_yyyymmdd_AINEISTO_shortname(s).pdf, according to the date of the last signature in the document; document title "Kielipankki yyyy Aineistosopimus: shortname(s)") to the contract register of the University of Helsinki, under H402 Digitaalisten ihmistieteiden osasto. By default, agreements are not 'confidential'.
 \\
 ```
 
