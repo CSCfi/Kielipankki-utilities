@@ -410,6 +410,7 @@ _testcase_files_content = [
                  'stdout': [
                      # "in", "not-in" with list value
                      {
+                         'name': '"in" with list value',
                          'test': 'in',
                          'value': [
                             'a',
@@ -417,6 +418,7 @@ _testcase_files_content = [
                          ],
                      },
                      {
+                         'name': '"not-in" with list value',
                          'test': 'not-in',
                          'value': [
                             'test0\ntest1\ntest2\n',
@@ -425,10 +427,12 @@ _testcase_files_content = [
                      },
                      # "in", "not-in" with string value
                      {
+                         'name': '"in" with string value',
                          'test': 'in',
                          'value': 'test0\ntest1\ntest2\n',
                      },
                      {
+                         'name': '"not-in" with string value',
                          'test': 'not-in',
                          'value': 'test0\ntest2\n',
                      },
@@ -455,10 +459,12 @@ _testcase_files_content = [
                      },
                      # "contains", "not-contains"
                      {
+                         'name': 'contains',
                          'test': 'contains',
                          'value': 'test',
                      },
                      {
+                         'name': 'not-contains',
                          'test': 'not-contains',
                          'value': 'test3',
                      },
@@ -518,7 +524,11 @@ _testcase_files_content = [
                  'stdout': [
                      {'python': 'return value == "test1\\ntest2\\n"'},
                      # Test availability of module re
-                     {'python': 'return re.search(r".*1", value) is not None'},
+                     {
+                         'name': 'availability of module re',
+                         'test': 'python',
+                         'value': 'return re.search(r".*1", value) is not None',
+                     },
                      {
                          'test': 'python',
                          'value': 'return "test3" not in value',
@@ -541,18 +551,31 @@ _testcase_files_content = [
                      {'shell': 'test "x" = "x"'},
                      {'shell': 'diff - in.txt'},
                      # Test that input and output files are accessible
-                     {'shell': 'diff in.txt out.txt'},
+                     {
+                         'name': 'input and output files accessible',
+                         'test': 'shell',
+                         'value': 'diff in.txt out.txt',
+                     },
                      # Test environment variables
-                     {'shell': 'test "$foo" = "bar"'},
+                     {
+                         'name': 'environment variables',
+                         'test': 'shell',
+                         'value': 'test "$foo" = "bar"',
+                     },
                      # Test $(...)
                      {
+                         'name': '$(...)',
                          'test': 'shell',
                          'value': 'test "$(wc -l < out.txt)" = 2',
                      },
                  ],
                  # Test that file content works
                  'file:out.txt': [
-                     {'shell': 'diff - in.txt'},
+                     {
+                         'name': 'file content',
+                         'test': 'shell',
+                         'value': 'diff - in.txt',
+                     },
                  ],
              },
          },
@@ -573,6 +596,7 @@ _testcase_files_content = [
                      {'==': {'file': 'in.txt'}},
                      # Test transformation with value from file
                      {
+                         'name': 'transformation with value from file',
                          'test': 'contains',
                          'value': {'file': 'in.txt'},
                          'transform-actual': {
@@ -606,6 +630,7 @@ _testcase_files_content = [
                      {'!=': {'python': 'return "test1\\n"'}},
                      # Test transformation with value generated with Python
                      {
+                         'name': 'transformation with value generated with Python',
                          'test': 'contains',
                          'value': {'python': 'return "test1\\ntest2\\n"'},
                          'transform-actual': {
@@ -641,9 +666,13 @@ _testcase_files_content = [
                      {'==': {'shell': 'echo test1; echo test2'}},
                      {'!=': {'shell': 'echo test1'}},
                      # Environment variable access
-                     {'value': {'shell': 'echo "$foo"; echo test2'}},
+                     {
+                         'name': 'environment variable access',
+                         'value': {'shell': 'echo "$foo"; echo test2'},
+                     },
                      # Test transformation with value generated with shell
                      {
+                         'name': 'transformation with value generated with shell',
                          'test': 'contains',
                          'value': {'shell': 'echo test1; echo test2'},
                          'transform-actual': {
