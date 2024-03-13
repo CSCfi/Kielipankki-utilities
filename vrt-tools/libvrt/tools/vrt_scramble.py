@@ -32,12 +32,12 @@ class VrtScrambler(InputProcessor):
     not have paragraphs.
     """
     ARGSPECS = [
-        ('--scramble-unit|unit = struct "sentence"',
+        ('--unit = struct "sentence"',
          '''shuffle struct structures (elements)'''),
-        ('--scramble-within|within = struct "text"',
+        ('--within = struct "text"',
          '''shuffle structures within struct structures (elements):
             structures are not moved across struct boundaries'''),
-        ('--random-seed|seed = seed "2017"',
+        ('--seed = seed "2017"',
          '''set random number generator seed to seed (any string);
             use 0 or "" for a random seed (non-reproducible output)'''),
     ]
@@ -51,17 +51,17 @@ class VrtScrambler(InputProcessor):
         self._scramble_units = []
 
     def check_args(self, args):
-        if args.random_seed in ['', '0']:
-            args.random_seed = None
+        if args.seed in ['', '0']:
+            args.seed = None
 
     def main(self, args, inf, ouf):
         # version=1 to be compatible with Python 2 random
-        random.seed(args.random_seed, version=1)
+        random.seed(args.seed, version=1)
         within_begin_re = re.compile(
-            r'<' + args.scramble_within + '[>\s]')
+            r'<' + args.within + '[>\s]')
         scramble_begin_re = re.compile(
-            r'<' + args.scramble_unit + '[>\s]')
-        scramble_end = '</' + args.scramble_within + '>'
+            r'<' + args.unit + '[>\s]')
+        scramble_end = '</' + args.within + '>'
         collecting = False
         units = []
         current_unit = []
@@ -86,8 +86,8 @@ class VrtScrambler(InputProcessor):
                     if mo:
                         struct = mo.group(1)
                     self.error_exit('Structure \'' + struct + '\' between \''
-                                    + args.scramble_within + '\' and \''
-                                    + args.scramble_unit + '\'')
+                                    + args.within + '\' and \''
+                                    + args.unit + '\'')
                 else:
                     current_unit.append(line)
             else:
