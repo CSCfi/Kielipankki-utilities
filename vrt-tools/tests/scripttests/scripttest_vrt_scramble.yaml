@@ -98,25 +98,25 @@
       <sentence n="3">
       c
       </sentence>
+      <sentence n="1">
+      a
+      </sentence>
       <sentence n="2">
       b
       </sentence>
       <sentence n="4">
       d
       </sentence>
-      <sentence n="1">
-      a
-      </sentence>
       </paragraph>
       <paragraph n="2">
-      <sentence n="7">
-      g
+      <sentence n="6">
+      f
       </sentence>
       <sentence n="5">
       e
       </sentence>
-      <sentence n="6">
-      f
+      <sentence n="7">
+      g
       </sentence>
       </paragraph>
       <paragraph n="3">
@@ -130,28 +130,96 @@
       </text>
       <text n="2">
       <paragraph n="4">
-      <sentence n="11">
-      k
-      </sentence>
       <sentence n="10">
       j
       </sentence>
       <sentence n="12">
       l
       </sentence>
+      <sentence n="11">
+      k
+      </sentence>
       </paragraph>
       <paragraph n="5">
+      <sentence n="14">
+      n
+      </sentence>
       <sentence n="15">
       o
       </sentence>
       <sentence n="13">
       m
       </sentence>
-      <sentence n="14">
-      n
-      </sentence>
       </paragraph>
       </text>
+  transform:
+  - {}
+  - name: --legacy
+    input: &cmdline-legacy
+      cmdline:
+        append: ' --legacy'
+    output-expected:
+      stdout: |
+        <!-- #vrt positional-attributes: word -->
+        <text n="1">
+        <paragraph n="1">
+        <sentence n="3">
+        c
+        </sentence>
+        <sentence n="2">
+        b
+        </sentence>
+        <sentence n="4">
+        d
+        </sentence>
+        <sentence n="1">
+        a
+        </sentence>
+        </paragraph>
+        <paragraph n="2">
+        <sentence n="7">
+        g
+        </sentence>
+        <sentence n="5">
+        e
+        </sentence>
+        <sentence n="6">
+        f
+        </sentence>
+        </paragraph>
+        <paragraph n="3">
+        <sentence n="8">
+        h
+        </sentence>
+        <sentence n="9">
+        i
+        </sentence>
+        </paragraph>
+        </text>
+        <text n="2">
+        <paragraph n="4">
+        <sentence n="11">
+        k
+        </sentence>
+        <sentence n="10">
+        j
+        </sentence>
+        <sentence n="12">
+        l
+        </sentence>
+        </paragraph>
+        <paragraph n="5">
+        <sentence n="15">
+        o
+        </sentence>
+        <sentence n="13">
+        m
+        </sentence>
+        <sentence n="14">
+        n
+        </sentence>
+        </paragraph>
+        </text>
 
 
 - name: 'vrt-scramble: Paragraphs within texts'
@@ -164,25 +232,6 @@
     stdout: |
       <!-- #vrt positional-attributes: word -->
       <text n="1">
-      <paragraph n="2">
-      <sentence n="5">
-      e
-      </sentence>
-      <sentence n="6">
-      f
-      </sentence>
-      <sentence n="7">
-      g
-      </sentence>
-      </paragraph>
-      <paragraph n="3">
-      <sentence n="8">
-      h
-      </sentence>
-      <sentence n="9">
-      i
-      </sentence>
-      </paragraph>
       <paragraph n="1">
       <sentence n="1">
       a
@@ -197,19 +246,27 @@
       d
       </sentence>
       </paragraph>
-      </text>
-      <text n="2">
-      <paragraph n="4">
-      <sentence n="10">
-      j
+      <paragraph n="3">
+      <sentence n="8">
+      h
       </sentence>
-      <sentence n="11">
-      k
-      </sentence>
-      <sentence n="12">
-      l
+      <sentence n="9">
+      i
       </sentence>
       </paragraph>
+      <paragraph n="2">
+      <sentence n="5">
+      e
+      </sentence>
+      <sentence n="6">
+      f
+      </sentence>
+      <sentence n="7">
+      g
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
       <paragraph n="5">
       <sentence n="13">
       m
@@ -221,7 +278,84 @@
       o
       </sentence>
       </paragraph>
+      <paragraph n="4">
+      <sentence n="10">
+      j
+      </sentence>
+      <sentence n="11">
+      k
+      </sentence>
+      <sentence n="12">
+      l
+      </sentence>
+      </paragraph>
       </text>
+  transform:
+  - {}
+  - name: --legacy
+    input: *cmdline-legacy
+    output-expected:
+      stdout: |
+        <!-- #vrt positional-attributes: word -->
+        <text n="1">
+        <paragraph n="2">
+        <sentence n="5">
+        e
+        </sentence>
+        <sentence n="6">
+        f
+        </sentence>
+        <sentence n="7">
+        g
+        </sentence>
+        </paragraph>
+        <paragraph n="3">
+        <sentence n="8">
+        h
+        </sentence>
+        <sentence n="9">
+        i
+        </sentence>
+        </paragraph>
+        <paragraph n="1">
+        <sentence n="1">
+        a
+        </sentence>
+        <sentence n="2">
+        b
+        </sentence>
+        <sentence n="3">
+        c
+        </sentence>
+        <sentence n="4">
+        d
+        </sentence>
+        </paragraph>
+        </text>
+        <text n="2">
+        <paragraph n="4">
+        <sentence n="10">
+        j
+        </sentence>
+        <sentence n="11">
+        k
+        </sentence>
+        <sentence n="12">
+        l
+        </sentence>
+        </paragraph>
+        <paragraph n="5">
+        <sentence n="13">
+        m
+        </sentence>
+        <sentence n="14">
+        n
+        </sentence>
+        <sentence n="15">
+        o
+        </sentence>
+        </paragraph>
+        </text>
 
 
 - name: 'vrt-scramble: Sentences within texts'
@@ -240,8 +374,11 @@
       <sentence n="5">
       e
       </sentence>
-      <sentence n="9">
-      i
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="2">
+      b
       </sentence>
       <sentence n="4">
       d
@@ -249,42 +386,95 @@
       <sentence n="7">
       g
       </sentence>
-      <sentence n="2">
-      b
-      </sentence>
-      <sentence n="8">
-      h
-      </sentence>
       <sentence n="6">
       f
       </sentence>
-      <sentence n="3">
-      c
-      </sentence>
       <sentence n="1">
       a
+      </sentence>
+      <sentence n="9">
+      i
+      </sentence>
+      <sentence n="8">
+      h
       </sentence>
       </text>
       <text n="2">
       <sentence n="11">
       k
       </sentence>
-      <sentence n="15">
-      o
-      </sentence>
       <sentence n="13">
       m
-      </sentence>
-      <sentence n="14">
-      n
-      </sentence>
-      <sentence n="10">
-      j
       </sentence>
       <sentence n="12">
       l
       </sentence>
+      <sentence n="14">
+      n
+      </sentence>
+      <sentence n="15">
+      o
+      </sentence>
+      <sentence n="10">
+      j
+      </sentence>
       </text>
+  transform:
+  - {}
+  - name: --legacy
+    input: *cmdline-legacy
+    output-expected:
+      stdout: |
+        <!-- #vrt positional-attributes: word -->
+        <text n="1">
+        <sentence n="5">
+        e
+        </sentence>
+        <sentence n="9">
+        i
+        </sentence>
+        <sentence n="4">
+        d
+        </sentence>
+        <sentence n="7">
+        g
+        </sentence>
+        <sentence n="2">
+        b
+        </sentence>
+        <sentence n="8">
+        h
+        </sentence>
+        <sentence n="6">
+        f
+        </sentence>
+        <sentence n="3">
+        c
+        </sentence>
+        <sentence n="1">
+        a
+        </sentence>
+        </text>
+        <text n="2">
+        <sentence n="11">
+        k
+        </sentence>
+        <sentence n="15">
+        o
+        </sentence>
+        <sentence n="13">
+        m
+        </sentence>
+        <sentence n="14">
+        n
+        </sentence>
+        <sentence n="10">
+        j
+        </sentence>
+        <sentence n="12">
+        l
+        </sentence>
+        </text>
 
 
 - name: 'vrt-scramble: Sentences within texts, infile as argument, --out'
@@ -347,3 +537,9 @@
     file:out1.vrt:
       '!=':
         file: out2.vrt
+  transform:
+  - {}
+  - name: --legacy
+    input:
+      cmdline:
+        replace: '/--seed/--legacy --seed/'

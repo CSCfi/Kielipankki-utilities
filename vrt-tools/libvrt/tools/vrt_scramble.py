@@ -41,6 +41,9 @@ class VrtScrambler(InputProcessor):
          '''set random number generator seed to seed (any string)
             (default: "" = non-reproducible output)''',
          dict(default='')),
+        ('--legacy',
+         '''produce the same result as the old vrt-scramble.py for any
+            non-empty seed'''),
     ]
 
     def __init__(self):
@@ -52,8 +55,13 @@ class VrtScrambler(InputProcessor):
             args.seed = None
 
     def main(self, args, inf, ouf):
-        # version=1 to be compatible with Python 2 random
-        random.seed(args.seed, version=1)
+        if args.legacy:
+            seed_ver = 1
+            self._random_shuffle = self._random_shuffle_legacy
+        else:
+            seed_ver = 2
+            self._random_shuffle = random.shuffle
+        random.seed(args.seed, version=seed_ver)
         within_begin_re = re.compile(
             (r'<' + args.within + '[>\s]').encode('UTF-8'))
         scramble_begin_re = re.compile(
@@ -101,7 +109,7 @@ class VrtScrambler(InputProcessor):
             for line in unit:
                 yield line
 
-    def _random_shuffle(self, seq):
+    def _random_shuffle_legacy(self, seq):
         """Randomly shuffle seq, same results as Python 2 random.shuffle."""
         # This code was copied from the Python 3.10 library code for
         # random.shuffle. Up to Python 3.10, the same result could be
