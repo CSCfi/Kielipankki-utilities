@@ -51,7 +51,7 @@ The task category marker is an italicized (slanted) and bolded character string.
 - _*SUPPORT*_: advising and communicating with the data depositor (requires knowledge of data management practices and the applicable instructions)
 - _*META*_: metadata editing & curation (requires META-SHARE permissions)
 - _*DISCUSS*_: Decisions about priorities, schedule and distribution of work (often requires a team meeting and/or consultation with leadership)
-- _*AGREEMENTS*_: negotiations and administration regarding deposition agreements, license conditions, data protection practices etc. (requires legal knowledge, may require the opinion of a legal expert at UHEL)
+- _*AGREEMENT*_: negotiations and administration regarding deposition agreements, license conditions, data protection practices etc. (requires legal knowledge, may require the opinion of a legal expert at UHEL, requires write access to the contract register at UHEL)
 - _*LEGAL*_: Legal decisions and formal contracts involving the University of Helsinki (requires a meeting with a legal expert)
 - _*PORTAL*_: editing web pages in the Portal (requires Portal permissions)
 - _*DB*_: modifying content in the resource database (requires Portal permissions)
@@ -120,8 +120,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*+LEGAL*_ Make the final decision as to whether the resource can be distributed via the Language Bank of Finland (bring the case up in legal meeting, if necessary)
 ## [ ] _*+AGREEMENT*_ Prepare the final draft of the deposition license agreement and send it to corpus owner who should fill in the remaining gaps (ask for legal advice if needed)
 ## [ ] _*+AGREEMENT*_ Check the final deposition agreement, combine all parts into a single pdf file and upload the document to the UniSign system for electronic signing by the rightholder (+ the data controller) and finally by the head of department at the University of Helsinki, https://unisign.helsinki.fi/sign/#/dashboard
-## [ ] _*+IDA*_ Upload the signed deposition agreement (or similar proof of the distribution license) as a pdf file (named as shortname_yyyymmdd.pdf, according to the date of the last signature in the document) in IDA, under Administration/agreements/shortname.
-## [ ] _*+HYSTORE*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (named as shortname_yyyymmdd.pdf, according to the date of the last signature in the document) to the HFST server, under data/corpora/agreements/shortname.
+## [ ] _*+IDA*_ Upload the signed deposition agreement (or similar proof of the distribution license) as a pdf file (named as KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document) in IDA, under Administration/agreements/shortname.
+## [ ] _*+HYSTORE*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (named as KP_yyyymmdd_AINEISTO_shortname.pdf, according to the date of the last signature in the document) to the HFST server, under data/corpora/agreements/shortname.
+## [ ] _*+AGREEMENT*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (filename KP_yyyymmdd_AINEISTO_shortname(s).pdf, according to the date of the last signature in the document; document title "Kielipankki yyyy Aineistosopimus: shortname(s)") to the contract register of the University of Helsinki, under H402 Digitaalisten ihmistieteiden osasto. By default, agreements are not 'confidential'.
 \\
 ```
 
