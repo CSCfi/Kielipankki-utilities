@@ -37,9 +37,10 @@ class VrtScrambler(InputProcessor):
         ('--within = struct "text"',
          '''shuffle structures within struct structures (elements):
             structures are not moved across struct boundaries'''),
-        ('--seed = seed "2017"',
-         '''set random number generator seed to seed (any string);
-            use 0 or "" for a random seed (non-reproducible output)'''),
+        ('--seed = seed',
+         '''set random number generator seed to seed (any string)
+            (default: "" = non-reproducible output)''',
+         dict(default='')),
     ]
 
     class OPTIONS(InputProcessor.OPTIONS):
@@ -51,7 +52,7 @@ class VrtScrambler(InputProcessor):
         self._scramble_units = []
 
     def check_args(self, args):
-        if args.seed in ['', '0']:
+        if args.seed == '':
             args.seed = None
 
     def main(self, args, inf, ouf):
