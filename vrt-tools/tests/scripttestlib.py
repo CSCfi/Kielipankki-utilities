@@ -144,6 +144,84 @@ def collect_testcases(*filespecs, basedir=None, granularity=None):
     return expand_testcases(testcases, granularity=granularity)
 
 
+# Keys allowed in test cases: top level as a dict with second-level
+# values as sets of strings (regular expressions)
+_allowed_keys = {
+    'defaults': {
+        'input',
+        'output',
+        'status',
+    },
+    # Reusable definitions may contain any keys
+    'defs': {
+        '.*',
+    },
+    # name and status are not dicts
+    'name': set(),
+    'status': set(),
+    'input': {
+        'name',
+        'prog',
+        'args',
+        'cmdline',
+        'shell',
+        'envvars',
+        'stdin',
+        'files',
+        'file:.+',
+        'transform',
+        'defs',
+    },
+    'output': {
+        'returncode',
+        'stdout',
+        'stderr',
+        'files',
+        'file:.+',
+        'transform-expected',
+        'transform-actual',
+        'defs',
+    },
+    'transform': {
+        'name',
+        'input',
+        'output-expected',
+        'output-actual',
+        'defs',
+    },
+}
+
+# Keys allowed in top level
+_allowed_keys_top = set(_allowed_keys.keys())
+
+# Keys allowed on the second level: regular expressions based on
+# _allowed_keys
+_allowed_keys_re = dict((key, re.compile('|'.join(vals)))
+                        for key, vals in _allowed_keys.items())
+
+
+def _check_testcase_keys(obj, branch=None):
+    """Check that keys in `obj` in `branch` of a testcase are allowed.
+
+    Raise `ValueError` if a non-allowed key is found. The allowed keys
+    for each "branch" are listed in the `_allowed_keys` global
+    variable above. If `branch` is `None`, treat `obj` as a complete
+    testcase and check the top-level keys.
+    """
+    obj_keys = obj.keys()
+    if branch is None:
+        unknown = set(obj_keys) - _allowed_keys_top
+        branch = 'top level'
+    else:
+        unknown = set(key for key in obj_keys
+                      if not _allowed_keys_re[branch].fullmatch(key))
+        branch = f'"{branch}"'
+    if unknown:
+        pl = 's' if len(unknown) > 1 else ''
+        raise ValueError(f'Unrecognized key{pl} in test case {branch}: '
+                         + ', '.join(unknown))
+
+
 def expand_testcases(fname_testcases_dictlist, granularity=None):
     """Convert a list of (filename, test case dict) to a list of tuples.
 
@@ -228,8 +306,10 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
             _convert_files_dict(input_, 'input')
             inputname = (input_ or {}).get('name') or ''
             input_ = get_value(default_input, input_)
+            _check_testcase_keys(input_, 'input')
             output = get_value(default_output, get_output_value(tc))
             _convert_files_dict(output, 'output')
+            _check_testcase_keys(output, 'output')
             input_output = [(input_, output)]
             if 'transform' in tc:
                 # Expand grouped transformations
@@ -358,8 +438,11 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
             # print('trans', expected_trans, actual_trans)
             expected_val_count = len(expected_vals)
             for expected_val_num, expected_val in enumerate(expected_vals):
+                subname = name
+                if isinstance(expected_val, dict) and 'name' in expected_val:
+                    subname += f' ({expected_val["name"]})'
                 item_descr = item_descr_format.format(
-                    name=name, key=key,
+                    name=subname, key=key,
                     num=(' ' + str(expected_val_num + 1)
                          if expected_val_count > 1 else ''))
                 if isinstance(expected_val, dict):
@@ -367,12 +450,7 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                     act_trans = expected_val.get('transform-actual', [])
                     if 'value' in expected_val:
                         test = expected_val.get('test', '==')
-                        test, *test_opts = test.split()
-                        reflags = expected_val.get('reflags', '')
-                        if isinstance(reflags, list):
-                            test_opts.extend(reflags)
-                        else:
-                            test_opts.extend(reflags.split())
+                        test, test_opts = _get_key_opts(test, expected_val)
                         exp_trans1 = expected_trans.copy()
                         act_trans1 = actual_trans.copy()
                         # print(exp_trans1, exp_trans, act_trans1, act_trans)
@@ -484,6 +562,7 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         # print('add_transform_group', result, transform_group)
         # transform_group is a dict that may contain keys "input",
         # "output-expected", "output-actual", "name"
+        _check_testcase_keys(transform_group, 'transform')
         for transform_top_name, transform_top in transform_group.items():
             if transform_top_name == 'name':
                 result.append(transform_top)
@@ -573,11 +652,13 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         default_output = {}
         default_status = None
         for tcnum, tc in enumerate(testcases_dictlist):
+            _check_testcase_keys(tc)
             if 'defaults' in tc:
                 # New defaults override (are merged to) possibly existing
                 # defaults
                 # print('Defaults:', tc['defaults'])
                 defaults = tc['defaults']
+                _check_testcase_keys(defaults, 'defaults')
                 # If defaults is empty, clear both input and output; without
                 # this, get for them would return None, so dict_deep_update
                 # would not update the values.
@@ -631,6 +712,24 @@ def _convert_files_dict(d, type_):
         del d['files']
 
 
+def _get_key_opts(key, value_dict):
+    """Return `key` and its possible space-separated options.
+
+    Also append `value_dict['reflags']` if it exists.
+
+    This function is used to process regular expression flags that may
+    be specified either after the key ``regex`` (separated by a space)
+    or as ``reflags`` in a `dict`.
+    """
+    key, *key_opts = key.split()
+    reflags = value_dict.get('reflags', '')
+    if isinstance(reflags, list):
+        key_opts.extend(reflags)
+    else:
+        key_opts.extend(reflags.split())
+    return key, key_opts
+
+
 def dict_deep_update(a, b):
     """Recursively update dict `a` from dict `b`.
 
@@ -674,30 +773,27 @@ class ProgramRunner:
         Class wrapping the output of a program run
         """
 
-        def __init__(self, val, tmpdir=''):
-            """Initialize with the dict `val`, files in `tmpdir`"""
+        def __init__(self, val, tmpdir='', env=None):
+            """Initialize with the dict `val`, files in `tmpdir`, env `env`."""
             super().__init__()
             if isinstance(val, dict):
                 self.update(val)
-            self._tmpdir = tmpdir
+            # print('_Output', val, tmpdir, env)
+            self.tmpdir = tmpdir
+            self.env = env
 
         def get(self, key, default=None):
             """Like dict.get, but with special treatment of keys "file:FNAME"
 
             If `key` is of the form "file:FNAME", return the content
-            of the file ``FNAME`` in `self._tmpdir`, or `None` if
+            of the file ``FNAME`` in `self.tmpdir`, or `None` if
             ``FNAME`` does not exist.
             """
             if key in self:
                 return self[key]
             elif key.startswith('file:'):
-                fname = os.path.join(
-                    self._tmpdir, key.split(':', maxsplit=1)[1])
-                if not os.path.isfile(fname):
-                    return None
-                with open(fname, 'r') as f:
-                    value = f.read()
-                return value
+                return _get_file_content(key.split(':', maxsplit=1)[1],
+                                         self.tmpdir)
             return default
 
     @classmethod
@@ -732,7 +828,10 @@ class ProgramRunner:
                 # prog and/or args
                 shell = False
                 args = input_.get('args', [])
-                args = shlex.split(args) if isinstance(args, str) else args
+                # If args is a list, make a copy of it, so that _input
+                # remains intact even if prog is modified below
+                args = (shlex.split(args) if isinstance(args, str)
+                        else args.copy())
                 prog = input_.get('prog')
                 if prog:
                     args[0:0] = [prog]
@@ -776,10 +875,10 @@ class ProgramRunner:
                 env[var] = env[var].replace('$$', '$')
             return env
 
-        def create_files(input_):
+        def create_files(input_, tmpdir, env):
             input_trans = input_.get('transform', [])
             stdin = (_make_value(input_.get('stdin', ''), 'transform',
-                                 input_trans)
+                                 input_trans, tmpdir, env)
                      .encode('UTF-8'))
             # Create input files
             for key, value in input_.items():
@@ -790,7 +889,8 @@ class ProgramRunner:
                         os.makedirs(os.path.join(tmpdir, dirname),
                                     exist_ok=True)
                     # print('create_files 0', key, value)
-                    value = _make_value(value, 'transform', input_trans)
+                    value = _make_value(value, 'transform', input_trans,
+                                        tmpdir, env)
                     # print('create_files 1', key, value)
                     if value is not None:
                         with open(os.path.join(tmpdir, fname), 'w') as f:
@@ -803,7 +903,7 @@ class ProgramRunner:
         # print(input_, expected)
         prog, args, shell = get_prog_args(input_)
         env = make_env(input_)
-        stdin = create_files(input_)
+        stdin = create_files(input_, tmpdir, env)
         # Run the command
         # print('running', args)
         proc = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env,
@@ -813,7 +913,7 @@ class ProgramRunner:
             'stdout': stdout.decode('UTF-8'),
             'stderr': stderr.decode('UTF-8'),
             'returncode': proc.returncode,
-        }, tmpdir=tmpdir)
+        }, tmpdir=tmpdir, env=env)
         return cls._output
 
 
@@ -874,7 +974,18 @@ def check_program_run(name, input_, outputitem, expected, tmpdir,
         _check_output(name, output, outputitem_item, expected[itemnum])
 
 
-def _make_value(value, trans_key, global_trans=None, actual_value=None):
+def _get_file_content(fname, dir_):
+    """Return the content of file `fname` in directory `dir_`."""
+    fname = os.path.join(dir_, fname)
+    if not os.path.isfile(fname):
+        return None
+    with open(fname, 'r') as f:
+        value = f.read()
+    return value
+
+
+def _make_value(value, trans_key, global_trans=None, tmpdir=None, env=None,
+                actual_value=None):
     """Apply possible transformations to value.
 
     value is the literal value or a dict containing key "value" and
@@ -884,7 +995,8 @@ def _make_value(value, trans_key, global_trans=None, actual_value=None):
     applied before the local ones. actual_value overrides value: it is
     used when processing actual values, whose transformations are
     defined in the expected value (as actual values cannot be present in
-    the test case).
+    the test case). tmpdir and env are used when the value of "value" is
+    a dict with key "shell".
     """
     # print('_make_value', repr(value), trans_key, global_trans,
     #       repr(actual_value))
@@ -898,6 +1010,8 @@ def _make_value(value, trans_key, global_trans=None, actual_value=None):
             raise ValueError('Missing key "value"')
         else:
             trans_value = value.get('value')
+        trans_value = _handle_special_value(
+            trans_value, 'input', tmpdir, env, ['python', 'shell'])
     elif actual_value is not None:
         trans_value = actual_value
     else:
@@ -909,12 +1023,14 @@ def _make_value(value, trans_key, global_trans=None, actual_value=None):
     return trans_value
 
 
-def _transform_value(value, trans):
+def _transform_value(value, trans, tmpdir=None, env=None):
     """Return value transformed according to trans.
 
     `trans` is a `dict` whose keys ``KEY`` should correspond to
     functions `_transform_value_KEY` (hyphens in ``KEY`` converted to
-    underscores).
+    underscores). `tmpdir` is the directory containing output files,
+    `env` a dict containing environment variables (may be used in
+    shell transformations).
 
     Functions `_transform_value_KEY` should return the value intact if
     the transformation is not applicable to the type of the value.
@@ -943,7 +1059,7 @@ def _transform_value(value, trans):
                                       + transname.replace('-', '_')]
             except KeyError as e:
                 raise ValueError('Unknown transformation "' + transname + '"')
-            value = transfunc(value, transval)
+            value = transfunc(value, transval, tmpdir=tmpdir, env=env)
     # print('->', repr(value))
     return value
 
@@ -960,25 +1076,92 @@ def _check_output(name, output, outputitem, expected):
     """
     actual = output.get(outputitem)
     # print('_check_output', name, output, outputitem, expected, actual)
-    exp_val = _transform_value(expected.get('value'),
-                               expected.get('transform-expected'))
-    act_val = _transform_value(actual, expected.get('transform-actual'))
+    tmpdir = output.tmpdir
+    env = output.env
+    exp_val = _transform_value(_get_expected_value(expected, tmpdir, env),
+                               expected.get('transform-expected'),
+                               tmpdir, env)
+    act_val = _transform_value(
+        actual, expected.get('transform-actual'), tmpdir, env)
     # print('_check_output', repr(expected), repr(actual),
     #       repr(exp_val), repr(act_val))
     _assert(expected.get('test'), exp_val, act_val, name,
-            expected.get('test-opts'))
+            opts=expected.get('test-opts'), tmpdir=tmpdir, env=env)
+
+
+def _get_expected_value(expected, tmpdir, env):
+    """Get expected value from `expected`.
+
+    If `expected` is not a `dict`, return it as is.
+    If `expected` is a `dict`, it should have exactly one key, one of
+    'file', 'python' and 'shell':
+    - 'file': Return the content of the file named in the value in
+      `tmpdir`.
+    - 'python': Return the value generated by Python code: the return
+      value of the function whose body is the value.
+    - 'shell': Return the content written to stdout by the shell
+      command line in the value.
+    """
+    return _handle_special_value(expected.get('value'), 'expected', tmpdir, env)
+
+
+def _handle_special_value(value, value_type, tmpdir, env, supported_keys=None):
+    """Handle possible `dict` in `value`.
+
+    If `value` is not a `dict`, return it as is.
+    If `value` is a `dict`, it should have exactly one key, one of
+    'file', 'python' and 'shell':
+    - 'file': Return the content of the file named in the value in
+      `tmpdir`.
+    - 'python': Return the value generated by Python code: the return
+      value of the function whose body is the value.
+    - 'shell': Return the content written to stdout by the shell
+      command line in the value.
+
+    `value_type` is used in error messages (e.g. "expected").
+    `supported_keys` is a list of supported keys; default: `['file',
+    'python', 'shell']`.
+    """
+    if isinstance(value, dict):
+        if len(value) != 1:
+            raise ValueError(
+                f'a dict as an {value_type} value must have exactly one key')
+        if not supported_keys:
+            supported_keys = ['file', 'python', 'shell']
+        key = list(value.keys())[0]
+        if key not in supported_keys:
+            raise ValueError(
+                f'a dict as an {value_type} value with key not in'
+                f' {supported_keys}: {key}')
+        if 'python' in value:
+            return _exec_python_func(value['python'], None)
+        elif 'shell' in value:
+            return _exec_shell(value['shell'], '', tmpdir=tmpdir, env=env)[0]
+        elif 'file' in value:
+            return _get_file_content(value['file'], tmpdir)
+    return value
 
 
 def _re_search(patt, val, flags=''):
-    """Wrap re.search: Flags as a string (re. prefixes can be omitted)."""
+    """Wrap re.search: flags as a string (re. prefixes can be omitted)."""
     # print(patt, val, flags)
+    return re.search(patt, val, flags=_make_re_flags(flags))
+
+
+def _make_re_flags(flags=''):
+    """Convert regex `flags` string to int value (``re.`` can be omitted)."""
     if flags:
         if isinstance(flags, list):
             flags = '|'.join(flags)
         flags = eval('|'.join(
             ('re.' if not flag.startswith('re.') else '') + flag
             for flag in flags.split('|')))
-    return re.search(patt, val, flags=(flags or 0))
+    return flags or 0
+
+
+def _re_sub(patt, repl, val, count=0, flags=''):
+    """Wrap re.sub: flags as a string (re. prefixes can be omitted)."""
+    return re.sub(patt, repl, val, count, flags=_make_re_flags(flags))
 
 
 # Map test names to assertion function names (following _assert_)
@@ -994,15 +1177,17 @@ _assert_name_map = {
 }
 
 
-def _assert(test_name, expected, actual, *opts):
+def _assert(test_name, expected, actual, item_descr, **kwargs):
     """Call the assertion function corresponding to test_name with the args."""
     test_name_orig = test_name
     # Replace hyphens with underscores in the test name. The test name cannot
     # contain spaces, as space is used to separate options from the test name.
     test_name = test_name.replace('-', '_')
     test_name = _assert_name_map.get(test_name, test_name)
+    # print('_assert', repr((test_name, expected, actual, item_descr, kwargs)))
     try:
-        globals()['_assert_' + test_name](expected, actual, *opts)
+        globals()['_assert_' + test_name](expected, actual, item_descr,
+                                          **kwargs)
     except KeyError:
         raise ValueError('Unknown test "' + test_name_orig + '"')
 
@@ -1010,46 +1195,55 @@ def _assert(test_name, expected, actual, *opts):
 # Assertion functions: the first argument is the expected and the second the
 # actual value. item_descr describes the test item; it is not used in the
 # functions but it shows up in pytest traceback providing more information on
-# the exact test within a single test case. *opts may be used to pass options
-# to the function, such as regular expression flags.
+# the exact test within a single test case. **kwargs is used to pass
+# information to functions that is not needed by all: 'opts' may be used to
+# pass options to the function, such as regular expression flags, 'tmpdir'
+# temporary directory and 'env' environment variables.
 
-def _assert_equal(exp, val, item_descr, *opts):
+def _assert_equal(exp, val, item_descr, **kwargs):
     # This order or values makes the pytest value diff more natural
     assert exp == val
 
-def _assert_not_equal(exp, val, item_descr, *opts):
+def _assert_not_equal(exp, val, item_descr, **kwargs):
     # This order or values makes the pytest value diff more natural
     assert exp != val
 
-def _assert_less(exp, val, item_descr, *opts):
+def _assert_less(exp, val, item_descr, **kwargs):
     assert val < exp
 
-def _assert_less_equal(exp, val, item_descr, *opts):
+def _assert_less_equal(exp, val, item_descr, **kwargs):
     assert val <= exp
 
-def _assert_greater(exp, val, item_descr, *opts):
+def _assert_greater(exp, val, item_descr, **kwargs):
     assert val > exp
 
-def _assert_greater_equal(exp, val, item_descr, *opts):
+def _assert_greater_equal(exp, val, item_descr, **kwargs):
     assert val >= exp
 
-def _assert_in(exp, val, item_descr, *opts):
+def _assert_in(exp, val, item_descr, **kwargs):
     assert val in exp
 
-def _assert_not_in(exp, val, item_descr, *opts):
+def _assert_not_in(exp, val, item_descr, **kwargs):
     assert val not in exp
 
-def _assert_contains(exp, val, item_descr, *opts):
+def _assert_contains(exp, val, item_descr, **kwargs):
     assert exp in val
 
-def _assert_not_contains(exp, val, item_descr, *opts):
+def _assert_not_contains(exp, val, item_descr, **kwargs):
     assert exp not in val
 
-def _assert_regex(exp, val, item_descr, *opts):
-    assert _re_search(exp, val, *opts) is not None
+def _assert_regex(exp, val, item_descr, **kwargs):
+    assert _re_search(exp, val, kwargs.get('opts')) is not None
 
-def _assert_not_regex(exp, val, item_descr, *opts):
-    assert _re_search(exp, val, *opts) is None
+def _assert_not_regex(exp, val, item_descr, **kwargs):
+    assert _re_search(exp, val, kwargs.get('opts')) is None
+
+def _assert_python(exp, val, item_descr, **kwargs):
+    assert bool(_exec_python_func(exp, val)) == True
+
+def _assert_shell(exp, val, item_descr, **kwargs):
+    assert _exec_shell(
+        exp, val, tmpdir=kwargs.get('tmpdir'), env=kwargs.get('env'))[2] == 0
 
 
 # Supported test names
@@ -1061,7 +1255,7 @@ _test_names = set(
 
 # Value transformation functions
 
-def _transform_value_prepend(value, prepend_value):
+def _transform_value_prepend(value, prepend_value, **kwargs):
     """Return value with prepend_value prepended."""
     if value is None:
         value = ''
@@ -1070,7 +1264,7 @@ def _transform_value_prepend(value, prepend_value):
     return prepend_value + value
 
 
-def _transform_value_append(value, append_value):
+def _transform_value_append(value, append_value, **kwargs):
     """Return value with append_value appended."""
     if value is None:
         value = ''
@@ -1079,13 +1273,13 @@ def _transform_value_append(value, append_value):
     return value + append_value
 
 
-def _transform_value_set_value(value, new_value):
+def _transform_value_set_value(value, new_value, **kwargs):
     """Return `new_value`, discarding `value` if they have the same type."""
     return (new_value if isinstance(value, int) == isinstance(new_value, int)
             else value)
 
 
-def _transform_value_filter_out(value, regexps):
+def _transform_value_filter_out(value, regexps, **kwargs):
     """Replace regexp `regexp` matches with "" `in `value`."""
     if not isinstance(value, str):
         return value
@@ -1099,7 +1293,7 @@ def _transform_value_filter_out(value, regexps):
     return value
 
 
-def _transform_value_replace(value, args):
+def _transform_value_replace(value, args, **kwargs):
     """Replace strings or regular expression matches in `value`.
 
     `args` can be a `dict`, `str` or `list` of `dict` or `str`. A
@@ -1131,25 +1325,44 @@ def _transform_value_replace(value, args):
             if count == 0:
                 count = -1
             value = value.replace(args['str'], repl, count)
-        elif 'regex' in args:
-            value = re.sub(args['regex'], repl, value, count)
+        else:
+            # Also handle cases with keys like "regex FLAGS"
+            for key in args:
+                if key.startswith('regex'):
+                    _, opts = _get_key_opts(key, args)
+                    value = _re_sub(args[key], repl, value, count, opts)
+                    break
     return value
 
 
-def _transform_value_python(value, code):
+def _transform_value_python(value, code, **kwargs):
     """Return value transformed with Python code (function body)."""
-    funcdef = ('def transfunc(value):\n '
-               + re.sub(r'^', '    ', code, flags=re.MULTILINE))
-    exec(funcdef, globals())
-    return transfunc(value)
+    return _exec_python_func(code, value)
 
 
-def _transform_value_shell(value, code):
+def _transform_value_shell(value, code, **kwargs):
     """Return value transformed with shell commands code."""
     if value is None:
         return value
     valuetype = type(value)
-    proc = Popen(code, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
-    stdout, stderr = proc.communicate(str(value).encode('UTF-8'))
-    value = stdout.decode('UTF-8')
+    value = _exec_shell(code, str(value), tmpdir=kwargs.get('tmpdir'),
+                        env=kwargs.get('env'))[0]
     return valuetype(value)
+
+
+def _exec_python_func(code, value):
+    """Execute Python code `code` (function body) with arg `value`."""
+    funcdef = ('def func(value):\n '
+               + re.sub(r'^', '    ', code, flags=re.MULTILINE))
+    exec(funcdef, globals())
+    return func(value)
+
+
+def _exec_shell(code, stdin, tmpdir=None, env=None):
+    """Execute shell `code` with `stdin` input in `tmpdir` with env `env`."""
+    # print('_exec_shell', code, stdin, tmpdir, env)
+    proc = Popen(code, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True,
+                 cwd=tmpdir, env=env)
+    stdout, stderr = proc.communicate(stdin.encode('UTF-8'))
+    # print('->', stdout, stderr, proc.returncode)
+    return stdout.decode('UTF-8'), stderr.decode('UTF-8'), proc.returncode
