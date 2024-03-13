@@ -93,7 +93,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
 # [ ] _*+GITHUB*_ Request a URN for the META-SHARE record
 # [ ] _*+META*_ Update the META-SHARE record with the URN
-# [ ] _*?SUPPORT*_ inform the depositor about citation practices, if relevant
+# [ ] _*?SUPPORT*_ Inform the depositor about citation practices, if relevant
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure the resource is displayed on the list of upcoming corpora
 # [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
 # [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the data
