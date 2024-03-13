@@ -1,14 +1,11 @@
-#! /usr/bin/env python3
-# -*- coding: utf-8 -*-
 
+"""
+vrt_scramble.py
 
-"""Scramble (randomly shuffle) structures in a VRT input."""
+The actual implementation of vrt-scramble.
 
-
-# This script has been converted from Python 2 to Python 3.
-
-# TODO:
-# - Rewrite the script as a proper VRT tool.
+Please run "vrt-scramble -h" for more information.
+"""
 
 
 import sys
@@ -17,27 +14,59 @@ import random
 
 from math import floor
 
-import korpimport3.util
+from vrtargsoolib import InputProcessor
 
 
-class VrtScrambler(korpimport3.util.InputProcessor):
+class VrtScrambler(InputProcessor):
+
+    """Class implementing vrt-scramble functionality."""
+
+    DESCRIPTION = """
+    Scramble (randomly shuffle) given structures (elements), such as
+    sentences, within larger structures, such as texts, in the VRT
+    input and output the scrambled VRT.
+
+    Note that the input may not have intermediate structures between
+    the containing structures and the structures to be scrambled; for
+    example, if sentences are scrambled within texts, the input may
+    not have paragraphs.
+    """
+    ARGSPECS = [
+        ('--scramble-unit|unit = struct "sentence"',
+         '''shuffle struct structures (elements)'''),
+        ('--scramble-within|within = struct "text"',
+         '''shuffle structures within struct structures (elements):
+            structures are not moved across struct boundaries'''),
+        ('--random-seed|seed = seed "2017"',
+         '''set random number generator seed to seed (any string);
+            use 0 or "" for a random seed (non-reproducible output)'''),
+    ]
+
+    class OPTIONS(InputProcessor.OPTIONS):
+        in_as_text = True
+        out_as_text = True
 
     def __init__(self):
         super().__init__()
         self._scramble_units = []
-        # version=1 to be compatible with Python 2 random
-        random.seed(self._opts.random_seed, version=1)
 
-    def process_input_stream(self, stream, filename=None):
+    def check_args(self, args):
+        if args.random_seed in ['', '0']:
+            args.random_seed = None
+
+    def main(self, args, inf, ouf):
+        # version=1 to be compatible with Python 2 random
+        random.seed(args.random_seed, version=1)
         within_begin_re = re.compile(
-            r'<' + self._opts.scramble_within + '[>\s]')
+            r'<' + args.scramble_within + '[>\s]')
         scramble_begin_re = re.compile(
-            r'<' + self._opts.scramble_unit + '[>\s]')
-        scramble_end = '</' + self._opts.scramble_within + '>'
+            r'<' + args.scramble_unit + '[>\s]')
+        scramble_end = '</' + args.scramble_within + '>'
         collecting = False
         units = []
         current_unit = []
-        for line in stream:
+        self._linenr = 0
+        for line in inf:
             self._linenr += 1
             if collecting:
                 if line.startswith(scramble_end):
@@ -45,8 +74,8 @@ class VrtScrambler(korpimport3.util.InputProcessor):
                         units.append(current_unit)
                     collecting = False
                     for line2 in self._scramble(units):
-                        sys.stdout.write(line2)
-                    sys.stdout.write(line)
+                        ouf.write(line2)
+                    ouf.write(line)
                 elif scramble_begin_re.match(line):
                     if current_unit:
                         units.append(current_unit)
@@ -56,13 +85,13 @@ class VrtScrambler(korpimport3.util.InputProcessor):
                     struct = ''
                     if mo:
                         struct = mo.group(1)
-                    self.error('Structure \'' + struct + '\' between \''
-                               + self._opts.scramble_within + '\' and \''
-                               + self._opts.scramble_unit + '\'')
+                    self.error_exit('Structure \'' + struct + '\' between \''
+                                    + args.scramble_within + '\' and \''
+                                    + args.scramble_unit + '\'')
                 else:
                     current_unit.append(line)
             else:
-                sys.stdout.write(line)
+                ouf.write(line)
                 if within_begin_re.match(line):
                     units = []
                     current_unit = []
@@ -85,39 +114,3 @@ class VrtScrambler(korpimport3.util.InputProcessor):
             # pick an element in seq[:i+1] with which to exchange seq[i]
             j = floor(random.random() * (i + 1))
             seq[i], seq[j] = seq[j], seq[i]
-
-    def getopts(self, args=None):
-        self.getopts_basic(
-            dict(usage="%prog [options] [input] > output",
-                 description=(
-"""Scramble (randomly shuffle) given structures (elements), such as sentences,
-within larger structures, such as texts, in the VRT input and output the
-scrambled VRT.
-
-Note that the input may not have intermediate structures between the
-containing structures and the structures to be scrambled; for example, if
-sentences are scrambled within texts, the input may not have paragraphs.
-""")
-             ),
-            args,
-            ['scramble-unit|unit =STRUCT', dict(
-                default='sentence',
-                help=('shuffle STRUCT structures (elements)'
-                      ' (default: %default)'))],
-            ['scramble-within|within =STRUCT', dict(
-                default='text',
-                help=('shuffle structures within STRUCT structures (elements):'
-                      ' structures are not moved across STRUCT boundaries'
-                      ' (default: %default)'))],
-            ['random-seed|seed =SEED', dict(
-                default='2017',
-                help=('set random number generator seed to SEED (any string);'
-                      ' use 0 or "" for a random seed (non-reproducible'
-                      ' output) (default: %default)'))],
-        )
-        if self._opts.random_seed in ['', '0']:
-            self._opts.random_seed = None
-
-
-if __name__ == "__main__":
-    VrtScrambler().run()
