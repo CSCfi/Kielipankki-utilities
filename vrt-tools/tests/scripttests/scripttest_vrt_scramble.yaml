@@ -1,0 +1,349 @@
+
+# scripttestlib tests for vrt-add-id
+
+
+# Default input and output
+
+- defaults:
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+- name: 'vrt-scramble: Default options'
+  input:
+    cmdline: vrt-scramble
+    stdin: &input-1 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="5">
+      e
+      </sentence>
+      <sentence n="6">
+      f
+      </sentence>
+      <sentence n="7">
+      g
+      </sentence>
+      </paragraph>
+      <paragraph n="3">
+      <sentence n="8">
+      h
+      </sentence>
+      <sentence n="9">
+      i
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="4">
+      <sentence n="10">
+      j
+      </sentence>
+      <sentence n="11">
+      k
+      </sentence>
+      <sentence n="12">
+      l
+      </sentence>
+      </paragraph>
+      <paragraph n="5">
+      <sentence n="13">
+      m
+      </sentence>
+      <sentence n="14">
+      n
+      </sentence>
+      <sentence n="15">
+      o
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+    stderr: |
+      vrt-scramble: Structure 'paragraph' between 'text' and 'sentence'
+    returncode: 1
+
+
+- name: 'vrt-scramble: Sentences within paragraphs'
+  input:
+    cmdline:
+    - vrt-scramble --within=paragraph --seed=1
+    - vrt-scramble --within=paragraph --unit=sentence --seed=1
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      <sentence n="1">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="7">
+      g
+      </sentence>
+      <sentence n="5">
+      e
+      </sentence>
+      <sentence n="6">
+      f
+      </sentence>
+      </paragraph>
+      <paragraph n="3">
+      <sentence n="8">
+      h
+      </sentence>
+      <sentence n="9">
+      i
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="4">
+      <sentence n="11">
+      k
+      </sentence>
+      <sentence n="10">
+      j
+      </sentence>
+      <sentence n="12">
+      l
+      </sentence>
+      </paragraph>
+      <paragraph n="5">
+      <sentence n="15">
+      o
+      </sentence>
+      <sentence n="13">
+      m
+      </sentence>
+      <sentence n="14">
+      n
+      </sentence>
+      </paragraph>
+      </text>
+
+
+- name: 'vrt-scramble: Paragraphs within texts'
+  input:
+    cmdline:
+    - vrt-scramble --unit=paragraph --seed=1
+    - vrt-scramble --unit=paragraph --within=text --seed=1
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="2">
+      <sentence n="5">
+      e
+      </sentence>
+      <sentence n="6">
+      f
+      </sentence>
+      <sentence n="7">
+      g
+      </sentence>
+      </paragraph>
+      <paragraph n="3">
+      <sentence n="8">
+      h
+      </sentence>
+      <sentence n="9">
+      i
+      </sentence>
+      </paragraph>
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="4">
+      <sentence n="10">
+      j
+      </sentence>
+      <sentence n="11">
+      k
+      </sentence>
+      <sentence n="12">
+      l
+      </sentence>
+      </paragraph>
+      <paragraph n="5">
+      <sentence n="13">
+      m
+      </sentence>
+      <sentence n="14">
+      n
+      </sentence>
+      <sentence n="15">
+      o
+      </sentence>
+      </paragraph>
+      </text>
+
+
+- name: 'vrt-scramble: Sentences within texts'
+  input:
+    cmdline:
+    - vrt-scramble --seed=1
+    - vrt-scramble --unit=sentence --within=text --seed=1
+    stdin: &input-ts
+      value: *input-1
+      transform:
+        shell: grep -v paragraph
+  output:
+    stdout: &output-ts-seed-1 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence n="5">
+      e
+      </sentence>
+      <sentence n="9">
+      i
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      <sentence n="7">
+      g
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="8">
+      h
+      </sentence>
+      <sentence n="6">
+      f
+      </sentence>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="1">
+      a
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence n="11">
+      k
+      </sentence>
+      <sentence n="15">
+      o
+      </sentence>
+      <sentence n="13">
+      m
+      </sentence>
+      <sentence n="14">
+      n
+      </sentence>
+      <sentence n="10">
+      j
+      </sentence>
+      <sentence n="12">
+      l
+      </sentence>
+      </text>
+
+
+- name: 'vrt-scramble: Sentences within texts, infile as argument, --out'
+  input:
+    cmdline:
+    - vrt-scramble --seed=1 --out=out.vrt in.vrt
+    file:in.vrt: *input-ts
+  output:
+    file:out.vrt: *output-ts-seed-1
+
+- name: 'vrt-scramble: Sentences within texts, infile as argument, --in-place'
+  input:
+    cmdline:
+    - vrt-scramble --seed=1 --in-place in.vrt
+    file:in.vrt: *input-ts
+  output:
+    file:in.vrt: *output-ts-seed-1
+
+- name: 'vrt-scramble: Sentences within texts, infile as argument, --backup'
+  input:
+    cmdline:
+    - vrt-scramble --seed=1 --backup=.bak in.vrt
+    file:in.vrt: *input-ts
+  output:
+    file:in.vrt: *output-ts-seed-1
+    # We cannot use "*input-ts" here, as it uses "transform", which
+    # does not work for output, which requires "transform-expected"
+    file:in.vrt.bak:
+      value: *input-1
+      transform-expected:
+        shell: grep -v paragraph
+
+- name: 'vrt-scramble: Sentences within texts, infile as argument, --in-sibling'
+  input:
+    cmdline:
+    - vrt-scramble --seed=1 --in-sibling=scr in.vrt
+    file:in.vrt: *input-ts
+  output:
+    file:in.vrt.scr: *output-ts-seed-1
+
+- name: 'vrt-scramble: Sentences within texts, infile as argument, --in-sibling old/new'
+  input:
+    cmdline:
+    - vrt-scramble --seed=1 --in-sibling=vrt/vrts in.vrt
+    file:in.vrt: *input-ts
+  output:
+    file:in.vrts: *output-ts-seed-1
+
+
+- name: 'vrt-scramble: Sentences within texts, non-reproducible random seed'
+  input:
+    cmdline: |
+      vrt-scramble --seed="" in.vrt > out1.vrt;
+      vrt-scramble --seed="" in.vrt > out2.vrt
+    shell: True
+    file:in.vrt: *input-ts
+  output:
+    # The output of two consecutive runs with non-reproducible random
+    # seed should be different from each other
+    file:out1.vrt:
+      '!=':
+        file: out2.vrt
