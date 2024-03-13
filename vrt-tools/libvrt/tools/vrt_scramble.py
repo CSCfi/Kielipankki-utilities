@@ -43,10 +43,6 @@ class VrtScrambler(InputProcessor):
          dict(default='')),
     ]
 
-    class OPTIONS(InputProcessor.OPTIONS):
-        in_as_text = True
-        out_as_text = True
-
     def __init__(self):
         super().__init__()
         self._scramble_units = []
@@ -59,10 +55,10 @@ class VrtScrambler(InputProcessor):
         # version=1 to be compatible with Python 2 random
         random.seed(args.seed, version=1)
         within_begin_re = re.compile(
-            r'<' + args.within + '[>\s]')
+            (r'<' + args.within + '[>\s]').encode('UTF-8'))
         scramble_begin_re = re.compile(
-            r'<' + args.unit + '[>\s]')
-        scramble_end = '</' + args.within + '>'
+            (r'<' + args.unit + '[>\s]').encode('UTF-8'))
+        scramble_end = ('</' + args.within + '>').encode('UTF-8')
         collecting = False
         units = []
         current_unit = []
@@ -81,12 +77,13 @@ class VrtScrambler(InputProcessor):
                     if current_unit:
                         units.append(current_unit)
                     current_unit = [line]
-                elif line.startswith('<') and current_unit == []:
-                    mo = re.match(r'<([a-z_0-9]+)', line)
+                elif line.startswith(b'<') and current_unit == []:
+                    mo = re.match(br'<([a-z_0-9]+)', line)
                     struct = ''
                     if mo:
                         struct = mo.group(1)
-                    self.error_exit('Structure \'' + struct + '\' between \''
+                    self.error_exit('Structure \'' + struct.decode('UTF-8')
+                                    + '\' between \''
                                     + args.within + '\' and \''
                                     + args.unit + '\'')
                 else:
