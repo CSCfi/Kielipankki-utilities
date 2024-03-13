@@ -89,10 +89,11 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+MANAGE*_ Create a Jira Epic issue called "shortname: Publish XXX in Kielipankki (Korp/Download/…)" and insert relevant parts of this task list (sections under linked Jira Stories)
 # [ ] _*?SUPPORT*_ Contact the potential depositor (by email; arrange a meeting if required) 
 # [ ] _*?SUPPORT*_ Ask the depositor to submit the basic details of the new corpus or resource (e-form: http://urn.fi/urn:nbn:fi:lb-2021121421)
-# [ ] _*+META*_ Create and publish a preliminary META-SHARE record (skeletal information only) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+META*_ Create and publish a preliminary META-SHARE record (skeletal information only) for the source version, which is ususally the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
 # [ ] _*+GITHUB*_ Request a URN for the META-SHARE record
-# [ ] _*+META*_ Update the META-SHARE record with the URN and inform the depositor about citation practices, if relevant
+# [ ] _*+META*_ Update the META-SHARE record with the URN
+# [ ] _*?SUPPORT*_ inform the depositor about citation practices, if relevant
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure the resource is displayed on the list of upcoming corpora
 # [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
 # [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the data
