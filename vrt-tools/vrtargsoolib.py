@@ -272,13 +272,13 @@ def _argparser_add_arg(argparser, argspec):
     argparser.add_argument(*argnames, **argdict)
 
 
-def error_exit(*msg, progname=None):
-    """Print message msg to standard error and exit with code 1.
+def error_exit(*msg, progname=None, exitcode=1):
+    """Print message msg to standard error and exit with code exitcode.
 
     If progname is not None, prepend it to the error message.
     """
     print_error(*msg, progname=progname)
-    exit(1)
+    exit(exitcode)
 
 
 def print_error(*msg, progname=None):
@@ -403,9 +403,9 @@ class BasicProcessor:
         """Print message msg prepended with "Warning:" to standard error."""
         self.print_error('Warning:', *msg)
 
-    def error_exit(self, *msg):
-        """Print message msg to standard error and exit with code 1."""
-        error_exit(*msg, progname=self._progname)
+    def error_exit(self, *msg, exitcode=1):
+        """Print message msg to standard error and exit with code exitcode."""
+        error_exit(*msg, progname=self._progname, exitcode=exitcode)
 
 
 class InputProcessor(BasicProcessor):
