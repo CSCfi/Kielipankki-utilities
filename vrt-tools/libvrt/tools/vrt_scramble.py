@@ -93,6 +93,7 @@ class VrtScrambler(InputProcessor):
         within_begin = make_starttag_begin(args.within)
         unit_begin = make_starttag_begin(args.unit)
         within_end = b'</' + args.within.encode('UTF-8') + b'>'
+        unit_end = b'</' + args.unit.encode('UTF-8') + b'>'
         collecting = False
         units = []
         current_unit = []
@@ -105,6 +106,11 @@ class VrtScrambler(InputProcessor):
                         if current_unit:
                             units.append(current_unit)
                         current_unit = [line]
+                    elif line.startswith(unit_end):
+                        # End of scramble unit: add to collected units
+                        current_unit.append(line)
+                        units.append(current_unit)
+                        current_unit = []
                     elif line.startswith(within_end):
                         if current_unit:
                             units.append(current_unit)

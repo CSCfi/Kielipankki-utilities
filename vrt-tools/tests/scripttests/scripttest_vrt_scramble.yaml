@@ -740,3 +740,39 @@
       </sentence>
       </text>
       <!-- Comment after text end tag 2 -->
+
+
+- name: 'vrt-scramble: Other structure between within and unit, not starting at the beginning of within'
+  input:
+    cmdline: vrt-scramble --within=text --unit=sentence --seed=1
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence n="1">
+      a
+      <clause>
+      a1
+      </clause>
+      <clause>
+      a2
+      </clause>
+      </sentence>
+      <paragraph n="1">
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+    stderr: |
+      vrt-scramble: <stdin>:12: Structure 'paragraph' between 'text' and 'sentence'
+    returncode: 1
