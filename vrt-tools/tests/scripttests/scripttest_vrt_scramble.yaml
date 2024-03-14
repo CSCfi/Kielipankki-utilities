@@ -554,3 +554,111 @@
     input:
       cmdline:
         replace: '/--seed/--legacy --seed/'
+
+
+- name: 'vrt-scramble: Read seed from file'
+  input:
+    cmdline: vrt-scramble --seed="<seed.txt"
+    stdin: *input-ts
+    file:seed.txt: '1'
+  output:
+    stdout: *output-ts-seed-1
+  transform:
+  - {}
+  - name: seed from file same as literal seed
+    input:
+      cmdline:
+        replace: '/<seed\.txt/1/'
+  - name: spaces around file name stripped
+    input:
+      cmdline:
+        replace: '/<seed.txt/< \tseed.txt \t/'
+
+- name: 'vrt-scramble: Read seed from 1 MiB file'
+  input:
+    cmdline: vrt-scramble --seed="<seed.txt"
+    stdin: *input-ts
+    file:seed.txt:
+      value:
+        python: return pow(2, 20) * '0'
+  output:
+    stdout: &output-ts-1mib |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence n="9">
+      i
+      </sentence>
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="6">
+      f
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      <sentence n="8">
+      h
+      </sentence>
+      <sentence n="5">
+      e
+      </sentence>
+      <sentence n="7">
+      g
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence n="14">
+      n
+      </sentence>
+      <sentence n="11">
+      k
+      </sentence>
+      <sentence n="15">
+      o
+      </sentence>
+      <sentence n="13">
+      m
+      </sentence>
+      <sentence n="12">
+      l
+      </sentence>
+      <sentence n="10">
+      j
+      </sentence>
+      </text>
+  transform:
+  - {}
+  # The seed file with something appended should produce the same
+  # result, as only the first 1 MiB of the seed file is used
+  - name: append to 1 MiB seed
+    input:
+      file:seed.txt:
+        append: 'a'
+
+- name: 'vrt-scramble: Read seed from 1 MiB - 1 byte file'
+  input:
+    cmdline: vrt-scramble --seed="<seed.txt"
+    stdin: *input-ts
+    file:seed.txt:
+      value:
+        python: return (pow(2, 20) - 1) * '0'
+  output:
+    stdout:
+      '!=': *output-ts-1mib
+
+- name: 'vrt-scramble: Non-existent seed file'
+  input:
+    cmdline: vrt-scramble --seed="<seed.txt"
+    stdin: *input-ts
+  output:
+    stdout: ''
+    stderr: |
+      vrt-scramble: Cannot read random seed from file seed.txt: [Errno 2] No such file or directory: 'seed.txt'
+    returncode: 1

@@ -37,21 +37,44 @@ class VrtScrambler(InputProcessor):
         ('--within = struct "text"',
          '''shuffle structures within struct structures (elements):
             structures are not moved across struct boundaries'''),
-        ('--seed = seed',
-         '''set random number generator seed to seed (any string)
-            (default: "" = non-reproducible output)''',
+        ('--seed = string',
+         '''set random number generator seed to string; if string
+            begins with "<", the rest is the name of the file whose
+            content (up to 1 MiB) to use as the seed (default: "" =
+            non-reproducible output)''',
          dict(default='')),
         ('--legacy',
          '''produce the same result as the old vrt-scramble.py for any
             non-empty seed'''),
     ]
 
+    # Maximum number of bytes to read from a random seed file
+    MAX_SEED_BYTES = pow(2, 20)
+
     def __init__(self):
         super().__init__()
 
     def check_args(self, args):
-        if args.seed == '':
+        if not args.seed:
             args.seed = None
+        elif args.seed[0] == '<':
+            args.seed = self._read_file_content(args.seed[1:].strip(),
+                                                self.MAX_SEED_BYTES)
+
+    def _read_file_content(self, filename, max_bytes):
+        """Return up to max_bytes bytes from the beginning of file filename.
+
+        An IOError when trying to read the file causes the program to
+        terminate with an error message and exit code 1.
+        """
+        try:
+            with open(filename, 'rb') as f:
+                return f.read(max_bytes)
+        except IOError as e:
+            self.error_exit(
+                f'Cannot read random seed from file {filename}: {e}')
+        # Should never get here
+        return None
 
     def main(self, args, inf, ouf):
 
