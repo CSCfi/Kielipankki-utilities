@@ -48,7 +48,6 @@ class VrtScrambler(InputProcessor):
 
     def __init__(self):
         super().__init__()
-        self._scramble_units = []
 
     def check_args(self, args):
         if args.seed == '':
