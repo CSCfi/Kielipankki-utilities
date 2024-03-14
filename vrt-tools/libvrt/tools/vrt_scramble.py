@@ -69,9 +69,9 @@ class VrtScrambler(InputProcessor):
         collecting = False
         units = []
         current_unit = []
-        self._linenr = 0
+        linenr = 0
         for line in inf:
-            self._linenr += 1
+            linenr += 1
             if collecting:
                 if line.startswith(scramble_end):
                     if current_unit:
@@ -89,10 +89,10 @@ class VrtScrambler(InputProcessor):
                     struct = ''
                     if mo:
                         struct = mo.group(1)
-                    self.error_exit('Structure \'' + struct.decode('UTF-8')
-                                    + '\' between \''
-                                    + args.within + '\' and \''
-                                    + args.unit + '\'')
+                    self.error_exit(
+                        'Structure \'' + struct.decode('UTF-8')
+                        + f'\' between \'{args.within}\' and \'{args.unit}\'',
+                        filename=inf.name, linenr=linenr)
                 else:
                     current_unit.append(line)
             else:

@@ -80,8 +80,19 @@
       <!-- #vrt positional-attributes: word -->
       <text n="1">
     stderr: |
-      vrt-scramble: Structure 'paragraph' between 'text' and 'sentence'
+      vrt-scramble: <stdin>:3: Structure 'paragraph' between 'text' and 'sentence'
     returncode: 1
+  transform:
+  - name: input from stdin
+    # No transformations: use input and output as above
+  - name: input file as argument
+    input:
+      cmdline: vrt-scramble in.vrt
+      file:in.vrt: *input-1
+      stdin: ''
+    output-expected:
+      stderr:
+        replace: '/<stdin>/in.vrt/'
 
 
 - name: 'vrt-scramble: Sentences within paragraphs'
