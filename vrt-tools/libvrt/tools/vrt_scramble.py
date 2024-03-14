@@ -119,8 +119,11 @@ class VrtScrambler(InputProcessor):
                             ouf.write(line2)
                         ouf.write(line)
                     elif current_unit == []:
-                        mo = re.match(br'<([a-z_0-9]+)', line)
+                        # Outside scramble units but within the
+                        # structure within which units are scrambled
+                        mo = re.match(br'</?([a-z_0-9]+)', line)
                         if mo:
+                            # No structure tags allowed here
                             struct = mo.group(1)
                             self.error_exit(
                                 'Structure \'' + struct.decode('UTF-8')

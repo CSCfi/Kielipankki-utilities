@@ -776,3 +776,43 @@
     stderr: |
       vrt-scramble: <stdin>:12: Structure 'paragraph' between 'text' and 'sentence'
     returncode: 1
+
+- name: 'vrt-scramble: Other structure end tag between within and unit'
+  input:
+    cmdline: vrt-scramble --within=paragraph --unit=sentence --seed=1
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <bold n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="2">
+      b
+      </sentence>
+      </bold>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <bold n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+    stderr: |
+      vrt-scramble: <stdin>:13: Structure 'bold' between 'paragraph' and 'sentence'
+    returncode: 1
