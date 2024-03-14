@@ -54,6 +54,11 @@ class VrtScrambler(InputProcessor):
             args.seed = None
 
     def main(self, args, inf, ouf):
+
+        def make_starttag_begin(struct):
+            begin = b'<' + struct.encode('UTF-8')
+            return (begin + b' ', begin + b'>')
+
         if args.legacy:
             seed_ver = 1
             self._random_shuffle = self._random_shuffle_legacy
@@ -61,11 +66,10 @@ class VrtScrambler(InputProcessor):
             seed_ver = 2
             self._random_shuffle = random.shuffle
         random.seed(args.seed, version=seed_ver)
-        within_begin_re = re.compile(
-            (r'<' + args.within + '[>\s]').encode('UTF-8'))
-        scramble_begin_re = re.compile(
-            (r'<' + args.unit + '[>\s]').encode('UTF-8'))
-        scramble_end = ('</' + args.within + '>').encode('UTF-8')
+        LT = b'<'[0]
+        within_begin = make_starttag_begin(args.within)
+        unit_begin = make_starttag_begin(args.unit)
+        within_end = b'</' + args.within.encode('UTF-8') + b'>'
         collecting = False
         units = []
         current_unit = []
@@ -73,31 +77,34 @@ class VrtScrambler(InputProcessor):
         for line in inf:
             linenr += 1
             if collecting:
-                if line.startswith(scramble_end):
-                    if current_unit:
-                        units.append(current_unit)
-                    collecting = False
-                    for line2 in self._scramble(units):
-                        ouf.write(line2)
-                    ouf.write(line)
-                elif scramble_begin_re.match(line):
-                    if current_unit:
-                        units.append(current_unit)
-                    current_unit = [line]
-                elif line.startswith(b'<') and current_unit == []:
-                    mo = re.match(br'<([a-z_0-9]+)', line)
-                    struct = ''
-                    if mo:
-                        struct = mo.group(1)
-                    self.error_exit(
-                        'Structure \'' + struct.decode('UTF-8')
-                        + f'\' between \'{args.within}\' and \'{args.unit}\'',
-                        filename=inf.name, linenr=linenr)
+                if line[0] == LT:
+                    if line.startswith(unit_begin):
+                        if current_unit:
+                            units.append(current_unit)
+                        current_unit = [line]
+                    elif line.startswith(within_end):
+                        if current_unit:
+                            units.append(current_unit)
+                        collecting = False
+                        for line2 in self._scramble(units):
+                            ouf.write(line2)
+                        ouf.write(line)
+                    elif current_unit == []:
+                        mo = re.match(br'<([a-z_0-9]+)', line)
+                        if mo:
+                            struct = mo.group(1)
+                            self.error_exit(
+                                'Structure \'' + struct.decode('UTF-8')
+                                + f'\' between \'{args.within}\' and'
+                                + f' \'{args.unit}\'',
+                                filename=inf.name, linenr=linenr)
+                    else:
+                        current_unit.append(line)
                 else:
                     current_unit.append(line)
             else:
                 ouf.write(line)
-                if within_begin_re.match(line):
+                if line.startswith(within_begin):
                     units = []
                     current_unit = []
                     collecting = True
