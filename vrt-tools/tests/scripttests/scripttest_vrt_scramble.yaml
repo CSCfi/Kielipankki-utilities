@@ -662,3 +662,81 @@
     stderr: |
       vrt-scramble: Cannot read random seed from file seed.txt: [Errno 2] No such file or directory: 'seed.txt'
     returncode: 1
+
+
+- name: 'vrt-scramble: Comments within structures to be scrambled'
+  input:
+    cmdline: vrt-scramble --within=text --unit=sentence --seed=1
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <!-- Comment before text start tag 1 -->
+      <text n="1">
+      <!-- Comment after text start tag 1 -->
+      <!-- Comment 2 after text start tag 1 -->
+      <sentence n="1">
+      <!-- Comment after sentence start tag 1 -->
+      a
+      <!-- Comment before sentence end tag 1 -->
+      </sentence>
+      <!-- Comment between sentences 1 and 2 -->
+      <sentence n="2">
+      b
+      </sentence>
+      <!-- Comment between sentences 2 and 3 -->
+      <sentence n="3">
+      c
+      </sentence>
+      <!-- Comment between sentences 3 and 4 -->
+      <sentence n="4">
+      d
+      </sentence>
+      <!-- Comment after sentence 4 ->
+      </text>
+      <!-- Comment between texts 1 and 2 -->
+      <text n="2">
+      <!-- Comment after text start tag 2 -->
+      <sentence n="5">
+      e
+      </sentence>
+      <sentence n="6">
+      f
+      </sentence>
+      </text>
+      <!-- Comment after text end tag 2 -->
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <!-- Comment before text start tag 1 -->
+      <text n="1">
+      <!-- Comment after text start tag 1 -->
+      <!-- Comment 2 after text start tag 1 -->
+      <sentence n="3">
+      c
+      </sentence>
+      <!-- Comment between sentences 3 and 4 -->
+      <sentence n="1">
+      <!-- Comment after sentence start tag 1 -->
+      a
+      <!-- Comment before sentence end tag 1 -->
+      </sentence>
+      <!-- Comment between sentences 1 and 2 -->
+      <sentence n="2">
+      b
+      </sentence>
+      <!-- Comment between sentences 2 and 3 -->
+      <sentence n="4">
+      d
+      </sentence>
+      <!-- Comment after sentence 4 ->
+      </text>
+      <!-- Comment between texts 1 and 2 -->
+      <text n="2">
+      <!-- Comment after text start tag 2 -->
+      <sentence n="6">
+      f
+      </sentence>
+      <sentence n="5">
+      e
+      </sentence>
+      </text>
+      <!-- Comment after text end tag 2 -->

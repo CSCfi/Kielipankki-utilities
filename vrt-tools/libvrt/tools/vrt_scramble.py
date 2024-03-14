@@ -121,6 +121,15 @@ class VrtScrambler(InputProcessor):
                                 + f'\' between \'{args.within}\' and'
                                 + f' \'{args.unit}\'',
                                 filename=inf.name, linenr=linenr)
+                        elif units:
+                            # Append comment lines following the end
+                            # tag of a unit structure to the preceding
+                            # unit
+                            units[-1].append(line)
+                        else:
+                            # Output comment lines directly after the
+                            # start of within
+                            ouf.write(line)
                     else:
                         current_unit.append(line)
                 else:
