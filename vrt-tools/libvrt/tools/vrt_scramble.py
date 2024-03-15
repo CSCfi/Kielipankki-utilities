@@ -22,14 +22,14 @@ class VrtScrambler(InputProcessor):
     """Class implementing vrt-scramble functionality."""
 
     DESCRIPTION = """
-    Scramble (randomly shuffle) given structures (elements), such as
-    sentences, within larger structures, such as texts, in the VRT
-    input and output the scrambled VRT.
+    Scramble the input VRT by randomly shuffling specified structures
+    (elements), such as sentences, within containing structures, such
+    as texts, and output the scrambled VRT.
 
     Note that the input may not have intermediate structures between
-    the containing structures and the structures to be scrambled; for
-    example, if sentences are scrambled within texts, the input may
-    not have paragraphs.
+    the containing structures and the structures to be shuffled; for
+    example, if sentences are shuffled within texts, the input may
+    not have paragraphs between them.
     """
     ARGSPECS = [
         ('--unit = struct "sentence"',
@@ -38,7 +38,7 @@ class VrtScrambler(InputProcessor):
          '''shuffle structures within struct structures (elements):
             structures are not moved across struct boundaries'''),
         ('--seed = string',
-         '''set random number generator seed to string; if string
+         '''use string as the random number generator seed; if string
             begins with "<", the rest is the name of the file whose
             content (up to 1 MiB) to use as the seed (default: "" =
             non-reproducible output)''',
