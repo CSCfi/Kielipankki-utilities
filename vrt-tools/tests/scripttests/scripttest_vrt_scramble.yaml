@@ -1,0 +1,913 @@
+
+# scripttestlib tests for vrt-add-id
+
+
+# Default input and output
+
+- defaults:
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+- name: 'vrt-scramble: Default options'
+  input:
+    cmdline: vrt-scramble
+    stdin: &input-1 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="5">
+      e
+      </sentence>
+      <sentence n="6">
+      f
+      </sentence>
+      <sentence n="7">
+      g
+      </sentence>
+      </paragraph>
+      <paragraph n="3">
+      <sentence n="8">
+      h
+      </sentence>
+      <sentence n="9">
+      i
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="4">
+      <sentence n="10">
+      j
+      </sentence>
+      <sentence n="11">
+      k
+      </sentence>
+      <sentence n="12">
+      l
+      </sentence>
+      </paragraph>
+      <paragraph n="5">
+      <sentence n="13">
+      m
+      </sentence>
+      <sentence n="14">
+      n
+      </sentence>
+      <sentence n="15">
+      o
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+    stderr: |
+      vrt-scramble: <stdin>:3: Structure 'paragraph' not allowed between container 'text' and shuffle item 'sentence'
+    returncode: 1
+  transform:
+  - name: input from stdin
+    # No transformations: use input and output as above
+  - name: input file as argument
+    input:
+      cmdline: vrt-scramble in.vrt
+      file:in.vrt: *input-1
+      stdin: ''
+    output-expected:
+      stderr:
+        replace: '/<stdin>/in.vrt/'
+
+
+- name: 'vrt-scramble: Sentences within paragraphs'
+  input:
+    cmdline:
+    - vrt-scramble --within=paragraph --seed=1
+    - vrt-scramble --within=paragraph --unit=sentence --seed=1
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="6">
+      f
+      </sentence>
+      <sentence n="5">
+      e
+      </sentence>
+      <sentence n="7">
+      g
+      </sentence>
+      </paragraph>
+      <paragraph n="3">
+      <sentence n="8">
+      h
+      </sentence>
+      <sentence n="9">
+      i
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="4">
+      <sentence n="10">
+      j
+      </sentence>
+      <sentence n="12">
+      l
+      </sentence>
+      <sentence n="11">
+      k
+      </sentence>
+      </paragraph>
+      <paragraph n="5">
+      <sentence n="14">
+      n
+      </sentence>
+      <sentence n="15">
+      o
+      </sentence>
+      <sentence n="13">
+      m
+      </sentence>
+      </paragraph>
+      </text>
+  transform:
+  - {}
+  - name: --legacy
+    input: &cmdline-legacy
+      cmdline:
+        append: ' --legacy'
+    output-expected:
+      stdout: |
+        <!-- #vrt positional-attributes: word -->
+        <text n="1">
+        <paragraph n="1">
+        <sentence n="3">
+        c
+        </sentence>
+        <sentence n="2">
+        b
+        </sentence>
+        <sentence n="4">
+        d
+        </sentence>
+        <sentence n="1">
+        a
+        </sentence>
+        </paragraph>
+        <paragraph n="2">
+        <sentence n="7">
+        g
+        </sentence>
+        <sentence n="5">
+        e
+        </sentence>
+        <sentence n="6">
+        f
+        </sentence>
+        </paragraph>
+        <paragraph n="3">
+        <sentence n="8">
+        h
+        </sentence>
+        <sentence n="9">
+        i
+        </sentence>
+        </paragraph>
+        </text>
+        <text n="2">
+        <paragraph n="4">
+        <sentence n="11">
+        k
+        </sentence>
+        <sentence n="10">
+        j
+        </sentence>
+        <sentence n="12">
+        l
+        </sentence>
+        </paragraph>
+        <paragraph n="5">
+        <sentence n="15">
+        o
+        </sentence>
+        <sentence n="13">
+        m
+        </sentence>
+        <sentence n="14">
+        n
+        </sentence>
+        </paragraph>
+        </text>
+
+
+- name: 'vrt-scramble: Paragraphs within texts'
+  input:
+    cmdline:
+    - vrt-scramble --unit=paragraph --seed=1
+    - vrt-scramble --unit=paragraph --within=text --seed=1
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      </paragraph>
+      <paragraph n="3">
+      <sentence n="8">
+      h
+      </sentence>
+      <sentence n="9">
+      i
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="5">
+      e
+      </sentence>
+      <sentence n="6">
+      f
+      </sentence>
+      <sentence n="7">
+      g
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="5">
+      <sentence n="13">
+      m
+      </sentence>
+      <sentence n="14">
+      n
+      </sentence>
+      <sentence n="15">
+      o
+      </sentence>
+      </paragraph>
+      <paragraph n="4">
+      <sentence n="10">
+      j
+      </sentence>
+      <sentence n="11">
+      k
+      </sentence>
+      <sentence n="12">
+      l
+      </sentence>
+      </paragraph>
+      </text>
+  transform:
+  - {}
+  - name: --legacy
+    input: *cmdline-legacy
+    output-expected:
+      stdout: |
+        <!-- #vrt positional-attributes: word -->
+        <text n="1">
+        <paragraph n="2">
+        <sentence n="5">
+        e
+        </sentence>
+        <sentence n="6">
+        f
+        </sentence>
+        <sentence n="7">
+        g
+        </sentence>
+        </paragraph>
+        <paragraph n="3">
+        <sentence n="8">
+        h
+        </sentence>
+        <sentence n="9">
+        i
+        </sentence>
+        </paragraph>
+        <paragraph n="1">
+        <sentence n="1">
+        a
+        </sentence>
+        <sentence n="2">
+        b
+        </sentence>
+        <sentence n="3">
+        c
+        </sentence>
+        <sentence n="4">
+        d
+        </sentence>
+        </paragraph>
+        </text>
+        <text n="2">
+        <paragraph n="4">
+        <sentence n="10">
+        j
+        </sentence>
+        <sentence n="11">
+        k
+        </sentence>
+        <sentence n="12">
+        l
+        </sentence>
+        </paragraph>
+        <paragraph n="5">
+        <sentence n="13">
+        m
+        </sentence>
+        <sentence n="14">
+        n
+        </sentence>
+        <sentence n="15">
+        o
+        </sentence>
+        </paragraph>
+        </text>
+
+
+- name: 'vrt-scramble: Sentences within texts'
+  input:
+    cmdline:
+    - vrt-scramble --seed=1
+    - vrt-scramble --unit=sentence --within=text --seed=1
+    stdin: &input-ts
+      value: *input-1
+      transform:
+        shell: grep -v paragraph
+  output:
+    stdout: &output-ts-seed-1 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence n="5">
+      e
+      </sentence>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      <sentence n="7">
+      g
+      </sentence>
+      <sentence n="6">
+      f
+      </sentence>
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="9">
+      i
+      </sentence>
+      <sentence n="8">
+      h
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence n="11">
+      k
+      </sentence>
+      <sentence n="13">
+      m
+      </sentence>
+      <sentence n="12">
+      l
+      </sentence>
+      <sentence n="14">
+      n
+      </sentence>
+      <sentence n="15">
+      o
+      </sentence>
+      <sentence n="10">
+      j
+      </sentence>
+      </text>
+  transform:
+  - {}
+  - name: --legacy
+    input: *cmdline-legacy
+    output-expected:
+      stdout: |
+        <!-- #vrt positional-attributes: word -->
+        <text n="1">
+        <sentence n="5">
+        e
+        </sentence>
+        <sentence n="9">
+        i
+        </sentence>
+        <sentence n="4">
+        d
+        </sentence>
+        <sentence n="7">
+        g
+        </sentence>
+        <sentence n="2">
+        b
+        </sentence>
+        <sentence n="8">
+        h
+        </sentence>
+        <sentence n="6">
+        f
+        </sentence>
+        <sentence n="3">
+        c
+        </sentence>
+        <sentence n="1">
+        a
+        </sentence>
+        </text>
+        <text n="2">
+        <sentence n="11">
+        k
+        </sentence>
+        <sentence n="15">
+        o
+        </sentence>
+        <sentence n="13">
+        m
+        </sentence>
+        <sentence n="14">
+        n
+        </sentence>
+        <sentence n="10">
+        j
+        </sentence>
+        <sentence n="12">
+        l
+        </sentence>
+        </text>
+
+
+- name: 'vrt-scramble: Sentences within texts, infile as argument, --out'
+  input:
+    cmdline:
+    - vrt-scramble --seed=1 --out=out.vrt in.vrt
+    file:in.vrt: *input-ts
+  output:
+    file:out.vrt: *output-ts-seed-1
+
+- name: 'vrt-scramble: Sentences within texts, infile as argument, --in-place'
+  input:
+    cmdline:
+    - vrt-scramble --seed=1 --in-place in.vrt
+    file:in.vrt: *input-ts
+  output:
+    file:in.vrt: *output-ts-seed-1
+
+- name: 'vrt-scramble: Sentences within texts, infile as argument, --backup'
+  input:
+    cmdline:
+    - vrt-scramble --seed=1 --backup=.bak in.vrt
+    file:in.vrt: *input-ts
+  output:
+    file:in.vrt: *output-ts-seed-1
+    # We cannot use "*input-ts" here, as it uses "transform", which
+    # does not work for output, which requires "transform-expected"
+    file:in.vrt.bak:
+      value: *input-1
+      transform-expected:
+        shell: grep -v paragraph
+
+- name: 'vrt-scramble: Sentences within texts, infile as argument, --in-sibling'
+  input:
+    cmdline:
+    - vrt-scramble --seed=1 --in-sibling=scr in.vrt
+    file:in.vrt: *input-ts
+  output:
+    file:in.vrt.scr: *output-ts-seed-1
+
+- name: 'vrt-scramble: Sentences within texts, infile as argument, --in-sibling old/new'
+  input:
+    cmdline:
+    - vrt-scramble --seed=1 --in-sibling=vrt/vrts in.vrt
+    file:in.vrt: *input-ts
+  output:
+    file:in.vrts: *output-ts-seed-1
+
+
+- name: 'vrt-scramble: Sentences within texts, non-reproducible random seed'
+  input:
+    cmdline: |
+      vrt-scramble --seed="" in.vrt > out1.vrt;
+      vrt-scramble --seed="" in.vrt > out2.vrt
+    shell: True
+    file:in.vrt: *input-ts
+  output:
+    # The output of two consecutive runs with non-reproducible random
+    # seed should be different from each other
+    file:out1.vrt:
+      '!=':
+        file: out2.vrt
+  transform:
+  - {}
+  - name: --legacy
+    input:
+      cmdline:
+        replace: '/--seed/--legacy --seed/'
+
+
+- name: 'vrt-scramble: Read seed from file'
+  input:
+    cmdline: vrt-scramble --seed="<seed.txt"
+    stdin: *input-ts
+    file:seed.txt: '1'
+  output:
+    stdout: *output-ts-seed-1
+  transform:
+  - {}
+  - name: seed from file same as literal seed
+    input:
+      cmdline:
+        replace: '/<seed\.txt/1/'
+  - name: spaces around file name stripped
+    input:
+      cmdline:
+        replace: '/<seed.txt/< \tseed.txt \t/'
+
+- name: 'vrt-scramble: Read seed from 1 MiB file'
+  input:
+    cmdline: vrt-scramble --seed="<seed.txt"
+    stdin: *input-ts
+    file:seed.txt:
+      value:
+        python: return pow(2, 20) * '0'
+  output:
+    stdout: &output-ts-1mib |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence n="9">
+      i
+      </sentence>
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="6">
+      f
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      <sentence n="8">
+      h
+      </sentence>
+      <sentence n="5">
+      e
+      </sentence>
+      <sentence n="7">
+      g
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence n="14">
+      n
+      </sentence>
+      <sentence n="11">
+      k
+      </sentence>
+      <sentence n="15">
+      o
+      </sentence>
+      <sentence n="13">
+      m
+      </sentence>
+      <sentence n="12">
+      l
+      </sentence>
+      <sentence n="10">
+      j
+      </sentence>
+      </text>
+  transform:
+  - {}
+  # The seed file with something appended should produce the same
+  # result, as only the first 1 MiB of the seed file is used
+  - name: append to 1 MiB seed
+    input:
+      file:seed.txt:
+        append: 'a'
+
+- name: 'vrt-scramble: Read seed from 1 MiB - 1 byte file'
+  input:
+    cmdline: vrt-scramble --seed="<seed.txt"
+    stdin: *input-ts
+    file:seed.txt:
+      value:
+        python: return (pow(2, 20) - 1) * '0'
+  output:
+    stdout:
+      '!=': *output-ts-1mib
+
+- name: 'vrt-scramble: Non-existent seed file'
+  input:
+    cmdline: vrt-scramble --seed="<seed.txt"
+    stdin: *input-ts
+  output:
+    stdout: ''
+    stderr: |
+      vrt-scramble: Cannot read random seed from file seed.txt: [Errno 2] No such file or directory: 'seed.txt'
+    returncode: 1
+
+
+- name: 'vrt-scramble: Comments within structures to be shuffled'
+  input:
+    cmdline: vrt-scramble --within=text --unit=sentence --seed=1
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <!-- Comment before text start tag 1 -->
+      <text n="1">
+      <!-- Comment after text start tag 1 -->
+      <!-- Comment 2 after text start tag 1 -->
+      <sentence n="1">
+      <!-- Comment after sentence start tag 1 -->
+      a
+      <!-- Comment before sentence end tag 1 -->
+      </sentence>
+      <!-- Comment between sentences 1 and 2 -->
+      <sentence n="2">
+      b
+      </sentence>
+      <!-- Comment between sentences 2 and 3 -->
+      <sentence n="3">
+      c
+      </sentence>
+      <!-- Comment between sentences 3 and 4 -->
+      <sentence n="4">
+      d
+      </sentence>
+      <!-- Comment after sentence 4 ->
+      </text>
+      <!-- Comment between texts 1 and 2 -->
+      <text n="2">
+      <!-- Comment after text start tag 2 -->
+      <sentence n="5">
+      e
+      </sentence>
+      <sentence n="6">
+      f
+      </sentence>
+      </text>
+      <!-- Comment after text end tag 2 -->
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <!-- Comment before text start tag 1 -->
+      <text n="1">
+      <!-- Comment after text start tag 1 -->
+      <!-- Comment 2 after text start tag 1 -->
+      <sentence n="3">
+      c
+      </sentence>
+      <!-- Comment between sentences 3 and 4 -->
+      <sentence n="1">
+      <!-- Comment after sentence start tag 1 -->
+      a
+      <!-- Comment before sentence end tag 1 -->
+      </sentence>
+      <!-- Comment between sentences 1 and 2 -->
+      <sentence n="2">
+      b
+      </sentence>
+      <!-- Comment between sentences 2 and 3 -->
+      <sentence n="4">
+      d
+      </sentence>
+      <!-- Comment after sentence 4 ->
+      </text>
+      <!-- Comment between texts 1 and 2 -->
+      <text n="2">
+      <!-- Comment after text start tag 2 -->
+      <sentence n="6">
+      f
+      </sentence>
+      <sentence n="5">
+      e
+      </sentence>
+      </text>
+      <!-- Comment after text end tag 2 -->
+
+
+- name: 'vrt-scramble: Other structure between container and shuffle item structures, not starting at the beginning of container'
+  input:
+    cmdline: vrt-scramble --within=text --unit=sentence --seed=1
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence n="1">
+      a
+      <clause>
+      a1
+      </clause>
+      <clause>
+      a2
+      </clause>
+      </sentence>
+      <paragraph n="1">
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+    stderr: |
+      vrt-scramble: <stdin>:12: Structure 'paragraph' not allowed between container 'text' and shuffle item 'sentence'
+    returncode: 1
+
+- name: 'vrt-scramble: Other structure end tag between container and shuffle item structures'
+  input:
+    cmdline: vrt-scramble --within=paragraph --unit=sentence --seed=1
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <bold n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="2">
+      b
+      </sentence>
+      </bold>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <bold n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+    stderr: |
+      vrt-scramble: <stdin>:13: Structure 'bold' not allowed between container 'paragraph' and shuffle item 'sentence'
+    returncode: 1
+
+
+- name: 'vrt-scramble: Container the same as shuffle item'
+  input:
+    cmdline: vrt-scramble --within=sentence --unit=sentence --seed=1
+    stdin: *input-ts
+  output:
+    stdout: ''
+    stderr: |
+      vrt-scramble: The structure to shuffle and the containing structure may not be the same
+    returncode: 1
+
+
+- name: 'vrt-scramble: No container in the input'
+  input:
+    cmdline:
+    # No within
+    - vrt-scramble --within=corpus --unit=sentence --seed=1
+    # No within nor unit
+    - vrt-scramble --within=corpus --unit=clause --seed=1
+    stdin: *input-1
+  output:
+    # Output input intact
+    stdout: *input-1
+
+- name: 'vrt-scramble: No shuffle unit in the input'
+  input:
+    cmdline: vrt-scramble --within=paragraph --unit=clause --seed=1
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+    stderr: |
+      vrt-scramble: <stdin>:4: Structure 'sentence' not allowed between container 'paragraph' and shuffle item 'clause'
+    returncode: 1
+
+
+- name: 'vrt-scramble: Structures outside container'
+  input:
+    cmdline: vrt-scramble --within=text --unit=sentence --seed=1
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <!-- Comment before collection -->
+      <collection n="1">
+      <!-- Comment between collection and corpus -->
+      <corpus n="1">
+      <!-- Comment between corpus and text -->
+      <text n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      </text>
+      <!-- Comment between text and corpus -->
+      </corpus>
+      <!-- Comment between corpus and collection -->
+      </collection>
+      <!-- Comment after collection -->
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <!-- Comment before collection -->
+      <collection n="1">
+      <!-- Comment between collection and corpus -->
+      <corpus n="1">
+      <!-- Comment between corpus and text -->
+      <text n="1">
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      </text>
+      <!-- Comment between text and corpus -->
+      </corpus>
+      <!-- Comment between corpus and collection -->
+      </collection>
+      <!-- Comment after collection -->
