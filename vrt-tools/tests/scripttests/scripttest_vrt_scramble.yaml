@@ -80,7 +80,7 @@
       <!-- #vrt positional-attributes: word -->
       <text n="1">
     stderr: |
-      vrt-scramble: <stdin>:3: Structure 'paragraph' between 'text' and 'sentence'
+      vrt-scramble: <stdin>:3: Structure 'paragraph' not allowed between container 'text' and shuffle item 'sentence'
     returncode: 1
   transform:
   - name: input from stdin
@@ -774,7 +774,7 @@
       <!-- #vrt positional-attributes: word -->
       <text n="1">
     stderr: |
-      vrt-scramble: <stdin>:12: Structure 'paragraph' between 'text' and 'sentence'
+      vrt-scramble: <stdin>:12: Structure 'paragraph' not allowed between container 'text' and shuffle item 'sentence'
     returncode: 1
 
 - name: 'vrt-scramble: Other structure end tag between container and shuffle item structures'
@@ -814,7 +814,7 @@
       </paragraph>
       <paragraph n="2">
     stderr: |
-      vrt-scramble: <stdin>:13: Structure 'bold' between 'paragraph' and 'sentence'
+      vrt-scramble: <stdin>:13: Structure 'bold' not allowed between container 'paragraph' and shuffle item 'sentence'
     returncode: 1
 
 
@@ -851,7 +851,7 @@
       <text n="1">
       <paragraph n="1">
     stderr: |
-      vrt-scramble: <stdin>:4: Structure 'sentence' between 'paragraph' and 'clause'
+      vrt-scramble: <stdin>:4: Structure 'sentence' not allowed between container 'paragraph' and shuffle item 'clause'
     returncode: 1
 
 

@@ -149,9 +149,9 @@ class VrtScrambler(InputProcessor):
                             # No structure tags allowed here
                             struct = mo.group(1)
                             self.error_exit(
-                                'Structure \'' + struct.decode('UTF-8')
-                                + f'\' between \'{args.within}\' and'
-                                + f' \'{args.unit}\'',
+                                f"Structure '{struct.decode('UTF-8')}' not"
+                                f" allowed between container '{args.within}'"
+                                f" and shuffle item '{args.unit}'",
                                 filename=inf.name, linenr=linenr)
                         elif items:
                             # Append comment lines following the end
