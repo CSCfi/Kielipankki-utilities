@@ -55,6 +55,12 @@ class VrtScrambler(InputProcessor):
         super().__init__()
 
     def check_args(self, args):
+        """Check and modify args (args.seed)."""
+        # Scramble unit and within may not be the same
+        if args.within == args.unit:
+            self.error_exit(
+                'The structure to scramble and the containing structure may'
+                ' not be the same')
         if not args.seed:
             args.seed = None
         elif args.seed[0] == '<':

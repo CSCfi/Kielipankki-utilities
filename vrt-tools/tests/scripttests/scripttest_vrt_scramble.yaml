@@ -816,3 +816,14 @@
     stderr: |
       vrt-scramble: <stdin>:13: Structure 'bold' between 'paragraph' and 'sentence'
     returncode: 1
+
+
+- name: 'vrt-scramble: Unit the same as within'
+  input:
+    cmdline: vrt-scramble --within=sentence --unit=sentence --seed=1
+    stdin: *input-ts
+  output:
+    stdout: ''
+    stderr: |
+      vrt-scramble: The structure to scramble and the containing structure may not be the same
+    returncode: 1
