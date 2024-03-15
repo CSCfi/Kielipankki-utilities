@@ -87,10 +87,11 @@ class VrtScrambler(InputProcessor):
     def main(self, args, inf, ouf):
         """Read inf, write to ouf, with command-line arguments args."""
 
-        def make_starttag_begin(struct):
-            """Return (b'<struct ', b'<struct>')."""
-            begin = b'<' + struct.encode('UTF-8')
-            return (begin + b' ', begin + b'>')
+        def make_tag_prefixes(struct):
+            """Return start and end tag prefixes (bytes) for struct."""
+            struct_b = struct.encode('UTF-8')
+            return ((b'<' + struct_b + b' ', b'<' + struct_b + b'>'),
+                    b'</' + struct_b + b'>')
 
         # If legacy, use random.seed version 1 and the local shuffling
         # method containing a copy of the legacy code
@@ -102,14 +103,10 @@ class VrtScrambler(InputProcessor):
             self._random_shuffle = random.shuffle
         random.seed(args.seed, version=seed_ver)
         LT = b'<'[0]
-        # Start tag start strings for the container structure
-        container_begin = make_starttag_begin(args.within)
-        # Start tag start strings for the shuffle item structure
-        item_begin = make_starttag_begin(args.unit)
-        # End tag string for the container structure
-        container_end = b'</' + args.within.encode('UTF-8') + b'>'
-        # End tag string for the shuffle item structure
-        item_end = b'</' + args.unit.encode('UTF-8') + b'>'
+        # Start and end tag prefixes for container structure
+        container_start, container_end = make_tag_prefixes(args.within)
+        # Start and end tag prefixes for shuffle item structure
+        item_start, item_end = make_tag_prefixes(args.unit)
         # Whether structures are being collected for shuffling (the
         # current line is inside a container structure)
         collecting = False
@@ -122,7 +119,7 @@ class VrtScrambler(InputProcessor):
             linenr += 1
             if collecting:
                 if line[0] == LT:
-                    if line.startswith(item_begin):
+                    if line.startswith(item_start):
                         # Add possible current shuffle item to the
                         # collected items and start a new item
                         if current_item:
@@ -170,7 +167,7 @@ class VrtScrambler(InputProcessor):
             else:
                 # Outside container structures
                 ouf.write(line)
-                if line.startswith(container_begin):
+                if line.startswith(container_start):
                     # A new container begins
                     items = []
                     current_item = []
