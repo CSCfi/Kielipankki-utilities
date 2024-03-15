@@ -7,15 +7,27 @@ Warning: this is not a validator.
 import re
 import sys
 
+from collections import OrderedDict
+
 def attributes(line):
     return tuple(name for name, value in pairs(line))
 
 def mapping(line):
-    it = dict(pairs(line))
+    it = OrderedDict(pairs(line))
     return it
 
 def pairs(line):
     return re.findall(br'(\S+)="([^""]*)"', line)
+
+def element(line):
+    '''Get start or end tag element name from line (bytes).'''
+    mo = re.search(rb'\w+', line)
+    return mo.group(0) if mo else None
+
+def strelement(line):
+    '''Get start or end tag element name from line (str).'''
+    mo = re.search(r'\w+', line)
+    return mo.group(0) if mo else None
 
 def valuegetter(head, *,
                 missing, # missing value mark (safe bytes)
@@ -128,28 +140,69 @@ def strescape(value):
              .replace('"', '&quot;')
     )
 
-def starttag(struct, attrs):
+def starttag(struct, attrs, sort=False):
     '''Start tag line for struct (bytes) with attrs (dict[bytes, bytes]).
 
     attrs should be an OrderedDict to preserve attribute order for
     Python versions prior to 3.8.
+
+    If sort == True, sort the attributes by name.
 
     This function does not escape attribute values in attrs nor check
     their escaping, so that should be done by the caller.
 
     '''
 
+    sortfn = sorted if sort else lambda x: x
     attrstr = b' '.join(name + b'="' + val + b'"'
-                        for name, val in attrs.items())
+                        for name, val in sortfn(attrs.items()))
     return b'<' + struct + (b' ' + attrstr if attrstr else b'') + b'>\n'
 
-def strstarttag(struct, attrs):
+def strstarttag(struct, attrs, sort=False):
     '''Start tag line for struct (str) with attrs (dict[str, str]).
 
     This works the same way for strings as starttag for bytes.
 
     '''
 
+    sortfn = sorted if sort else lambda x: x
     attrstr = ' '.join(name + '="' + val + '"'
-                       for name, val in attrs.items())
+                       for name, val in sortfn(attrs.items()))
     return '<' + struct + (' ' + attrstr if attrstr else '') + '>\n'
+
+def ismeta(line):
+    '''line (bytes) is metaline.'''
+    return line and line[0] in b'<'
+
+def strismeta(line):
+    '''line (str) is metaline.'''
+    return line and line[0] == '<'
+
+# Should the following functions call ismeta(line) (or
+# strismeta(line)) or not? Currently they don't, to reduce overhead
+# when ismeta is tested first by the caller.
+
+def isstarttag(line):
+    '''line (bytes) is a start tag, assuming ismeta(line).'''
+    return line[1] not in b'/!'
+
+def strisstarttag(line):
+    '''line (str) is a start tag, assuming strismeta(line).'''
+    return line[1] not in '/!'
+
+def isendtag(line):
+    '''line (bytes) is an end tag, assuming ismeta(line).'''
+    # This is faster than line[1].startswith(b'/')
+    return line[1] in b'/'
+
+def strisendtag(line):
+    '''line (str) is an end tag, assuming strismeta(line).'''
+    return line[1] == '/'
+
+def iscomment(line):
+    '''line (bytes) is a comment, assuming ismeta(line).'''
+    return line.startswith(b'<!--')
+
+def striscomment(line):
+    '''line (str) is a comment, assuming strismeta(line).'''
+    return line.startswith('<!--')
