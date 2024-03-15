@@ -55,15 +55,17 @@ class VrtScrambler(InputProcessor):
         super().__init__()
 
     def check_args(self, args):
-        """Check and modify args (args.seed)."""
+        """Check and modify args (parsed command line arguments)."""
         # Scramble unit and within may not be the same
         if args.within == args.unit:
             self.error_exit(
                 'The structure to scramble and the containing structure may'
                 ' not be the same')
         if not args.seed:
+            # Non-reproducible output
             args.seed = None
         elif args.seed[0] == '<':
+            # Read seed from file
             args.seed = self._read_file_content(args.seed[1:].strip(),
                                                 self.MAX_SEED_BYTES)
 
@@ -83,11 +85,15 @@ class VrtScrambler(InputProcessor):
         return None
 
     def main(self, args, inf, ouf):
+        """Read inf, write to ouf, with command-line arguments args."""
 
         def make_starttag_begin(struct):
+            """Return (b'<struct ', b'<struct>')."""
             begin = b'<' + struct.encode('UTF-8')
             return (begin + b' ', begin + b'>')
 
+        # If legacy, use random.seed version 1 and the local shuffling
+        # method containing a copy of the legacy code
         if args.legacy:
             seed_ver = 1
             self._random_shuffle = self._random_shuffle_legacy
@@ -96,12 +102,20 @@ class VrtScrambler(InputProcessor):
             self._random_shuffle = random.shuffle
         random.seed(args.seed, version=seed_ver)
         LT = b'<'[0]
+        # Start tag start strings for the within structure
         within_begin = make_starttag_begin(args.within)
+        # Start tag start strings for the scramble unit structure
         unit_begin = make_starttag_begin(args.unit)
+        # End tag string for the within structure
         within_end = b'</' + args.within.encode('UTF-8') + b'>'
+        # End tag string for the scramble unit structure
         unit_end = b'</' + args.unit.encode('UTF-8') + b'>'
+        # Whether structures are being collected for scrambling (the
+        # current line is inside a within structure)
         collecting = False
+        # Scramble units collected in this within structure
         units = []
+        # Current scramble unit lines
         current_unit = []
         linenr = 0
         for line in inf:
@@ -109,6 +123,8 @@ class VrtScrambler(InputProcessor):
             if collecting:
                 if line[0] == LT:
                     if line.startswith(unit_begin):
+                        # Add possible current scramble unit to the
+                        # collected units and start a new unit
                         if current_unit:
                             units.append(current_unit)
                         current_unit = [line]
@@ -118,6 +134,8 @@ class VrtScrambler(InputProcessor):
                         units.append(current_unit)
                         current_unit = []
                     elif line.startswith(within_end):
+                        # Add possible current scramble unit, scramble
+                        # the units and output
                         if current_unit:
                             units.append(current_unit)
                         collecting = False
@@ -142,21 +160,28 @@ class VrtScrambler(InputProcessor):
                             # unit
                             units[-1].append(line)
                         else:
-                            # Output comment lines directly after the
+                            # Directly output comment lines after the
                             # start of within
                             ouf.write(line)
                     else:
+                        # Structure tag or comment within scramble
+                        # unit
                         current_unit.append(line)
                 else:
+                    # Token line within scramble unit
                     current_unit.append(line)
             else:
+                # Outside structures within which to scramble
+                # structures
                 ouf.write(line)
                 if line.startswith(within_begin):
+                    # A new within begins
                     units = []
                     current_unit = []
                     collecting = True
 
     def _scramble(self, units):
+        """Randomly shuffle units and yield lines in them."""
         self._random_shuffle(units)
         for unit in units:
             for line in unit:
