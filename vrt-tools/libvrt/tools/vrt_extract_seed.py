@@ -14,6 +14,7 @@ from argparse import ArgumentTypeError
 
 from vrtargsoolib import InputProcessor
 from vrtnamelib import isbinnames, binnamelist, nameindex
+from libvrt.args import BadData
 
 
 def posint(arg):
@@ -52,7 +53,10 @@ class SeedExtractor(InputProcessor):
 
     DESCRIPTION = """
     Extract words (word forms) from VRT input for a random number
-    generator seed.
+    generator seed. The tool extracts values of the positional
+    attribute named "word" in a positional-attributes comment, or
+    values of the first positional attribute if the input has no
+    positional-attributes comment or attribute named "word".
     """
     ARGSPECS = [
         ('--count = num',
@@ -101,7 +105,10 @@ class SeedExtractor(InputProcessor):
     def main(self, args, inf, ouf):
         """Read `inf`, write to `ouf`, using options `args`."""
         LT = b'<'[0]
+        # Positional-attributes comment to be checked (not found yet)
         check_posattrs = True
+        # Extract the first attribute unless a positional-attributes
+        # comment is encountered
         attrnum = 0
         add_tokennums = self._make_add_tokennums(args)
         next_add_tokennum = next(add_tokennums)
@@ -121,7 +128,14 @@ class SeedExtractor(InputProcessor):
                         break
                 tokennum += 1
             elif check_posattrs and isbinnames(line):
-                attrnum = nameindex(binnamelist(line), b'word')
+                # Positional-attributes comment
+                try:
+                    attrnum = nameindex(binnamelist(line), b'word')
+                except BadData as e:
+                    # If the comment does not contain "word", keep the
+                    # default (extract the first attribute)
+                    if 'some name of' not in str(e):
+                        raise
                 check_posattrs = False
         ouf.write(args.separator.encode('utf-8').join(result) + b'\n')
 

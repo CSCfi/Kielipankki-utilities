@@ -66,6 +66,12 @@
         replace:
         - '/word dummy/dummy word/'
         - "/(.*?)\t(.*?)\n/\\2\t\\1\n/"
+  - name: 'no "word" in positional-attributes comment'
+    input:
+      stdin:
+        replace:
+        - '/word/baseform/'
+
 
 - name: 'vrt-extract-seed: --distance'
   input:
