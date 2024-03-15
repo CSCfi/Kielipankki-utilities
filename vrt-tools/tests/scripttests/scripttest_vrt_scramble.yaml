@@ -827,3 +827,87 @@
     stderr: |
       vrt-scramble: The structure to scramble and the containing structure may not be the same
     returncode: 1
+
+
+- name: 'vrt-scramble: No within in the input'
+  input:
+    cmdline:
+    # No within
+    - vrt-scramble --within=corpus --unit=sentence --seed=1
+    # No within nor unit
+    - vrt-scramble --within=corpus --unit=clause --seed=1
+    stdin: *input-1
+  output:
+    # Output input intact
+    stdout: *input-1
+
+- name: 'vrt-scramble: No unit in the input'
+  input:
+    cmdline: vrt-scramble --within=paragraph --unit=clause --seed=1
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+    stderr: |
+      vrt-scramble: <stdin>:4: Structure 'sentence' between 'paragraph' and 'clause'
+    returncode: 1
+
+
+- name: 'vrt-scramble: Structures outside within'
+  input:
+    cmdline: vrt-scramble --within=text --unit=sentence --seed=1
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <!-- Comment before collection -->
+      <collection n="1">
+      <!-- Comment between collection and corpus -->
+      <corpus n="1">
+      <!-- Comment between corpus and text -->
+      <text n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      </text>
+      <!-- Comment between text and corpus -->
+      </corpus>
+      <!-- Comment between corpus and collection -->
+      </collection>
+      <!-- Comment after collection -->
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <!-- Comment before collection -->
+      <collection n="1">
+      <!-- Comment between collection and corpus -->
+      <corpus n="1">
+      <!-- Comment between corpus and text -->
+      <text n="1">
+      <sentence n="3">
+      c
+      </sentence>
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      <sentence n="4">
+      d
+      </sentence>
+      </text>
+      <!-- Comment between text and corpus -->
+      </corpus>
+      <!-- Comment between corpus and collection -->
+      </collection>
+      <!-- Comment after collection -->
