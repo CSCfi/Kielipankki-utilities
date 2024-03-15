@@ -664,7 +664,7 @@
     returncode: 1
 
 
-- name: 'vrt-scramble: Comments within structures to be scrambled'
+- name: 'vrt-scramble: Comments within structures to be shuffled'
   input:
     cmdline: vrt-scramble --within=text --unit=sentence --seed=1
     stdin: |
@@ -742,7 +742,7 @@
       <!-- Comment after text end tag 2 -->
 
 
-- name: 'vrt-scramble: Other structure between within and unit, not starting at the beginning of within'
+- name: 'vrt-scramble: Other structure between container and shuffle item structures, not starting at the beginning of container'
   input:
     cmdline: vrt-scramble --within=text --unit=sentence --seed=1
     stdin: |
@@ -777,7 +777,7 @@
       vrt-scramble: <stdin>:12: Structure 'paragraph' between 'text' and 'sentence'
     returncode: 1
 
-- name: 'vrt-scramble: Other structure end tag between within and unit'
+- name: 'vrt-scramble: Other structure end tag between container and shuffle item structures'
   input:
     cmdline: vrt-scramble --within=paragraph --unit=sentence --seed=1
     stdin: |
@@ -818,18 +818,18 @@
     returncode: 1
 
 
-- name: 'vrt-scramble: Unit the same as within'
+- name: 'vrt-scramble: Container the same as shuffle item'
   input:
     cmdline: vrt-scramble --within=sentence --unit=sentence --seed=1
     stdin: *input-ts
   output:
     stdout: ''
     stderr: |
-      vrt-scramble: The structure to scramble and the containing structure may not be the same
+      vrt-scramble: The structure to shuffle and the containing structure may not be the same
     returncode: 1
 
 
-- name: 'vrt-scramble: No within in the input'
+- name: 'vrt-scramble: No container in the input'
   input:
     cmdline:
     # No within
@@ -841,7 +841,7 @@
     # Output input intact
     stdout: *input-1
 
-- name: 'vrt-scramble: No unit in the input'
+- name: 'vrt-scramble: No shuffle unit in the input'
   input:
     cmdline: vrt-scramble --within=paragraph --unit=clause --seed=1
     stdin: *input-1
@@ -855,7 +855,7 @@
     returncode: 1
 
 
-- name: 'vrt-scramble: Structures outside within'
+- name: 'vrt-scramble: Structures outside container'
   input:
     cmdline: vrt-scramble --within=text --unit=sentence --seed=1
     stdin: |

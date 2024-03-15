@@ -56,10 +56,10 @@ class VrtScrambler(InputProcessor):
 
     def check_args(self, args):
         """Check and modify args (parsed command line arguments)."""
-        # Scramble unit and within may not be the same
+        # Shuffle unit and within structures may not be the same
         if args.within == args.unit:
             self.error_exit(
-                'The structure to scramble and the containing structure may'
+                'The structure to shuffle and the containing structure may'
                 ' not be the same')
         if not args.seed:
             # Non-reproducible output
@@ -102,49 +102,48 @@ class VrtScrambler(InputProcessor):
             self._random_shuffle = random.shuffle
         random.seed(args.seed, version=seed_ver)
         LT = b'<'[0]
-        # Start tag start strings for the within structure
-        within_begin = make_starttag_begin(args.within)
-        # Start tag start strings for the scramble unit structure
-        unit_begin = make_starttag_begin(args.unit)
-        # End tag string for the within structure
-        within_end = b'</' + args.within.encode('UTF-8') + b'>'
-        # End tag string for the scramble unit structure
-        unit_end = b'</' + args.unit.encode('UTF-8') + b'>'
-        # Whether structures are being collected for scrambling (the
-        # current line is inside a within structure)
+        # Start tag start strings for the container structure
+        container_begin = make_starttag_begin(args.within)
+        # Start tag start strings for the shuffle item structure
+        item_begin = make_starttag_begin(args.unit)
+        # End tag string for the container structure
+        container_end = b'</' + args.within.encode('UTF-8') + b'>'
+        # End tag string for the shuffle item structure
+        item_end = b'</' + args.unit.encode('UTF-8') + b'>'
+        # Whether structures are being collected for shuffling (the
+        # current line is inside a container structure)
         collecting = False
-        # Scramble units collected in this within structure
-        units = []
-        # Current scramble unit lines
-        current_unit = []
+        # Shuffle items collected in this container structure
+        items = []
+        # Current shuffle item lines
+        current_item = []
         linenr = 0
         for line in inf:
             linenr += 1
             if collecting:
                 if line[0] == LT:
-                    if line.startswith(unit_begin):
-                        # Add possible current scramble unit to the
-                        # collected units and start a new unit
-                        if current_unit:
-                            units.append(current_unit)
-                        current_unit = [line]
-                    elif line.startswith(unit_end):
-                        # End of scramble unit: add to collected units
-                        current_unit.append(line)
-                        units.append(current_unit)
-                        current_unit = []
-                    elif line.startswith(within_end):
-                        # Add possible current scramble unit, scramble
-                        # the units and output
-                        if current_unit:
-                            units.append(current_unit)
+                    if line.startswith(item_begin):
+                        # Add possible current shuffle item to the
+                        # collected items and start a new item
+                        if current_item:
+                            items.append(current_item)
+                        current_item = [line]
+                    elif line.startswith(item_end):
+                        # End of shuffle item: add to collected items
+                        current_item.append(line)
+                        items.append(current_item)
+                        current_item = []
+                    elif line.startswith(container_end):
+                        # Add possible current shuffle item, shuffle
+                        # the items and output
+                        if current_item:
+                            items.append(current_item)
                         collecting = False
-                        for line2 in self._scramble(units):
+                        for line2 in self._shuffle(items):
                             ouf.write(line2)
                         ouf.write(line)
-                    elif current_unit == []:
-                        # Outside scramble units but within the
-                        # structure within which units are scrambled
+                    elif current_item == []:
+                        # Outside shuffle items but within container
                         mo = re.match(br'</?([a-z_0-9]+)', line)
                         if mo:
                             # No structure tags allowed here
@@ -154,37 +153,34 @@ class VrtScrambler(InputProcessor):
                                 + f'\' between \'{args.within}\' and'
                                 + f' \'{args.unit}\'',
                                 filename=inf.name, linenr=linenr)
-                        elif units:
+                        elif items:
                             # Append comment lines following the end
-                            # tag of a unit structure to the preceding
-                            # unit
-                            units[-1].append(line)
+                            # tag of an item to the preceding item
+                            items[-1].append(line)
                         else:
                             # Directly output comment lines after the
-                            # start of within
+                            # start of a container
                             ouf.write(line)
                     else:
-                        # Structure tag or comment within scramble
-                        # unit
-                        current_unit.append(line)
+                        # Structure tag or comment within shuffle item
+                        current_item.append(line)
                 else:
-                    # Token line within scramble unit
-                    current_unit.append(line)
+                    # Token line within shuffle item
+                    current_item.append(line)
             else:
-                # Outside structures within which to scramble
-                # structures
+                # Outside container structures
                 ouf.write(line)
-                if line.startswith(within_begin):
-                    # A new within begins
-                    units = []
-                    current_unit = []
+                if line.startswith(container_begin):
+                    # A new container begins
+                    items = []
+                    current_item = []
                     collecting = True
 
-    def _scramble(self, units):
-        """Randomly shuffle units and yield lines in them."""
-        self._random_shuffle(units)
-        for unit in units:
-            for line in unit:
+    def _shuffle(self, items):
+        """Randomly shuffle items and yield lines in them."""
+        self._random_shuffle(items)
+        for item in items:
+            for line in item:
                 yield line
 
     def _random_shuffle_legacy(self, seq):
