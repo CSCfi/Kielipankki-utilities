@@ -82,22 +82,42 @@ The following lists should contain the tasks required for publishing a corpus. T
 *Recap: For each of the section titles below, create a Story and assign it as "In Epic", providing the name/number of the Epic of the resource in question. Copy & paste the appropriate task lists from below to the description field of the corresponding Jira stories.*
 
 
-### _shortname_: Enter the new resource to the pipeline
+```
+```
+
+
+### _shortname_: Start negotiations with the depositor
 
 ```
-# [ ] _*+MANAGE*_ Make an initial decision on whether the upcoming resource could potentially be distributed
-# [ ] _*+MANAGE*_ Create a Jira Epic issue called "shortname: Publish XXX in Kielipankki (Korp/Download/…)" and insert relevant parts of this task list (sections under linked Jira Stories)
+# [ ] _*+MANAGE*_ Create a Jira Epic issue called "shortname: Publish XXX in Kielipankki (Korp/Download/…)"
 # [ ] _*?SUPPORT*_ Contact the potential depositor (by email; arrange a meeting if required) 
 # [ ] _*?SUPPORT*_ Ask the depositor to submit the basic details of the new corpus or resource (e-form: http://urn.fi/urn:nbn:fi:lb-2021121421)
-# [ ] _*+META*_ Create and publish a preliminary META-SHARE record (skeletal information only) for the source version, which is ususally the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+MANAGE*_ Insert the first pipeline Story under the Jira Epic and assign it forward
+# [ ] _*+MANAGE*_ Copy-paste the content of the e-form as a comment under the Story (tag the person to whom it is assigned)
+\\
+```
+
+### _shortname_: Plan the publication process with the depositor
+
+```
 # [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
-# [ ] _*+GITHUB*_ Request a URN for the META-SHARE record
-# [ ] _*+META*_ Update the META-SHARE record with the URN
 # [ ] _*?SUPPORT*_ Inform the depositor about citation practices, if relevant
-# [ ] _*+DB*_ Add the corpus to the resource database and make sure the resource is displayed on the list of upcoming corpora
 # [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
 # [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the data
 # [ ] _*?DISCUSS*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
+\\
+```
+
+### _shortname_: Enter the new resource to the pipeline
+
+```
+# [ ] _*+MANAGE*_ Insert relevant parts of this task list in the resource publication Epic (sections under linked Jira Stories)
+# [ ] _*+META*_ Create and publish a preliminary META-SHARE record (skeletal information only) for the source version, which is ususally the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+GITHUB*_ Request a URN for the META-SHARE record
+# [ ] _*+GITHUB*_ Request URNs for license pages 
+# [ ] _*+META*_ Update the META-SHARE record with the URN
+# [ ] _*+DB*_ Add the corpus to the resource database and make sure the resource is displayed on the list of upcoming corpora
+# [ ] _*+META*_ Add citation information to the META-SHARE record
 \\
 ```
 
@@ -132,7 +152,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*+PORTAL*_ Create the license pages if required ([how to create license pages)|https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*?PORTAL*_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
-# [ ] _*?A*_ If required, request URNs for license pages (and the PRIV condition pages)
+# [ ] _*?A*_ If required, request URNs for the PRIV condition pages
 # [ ] _*+PORTAL*_ Update the license PIDs in the resource database
 # [ ] _*+META*_ Create/update the META-SHARE record, including the license information [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+PORTAL*_ In case the resource has a RES license, add it to the page Katselmointiprosessi (https://www.kielipankki.fi/intra/katselmointiprosessi/)
@@ -160,7 +180,6 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+META*_ Update the META-SHARE record (or create a new record, if missing) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request access location URN for download version (and check that the URNs for META-SHARE and license pages are available and working)
 # [ ] _*+DB*_ Make sure that the corpus is on the list of upcoming resources and citable, and update the resource database if required
-# [ ] _*+META*_ Add citation information to the META-SHARE record
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained, upload the data as a zip file (named as shortname-src_yyyymmdd.zip) and the separate shortname-src_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
 # [ ] _*+PUHTI*_ Create a download package
 # [ ] _*+DATA*_ Create a publishable README.txt for the source data, to be shown to the end-users. Include: 1) resource title; 2) PID; 3) either the license PID, a plain link to the license, or a statement of the rightholder and the known restrictions of use for the source data, 4) any other relevant information regarding the technical structure of the source data, if applicable.
