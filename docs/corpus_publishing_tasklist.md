@@ -97,17 +97,6 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Plan the publication process with the depositor
-
-```
-# [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
-# [ ] _*?SUPPORT*_ Inform the depositor about citation practices, if relevant
-# [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
-# [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the data
-# [ ] _*?DISCUSS*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
-\\
-```
-
 ### _shortname_: Enter the new resource to the pipeline
 
 ```
@@ -118,6 +107,17 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+META*_ Update the META-SHARE record with the URN
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure the resource is displayed on the list of upcoming corpora
 # [ ] _*+META*_ Add citation information to the META-SHARE record
+\\
+```
+
+### _shortname_: Plan the publication process with the depositor
+
+```
+# [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
+# [ ] _*?SUPPORT*_ Inform the depositor about citation practices, if relevant
+# [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
+# [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the data
+# [ ] _*?DISCUSS*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
 \\
 ```
 
