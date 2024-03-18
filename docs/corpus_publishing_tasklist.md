@@ -18,7 +18,9 @@ we need a list of the relevant tasks that must be completed.
 ### 2. Copy the following list of section titles to the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
 
 ```
+# [ ] _shortname_: Start negotiations with the depositor
 # [ ] _shortname_: Enter the new resource to the pipeline
+# [ ] _shortname_: Plan the publication process with the depositor
 # [ ] _shortname_: Clear the license for the resource
 # [ ] _shortname_: Publish the end-user license
 # [ ] _shortname_: Acquire the original data
