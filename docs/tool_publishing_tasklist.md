@@ -96,7 +96,6 @@ The following lists should contain the tasks required for publishing a tool. The
 # [ ] _*+GITHUB*_ Request a URN for the META-SHARE record
 # [ ] _*+GITHUB*_ Request URNs for license pages
 # [ ] _*+META*_ Update the META-SHARE record with the URN
-# [ ] _*+META*_ Add citation information to the META-SHARE record
 \\
 ```
 
