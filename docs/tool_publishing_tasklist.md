@@ -17,7 +17,9 @@ After discovering a new *tool/service/piece of software** that needs to be made 
 ### 2. Copy the following list of section titles to the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
 
 ```
+# [ ] _shortname_: Start negotiations with the depositor
 # [ ] _shortname_: Enter the new tool to the pipeline
+# [ ] _shortname_: Plan the publication process with the depositor
 # [ ] _shortname_: Clear the license for the tool
 # [ ] _shortname_: Publish the end-user license
 # [ ] _shortname_: Publish a tool available outside Kielipankki
@@ -75,22 +77,37 @@ The following lists should contain the tasks required for publishing a tool. The
 
 *Recap: For each of the section titles below, create a Story and assign it as "In Epic", providing the name/number of the Epic of the resource in question. Copy & paste the appropriate task lists from below to the description field of the corresponding Jira stories.*
 
+### _shortname_: Start negotiations with the depositor
+
+```
+# [ ] _*+MANAGE*_ Create a Jira Epic issue called "shortname: Publish XXX in Kielipankki"
+# [ ] _*?SUPPORT*_ Contact the potential depositor (by email; arrange a meeting if required) 
+# [ ] _*?SUPPORT*_ Ask the depositor to submit the basic details of the new tool (e-form: http://urn.fi/urn:nbn:fi:lb-2021121421)
+# [ ] _*+MANAGE*_ Insert the first pipeline Story under the Jira Epic and assign it forward
+# [ ] _*+MANAGE*_ Copy-paste the content of the e-form as a comment under the Story (tag the person to whom it is assigned)
+\\
+```
 
 ### _shortname_: Enter the new tool to the pipeline
 
 ```
-# [ ] _*+MANAGE*_ Make an initial decision on whether the upcoming resource could potentially be distributed
-# [ ] _*+MANAGE*_ Create a Jira Epic issue called "shortname: Publish XXX in Kielipankki" and insert relevant parts of this task list (sections under linked Jira Stories)
-# [ ] _*?SUPPORT*_ Contact the potential depositor (by email; arrange a meeting if required) 
-# [ ] _*?SUPPORT*_ Ask the depositor to submit the basic details of the new tool (e-form: http://urn.fi/urn:nbn:fi:lb-2021121421)
+# [ ] _*+MANAGE*_ Insert relevant parts of this task list in the resource publication Epic (sections under linked Jira 
 # [ ] _*+META*_ Create and publish a preliminary META-SHARE record (skeletal information only) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
 # [ ] _*+GITHUB*_ Request a URN for the META-SHARE record
-# [ ] _*+META*_ Update the META-SHARE record with the URN and inform the depositor about citation practices, if relevant
-# [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
-# [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the tool and any additional material
-# [ ] _*?DISCUSS*_ If the size and technical specifications of the tool (or the additional material) seem "non-standard" in some respect, discuss the details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
-# [ ] _*+DISCUSS*_ Allocate the resources for publishing the tool in Kielipankki (who shall take care of it?)
+# [ ] _*+GITHUB*_ Request URNs for license pages
+# [ ] _*+META*_ Update the META-SHARE record with the URN
+# [ ] _*+META*_ Add citation information to the META-SHARE record
+\\
+```
+
+### _shortname_: Plan the publication process with the depositor
+
+```
+# [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
+# [ ] _*?SUPPORT*_ Inform the depositor about citation practices, if relevant
+# [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original tool and any additional material
+# [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the tool
+# [ ] _*?DISCUSS*_ If the size and technical specifications of the tool and any additional material seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
 \\
 ```
 
