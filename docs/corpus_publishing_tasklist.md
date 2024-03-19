@@ -84,8 +84,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 *Recap: For each of the section titles below, create a Story and assign it as "In Epic", providing the name/number of the Epic of the resource in question. Copy & paste the appropriate task lists from below to the description field of the corresponding Jira stories.*
 
 
-```
-```
+
 
 
 ### _shortname_: Start negotiations with the depositor
