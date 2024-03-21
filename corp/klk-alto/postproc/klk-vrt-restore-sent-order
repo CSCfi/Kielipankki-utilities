@@ -1,0 +1,77 @@
+#! /usr/bin/env python3
+
+
+"""
+klk-vrt-restore-sent-order
+
+Usage: klk-vrt-restore-sent-order < in.vrt > out.vrt
+
+Restore the original (unscrambled) order of sentences in texts in the
+input VRT originating from KLK v1, based on the value of the
+"local_id" (KLK-fi) or "n" (KLK-sv) attribute of sentences. Also
+remove paragraph tags as they do not seem to correspond to the
+original paragraphs in any meaningful way.
+
+A text is recognized as originating from KLK v1 if its attribute
+"version_added" matches "KLK-(fi|sv)-2014". The content of texts added
+in later versions is preserved intact.
+"""
+
+
+import re
+import sys
+
+
+def main():
+    # Processing state
+    # Outside texts
+    OUTSIDE = 0
+    # Within a text whose sentences to sort
+    PROCESS = 1
+    # Within a text whose sentences do not need processing
+    SKIP = 2
+    LT = b'<'[0]
+    # A list of pairs (num, lines) where num is the original number of
+    # the sentence from the attribute and lines a list of lines in the
+    # sentence
+    sents = None
+    state = OUTSIDE
+    for line in sys.stdin.buffer:
+        if state == OUTSIDE:
+            sys.stdout.buffer.write(line)
+            if line[0] == LT and line.startswith(b'<text'):
+                # The following is faster than using re.search or
+                # any()
+                state = (
+                    PROCESS if (b' version_added="KLK-fi-2014"' in line
+                                or b' version_added="KLK-sv-2014"' in line)
+                    else SKIP)
+                sents = []
+        elif line[0] == LT and line.startswith(b'</text'):
+            if state == PROCESS:
+                for line2 in sorted_sentences(sents):
+                    sys.stdout.buffer.write(line2)
+            sys.stdout.buffer.write(line)
+            state = OUTSIDE
+        elif state == PROCESS:
+            if line.startswith(b'<sentence'):
+                # KLK-fi has the number of the sentence within text in
+                # attribute "local_id", KLK-sv in "n"
+                mo = re.search(br' (?:local_id|n)="(.+?)"', line)
+                local_id = int(mo.group(1))
+                sents.append((local_id, [line]))
+            elif not line.startswith((b'<paragraph', b'</paragraph')):
+                sents[-1][1].append(line)
+        else:
+            sys.stdout.buffer.write(line)
+
+
+def sorted_sentences(sents):
+    sents.sort(key=lambda item: item[0])
+    for sent in sents:
+        for line in sent[1]:
+            yield line
+
+
+if __name__ == '__main__':
+    main()
