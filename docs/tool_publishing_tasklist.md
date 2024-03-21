@@ -94,8 +94,8 @@ The following lists should contain the tasks required for publishing a tool. The
 # [ ] _*+MANAGE*_ Insert relevant parts of this task list in the resource publication Epic (sections under linked Jira 
 # [ ] _*+META*_ Create and publish a preliminary META-SHARE record (skeletal information only) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request a URN for the META-SHARE record
-# [ ] _*+GITHUB*_ Request URNs for license pages
-# [ ] _*+META*_ Update the META-SHARE record with the URN
+# [ ] _*+GITHUB*_ If needed, request URNs for license pages
+# [ ] _*+META*_ Update the META-SHARE record with the metadata URN
 \\
 ```
 
@@ -115,8 +115,8 @@ The following lists should contain the tasks required for publishing a tool. The
 NB: Quite often, especially for tools developed outside Kielipankki, we just offer a link to the license given in the tool's documentation
 
 ```
-# [ ] _*+MANAGE*_ Add the license type to the META-SHARE record
-# [ ] _*+MANAGE*_ Add the link to the license to the META-SHARE record
+# [ ] _*+MANAGE*_ Add the license type and any other related information to the META-SHARE record
+# [ ] _*+MANAGE*_ Add the link of the license page to the META-SHARE record
 \\
 ```
 
