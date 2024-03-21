@@ -114,7 +114,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Plan the publication process with the depositor
 
 ```
-# [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
+# [ ] _*+META*_ Review the META-SHARE record and fix the preliminary translations, at least for the time being
+# [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title, confirm the list of authors/creators if required)
 # [ ] _*?SUPPORT*_ Inform the depositor about citation practices, if relevant
 # [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
 # [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the data
