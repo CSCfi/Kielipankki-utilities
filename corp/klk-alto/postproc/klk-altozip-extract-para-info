@@ -15,10 +15,11 @@ corresponding to a paragraph) containing the number of tokens in the
 TextBlock, the number of bytes in the tokens and a space-separated
 list of the tokens, separated by tabs.
 
-Tokens are values of the CONTENT attribute of String elements. Tokens
-split onto two lines and marked with SUBS_TYPE="HypPart1" (and
-"HypPart2") are joined together. Character references &...; in tokens
-are converted to the corresponding characters.
+Tokens are values of the CONTENT attribute of String elements, except
+for tokens split onto two lines, in which the content is taken from
+the attribute SUBS_CONTENT of the first one with SUBS_TYPE="HypPart1",
+and the second one with "HypPart2" is skipped. Character references
+&...; in tokens are converted to the corresponding characters.
 """
 
 
@@ -65,6 +66,7 @@ def main(zipfile):
     with Popen(['unzip', '-c', zipfile, '*.xml'],
                stdin=None, stdout=PIPE, stderr=PIPE, bufsize=-1) as zipf:
         tokens = []
+        mo = None
         for line in zipf.stdout:
             line = line.strip()
             if line.startswith(b'inflating:'):
@@ -76,12 +78,20 @@ def main(zipfile):
                 output(tokens)
                 tokens = []
             elif line.startswith(b'<String'):
-                mo = re.search(br''' CONTENT=(["'])(.*?)\1''', line)
-                token = decode_charrefs(mo.group(2))
-                # Join words split onto two lines
-                if b'SUBS_TYPE="HypPart2"' in line and tokens:
-                    tokens[-1] = tokens[-1] + token
+                # For tokens split onto two lines, take the string of
+                # the value token from attribute SUBS_CONTENT of the
+                # first string (with SUBS_TYPE="HypPart1") and skip
+                # the second ("HypPart2")
+                if b' SUBS_CONTENT=' in line:
+                    if b' SUBS_TYPE="HypPart2"' in line:
+                        continue
+                    else:
+                        mo = re.search(br''' SUBS_CONTENT=(["'])(.*?)\1''',
+                                       line)
                 else:
+                    mo = re.search(br''' CONTENT=(["'])(.*?)\1''', line)
+                if mo:
+                    token = decode_charrefs(mo.group(2))
                     tokens.append(token)
         output(tokens)
 
