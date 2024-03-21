@@ -1,0 +1,17 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+"""
+vrt-scramble
+
+A VRT tool to scramble (randomly shuffle) structures in a VRT input.
+
+The actual implementation is in libvrt.tools.vrt_scramble.
+"""
+
+
+from libvrt.tools.vrt_scramble import VrtScrambler
+
+
+if __name__ == '__main__':
+    VrtScrambler().run()

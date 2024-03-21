@@ -272,20 +272,26 @@ def _argparser_add_arg(argparser, argspec):
     argparser.add_argument(*argnames, **argdict)
 
 
-def error_exit(*msg, progname=None):
-    """Print message msg to standard error and exit with code 1.
+def error_exit(*msg, exitcode=1, **kwargs):
+    """Print message msg to standard error and exit with code exitcode.
 
-    If progname is not None, prepend it to the error message.
+    kwargs may contain progname, filename and/or linenr: if not None,
+    prepend them to the error message.
     """
-    print_error(*msg, progname=progname)
-    exit(1)
+    print_error(*msg, **kwargs)
+    exit(exitcode)
 
 
-def print_error(*msg, progname=None):
+def print_error(*msg, progname=None, filename=None, linenr=None):
     """Print message msg to standard error.
 
-    If progname is not None, prepend it to the error message.
+    If progname, filename and/or linenr is not None, prepend them to
+    the error message.
     """
+    if filename is not None:
+        if linenr is not None:
+            filename += ':' + str(linenr)
+        msg = (filename + ':',) + msg
     if progname is not None:
         msg = (progname + ':',) + msg
     print(*msg, file=sys.stderr)
@@ -395,17 +401,26 @@ class BasicProcessor:
         """Check command-line arguments and assign them to self._args."""
         self._args = args
 
-    def print_error(self, *msg):
-        """Print message msg to standard error."""
-        print_error(*msg, progname=self._progname)
+    def print_error(self, *msg, **kwargs):
+        """Print message msg to standard error.
 
-    def warn(self, *msg):
-        """Print message msg prepended with "Warning:" to standard error."""
-        self.print_error('Warning:', *msg)
+        Prepend program name and possible filename and linenr from kwargs.
+        """
+        print_error(*msg, progname=self._progname, **kwargs)
 
-    def error_exit(self, *msg):
-        """Print message msg to standard error and exit with code 1."""
-        error_exit(*msg, progname=self._progname)
+    def warn(self, *msg, **kwargs):
+        """Print message msg prepended with "Warning:" to standard error.
+
+        Prepend program name and possible filename and linenr from kwargs.
+        """
+        self.print_error('Warning:', *msg, **kwargs)
+
+    def error_exit(self, *msg, exitcode=1, **kwargs):
+        """Print message msg to standard error and exit with code exitcode.
+
+        Prepend program name and possible filename and linenr from kwargs.
+        """
+        error_exit(*msg, exitcode=exitcode, progname=self._progname, **kwargs)
 
 
 class InputProcessor(BasicProcessor):
