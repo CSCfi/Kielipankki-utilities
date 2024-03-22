@@ -5,6 +5,10 @@
 # Usage: klk-retrieve-para-info issue-zip-map.tsv output-dir
 #                               [in.vrt | in.tsv]
 #
+# NOTE: This script is redundant as it is possible (and much faster)
+# to add paragraph tags to the correct places based on the paragraph
+# tags in the scrambled VRT data with klk-vrt-restore-sent-order.
+#
 # Retrieve paragraph information from KLK v1 ALTO files in zips under
 # /corpora/digilib in IDA (frozen) by using
 # klk-altozip-extract-para-info.

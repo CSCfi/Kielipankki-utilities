@@ -9,6 +9,10 @@ Usage: klk-altozip-extract-para-info in.zip > out.tsv
 Extract tokens with paragraph information from the KLK ALTO files in
 in.zip.
 
+NOTE: This script is redundant as it is possible (and much faster) to
+add paragraph tags to the correct places based on the paragraph tags
+in the scrambled VRT data with klk-vrt-restore-sent-order.
+
 For each .xml file in in.zip, the script produces a line with the
 filename followed by one line for each TextBlock element (roughly
 corresponding to a paragraph) containing the number of tokens in the
