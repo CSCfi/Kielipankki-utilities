@@ -23,47 +23,39 @@ import sys
 
 
 def main():
-    # Processing state
-    # Outside texts
-    OUTSIDE = 0
-    # Within a text whose sentences to sort
-    PROCESS = 1
-    # Within a text whose sentences do not need processing
-    SKIP = 2
-    LT = b'<'[0]
-    # A list of pairs (num, lines) where num is the original number of
-    # the sentence from the attribute and lines a list of lines in the
-    # sentence
-    sents = None
-    state = OUTSIDE
     for line in sys.stdin.buffer:
-        if state == OUTSIDE:
-            sys.stdout.buffer.write(line)
-            if line[0] == LT and line.startswith(b'<text'):
-                # The following is faster than using re.search or
-                # any()
-                state = (
-                    PROCESS if (b' version_added="KLK-fi-2014"' in line
-                                or b' version_added="KLK-sv-2014"' in line)
-                    else SKIP)
-                sents = []
-        elif line[0] == LT and line.startswith(b'</text'):
-            if state == PROCESS:
-                for line2 in sorted_sentences(sents):
-                    sys.stdout.buffer.write(line2)
-            sys.stdout.buffer.write(line)
-            state = OUTSIDE
-        elif state == PROCESS:
-            if line.startswith(b'<sentence'):
-                # KLK-fi has the number of the sentence within text in
-                # attribute "local_id", KLK-sv in "n"
-                mo = re.search(br' (?:local_id|n)="(.+?)"', line)
-                local_id = int(mo.group(1))
-                sents.append((local_id, [line]))
-            elif not line.startswith((b'<paragraph', b'</paragraph')):
-                sents[-1][1].append(line)
-        else:
-            sys.stdout.buffer.write(line)
+        sys.stdout.buffer.write(line)
+        if line.startswith(b'<text'):
+            process = (b' version_added="KLK-fi-2014"' in line
+                       or b' version_added="KLK-sv-2014"' in line)
+            lines = []
+            for line2 in sys.stdin.buffer:
+                if line2 == b'</text>\n':
+                    break
+                lines.append(line2)
+            if process:
+                lines = process_lines(lines)
+            for line in lines:
+                sys.stdout.buffer.write(line)
+            if line2:
+                sys.stdout.buffer.write(line2)
+
+
+def process_lines(lines):
+    # sents is a list of pairs (num, lines) where num is the original
+    # number of the sentence from the attribute and lines a list of
+    # lines in the sentence
+    sents = []
+    for line in lines:
+        if line.startswith(b'<sentence'):
+            # KLK-fi has the number of the sentence within text in
+            # attribute "local_id", KLK-sv in "n"
+            mo = re.search(br' (?:local_id|n)="(.+?)"', line)
+            local_id = int(mo.group(1))
+            sents.append((local_id, [line]))
+        elif not line.startswith((b'<paragraph', b'</paragraph')):
+            sents[-1][1].append(line)
+    yield from sorted_sentences(sents)
 
 
 def sorted_sentences(sents):
