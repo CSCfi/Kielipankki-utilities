@@ -8,9 +8,11 @@ Usage: klk-vrt-restore-sent-order < in.vrt > out.vrt
 
 Restore the original (unscrambled) order of sentences in texts in the
 input VRT originating from KLK v1, based on the value of the
-"local_id" (KLK-fi) or "n" (KLK-sv) attribute of sentences. Also
-remove paragraph tags as they do not seem to correspond to the
-original paragraphs in any meaningful way.
+"local_id" (KLK-fi) or "n" (KLK-sv) attribute of sentences.
+
+Also move paragraph tags so that a paragraph break follows the
+sentence after which a paragraph break follows in the input.
+Attributes of paragraph tags are omitted.
 
 A text is recognized as originating from KLK v1 if its attribute
 "version_added" matches "KLK-(fi|sv)-2014". The content of texts added
@@ -42,9 +44,12 @@ def main():
 
 
 def process_lines(lines):
-    # sents is a list of pairs (num, lines) where num is the original
-    # number of the sentence from the attribute and lines a list of
-    # lines in the sentence
+    # sents is a list of triples [num, lines, para_after] where num is
+    # the original number of the sentence from the attribute, lines a
+    # list of lines in the sentence and para_after True if the
+    # sentence is followed by a paragraph break; use a list instead of
+    # a tuple because the value of para_after may need to be changed
+    # when encountering </paragraph>
     sents = []
     for line in lines:
         if line.startswith(b'<sentence'):
@@ -52,17 +57,26 @@ def process_lines(lines):
             # attribute "local_id", KLK-sv in "n"
             mo = re.search(br' (?:local_id|n)="(.+?)"', line)
             local_id = int(mo.group(1))
-            sents.append((local_id, [line]))
-        elif not line.startswith((b'<paragraph', b'</paragraph')):
+            sents.append([local_id, [line], False])
+        elif line == b'</paragraph>\n':
+            sents[-1][2] = True
+        elif not line.startswith(b'<paragraph'):
             sents[-1][1].append(line)
     yield from sorted_sentences(sents)
 
 
 def sorted_sentences(sents):
     sents.sort(key=lambda item: item[0])
-    for sent in sents:
+    lastsent = len(sents) - 1
+    yield b'<paragraph>\n'
+    for sentnum, sent in enumerate(sents):
         for line in sent[1]:
             yield line
+        if sent[2]:
+            # Last sentence of a paragraph
+            yield b'</paragraph>\n'
+            if sentnum < lastsent:
+                yield b'<paragraph>\n'
 
 
 if __name__ == '__main__':
