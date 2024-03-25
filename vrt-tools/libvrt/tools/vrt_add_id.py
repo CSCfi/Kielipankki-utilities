@@ -735,7 +735,7 @@ def rename_attr(attrs, old, new):
     attribute name does not exist in attrs.
 
     Effectively adds new with the value of old and deletes old, so the
-    order attributes in of attrs changes.
+    order of attributes in attrs changes.
     '''
 
     if b'{}' in new:
