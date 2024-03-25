@@ -27,3 +27,6 @@ A resource usually needs PIDs for the following pages:
 - LICENSE in Finnish
 - resource group page in English
 - resource group page in Finnish
+
+NOTE: For META-SHARE URLs you need to add the prefix `https://kielipankki.fi/md_api/cproxy?md=` to the URL, to make it compatible with CLARIN format.
+e.g. https://kielipankki.fi/md_api/cproxy?md=https://metashare.csc.fi/repository/browse/colage-corpus-for-the-study-of-language-and-gender-in-mexico-and-spain/a4c9a3cedbb211eea280fa163eb87b84bc09440a579a419bb7462fe9832927f1/
