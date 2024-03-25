@@ -151,13 +151,13 @@ def parsearguments(argv, *, prog = None):
 
     group.add_argument('--type',
                        action = grouped_arg(),
-                       choices = ['counter', 'random'],
-                       default = 'counter',
+                       choices = ['random', 'counter'],
+                       default = 'random',
                        help = '''
 
-                       type of id values: "counter" for integers based
-                       on a counter, "random" for unique random
-                       integers ("counter")
+                       type of id values: "random" for unique random
+                       integers, "counter" for integers based on a
+                       counter ("random")
 
                        ''')
 
@@ -307,7 +307,7 @@ def print_verbose(args, *print_args, **kwargs):
 def set_defaults(elem, elem_args, args):
     '''Set some defaults in `elem_args` (for element `elem`) from `args`.'''
     if not elem_args.type:
-        elem_args.type = 'counter'
+        elem_args.type = 'random'
     if not elem_args.seed:
         elem_args.seed = None
     else:

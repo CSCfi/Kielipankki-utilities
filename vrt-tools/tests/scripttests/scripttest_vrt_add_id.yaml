@@ -12,12 +12,12 @@
 
 
 # Tests for the functionality of the original script by Jussi
-# Piitulainen
+# Piitulainen (but with --type=random as the default)
 
 
-- name: 'vrt-add-id: Default options'
+- name: 'vrt-add-id: Default options + --type=counter'
   input:
-    cmdline: vrt-add-id
+    cmdline: vrt-add-id --type=counter
     stdin: &input-1 |
       <!-- #vrt positional-attributes: word -->
       <text n="1">
@@ -79,9 +79,33 @@
         vrt-add-id: added 3 sentence ids
 
 
+- name: 'vrt-add-id: Default options'
+  input:
+    cmdline: vrt-add-id
+    stdin: *input-1
+  output:
+    stdout:
+      regex: |
+        <!-- #vrt positional-attributes: word -->
+        <text n="1">
+        <sentence a="a" id="[0-9a-f]{8}">
+        a
+        </sentence>
+        <sentence a="b" id="[0-9a-f]{8}">
+        b
+        </sentence>
+        </text>
+        <text n="2">
+        <sentence a="c" id="[0-9a-f]{8}">
+        c
+        </sentence>
+        </text>
+  transform: *transform-fast-s3
+
+
 - name: 'vrt-add-id: --element=text'
   input:
-    cmdline: vrt-add-id --element="text"
+    cmdline: vrt-add-id --type=counter --element="text"
     stdin: *input-1
   output:
     stdout: |
@@ -120,7 +144,7 @@
 
 - name: 'vrt-add-id: Non-existent element (no change)'
   input:
-    cmdline: vrt-add-id --element=x
+    cmdline: vrt-add-id --type=counter --element=x
     stdin: *input-1
   output:
     stdout: *input-1
@@ -143,7 +167,7 @@
 
 - name: 'vrt-add-id: --id'
   input:
-    cmdline: vrt-add-id --id="sid"
+    cmdline: vrt-add-id --type=counter --id="sid"
     stdin: *input-1
   output:
     stdout: |
@@ -166,7 +190,7 @@
 
 - name: 'vrt-add-id: --start=0'
   input:
-    cmdline: vrt-add-id --start=0
+    cmdline: vrt-add-id --type=counter --start=0
     stdin: *input-1
   output:
     stdout: |
@@ -189,7 +213,7 @@
 
 - name: 'vrt-add-id: --prefix'
   input:
-    cmdline: vrt-add-id --prefix=s-
+    cmdline: vrt-add-id --type=counter --prefix=s-
     stdin: *input-1
   output:
     stdout: |
@@ -212,7 +236,7 @@
 
 - name: 'vrt-add-id: --sort'
   input:
-    cmdline: vrt-add-id --element=text --sort
+    cmdline: vrt-add-id --type=counter --element=text --sort
     stdin: *input-1
   output:
     stdout: |
@@ -248,7 +272,7 @@
 
 - name: 'vrt-add-id: Existing id attribute (without --force)'
   input:
-    cmdline: vrt-add-id --id=a
+    cmdline: vrt-add-id --type=counter --id=a
     stdin: *input-1
   output:
     stdout: |
@@ -274,7 +298,7 @@
 
 - name: 'vrt-add-id: Overwrite existing id attribute with --force'
   input:
-    cmdline: vrt-add-id --id=a --force
+    cmdline: vrt-add-id --type=counter --id=a --force
     stdin: *input-1
   output:
     stdout: |
@@ -306,7 +330,7 @@
 
 - name: 'vrt-add-id: All options'
   input:
-    cmdline: vrt-add-id --element=text --id=n --start=0 --prefix=t- --force
+    cmdline: vrt-add-id --type=counter --element=text --id=n --start=0 --prefix=t- --force
     stdin: *input-1
   output:
     stdout: |
@@ -387,7 +411,7 @@
 # Tests for functionality added by Jyrki Niemi
 
 
-- name: 'vrt-add-id: --type=counter (default)'
+- name: 'vrt-add-id: --type=counter'
   input:
     cmdline: vrt-add-id --type=counter --element=text --id=n --start=0 --prefix=t- --force
     stdin: *input-1
@@ -1455,6 +1479,35 @@
     cmdline: vrt-add-id --element=text --element=paragraph --element=sentence
     stdin: *input-para
   output:
+    stdout:
+      regex: |
+        <!-- #vrt positional-attributes: word -->
+        <text n="1" id="[0-9a-f]{8}">
+        <paragraph p="p1" id="[0-9a-f]{8}">
+        <sentence a="a" id="[0-9a-f]{8}">
+        a
+        </sentence>
+        </paragraph>
+        <paragraph p="p2" id="[0-9a-f]{8}">
+        <sentence a="b" id="[0-9a-f]{8}">
+        b
+        </sentence>
+        </paragraph>
+        </text>
+        <text n="2" id="[0-9a-f]{8}">
+        <paragraph p="p3" id="[0-9a-f]{8}">
+        <sentence a="c" id="[0-9a-f]{8}">
+        c
+        </sentence>
+        </paragraph>
+        </text>
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: text, paragraph, sentence with default options + --type=counter'
+  input:
+    cmdline: vrt-add-id --type=counter --element=text --element=paragraph --element=sentence
+    stdin: *input-para
+  output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
       <text n="1" id="1">
@@ -1548,7 +1601,7 @@
 
 - name: 'vrt-add-id: --rename, no existing attribute'
   input:
-    cmdline: vrt-add-id --id=x --rename
+    cmdline: vrt-add-id --type=counter --id=x --rename
     stdin: &input-multiattr |
       <!-- #vrt positional-attributes: word -->
       <text a="a" n="1" n_1="a" n_2="b">
@@ -1593,7 +1646,7 @@
 
 - name: 'vrt-add-id: --rename without argument, existing attribute'
   input:
-    cmdline: vrt-add-id --id=a --rename
+    cmdline: vrt-add-id --type=counter --id=a --rename
     stdin: *input-multiattr
   output:
     stdout: |
@@ -1615,7 +1668,7 @@
 
 - name: 'vrt-add-id: --rename fixed name, existing attribute'
   input:
-    cmdline: vrt-add-id --id=a --rename=b
+    cmdline: vrt-add-id --type=counter --id=a --rename=b
     stdin: *input-multiattr
   output:
     stdout: |
@@ -1637,7 +1690,7 @@
 
 - name: 'vrt-add-id: --rename with {}, text and sentence, existing attributes'
   input:
-    cmdline: vrt-add-id --rename="{}_" --element=text --id=n_1 --element=sentence --id=a
+    cmdline: vrt-add-id --type=counter --rename="{}_" --element=text --id=n_1 --element=sentence --id=a
     stdin: *input-multiattr
   output:
     stdout: |
@@ -1659,7 +1712,7 @@
 
 - name: 'vrt-add-id: text and sentence, different renames, existing attributes'
   input:
-    cmdline: vrt-add-id --element=text --id=n_1 --rename="{}_" --element=sentence --id=a --rename="{}a"
+    cmdline: vrt-add-id --type=counter --element=text --id=n_1 --rename="{}_" --element=sentence --id=a --rename="{}a"
     stdin: *input-multiattr
   output:
     stdout: |
@@ -1696,7 +1749,7 @@
 
 - name: 'vrt-add-id: text and sentence, rename requiring suffix _N, existing attributes'
   input:
-    cmdline: vrt-add-id --element=text --id=a --rename=n --element=sentence --id=a --rename=id
+    cmdline: vrt-add-id --type=counter --element=text --id=a --rename=n --element=sentence --id=a --rename=id
     stdin: *input-multiattr
   output:
     stdout: |
@@ -1794,7 +1847,7 @@
 
 - name: 'vrt-add-id: --verbose; {id} with different format specifications (faster method)'
   input:
-    cmdline: vrt-add-id --format="{id:d}" --verbose
+    cmdline: vrt-add-id --type=counter --format="{id:d}" --verbose
     stdin: *input-1
   output:
     stdout: *output-1-s3
@@ -1855,7 +1908,7 @@
 
 - name: 'vrt-add-id: --verbose; {id} with different format specifications (slower method)'
   input:
-    cmdline: vrt-add-id --format="{id:<1d}" --verbose
+    cmdline: vrt-add-id --type=counter --format="{id:<1d}" --verbose
     stdin: *input-1
   output:
     stdout: *output-1-s3
@@ -1917,7 +1970,7 @@
 
 - name: 'vrt-add-id: --verbose; slower method because not all types of elements occurred in input'
   input:
-    cmdline: vrt-add-id --verbose --element=sentence --element=paragraph --element=x
+    cmdline: vrt-add-id --type=counter --verbose --element=sentence --element=paragraph --element=x
     stdin: *input-1
   output:
     stdout: *output-1-s3
