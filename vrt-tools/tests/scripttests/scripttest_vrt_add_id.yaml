@@ -240,6 +240,10 @@
         vrt-add-id: using the slower method because of --sort
         vrt-add-id: added 2 text ids
   - *transf-verbose-noopt-t2
+  - name: -e
+    input:
+      cmdline:
+        replace: '/--element/-e/'
 
 
 - name: 'vrt-add-id: Existing id attribute (without --force)'
@@ -343,7 +347,7 @@
     stdout: ''
     stderr:
       - regex: '^usage'
-      - regex: "vrt-add-id: error: argument --element: not a field name: b'-x'"
+      - regex: "vrt-add-id: error: argument --element/-e: not a field name: b'-x'"
     returncode: 2
 
 - name: 'vrt-add-id: Invalid attribute name'

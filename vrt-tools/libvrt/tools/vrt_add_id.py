@@ -114,7 +114,7 @@ def parsearguments(argv, *, prog = None):
 
                         ''')
 
-    parser.add_argument('--element', metavar = 'name',
+    parser.add_argument('--element', '-e', metavar = 'name',
                         action = grouping_arg(),
                         type = nametype,
                         # Default for --element is set only later, to
