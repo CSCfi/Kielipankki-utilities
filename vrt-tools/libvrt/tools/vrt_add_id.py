@@ -569,9 +569,10 @@ def main(args, ins, ous):
                                     **elem_attrs
                                 ).encode('UTF-8'))
                         except KeyError as e:
+                            estr = str(e).replace('b\'', '\'')
                             raise BadData(
                                 'format replacement field '
-                                f'{elem_args.format}: key {e} not found')
+                                f'{elem_args.format}: key {estr} not found')
                         if verbose:
                             id_counts[elem] += 1
                     else:

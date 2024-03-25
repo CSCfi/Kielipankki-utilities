@@ -1396,7 +1396,7 @@
       stderr:
         replace:
         - '/\{paragraph/{text/'
-        - "/'paragraph/b'z"
+        - "/'paragraph/'z"
   - *transf-no-optimize
 
 
