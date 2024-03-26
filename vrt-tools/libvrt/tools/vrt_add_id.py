@@ -689,6 +689,11 @@ def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr, id_counts):
         if idnums_curr.get(elem):
             idnums[elem] = format_idnum[elem](idnums_curr[elem]).encode('UTF-8')
 
+    # NOTE: If the format of elem2 refers to idnum[elem1] of enclosing
+    # elem1 and the current elem2 is not enclosed in elem1 but elem1
+    # has occurred previously in the input, the previous value of
+    # idnum[elem1] is used. To raise an error, we should also handle
+    # element end tags.
     for line in ins:
         if ismeta(line) and isstarttag(line):
             elem = element(line)

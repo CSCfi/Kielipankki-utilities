@@ -1854,6 +1854,76 @@
     stdout: *output-para-subst
   transform: *transform-fast-t2p3s3
 
+- name: 'vrt-add-id: --format with {idnum[elem]}, missing paragraph but previous paragraphs'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
+    stdin:
+      value: *input-para
+      transform:
+        # Remove the last paragraph tags
+        shell: |
+          grep -v 'p="p3"' | head -n-2;
+          echo "</text>"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-b92f">
+      <paragraph p="p1" id="p-b92f-f4dc">
+      <sentence a="a" id="s-b92f+f4dc-a6de">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-b92f-f4cb">
+      <sentence a="b" id="s-b92f+f4cb-7475">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-294c">
+      <sentence a="c" id="s-294c+f4cb-1f16">
+      c
+      </sentence>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 2 text ids, 2 paragraph ids, 3 sentence ids
+  - name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids, 2 paragraph ids, 3 sentence ids
+
+- name: 'vrt-add-id: --format with {idnum[elem]}, missing paragraph without previous paragraphs'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
+    stdin:
+      value: *input-para
+      transform:
+        # Remove the first paragraph tags
+        shell: |
+          awk '/p="p1"/ {next} /<\/paragraph>/ && ! p {p = 1; next} {print}'
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-b92f">
+    stderr: |
+      vrt-add-id: format replacement field s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}: key 'paragraph' not found
+      vrt-add-id: non-zero status 1
+    returncode: 1
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+  - *transf-verbose-noopt-prepend
+
 
 # --verbose (and optimization)
 
