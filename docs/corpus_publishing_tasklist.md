@@ -28,6 +28,8 @@ Enter a new resource to the pipeline
 
 Publish the source data in Download
 # [ ] _shortname_: Prepare publishing the source data in Download
+# [ ] _shortname_: Package the source data
+# [ ] _shortname_: Publish the source data in Download
 
 Publish the resource in Korp
 # [ ] _shortname_: Prepare publishing the resource in Korp
@@ -190,13 +192,19 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Publish the source data in Download
+### _shortname_: Prepare publishing the source data in Download
+
+```
+# [ ] _*+META*_ Create or update the META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+GITHUB*_ Request access location URN for download version (and check that the URNs for META-SHARE and license pages are available and working)
+# [ ] _*+DB*_ Make sure that the corpus is on the list of upcoming resources and citable, and update the resource database if required
+\\
+```
+
+### _shortname_: Package the source data
 
 ```
 # [ ] _*?IDA*_ Get the original data from IDA
-# [ ] _*+META*_ Update the META-SHARE record (or create a new record, if missing) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+GITHUB*_ Request access location URN for download version (and check that the URNs for META-SHARE and license pages are available and working)
-# [ ] _*+DB*_ Make sure that the corpus is on the list of upcoming resources and citable, and update the resource database if required
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained, upload the data as a zip file (named as shortname-src_yyyymmdd.zip) and the separate shortname-src_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
 # [ ] _*+PUHTI*_ Create a download package
 # [ ] _*+DATA*_ Create a publishable README.txt for the source data, to be shown to the end-users. Include: 1) resource title; 2) PID; 3) either the license PID, a plain link to the license, or a statement of the rightholder and the known restrictions of use for the source data, 4) any other relevant information regarding the technical structure of the source data, if applicable.
@@ -208,6 +216,12 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?LBR*_ Create an LBR record (for a RES corpus)
 # [ ] _*+CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
 # [ ] _*+TEST*_ Have it tested again (access rights!)
+\\
+```
+
+### _shortname_: Publish the source data in Download
+
+```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
 # [ ] _*+META*_ Update the META-SHARE record: (update and) add the location PID and add the Availability start date (under Distribution)
 # [ ] _*?PORTAL*_ If applicable, add the new resource version to the license page of the previous versions [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
