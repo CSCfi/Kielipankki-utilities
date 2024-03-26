@@ -43,6 +43,8 @@ Publish the resource in Korp
 # [ ] _shortname_: Remove beta status
 
 Publish the VRT data in Download
+# [ ] _shortname_: Prepare publishing the VRT data in Download
+# [ ] _shortname_: Package the VRT data
 # [ ] _shortname_: Publish the VRT data in Download
 ```
 
@@ -346,16 +348,21 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Publish the VRT data in Download
+### _shortname_: Prepare publishing the VRT data in Download
 
 ```
-# [ ] _*+IDA*_ Get the data from IDA (unless the latest content is available as a Korp version)
-# [ ] _*+KORP*_ Extract the data from Korp (unless more recent content can be acquired in VRT format from outside Korp)
 # [ ] _*+META*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request URNs (for META-SHARE, download, license pages)
 # [ ] _*+DB*_ Add the details of the corpus variant to the resource database, status "upcoming"
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*+META*_ Add citation information to the META-SHARE record
+\\
+```
+
+### _shortname_: Package the VRT data
+
+```
+# [ ] _*+KORP*_ Extract the data from Korp (unless more recent content can be acquired in VRT format from outside Korp)
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-vrt_yyyymmdd.zip) and the separate shortname-vrt_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
 # [ ] _*+PUHTI*_ Create a download package
 ## [ ] _*+PUHTI*_ Create and add the downloadable readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
@@ -366,6 +373,11 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
 # [ ] _*?LBR*_ Create an LBR record (for a RES corpus, if the corpus does not yet have one)
 # [ ] _*+TEST*_ Have it tested again (access rights!)
+\\
+```
+
+### _shortname_: Publish the VRT data in Download
+```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
 # [ ] _*+META*_ Update the META-SHARE record; add location PID and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
