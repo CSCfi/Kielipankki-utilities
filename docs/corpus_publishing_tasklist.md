@@ -261,7 +261,6 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ```
 # [ ] _*?DATA*_ Get the source (or original) data from IDA, from the download service, or from the HFST server.
-
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-korp_yyyymmdd.zip) and the separate shortname-korp_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
 # [ ] _*?DATA*_ Convert the data to HRT
 # [ ] _*?DATA*_ Convert HRT to VRT (tokenizing)
@@ -309,7 +308,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Create a Korp test version
 
 ```
-## [ ] _*+KORP*_ Create a Korp test instance and install the new configuration branch to it (or ask someone with the rights to do that)
+# [ ] _*+KORP*_ Create a Korp test instance and install the new configuration branch to it (or ask someone with the rights to do that)
 # [ ] _*?KORP*_ For a non-PUB corpus, add temporary access rights for the people who should test it (with the {{authing/auth}} script on the Korp server)
 # [ ] _*+TEST*_ Test the corpus in Korp (Korp test version) and ask someone else to test it, too
 ## [ ] _*?SUPPORT*_ Ask feedback from the corpus owner (depending on how involved they wish to be)
