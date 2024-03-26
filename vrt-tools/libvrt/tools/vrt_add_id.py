@@ -273,7 +273,8 @@ def parsearguments(argv, *, prog = None):
     # Set some defaults for all elements
     for elem, elem_args in args.element.items():
         set_defaults(elem, elem_args, args)
-        check_format(elem_args.format, elem_names, args.prog)
+        check_format(elem_args.format, elem.decode('UTF-8'), elem_names,
+                     args.prog)
         optimizable, reason = check_optimizable(elem, elem_args)
         if args.optimize and not optimizable:
             explain_slower(args, reason)
@@ -348,11 +349,12 @@ def error(prog, *args):
     print(f'{prog}: error:', *args, file=sys.stderr)
     exit(1)
 
-def check_format(fmt, elem_names, prog):
+def check_format(fmt, elem, elem_names, prog):
     '''If fmt contains an invalid replacement field or format, exit with error.
 
-    elem_names is a list of element names (str) to which to add ids;
-    prog is the name of the script (for error messages).
+    fmt is format for element elem. elem_names is a list of element
+    names (str) to which to add ids; prog is the name of the script
+    (for error messages).
     '''
 
     def _error(repl_field, msg):
@@ -373,9 +375,11 @@ def check_format(fmt, elem_names, prog):
 
     repl_fields = get_format_fields(fmt)
     elemnames_re = '(?:' + '|'.join(elem_names) + ')'
+    fieldnames = set()
     for repl_field in repl_fields:
         mo = re.fullmatch(r'(.*?)(?:(/.*?/.*?/))?(?::(.*?))?', repl_field)
         fieldname, subst, formatspec = mo.groups()
+        fieldnames.add(fieldname)
         if re.fullmatch(r'hash([1-9][0-9]?)?', fieldname):
             # {hashN} for specified hash values have already been
             # expanded
@@ -408,6 +412,11 @@ def check_format(fmt, elem_names, prog):
             # Others are string-valued; if a format specification is
             # specified, try to format a string to see if it works
             check_formatspec(repl_field, formatspec, str)
+    if 'id' not in fieldnames and f'idnum[{elem}]' not in fieldnames:
+        # The format must contain 'id' or 'idnum[elem]'
+        _error(repl_field,
+               f'format string for element "{elem}" must contain replacement'
+               f' field "id" or "idnum[{elem}]"')
 
 def get_format_fields(fmt):
     '''Return replacement fields (no curly brackets) in format string fmt.'''

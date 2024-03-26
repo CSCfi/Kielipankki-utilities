@@ -1375,14 +1375,14 @@
 
 - name: 'vrt-add-id: --format referring to non-existent element or attribute'
   input:
-    cmdline: vrt-add-id --format="{paragraph[z]}"
+    cmdline: vrt-add-id --format="{id}-{paragraph[z]}"
     stdin: *input-1
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
       <text n="1">
     stderr: |
-      vrt-add-id: format replacement field {paragraph[z]}: key 'paragraph' not found
+      vrt-add-id: format replacement field {id}-{paragraph[z]}: key 'paragraph' not found
       vrt-add-id: non-zero status 1
     returncode: 1
   transform:
@@ -1397,6 +1397,19 @@
         replace:
         - '/\{paragraph/{text/'
         - "/'paragraph/'z"
+  - *transf-no-optimize
+
+- name: 'vrt-add-id: --format not referring to id or idnum[elem]'
+  input:
+    cmdline: vrt-add-id --seed=1 --element=text --format="{id:08x}" --element=sentence --format="{idnum[text]}"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: format string for element "sentence" must contain replacement field "id" or "idnum[sentence]": {idnum[text]}
+    returncode: 1
+  transform:
+  - {}
   - *transf-no-optimize
 
 
