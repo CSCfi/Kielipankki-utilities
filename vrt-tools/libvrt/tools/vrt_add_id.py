@@ -513,7 +513,7 @@ def main(args, ins, ous):
 
     # The numeric, unformatted base ids of each currently open element
     # to which ids are added
-    idnums = dict((elem, None) for elem in id_elem_names)
+    idnums = {}
     # elem_attrs keys are string values for elem, as they are used as
     # keyword argument names to formatter.format and bytes values
     # cannot be used as keyword argument names
@@ -686,7 +686,7 @@ def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr, id_counts):
             elem, args.element[elem].format, idnums)
         # Format the current id numbers for the start tags to which
         # ids were added in main
-        if idnums_curr[elem]:
+        if idnums_curr.get(elem):
             idnums[elem] = format_idnum[elem](idnums_curr[elem]).encode('UTF-8')
 
     for line in ins:
