@@ -23,8 +23,8 @@ from libvrt.metaline import (
 from libvrt.strformatters import PartialFormatter
 from libvrt.strformatters import SubstitutingBytesFormatter
 
-# Default maximum random id value (DEFAULT_RAND_END - 1)
-DEFAULT_RAND_END = pow(2, 32)
+# Default maximum random id value (DEFAULT_RAND_MAX - 1)
+DEFAULT_RAND_MAX = pow(2, 32)
 
 # Maximum number of bytes to read from a random seed file
 MAX_SEED_BYTES = pow(2, 20)
@@ -197,10 +197,10 @@ def parsearguments(argv, *, prog = None):
 
                        ''')
 
-    group.add_argument('--end', metavar = 'number',
+    group.add_argument('--max', metavar = 'number',
                        action = grouped_arg(),
                        type = intpow,
-                       default = DEFAULT_RAND_END,
+                       default = DEFAULT_RAND_MAX,
                        help = '''
 
                        maximum random id value is number - 1; a
@@ -318,7 +318,7 @@ def set_defaults(elem, elem_args, args):
     elem_args.format = elem_args.prefix + (
         expand_hashes(elem_args.format, args.hash) or (
             '{id'
-            + (':0' + str(get_hexvalue_len(elem_args.end)) + 'x}'
+            + (':0' + str(get_hexvalue_len(elem_args.max)) + 'x}'
                if elem_args.type == 'random'
                else '}'))
     )
@@ -706,7 +706,7 @@ def get_idgen(args):
         )
 
     else:
-        return randint_uniq(args.end, args.seed)
+        return randint_uniq(args.max, args.seed)
 
 def randint_uniq(end, seed = None):
     '''Generator for unique random integers in [0, end[ with seed.'''
@@ -714,7 +714,7 @@ def randint_uniq(end, seed = None):
     # Values already generated
     used = set()
     rnd = random.Random(seed)
-    errmsg = f'more than {end} elements encountered; please increase --end'
+    errmsg = f'more than {end} elements encountered; please increase --max'
 
     while True:
         if len(used) >= end:

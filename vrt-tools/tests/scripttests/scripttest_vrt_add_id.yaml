@@ -495,11 +495,11 @@
   transform: *transform-fast-s3
 
 
-# --type=random --end
+# --type=random --max
 
-- name: 'vrt-add-id: --type=random --end=3'
+- name: 'vrt-add-id: --type=random --max=3'
   input:
-    cmdline: vrt-add-id --type=random --end=3 --seed=2
+    cmdline: vrt-add-id --type=random --max=3 --seed=2
     stdin: *input-1
   output:
     stdout: |
@@ -519,9 +519,9 @@
       </text>
   transform: *transform-fast-s3
 
-- name: 'vrt-add-id: --type=random --end=20 (decimal, values of 2 hex digits)'
+- name: 'vrt-add-id: --type=random --max=20 (decimal, values of 2 hex digits)'
   input:
-    cmdline: vrt-add-id --type=random --end=20 --seed=1
+    cmdline: vrt-add-id --type=random --max=20 --seed=1
     stdin: *input-1
   output:
     stdout: |
@@ -541,9 +541,9 @@
       </text>
   transform: *transform-fast-s3
 
-- name: 'vrt-add-id: --type=random --end=0x1000 (hex, values of 3 hex digits)'
+- name: 'vrt-add-id: --type=random --max=0x1000 (hex, values of 3 hex digits)'
   input:
-    cmdline: vrt-add-id --type=random --end=0x1000 --seed=1
+    cmdline: vrt-add-id --type=random --max=0x1000 --seed=1
     stdin: *input-1
   output:
     stdout: |
@@ -563,9 +563,9 @@
       </text>
   transform: *transform-fast-s3
 
-- name: 'vrt-add-id: --type=random --end=2^8 (power, values of 2 hex digits)'
+- name: 'vrt-add-id: --type=random --max=2^8 (power, values of 2 hex digits)'
   input:
-    cmdline: vrt-add-id --type=random --end=2^8 --seed=1
+    cmdline: vrt-add-id --type=random --max=2^8 --seed=1
     stdin: *input-1
   output:
     stdout: &stdout-random-256-seed-1 |
@@ -585,9 +585,9 @@
       </text>
   transform: *transform-fast-s3
 
-- name: 'vrt-add-id: --type=random --end=2 (too small value)'
+- name: 'vrt-add-id: --type=random --max=2 (too small value)'
   input:
-    cmdline: vrt-add-id --type=random --end=2 --seed=2
+    cmdline: vrt-add-id --type=random --max=2 --seed=2
     stdin: *input-1
   output:
     stdout: |
@@ -602,7 +602,7 @@
       </text>
       <text n="2">
     stderr: |
-      vrt-add-id: more than 2 elements encountered; please increase --end
+      vrt-add-id: more than 2 elements encountered; please increase --max
       vrt-add-id: non-zero status 1
     returncode: 1
   transform:
@@ -622,7 +622,7 @@
 
 - name: 'vrt-add-id: --type=random, default seed for multiple element types'
   input:
-    cmdline: vrt-add-id --type=random --seed=1 --end=0x100 --element=text --element=sentence
+    cmdline: vrt-add-id --type=random --seed=1 --max=0x100 --element=text --element=sentence
     stdin: *input-1
   output:
     stdout: |
@@ -680,7 +680,7 @@
 
 - name: 'vrt-add-id: --type=random, explicitly same for multiple element types'
   input:
-    cmdline: vrt-add-id --type=random --end=0x100 --element=text --seed=1 --element=sentence --seed=1
+    cmdline: vrt-add-id --type=random --max=0x100 --element=text --seed=1 --element=sentence --seed=1
     stdin: *input-1
   output:
     stdout: |
@@ -705,7 +705,7 @@
 
 - name: 'vrt-add-id: --type=random, seed from file'
   input:
-    cmdline: vrt-add-id --type=random --end=2^8 --seed="<seed.txt"
+    cmdline: vrt-add-id --type=random --max=2^8 --seed="<seed.txt"
     stdin: *input-1
     file:seed.txt: '1'
   output:
@@ -729,7 +729,7 @@
 
 - name: 'vrt-add-id: --type=random, seed from 1 MiB file'
   input:
-    cmdline: vrt-add-id --type=random --end=2^8 --seed="<seed.txt"
+    cmdline: vrt-add-id --type=random --max=2^8 --seed="<seed.txt"
     stdin: *input-1
     file:seed.txt:
       value: ''
@@ -775,7 +775,7 @@
 
 - name: 'vrt-add-id: --type=random, non-existent seed file'
   input:
-    cmdline: vrt-add-id --type=random --end=2^8 --seed="<seed.txt"
+    cmdline: vrt-add-id --type=random --max=2^8 --seed="<seed.txt"
     stdin: *input-1
   output:
     stdout: ''
@@ -876,7 +876,7 @@
 
 - name: 'vrt-add-id: --type=random --format'
   input:
-    cmdline: vrt-add-id --type=random --seed=1 --end=10 --format="*{id:03d}*"
+    cmdline: vrt-add-id --type=random --seed=1 --max=10 --format="*{id:03d}*"
     stdin: *input-1
   output:
     stdout: |
@@ -898,7 +898,7 @@
 
 - name: 'vrt-add-id: --type=random --format --prefix'
   input:
-    cmdline: vrt-add-id --type=random --seed=1 --end=10 --format="*{id:03d}*" --prefix="x-"
+    cmdline: vrt-add-id --type=random --seed=1 --max=10 --format="*{id:03d}*" --prefix="x-"
     stdin: *input-1
   output:
     stdout: |
@@ -920,7 +920,7 @@
 
 - name: 'vrt-add-id: --type=random --format; double {id}'
   input:
-    cmdline: vrt-add-id --type=random --seed=1 --end=100 --format="*{id:03d}-{id:02x}*"
+    cmdline: vrt-add-id --type=random --seed=1 --max=100 --format="*{id:03d}-{id:02x}*"
     stdin: *input-1
   output:
     stdout: |
@@ -1155,7 +1155,7 @@
 
 - name: 'vrt-add-id: text, paragraph, sentence with same options and {this[attr]}'
   input:
-    cmdline: vrt-add-id --id=xid --type=random --seed=0 --end=2^16 --format="{this[x]}-{id:04x}" --element=text --element=paragraph --element=sentence
+    cmdline: vrt-add-id --id=xid --type=random --seed=0 --max=2^16 --format="{this[x]}-{id:04x}" --element=text --element=paragraph --element=sentence
     stdin: |
       <!-- #vrt positional-attributes: word -->
       <text x="1">
@@ -1436,7 +1436,7 @@
 
 - name: 'vrt-add-id: text, paragraph, sentence with completely different options'
   input:
-    cmdline: vrt-add-id --element=text --type=counter --start=0 --id=tid --element=paragraph --type=counter --start=10 --id=pid --format="p-{id:02x}" --element=sentence --type=random --id=sid --seed=0 --end=2^16 --format="{id:04x}"
+    cmdline: vrt-add-id --element=text --type=counter --start=0 --id=tid --element=paragraph --type=counter --start=10 --id=pid --format="p-{id:02x}" --element=sentence --type=random --id=sid --seed=0 --max=2^16 --format="{id:04x}"
     stdin: *input-para
   output:
     stdout: |
@@ -1480,7 +1480,7 @@
 
 - name: 'vrt-add-id: text, paragraph, sentence with same options'
   input:
-    cmdline: vrt-add-id --id=xid --type=random --seed=0 --end=2^16 --format="{id:04x}" --element=text --element=paragraph --element=sentence
+    cmdline: vrt-add-id --id=xid --type=random --seed=0 --max=2^16 --format="{id:04x}" --element=text --element=paragraph --element=sentence
     stdin: *input-para
   output:
     stdout: |
@@ -1565,7 +1565,7 @@
 
 - name: 'vrt-add-id: text, paragraph, sentence with some common options'
   input:
-    cmdline: vrt-add-id --id=id --type=random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --prefix="p-" --seed=1 --element=sentence --prefix="s-" --seed=2
+    cmdline: vrt-add-id --id=id --type=random --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --prefix="p-" --seed=1 --element=sentence --prefix="s-" --seed=2
     stdin: *input-para
   output:
     stdout: &output-para-1 |
@@ -1593,7 +1593,7 @@
 
 - name: 'vrt-add-id: text, paragraph, sentence; format referring to added ids'
   input:
-    cmdline: vrt-add-id --id=id --type=random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="{text[id]}-p-{id:04x}" --seed=1 --element=sentence --format="{paragraph[id]}-s-{id:04x}" --seed=2
+    cmdline: vrt-add-id --id=id --type=random --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="{text[id]}-p-{id:04x}" --seed=1 --element=sentence --format="{paragraph[id]}-s-{id:04x}" --seed=2
     stdin: *input-para
   output:
     stdout: |
@@ -1762,7 +1762,7 @@
 
 - name: 'vrt-add-id: text, paragraph, sentence; format referring to added ids, with substitutions'
   input:
-    cmdline: vrt-add-id --id=id --type=random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{text[id]/t-//}-{id:04x}" --seed=1 --element=sentence --format="s-{paragraph[id]/p-//,/-/+/}-{id:04x}" --seed=2
+    cmdline: vrt-add-id --id=id --type=random --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{text[id]/t-//}-{id:04x}" --seed=1 --element=sentence --format="s-{paragraph[id]/p-//,/-/+/}-{id:04x}" --seed=2
     stdin: *input-para
   output:
     stdout: &output-para-subst |
@@ -1802,7 +1802,7 @@
 
 - name: 'vrt-add-id: text, paragraph, sentence; format referring to idnum[elem]'
   input:
-    cmdline: vrt-add-id --id=id --type=random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
+    cmdline: vrt-add-id --id=id --type=random --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
     stdin: *input-para
   output:
     # This is another way to achieve the same result as with the
@@ -1812,7 +1812,7 @@
 
 - name: 'vrt-add-id: --format with {idnum[elem]}, missing paragraph but previous paragraphs'
   input:
-    cmdline: vrt-add-id --id=id --type=random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
+    cmdline: vrt-add-id --id=id --type=random --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
     stdin:
       value: *input-para
       transform:
@@ -1858,7 +1858,7 @@
 
 - name: 'vrt-add-id: --format with {idnum[elem]}, missing paragraph without previous paragraphs'
   input:
-    cmdline: vrt-add-id --id=id --type=random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
+    cmdline: vrt-add-id --id=id --type=random --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
     stdin:
       value: *input-para
       transform:
@@ -1888,7 +1888,7 @@
 
 - name: 'vrt-add-id: --verbose; text, paragraph, sentence with some common options'
   input:
-    cmdline: vrt-add-id --id=id --type=random --end=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --prefix="p-" --seed=1 --element=sentence --prefix="s-" --seed=2 --verbose
+    cmdline: vrt-add-id --id=id --type=random --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --prefix="p-" --seed=1 --element=sentence --prefix="s-" --seed=2 --verbose
     stdin: *input-para
   output:
     stdout: *output-para-1
