@@ -88,6 +88,15 @@ def parsearguments(argv, *, prog = None):
 
                         ''')
 
+    parser.add_argument('--rename', action = 'store_true',
+                        help = '''
+
+                        rename possible existing id attribute to id_N,
+                        where N is the smallest positive integer for
+                        which the resulting attribute does not exist
+
+                        ''')
+
     parser.add_argument('--sort', action = 'store_true',
                         help = '''
 
@@ -238,36 +247,21 @@ def parsearguments(argv, *, prog = None):
 
                        ''')
 
-    group.add_argument('--rename', metavar = 'name',
-                       action = grouped_arg(),
-                       nargs = '?',
-                       type = lambda s: s.encode('UTF-8'),
-                       # const value used if no argument
-                       const = b'{}_orig',
-                       help = '''
-
-                       rename possible existing id attribute to name;
-                       name may contain "{}" to be replaced with the
-                       original name; if also the renamed attribute
-                       already exists, append to the name "_N" where N
-                       is the smallest positive integer for which the
-                       resulting attribute does not exist; if name is
-                       omitted, "{}_orig" is used
-
-                       ''')
-
     args = parser.parse_args()
     args.prog = prog or parser.prog
     # If no elements have been specified, make all options pertain to
     # default_element
     if not args.element:
         args.element = {default_element: args}
-    # Faster method cannot overwrite existing attributes nor sort them
+    # Faster method cannot overwrite existing attributes, nor rename
+    # nor sort them
     explain_slower(args,
                    [(not args.optimize, '--no-optimize'),
                     (args.force, '--force'),
+                    (args.rename, '--rename'),
                     (args.sort, '--sort')])
-    args.optimize = args.optimize and not (args.force or args.sort)
+    args.optimize = (args.optimize
+                     and not any([args.force, args.rename, args.sort]))
     # print(args)
     elem_names = [name.decode('UTF-8') for name in args.element.keys()]
     # Set some defaults for all elements
@@ -431,10 +425,6 @@ def check_optimizable(elem, elem_args):
     the faster method can be used.
     '''
 
-    # The faster method cannot rename attributes
-    if elem_args.rename:
-        return (False, '--rename')
-
     # Format can contain only {id} and {idnum[*]}, optionally with
     # simple formatting :[0-9]*[dxX]?
     # idnum[elem] is the same as id
@@ -562,10 +552,10 @@ def main(args, ins, ous):
                                           id_counts)
                                 break
 
-                    if (args.force or elem_args.rename
+                    if (args.force or args.rename
                             or elem_args.idn not in attrs):
-                        if elem_args.rename and elem_args.idn in attrs:
-                            rename_attr(attrs, elem_args.idn, elem_args.rename)
+                        if args.rename and elem_args.idn in attrs:
+                            rename_attr(attrs, elem_args.idn)
                         id = next(ids[elem])
                         idnums[elem] = id
                         try:
@@ -741,27 +731,24 @@ def randint_uniq(end, seed = None):
         used.add(r)
         yield r
 
-def rename_attr(attrs, old, new):
-    '''Rename attribute old to new in dict attrs.
+def rename_attr(attrs, name):
+    '''Rename attribute name to name_N in dict attrs.
 
-    If new contains "{}", replace it with old. If an attribute with
-    the resulting name exists in attrs, append "_N" to the name where
     N is the smallest positive integer for which the resulting
     attribute name does not exist in attrs.
 
-    Effectively adds new with the value of old and deletes old, so the
-    order of attributes in attrs changes.
+    Effectively adds name_N with the value of name and deletes name,
+    so the order of attributes in attrs changes.
     '''
 
-    if b'{}' in new:
-        new = new.replace(b'{}', old)
-    new_base = new + b'_'
+    new_base = name + b'_'
     n = 1
+    new = name
     while new in attrs:
         new = new_base + str(n).encode('UTF-8')
         n += 1
-    attrs[new] = attrs[old]
-    del attrs[old]
+    attrs[new] = attrs[name]
+    del attrs[name]
 
 def get_hexvalue_len(value):
     '''Return the number of hex digits required to represent value - 1'''

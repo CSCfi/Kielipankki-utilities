@@ -1676,7 +1676,7 @@
         vrt-add-id: added 3 sentence ids
   - *transf-verbose-noopt-s3
 
-- name: 'vrt-add-id: --rename without argument, existing attribute'
+- name: 'vrt-add-id: --rename, existing attribute'
   input:
     cmdline: vrt-add-id --type=counter --id=a --rename
     stdin: *input-multiattr
@@ -1684,81 +1684,37 @@
     stdout: |
       <!-- #vrt positional-attributes: word -->
       <text a="a" n="1" n_1="a" n_2="b">
-      <sentence id="1" a_orig="a" a="1">
+      <sentence id="1" a_1="a" a="1">
       a
       </sentence>
-      <sentence id="2" a_orig="b" a="2">
+      <sentence id="2" a_1="b" a="2">
       b
       </sentence>
       </text>
       <text a="a" n="2" n_1="b" n_2="c">
-      <sentence id="3" a_orig="c" a="3">
+      <sentence id="3" a_1="c" a="3">
       c
       </sentence>
       </text>
   transform: *transform-rename-s3
 
-- name: 'vrt-add-id: --rename fixed name, existing attribute'
+- name: 'vrt-add-id: --rename, text and sentence, existing attributes'
   input:
-    cmdline: vrt-add-id --type=counter --id=a --rename=b
+    cmdline: vrt-add-id --type=counter --rename --element=text --id=n_1 --element=sentence --id=a
     stdin: *input-multiattr
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
-      <text a="a" n="1" n_1="a" n_2="b">
-      <sentence id="1" b="a" a="1">
+      <text a="a" n="1" n_2="b" n_1_1="a" n_1="1">
+      <sentence id="1" a_1="a" a="1">
       a
       </sentence>
-      <sentence id="2" b="b" a="2">
+      <sentence id="2" a_1="b" a="2">
       b
       </sentence>
       </text>
-      <text a="a" n="2" n_1="b" n_2="c">
-      <sentence id="3" b="c" a="3">
-      c
-      </sentence>
-      </text>
-  transform: *transform-rename-s3
-
-- name: 'vrt-add-id: --rename with {}, text and sentence, existing attributes'
-  input:
-    cmdline: vrt-add-id --type=counter --rename="{}_" --element=text --id=n_1 --element=sentence --id=a
-    stdin: *input-multiattr
-  output:
-    stdout: |
-      <!-- #vrt positional-attributes: word -->
-      <text a="a" n="1" n_2="b" n_1_="a" n_1="1">
-      <sentence id="1" a_="a" a="1">
-      a
-      </sentence>
-      <sentence id="2" a_="b" a="2">
-      b
-      </sentence>
-      </text>
-      <text a="a" n="2" n_2="c" n_1_="b" n_1="2">
-      <sentence id="3" a_="c" a="3">
-      c
-      </sentence>
-      </text>
-  transform: *no-optimize
-
-- name: 'vrt-add-id: text and sentence, different renames, existing attributes'
-  input:
-    cmdline: vrt-add-id --type=counter --element=text --id=n_1 --rename="{}_" --element=sentence --id=a --rename="{}a"
-    stdin: *input-multiattr
-  output:
-    stdout: |
-      <!-- #vrt positional-attributes: word -->
-      <text a="a" n="1" n_2="b" n_1_="a" n_1="1">
-      <sentence id="1" aa="a" a="1">
-      a
-      </sentence>
-      <sentence id="2" aa="b" a="2">
-      b
-      </sentence>
-      </text>
-      <text a="a" n="2" n_2="c" n_1_="b" n_1="2">
-      <sentence id="3" aa="c" a="3">
+      <text a="a" n="2" n_2="c" n_1_1="b" n_1="2">
+      <sentence id="3" a_1="c" a="3">
       c
       </sentence>
       </text>
@@ -1779,23 +1735,23 @@
         vrt-add-id: using the slower method because of --no-optimize
         vrt-add-id: added 2 text ids, 3 sentence ids
 
-- name: 'vrt-add-id: text and sentence, rename requiring suffix _N, existing attributes'
+- name: 'vrt-add-id: text and sentence, rename, N > 1, existing attributes'
   input:
-    cmdline: vrt-add-id --type=counter --element=text --id=a --rename=n --element=sentence --id=a --rename=id
+    cmdline: vrt-add-id --type=counter --start=0 --rename --element=text --id=n --element=sentence --id=id
     stdin: *input-multiattr
   output:
     stdout: |
       <!-- #vrt positional-attributes: word -->
-      <text n="1" n_1="a" n_2="b" n_3="a" a="1">
-      <sentence id="1" id_1="a" a="1">
+      <text a="a" n_1="a" n_2="b" n_3="1" n="0">
+      <sentence a="a" id_1="1" id="0">
       a
       </sentence>
-      <sentence id="2" id_1="b" a="2">
+      <sentence a="b" id_1="2" id="1">
       b
       </sentence>
       </text>
-      <text n="2" n_1="b" n_2="c" n_3="a" a="2">
-      <sentence id="3" id_1="c" a="3">
+      <text a="a" n_1="b" n_2="c" n_3="2" n="1">
+      <sentence a="c" id_1="3" id="2">
       c
       </sentence>
       </text>
