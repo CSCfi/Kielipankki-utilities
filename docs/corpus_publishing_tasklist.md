@@ -103,8 +103,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 *Recap: For each of the section titles below, create a Story and assign it as "In Epic", providing the name/number of the Epic of the resource in question. Copy & paste the appropriate task lists from below to the description field of the corresponding Jira stories.*
 
 
+***
 
-
+***Enter a new resource to the pipeline***
 
 ### _shortname_: Start negotiations with the depositor
 
@@ -194,6 +195,10 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
+***
+
+***Publish the source data in Download***
+
 ### _shortname_: Prepare publishing the source data in Download
 
 ```
@@ -236,6 +241,10 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PUHTI*_ Remove the download package, MD5 checksum file and readme and license files from the directory {{/scratch/clarin/download_preview}} on Puhti
 \\
 ```
+
+***
+
+***Publish the resource in Korp***
 
 ### _shortname_: Prepare publishing the resource in Korp
 
@@ -347,6 +356,10 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PUHTI*_ Remove any corpus data, used or created during the conversion process, from scratch on Puhti (usually the person who ran korp-make should take care of this)
 \\
 ```
+
+***
+
+***Publish the VRT data in Download***
 
 ### _shortname_: Prepare publishing the VRT data in Download
 
