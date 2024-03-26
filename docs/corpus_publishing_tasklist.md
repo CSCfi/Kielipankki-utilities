@@ -18,14 +18,29 @@ we need a list of the relevant tasks that must be completed.
 ### 2. Copy the following list of section titles to the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
 
 ```
+Enter a new resource to the pipeline
 # [ ] _shortname_: Start negotiations with the depositor
 # [ ] _shortname_: Enter the new resource to the pipeline
 # [ ] _shortname_: Plan the publication process with the depositor
 # [ ] _shortname_: Clear the license for the resource
 # [ ] _shortname_: Publish the end-user license
 # [ ] _shortname_: Acquire the original data
-# [ ] _shortname_: Publish the source data in Download
-# [ ] _shortname_: Publish the resource in Korp
+
+Publish the source data in Download
+# [ ] _shortname_: Prepare publishing the source data in Download
+
+Publish the resource in Korp
+# [ ] _shortname_: Prepare publishing the resource in Korp
+# [ ] _shortname_: Convert the data for publishing the resource in Korp
+# [ ] _shortname_: Parse the data for publishing the resource in Korp
+# [ ] _shortname_: Create a Korp corpus package (korp-make)
+# [ ] _shortname_: Create the Korp corpus configuration
+# [ ] _shortname_: Create a Korp test version
+# [ ] _shortname_: Publish the corpus in Korp as beta
+# [ ] _shortname_: Announce the new Korp corpus as beta
+# [ ] _shortname_: Remove beta status
+
+Publish the VRT data in Download
 # [ ] _shortname_: Publish the VRT data in Download
 ```
 
@@ -206,19 +221,32 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Publish the resource in Korp
+### _shortname_: Prepare publishing the resource in Korp
 
 ```
-# [ ] _*?DATA*_ Get the source (or original) data from IDA, from the download service, or from the HFST server.
 # [ ] _*+META*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request URNs (for META-SHARE, Korp, license pages)
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure it is on the list of upcoming resources and citable
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*+META*_ Add citation information to the META-SHARE record
+\\
+```
+
+### _shortname_: Convert the data for publishing the resource in Korp
+
+```
+# [ ] _*?DATA*_ Get the source (or original) data from IDA, from the download service, or from the HFST server.
+
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-korp_yyyymmdd.zip) and the separate shortname-korp_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
 # [ ] _*?DATA*_ Convert the data to HRT
 # [ ] _*?DATA*_ Convert HRT to VRT (tokenizing)
 # [ ] _*?DATA*_ Convert the data directly to VRT (alternative to HRT->VRT)
+\\
+```
+
+### _shortname_: Parse the data for publishing the resource in Korp
+
+```
 # [ ] _*?DATA*_ Parse the data (for corpora in languages with a parser)
 # [ ] _*?DATA*_ Re-order or group the data (e.g. chapters, articles)
 # [ ] _*?DATA*_ Add additional annotations
@@ -229,24 +257,56 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DATA*_ Check the positional attributes
 ## [ ] _*?DATA*_ Re-order to the commonly used order if necessary
 # [ ] _*+META*_ Record annotation information and tools used during the corpus processing pipeline, in order to be added to META_SHARE
+\\
+```
+
+### _shortname_: Create a Korp corpus package (korp-make)
+
+```
 # [ ] _*?HYSTORE*_ In case the data is only published as a scrambled version, upload the unscrambled base data as a zip file (named as shortname-korp-base_yyyymmdd.zip) and the separate shortname-korp-base_yyyymmdd_README.txt file to the HFST server, under data/corpora/korp-base/.
 # [ ] _*+DATA*_ Create a Korp corpus package ({{{}korp-make{}}})
-## [ ] _*+KORP*_ Install the corpus package on the Korp server (or ask someone with the rights to do that)
+## [ ] _*?DATA*_ Create a configuration file named korp-make-CORPUS.conf, where CORPUS is an abbreviation of the corpus name (short name).
+## [ ] _*?DATA*_ Execute the script korp-make and make sure it has run through without error messages (check the log files)
+# [ ] _*+KORP*_ Install the corpus package on the Korp server (or ask someone with the rights to do that)
+\\
+```
+
+### _shortname_: Create the Korp corpus configuration
+
+```
 # [ ] _*+GITHUB*_ Add corpus configuration to Korp (currently, a new branch in [Kielipankki-korp-frontend|https://https//github.com/CSCfi/Kielipankki-korp-frontend])
 ## [ ] _*+DATA*_ Add the configuration proper to a Korp mode file
 ## [ ] _*+DATA*_ Add translations of new attribute names (and values)
 ## [ ] _*+GITHUB*_ Push the branch to GitHub
+\\
+```
+
+### _shortname_: Create a Korp test version
+
+```
 ## [ ] _*+KORP*_ Create a Korp test instance and install the new configuration branch to it (or ask someone with the rights to do that)
 # [ ] _*?KORP*_ For a non-PUB corpus, add temporary access rights for the people who should test it (with the {{authing/auth}} script on the Korp server)
 # [ ] _*+TEST*_ Test the corpus in Korp (Korp test version) and ask someone else to test it, too
 ## [ ] _*?SUPPORT*_ Ask feedback from the corpus owner (depending on how involved they wish to be)
 # [ ] _*?DATA*_ Fix corpus data and re-publish (if needed)
 # [ ] _*?GITHUB*_ Fix Korp configuration and re-publish (if needed)
+\\
+```
+
+### _shortname_: Publish the corpus in Korp as beta
+
+```
 # [ ] _*+KORP*_ Publish the corpus in Korp as a beta test version
 ## [ ] _*+GITHUB*_ Merge the corpus configuration branch to branch {{master}}
 ## [ ] _*+GITHUB*_ Add news about this new corpus to the Korp newsdesk ([https://github.com/CSCfi/Kielipankki-korp-frontend/tree/news/master])
 ## [ ] _*+KORP*_ Install the updated {{master}} branch to production Korp (or ask someone with the rights to do that)
 # [ ] _*?LBR*_ Create an LBR record (for a RES corpus, if the corpus does not yet have one)
+\\
+```
+
+### _shortname_: Announce the new Korp corpus as beta
+
+```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published (add status "beta" to the name!)
 # [ ] _*+META*_ Update META-SHARE record; add location PID and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
@@ -256,13 +316,19 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
 # [ ] _*+PORTAL*_ Publish news about this new corpus in the portal
 # [ ] _*?SUPPORT*_ Inform corpus owner and possibly interested researchers on the corpus in Korp and ask them to test it
+\\
+```
+
+### _shortname_: Remove beta status
+
+```
 # [ ] _*?DATA*_ Fix corpus data based on feedback and re-publish (if needed)
 # [ ] _*?KORP*_ Fix corpus configuration in Korp and re-publish (if needed)
 # [ ] _*+KORP*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
 ## [ ] _*+KORP*_ Remove beta status from Korp configuration ({{{}master{}}}), push and install the updated {{master}}
 ## [ ] _*+META*_ Remove beta status from the META-SHARE record and resource group page
 # [ ] _*+TEST*_ Remove the corpus from the testing environment of Korp (Korp test version)
-# [ ] _*+PUHTI*_ Remove any corpus data, used or created during the conversion process, from scratch on Puhti (after ensuring that the source data has been backed up on the HFST server and the package has been published on the Korp server)
+# [ ] _*+PUHTI*_ Remove any corpus data, used or created during the conversion process, from scratch on Puhti (usually the person who ran korp-make should take care of this)
 \\
 ```
 
