@@ -546,7 +546,7 @@
     cmdline: vrt-add-id --type=random --max=0x1000 --seed=1
     stdin: *input-1
   output:
-    stdout: |
+    stdout: &stdout-random-4096-seed-1 |
       <!-- #vrt positional-attributes: word -->
       <text n="1">
       <sentence a="a" id="568">
@@ -580,6 +580,105 @@
       </text>
       <text n="2">
       <sentence a="c" id="8a">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:03x)'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --format='{id:03x}'
+    stdin: *input-1
+  output:
+    stdout: *stdout-random-4096-seed-1
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:03X)'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --format='{id:03X}'
+    stdin: *input-1
+  output:
+    stdout:
+      value: *stdout-random-4096-seed-1
+      transform-expected:
+        python: |
+          return re.sub(r'id="(...)"',
+                        lambda mo: f'id="{mo.group(1).upper()}"',
+                        value)
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:#05x)'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --format='{id:#05x}'
+    stdin: *input-1
+  output:
+    stdout:
+      value: *stdout-random-4096-seed-1
+      transform-expected:
+        replace: '/id="/id="0x/'
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:04o)'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --format='{id:04o}'
+    stdin: *input-1
+  output:
+    stdout:
+      value: *stdout-random-4096-seed-1
+      transform-expected:
+        python: |
+          return re.sub(r'id="(...)"',
+                        lambda mo: f'id="{int(mo.group(1), 16):04o}"',
+                        value)
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:012b)'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --format='{id:012b}'
+    stdin: *input-1
+  output:
+    stdout:
+      value: *stdout-random-4096-seed-1
+      transform-expected:
+        python: |
+          return re.sub(r'id="(...)"',
+                        lambda mo: f'id="{int(mo.group(1), 16):012b}"',
+                        value)
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:/>12b)'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --format='{id:/>12b}'
+    stdin: *input-1
+  output:
+    stdout:
+      value: *stdout-random-4096-seed-1
+      transform-expected:
+        python: |
+          return re.sub(r'id="(...)"',
+                        lambda mo: f'id="{int(mo.group(1), 16):/>12b}"',
+                        value)
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:04d)'
+  input:
+    cmdline:
+    - vrt-add-id --type=random --seed=1 --format='{id:04d}'
+    - vrt-add-id --type=random --seed=1 --format='{id:04}'
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="2768">
+      a
+      </sentence>
+      <sentence a="b" id="6058">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="4446">
       c
       </sentence>
       </text>

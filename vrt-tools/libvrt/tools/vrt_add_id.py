@@ -205,7 +205,10 @@ def parsearguments(argv, *, prog = None):
                        maximum random id value is number - 1; a
                        non-negative integer, hexadecimal if prefixed
                        with "0x", or n^k for n to the power of k
-                       (default: 2^32)
+                       (default: if the format string specifies a
+                       width for id or idnum[elem], the maximum that
+                       fits in width digits of the base specified in
+                       the format string; otherwise, 2^32)
 
                        ''')
 
@@ -300,6 +303,41 @@ def print_verbose(args, *print_args, **kwargs):
 
 def set_defaults(elem, elem_args, args):
     '''Set some defaults in `elem_args` (for element `elem`) from `args`.'''
+
+    def get_random_id_max_value(fmt):
+        '''Get the value for --max from format fmt if not already specified.
+
+        If fmt contains a format spec for id (or idnum[elem]) with a
+        width, return the maximum value that fits in width digits (of
+        the base in the format spec).
+        '''
+
+        if not fmt:
+            return DEFAULT_RAND_MAX
+        mo = re.search(rf'''\{{
+                                (?: id | idnum\[{elem}\] )
+                                ( :
+                                  (?: .?? [<>=^] )?
+                                  z? (?P<alt> \#)? 0?
+                                  (?P<width> [0-9]* )
+                                  .*?
+                                  (?P<type> [a-zA-Z] )?
+                                )?
+                            \}}''',
+                       fmt, re.VERBOSE)
+        if mo and mo.group(1):
+            width = mo.group('width')
+            if width:
+                width = int(width)
+                type_ = mo.group('type')
+                if mo.group('alt') and type_ in 'boxX':
+                    # Take into account the prefix 0b, 0o, 0x
+                    width -= 2
+                type_base = {'b': 2, 'o': 8, 'x': 16, 'X': 16}
+                base = type_base.get(type_, 10)
+                return pow(base, int(width))
+        return DEFAULT_RAND_MAX
+
     if not elem_args.type:
         elem_args.type = 'random'
     if not elem_args.seed:
@@ -315,7 +353,7 @@ def set_defaults(elem, elem_args, args):
             elem_args.seed = elem_args.seed.encode('UTF-8')
         elem_args.seed = prefix + elem_args.seed
     if elem_args.type == 'random' and not elem_args.max:
-        elem_args.max = DEFAULT_RAND_MAX
+        elem_args.max = get_random_id_max_value(elem_args.format)
     if elem_args.format:
         elem_args.format = expand_hashes(elem_args.format, args.hash)
     else:
