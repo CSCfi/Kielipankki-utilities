@@ -200,7 +200,6 @@ def parsearguments(argv, *, prog = None):
     group.add_argument('--max', metavar = 'number',
                        action = grouped_arg(),
                        type = intpow,
-                       default = DEFAULT_RAND_MAX,
                        help = '''
 
                        maximum random id value is number - 1; a
@@ -315,13 +314,17 @@ def set_defaults(elem, elem_args, args):
         else:
             elem_args.seed = elem_args.seed.encode('UTF-8')
         elem_args.seed = prefix + elem_args.seed
-    elem_args.format = elem_args.prefix + (
-        expand_hashes(elem_args.format, args.hash) or (
+    if elem_args.type == 'random' and not elem_args.max:
+        elem_args.max = DEFAULT_RAND_MAX
+    if elem_args.format:
+        elem_args.format = expand_hashes(elem_args.format, args.hash)
+    else:
+        elem_args.format = (
             '{id'
             + (':0' + str(get_hexvalue_len(elem_args.max)) + 'x}'
                if elem_args.type == 'random'
                else '}'))
-    )
+    elem_args.format = elem_args.prefix + elem_args.format
 
 def read_file_content(filename, max_bytes, prog='vrt-add-id'):
     '''Return up to max_bytes bytes from the beginning of file filename.
