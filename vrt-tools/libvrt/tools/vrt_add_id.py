@@ -690,6 +690,7 @@ def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr, id_counts):
         idnum_format_func = None
         # Split fmt to replacement fields and fixed strings
         parts = re.findall(r'{.*?}|[^{]+', fmt)
+        elem = elem.decode('UTF-8')
 
         for i, part in enumerate(parts):
             if part[0] == '{':
@@ -700,7 +701,7 @@ def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr, id_counts):
                 part, _, formatspec = part.partition(':')
                 if part in ('id', f'idnum[{elem}]'):
                     # Id num for the current element
-                    part = f'idnums[{elem}]'
+                    part = f'idnums[b"{elem}"]'
                     # f'{id}' seems to be faster than str(id), at
                     # least in Python 3.10.12
                     func_text = (

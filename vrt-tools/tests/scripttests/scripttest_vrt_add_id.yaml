@@ -1914,7 +1914,10 @@
 
 - name: 'vrt-add-id: text, paragraph, sentence; format referring to idnum[elem]'
   input:
-    cmdline: vrt-add-id --id=id --type=random --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
+    cmdline:
+    - vrt-add-id --id=id --type=random --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
+    # Same with {idnum[elem]} everywhere instead of {id}
+    - vrt-add-id --id=id --type=random --max=2^16 --element=text --format="{idnum[text]:04x}" --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:04x}-{idnum[paragraph]:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{idnum[sentence]:04x}" --seed=2
     stdin: *input-para
   output:
     # This is another way to achieve the same result as with the
