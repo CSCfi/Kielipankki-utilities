@@ -1979,6 +1979,108 @@
     input: *cmdline-verbose
   - *transf-verbose-noopt-prepend
 
+- name: 'vrt-add-id: text, paragraph, sentence; idnum[elem] with different format specs'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:05x}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-b92f">
+      <paragraph p="p1" id="p-0b92f-f4dc">
+      <sentence a="a" id="s-b92f+f4dc-a6de">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-0b92f-f4cb">
+      <sentence a="b" id="s-b92f+f4cb-7475">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-294c">
+      <paragraph p="p3" id="p-0294c-16a6">
+      <sentence a="c" id="s-294c+16a6-1f16">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - *transf-noopt-t2p3s3
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of different format specifications for idnum[text]: 04x, 05x
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+
+- name: 'vrt-add-id: text, paragraph, sentence; idnum[elem] with different format specs (one with empty)'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-b92f">
+      <paragraph p="p1" id="p-47407-f4dc">
+      <sentence a="a" id="s-b92f+f4dc-a6de">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-47407-f4cb">
+      <sentence a="b" id="s-b92f+f4cb-7475">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-294c">
+      <paragraph p="p3" id="p-10572-16a6">
+      <sentence a="c" id="s-294c+16a6-1f16">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - *transf-noopt-t2p3s3
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of different format specifications for idnum[text]: 04x, d (empty)
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+
+- name: 'vrt-add-id: text, paragraph, sentence; idnum[elem] with different but equal format specs (with and without "d")'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --max=2^16 --format="{id:05d}" --element=text --prefix="t-" --seed=0 --element=paragraph --format="p-{idnum[text]:05}-{id:04x}" --seed=1 --element=sentence --format="s-{idnum[text]:05}+{idnum[paragraph]:04x}-{id:04x}" --seed=2
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-47407">
+      <paragraph p="p1" id="p-47407-f4dc">
+      <sentence a="a" id="s-47407+f4dc-a6de">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-47407-f4cb">
+      <sentence a="b" id="s-47407+f4cb-7475">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-10572">
+      <paragraph p="p3" id="p-10572-16a6">
+      <sentence a="c" id="s-10572+16a6-1f16">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: *transform-fast-t2p3s3
+
 
 # --verbose (and optimization)
 

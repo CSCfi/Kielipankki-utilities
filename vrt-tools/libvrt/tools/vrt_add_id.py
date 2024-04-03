@@ -266,15 +266,29 @@ def parsearguments(argv, *, prog = None):
                      and not any([args.force, args.rename, args.sort]))
     # print(args)
     elem_names = [name.decode('UTF-8') for name in args.element.keys()]
+    # Format specs for each element ({id:format} or
+    # {idnum[elem]:format}), for testing if different formats are
+    # specified for an element
+    elem_formatspecs = defaultdict(OrderedDict)
     # Set some defaults for all elements
     for elem, elem_args in args.element.items():
         set_defaults(elem, elem_args, args)
         check_format(elem_args.format, elem.decode('UTF-8'), elem_names,
-                     args.prog)
+                     elem_formatspecs, args.prog)
         optimizable, reason = check_optimizable(elem, elem_args)
         if args.optimize and not optimizable:
             explain_slower(args, reason)
             args.optimize = False
+    # If the id number of some element has several different format
+    # specifications, the faster method cannot be used
+    if args.optimize:
+        for elem, formats in elem_formatspecs.items():
+            if len(formats) > 1:
+                args.optimize = False
+                explain_slower(args,
+                               'different format specifications for'
+                               f' idnum[{elem}]: {", ".join(formats.keys())}')
+                break
     return args
 
 def explain_slower(args, tests):
@@ -384,12 +398,15 @@ def error(prog, *args):
     print(f'{prog}: error:', *args, file=sys.stderr)
     exit(1)
 
-def check_format(fmt, elem, elem_names, prog):
+def check_format(fmt, elem, elem_names, elem_formatspecs, prog):
     '''If fmt contains an invalid replacement field or format, exit with error.
 
-    fmt is format for element elem. elem_names is a list of element
-    names (str) to which to add ids; prog is the name of the script
-    (for error messages).
+    fmt is format for element elem; elem_names is a list of element
+    names (str) to which to add ids; elem_formatspecs is a dict for
+    format specs for id or idnum[elem] for elements (element name as
+    key, value OrderedDict with formats as keys, (instead of set, to
+    preserve order)); prog is the name of the script (for error
+    messages).
     '''
 
     def _error(repl_field, msg):
@@ -443,6 +460,12 @@ def check_format(fmt, elem, elem_names, prog):
                 # If a format specification is specified, try to
                 # format an integer to see if it works
                 check_formatspec(repl_field, formatspec, int)
+                # Format specification without type -> type is "d"
+                if formatspec[-1].isdigit():
+                    formatspec += 'd'
+            spec_elem = (elem if fieldname == 'id'
+                         else re.match('idnum\[(.*?)\]', fieldname).group(1))
+            elem_formatspecs[spec_elem][formatspec or 'd (empty)'] = True
         elif formatspec:
             # Others are string-valued; if a format specification is
             # specified, try to format a string to see if it works
