@@ -426,6 +426,11 @@ def check_format(fmt, elem, elem_names, elem_formatspecs, prog):
                    f' format replacement field: {msg}')
 
     repl_fields = get_format_fields(fmt)
+    if not repl_fields:
+        # The format must contain 'id' or 'idnum[elem]'
+        error(prog,
+              f'format string for element "{elem}" must contain replacement'
+              f' field "id" or "idnum[{elem}]": {fmt}')
     elemnames_re = '(?:' + '|'.join(elem_names) + ')'
     fieldnames = set()
     for repl_field in repl_fields:

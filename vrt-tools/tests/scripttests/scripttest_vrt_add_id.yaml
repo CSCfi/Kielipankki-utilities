@@ -1511,6 +1511,19 @@
   - {}
   - *transf-no-optimize
 
+- name: 'vrt-add-id: --format without replacement fields'
+  input:
+    cmdline: vrt-add-id --seed=1 --element=text --format="{id:08x}" --element=sentence --format="xxx"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: format string for element "sentence" must contain replacement field "id" or "idnum[sentence]": xxx
+    returncode: 1
+  transform:
+  - {}
+  - *transf-no-optimize
+
 - name: 'vrt-add-id: --format referring to idnum of a specified element that is not in input'
   input:
     cmdline: vrt-add-id --seed=1 --element=text --format="{id:08x}" --element=sentence --format="{idnum[text]}-{id:08x}"
