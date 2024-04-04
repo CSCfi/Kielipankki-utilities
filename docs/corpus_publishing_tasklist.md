@@ -200,7 +200,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ***Publish the source data in Download***
 
-### _shortname_: Prepare publishing the source data in Download
+### _shortname_: Prepare to publish the source data in Download
 
 ```
 # [ ] _*+META*_ Create or update the META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
@@ -247,7 +247,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ***Publish the resource in Korp***
 
-### _shortname_: Prepare publishing the resource in Korp
+### _shortname_: Prepare to publish the resource in Korp
 
 ```
 # [ ] _*+META*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
