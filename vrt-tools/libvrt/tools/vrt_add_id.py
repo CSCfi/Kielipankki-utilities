@@ -45,8 +45,6 @@ def intpow(arg):
 
 def parsearguments(argv, *, prog = None):
 
-    default_element = b'sentence'
-
     description = '''
 
     Add or overwrite an "id" attribute to each element of the
@@ -257,10 +255,17 @@ def parsearguments(argv, *, prog = None):
 
     args = parser.parse_args()
     args.prog = prog or parser.prog
+    return process_args(args)
+
+def process_args(args):
+    '''Process args as returned by ArgumentParser.parse_args.'''
+
     # If no elements have been specified, make all options pertain to
     # default_element
+    default_element = b'sentence'
     if not args.element:
         args.element = {default_element: args}
+
     # Faster method cannot overwrite existing attributes, nor rename
     # nor sort them
     explain_slower(args,
@@ -272,6 +277,7 @@ def parsearguments(argv, *, prog = None):
                      and not any([args.force, args.rename, args.sort]))
     # print(args)
     elem_names = [name.decode('UTF-8') for name in args.element.keys()]
+
     # Format specs for each element ({id:format} or
     # {idnum[elem]:format}), for testing if different formats are
     # specified for an element
@@ -279,7 +285,9 @@ def parsearguments(argv, *, prog = None):
     # Default format specs for each element, to be used with
     # {idnum[elem]} without a format spec
     default_formatspecs = {}
-    # Set some defaults for all elements
+
+    # Set some defaults for all elements and check if the faster
+    # method can be used
     for elem, elem_args in args.element.items():
         # Save the original format for error messages
         elem_args.format_orig = elem_args.format
@@ -292,16 +300,19 @@ def parsearguments(argv, *, prog = None):
         if args.optimize and not optimizable:
             explain_slower(args, reason)
             args.optimize = False
+
     # An omitted format spec in a format implies using the default
     for elem, elem_args in args.element.items():
         elem_s = elem.decode('UTF-8')
         if '' in elem_formatspecs[elem_s] and default_formatspecs[elem_s]:
             elem_formatspecs[elem_s][default_formatspecs[elem_s]] = True
             del elem_formatspecs[elem_s]['']
+
     # Add the default format specs to formats without a format spec
     for elem, elem_args in args.element.items():
         elem_args.format = add_default_formatspecs(
             elem_args.format, elem.decode('UTF-8'), default_formatspecs)
+
     # If the id number of some element has several different format
     # specifications, the faster method cannot be used
     if args.optimize:
@@ -312,6 +323,7 @@ def parsearguments(argv, *, prog = None):
                                'different format specifications for'
                                f' idnum[{elem}]: {", ".join(formats.keys())}')
                 break
+
     return args
 
 def last_item(iterable):
