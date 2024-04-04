@@ -223,17 +223,23 @@ def parsearguments(argv, *, prog = None):
                        "{elem[attr]}" with the string value of the
                        existing attribute attr in the current or an
                        enclosing element (the current element can also
-                       be referred to as "this"); formatting string
-                       values is extended with regular expression
-                       substitutions: "{elem[attr]/regexp/subst/}" is
-                       "{elem[attr]}" with all matches of regexp
-                       replaced with subst; subst may refer to groups
-                       in regexp as \\N, \\g<N> or \\g<name>; multiple
-                       substitutions are separated by commas,
-                       semicolons or spaces (default: with
-                       --type=counter, "{id}"; with --type=random,
-                       "{id:0*x}" where * is the minimum number of hex
-                       digits to represent the maximum value)
+                       be referred to as "this"); "{id}" and
+                       "{idnum[elem]}" without format specification
+                       implicitly use the default format
+                       specification; "{idnum[elem]}" referred to in
+                       the format string of another element uses the
+                       format specification specified for element
+                       elem; formatting string values is extended with
+                       regular expression substitutions:
+                       "{elem[attr]/regexp/subst/}" is "{elem[attr]}"
+                       with all matches of regexp replaced with subst;
+                       subst may refer to groups in regexp as \\N,
+                       \\g<N> or \\g<name>; multiple substitutions are
+                       separated by commas, semicolons or spaces
+                       (default: with --type=counter, "{id:d}"; with
+                       --type=random, "{id:0*x}" where * is the
+                       minimum number of hex digits to represent the
+                       maximum value)
 
                        ''')
 
@@ -270,15 +276,32 @@ def parsearguments(argv, *, prog = None):
     # {idnum[elem]:format}), for testing if different formats are
     # specified for an element
     elem_formatspecs = defaultdict(OrderedDict)
+    # Default format specs for each element, to be used with
+    # {idnum[elem]} without a format spec
+    default_formatspecs = {}
     # Set some defaults for all elements
     for elem, elem_args in args.element.items():
+        # Save the original format for error messages
+        elem_args.format_orig = elem_args.format
         set_defaults(elem, elem_args, args)
-        check_format(elem_args.format, elem.decode('UTF-8'), elem_names,
+        elem_s = elem.decode('UTF-8')
+        check_format(elem_args.format, elem_s, elem_names,
                      elem_formatspecs, args.prog)
+        default_formatspecs[elem_s] = last_item(elem_formatspecs[elem_s].keys())
         optimizable, reason = check_optimizable(elem, elem_args)
         if args.optimize and not optimizable:
             explain_slower(args, reason)
             args.optimize = False
+    # An omitted format spec in a format implies using the default
+    for elem, elem_args in args.element.items():
+        elem_s = elem.decode('UTF-8')
+        if '' in elem_formatspecs[elem_s] and default_formatspecs[elem_s]:
+            elem_formatspecs[elem_s][default_formatspecs[elem_s]] = True
+            del elem_formatspecs[elem_s]['']
+    # Add the default format specs to formats without a format spec
+    for elem, elem_args in args.element.items():
+        elem_args.format = add_default_formatspecs(
+            elem_args.format, elem.decode('UTF-8'), default_formatspecs)
     # If the id number of some element has several different format
     # specifications, the faster method cannot be used
     if args.optimize:
@@ -290,6 +313,13 @@ def parsearguments(argv, *, prog = None):
                                f' idnum[{elem}]: {", ".join(formats.keys())}')
                 break
     return args
+
+def last_item(iterable):
+    '''Get the last item of iterable, None if empty.'''
+    try:
+        return list(iterable)[-1]
+    except IndexError:
+        return None
 
 def explain_slower(args, tests):
     '''Explain why the slower method is used.
@@ -368,14 +398,22 @@ def set_defaults(elem, elem_args, args):
         elem_args.seed = prefix + elem_args.seed
     if elem_args.type == 'random' and not elem_args.max:
         elem_args.max = get_random_id_max_value(elem_args.format)
+    # The default format spec is used if no format is specified or if
+    # {id} or {idnum[currentelem] has no format spec
+    default_formatspec = ('0' + str(get_hexvalue_len(elem_args.max)) + 'x'
+                          if elem_args.type == 'random'
+                          else 'd')
     if elem_args.format:
+        elem_s = elem.decode('UTF-8')
         elem_args.format = expand_hashes(elem_args.format, args.hash)
+        mo = re.search(r'\{(?:id|idnum\[' + elem_s + r'\](?::(.*?))?)\}',
+                       elem_args.format)
+        if mo and not mo.group(1):
+            elem_args.format = re.sub(r'\{(?:id|idnum\[' + elem_s + r'\])\}',
+                                      f'{{id:{default_formatspec}}}',
+                                      elem_args.format)
     else:
-        elem_args.format = (
-            '{id'
-            + (':0' + str(get_hexvalue_len(elem_args.max)) + 'x}'
-               if elem_args.type == 'random'
-               else '}'))
+        elem_args.format = f'{{id:{default_formatspec}}}'
     elem_args.format = elem_args.prefix + elem_args.format
 
 def read_file_content(filename, max_bytes, prog='vrt-add-id'):
@@ -470,7 +508,7 @@ def check_format(fmt, elem, elem_names, elem_formatspecs, prog):
                     formatspec += 'd'
             spec_elem = (elem if fieldname == 'id'
                          else re.match('idnum\[(.*?)\]', fieldname).group(1))
-            elem_formatspecs[spec_elem][formatspec or 'd (empty)'] = True
+            elem_formatspecs[spec_elem][formatspec or ''] = True
         elif formatspec:
             # Others are string-valued; if a format specification is
             # specified, try to format a string to see if it works
@@ -549,6 +587,23 @@ def expand_hashes(format_, strlist):
 
     # This keeps the non-hash format specs in format_ intact
     return PartialFormatter(None).format(format_, **hashvals)
+
+def add_default_formatspecs(format_, elem, default_formatspecs):
+    '''Add default format specs from default_formatspecs to format_ for elem.
+
+    Add the default format spec to replacement fields "{id}" and
+    "{idnum[elem]}" (for any element elem) without an explicit format
+    spec.
+    '''
+
+    # Add the default format spec for elem to {id}
+    format_ = format_.replace('{id}', f'{{id:{default_formatspecs[elem]}}}')
+    # Add default format spec for elem to {idnum[elem]} for any elem
+    format_ = re.sub(
+        r'\{(idnum\[(.+?)\])\}',
+        lambda mo: f'{{{mo.group(1)}:{default_formatspecs[mo.group(2)]}}}',
+        format_)
+    return format_
 
 def main(args, ins, ous):
     '''Transput VRT (bytes) in ins to VRT (bytes) in ous.'''
@@ -639,8 +694,9 @@ def main(args, ins, ous):
                         except KeyError as e:
                             estr = str(e).replace('b\'', '\'')
                             raise BadData(
-                                'format replacement field '
-                                f'{elem_args.format}: key {estr} not found')
+                                'format replacement field'
+                                f' {elem_args.format_orig}: key {estr} not'
+                                ' found')
                         if verbose:
                             id_counts[elem] += 1
                     else:
