@@ -1048,6 +1048,65 @@
         vrt-add-id: added 3 sentence ids
   - *transf-verbose-noopt-s3
 
+- name: 'vrt-add-id: {id} with different format specs'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{id:<1d}" --verbose
+    stdin: *input-1
+  output:
+    stdout: *output-1-s3
+    stderr: |
+      vrt-add-id: using the faster method
+      vrt-add-id: added 3 sentence ids
+  transform:
+  - {}
+  - name: format spec "<5d"
+    input:
+      cmdline:
+        replace: '/<1/<5/'
+    output-expected:
+      stdout:
+        replace: '/(id=".)/\1    /'
+  - name: format spec ">5d"
+    input:
+      cmdline:
+        replace: '/<1/>5/'
+    output-expected:
+      stdout:
+        replace: '/id="(.)/id="    \1/'
+  - name: format spec "^5d"
+    input:
+      cmdline:
+        replace: '/<1/^5/'
+    output-expected:
+      stdout:
+        replace: '/id="(.)/id="  \1  /'
+  - name: format spec "-^5d"
+    input:
+      cmdline:
+        replace: '/<1/-^5/'
+    output-expected:
+      stdout:
+        replace: '/id="(.)/id="--\1--/'
+  - name: format spec "'^5d"
+    input:
+      cmdline:
+        replace: "/<1/'^5/"
+    output-expected:
+      stdout:
+        replace: "/id=\"(.)/id=\"''\\1''/"
+  - name: format spec "#04x"
+    input:
+      cmdline:
+        replace: '/<1d/#04x/'
+    output-expected:
+      stdout:
+        replace: '/id="(.)/id="0x0\1/'
+  - name: --no-optimize
+    input: *cmdline-no-optimize
+    output-expected:
+      stderr:
+        replace: '/faster method/slower method because of --no-optimize/'
+
 
 # --hash
 
@@ -2233,68 +2292,6 @@
     output-expected:
       stderr:
         replace: '/faster method/slower method because of --no-optimize/'
-
-- name: 'vrt-add-id: --verbose; {id} with different format specifications (slower method)'
-  input:
-    cmdline: vrt-add-id --type=counter --format="{id:<1d}" --verbose
-    stdin: *input-1
-  output:
-    stdout: *output-1-s3
-    stderr: |
-      vrt-add-id: using the slower method because of format specification not matching "[0-9]*[dxX]?": {id:<1d}
-      vrt-add-id: added 3 sentence ids
-  transform:
-  - {}
-  - name: format spec "<5d"
-    input:
-      cmdline:
-        replace: '/<1/<5/'
-    output-expected:
-      stdout:
-        replace: '/(id=".)/\1    /'
-      stderr:
-        replace: '/<1/<5/'
-  - name: format spec ">5d"
-    input:
-      cmdline:
-        replace: '/<1/>5/'
-    output-expected:
-      stdout:
-        replace: '/id="(.)/id="    \1/'
-      stderr:
-        replace: '/<1/>5/'
-  - name: format spec "^5d"
-    input:
-      cmdline:
-        replace: '/<1/^5/'
-    output-expected:
-      stdout:
-        replace: '/id="(.)/id="  \1  /'
-      stderr:
-        replace: '/<1/^5/'
-  - name: format spec "-^5d"
-    input:
-      cmdline:
-        replace: '/<1/-^5/'
-    output-expected:
-      stdout:
-        replace: '/id="(.)/id="--\1--/'
-      stderr:
-        replace: '/<1/-^5/'
-  - name: format spec "#04x"
-    input:
-      cmdline:
-        replace: '/<1d/#04x/'
-    output-expected:
-      stdout:
-        replace: '/id="(.)/id="0x0\1/'
-      stderr:
-        replace: '/<1d/#04x/'
-  - name: --no-optimize
-    input: *cmdline-no-optimize
-    output-expected:
-      stderr:
-        replace: '/format specification.*/--no-optimize/'
 
 - name: 'vrt-add-id: --verbose; slower method because not all types of elements occurred in input'
   input:

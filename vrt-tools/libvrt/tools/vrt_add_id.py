@@ -59,10 +59,9 @@ def parsearguments(argv, *, prog = None):
     fewer features. The slower one is used in following cases: (1)
     with one or more of the options --no-optimize, --force, --sort and
     --rename; (2) if an id format refers to other replacement fields
-    than {id}, {idnum[elem]}, {hash} and {hashN}; (3) if {id} or
+    than {id}, {idnum[elem]}, {hash} and {hashN}; or (3) if {id} or
     {idnum[elem]} for a certain element occurs with several different
-    format specifications; or (4) if a format specification does not
-    match the regular expression "[0-9]*[dxX]?".
+    format specifications.
 
     '''
 
@@ -545,7 +544,7 @@ def check_optimizable(elem, elem_args):
     '''
 
     # Format can contain only {id} and {idnum[*]}, optionally with
-    # simple formatting :[0-9]*[dxX]?
+    # formatting
     # idnum[elem] is the same as id
     fmt = elem_args.format.replace(
         '{idnum[{' + elem.decode('UTF-8') + '}]', '{id')
@@ -557,13 +556,6 @@ def check_optimizable(elem, elem_args):
         return (False,
                 '--format replacement field other than {id} or {idnum[elem]}: {'
                 + non_optimizable_fields[0] + '}')
-    too_complex_format = [
-        repl_field for repl_field in repl_fields
-        if not re.fullmatch(r'([^:]+)(:[0-9]*[dxX]?)?', repl_field)]
-    if too_complex_format:
-        return (False,
-                'format specification not matching "[0-9]*[dxX]?": {'
-                + too_complex_format[0] + '}')
 
     # Check that the same idnum[elem] is not used with different
     # formats; use the keys of OrderedDict to preserve the input order
@@ -773,9 +765,9 @@ def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr, id_counts):
                     # f'{id}' seems to be faster than str(id), at
                     # least in Python 3.10.12
                     func_text = (
-                        'lambda id: f"{id'
+                        'lambda id: f"""{id'
                         + (':' + formatspec if formatspec else '')
-                        + '}"')
+                        + '}"""')
                     # print(func_text)
                     idnum_format_func = eval(func_text)
                 else:
