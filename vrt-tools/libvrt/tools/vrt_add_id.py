@@ -18,7 +18,7 @@ from libvrt.groupargs import grouping_arg, grouped_arg
 
 from libvrt.metaname import nametype # need checked
 from libvrt.metaline import (
-    mapping, starttag, ismeta, isstarttag, isendtag, element)
+    mapping, starttag, ismeta, isstarttag, isendtag, element, strescape)
 
 from libvrt.strformatters import PartialFormatter
 from libvrt.strformatters import SubstitutingBytesFormatter
@@ -560,9 +560,15 @@ def check_optimizable(elem, elem_args):
     # Check that the same idnum[elem] is not used with different
     # formats; use the keys of OrderedDict to preserve the input order
     # unlike set
+    # Also, check that the formatting result does not contain < > & ",
+    # which are escaped only by the slower method
     id_formats = defaultdict(OrderedDict)
     for repl_field in repl_fields:
         fieldname, _, format_ = repl_field.partition(':')
+        test_format_output = f'{{:{format_}}}'.format(1)
+        for ch in '<>&"':
+            if ch in test_format_output:
+                return (False, f'format producing \'{ch}\'')
         id_formats[fieldname][format_] = ''
         if len(id_formats[fieldname]) > 1:
             return (False, ('using {' + fieldname + '} with different format'
@@ -688,13 +694,13 @@ def main(args, ins, ous):
                         idnums[elem] = id
                         try:
                             attrs[elem_args.idn] = (
-                                formatter.format(
+                                strescape(formatter.format(
                                     elem_args.format,
                                     id = id,
                                     this = attrs,
                                     idnum = idnums,
                                     **elem_attrs
-                                ).encode('UTF-8'))
+                                )).encode('UTF-8'))
                         except KeyError as e:
                             estr = str(e).replace('b\'', '\'')
                             raise BadData(
@@ -778,7 +784,7 @@ def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr, id_counts):
             else:
                 # Fixed string
                 part = part.replace('\x01', '{{').replace('\x02', '}}')
-                parts[i] = f'b"{part}"'
+                parts[i] = f'b"{strescape(part)}"'
 
         func_text = 'lambda: ' + ' + '.join(parts)
         # print(func_text)

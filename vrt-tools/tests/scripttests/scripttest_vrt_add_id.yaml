@@ -1107,6 +1107,88 @@
       stderr:
         replace: '/faster method/slower method because of --no-optimize/'
 
+- name: 'vrt-add-id: Format containing fixed characters to be XML-encoded'
+  input:
+    cmdline: vrt-add-id --type=counter --format="<{id}" --verbose
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/(id=")/\1&lt;/'
+    stderr: |
+      vrt-add-id: using the faster method
+      vrt-add-id: added 3 sentence ids
+  transform:
+  - name: 'format containing "<"'
+    # The values above
+  - name: 'format containing ">"'
+    input:
+      cmdline:
+        replace: '/</>/'
+    output-expected:
+      stdout:
+        replace: '/&lt;/&gt;/'
+  - name: 'format containing "&"'
+    input:
+      cmdline:
+        replace: '/</&/'
+    output-expected:
+      stdout:
+        replace: '/&lt;/&amp;/'
+  - name: 'format containing "\""'
+    input:
+      cmdline:
+        replace: '/</\"/'
+    output-expected:
+      stdout:
+        replace: '/&lt;/&quot;/'
+  - *transf-verbose-noopt-s3
+
+- name: 'vrt-add-id: Format spec producing characters to be XML-encoded'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{id:<>2d}" --verbose
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/(id=")/\1&lt;/'
+    stderr: |
+      vrt-add-id: using the slower method because of format producing '<'
+      vrt-add-id: added 3 sentence ids
+  transform:
+  - name: 'format containing "<"'
+    # The values above
+  - name: 'format containing ">"'
+    input:
+      cmdline:
+        replace: '/</>/'
+    output-expected:
+      stdout:
+        replace: '/&lt;/&gt;/'
+      stderr:
+        replace: '/</>/'
+  - name: 'format containing "&"'
+    input:
+      cmdline:
+        replace: '/</&/'
+    output-expected:
+      stdout:
+        replace: '/&lt;/&amp;/'
+      stderr:
+        replace: '/</&/'
+  - name: 'format containing "\""'
+    input:
+      cmdline:
+        replace: '/</\"/'
+    output-expected:
+      stdout:
+        replace: '/&lt;/&quot;/'
+      stderr:
+        replace: '/</"/'
+  - *transf-verbose-noopt-s3
+
 
 # --hash
 
