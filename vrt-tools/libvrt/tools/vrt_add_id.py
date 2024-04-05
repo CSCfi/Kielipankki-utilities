@@ -417,15 +417,33 @@ def set_defaults(elem, elem_args, args):
     if elem_args.format:
         elem_s = elem.decode('UTF-8')
         elem_args.format = expand_hashes(elem_args.format, args.hash)
+        elem_args.format = replace_double_curlies(elem_args.format)
         mo = re.search(r'\{(?:id|idnum\[' + elem_s + r'\](?::(.*?))?)\}',
                        elem_args.format)
         if mo and not mo.group(1):
             elem_args.format = re.sub(r'\{(?:id|idnum\[' + elem_s + r'\])\}',
                                       f'{{id:{default_formatspec}}}',
                                       elem_args.format)
+        elem_args.format = restore_curlies(elem_args.format)
     else:
         elem_args.format = f'{{id:{default_formatspec}}}'
     elem_args.format = elem_args.prefix + elem_args.format
+
+def replace_double_curlies(fmt):
+    '''Protect {{ and }} in fmt by replacing with \x01, \x02.'''
+
+    def replacement(mo):
+        count = len(mo.group(0))
+        return ((count % 2) * '}') + ((count // 2) * '\x02')
+
+    fmt = fmt.replace('{{', '\x01')
+    # }} cannot be replaced with str.replace, as it would convert }}}
+    # to \x02} instead of the correct }\x02
+    return re.sub(r'\}{2,}', replacement, fmt)
+
+def restore_curlies(fmt, count=2):
+    '''Replace \x01, \x02 in fmt with count { and }.'''
+    return fmt.replace('\x01', count * '{').replace('\x02', count * '}')
 
 def read_file_content(filename, max_bytes, prog='vrt-add-id'):
     '''Return up to max_bytes bytes from the beginning of file filename.
@@ -606,6 +624,7 @@ def add_default_formatspecs(format_, elem, default_formatspecs):
     spec.
     '''
 
+    format_ = replace_double_curlies(format_)
     # Add the default format spec for elem to {id}
     format_ = format_.replace('{id}', f'{{id:{default_formatspecs[elem]}}}')
     # Add default format spec for elem to {idnum[elem]} for any elem
@@ -613,7 +632,7 @@ def add_default_formatspecs(format_, elem, default_formatspecs):
         r'\{(idnum\[(.+?)\])\}',
         lambda mo: f'{{{mo.group(1)}:{default_formatspecs[mo.group(2)]}}}',
         format_)
-    return format_
+    return restore_curlies(format_)
 
 def main(args, ins, ous):
     '''Transput VRT (bytes) in ins to VRT (bytes) in ous.'''
@@ -751,11 +770,11 @@ def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr, id_counts):
         # it is defined in the outer function above this one even if
         # passing globals() and/or locals() to eval().
 
-        # Protect double curly brackets
-        fmt = fmt.replace('{{', '\x01').replace('}}', '\x02')
+        fmt = replace_double_curlies(fmt)
         idnum_format_func = None
         # Split fmt to replacement fields and fixed strings
         parts = re.findall(r'{.*?}|[^{]+', fmt)
+        # print(parts)
         elem = elem.decode('UTF-8')
 
         for i, part in enumerate(parts):
@@ -783,7 +802,7 @@ def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr, id_counts):
                 parts[i] = part
             else:
                 # Fixed string
-                part = part.replace('\x01', '{{').replace('\x02', '}}')
+                part = restore_curlies(part, 1)
                 parts[i] = f'b"{strescape(part)}"'
 
         func_text = 'lambda: ' + ' + '.join(parts)

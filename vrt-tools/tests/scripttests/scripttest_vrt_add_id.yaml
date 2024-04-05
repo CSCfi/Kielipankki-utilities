@@ -1189,6 +1189,61 @@
         replace: '/</"/'
   - *transf-verbose-noopt-s3
 
+- name: 'vrt-add-id: Format with literal { and }'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{{-{id}-}}"
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/id="(.)"/id="{-\1-}"/'
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: Format with literal "{id}"'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{{id}}-{id}"
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/id="(.)"/id="{id}-\1"/'
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: Format with literal "{idnum[...]}"'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{{idnum[sentence]}}-{{{{idnum[x]}}}}-{id}"
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/id="(.)"/id="{idnum[sentence]}-{{idnum[x]}}-\1"/'
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: Format with literal { and } immediately around replacement field'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{{{id}}}"
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/id="(.)"/id="{\1}"/'
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: Format with literal {{ and }} immediately around replacement field'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{{{{{id}}}}}"
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/id="(.)"/id="{{\1}}"/'
+  transform: *transform-fast-s3
+
 
 # --hash
 
