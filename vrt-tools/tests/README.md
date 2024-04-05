@@ -116,6 +116,12 @@ test case:
                 `\g<name>`
             -   `count`: the number of replacements (optional;
                 default: all)
+            -   `reflags`: regular expression flags for `regex`. The
+                value is as in Python, except that the names of the
+                flag constants need not be prefixed by `re.`; e.g.,
+                `DOTALL|VERBOSE` is the same as
+                `re.DOTALL|re.VERBOSE`. Alternatively, the flags can
+                be suffixed to the *key* `regex` following a space.
 
             A `str` value is of the form `/`_regex_`/`_with_`/`
             replacing matches of regular expression _regex_ with
@@ -132,9 +138,15 @@ test case:
             regular expression module `re` is available for the code.
 		-   `shell`: shell command line reading `value` from standard
             input and writing the transformed value to standard
-            output. The shell used is the default shell. An `int`
-            `value` is converted to a string for processing and the
-            returned value back to `int`; a `None` is returned intact.
+            output. The shell used is the default shell. The command
+            line is executed in the temporary directory containing the
+            input and output files and with the environment variables
+            specified in `envvars` of `input`. *Note* that the command
+            should *not* change the input and output files, as their
+            values may be cached for tests with the same input. An
+            `int` `value` is converted to a string for processing and
+            the returned value back to `int`; a `None` is returned
+            intact.
 
 		If the value is a plain dictionary, the order of the
         transformations is not defined, so they should be independent
@@ -150,7 +162,8 @@ test case:
     two items:
 
 	-   `value`: the base value (obligatory), subject to
-        transformations specified in `transform` (`str`)
+        transformations specified in `transform` (`str` or a
+        single-item `dict`; see below)
 	-   `transform`: options for transforming the base value to the
         actual content. The options are those listed above for all
         inputs. If transformations are defined for both specific
@@ -161,6 +174,19 @@ test case:
 	The dict variant of the input could be used in conjunction with
     [defining common values that can be reused in multiple
     places](#reusable-definitions), for example.
+
+    If the value of `value` is a single-item `dict`, it must have one
+    of the following keys and value *val*, based on which the real
+    input value (`str`) is generated as follows:
+
+    -   `python`: the value returned by the Python 3 function whose
+        body is *val*; the function has no arguments.
+    -   `shell`: the standard output produced by the shell command
+        line *val*. The shell used is the default shell. The command
+        line is executed in the temporary directory to which input and
+        output files are generated (although they do not exist at this
+        stage) and with the environment variables specified in
+        `envvars`.
 
     For all keys except `name`, `args`, `shell` and `transform`, the
     value for the key may be a list of values of the indicated type,
@@ -193,9 +219,12 @@ test case:
     1. a simple scalar value, in which case the actual value is
        compared for equality with it;
     2. a dict with `value` and possibly other optional items:
-	   -   `value`: the expected value (obligatory)
+	   -   `value`: the expected value (obligatory): `str`, `int`,
+           `None` or a `dict` of one item (see below)
 	   -   `test`: the test name: one of the values shown below; if
 		   omitted, defaults to `==`, that is, equality)
+       -   `name`: a name for the subtest (useful when multiple
+           different test conditions are used)
        -   `reflags`: regular expression flags for regular expression
            match tests
        -   `transform-expected`: transformations of the expected value
@@ -235,6 +264,18 @@ test case:
         expression *expected* (using `re.search`)
     -   `not-regex`, `not-matches`: *actual* does not match the Python
         regular expression *expected* (using `re.search`)
+    -   `python`: Python 3 code to test *actual*: the body of a
+        function of one argument named `value` containing the actual
+        value and returning `True` (when cast to `bool`) if the test
+        passes. The Python regular expression module `re` is available
+        for the code.
+    -   `shell`: shell command line reading *actual* from standard
+        input and returning true (0) if the test passes. The shell
+        used is the default shell. The command line is executed in the
+        temporary directory containing the input and output files and
+        with the environment variables specified in `envvars` of
+        `input`. The command should *not* change the input and output
+        files.
 
     For the tests `regex` (`matches`) and `not-regex` (`not-matches`),
     a value for the `flags` parameter to the `re.search` function can
@@ -253,6 +294,22 @@ test case:
     `list`, so that it is not interpreted as multiple individual `str`
     values. A `list` value is transformed by transforming each item
     separately.
+
+    A value may also be specified as a single-item `dict` with one of
+    the following keys and value *val*, based on which the expected
+    value (`str`) is generated as follows:
+
+    -   `file`: the content of the file *val* in the temporary
+        directory containing the input and output files (`None` if the
+        file *val* does not exist).
+    -   `python`: the value returned by the Python 3 function whose
+        body is *val*; the function has no arguments.
+    -   `shell`: the standard output produced by the shell command
+        line *val*. The shell used is the default shell. The command
+        line is executed in the temporary directory containing the
+        input and output files and with the environment variables
+        specified in `envvars` of `input`. The command should *not*
+        change the input and output files.
 
     The value for a non-existent file is `None` in Python, and `null`,
     `~` or an empty value in YAML, so you can test that file
@@ -357,7 +414,7 @@ previous default values. To clear the default values completely, use
 In a test specified in YAML, the sequence of test cases may contain
 items defining reusable values with YAML anchors (`&`*anchor*) that
 can be referenced to elsewhere via alias nodes (`*`*anchor*). These
-items conventionally consist of a mapping with a single key `defs`,
+items consist of a mapping with a single key `defs`,
 whose value is sequence of items with YAML anchors. Alternatively, a
 test case itself may contain `defs` with similar content.
 

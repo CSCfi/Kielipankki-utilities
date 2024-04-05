@@ -213,6 +213,32 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: multiple expected tests with names',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n'
+             },
+             'output': {
+                 'stdout': [
+                     {
+                         'name': 'not foo',
+                         'test': '!=',
+                         'value': 'foo',
+                     },
+                     {
+                         'name': 'regexp match 1',
+                         'test': 'regex',
+                         'value': 'test1',
+                     },
+                     {
+                         'name': 'regexp match 2',
+                         'test': 'regex',
+                         'value': 'test2',
+                     },
+                 ],
+             },
+         },
+         {
              'name': 'Test: multiple expected tests (list(dict): test:value)',
              'input': {
                  'cmdline': 'cat',
@@ -384,6 +410,7 @@ _testcase_files_content = [
                  'stdout': [
                      # "in", "not-in" with list value
                      {
+                         'name': '"in" with list value',
                          'test': 'in',
                          'value': [
                             'a',
@@ -391,6 +418,7 @@ _testcase_files_content = [
                          ],
                      },
                      {
+                         'name': '"not-in" with list value',
                          'test': 'not-in',
                          'value': [
                             'test0\ntest1\ntest2\n',
@@ -399,10 +427,12 @@ _testcase_files_content = [
                      },
                      # "in", "not-in" with string value
                      {
+                         'name': '"in" with string value',
                          'test': 'in',
                          'value': 'test0\ntest1\ntest2\n',
                      },
                      {
+                         'name': '"not-in" with string value',
                          'test': 'not-in',
                          'value': 'test0\ntest2\n',
                      },
@@ -429,10 +459,12 @@ _testcase_files_content = [
                      },
                      # "contains", "not-contains"
                      {
+                         'name': 'contains',
                          'test': 'contains',
                          'value': 'test',
                      },
                      {
+                         'name': 'not-contains',
                          'test': 'not-contains',
                          'value': 'test3',
                      },
@@ -480,6 +512,221 @@ _testcase_files_content = [
                  ],
                  'stderr': '',
                  'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: test "python"',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'test1\ntest2\n',
+             },
+             'output': {
+                 'stdout': [
+                     {'python': 'return value == "test1\\ntest2\\n"'},
+                     # Test availability of module re
+                     {
+                         'name': 'availability of module re',
+                         'test': 'python',
+                         'value': 'return re.search(r".*1", value) is not None',
+                     },
+                     {
+                         'test': 'python',
+                         'value': 'return "test3" not in value',
+                     },
+                 ],
+             },
+         },
+         {
+             'name': 'Test: test "shell"',
+             'input': {
+                 'cmdline': 'cat in.txt | tee out.txt',
+                 'shell': True,
+                 'file:in.txt': 'test1\ntest2\n',
+                 'envvars': {
+                     'foo': 'bar',
+                 },
+             },
+             'output': {
+                 'stdout': [
+                     {'shell': 'test "x" = "x"'},
+                     {'shell': 'diff - in.txt'},
+                     # Test that input and output files are accessible
+                     {
+                         'name': 'input and output files accessible',
+                         'test': 'shell',
+                         'value': 'diff in.txt out.txt',
+                     },
+                     # Test environment variables
+                     {
+                         'name': 'environment variables',
+                         'test': 'shell',
+                         'value': 'test "$foo" = "bar"',
+                     },
+                     # Test $(...)
+                     {
+                         'name': '$(...)',
+                         'test': 'shell',
+                         'value': 'test "$(wc -l < out.txt)" = 2',
+                     },
+                 ],
+                 # Test that file content works
+                 'file:out.txt': [
+                     {
+                         'name': 'file content',
+                         'test': 'shell',
+                         'value': 'diff - in.txt',
+                     },
+                 ],
+             },
+         },
+         {
+             'name': 'Test: expected value from file',
+             'input': {
+                 'cmdline': 'cat in.txt | tee out.txt',
+                 'shell': True,
+                 'file:in.txt': 'test1\ntest2\n',
+             },
+             'output': {
+                 'stdout': [
+                     {'value': {'file': 'in.txt'}},
+                     {'value': {'file': 'out.txt'}},
+                 ],
+                 'file:out.txt': [
+                     {'value': {'file': 'in.txt'}},
+                     {'==': {'file': 'in.txt'}},
+                     # Test transformation with value from file
+                     {
+                         'name': 'transformation with value from file',
+                         'test': 'contains',
+                         'value': {'file': 'in.txt'},
+                         'transform-actual': {
+                             'prepend': 'test0\n',
+                         },
+                     },
+                     {
+                         'test': 'in',
+                         'value': {'file': 'in.txt'},
+                         'transform-expected': {
+                             'prepend': 'test0\n',
+                         },
+                     },
+                 ],
+             },
+         },
+         {
+             'name': 'Test: expected value generated with Python code',
+             'input': {
+                 'cmdline': 'cat in.txt | tee out.txt',
+                 'shell': True,
+                 'file:in.txt': 'test1\ntest2\n',
+             },
+             'output': {
+                 'stdout': [
+                     {'value': {'python': 'return "test1\\ntest2\\n"'}},
+                 ],
+                 'file:out.txt': [
+                     {'value': {'python': 'return "test1\\ntest2\\n"'}},
+                     {'==': {'python': 'return "test1\\ntest2\\n"'}},
+                     {'!=': {'python': 'return "test1\\n"'}},
+                     # Test transformation with value generated with Python
+                     {
+                         'name': 'transformation with value generated with Python',
+                         'test': 'contains',
+                         'value': {'python': 'return "test1\\ntest2\\n"'},
+                         'transform-actual': {
+                             'prepend': 'test0\n',
+                         },
+                     },
+                     {
+                         'test': 'in',
+                         'value': {'python': 'return "test1\\ntest2\\n"'},
+                         'transform-expected': {
+                             'prepend': 'test0\n',
+                         },
+                     },
+                 ],
+             },
+         },
+         {
+             'name': 'Test: expected value generated with shell command',
+             'input': {
+                 'cmdline': 'cat in.txt | tee out.txt',
+                 'shell': True,
+                 'file:in.txt': 'test1\ntest2\n',
+                 'envvars': {
+                     'foo': 'test1',
+                 },
+             },
+             'output': {
+                 'stdout': [
+                     {'value': {'shell': 'echo test1; echo test2'}},
+                 ],
+                 'file:out.txt': [
+                     {'value': {'shell': 'echo test1; echo test2'}},
+                     {'==': {'shell': 'echo test1; echo test2'}},
+                     {'!=': {'shell': 'echo test1'}},
+                     # Environment variable access
+                     {
+                         'name': 'environment variable access',
+                         'value': {'shell': 'echo "$foo"; echo test2'},
+                     },
+                     # Test transformation with value generated with shell
+                     {
+                         'name': 'transformation with value generated with shell',
+                         'test': 'contains',
+                         'value': {'shell': 'echo test1; echo test2'},
+                         'transform-actual': {
+                             'prepend': 'test0\n',
+                         },
+                     },
+                     {
+                         'test': 'in',
+                         'value': {'shell': 'echo test1; echo test2'},
+                         'transform-expected': {
+                             'prepend': 'test0\n',
+                         },
+                     },
+                 ],
+             },
+         },
+         {
+             'name': 'Test: input value generated with Python code',
+             'input': {
+                 'cmdline': 'cat in1.txt in2.txt',
+                 'shell': True,
+                 'file:in1.txt': {
+                     'value': {'python': 'return "test1\\ntest2\\n"'},
+                 },
+                 # With transformation
+                 'file:in2.txt': {
+                     'value': {'python': 'return "test1\\ntest2\\n"'},
+                     'transform': {
+                         'replace': '/[0-9]/*/',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'test1\ntest2\ntest*\ntest*\n',
+             },
+         },
+         {
+             'name': 'Test: input value generated with shell command',
+             'input': {
+                 'cmdline': 'cat in1.txt in2.txt',
+                 'shell': True,
+                 'file:in1.txt': {
+                     'value': {'shell': 'echo test1; echo test2'},
+                 },
+                 # With transformation
+                 'file:in2.txt': {
+                     'value': {'shell': 'echo test1; echo test2'},
+                     'transform': {
+                         'replace': '/[0-9]/*/',
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'test1\ntest2\ntest*\ntest*\n',
              },
          },
          {
@@ -996,6 +1243,61 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: transform actual stdout with shell command referring to input or output file',
+             'input': {
+                 'cmdline': 'cat in.txt | tee out.txt',
+                 'shell': True,
+                 'file:in.txt': '1\n2\n3\n',
+             },
+             'output': {
+                 'stdout': [
+                     '1\n2\n3\n',
+                     {
+                         'test': '==',
+                         'value': '',
+                         'transform-actual': {'shell': 'diff - in.txt'},
+                     },
+                     {
+                         'test': '==',
+                         'value': '',
+                         'transform-actual': {'shell': 'diff - out.txt'},
+                     },
+                 ],
+                 'file:out.txt': [
+                     '1\n2\n3\n',
+                     {
+                         'test': '==',
+                         'value': '',
+                         'transform-actual': {'shell': 'diff - in.txt'},
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
+             'name': 'Test: transform actual stdout with shell command referring to environment',
+             'input': {
+                 'cmdline': 'echo "$foo"',
+                 'shell': True,
+                 'envvars': {
+                     'foo': 'bar',
+                 },
+             },
+             'output': {
+                 'stdout': [
+                     'bar\n',
+                     {
+                         'test': '==',
+                         'value': 'barbar\n',
+                         'transform-actual': {'shell': 'echo "$foo$foo"'},
+                     },
+                 ],
+                 'stderr': '',
+                 'returncode': 0,
+             },
+         },
+         {
              'name': 'Test: transform stdin with Python (+ append)',
              'input': {
                  'cmdline': 'cat',
@@ -1253,6 +1555,80 @@ _testcase_files_content = [
              },
              'output': {
                  'stdout': 'fVV\nbVr\nbVz\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, with "reflags" (with "re.")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '[or] . b',
+                             'with': '-',
+                             'reflags': 're.DOTALL|re.VERBOSE',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fo-a-az\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, with "reflags" (without "re.")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex': '[or] . b',
+                             'with': '-',
+                             'reflags': 'DOTALL|VERBOSE',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fo-a-az\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, flags appended to "regex" (with "re.")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex re.DOTALL|re.VERBOSE': '[or] . b',
+                             'with': '-',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fo-a-az\n',
+             },
+         },
+         {
+             'name': 'Test: replace regex in stdin, flags appended to "regex" (without "re.")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': {
+                         'replace': {
+                             'regex DOTALL|VERBOSE': '[or] . b',
+                             'with': '-',
+                         },
+                     },
+                 },
+             },
+             'output': {
+                 'stdout': 'fo-a-az\n',
              },
          },
          {
@@ -2490,6 +2866,9 @@ def test_collect_testcases(testcase_files, tmpdir):
                         and inputitem == 'returncode')
                     or (isinstance(exp_val, list)
                         and expected['test'] in ['in', 'not-in'])
+                    or (isinstance(exp_val, dict) and len(exp_val) == 1
+                        and list(exp_val.keys())[0] in ['file', 'python',
+                                                        'shell'])
                     or (exp_val is None and inputitem.startswith('file:')))
             testcase_num += 1
 
@@ -2548,6 +2927,31 @@ def test_empty_values(tmpdir):
                            'input': {'args': []}},
                           '', None,
                           tmpdir=str(tmpdir))
+
+
+def test_unknown_keys(tmpdir):
+    """Test with unknown keys in test cases."""
+    # Unknown key at top level
+    with pytest.raises(ValueError) as e_info:
+        expand_testcases([('fname', [{'unknown': 'test'}])])
+    # Unknown key in "input"
+    with pytest.raises(ValueError) as e_info:
+        expand_testcases([('fname', [{'input': {'cmdlinex': 'test'},
+                                      'output': {'stdout': ''}}])])
+    # Unknown key in "output"
+    with pytest.raises(ValueError) as e_info:
+        expand_testcases([('fname', [{'input': {'cmdline': 'test'},
+                                      'output': {'transform': 'test'}}])])
+    # Unknown key in "transform"
+    with pytest.raises(ValueError) as e_info:
+        expand_testcases([('fname', [{'input': {'cmdline': 'test'},
+                                      'output': {'stdout': ''},
+                                      'transform': [{'output': 'test'}]}])])
+    # Unknown key in "defaults"
+    with pytest.raises(ValueError) as e_info:
+        expand_testcases([('fname', [{'defaults': {'test': 'test'}}])])
+    # "defs" should allow any keys
+    expand_testcases([('fname', [{'defs': {'a': 'b', 'c': 'd'}}])])
 
 
 def test_duplicate_filename(tmpdir):
