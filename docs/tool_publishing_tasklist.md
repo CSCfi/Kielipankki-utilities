@@ -128,6 +128,7 @@ NB: Quite often, especially for tools developed outside Kielipankki, we just off
 # [ ] _*?A*_ If required, request URNs for license pages (and the PRIV condition pages)
 # [ ] _*+PORTAL*_ Update the license PIDs in the resource database
 # [ ] _*+META*_ Create/update the META-SHARE record, including the license information [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+META*_ In case the license requires Attribution (the BY condition), collect the names of the creators/programmers/significant contributors that should be cited and add them to the META-SHARE record; or, if this is impossible, add some other (persistent) way of referring to the original source of the tool.
 # [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
 \\
 ```
