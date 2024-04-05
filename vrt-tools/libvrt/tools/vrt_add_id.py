@@ -73,6 +73,7 @@ def parsearguments(argv, *, prog = None):
 
                         make "{hash}" in the id format string refer to
                         the hex digest of the SHA-1 hash of string; if
+                        string is empty, generate a random hash; if
                         the option is repeated, "{hashN}" refers to
                         the Nth value
 
@@ -600,6 +601,8 @@ def expand_hashes(format_, strlist):
 
     {hash} is an alias for {hash1}.
 
+    If strlist[N] is empty, use a random string (bytes).
+
     As hash values are constant for all ids, it suffices to expand
     them once in the id format string, avoiding the need to re-expand
     them for each id.
@@ -608,9 +611,11 @@ def expand_hashes(format_, strlist):
     if not strlist:
         return format_
 
+    rnd = random.Random()
     hashvals = {}
     for i, s in enumerate(strlist):
-        hashvals[f'hash{i + 1}'] = sha1(s.encode('UTF-8')).hexdigest()
+        s = s.encode('UTF-8') if s else rnd.randbytes(1024)
+        hashvals[f'hash{i + 1}'] = sha1(s).hexdigest()
     hashvals['hash'] = hashvals['hash1']
 
     # This keeps the non-hash format specs in format_ intact

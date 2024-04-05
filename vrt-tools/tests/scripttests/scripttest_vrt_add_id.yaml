@@ -1305,6 +1305,70 @@
       </text>
   transform: *transform-fast-s3
 
+- name: 'vrt-add-id: Random --hash (empty string)'
+  input:
+    cmdline: |
+      vrt-add-id --type=counter --hash="" --format="{hash}-{id:03d}" in.vrt > out1.vrt;
+      vrt-add-id --type=counter --hash="" --format="{hash}-{id:03d}" in.vrt > out2.vrt
+    shell: True
+    file:in.vrt: *input-1
+  output:
+    file:out1.vrt:
+    - &output-hash-random-1
+      value: *output-hash
+      transform-actual:
+        replace: '/id="[0-9a-f]{40}-/id="a9993e364706816aba3e25717850c26c9cd0d89d-/'
+    - &output-hash-random-2
+      name: 'different result from a fixed hash'
+      test: '!='
+      value: *output-hash
+    - name: 'two runs with random hash produce different result'
+      test: '!='
+      value:
+        file: out2.vrt
+    file:out2.vrt:
+    - *output-hash-random-1
+    - *output-hash-random-2
+  transform:
+  # Cannot use *transform-fast-s3 here, as stderr output with
+  # --verbose is doubled because of two commands
+  - {}
+  # Test that the command with --no-optimize produces the same result
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 3 sentence ids
+        vrt-add-id: using the faster method
+        vrt-add-id: added 3 sentence ids
+  # Test the command with --verbose --no-optimize
+  - name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 3 sentence ids
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 3 sentence ids
+
+- name: 'vrt-add-id: Two random hashes are different'
+  input:
+    cmdline: vrt-add-id --type=counter --hash="" --hash="" --format="{hash1}-{hash2}-{id:03d}"
+    stdin: *input-1
+  output:
+    stdout:
+    - value: *output-hash
+      transform-actual:
+        replace: '/id="([0-9a-f]{40}-){2}/id="a9993e364706816aba3e25717850c26c9cd0d89d-/'
+    - name: 'the two random hash values are different'
+      test: python
+      value: |
+        mo = re.search('id="([0-9a-f]{40})-([0-9a-f]{40})-', value)
+        return mo and mo.group(1) != mo.group(2)
+  transform: *transform-fast-s3
+
 - name: 'vrt-add-id: Format refers to {hash} with no --hash options'
   input:
     cmdline: vrt-add-id --type=counter --format="{hash:.4}"
