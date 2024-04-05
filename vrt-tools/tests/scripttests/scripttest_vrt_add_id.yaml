@@ -56,13 +56,17 @@
     name: --no-optimize
     input: &cmdline-no-optimize
       cmdline:
-        append: ' --no-optimize'
+        # Unlike appending, this works also if the command line ends
+        # with redirection or contains multiple commands
+        replace: '/vrt-add-id/vrt-add-id --no-optimize/'
   # Test the command with --verbose
   - &transf-verbose-fast-s3
     name: --verbose
     input: &cmdline-verbose
       cmdline:
-        append: ' --verbose'
+        # This works also if the command line ends with redirection,
+        # but multiple commands would require multiplying stderr
+        replace: '/vrt-add-id/vrt-add-id --verbose/'
     output-expected:
       stderr: |
         vrt-add-id: using the faster method
@@ -72,7 +76,9 @@
     name: --verbose --no-optimize
     input: &cmdline-verbose-no-optimize
       cmdline:
-        append: ' --verbose --no-optimize'
+        # This works also if the command line ends with redirection,
+        # but multiple commands would require multiplying stderr
+        replace: '/vrt-add-id/vrt-add-id --verbose --no-optimize/'
     output-expected:
       stderr: |
         vrt-add-id: using the slower method because of --no-optimize
