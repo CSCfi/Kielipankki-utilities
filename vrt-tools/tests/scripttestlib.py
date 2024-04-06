@@ -1352,8 +1352,9 @@ def _transform_value_shell(value, code, **kwargs):
 
 def _exec_python_func(code, value):
     """Execute Python code `code` (function body) with arg `value`."""
-    funcdef = ('def func(value):\n '
+    funcdef = ('def func(value):\n'
                + re.sub(r'^', '    ', code, flags=re.MULTILINE))
+    # print(funcdef)
     exec(funcdef, globals())
     return func(value)
 

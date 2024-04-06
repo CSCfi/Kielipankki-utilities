@@ -533,6 +533,11 @@ _testcase_files_content = [
                          'test': 'python',
                          'value': 'return "test3" not in value',
                      },
+                     {
+                         'name': 'multi-line Python function',
+                         'test': 'python',
+                         'value': 's = "test3"\nreturn s not in value',
+                     },
                  ],
              },
          },
@@ -628,6 +633,11 @@ _testcase_files_content = [
                      {'value': {'python': 'return "test1\\ntest2\\n"'}},
                      {'==': {'python': 'return "test1\\ntest2\\n"'}},
                      {'!=': {'python': 'return "test1\\n"'}},
+                     {
+                         'name': 'multi-line Python function',
+                         'test': '!=',
+                         'value': {'python': 's = "test1"\nreturn s'},
+                     },
                      # Test transformation with value generated with Python
                      {
                          'name': 'transformation with value generated with Python',
