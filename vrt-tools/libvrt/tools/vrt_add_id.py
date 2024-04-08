@@ -6,6 +6,7 @@ from argparse import ArgumentTypeError
 from hashlib import sha1
 from itertools import count, chain
 from collections import defaultdict, OrderedDict
+from copy import copy
 import math
 import random
 import re
@@ -28,6 +29,15 @@ DEFAULT_RAND_MAX = pow(2, 32)
 
 # Maximum number of bytes to read from a random seed file
 MAX_SEED_BYTES = pow(2, 20)
+
+# If no elements are specified, default to adding ids to text,
+# paragraph and sentence, with these formats (unless --format is
+# explicitly specified)
+DEFAULT_ID_FORMATS = {
+    b'text': 't-{hash:.8}-{id}',
+    b'paragraph': 'p-{hash:.8}-{idnum[text]}-{id}',
+    b'sentence': 's-{hash:.8}-{idnum[text]}-{id}',
+}
 
 def affix(arg):
     if re.fullmatch('[A-Za-z0-9_\-+/.:]*', arg):
@@ -140,9 +150,10 @@ def parsearguments(argv, *, prog = None):
                         # default = b'sentence',
                         help = '''
 
-                        name of the VRT element to use; can be
-                        repeated; if no --element is specified, use
-                        "sentence"
+                        name of the VRT element to which to add id
+                        attribute; can be repeated (default: "text",
+                        "paragraph" and "sentence", with special
+                        default formats (see --format))
 
                         ''')
 
@@ -231,7 +242,12 @@ def parsearguments(argv, *, prog = None):
                        (default: with --type=counter, "{id:d}"; with
                        --type=random, "{id:0*x}" where * is the
                        minimum number of hex digits to represent the
-                       maximum value)
+                       maximum value; if no --element nor --format is
+                       specified, "t-{hash:.8}-{id}" for text,
+                       "p-{hash:.8}-{idnum[text]}-{id}" for paragraph
+                       and "s-{hash:.8}-{idnum[text]}-{id}" for
+                       sentence, with a random hash if no --hash is
+                       specified)
 
                        ''')
 
@@ -254,11 +270,16 @@ def parsearguments(argv, *, prog = None):
 def process_args(args):
     '''Process args as returned by ArgumentParser.parse_args.'''
 
-    # If no elements have been specified, make all options pertain to
-    # default_element
-    default_element = b'sentence'
+    # Default to adding ids to text, paragraph and sentence
     if not args.element:
-        args.element = {default_element: args}
+        args.element = {elem: copy(args) for elem in DEFAULT_ID_FORMATS.keys()}
+        # Default to random hash
+        if not args.hash:
+            args.hash = ['']
+        # Default to the formats in DEFAULT_ID_FORMATS
+        if not args.format:
+            for elem in args.element.keys():
+                args.element[elem].format = DEFAULT_ID_FORMATS[elem]
 
     # Random seed
     if not args.seed:
