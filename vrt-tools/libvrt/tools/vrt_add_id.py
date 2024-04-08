@@ -67,6 +67,17 @@ def parsearguments(argv, *, prog = None):
 
     parser = transput_args(description = description, epilog = epilog)
 
+    parser.add_argument('--seed', metavar = 'string',
+                        default = '',
+                        help = '''
+
+                        random number generator seed for random ids; if
+                        string begins with "<", the rest is the name of
+                        the file whose content (up to 1 MiB) to use as
+                        the seed (default: "" = non-reproducible)
+
+                        ''')
+
     parser.add_argument('--hash', metavar = 'string',
                         action = 'append',
                         help = '''
@@ -168,23 +179,6 @@ def parsearguments(argv, *, prog = None):
 
                        ''')
 
-    group.add_argument('--seed', metavar = 'string',
-                       action = grouped_arg(),
-                       default = '',
-                       help = '''
-
-                       random number generator seed for random ids; if
-                       specified before any --element, the element
-                       name is included in the seed, producing a
-                       different seed for each element type; to use
-                       the same seed for multiple element types,
-                       specify it explicitly after each --element; if
-                       string begins with "<", the rest is the name of
-                       the file whose content (up to 1 MiB) to use as
-                       the seed (default: "" = non-reproducible)
-
-                       ''')
-
     group.add_argument('--start', metavar = 'number',
                        action = grouped_arg(),
                        type = int,
@@ -265,6 +259,16 @@ def process_args(args):
     default_element = b'sentence'
     if not args.element:
         args.element = {default_element: args}
+
+    # Random seed
+    if not args.seed:
+        args.seed = None
+    elif args.seed[0] == '<':
+        args.seed = read_file_content(args.seed[1:].strip(),
+                                      MAX_SEED_BYTES, args.prog)
+    else:
+        args.seed = args.seed.encode('UTF-8')
+    random.seed(args.seed)
 
     # Faster method cannot overwrite existing attributes, nor rename
     # nor sort them
@@ -396,18 +400,6 @@ def set_defaults(elem, elem_args, args):
 
     if not elem_args.type:
         elem_args.type = 'random'
-    if not elem_args.seed:
-        elem_args.seed = None
-    else:
-        # If using the seed specified as a default, prepend element
-        # name to use different seeds for different elements
-        prefix = elem if elem_args.seed == args.seed else b''
-        if elem_args.seed[0] == '<':
-            elem_args.seed = read_file_content(elem_args.seed[1:].strip(),
-                                               MAX_SEED_BYTES, args.prog)
-        else:
-            elem_args.seed = elem_args.seed.encode('UTF-8')
-        elem_args.seed = prefix + elem_args.seed
     if elem_args.type == 'random' and not elem_args.max:
         elem_args.max = get_random_id_max_value(elem_args.format)
     # The default format spec is used if no format is specified or if
@@ -866,23 +858,22 @@ def get_idgen(args):
         )
 
     else:
-        return randint_uniq(args.max, args.seed)
+        return randint_uniq(args.max)
 
-def randint_uniq(end, seed = None):
+def randint_uniq(end):
     '''Generator for unique random integers in [0, end[ with seed.'''
 
     # Values already generated
     used = set()
-    rnd = random.Random(seed)
     errmsg = f'more than {end} elements encountered; please increase --max'
 
     while True:
         if len(used) >= end:
             raise BadData(errmsg)
-        r = rnd.randrange(0, end)
+        r = random.randrange(0, end)
         i = 0
         while r in used:
-            r = rnd.randrange(0, end)
+            r = random.randrange(0, end)
             i += 1
             # If 1000 consecutive random numbers have already been
             # used, raise an error (1000 is arbitrary)
