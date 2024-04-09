@@ -178,6 +178,7 @@ _allowed_keys = {
         'stderr',
         'files',
         'file:.+',
+        'transform',
         'transform-expected',
         'transform-actual',
         'defs',
@@ -185,6 +186,7 @@ _allowed_keys = {
     'transform': {
         'name',
         'input',
+        'output',
         'output-expected',
         'output-actual',
         'defs',
@@ -432,7 +434,8 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
             # Reset the values for each file if file-specific transformations
             # had been appended
             expected_trans = add_transforms(
-                [], output.get('transform-expected', []))
+                [], (output.get('transform-expected')
+                     or output.get('transform', [])))
             actual_trans = add_transforms(
                 [], output.get('transform-actual', []))
             # print('trans', expected_trans, actual_trans)
@@ -446,7 +449,8 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                     num=(' ' + str(expected_val_num + 1)
                          if expected_val_count > 1 else ''))
                 if isinstance(expected_val, dict):
-                    exp_trans = expected_val.get('transform-expected', [])
+                    exp_trans = (expected_val.get('transform-expected')
+                                 or expected_val.get('transform', []))
                     act_trans = expected_val.get('transform-actual', [])
                     if 'value' in expected_val:
                         test = expected_val.get('test', '==')
@@ -561,7 +565,7 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
         target_tops = {'input': result[0], 'output': result[1]}
         # print('add_transform_group', result, transform_group)
         # transform_group is a dict that may contain keys "input",
-        # "output-expected", "output-actual", "name"
+        # "output-expected" (alias "output"), "output-actual", "name"
         _check_testcase_keys(transform_group, 'transform')
         for transform_top_name, transform_top in transform_group.items():
             if transform_top_name == 'name':
@@ -569,6 +573,9 @@ def expand_testcases(fname_testcases_dictlist, granularity=None):
                 continue
             # target_top is "input" or "output"
             target_top, sep, kind = transform_top_name.partition('-')
+            # "output" == "output-expected"
+            if target_top == output and kind == '':
+                kind = 'expected'
             # The key for these transformations in input_ or output:
             # "transform", "transform-expected" or "transform-actual"
             transform_key = f'transform{sep}{kind}'
@@ -1079,7 +1086,8 @@ def _check_output(name, output, outputitem, expected):
     tmpdir = output.tmpdir
     env = output.env
     exp_val = _transform_value(_get_expected_value(expected, tmpdir, env),
-                               expected.get('transform-expected'),
+                               (expected.get('transform-expected')
+                                or expected.get('transform')),
                                tmpdir, env)
     act_val = _transform_value(
         actual, expected.get('transform-actual'), tmpdir, env)
@@ -1352,8 +1360,9 @@ def _transform_value_shell(value, code, **kwargs):
 
 def _exec_python_func(code, value):
     """Execute Python code `code` (function body) with arg `value`."""
-    funcdef = ('def func(value):\n '
+    funcdef = ('def func(value):\n'
                + re.sub(r'^', '    ', code, flags=re.MULTILINE))
+    # print(funcdef)
     exec(funcdef, globals())
     return func(value)
 
