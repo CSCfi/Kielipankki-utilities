@@ -207,7 +207,8 @@ test case:
     -   `files`: a dict of output files with file names as keys and
         values as for `file:FNAME`. Both `files` and `file:FNAME` can
         be used, but each file must be specified only once.
-    -   `transform-expected`: transformations to be applied to all
+    -   `transform` (or `transform-expected`): transformations to be
+        applied to all
         expected output values (except `returncode`) before testing;
         the same options are supported as for `input: transform`
     -   `transform-actual`: transformations to be applied to all
@@ -227,7 +228,8 @@ test case:
            different test conditions are used)
        -   `reflags`: regular expression flags for regular expression
            match tests
-       -   `transform-expected`: transformations of the expected value
+       -   `transform` (or `transform-expected`): transformations of
+           the expected value
            (same options as for input transformations above)
        -   `transform-actual`: transformations of the actual value
            (same options as for input transformations above)
@@ -236,7 +238,8 @@ test case:
        item in the list is treated as a separate value to be tested);
     4. a list whose items may be any of the other: all tests must
        pass; or
-	5. a dict with `transform-expected` or `transform-actual` or both
+	5. a dict with `transform` (`transform-expected`) or
+       `transform-actual` or both
        (but with no `value`) for specifying file-specific
        transformations to be applied to all subsequent tests for the
        file after global but before value-specific transformations;
@@ -319,7 +322,8 @@ test case:
     such parts of the output that change on each run, such as
     timestamps.
 
-	If both value-specific `transform-expected` or `transform-actual`
+	If both a value-specific `transform` (`transform-expected`) or
+    `transform-actual`
     and ones affecting all values are specified, the value-specific
     ones are applied after those affecting all values. File-specific
     transformations are applied after those affecting all files but
@@ -343,18 +347,18 @@ test case:
         (`str`)
     -   `input`: transformations to be added to input files and
         command line (`transform`)
-    -   `output-expected`: transformations to be added to output
-        (`transform-expected`)
+    -   `output` (or `output-expected`): transformations to be added
+        to output (`transform-expected`)
     -   `output-actual`: transformations to be added to output
         (`transform-actual`)
 
-    The value of `input`, `output-expected` and `output-actual` is a
-    `dict` with keys corresponding to (transformable) items in the
+    The values of `input`, `output` (`output-expected`) and `output-actual` are
+    `dict`s with keys corresponding to (transformable) items in the
     `input` and `output` `dict`s of a test (files, `cmdline`, `stdin`,
     `stdout`, `stderr`, `returncode`) and values corresponding to
     transformation `dict`s or lists of them, as for `transform` of
-    `input` items and `transform-expected` and `transform-actual` of
-    `output` items.
+    `input` items and `transform` (`transform-expected`) and
+    `transform-actual` of `output` items.
 
     Grouped transformations are applied to values after global,
     file-specific and test-specific ones.

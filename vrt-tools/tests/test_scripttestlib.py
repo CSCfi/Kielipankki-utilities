@@ -615,6 +615,15 @@ _testcase_files_content = [
                              'prepend': 'test0\n',
                          },
                      },
+                     # Same with "transform" instead of
+                     # "transform-expected"
+                     {
+                         'test': 'in',
+                         'value': {'file': 'in.txt'},
+                         'transform': {
+                             'prepend': 'test0\n',
+                         },
+                     },
                  ],
              },
          },
@@ -1093,13 +1102,24 @@ _testcase_files_content = [
                  'stdin': 'foo\nbar\nbaz\n'
              },
              'output': {
-                 'stdout': {
-                     'value': 'bar\n',
-                     'transform-expected': {
-                         'prepend': 'foo\n',
-                         'append': 'baz\n',
+                 'stdout': [
+                     {
+                         'value': 'bar\n',
+                         'transform-expected': {
+                             'prepend': 'foo\n',
+                             'append': 'baz\n',
+                         },
                      },
-                 },
+                     # The same with "transform" instead of
+                     # "transform-expected"
+                     {
+                         'value': 'bar\n',
+                         'transform': {
+                             'prepend': 'foo\n',
+                             'append': 'baz\n',
+                         },
+                     },
+                 ],
                  'stderr': '',
                  'returncode': 0,
              },
@@ -2142,6 +2162,72 @@ _testcase_files_content = [
              },
          },
          {
+             'name': 'Test: global, file-specific and test-specific transformations, with transform instead of transform-expected',
+             'input': {
+                 'cmdline': 'tee file.out',
+                 'stdin': {
+                     'value': 'foo\nbar\nbaz\nzoo\n',
+                 },
+             },
+             'output': {
+                 'transform': [
+                     {'append': 'zoo\n'},
+                 ],
+                 'transform-actual': [
+                     {'filter-out': 'b'},
+                 ],
+                 # Actual is now 'foo\nar\naz\nzoo\n'
+                 'stdout': [
+                     {
+                         'regex DOTALL': 'foo\n.*',
+                         # Does not match, as "zoo\n" is appended to the
+                         # expected value
+                         'not-regex': ['foo\n', 'zooz'],
+                     },
+                     {
+                         'transform': [
+                             { 'filter-out': 'z' },
+                         ],
+                         'transform-actual': [
+                             { 'append': 'goo\n' },
+                         ],
+                     },
+                     # Actual is now 'foo\nar\naz\nzoo\ngoo\n'
+                     {
+                         # z's are filtered out from the expected value, so
+                         # "zz" should match
+                         'regex': ['zz', 'g'],
+                     },
+                     {
+                         'transform': [
+                             { 'filter-out': 'b' },
+                             { 'append': 'goo\n' },
+                         ],
+                         'transform-actual': [
+                             # No-op for "bar\n" as "b" has been filtered out
+                             { 'filter-out': ['bar\n', 'z'] },
+                         ],
+                         'value': 'foo\nbar\nbaz\n',
+                     },
+                 ],
+                 'file:file.out': {
+                     # Global transformations apply ("zoo\n" appended to
+                     # expected values)
+                     'regex': 'az\n',
+                     # But transformations specific to stdout do not
+                     'not-regex': ['az', 'zoo', 'goo'],
+                 },
+                 # Global transformations apply
+                 'stderr': {
+                     'value': '',
+                     'transform-actual': [
+                         { 'append': 'zoo\n' },
+                     ],
+                 },
+                 'returncode': 0,
+             },
+         },
+         {
              'name': 'Test: global transformation groups',
              'input': {
                  'cmdline': 'cat',
@@ -2191,6 +2277,47 @@ _testcase_files_content = [
                          'stdout': {
                              'filter-out': 'xxx\n',
                          },
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: global transformation groups, output instead of output-expected',
+             'input': {
+                 'cmdline': 'cat',
+                 'shell': True,
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 'stdout': {
+                     'value': 'foo\nbar\nbaz\n',
+                 },
+             },
+             'transform': [
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                     'output': {
+                         'stdout': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                 },
+                 {
+                     'input': {
+                         'stdin': [
+                             {'append': 'zoo\n'},
+                             {'replace': '/o/a/'},
+                         ],
+                     },
+                     'output': {
+                         'stdout': [
+                             {'append': 'zoo\n'},
+                             {'replace': '/o/a/'},
+                         ],
                      },
                  },
              ],
@@ -2329,6 +2456,40 @@ _testcase_files_content = [
              ],
          },
          {
+             'name': 'Test: transformation groups and global transformations (without "-expected")',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 # Global transformations
+                 'transform': [
+                     {'filter-out': 'z'},
+                 ],
+                 'transform-actual': [
+                     {'filter-out': 'z'},
+                 ],
+                 'stdout': 'foo\nbar\nbaz\n',
+                 # After transformation: 'foo\nbar\nba\n'
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                     'output': {
+                         'stdout': {
+                             # Global transformations applied before this
+                             'append': 'oo\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
              'name': 'Test: transformation groups and file-specific transformations',
              'input': {
                  'cmdline': 'cat',
@@ -2356,6 +2517,42 @@ _testcase_files_content = [
                          },
                      },
                      'output-expected': {
+                         'stdout': {
+                             # File-specific transformations applied before this
+                             'append': 'oo\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: transformation groups and file-specific transformations (without -expected)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 # File-specific transformations
+                 'stdout': {
+                     # After transformation: 'foo\nbar\nba\n'
+                     'value': 'foo\nbar\nbaz\n',
+                     'transform': [
+                         {'filter-out': 'z'},
+                     ],
+                     'transform-actual': [
+                         {'filter-out': 'z'},
+                     ],
+                 },
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     'input': {
+                         'stdin': {
+                             'append': 'zoo\n',
+                         },
+                     },
+                     'output': {
                          'stdout': {
                              # File-specific transformations applied before this
                              'append': 'oo\n',
@@ -2398,6 +2595,47 @@ _testcase_files_content = [
                          },
                      },
                      'output-expected': {
+                         'stdout': {
+                             'append': 'yyy\n',
+                         },
+                     },
+                 },
+             ],
+         },
+         {
+             'name': 'Test: transformation groups and test-specific transformations (without -expected)',
+             'input': {
+                 'cmdline': 'cat',
+                 'stdin': 'foo\nbar\nbaz\n',
+             },
+             'output': {
+                 'stdout': [
+                     {'value': 'foo\nbar\nbaz\n'},
+                     # Test-specific transformations
+                     {
+                         'transform': [
+                             {'filter-out': 'x'},
+                         ],
+                         'transform-actual': [
+                             {'filter-out': 'z'},
+                         ],
+                     },
+                     # After transformation: 'foo\nbar\nba\n'
+                     {'value': 'foox\nbarx\nba\n'},
+                 ],
+             },
+             'transform': [
+                 {},  # No transformations
+                 {
+                     # These should work for the above value tests
+                     # both before and after the test-specific
+                     # transformations
+                     'input': {
+                         'stdin': {
+                             'append': 'yyy\n',
+                         },
+                     },
+                     'output': {
                          'stdout': {
                              'append': 'yyy\n',
                          },
@@ -2815,7 +3053,8 @@ def test_collect_testcases(testcase_files, tmpdir):
                                 for val in test.values():
                                     if isinstance(val, list):
                                         count += len(val)
-                                    elif val not in ['transform-expected',
+                                    elif val not in ['transform',
+                                                     'transform-expected',
                                                      'transform-actual']:
                                         count += 1
                             else:
@@ -2951,12 +3190,12 @@ def test_unknown_keys(tmpdir):
     # Unknown key in "output"
     with pytest.raises(ValueError) as e_info:
         expand_testcases([('fname', [{'input': {'cmdline': 'test'},
-                                      'output': {'transform': 'test'}}])])
+                                      'output': {'transformx': 'test'}}])])
     # Unknown key in "transform"
     with pytest.raises(ValueError) as e_info:
         expand_testcases([('fname', [{'input': {'cmdline': 'test'},
                                       'output': {'stdout': ''},
-                                      'transform': [{'output': 'test'}]}])])
+                                      'transform': [{'outputx': 'test'}]}])])
     # Unknown key in "defaults"
     with pytest.raises(ValueError) as e_info:
         expand_testcases([('fname', [{'defaults': {'test': 'test'}}])])
