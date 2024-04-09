@@ -103,7 +103,7 @@ def parsearguments(argv, *, prog = None):
     parser.add_argument('--force', action = 'store_true',
                         help = '''
 
-                        overwriting an existing id
+                        overwrite an existing id
 
                         ''')
 
@@ -219,35 +219,39 @@ def parsearguments(argv, *, prog = None):
                        action = grouped_arg(),
                        help = '''
 
-                       format string for id, with Python
+                       Format string for id, with Python
                        str.format-style formatting: "{id}" is replaced
                        with the integer id value, "{idnum[elem]}" with
                        the integer id value for element elem, and
                        "{elem[attr]}" with the string value of the
                        existing attribute attr in the current or an
                        enclosing element (the current element can also
-                       be referred to as "this"); "{id}" and
-                       "{idnum[elem]}" without format specification
-                       implicitly use the default format
+                       be referred to as "this").
+
+                       "{id}" and "{idnum[elem]}" without a format
+                       specification implicitly use the default format
                        specification; "{idnum[elem]}" referred to in
                        the format string of another element uses the
                        format specification specified for element
-                       elem; formatting string values is extended with
+                       elem.
+
+                       Formatting string values is extended with
                        regular expression substitutions:
                        "{elem[attr]/regexp/subst/}" is "{elem[attr]}"
                        with all matches of regexp replaced with subst;
                        subst may refer to groups in regexp as \\N,
                        \\g<N> or \\g<name>; multiple substitutions are
-                       separated by commas, semicolons or spaces
-                       (default: with --type=counter, "{id:d}"; with
+                       separated by commas, semicolons or spaces.
+
+                       (Default: with --type=counter, "{id:d}"; with
                        --type=random, "{id:0*x}" where * is the
                        minimum number of hex digits to represent the
-                       maximum value; if no --element nor --format is
+                       maximum value. If no --element nor --format is
                        specified, "t-{hash:.8}-{id}" for text,
                        "p-{hash:.8}-{idnum[text]}-{id}" for paragraph
                        and "s-{hash:.8}-{idnum[text]}-{id}" for
                        sentence, with a random hash if no --hash is
-                       specified)
+                       specified.)
 
                        ''')
 
