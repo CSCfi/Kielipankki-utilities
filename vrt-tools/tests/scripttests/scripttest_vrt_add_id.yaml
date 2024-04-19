@@ -1,0 +1,2704 @@
+
+# scripttestlib tests for vrt-add-id
+
+
+# Default input and output
+
+- defaults:
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+# Tests for the functionality of the original script by Jussi
+# Piitulainen (but with --type=random and text, paragraph, sentence as
+# the defaults)
+
+
+- name: 'vrt-add-id: Default options + --type=counter --element=sentence'
+  input:
+    cmdline: vrt-add-id --type=counter --element=sentence
+    stdin: &input-1 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a">
+      a
+      </sentence>
+      <sentence a="b">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c">
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: &output-1-s3 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="1">
+      a
+      </sentence>
+      <sentence a="b" id="2">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="3">
+      c
+      </sentence>
+      </text>
+  transform: &transform-fast-s3
+  - {}
+  # Test that the command with --no-optimize produces the same result
+  - &transf-no-optimize
+    name: --no-optimize
+    input: &cmdline-no-optimize
+      cmdline:
+        # Unlike appending, this works also if the command line ends
+        # with redirection or contains multiple commands
+        replace: '/vrt-add-id/vrt-add-id --no-optimize/'
+  # Test the command with --verbose
+  - &transf-verbose-fast-s3
+    name: --verbose
+    input: &cmdline-verbose
+      cmdline:
+        # This works also if the command line ends with redirection,
+        # but multiple commands would require multiplying stderr
+        replace: '/vrt-add-id/vrt-add-id --verbose/'
+    output-expected:
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 3 sentence ids
+  # Test the command with --verbose --no-optimize
+  - &transf-verbose-noopt-s3
+    name: --verbose --no-optimize
+    input: &cmdline-verbose-no-optimize
+      cmdline:
+        # This works also if the command line ends with redirection,
+        # but multiple commands would require multiplying stderr
+        replace: '/vrt-add-id/vrt-add-id --verbose --no-optimize/'
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 3 sentence ids
+
+
+- name: 'vrt-add-id: --element=text'
+  input:
+    cmdline: vrt-add-id --type=counter --element="text"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="1">
+      <sentence a="a">
+      a
+      </sentence>
+      <sentence a="b">
+      b
+      </sentence>
+      </text>
+      <text n="2" id="2">
+      <sentence a="c">
+      c
+      </sentence>
+      </text>
+  transform: &transform-fast-t2
+  - {}
+  - *transf-no-optimize
+  - &transf-verbose-fast-t2
+    name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 2 text ids
+  - &transf-verbose-noopt-t2
+    name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids
+
+
+- name: 'vrt-add-id: Non-existent element (no change)'
+  input:
+    cmdline: vrt-add-id --type=counter --element=x
+    stdin: *input-1
+  output:
+    stdout: *input-1
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of not finding elements x
+        vrt-add-id: added 0 x ids
+  - name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 0 x ids
+
+
+- name: 'vrt-add-id: --id'
+  input:
+    cmdline: vrt-add-id --type=counter --id="sid" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" sid="1">
+      a
+      </sentence>
+      <sentence a="b" sid="2">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" sid="3">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+
+- name: 'vrt-add-id: --start=0'
+  input:
+    cmdline: vrt-add-id --type=counter --start=0 --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="0">
+      a
+      </sentence>
+      <sentence a="b" id="1">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="2">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+
+- name: 'vrt-add-id: --prefix'
+  input:
+    cmdline: vrt-add-id --type=counter --prefix=s- --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="s-1">
+      a
+      </sentence>
+      <sentence a="b" id="s-2">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="s-3">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+
+- name: 'vrt-add-id: --sort'
+  input:
+    cmdline: vrt-add-id --type=counter --element=text --sort
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text id="1" n="1">
+      <sentence a="a">
+      a
+      </sentence>
+      <sentence a="b">
+      b
+      </sentence>
+      </text>
+      <text id="2" n="2">
+      <sentence a="c">
+      c
+      </sentence>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --sort
+        vrt-add-id: added 2 text ids
+  - *transf-verbose-noopt-t2
+  - name: -e
+    input:
+      cmdline:
+        replace: '/--element/-e/'
+
+
+- name: 'vrt-add-id: Existing id attribute (without --force)'
+  input:
+    cmdline: vrt-add-id --type=counter --id=a --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+    stderr: |
+      vrt-add-id: element has id already
+      vrt-add-id: non-zero status 1
+    returncode: 1
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+  - &transf-verbose-noopt-prepend
+    name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr:
+        prepend: |
+          vrt-add-id: using the slower method because of --no-optimize
+
+
+- name: 'vrt-add-id: Overwrite existing id attribute with --force'
+  input:
+    cmdline: vrt-add-id --type=counter --id=a --force --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="1">
+      a
+      </sentence>
+      <sentence a="2">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="3">
+      c
+      </sentence>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --force
+        vrt-add-id: added 3 sentence ids
+  - *transf-verbose-noopt-s3
+
+
+- name: 'vrt-add-id: All options'
+  input:
+    cmdline: vrt-add-id --type=counter --element=text --id=n --start=0 --prefix=t- --force
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="t-0">
+      <sentence a="a">
+      a
+      </sentence>
+      <sentence a="b">
+      b
+      </sentence>
+      </text>
+      <text n="t-1">
+      <sentence a="c">
+      c
+      </sentence>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - &transf-verbose-force-t2
+    name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --force
+        vrt-add-id: added 2 text ids
+  - *transf-verbose-noopt-t2
+
+
+# Invalid option values
+
+- name: 'vrt-add-id: Invalid element name'
+  input:
+    cmdline: vrt-add-id --element="-x"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      - regex: '^usage'
+      - regex: "vrt-add-id: error: argument --element/-e: not a field name: b'-x'"
+    returncode: 2
+
+- name: 'vrt-add-id: Invalid attribute name'
+  input:
+    cmdline: vrt-add-id --id="-x"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      - regex: '^usage'
+      - regex: "vrt-add-id: error: argument --id: not a field name: b'-x'"
+    returncode: 2
+
+- name: 'vrt-add-id: Non-integer --start value'
+  input:
+    cmdline: vrt-add-id --start=x
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      - regex: '^usage'
+      - regex: "vrt-add-id: error: argument --start: invalid int value: 'x'"
+    returncode: 2
+
+- name: 'vrt-add-id: Invalid --prefix value'
+  input:
+    cmdline: vrt-add-id --prefix=@x
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      - regex: '^usage'
+      - regex: "vrt-add-id: error: argument --prefix: affix out of spec"
+    returncode: 2
+
+
+# Tests for functionality added by Jyrki Niemi
+
+
+- name: 'vrt-add-id: --type=counter'
+  input:
+    cmdline: vrt-add-id --type=counter --element=text --id=n --start=0 --prefix=t- --force
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="t-0">
+      <sentence a="a">
+      a
+      </sentence>
+      <sentence a="b">
+      b
+      </sentence>
+      </text>
+      <text n="t-1">
+      <sentence a="c">
+      c
+      </sentence>
+      </text>
+  # Check that the command with --no-optimize produces the same result
+  transform:
+  - {}
+  - *transf-no-optimize
+  - *transf-verbose-force-t2
+  - *transf-verbose-noopt-t2
+
+
+- name: 'vrt-add-id: --type=random (implicit random seed)'
+  input:
+    cmdline: vrt-add-id --type=random --element=sentence
+    stdin: *input-1
+  output:
+    stdout: &output-random
+      regex: |
+        <!-- #vrt positional-attributes: word -->
+        <text n="1">
+        <sentence a="a" id="[0-9a-f]{8}">
+        a
+        </sentence>
+        <sentence a="b" id="[0-9a-f]{8}">
+        b
+        </sentence>
+        </text>
+        <text n="2">
+        <sentence a="c" id="[0-9a-f]{8}">
+        c
+        </sentence>
+        </text>
+  transform: *transform-fast-s3
+
+
+- name: 'vrt-add-id: --type=random --seed="" (explicit random seed)'
+  input:
+    cmdline: vrt-add-id --type=random --seed="" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: *output-random
+  transform: *transform-fast-s3
+
+
+- name: 'vrt-add-id: --type=random --seed=1'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="7a6e75f5">
+      a
+      </sentence>
+      <sentence a="b" id="1df61006">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="db4ffcbb">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+
+# --type=random --max
+
+- name: 'vrt-add-id: --type=random --max=3'
+  input:
+    cmdline: vrt-add-id --type=random --max=3 --seed=2 --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="2">
+      a
+      </sentence>
+      <sentence a="b" id="1">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="0">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max=20 (decimal, values of 2 hex digits)'
+  input:
+    cmdline: vrt-add-id --type=random --max=20 --seed=1 --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="0f">
+      a
+      </sentence>
+      <sentence a="b" id="01">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="03">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max=0x1000 (hex, values of 3 hex digits)'
+  input:
+    cmdline: vrt-add-id --type=random --max=0x1000 --seed=1 --element=sentence
+    stdin: *input-1
+  output:
+    stdout: &stdout-random-4096-seed-1 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="f4d">
+      a
+      </sentence>
+      <sentence a="b" id="f4c">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="16a">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max=2^8 (power, values of 2 hex digits)'
+  input:
+    cmdline: vrt-add-id --type=random --max=2^8 --seed=1 --element=sentence
+    stdin: *input-1
+  output:
+    stdout: &stdout-random-256-seed-1 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="f4">
+      a
+      </sentence>
+      <sentence a="b" id="16">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="3b">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:03x)'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --format='{id:03x}' --element=sentence
+    stdin: *input-1
+  output:
+    stdout: *stdout-random-4096-seed-1
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:03X)'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --format='{id:03X}' --element=sentence
+    stdin: *input-1
+  output:
+    stdout:
+      value: *stdout-random-4096-seed-1
+      transform-expected:
+        python: |
+          return re.sub(r'id="(...)"',
+                        lambda mo: f'id="{mo.group(1).upper()}"',
+                        value)
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:#05x)'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --format='{id:#05x}' --element=sentence
+    stdin: *input-1
+  output:
+    stdout:
+      value: *stdout-random-4096-seed-1
+      transform-expected:
+        replace: '/id="/id="0x/'
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:04o)'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --format='{id:04o}' --element=sentence
+    stdin: *input-1
+  output:
+    stdout:
+      value: *stdout-random-4096-seed-1
+      transform-expected:
+        python: |
+          return re.sub(r'id="(...)"',
+                        lambda mo: f'id="{int(mo.group(1), 16):04o}"',
+                        value)
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:012b)'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --format='{id:012b}' --element=sentence
+    stdin: *input-1
+  output:
+    stdout:
+      value: *stdout-random-4096-seed-1
+      transform-expected:
+        python: |
+          return re.sub(r'id="(...)"',
+                        lambda mo: f'id="{int(mo.group(1), 16):012b}"',
+                        value)
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:/>12b)'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --format='{id:/>12b}' --element=sentence
+    stdin: *input-1
+  output:
+    stdout:
+      value: *stdout-random-4096-seed-1
+      transform-expected:
+        python: |
+          return re.sub(r'id="(...)"',
+                        lambda mo: f'id="{int(mo.group(1), 16):/>12b}"',
+                        value)
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max from format (:04d)'
+  input:
+    cmdline:
+    - vrt-add-id --type=random --seed=1 --format='{id:04d}' --element=sentence
+    - vrt-add-id --type=random --seed=1 --format='{id:04}' --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="7835">
+      a
+      </sentence>
+      <sentence a="b" id="7833">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="0724">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --max=2 (too small value)'
+  input:
+    cmdline: vrt-add-id --type=random --max=2 --seed=2 --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="1">
+      a
+      </sentence>
+      <sentence a="b" id="0">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+    stderr: |
+      vrt-add-id: more than 2 elements encountered; please increase --max
+      vrt-add-id: non-zero status 1
+    returncode: 1
+  transform:
+  - {}
+  - *transf-no-optimize
+  - &transf-verbose-fast-prepend
+    name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr:
+        prepend: |
+          vrt-add-id: using the faster method
+  - *transf-verbose-noopt-prepend
+
+
+# --type=random --seed
+
+- name: 'vrt-add-id: --type=random, default seed for multiple element types'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --max=0x100 --element=text --element=sentence
+    stdin: *input-1
+  output:
+    # The ids of the first text and sentence are really the same: the
+    # random number generator produces two same values in a row
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="f4">
+      <sentence a="a" id="f4">
+      a
+      </sentence>
+      <sentence a="b" id="16">
+      b
+      </sentence>
+      </text>
+      <text n="2" id="3b">
+      <sentence a="c" id="dd">
+      c
+      </sentence>
+      </text>
+  transform: &transform-fast-t2s3-seed
+  - {}
+  # Default --seed, same value explicitly for sentence
+  - name: default --seed, explicitly same value for sentence
+    input:
+      cmdline:
+        append: ' --seed=1'
+  - *transf-no-optimize
+  # Test the command with --verbose
+  - &transf-verbose-fast-t2s3
+    name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 2 text ids, 3 sentence ids
+  # Test the command with --verbose --no-optimize
+  - &transf-verbose-noopt-t2s3
+    name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids, 3 sentence ids
+  # Read seed from file
+  - name: seed from file
+    input:
+      cmdline:
+        replace: '/seed=1/seed="<seed.txt"/'
+      file:seed.txt: '1'
+  # Read seed from file, explicitly the same seed for sentence
+  - name: seed from file, explicitly same seed for sentence
+    input:
+      cmdline:
+      - replace: '/seed=1/seed="<seed.txt"/'
+      - append: ' --seed="<seed.txt"'
+      file:seed.txt: '1'
+
+
+# Random seed from file
+
+- name: 'vrt-add-id: --type=random, seed from file'
+  input:
+    cmdline: vrt-add-id --type=random --max=2^8 --seed="<seed.txt" --element=sentence
+    stdin: *input-1
+    file:seed.txt: '1'
+  output:
+    stdout: *stdout-random-256-seed-1
+  transform:
+  - {}
+  - *transf-no-optimize
+  - *transf-verbose-fast-s3
+  - *transf-verbose-noopt-s3
+  # Test that the seed read from file produces the same result as the
+  # same seed literally
+  - name: seed from file same as literal seed
+    input:
+      cmdline:
+        replace: '/<seed\.txt/1/'
+  # Test that spaces around the file name are stripped
+  - name: spaces around file name stripped
+    input:
+      cmdline:
+        replace: '/<seed.txt/< \tseed.txt \t/'
+
+- name: 'vrt-add-id: --type=random, seed from 1 MiB file'
+  input:
+    cmdline: vrt-add-id --type=random --max=2^8 --seed="<seed.txt" --element=sentence
+    stdin: *input-1
+    file:seed.txt:
+      value: ''
+      transform:
+        python: return pow(2, 20) * '0'
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="2e">
+      a
+      </sentence>
+      <sentence a="b" id="c4">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="cd">
+      c
+      </sentence>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - *transf-verbose-fast-s3
+  - *transf-verbose-noopt-s3
+  # The seed file with something appended should produce the same
+  # result, as only the first 1 MiB of the seed file is used
+  - name: append to 1 MiB seed
+    input:
+      file:seed.txt:
+        append: 'foobar'
+  # A one byte shorter seed file should produce different ids
+  - name: truncate 1 MiB seed
+    input:
+      file:seed.txt:
+        python: return value[:-1]
+    output-expected:
+      stdout:
+      - replace: '/2e/25/'
+      - replace: '/c4/4e/'
+      - replace: '/cd/06/'
+
+- name: 'vrt-add-id: --type=random, non-existent seed file'
+  input:
+    cmdline: vrt-add-id --type=random --max=2^8 --seed="<seed.txt" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: cannot read random seed from file seed.txt: [Errno 2] No such file or directory: 'seed.txt'
+    returncode: 1
+
+
+# --format
+
+- name: 'vrt-add-id: --type=counter --format'
+  input:
+    cmdline: vrt-add-id --type=counter --start=10 --format="*{id:03x}*" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="*00a*">
+      a
+      </sentence>
+      <sentence a="b" id="*00b*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="*00c*">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=counter --format without width'
+  input:
+    cmdline: vrt-add-id --type=counter --start=10 --format="*{id:x}*" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="*a*">
+      a
+      </sentence>
+      <sentence a="b" id="*b*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="*c*">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=counter --format with width, default type'
+  input:
+    cmdline: vrt-add-id --type=counter --start=10 --format="*{id:03}*" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="*010*">
+      a
+      </sentence>
+      <sentence a="b" id="*011*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="*012*">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=counter --format --prefix'
+  input:
+    cmdline: vrt-add-id --type=counter --start=10 --format="*{id:03x}*" --prefix="x-" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="x-*00a*">
+      a
+      </sentence>
+      <sentence a="b" id="x-*00b*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="x-*00c*">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --format'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --max=10 --format="*{id:03d}*" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="*007*">
+      a
+      </sentence>
+      <sentence a="b" id="*000*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="*001*">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --format --prefix'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --max=10 --format="*{id:03d}*" --prefix="x-" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="x-*007*">
+      a
+      </sentence>
+      <sentence a="b" id="x-*000*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="x-*001*">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --type=random --format; double {id}'
+  input:
+    cmdline: vrt-add-id --type=random --seed=1 --max=100 --format="*{id:03d}-{id:02x}*" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="*061-3d*">
+      a
+      </sentence>
+      <sentence a="b" id="*005-05*">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="*087-57*">
+      c
+      </sentence>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of using {id} with different format specifications: 03d, 02x
+        vrt-add-id: added 3 sentence ids
+  - *transf-verbose-noopt-s3
+
+- name: 'vrt-add-id: {id} with different format specs'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{id:<1d}" --verbose --element=sentence
+    stdin: *input-1
+  output:
+    stdout: *output-1-s3
+    stderr: |
+      vrt-add-id: using the faster method
+      vrt-add-id: added 3 sentence ids
+  transform:
+  - {}
+  - name: format spec "<5d"
+    input:
+      cmdline:
+        replace: '/<1/<5/'
+    output-expected:
+      stdout:
+        replace: '/(id=".)/\1    /'
+  - name: format spec ">5d"
+    input:
+      cmdline:
+        replace: '/<1/>5/'
+    output-expected:
+      stdout:
+        replace: '/id="(.)/id="    \1/'
+  - name: format spec "^5d"
+    input:
+      cmdline:
+        replace: '/<1/^5/'
+    output-expected:
+      stdout:
+        replace: '/id="(.)/id="  \1  /'
+  - name: format spec "-^5d"
+    input:
+      cmdline:
+        replace: '/<1/-^5/'
+    output-expected:
+      stdout:
+        replace: '/id="(.)/id="--\1--/'
+  - name: format spec "'^5d"
+    input:
+      cmdline:
+        replace: "/<1/'^5/"
+    output-expected:
+      stdout:
+        replace: "/id=\"(.)/id=\"''\\1''/"
+  - name: format spec "#04x"
+    input:
+      cmdline:
+        replace: '/<1d/#04x/'
+    output-expected:
+      stdout:
+        replace: '/id="(.)/id="0x0\1/'
+  - name: --no-optimize
+    input: *cmdline-no-optimize
+    output-expected:
+      stderr:
+        replace: '/faster method/slower method because of --no-optimize/'
+
+- name: 'vrt-add-id: Format containing fixed characters to be XML-encoded'
+  input:
+    cmdline: vrt-add-id --type=counter --format="<{id}" --verbose --element=sentence
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/(id=")/\1&lt;/'
+    stderr: |
+      vrt-add-id: using the faster method
+      vrt-add-id: added 3 sentence ids
+  transform:
+  - name: 'format containing "<"'
+    # The values above
+  - name: 'format containing ">"'
+    input:
+      cmdline:
+        replace: '/</>/'
+    output-expected:
+      stdout:
+        replace: '/&lt;/&gt;/'
+  - name: 'format containing "&"'
+    input:
+      cmdline:
+        replace: '/</&/'
+    output-expected:
+      stdout:
+        replace: '/&lt;/&amp;/'
+  - name: 'format containing "\""'
+    input:
+      cmdline:
+        replace: '/</\"/'
+    output-expected:
+      stdout:
+        replace: '/&lt;/&quot;/'
+  - *transf-verbose-noopt-s3
+
+- name: 'vrt-add-id: Format spec producing characters to be XML-encoded'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{id:<>2d}" --verbose --element=sentence
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/(id=")/\1&lt;/'
+    stderr: |
+      vrt-add-id: using the slower method because of format producing '<'
+      vrt-add-id: added 3 sentence ids
+  transform:
+  - name: 'format containing "<"'
+    # The values above
+  - name: 'format containing ">"'
+    input:
+      cmdline:
+        replace: '/</>/'
+    output-expected:
+      stdout:
+        replace: '/&lt;/&gt;/'
+      stderr:
+        replace: '/</>/'
+  - name: 'format containing "&"'
+    input:
+      cmdline:
+        replace: '/</&/'
+    output-expected:
+      stdout:
+        replace: '/&lt;/&amp;/'
+      stderr:
+        replace: '/</&/'
+  - name: 'format containing "\""'
+    input:
+      cmdline:
+        replace: '/</\"/'
+    output-expected:
+      stdout:
+        replace: '/&lt;/&quot;/'
+      stderr:
+        replace: '/</"/'
+  - *transf-verbose-noopt-s3
+
+- name: 'vrt-add-id: Format with literal { and }'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{{-{id}-}}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/id="(.)"/id="{-\1-}"/'
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: Format with literal "{id}"'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{{id}}-{id}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/id="(.)"/id="{id}-\1"/'
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: Format with literal "{idnum[...]}"'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{{idnum[sentence]}}-{{{{idnum[x]}}}}-{id}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/id="(.)"/id="{idnum[sentence]}-{{idnum[x]}}-\1"/'
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: Format with literal { and } immediately around replacement field'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{{{id}}}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/id="(.)"/id="{\1}"/'
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: Format with literal {{ and }} immediately around replacement field'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{{{{{id}}}}}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-1-s3
+      transform-expected:
+        replace: '/id="(.)"/id="{{\1}}"/'
+  transform: *transform-fast-s3
+
+
+# --hash
+
+- name: 'vrt-add-id: --hash; format with {hash}'
+  input:
+    cmdline: vrt-add-id --type=counter --hash=abc --format="{hash}-{id:03d}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: &output-hash |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="a9993e364706816aba3e25717850c26c9cd0d89d-001">
+      a
+      </sentence>
+      <sentence a="b" id="a9993e364706816aba3e25717850c26c9cd0d89d-002">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="a9993e364706816aba3e25717850c26c9cd0d89d-003">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: --hash; format with {hash1}'
+  input:
+    cmdline: vrt-add-id --type=counter --hash=abc --format="{hash1}-{id:03d}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: *output-hash
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: Multiple --hash'
+  input:
+    cmdline: vrt-add-id --type=counter --hash=abc --hash=def --hash=ghi --format="{hash1:.4}-{hash2:.4}-{hash3:.6}-{id:03d}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="a999-589c-481743-001">
+      a
+      </sentence>
+      <sentence a="b" id="a999-589c-481743-002">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="a999-589c-481743-003">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: Random --hash (empty string)'
+  input:
+    cmdline: |
+      vrt-add-id --type=counter --hash="" --format="{hash}-{id:03d}" in.vrt > out1.vrt --element=sentence;
+      vrt-add-id --type=counter --hash="" --format="{hash}-{id:03d}" in.vrt > out2.vrt --element=sentence
+    shell: True
+    file:in.vrt: *input-1
+  output:
+    file:out1.vrt:
+    - &output-hash-random-1
+      value: *output-hash
+      transform-actual:
+        replace: '/id="[0-9a-f]{40}-/id="a9993e364706816aba3e25717850c26c9cd0d89d-/'
+    - &output-hash-random-2
+      name: 'different result from a fixed hash'
+      test: '!='
+      value: *output-hash
+    - name: 'two runs with random hash produce different result'
+      test: '!='
+      value:
+        file: out2.vrt
+    file:out2.vrt:
+    - *output-hash-random-1
+    - *output-hash-random-2
+  transform:
+  # Cannot use *transform-fast-s3 here, as stderr output with
+  # --verbose is doubled because of two commands
+  - {}
+  # Test that the command with --no-optimize produces the same result
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 3 sentence ids
+        vrt-add-id: using the faster method
+        vrt-add-id: added 3 sentence ids
+  # Test the command with --verbose --no-optimize
+  - name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 3 sentence ids
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 3 sentence ids
+
+- name: 'vrt-add-id: Two random hashes are different'
+  input:
+    cmdline: vrt-add-id --type=counter --hash="" --hash="" --format="{hash1}-{hash2}-{id:03d}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout:
+    - value: *output-hash
+      transform-actual:
+        replace: '/id="([0-9a-f]{40}-){2}/id="a9993e364706816aba3e25717850c26c9cd0d89d-/'
+    - name: 'the two random hash values are different'
+      test: python
+      value: |
+        mo = re.search('id="([0-9a-f]{40})-([0-9a-f]{40})-', value)
+        return mo and mo.group(1) != mo.group(2)
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: Format refers to {hash} with no --hash options'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{hash:.4}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: invalid format replacement field as no --hash options were specified: {hash:.4}
+    returncode: 1
+  transform: &no-optimize
+  - {}
+  - *transf-no-optimize
+
+- name: 'vrt-add-id: Format refers to non-existent {hashN}'
+  input:
+    cmdline: vrt-add-id --type=counter --hash=abc --format="{hash1:.4}-{hash2:.4}-{id:03d}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: invalid format replacement field as fewer than 2 --hash options were specified: {hash2:.4}
+    returncode: 1
+  transform: *no-optimize
+
+
+# --format containing {elem[attr]}
+
+- name: 'vrt-add-id: --format with {elem[attr]}'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{sentence[a]}-{id:03d}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="a-001">
+      a
+      </sentence>
+      <sentence a="b" id="b-002">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="c-003">
+      c
+      </sentence>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {sentence[a]}
+        vrt-add-id: added 3 sentence ids
+  - *transf-verbose-noopt-s3
+
+- name: 'vrt-add-id: --format with {elem[attr]} for enclosing elements'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{text[n]:0>2s}-{paragraph[p]}-{sentence[a]}-{id:03d}" --element=sentence
+    stdin: &input-para |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph p="p1">
+      <sentence a="a">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2">
+      <sentence a="b">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph p="p3">
+      <sentence a="c">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph p="p1">
+      <sentence a="a" id="01-p1-a-001">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2">
+      <sentence a="b" id="01-p2-b-002">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph p="p3">
+      <sentence a="c" id="02-p3-c-003">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {text[n]:0>2s}
+        vrt-add-id: added 3 sentence ids
+  - *transf-verbose-noopt-s3
+
+
+# Format with "{this[attr]}"
+
+- name: 'vrt-add-id: --format with {this[attr]}'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{this[a]}-{id:03d}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" id="a-001">
+      a
+      </sentence>
+      <sentence a="b" id="b-002">
+      b
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence a="c" id="c-003">
+      c
+      </sentence>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {this[a]}
+        vrt-add-id: added 3 sentence ids
+  - *transf-verbose-noopt-s3
+
+- name: 'vrt-add-id: text, paragraph, sentence with same options and {this[attr]}'
+  input:
+    cmdline: vrt-add-id --id=xid --type=random --seed=1 --max=2^16 --format="{this[x]}-{id:04x}" --element=text --element=paragraph --element=sentence
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text x="1">
+      <paragraph x="p1">
+      <sentence x="a">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph x="p2">
+      <sentence x="b">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text x="2">
+      <paragraph x="p3">
+      <sentence x="c">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text x="1" xid="1-f4dc">
+      <paragraph x="p1" xid="p1-f4cb">
+      <sentence x="a" xid="a-16a6">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph x="p2" xid="p2-3bec">
+      <sentence x="b" xid="b-ddd8">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text x="2" xid="2-c2c0">
+      <paragraph x="p3" xid="p3-95da">
+      <sentence x="c" xid="c-0372">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {this[x]}
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+  - name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+
+
+# Invalid --format
+
+- name: 'vrt-add-id: --format with unsupported replacement field'
+  input:
+    cmdline: vrt-add-id --format="{a}"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: unsupported format replacement field: {a}
+    returncode: 1
+  transform:
+  - {}
+  - name: attribute access
+    input:
+      cmdline:
+        replace: '/\{a/{a.b/'
+    output-expected:
+      stderr:
+        replace: '/\{a/{a.b/'
+  - name: capitalized element name
+    input:
+      cmdline:
+        replace: '/\{a/{Text[a]/'
+    output-expected:
+      stderr:
+        replace: '/\{a/{Text[a]/'
+  - name: capitalized attribute name
+    input:
+      cmdline:
+        replace: '/\{a/{text[A]/'
+    output-expected:
+      stderr:
+        replace: '/\{a/{text[A]/'
+  - *transf-no-optimize
+
+- name: 'vrt-add-id: --format with idnum[elem] where no ids added to elem'
+  input:
+    cmdline: vrt-add-id --format="{idnum[text]}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: elem in format replacement field idnum[elem] must be the name of one of the elements to which ids are added: {idnum[text]}
+    returncode: 1
+  transform: *no-optimize
+
+- name: 'vrt-add-id: --format with substitution for int-valued field'
+  input:
+    cmdline: vrt-add-id --format="{id/x/y/}"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: substitutions not allowed for integer-valued format replacement fields id and idnum[elem]: {id/x/y/}
+    returncode: 1
+  transform:
+  - {}
+  - &replace-id-idnum-sent
+    name: 'idnum[sentence]'
+    input:
+      cmdline: &repl-id-idnum-sent
+        replace:
+          str: '{id'
+          with: '{idnum[sentence]'
+    output-expected:
+      stderr: *repl-id-idnum-sent
+  - *transf-no-optimize
+
+- name: 'vrt-add-id: --format with presentation "s" for int-valued field'
+  input:
+    cmdline: vrt-add-id --format="{id:8s}"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: invalid format specification for an integer-valued format replacement field: unknown format code 's' for object of type 'int': {id:8s}
+    returncode: 1
+  transform:
+  - {}
+  - *replace-id-idnum-sent
+  - *transf-no-optimize
+
+- name: 'vrt-add-id: --format with invalid format spec for int-valued field'
+  input:
+    # Incomplete cmdline, to be augmented in grouped transformations
+    cmdline: 'vrt-add-id --format="{id:'
+    stdin: *input-1
+  output:
+    stdout: ''
+    # Incomplete stderr, to be augmented in grouped transformations
+    stderr: 'vrt-add-id: error: invalid format specification for an integer-valued format replacement field: '
+    returncode: 1
+  transform:
+  # No {}: the values above should always be augmented
+  - name: format code "Z"
+    input:
+      cmdline:
+        append: 'Z}"'
+    output-expected:
+      stderr:
+        append: |
+          unknown format code 'Z' for object of type 'int': {id:Z}
+  - name: format spec ".d"
+    input:
+      cmdline:
+        append: '.d}"'
+    output-expected:
+      stderr:
+        append: |
+          format specifier missing precision: {id:.d}
+
+- name: 'vrt-add-id: --format with invalid format spec for string field'
+  input:
+    # Incomplete cmdline, to be augmented in grouped transformations
+    cmdline: 'vrt-add-id --format="{sentence[a]:'
+    stdin: *input-1
+  output:
+    stdout: ''
+    # Incomplete stderr, to be augmented in grouped transformations
+    stderr: 'vrt-add-id: error: invalid format specification for a string-valued format replacement field: '
+    returncode: 1
+  transform:
+  # No {}: the values above should always be augmented
+  - name: format spec "8d"
+    input:
+      cmdline:
+        append: '8d}"'
+    output-expected:
+      stderr:
+        append: |
+          unknown format code 'd' for object of type 'str': {sentence[a]:8d}
+  - name: format spec "Z"
+    input:
+      cmdline:
+        append: 'Z}"'
+    output-expected:
+      stderr:
+        append: |
+          unknown format code 'Z' for object of type 'str': {sentence[a]:Z}
+  - name: format spec "-s"
+    input:
+      cmdline:
+        append: '-s}"'
+    output-expected:
+      stderr:
+        append: |
+          sign not allowed in string format specifier: {sentence[a]:-s}
+  - name: format spec ",s"
+    input:
+      cmdline:
+        append: ',s}"'
+    output-expected:
+      stderr:
+        append: |
+          cannot specify ',' with 's': {sentence[a]:,s}
+
+- name: 'vrt-add-id: --format referring to non-existent element or attribute'
+  input:
+    cmdline: vrt-add-id --format="{id}-{paragraph[z]}" --element=sentence
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+    stderr: |
+      vrt-add-id: format replacement field {id}-{paragraph[z]}: key 'paragraph' not found
+      vrt-add-id: non-zero status 1
+    returncode: 1
+  transform:
+  - {}
+  # {text[z]}
+  - name: 'text[z]'
+    input:
+      cmdline:
+        replace: '/paragraph/text/'
+    output-expected:
+      stderr:
+        replace:
+        - '/\{paragraph/{text/'
+        - "/'paragraph/'z"
+  - *transf-no-optimize
+
+- name: 'vrt-add-id: --format not referring to id or idnum[elem]'
+  input:
+    cmdline: vrt-add-id --seed=1 --element=text --format="{id:08x}" --element=sentence --format="{idnum[text]}"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: format string for element "sentence" must contain replacement field "id" or "idnum[sentence]": {idnum[text]}
+    returncode: 1
+  transform:
+  - {}
+  - *transf-no-optimize
+
+- name: 'vrt-add-id: --format without replacement fields'
+  input:
+    cmdline: vrt-add-id --seed=1 --element=text --format="{id:08x}" --element=sentence --format="xxx"
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-id: error: format string for element "sentence" must contain replacement field "id" or "idnum[sentence]": xxx
+    returncode: 1
+  transform:
+  - {}
+  - *transf-no-optimize
+
+- name: 'vrt-add-id: --format referring to idnum of a specified element that is not in input'
+  input:
+    cmdline: vrt-add-id --seed=1 --element=text --format="{id:08x}" --element=sentence --format="{idnum[text]}-{id:08x}"
+    stdin:
+      value: *input-1
+      transform:
+        replace: '/text/text1/'
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text1 n="1">
+    stderr: |
+      vrt-add-id: format replacement field {idnum[text]}-{id:08x}: key 'text' not found
+      vrt-add-id: non-zero status 1
+    returncode: 1
+  transform:
+  - {}
+  - *transf-no-optimize
+
+
+# Multiple different elements
+
+- name: 'vrt-add-id: text, paragraph, sentence with completely different options'
+  input:
+    cmdline: vrt-add-id --seed=1 --element=text --type=counter --start=0 --id=tid --element=paragraph --type=counter --start=10 --id=pid --format="p-{id:02x}" --element=sentence --type=random --id=sid --max=2^16 --format="{id:04x}"
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" tid="0">
+      <paragraph p="p1" pid="p-0a">
+      <sentence a="a" sid="f4dc">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" pid="p-0b">
+      <sentence a="b" sid="f4cb">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" tid="1">
+      <paragraph p="p3" pid="p-0c">
+      <sentence a="c" sid="16a6">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: &transform-fast-t2p3s3
+  - {}
+  - *transf-no-optimize
+  - &transf-fast-t2p3s3
+    name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+  - &transf-noopt-t2p3s3
+    name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+
+- name: 'vrt-add-id: text, paragraph, sentence with same options'
+  input:
+    cmdline: vrt-add-id --id=xid --type=random --seed=1 --max=2^16 --format="{id:04x}" --element=text --element=paragraph --element=sentence
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" xid="f4dc">
+      <paragraph p="p1" xid="f4cb">
+      <sentence a="a" xid="16a6">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" xid="3bec">
+      <sentence a="b" xid="ddd8">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" xid="c2c0">
+      <paragraph p="p3" xid="95da">
+      <sentence a="c" xid="0372">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: text, paragraph, sentence with default options'
+  input:
+    cmdline: vrt-add-id --element=text --element=paragraph --element=sentence
+    stdin: *input-para
+  output:
+    stdout:
+      regex: |
+        <!-- #vrt positional-attributes: word -->
+        <text n="1" id="[0-9a-f]{8}">
+        <paragraph p="p1" id="[0-9a-f]{8}">
+        <sentence a="a" id="[0-9a-f]{8}">
+        a
+        </sentence>
+        </paragraph>
+        <paragraph p="p2" id="[0-9a-f]{8}">
+        <sentence a="b" id="[0-9a-f]{8}">
+        b
+        </sentence>
+        </paragraph>
+        </text>
+        <text n="2" id="[0-9a-f]{8}">
+        <paragraph p="p3" id="[0-9a-f]{8}">
+        <sentence a="c" id="[0-9a-f]{8}">
+        c
+        </sentence>
+        </paragraph>
+        </text>
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: text, paragraph, sentence with default options + --type=counter'
+  input:
+    cmdline: vrt-add-id --type=counter --element=text --element=paragraph --element=sentence
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="1">
+      <paragraph p="p1" id="1">
+      <sentence a="a" id="1">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="2">
+      <sentence a="b" id="2">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="2">
+      <paragraph p="p3" id="3">
+      <sentence a="c" id="3">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: text, paragraph, sentence with some common options'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --seed=1 --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --element=paragraph --prefix="p-" --element=sentence --prefix="s-"
+    stdin: *input-para
+  output:
+    stdout: &output-para-1 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-f4dc">
+      <paragraph p="p1" id="p-f4cb">
+      <sentence a="a" id="s-16a6">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-3bec">
+      <sentence a="b" id="s-ddd8">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-c2c0">
+      <paragraph p="p3" id="p-95da">
+      <sentence a="c" id="s-0372">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: text, paragraph, sentence; format referring to added ids'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --seed=1 --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --element=paragraph --format="{text[id]}-p-{id:04x}" --element=sentence --format="{paragraph[id]}-s-{id:04x}"
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-f4dc">
+      <paragraph p="p1" id="t-f4dc-p-f4cb">
+      <sentence a="a" id="t-f4dc-p-f4cb-s-16a6">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="t-f4dc-p-3bec">
+      <sentence a="b" id="t-f4dc-p-3bec-s-ddd8">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-c2c0">
+      <paragraph p="p3" id="t-c2c0-p-95da">
+      <sentence a="c" id="t-c2c0-p-95da-s-0372">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {text[id]}
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+  - *transf-noopt-t2p3s3
+
+
+# --rename
+
+- name: 'vrt-add-id: --rename, no existing attribute'
+  input:
+    cmdline: vrt-add-id --type=counter --id=x --rename --element=sentence
+    stdin: &input-multiattr |
+      <!-- #vrt positional-attributes: word -->
+      <text a="a" n="1" n_1="a" n_2="b">
+      <sentence a="a" id="1">
+      a
+      </sentence>
+      <sentence a="b" id="2">
+      b
+      </sentence>
+      </text>
+      <text a="a" n="2" n_1="b" n_2="c">
+      <sentence a="c" id="3">
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="a" n="1" n_1="a" n_2="b">
+      <sentence a="a" id="1" x="1">
+      a
+      </sentence>
+      <sentence a="b" id="2" x="2">
+      b
+      </sentence>
+      </text>
+      <text a="a" n="2" n_1="b" n_2="c">
+      <sentence a="c" id="3" x="3">
+      c
+      </sentence>
+      </text>
+  transform: &transform-rename-s3
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --rename
+        vrt-add-id: added 3 sentence ids
+  - *transf-verbose-noopt-s3
+
+- name: 'vrt-add-id: --rename, existing attribute'
+  input:
+    cmdline: vrt-add-id --type=counter --id=a --rename --element=sentence
+    stdin: *input-multiattr
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="a" n="1" n_1="a" n_2="b">
+      <sentence id="1" a_1="a" a="1">
+      a
+      </sentence>
+      <sentence id="2" a_1="b" a="2">
+      b
+      </sentence>
+      </text>
+      <text a="a" n="2" n_1="b" n_2="c">
+      <sentence id="3" a_1="c" a="3">
+      c
+      </sentence>
+      </text>
+  transform: *transform-rename-s3
+
+- name: 'vrt-add-id: --rename, text and sentence, existing attributes'
+  input:
+    cmdline: vrt-add-id --type=counter --rename --element=text --id=n_1 --element=sentence --id=a
+    stdin: *input-multiattr
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="a" n="1" n_2="b" n_1_1="a" n_1="1">
+      <sentence id="1" a_1="a" a="1">
+      a
+      </sentence>
+      <sentence id="2" a_1="b" a="2">
+      b
+      </sentence>
+      </text>
+      <text a="a" n="2" n_2="c" n_1_1="b" n_1="2">
+      <sentence id="3" a_1="c" a="3">
+      c
+      </sentence>
+      </text>
+  transform: &transform-rename-t2s3
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --rename
+        vrt-add-id: added 2 text ids, 3 sentence ids
+  - &transf-noopt-t2s3
+    name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids, 3 sentence ids
+
+- name: 'vrt-add-id: text and sentence, rename, N > 1, existing attributes'
+  input:
+    cmdline: vrt-add-id --type=counter --start=0 --rename --element=text --id=n --element=sentence --id=id
+    stdin: *input-multiattr
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="a" n_1="a" n_2="b" n_3="1" n="0">
+      <sentence a="a" id_1="1" id="0">
+      a
+      </sentence>
+      <sentence a="b" id_1="2" id="1">
+      b
+      </sentence>
+      </text>
+      <text a="a" n_1="b" n_2="c" n_3="2" n="1">
+      <sentence a="c" id_1="3" id="2">
+      c
+      </sentence>
+      </text>
+  transform: *transform-rename-t2s3
+
+
+# Subtitutions in formats
+
+- name: 'vrt-add-id: text, paragraph, sentence; format referring to added ids, with substitutions'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --seed=1 --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --element=paragraph --format="p-{text[id]/t-//}-{id:04x}" --element=sentence --format="s-{paragraph[id]/p-//,/-/+/}-{id:04x}"
+    stdin: *input-para
+  output:
+    stdout: &output-para-subst |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-f4dc">
+      <paragraph p="p1" id="p-f4dc-f4cb">
+      <sentence a="a" id="s-f4dc+f4cb-16a6">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-f4dc-3bec">
+      <sentence a="b" id="s-f4dc+3bec-ddd8">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-c2c0">
+      <paragraph p="p3" id="p-c2c0-95da">
+      <sentence a="c" id="s-c2c0+95da-0372">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --format replacement field other than {id} or {idnum[elem]}: {text[id]/t-//}
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+  - *transf-noopt-t2p3s3
+
+
+# idnum[elem] in format
+
+- name: 'vrt-add-id: text, paragraph, sentence; format referring to idnum[elem]'
+  input:
+    cmdline:
+    - vrt-add-id --id=id --type=random --seed=1 --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}"
+    # Same with {idnum[elem]} everywhere instead of {id}
+    - vrt-add-id --id=id --type=random --seed=1 --max=2^16 --element=text --format="{idnum[text]:04x}" --prefix="t-" --element=paragraph --format="p-{idnum[text]:04x}-{idnum[paragraph]:04x}" --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{idnum[sentence]:04x}"
+    stdin: *input-para
+  output:
+    # This is another way to achieve the same result as with the
+    # substitutions above
+    stdout: *output-para-subst
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: --format with {idnum[elem]}, missing paragraph but previous paragraphs'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --seed=1 --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}"
+    stdin:
+      value: *input-para
+      transform:
+        # Remove the last paragraph tags
+        shell: |
+          grep -v 'p="p3"' | head -n-2;
+          echo "</text>"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-f4dc">
+      <paragraph p="p1" id="p-f4dc-f4cb">
+      <sentence a="a" id="s-f4dc+f4cb-16a6">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-f4dc-3bec">
+      <sentence a="b" id="s-f4dc+3bec-ddd8">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-c2c0">
+      <sentence a="c" id="s-c2c0+3bec-95da">
+      c
+      </sentence>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 2 text ids, 2 paragraph ids, 3 sentence ids
+  - name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids, 2 paragraph ids, 3 sentence ids
+
+- name: 'vrt-add-id: --format with {idnum[elem]}, missing paragraph without previous paragraphs'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --seed=1 --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --element=paragraph --format="p-{idnum[text]:04x}-{id:04x}" --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}"
+    stdin:
+      value: *input-para
+      transform:
+        # Remove the first paragraph tags
+        shell: |
+          awk '/p="p1"/ {next} /<\/paragraph>/ && ! p {p = 1; next} {print}'
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-f4dc">
+    stderr: |
+      vrt-add-id: format replacement field s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}: key 'paragraph' not found
+      vrt-add-id: non-zero status 1
+    returncode: 1
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+  - *transf-verbose-noopt-prepend
+
+- name: 'vrt-add-id: text, paragraph, sentence; idnum[elem] with different format specs'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --seed=1 --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --element=paragraph --format="p-{idnum[text]:05x}-{id:04x}" --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}"
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-f4dc">
+      <paragraph p="p1" id="p-0f4dc-f4cb">
+      <sentence a="a" id="s-f4dc+f4cb-16a6">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-0f4dc-3bec">
+      <sentence a="b" id="s-f4dc+3bec-ddd8">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-c2c0">
+      <paragraph p="p3" id="p-0c2c0-95da">
+      <sentence a="c" id="s-c2c0+95da-0372">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform:
+  - {}
+  - *transf-no-optimize
+  - *transf-noopt-t2p3s3
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of different format specifications for idnum[text]: 04x, 05x
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+
+- name: 'vrt-add-id: text, paragraph, sentence; idnum[elem] with different format specs (one with empty)'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --seed=1 --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --element=paragraph --format="p-{idnum[text]}-{id:04x}" --element=sentence --format="s-{idnum[text]:04x}+{idnum[paragraph]:04x}-{id:04x}"
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-f4dc">
+      <paragraph p="p1" id="p-f4dc-f4cb">
+      <sentence a="a" id="s-f4dc+f4cb-16a6">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-f4dc-3bec">
+      <sentence a="b" id="s-f4dc+3bec-ddd8">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-c2c0">
+      <paragraph p="p3" id="p-c2c0-95da">
+      <sentence a="c" id="s-c2c0+95da-0372">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: text, paragraph, sentence; idnum[elem] with different but equal format specs (with and without "d")'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --seed=1 --max=2^16 --format="{id:05d}" --element=text --prefix="t-" --element=paragraph --format="p-{idnum[text]:05}-{id:04x}" --element=sentence --format="s-{idnum[text]:05}+{idnum[paragraph]:04x}-{id:04x}"
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-62684">
+      <paragraph p="p1" id="p-62684-f4cb">
+      <sentence a="a" id="s-62684+f4cb-16a6">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-62684-3bec">
+      <sentence a="b" id="s-62684+3bec-ddd8">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-49856">
+      <paragraph p="p3" id="p-49856-95da">
+      <sentence a="c" id="s-49856+95da-0372">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: text, paragraph, sentence; id and idnum[elem] without format spec (using default)'
+  input:
+    cmdline:
+    - vrt-add-id --id=id --type=random --seed=1 --max=2^16 --format="{id}" --element=text --prefix="t-" --element=paragraph --format="p-{idnum[text]}-{id}" --element=sentence --format="s-{idnum[text]}+{idnum[paragraph]}-{id}"
+    # With idnum[elem] for the current element
+    - vrt-add-id --id=id --type=random --seed=1 --max=2^16 --format="{idnum[text]}" --element=text --prefix="t-" --element=paragraph --format="p-{idnum[text]}-{idnum[paragraph]}" --element=sentence --format="s-{idnum[text]}+{idnum[paragraph]}-{idnum[sentence]}"
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-f4dc">
+      <paragraph p="p1" id="p-f4dc-f4cb">
+      <sentence a="a" id="s-f4dc+f4cb-16a6">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-f4dc-3bec">
+      <sentence a="b" id="s-f4dc+3bec-ddd8">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-c2c0">
+      <paragraph p="p3" id="p-c2c0-95da">
+      <sentence a="c" id="s-c2c0+95da-0372">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: text, paragraph, sentence; id with non-default format spec, referred to from another element format (without format spec, using the same)'
+  input:
+    cmdline:
+    - vrt-add-id --id=id --type=random --seed=1 --max=2^16 --element=text --format="t-{id}" --element=paragraph --format="p-{idnum[text]}-{id:06x}" --element=sentence --format="s-{idnum[text]}+{idnum[paragraph]}-{id}"
+    # With idnum[elem] for the current element
+    - vrt-add-id --id=id --type=random --seed=1 --max=2^16 --element=text --format="t-{idnum[text]}" --element=paragraph --format="p-{idnum[text]}-{idnum[paragraph]:06x}" --element=sentence --format="s-{idnum[text]}+{idnum[paragraph]}-{idnum[sentence]}"
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-f4dc">
+      <paragraph p="p1" id="p-f4dc-00f4cb">
+      <sentence a="a" id="s-f4dc+00f4cb-16a6">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-f4dc-003bec">
+      <sentence a="b" id="s-f4dc+003bec-ddd8">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-c2c0">
+      <paragraph p="p3" id="p-c2c0-0095da">
+      <sentence a="c" id="s-c2c0+0095da-0372">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: *transform-fast-t2p3s3
+
+
+# --verbose (and optimization)
+
+# Note that many cases of --verbose are tested above using grouped
+# transformations
+
+- name: 'vrt-add-id: --verbose; text, paragraph, sentence with some common options'
+  input:
+    cmdline: vrt-add-id --id=id --type=random --seed=1 --max=2^16 --format="{id:04x}" --element=text --prefix="t-" --element=paragraph --prefix="p-" --element=sentence --prefix="s-" --verbose
+    stdin: *input-para
+  output:
+    stdout: *output-para-1
+    stderr: |
+      vrt-add-id: using the faster method
+      vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+  transform:
+  - {}
+  - name: --no-optimize
+    input: *cmdline-no-optimize
+    output-expected:
+      stderr:
+        replace: '/faster method/slower method because of --no-optimize/'
+
+- name: 'vrt-add-id: --verbose; {id} with different format specifications (faster method)'
+  input:
+    cmdline: vrt-add-id --type=counter --format="{id:d}" --verbose --element=sentence
+    stdin: *input-1
+  output:
+    stdout: *output-1-s3
+    stderr: &stderr-fast-s3 |
+      vrt-add-id: using the faster method
+      vrt-add-id: added 3 sentence ids
+  transform:
+  - {}
+  - name: format spec "x"
+    input:
+      cmdline:
+      - replace: '/:d/:x/'
+  - name: format spec "1"
+    input:
+      cmdline:
+      - replace: '/:d/:1/'
+  - name: format spec "X"
+    input:
+      cmdline:
+      - replace: '/:d/:X/'
+  - name: empty format spec
+    input:
+      cmdline:
+      - replace: '/:d/:/'
+  - name: format spec "2d"
+    input:
+      cmdline:
+      - replace: '/:d/:2d/'
+    output-expected:
+      stdout:
+      - replace: '/id="/id=" /'
+  - name: format spec "2"
+    input:
+      cmdline:
+      - replace: '/:d/:2/'
+    output-expected:
+      stdout:
+      - replace: '/id="/id=" /'
+  - name: format spec "2x"
+    input:
+      cmdline:
+      - replace: '/:d/:2x/'
+    output-expected:
+      stdout:
+      - replace: '/id="/id=" /'
+  - name: format spec "03x"
+    input:
+      cmdline:
+      - replace: '/:d/:03x/'
+    output-expected:
+      stdout:
+      - replace: '/id="/id="00/'
+  - name: --no-optimize
+    input: *cmdline-no-optimize
+    output-expected:
+      stderr:
+        replace: '/faster method/slower method because of --no-optimize/'
+
+- name: 'vrt-add-id: --verbose; slower method because not all types of elements occurred in input'
+  input:
+    cmdline: vrt-add-id --type=counter --verbose --element=sentence --element=paragraph --element=x
+    stdin: *input-1
+  output:
+    stdout: *output-1-s3
+    stderr: |
+      vrt-add-id: using the slower method because of not finding elements paragraph, x
+      vrt-add-id: added 3 sentence ids, 0 paragraph ids, 0 x ids
+
+
+# Defaulting to text, paragraph, sentence
+
+- name: 'vrt-add-id: Default elements and other default options'
+  input:
+    cmdline: vrt-add-id
+    stdin: *input-para
+  output:
+    stdout:
+      regex: &output-para-default-regex |
+        <!-- #vrt positional-attributes: word -->
+        <text n="1" id="t-[0-9a-f]{8}-[0-9a-f]{8}">
+        <paragraph p="p1" id="p-[0-9a-f]{8}-[0-9a-f]{8}-[0-9a-f]{8}">
+        <sentence a="a" id="s-[0-9a-f]{8}-[0-9a-f]{8}-[0-9a-f]{8}">
+        a
+        </sentence>
+        </paragraph>
+        <paragraph p="p2" id="p-[0-9a-f]{8}-[0-9a-f]{8}-[0-9a-f]{8}">
+        <sentence a="b" id="s-[0-9a-f]{8}-[0-9a-f]{8}-[0-9a-f]{8}">
+        b
+        </sentence>
+        </paragraph>
+        </text>
+        <text n="2" id="t-[0-9a-f]{8}-[0-9a-f]{8}">
+        <paragraph p="p3" id="p-[0-9a-f]{8}-[0-9a-f]{8}-[0-9a-f]{8}">
+        <sentence a="c" id="s-[0-9a-f]{8}-[0-9a-f]{8}-[0-9a-f]{8}">
+        c
+        </sentence>
+        </paragraph>
+        </text>
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: Default elements and other default options; two consecutive runs with different result'
+  input:
+    cmdline: |
+      vrt-add-id in.vrt > out1.vrt;
+      vrt-add-id in.vrt > out2.vrt
+    shell: True
+    file:in.vrt: *input-para
+  output:
+    file:out1.vrt:
+    - name: 'two runs produce different result (random seed, hash)'
+      test: '!='
+      value:
+        file: out2.vrt
+  transform:
+  # Cannot use *transform-fast-t2p3s3 here, as stderr output with
+  # --verbose is doubled because of two commands
+  - {}
+  # Test that the command with --no-optimize produces the same result
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+        vrt-add-id: using the faster method
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+  # Test the command with --verbose --no-optimize
+  - name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids, 3 paragraph ids, 3 sentence ids
+
+- name: 'vrt-add-id: Default elements and other default options, no paragraphs in input'
+  input:
+    cmdline: vrt-add-id
+    stdin: *input-1
+  output:
+    stdout:
+      value: *output-para-default-regex
+      test: regex
+      transform-expected:
+        shell: grep -v "paragraph"
+  transform:
+  - {}
+  - *transf-no-optimize
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of not finding elements paragraph
+        vrt-add-id: added 2 text ids, 0 paragraph ids, 3 sentence ids
+  # Test the command with --verbose --no-optimize
+  - name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 2 text ids, 0 paragraph ids, 3 sentence ids
+
+- name: 'vrt-add-id: Default elements, fixed seed and hash'
+  input:
+    cmdline: vrt-add-id --seed=1 --hash=1
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-356a192b-7a6e75f5">
+      <paragraph p="p1" id="p-356a192b-7a6e75f5-1df61006">
+      <sentence a="a" id="s-356a192b-7a6e75f5-db4ffcbb">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-356a192b-7a6e75f5-01b93e63">
+      <sentence a="b" id="s-356a192b-7a6e75f5-8404ee9d">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-356a192b-b2b32f50">
+      <paragraph p="p3" id="p-356a192b-b2b32f50-162be86a">
+      <sentence a="c" id="s-356a192b-b2b32f50-938b5cba">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: Default elements, fixed seed and hash, --type=counter, --start'
+  input:
+    cmdline: vrt-add-id --seed=1 --hash=1 --type=counter --start=10
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-356a192b-10">
+      <paragraph p="p1" id="p-356a192b-10-10">
+      <sentence a="a" id="s-356a192b-10-10">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-356a192b-10-11">
+      <sentence a="b" id="s-356a192b-10-11">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-356a192b-11">
+      <paragraph p="p3" id="p-356a192b-11-12">
+      <sentence a="c" id="s-356a192b-11-12">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: Default elements, fixed seed and hash, --max'
+  input:
+    cmdline: vrt-add-id --seed=1 --hash=1 --max=2^16
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="t-356a192b-f4dc">
+      <paragraph p="p1" id="p-356a192b-f4dc-f4cb">
+      <sentence a="a" id="s-356a192b-f4dc-16a6">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="p-356a192b-f4dc-3bec">
+      <sentence a="b" id="s-356a192b-f4dc-ddd8">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="t-356a192b-c2c0">
+      <paragraph p="p3" id="p-356a192b-c2c0-95da">
+      <sentence a="c" id="s-356a192b-c2c0-0372">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: Default elements, fixed seed and hash, --format'
+  input:
+    cmdline: vrt-add-id --seed=1 --hash=1 --format='{hash:.6}-{idnum[text]}-{id}'
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="356a19-7a6e75f5-7a6e75f5">
+      <paragraph p="p1" id="356a19-7a6e75f5-1df61006">
+      <sentence a="a" id="356a19-7a6e75f5-db4ffcbb">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="356a19-7a6e75f5-01b93e63">
+      <sentence a="b" id="356a19-7a6e75f5-8404ee9d">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="356a19-b2b32f50-b2b32f50">
+      <paragraph p="p3" id="356a19-b2b32f50-162be86a">
+      <sentence a="c" id="356a19-b2b32f50-938b5cba">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: *transform-fast-t2p3s3
+
+- name: 'vrt-add-id: Default elements, fixed seed and hash, --format, --max'
+  input:
+    cmdline: vrt-add-id --seed=1 --hash=1 --format='{hash:.6}-{idnum[text]}-{id}' --max=2^16
+    stdin: *input-para
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1" id="356a19-f4dc-f4dc">
+      <paragraph p="p1" id="356a19-f4dc-f4cb">
+      <sentence a="a" id="356a19-f4dc-16a6">
+      a
+      </sentence>
+      </paragraph>
+      <paragraph p="p2" id="356a19-f4dc-3bec">
+      <sentence a="b" id="356a19-f4dc-ddd8">
+      b
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2" id="356a19-c2c0-c2c0">
+      <paragraph p="p3" id="356a19-c2c0-95da">
+      <sentence a="c" id="356a19-c2c0-0372">
+      c
+      </sentence>
+      </paragraph>
+      </text>
+  transform: *transform-fast-t2p3s3
