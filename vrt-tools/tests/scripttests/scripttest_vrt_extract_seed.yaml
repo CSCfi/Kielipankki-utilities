@@ -1,0 +1,369 @@
+
+# scripttestlib tests for vrt-extract-seed
+
+
+# Default input and output
+
+- defaults:
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+- name: 'vrt-extract-seed: Default options'
+  input:
+    cmdline: vrt-extract-seed
+    stdin: &input-1 |
+      <!-- #vrt positional-attributes: word dummy -->
+      <text n="1">
+      <sentence n="1">
+      foo	1
+      bar	2
+      baz	3
+      </sentence>
+      <sentence n="2">
+      aaa	1
+      bbb	2
+      ccc	3
+      </sentence>
+      </text>
+      <text n="2">
+      <sentence n="3">
+      dd	1
+      ee	2
+      ff	3
+      gg	4
+      </sentence>
+      <sentence n="4">
+      hh	1
+      ii	2
+      jj	3
+      kk	4
+      </sentence>
+      </text>
+  output:
+    # Default --distance is too large (100) to give a non-empty result
+    # from the above input
+    stdout: "\n"
+  transform: &transforms-basic
+  - {}
+  - name: without positional attributes comment
+    input:
+      stdin:
+        filter-out: "<!-- #vrt.*?\n"
+  - name: without structural attribute tags
+    input:
+      stdin:
+        filter-out: "^<.*?\n"
+  - name: single positional attribute
+    input:
+      stdin:
+        shell: cut -f1
+  - name: word form second
+    input:
+      stdin:
+        replace:
+        - '/word dummy/dummy word/'
+        - "/(.*?)\t(.*?)\n/\\2\t\\1\n/"
+  - name: 'no "word" in positional-attributes comment'
+    input:
+      stdin:
+        replace:
+        - '/word/baseform/'
+
+
+- name: 'vrt-extract-seed: --distance'
+  input:
+    cmdline: vrt-extract-seed --distance=2
+    stdin: *input-1
+  output:
+    stdout: |
+      baraaaccceeggiikk
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --count --distance'
+  input:
+    cmdline: vrt-extract-seed --count=5 --distance=2
+    stdin: *input-1
+  output:
+    stdout: |
+      baraaaccceegg
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: Long tokens-only input, default options'
+  input:
+    cmdline: vrt-extract-seed
+    stdin: &input-100000
+      value:
+        shell: |
+          echo '<!-- #vrt positional-attributes: word -->';
+          seq 100000
+  output:
+    stdout: |
+      10020030040050060070080090010001100120013001400150016001700180019002000210022002300240025002600270028002900300031003200330034003500360037003800390040004100420043004400450046004700480049005000510052005300540055005600570058005900600061006200630064006500660067006800690070007100720073007400750076007700780079008000810082008300840085008600870088008900900091009200930094009500960097009800990010000
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: Long tokens-only input, --distance'
+  input:
+    cmdline: vrt-extract-seed --distance=200
+    stdin: *input-100000
+  output:
+    stdout: |
+      200400600800100012001400160018002000220024002600280030003200340036003800400042004400460048005000520054005600580060006200640066006800700072007400760078008000820084008600880090009200940096009800100001020010400106001080011000112001140011600118001200012200124001260012800130001320013400136001380014000142001440014600148001500015200154001560015800160001620016400166001680017000172001740017600178001800018200184001860018800190001920019400196001980020000
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: Long tokens-only input, --count'
+  input:
+    cmdline: vrt-extract-seed --count=50
+    stdin: *input-100000
+  output:
+    stdout: |
+      10020030040050060070080090010001100120013001400150016001700180019002000210022002300240025002600270028002900300031003200330034003500360037003800390040004100420043004400450046004700480049005000
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: Long tokens-only input, --count --distance'
+  input:
+    cmdline: vrt-extract-seed --count=50 --distance=500
+    stdin: *input-100000
+  output:
+    stdout: |
+      50010001500200025003000350040004500500055006000650070007500800085009000950010000105001100011500120001250013000135001400014500150001550016000165001700017500180001850019000195002000020500210002150022000225002300023500240002450025000
+  transform: *transforms-basic
+
+
+- name: 'vrt-extract-seed: Invalid --count'
+  input:
+    cmdline:
+    - vrt-extract-seed --count=a
+    - vrt-extract-seed --count=0
+    - vrt-extract-seed --count=-1
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      contains: |
+        vrt-extract-seed: error: argument --count: positive integer required
+    returncode: 2
+
+- name: 'vrt-extract-seed: Invalid --distance'
+  input:
+    cmdline:
+    - vrt-extract-seed --distance=a
+    - vrt-extract-seed --distance=0
+    - vrt-extract-seed --distance=-1
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      contains: |
+        vrt-extract-seed: error: argument --distance: positive integer, "even" or "random" required
+    returncode: 2
+
+
+# --separator
+
+- name: 'vrt-extract-seed: --separator=" "'
+  input:
+    cmdline: vrt-extract-seed --distance=2 --separator=" "
+    stdin: *input-1
+  output:
+    stdout: |
+      bar aaa ccc ee gg ii kk
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --separator="++"'
+  input:
+    cmdline: vrt-extract-seed --distance=2 --separator="++"
+    stdin: *input-1
+  output:
+    stdout: |
+      bar++aaa++ccc++ee++gg++ii++kk
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --separator="\n"'
+  input:
+    cmdline: "vrt-extract-seed --distance=2 --separator='\n'"
+    stdin: *input-1
+  output:
+    stdout: |
+      bar
+      aaa
+      ccc
+      ee
+      gg
+      ii
+      kk
+  transform: *transforms-basic
+
+
+# --distance=even --last
+
+- name: 'vrt-extract-seed: --distance=even, --last with token count'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=even --last=14 --separator=" "
+    stdin: *input-1
+  output:
+    stdout: |
+      aaa dd hh kk
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=even, --last less than token count'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=even --last=10 --separator=" "
+    stdin: *input-1
+  output:
+    stdout: |
+      baz bbb ee gg
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=even, --last greater than token count'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=even --last=20 --separator=" "
+    stdin: *input-1
+  output:
+    stdout: |
+      bbb gg
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=even, --last with token count (large)'
+  input:
+    cmdline: vrt-extract-seed --count=20 --distance=even --last=100000 --separator=" "
+    stdin: *input-100000
+  output:
+    stdout: |
+      5000 10000 15000 20000 25000 30000 35000 40000 45000 50000 55000 60000 65000 70000 75000 80000 85000 90000 95000 100000
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=even, --last less than token count (large)'
+  input:
+    cmdline: vrt-extract-seed --count=10 --distance=even --last=35 --separator=" "
+    stdin: *input-100000
+  output:
+    stdout: |
+      4 7 11 14 18 21 25 28 32 35
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=even, --last greater than token count (large)'
+  input:
+    cmdline: vrt-extract-seed --count=10 --distance=even --last=200000 --separator=" "
+    stdin: *input-100000
+  output:
+    stdout: |
+      20000 40000 60000 80000 100000
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=even without --last'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=even
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      contains: |
+        vrt-extract-seed: error: --distance=even requires specifying --last
+    returncode: 1
+
+- name: 'vrt-extract-seed: Invalid value for --last'
+  input:
+    cmdline:
+    - vrt-extract-seed --count=4 --distance=even --last=0
+    - vrt-extract-seed --count=4 --distance=even --last=-1
+    - vrt-extract-seed --count=4 --distance=even --last=z
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      contains: |
+        vrt-extract-seed: error: argument --last: positive integer required
+    returncode: 2
+
+
+# --distance=random --last
+
+- name: 'vrt-extract-seed: --distance=random, --last with token count'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=random --last=14 --baseseed=0 --separator=" "
+    stdin: *input-1
+  output:
+    stdout: |
+      bar bbb ccc kk
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=random, --last less than token count'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=random --last=10 --baseseed=0 --separator=" "
+    stdin: *input-1
+  output:
+    stdout: |
+      bar baz bbb ccc
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=random, --last greater than token count'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=random --last=20 --baseseed=0 --separator=" "
+    stdin: *input-1
+  output:
+    stdout: |
+      baz ff ii
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=random, --last with token count (large)'
+  input:
+    cmdline: vrt-extract-seed --count=20 --distance=random --last=100000 --baseseed=0 --separator=" "
+    stdin: *input-100000
+  output:
+    stdout: |
+      3975 6411 8686 10573 12969 24668 27880 28599 31340 31681 33617 34473 36022 42911 45738 47408 47565 49378 56799 76760
+  transform: *transforms-basic
+
+- name: 'vrt-extract-seed: --distance=random, random --baseseed'
+  # Two consecutive runs with a random random seed should produce
+  # different results
+  input:
+    cmdline: |
+      vrt-extract-seed --count=20 --distance=random --last=100000 --baseseed='' --separator='
+      ' 100000.vrt > seed1.txt;
+      vrt-extract-seed --count=20 --distance=random --last=100000 --baseseed='' --separator='
+      ' 100000.vrt > seed2.txt
+    shell: true
+    file:100000.vrt: *input-100000
+  output:
+    stdout: ''
+    file:seed1.txt:
+    - &lines-20
+      name: file has 20 lines
+      transform-actual:
+        shell: wc -l
+      test: '=='
+      value: "20\n"
+    file:seed2.txt:
+    - *lines-20
+    # The content of seed2.txt should be different from that of
+    # seed1.txt, as the random seed is random
+    - name: two runs produce different results
+      test: '!='
+      value:
+        file: seed1.txt
+
+- name: 'vrt-extract-seed: --distance=random without --last'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=random
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      contains: |
+        vrt-extract-seed: error: --distance=random requires specifying --last
+    returncode: 1
+
+- name: 'vrt-extract-seed: --distance=random, --count larger than --last'
+  input:
+    cmdline: vrt-extract-seed --count=4 --distance=random --last=3
+    stdin: *input-1
+  output:
+    stdout: ''
+    stderr:
+      contains: |
+        vrt-extract-seed: error: --count cannot be larger than --last with --distance=random
+    returncode: 1
