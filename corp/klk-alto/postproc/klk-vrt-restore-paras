@@ -1,0 +1,203 @@
+#! /usr/bin/env python3
+
+
+"""
+klk-vrt-restore-paras
+
+Usage: klk-vrt-restore-paras para_info_dir < in.vrt > out.vrt
+
+Restore paragraph tags to KLK-v1 VRT data with sentences in the
+original (unscrambled) order. The input is read from stdin and output
+written to stdout.
+
+The directory para_info_dir given as a command-line argument should
+contain files produced by the script klk-altozip-extract-para-info.
+The files should be named publid_date_issue.tsv, where
+publid_date_issue is the filename part in the img_url attribute of
+text elements in the input VRT. For each ALTO XML file of the issue,
+the file should contain a line with the filename, followed by one line
+corresponding to each paragraph, containing the number of tokens, the
+number of bytes in the tokens and a space-separated list of the
+tokens, separated by tabs.
+
+An input text is recognized as being from KLK-v1 from the attribute
+'version_added="KLK-(fi|sv)-2014"'. If the input contains texts not
+not from KLK-v1, they are passed through intact.
+
+The script adds paragraph breaks based on the number of bytes of
+tokens (word forms) marked for a paragraph in a paragraph info file on
+the one hand and counted in the tokens in the sentences in VRT on the
+other. XML character references are replaced in both. The number of
+bytes may differ slightly as sometimes a paragraph break is marked
+between lines containing a hyphenated word that has been joined. The
+script warns on such cases.
+"""
+
+
+import os.path
+import re
+import sys
+
+from functools import lru_cache
+
+
+def main(para_info_dir):
+
+    XML_CHARREF_MAP = {
+        b'amp': b'&',
+        b'lt': b'<',
+        b'gt': b'>',
+        b'quot': b'"',
+        b'apos': b'\'',
+    }
+
+    def get_alto_fileinfo(line):
+        mo = re.search(
+            rb' img_url="#DIRECTORY#(.+?)#SEPARATOR#(.+?)\.#EXTENSION#"', line)
+        return (mo.group(1), mo.group(2))
+
+    def get_word(line):
+        word = line.partition(b'\t')[0]
+        if b'&' in word:
+            word = re.sub(
+                rb'&(.+?);', lambda mo: XML_CHARREF_MAP[mo.group(1)], word)
+        return word
+
+    # Processing state
+    # Outside texts
+    OUTSIDE = 0
+    # Within a text to which to add paragraph info
+    PROCESS = 1
+    # Within a text whose sentences do not need processing
+    SKIP = 2
+    LT = b'<'[0]
+    # A list of pairs (num, lines) where num is the original number of
+    # the sentence from the attribute and lines a list of lines in the
+    # sentence
+    sents = None
+    state = OUTSIDE
+    for line in sys.stdin.buffer:
+        if state == OUTSIDE:
+            sys.stdout.buffer.write(line)
+            if line[0] == LT and line.startswith(b'<text'):
+                # The following is faster than using re.search or
+                # any()
+                state = (
+                    PROCESS if (b' version_added="KLK-fi-2014"' in line
+                                or b' version_added="KLK-sv-2014"' in line)
+                    else SKIP)
+                if state == PROCESS:
+                    alto_fileinfo = get_alto_fileinfo(line)
+                    sents = []
+        elif line[0] == LT and line.startswith(b'</text'):
+            if state == PROCESS:
+                for line2 in add_paragraphs(sents, para_info_dir,
+                                            alto_fileinfo):
+                    sys.stdout.buffer.write(line2)
+            sys.stdout.buffer.write(line)
+            state = OUTSIDE
+        elif state == PROCESS:
+            if line[0] == LT:
+                if line.startswith(b'<sentence'):
+                    sent = [(line, None)]
+                    word_bytecount = 0
+                elif line.startswith(b'</sentence'):
+                    sent.append((line, None))
+                    sents.append((sent, word_bytecount))
+                else:
+                    raise ValueError(f'Unexpected line within sentence: {line}')
+            else:
+                word = get_word(line)
+                word_bytecount += len(word)
+                sent.append((line, word))
+        else:
+            sys.stdout.buffer.write(line)
+
+
+def add_paragraphs(sents, para_info_dir, alto_fileinfo):
+    para_start = b'<paragraph>\n'
+    para_end = b'</paragraph>\n'
+    issue, page = alto_fileinfo
+    # Here page needs to be bytes
+    para_info = get_para_info(para_info_dir, issue.decode('utf-8')).get(page)
+    issue = issue.decode('utf-8')
+    page = page.decode('utf-8')
+    yield para_start
+    if para_info is None:
+        sys.stderr.write(f'No paragraph info found for {issue}:{page}\n')
+        for sent, _ in sents:
+            for line, _ in sent:
+                yield line
+    else:
+        sentnum = 0
+        sentcount = len(sents)
+        sents_bytecount = 0
+        # Numbers of sentences after which a paragraph break is added
+        para_breaks = []
+        # The last paragraph should end at the end of the last
+        # sentence, so we need not handle it
+        for paranum, para in enumerate(para_info[:-1]):
+            para_tokencount, para_bytecount, para_words = para
+            para_tokencount = int(para_tokencount)
+            para_bytecount = int(para_bytecount)
+            # print(paranum, para_tokencount, para_bytecount, para_words)
+            sent, sent_bytecount = sents[sentnum]
+            sents_bytecount = 0
+            while sents_bytecount < para_bytecount and sentnum < sentcount:
+                _, sent_bytecount = sents[sentnum]
+                sents_bytecount += sent_bytecount
+                # print(sentnum, sent_bytecount, sents_bytecount)
+                sentnum += 1
+            break_after = sentnum - 1
+            if sents_bytecount > para_bytecount:
+                # print(f'{sents_bytecount} > {para_bytecount}')
+                # print(list(tok for line, tok in _))
+                prev_sents_bytecount = sents_bytecount - sent_bytecount
+                if (para_bytecount - prev_sents_bytecount
+                        < sents_bytecount - para_bytecount):
+                    # print(f'Back: {para_bytecount} - {prev_sents_bytecount}'
+                    #       f' < {sents_bytecount} - {para_bytecount}')
+                    break_after -= 1
+                    sentnum -= 1
+                    sents_bytecount = prev_sents_bytecount
+                sys.stderr.write(
+                    f'Warning: {issue}:{page}: paragraph {paranum + 1}:'
+                    ' Sentence byte count sum differs from paragraph byte'
+                    f' count: {sents_bytecount} != {para_bytecount}\n')
+            para_breaks.append(break_after)
+        # Check if the last paragraph has differing number of bytes
+        para_bytecount = int(para_info[-1][1])
+        sents_bytecount = sum(sent[1] for sent in sents[sentnum:])
+        if sents_bytecount != para_bytecount:
+            sys.stderr.write(
+                f'Warning: {issue}:{page}: paragraph {len(para_info)}:'
+                ' Sentence byte count sum differs from paragraph byte'
+                f' count: {sents_bytecount} != {para_bytecount}\n')
+        breaknum = 0
+        for sentnum, (sent, _) in enumerate(sents):
+            for line, _ in sent:
+                yield line
+            if breaknum < len(para_breaks) and para_breaks[breaknum] == sentnum:
+                yield para_end + para_start
+                breaknum += 1
+    yield para_end
+
+
+@lru_cache(256)
+def get_para_info(para_info_dir, fname):
+    result = {}
+    content = []
+    with open(os.path.join(para_info_dir, fname + '.tsv'), 'rb') as f:
+        for line in f:
+            line = line[:-1]
+            if b'\t' not in line:
+                content = []
+                basename = os.path.splitext(os.path.basename(line))[0]
+                result[basename] = content
+            else:
+                content.append(line.split(b'\t'))
+    return result
+
+
+if __name__ == '__main__':
+    main(sys.argv[1])

@@ -1,0 +1,104 @@
+#! /usr/bin/env python3
+
+
+"""
+klk-altozip-extract-para-info
+
+Usage: klk-altozip-extract-para-info in.zip > out.tsv
+
+Extract tokens with paragraph information from the KLK ALTO files in
+in.zip.
+
+NOTE: This script is redundant as it is possible (and much faster) to
+add paragraph tags to the correct places based on the paragraph tags
+in the scrambled VRT data with klk-vrt-restore-sent-order.
+
+For each .xml file in in.zip, the script produces a line with the
+filename followed by one line for each TextBlock element (roughly
+corresponding to a paragraph) containing the number of tokens in the
+TextBlock, the number of bytes in the tokens and a space-separated
+list of the tokens, separated by tabs.
+
+Tokens are values of the CONTENT attribute of String elements, except
+for tokens split onto two lines, in which the content is taken from
+the attribute SUBS_CONTENT of the first one with SUBS_TYPE="HypPart1",
+and the second one with "HypPart2" is skipped. Character references
+&...; in tokens are converted to the corresponding characters.
+"""
+
+
+import re
+import sys
+
+from subprocess import Popen, PIPE
+
+
+XML_CHARREF_MAP = {
+    b'amp': b'&',
+    b'lt': b'<',
+    b'gt': b'>',
+    b'quot': b'"',
+    b'apos': b'\'',
+}
+
+
+def decode_charrefs(s):
+
+    def decode(mo):
+        val = mo.group(1)
+        if val[0] == b'#'[0]:
+            val = int(val[2:], base=16) if val[1] == b'x'[0] else int(val[1:])
+            return chr(val).encode('utf-8')
+        else:
+            return XML_CHARREF_MAP[val]
+
+    if b'&' in s:
+        s = re.sub(rb'&(.+?);', decode, s)
+    return s
+
+
+def main(zipfile):
+
+    def output(tokens):
+        if tokens:
+            charlen = sum(len(token) for token in tokens)
+            sys.stdout.buffer.write(
+                b'\t'.join(str(val).encode('utf-8')
+                           for val in [len(tokens), charlen])
+                + b'\t' + b' '.join(tokens) + b'\n')
+
+    with Popen(['unzip', '-c', zipfile, '*.xml'],
+               stdin=None, stdout=PIPE, stderr=PIPE, bufsize=-1) as zipf:
+        tokens = []
+        mo = None
+        for line in zipf.stdout:
+            line = line.strip()
+            if line.startswith(b'inflating:'):
+                output(tokens)
+                tokens = []
+                fname = line.split()[-1]
+                sys.stdout.buffer.write(fname + b'\n')
+            elif line.startswith(b'<TextBlock'):
+                output(tokens)
+                tokens = []
+            elif line.startswith(b'<String'):
+                # For tokens split onto two lines, take the string of
+                # the value token from attribute SUBS_CONTENT of the
+                # first string (with SUBS_TYPE="HypPart1") and skip
+                # the second ("HypPart2")
+                if b' SUBS_CONTENT=' in line:
+                    if b' SUBS_TYPE="HypPart2"' in line:
+                        continue
+                    else:
+                        mo = re.search(br''' SUBS_CONTENT=(["'])(.*?)\1''',
+                                       line)
+                else:
+                    mo = re.search(br''' CONTENT=(["'])(.*?)\1''', line)
+                if mo:
+                    token = decode_charrefs(mo.group(2))
+                    tokens.append(token)
+        output(tokens)
+
+
+if __name__ == '__main__':
+    main(sys.argv[1])
