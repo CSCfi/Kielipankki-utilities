@@ -29,7 +29,7 @@ class VrtScrambler(InputProcessor):
     Note that the input may not have intermediate structures between
     the containing structures and the structures to be shuffled; for
     example, if sentences are shuffled within texts, the input may
-    not have paragraphs between them.
+    not have paragraphs between texts and sentences.
     """
     ARGSPECS = [
         ('--unit = struct "sentence"',
