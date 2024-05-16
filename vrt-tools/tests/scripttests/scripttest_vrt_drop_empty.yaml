@@ -44,6 +44,14 @@
       </text>
   output:
     stdout: *input-1
+  transform:
+  - {}
+  - input: &verbose
+      cmdline:
+        append: ' --verbose'
+    output:
+      stderr: |
+        No structures dropped
 
 
 - name: 'vrt-drop-empty: Empty sentence at the beginning'
@@ -77,6 +85,13 @@
       transform:
         python: |
           return value.replace('<sentence n="1">\n</sentence>\n', '')
+  transform: &transform-verbose-1s
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          sentence: 1
 
 - name: 'vrt-drop-empty: Empty sentence in the middle'
   input:
@@ -109,6 +124,7 @@
       transform:
         python: |
           return value.replace('<sentence n="2">\n</sentence>\n', '')
+  transform: *transform-verbose-1s
 
 - name: 'vrt-drop-empty: Empty sentence at the end'
   input:
@@ -144,6 +160,7 @@
       transform:
         python: |
           return value.replace('<sentence n="6">\n</sentence>\n', '')
+  transform: *transform-verbose-1s
 
 - name: 'vrt-drop-empty: Multiple empty sentences'
   input:
@@ -178,6 +195,13 @@
       transform:
         python: |
           return re.sub('<sentence n="[16]">\n</sentence>\n', '', value)
+  transform:
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          sentence: 2
 
 - name: 'vrt-drop-empty: Multiple consecutive empty sentences'
   input:
@@ -217,6 +241,13 @@
       transform:
         python: |
           return re.sub('<sentence n="1[abc]">\n</sentence>\n', '', value)
+  transform:
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          sentence: 3
 
 - name: 'vrt-drop-empty: Empty paragraphs and texts'
   input:
@@ -250,6 +281,14 @@
         python: |
           value = re.sub('<paragraph n="1">\n</paragraph>\n', '', value)
           return re.sub('<text n="3">\n</text>\n', '', value)
+  transform:
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          paragraph: 1
+          text: 1
 
 
 - name: 'vrt-drop-empty: Empty paragraphs and texts containing lower-level structures'
@@ -285,6 +324,15 @@
       </sentence>
       </paragraph>
       </text>
+  transform:
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          paragraph: 3
+          sentence: 2
+          text: 1
 
 - name: 'vrt-drop-empty: Empty structures without attributes'
   input:
@@ -318,6 +366,15 @@
           value = re.sub('<sentence>\n</sentence>\n', '', value)
           value = re.sub('<paragraph>\n</paragraph>\n', '', value)
           return re.sub('<text>\n</text>\n', '', value)
+  transform:
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          paragraph: 2
+          sentence: 1
+          text: 2
 
 
 - name: 'vrt-drop-empty: Empty structure within a sentence'
@@ -345,6 +402,13 @@
       </sentence>
       </paragraph>
       </text>
+  transform:
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          ne: 1
 
 
 - name: 'vrt-drop-empty: Comment within an empty structure'
@@ -376,3 +440,4 @@
       <!-- Comment after -->
       </paragraph>
       </text>
+  transform: *transform-verbose-1s
