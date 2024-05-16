@@ -1,0 +1,17 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+"""
+vrt-drop-empty
+
+A VRT tool to drop (remove) empty structures (elements) in a VRT input.
+
+The actual implementation is in libvrt.tools.vrt_drop_empty.
+"""
+
+
+from libvrt.tools.vrt_drop_empty import VrtEmptyStructDropper
+
+
+if __name__ == '__main__':
+    VrtEmptyStructDropper().run()
