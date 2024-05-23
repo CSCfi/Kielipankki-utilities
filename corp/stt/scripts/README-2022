@@ -1,5 +1,8 @@
 Alkuperäiset HRT-tiedostot on siivottu käyttäen skriptejä clean_up.py, clean_empty.py ja remove_faulty.py.
 
+[Valitettavasti nämä skriptit ovat luultavasti hävinneet Puhdin
+levysiivouksissa. – Jyrki Niemi 2024-05-23]
+
 remove_faulty.py poistaa virheelliset paragraph tagit HRT:stä ja clean_empty.py poistaa tyhjät paragraphit VRT:stä.
 
 clean_up.py korjaa muut virheet, joita voi löytää hrt-checkin avulla.
