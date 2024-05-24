@@ -141,8 +141,9 @@ def strescape(value):
     )
 
 def starttag(struct, attrs, sort=False):
-    '''Start tag line for struct (bytes) with attrs (dict[bytes, bytes]).
+    '''Start tag line for struct (bytes) with attrs (bytes, bytes).
 
+    attrs can be either a dict or a list of pairs (name, value).
     attrs should be an OrderedDict to preserve attribute order for
     Python versions prior to 3.8.
 
@@ -158,12 +159,15 @@ def starttag(struct, attrs, sort=False):
     return b'<' + struct + (b' ' + attrstr if attrstr else b'') + b'>\n'
 
 def _get_attrs(attrs, sort=False):
-    '''Return items from dict attrs, sorted if sort == True.'''
-    items = attrs.items()
+    '''Return items from attrs (dict or list of pairs), sorted if sort.'''
+    try:
+        items = attrs.items()
+    except AttributeError:
+        items = attrs
     return sorted(items) if sort else items
 
 def strstarttag(struct, attrs, sort=False):
-    '''Start tag line for struct (str) with attrs (dict[str, str]).
+    '''Start tag line for struct (str) with attrs (str, str).
 
     This works the same way for strings as starttag for bytes.
 

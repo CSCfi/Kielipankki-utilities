@@ -76,15 +76,25 @@ class TestStartTag:
 
     """Tests for functions starttag, strstarttag."""
 
-    def test_starttag(self, attrs, sort, expected):
-        """Test starttag()."""
+    def test_starttag_dict(self, attrs, sort, expected):
+        """Test starttag() with an OrderedDict."""
         attrdict = OrderedDict((key.encode('UTF-8'), val.encode('UTF-8'))
                                for key, val in attrs)
         assert ml.starttag(b'elem', attrdict, sort) == expected.encode('UTF-8')
 
-    def test_strstarttag(self, attrs, sort, expected):
-        """Test strstarttag()."""
+    def test_starttag_pairlist(self, attrs, sort, expected):
+        """Test starttag() with a list of pairs."""
+        attrdict = [(key.encode('UTF-8'), val.encode('UTF-8'))
+                    for key, val in attrs]
+        assert ml.starttag(b'elem', attrdict, sort) == expected.encode('UTF-8')
+
+    def test_strstarttag_dict(self, attrs, sort, expected):
+        """Test strstarttag() with an OrderedDict."""
         assert ml.strstarttag('elem', OrderedDict(attrs), sort) == expected
+
+    def test_strstarttag_pairlist(self, attrs, sort, expected):
+        """Test strstarttag() with a list of pairs."""
+        assert ml.strstarttag('elem', attrs, sort) == expected
 
 
 @pytest.mark.parametrize('line,expected',
