@@ -153,10 +153,14 @@ def starttag(struct, attrs, sort=False):
 
     '''
 
-    sortfn = sorted if sort else lambda x: x
     attrstr = b' '.join(name + b'="' + val + b'"'
-                        for name, val in sortfn(attrs.items()))
+                        for name, val in _get_attrs(attrs, sort))
     return b'<' + struct + (b' ' + attrstr if attrstr else b'') + b'>\n'
+
+def _get_attrs(attrs, sort=False):
+    '''Return items from dict attrs, sorted if sort == True.'''
+    items = attrs.items()
+    return sorted(items) if sort else items
 
 def strstarttag(struct, attrs, sort=False):
     '''Start tag line for struct (str) with attrs (dict[str, str]).
@@ -165,9 +169,8 @@ def strstarttag(struct, attrs, sort=False):
 
     '''
 
-    sortfn = sorted if sort else lambda x: x
     attrstr = ' '.join(name + '="' + val + '"'
-                       for name, val in sortfn(attrs.items()))
+                       for name, val in _get_attrs(attrs, sort))
     return '<' + struct + (' ' + attrstr if attrstr else '') + '>\n'
 
 def ismeta(line):
