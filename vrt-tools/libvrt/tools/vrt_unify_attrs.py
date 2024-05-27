@@ -81,13 +81,17 @@ class VrtStructAttrUnifier(InputProcessor):
 
         def unify_attrs(inf):
             """Write inf to ouf, structural attributes unified and sorted."""
-            sortfn = (lambda x: x) if args.input_order else sorted
-            order = dict((struct, sortfn(list(attrs.keys())))
-                         for struct, attrs in struct_attrs.items())
+            order = make_order()
             for line in inf:
                 if ml.ismeta(line) and ml.isstarttag(line):
                     line = order_attrs(line, order)
                 ouf.write(line)
+
+        def make_order():
+            """Return dict[list] containing attr order for each struct."""
+            sortfn = (lambda x: x) if args.input_order else sorted
+            return dict((struct, sortfn(list(attrs.keys())))
+                        for struct, attrs in struct_attrs.items())
 
         def order_attrs(line, order):
             """Return start tag line, attributes ordered according to order.
