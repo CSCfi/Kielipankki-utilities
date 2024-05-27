@@ -1,0 +1,112 @@
+
+# scripttestlib tests for vrt-unify-attrs
+
+
+# Default input and output
+
+- defaults:
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+- name: 'vrt-unify-attrs: No changes'
+  input:
+    cmdline: vrt-unify-attrs in.vrt
+    file:in.vrt: &input-1 |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="a" c="d">
+      <sentence a="0" b="1">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="x">
+      <sentence a="1" b="2">
+      b
+      </sentence>
+      <sentence a="3" b="4">
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: *input-1
+  transform: &transform-stdin
+  - name: file input
+  - name: stdin input
+    input:
+      cmdline:
+        replace: '/in.vrt/< in.vrt/'
+      shell: true
+
+
+- name: 'vrt-unify-attrs: Sort attributes'
+  input:
+    cmdline: vrt-unify-attrs in.vrt
+    file:in.vrt: &input-2 |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" c="d" b="a">
+      <sentence b="1" a="0">
+      a
+      </sentence>
+      </text>
+      <text b="z" c="x" a="y">
+      <sentence b="2" a="1">
+      b
+      </sentence>
+      <sentence b="4" a="3">
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: *input-1
+  transform: *transform-stdin
+
+
+- name: 'vrt-unify-attrs: Add missing attributes (default value)'
+  input:
+    cmdline: vrt-unify-attrs in.vrt
+    file:in.vrt: &input-3 |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" c="d">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text b="z" a="y">
+      <sentence b="1">
+      b
+      </sentence>
+      <sentence a="4">
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: &output-3 |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="" c="d">
+      <sentence a="" b="">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="">
+      <sentence a="" b="1">
+      b
+      </sentence>
+      <sentence a="4" b="">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin
+
+
+- name: 'vrt-unify-attrs: Add missing attributes (non-default value)'
+  input:
+    cmdline: vrt-unify-attrs --default="_" in.vrt
+    file:in.vrt: *input-3
+  output:
+    stdout:
+      value: *output-3
+      transform:
+        replace: '/""/"_"/'
+  transform: *transform-stdin
