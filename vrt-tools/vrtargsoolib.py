@@ -174,9 +174,10 @@ def _argparser_add_arg(argparser, argspec):
                 'Invalid argument specification string: ' + argspec)
         argdict0 = dict((key, val) for key, val in mo.groupdict().items()
                         if val is not None)
-        default = (argdict0.get('default1')
-                   or argdict0.get('default2')
-                   or argdict0.get('default3'))
+        # Do not use ... or ... as the value may be the empty string
+        default = argdict0.get('default1',
+                               argdict0.get('default2',
+                                            argdict0.get('default3')))
         if default is not None:
             argdict0['default'] = default
             del_keys(argdict0, ['default1', 'default2', 'default3'])
