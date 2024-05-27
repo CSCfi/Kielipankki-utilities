@@ -110,3 +110,26 @@
       transform:
         replace: '/""/"_"/'
   transform: *transform-stdin
+
+
+- name: 'vrt-unify-attrs: --input-order'
+  input:
+    cmdline: vrt-unify-attrs --input-order in.vrt
+    file:in.vrt: *input-3
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" c="d" b="">
+      <sentence b="" a="">
+      a
+      </sentence>
+      </text>
+      <text a="y" c="" b="z">
+      <sentence b="1" a="">
+      b
+      </sentence>
+      <sentence b="" a="4">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin

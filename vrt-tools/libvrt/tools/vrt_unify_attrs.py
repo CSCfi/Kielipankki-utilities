@@ -35,6 +35,10 @@ class VrtStructAttrUnifier(InputProcessor):
     ARGSPECS = [
         ('--default = str ""',
          '''add missing attributes with value str'''),
+        ('--input-order',
+         '''order attributes to the order first encountered in input,
+            instead of sorting alphabetically; attributes encountered
+            only later are appended'''),
     ]
 
     def __init__(self):
@@ -77,7 +81,8 @@ class VrtStructAttrUnifier(InputProcessor):
 
         def unify_attrs(inf):
             """Write inf to ouf, structural attributes unified and sorted."""
-            order = dict((struct, sorted(list(attrs.keys())))
+            sortfn = (lambda x: x) if args.input_order else sorted
+            order = dict((struct, sortfn(list(attrs.keys())))
                          for struct, attrs in struct_attrs.items())
             for line in inf:
                 if ml.ismeta(line) and ml.isstarttag(line):
