@@ -11,7 +11,7 @@ Please run "vrt-unify-attrs -h" for more information.
 import sys
 import re
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from tempfile import NamedTemporaryFile
 
 from libvrt import metaline as ml
@@ -47,8 +47,10 @@ class VrtStructAttrUnifier(InputProcessor):
     def main(self, args, inf, ouf):
         """Read inf, write to ouf, with command-line arguments args."""
 
-        # Attribute names occurring in each structure
-        struct_attrs = defaultdict(set)
+        # Attribute names occurring in each structure; use OrderedDict
+        # (keys only) instead of a dict to be able to retain original
+        # order with --input-order
+        struct_attrs = defaultdict(OrderedDict)
         # If the original input is not seekable, the input is copied
         # to a seekable temporary file. Python 3.6.8 on Puhti seems to
         # return seekable() == True for stdin, so also test for name
@@ -70,12 +72,12 @@ class VrtStructAttrUnifier(InputProcessor):
         def add_attrs(line):
             """Add attributes from start tag line to struct_attrs."""
             struct = ml.element(line)
-            attrs = set(name for name, val in ml.pairs(line))
+            attrs = OrderedDict((name, None) for name, _ in ml.pairs(line))
             struct_attrs[struct].update(attrs)
 
         def unify_attrs(inf):
             """Write inf to ouf, structural attributes unified and sorted."""
-            order = dict((struct, sorted(list(attrs)))
+            order = dict((struct, sorted(list(attrs.keys())))
                          for struct, attrs in struct_attrs.items())
             for line in inf:
                 if ml.ismeta(line) and ml.isstarttag(line):
