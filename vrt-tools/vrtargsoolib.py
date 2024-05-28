@@ -33,7 +33,8 @@ class CommonArgs(Enum):
     """Common arguments for text transforming scripts"""
 
 
-def get_argparser(argspecs=None, *, common_args=CommonArgs.trans, **kwargs):
+def get_argparser(argspecs=None, *, common_args=CommonArgs.trans,
+                  extra_types=None, **kwargs):
     """Return an ArgumentParser with common and possibly other arguments.
 
     Return an `ArgumentParser` with common arguments by calling
@@ -45,6 +46,9 @@ def get_argparser(argspecs=None, *, common_args=CommonArgs.trans, **kwargs):
           the format
       `common_args`: which common arguments to add (a value in
           CommonArgs)
+      `extra_types`:  dict[str, function] of additional types allowed
+          in argument specifications in addition to global and
+          built-in types
       `**kwargs` is passed to `vrtargslib.trans_args`,
           `vrtargslib.version_args` or `argparse.ArgumentParser`,
           depending on `common_args`, and should contain at least a
@@ -63,11 +67,11 @@ def get_argparser(argspecs=None, *, common_args=CommonArgs.trans, **kwargs):
         else:
             argparser = ArgumentParser(**kwargs)
     if argspecs:
-        argparser_add_args(argparser, argspecs)
+        argparser_add_args(argparser, argspecs, extra_types)
     return argparser
 
 
-def argparser_add_args(argparser, argspecs):
+def argparser_add_args(argparser, argspecs, extra_types=None):
     """Add the arguments specified in argspecs to ArgumentParser argparser.
 
     `argspecs` is a list of command-line argument specifications, which
@@ -136,6 +140,10 @@ def argparser_add_args(argparser, argspecs):
     that nargs currently supports only ?, * and +, not integer values.
     In general, keyword argument values that cannot be expressed in
     the above format, need to be passed via argdict.
+
+    Argument `extra_types` is dict[str, function] of additional types
+    allowed in argument specifications in addition to global and
+    built-in types.
     """
     if argspecs:
         for argspec in argspecs:
@@ -144,30 +152,35 @@ def argparser_add_args(argparser, argspecs):
                 group = argparser.add_mutually_exclusive_group(
                     required=('REQUIRED' in optname_u))
                 for argspec_sub in argspec[1]:
-                    _argparser_add_arg(group, argspec_sub)
+                    _argparser_add_arg(group, argspec_sub, extra_types)
             elif optname_u.startswith('#GROUP'):
                 group_title = argspec[0].split(None, 1)[1]
                 group_descr = argspec[1]
                 group = argparser.add_argument_group(group_title, group_descr)
                 if optname_u.startswith('#GROUPED'):
                     grouping = ArgumentGrouping()
-                    _argparser_add_arg(argparser, argspec[2][0],
+                    _argparser_add_arg(argparser, argspec[2][0], extra_types,
                                        lambda action: grouping.grouping_arg())
                     for argspec_sub in argspec[2][1:]:
                         _argparser_add_arg(
-                            group, argspec_sub,
+                            group, argspec_sub, extra_types,
                             lambda action: grouping.grouped_arg(action))
                 else:
                     for argspec_sub in argspec[2]:
-                        _argparser_add_arg(group, argspec_sub)
+                        _argparser_add_arg(group, argspec_sub, extra_types)
             else:
-                _argparser_add_arg(argparser, argspec)
+                _argparser_add_arg(argparser, argspec, extra_types)
 
 
-def _argparser_add_arg(argparser, argspec, modify_action=None):
+def _argparser_add_arg(argparser, argspec, extra_types=None,
+                       modify_action=None):
     """Add the argument specified in argspec to ArgumentParser argparser.
 
     See `argparser_add_args` for the format of `argspec`.
+
+    `extra_types` is dict[str, function] of additional types allowed
+    in argument specifications in addition to global and built-in
+    types.
 
     If `modify_action` is not `None`, it should be a function of one
     argument, and the `action` of the argument to be added is replaced
@@ -223,7 +236,8 @@ def _argparser_add_arg(argparser, argspec, modify_action=None):
         # Get the type (class) named typename or raise an exception if
         # it is not in built-ins or globals.
         realtype = (globals().get(typename)
-                    or globals()['__builtins__'].get(typename))
+                    or globals()['__builtins__'].get(typename)
+                    or extra_types.get(typename))
         if realtype is None:
             raise vrtargslib.BadCode(
                 'Unsupported type in argument specification string: '
@@ -265,6 +279,7 @@ def _argparser_add_arg(argparser, argspec, modify_action=None):
     if len(argspec) < 2:
         raise vrtargslib.BadCode(
             'Argument specification needs at least name and help text')
+    extra_types = extra_types or {}
     argnames, arghelp = argspec[:2]
     # Convert argnames to a list for futher processing
     if isinstance(argnames, str):
@@ -405,8 +420,13 @@ class BasicProcessor:
         common_args = CommonArgs.version
         """The script has the common arguments for transformation scripts"""
 
-    def __init__(self):
-        """Initialize the class."""
+    def __init__(self, extra_types=None):
+        """Initialize the class.
+
+        `extra_types` is a dict[str, function] of additional types
+        allowed in argument specifications in addition to global and
+        built-in types.
+        """
         # Call super to allow use in multiple inheritance
         super().__init__()
         self._argparser = None
@@ -415,6 +435,8 @@ class BasicProcessor:
         """Parsed command-line arguments"""
         self._progname = None
         """Program name"""
+        self._extra_types = extra_types
+        """Dictionary of extra type functions for argument specifications"""
 
     def _get_argparser(self, **extra_kwargs):
         """Create a parser for command-line arguments."""
@@ -424,6 +446,7 @@ class BasicProcessor:
                 common_args=self.OPTIONS.common_args,
                 description=self.DESCRIPTION,
                 epilog=self.EPILOG,
+                extra_types=self._extra_types,
                 **extra_kwargs
             )
         self._progname = self._argparser.prog
@@ -485,9 +508,9 @@ class InputProcessor(BasicProcessor):
         out_as_text = False
         """The output is written as text instead of binary"""
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """Initialize the class."""
-        super().__init__()
+        super().__init__(**kwargs)
 
     def run(self, unparsed_args=None):
         """Process command-line arguments and run the main method."""
