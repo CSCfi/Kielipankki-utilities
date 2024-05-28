@@ -32,8 +32,10 @@
   output:
     stdout: *input-1
   transform: &transform-stdin
-  - name: file input
-  - name: stdin input
+  - &transf-base
+    name: file input
+  - &transf-stdin
+    name: stdin input
     input:
       cmdline:
         replace: '/in.vrt/< in.vrt/'
@@ -133,3 +135,113 @@
       </sentence>
       </text>
   transform: *transform-stdin
+
+
+- name: 'vrt-unify-attrs: --first'
+  input:
+    cmdline: vrt-unify-attrs --first="b,c" in.vrt
+    file:in.vrt: &input-4 |
+      <!-- #vrt positional-attributes: word -->
+      <text g="w" a="b" c="d" e="x">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text b="z" f="v" a="y" d="a">
+      <sentence c="2" e="4" b="1">
+      b
+      </sentence>
+      <sentence d="3" a="0">
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text b="" c="d" a="b" d="" e="x" f="" g="w">
+      <sentence b="" c="" a="" d="" e="">
+      a
+      </sentence>
+      </text>
+      <text b="z" c="" a="y" d="a" e="" f="v" g="">
+      <sentence b="1" c="2" a="" d="" e="4">
+      b
+      </sentence>
+      <sentence b="" c="" a="0" d="3" e="">
+      c
+      </sentence>
+      </text>
+  transform: &transform-stdin-comma
+  - *transf-base
+  - *transf-stdin
+  - &transf-comma-space
+    name: attrlist with spaces
+    input:
+      cmdline:
+        replace: '/,/ /'
+
+- name: 'vrt-unify-attrs: --last'
+  input:
+    cmdline: vrt-unify-attrs --last="b,c" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" d="" e="x" f="" g="w" b="" c="d">
+      <sentence a="" d="" e="" b="" c="">
+      a
+      </sentence>
+      </text>
+      <text a="y" d="a" e="" f="v" g="" b="z" c="">
+      <sentence a="" d="" e="4" b="1" c="2">
+      b
+      </sentence>
+      <sentence a="0" d="3" e="" b="" c="">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --first and --last'
+  input:
+    cmdline: vrt-unify-attrs --first="b,c" --last="d,a" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text b="" c="d" e="x" f="" g="w" d="" a="b">
+      <sentence b="" c="" e="" d="" a="">
+      a
+      </sentence>
+      </text>
+      <text b="z" c="" e="" f="v" g="" d="a" a="y">
+      <sentence b="1" c="2" e="4" d="" a="">
+      b
+      </sentence>
+      <sentence b="" c="" e="" d="3" a="0">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --first, --last, --input-order'
+  input:
+    cmdline: vrt-unify-attrs --first="b,c" --last=d --input-order in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text b="" c="d" g="w" a="b" e="x" f="" d="">
+      <sentence b="" c="" e="" a="" d="">
+      a
+      </sentence>
+      </text>
+      <text b="z" c="" g="" a="y" e="" f="v" d="a">
+      <sentence b="1" c="2" e="4" a="" d="">
+      b
+      </sentence>
+      <sentence b="" c="" e="" a="0" d="3">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma

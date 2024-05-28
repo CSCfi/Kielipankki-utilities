@@ -39,6 +39,11 @@ class VrtStructAttrUnifier(InputProcessor):
          '''order attributes to the order first encountered in input,
             instead of sorting alphabetically; attributes encountered
             only later are appended'''),
+        ('--first = attrlist',
+         '''order attributes listed in attrlist before other attributes;
+            attributes in attrlist separated by spaces or commas'''),
+        ('--last = attrlist',
+         '''order attributes listed in attrlist after other attributes'''),
     ]
 
     def __init__(self):
@@ -46,7 +51,15 @@ class VrtStructAttrUnifier(InputProcessor):
 
     def check_args(self, args):
         """Check and modify args (parsed command line arguments)."""
+
+        def make_attrlist(attrlist_str):
+            """Split attrlist_str at commas or spaces and encode as UTF-8."""
+            return [attr.encode('UTF-8')
+                    for attr in re.split(r'[,\s]+', attrlist_str or '')]
+
         args.default = args.default.encode('UTF-8')
+        args.first = make_attrlist(args.first)
+        args.last = make_attrlist(args.last)
 
     def main(self, args, inf, ouf):
         """Read inf, write to ouf, with command-line arguments args."""
@@ -90,8 +103,15 @@ class VrtStructAttrUnifier(InputProcessor):
         def make_order():
             """Return dict[list] containing attr order for each struct."""
             sortfn = (lambda x: x) if args.input_order else sorted
-            return dict((struct, sortfn(list(attrs.keys())))
-                        for struct, attrs in struct_attrs.items())
+            order = {}
+            for struct, attrs in struct_attrs.items():
+                attrs = sortfn(list(attrs.keys()))
+                order[struct] = [attr for attr in args.first if attr in attrs]
+                order[struct].extend(
+                    attr for attr in attrs
+                    if attr not in args.first and attr not in args.last)
+                order[struct].extend(attr for attr in args.last if attr in attrs)
+            return order
 
         def order_attrs(line, order):
             """Return start tag line, attributes ordered according to order.
