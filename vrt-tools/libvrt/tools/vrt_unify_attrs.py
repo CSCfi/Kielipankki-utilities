@@ -33,33 +33,44 @@ class VrtStructAttrUnifier(InputProcessor):
     temporary file.
     """
     ARGSPECS = [
-        ('--default = str ""',
+        ('--default = str:encode_utf8 ""',
          '''add missing attributes with value str'''),
         ('--input-order',
          '''order attributes to the order first encountered in input,
             instead of sorting alphabetically; attributes encountered
             only later are appended'''),
-        ('--first = attrlist',
+        ('--first = attrlist:attrlist',
          '''order attributes listed in attrlist before other attributes;
             attributes in attrlist separated by spaces or commas'''),
-        ('--last = attrlist',
+        ('--last = attrlist:attrlist',
          '''order attributes listed in attrlist after other attributes'''),
     ]
 
+    @staticmethod
+    def encode_utf8(s):
+        """Argument type function converting str s to UTF-8 bytes."""
+        return s.encode('UTF-8')
+
+    @staticmethod
+    def attrlist(s):
+        """Argument type function for a list of attribute names.
+
+        The attributes in str s can be separated by commas or spaces.
+        Return a list of bytes.
+        """
+        return [attr.encode('UTF-8')
+                for attr in re.split(r'[,\s]+', s or '')]
+
     def __init__(self):
-        super().__init__()
+        # extra_types=... is needed for using the above static methods
+        # as the type in ARGSPECS (otherwise, type could be passed via
+        # a dict)
+        super().__init__(extra_types=self.__class__.__dict__)
 
     def check_args(self, args):
         """Check and modify args (parsed command line arguments)."""
-
-        def make_attrlist(attrlist_str):
-            """Split attrlist_str at commas or spaces and encode as UTF-8."""
-            return [attr.encode('UTF-8')
-                    for attr in re.split(r'[,\s]+', attrlist_str or '')]
-
-        args.default = args.default.encode('UTF-8')
-        args.first = make_attrlist(args.first)
-        args.last = make_attrlist(args.last)
+        args.first = args.first or []
+        args.last = args.last or []
 
     def main(self, args, inf, ouf):
         """Read inf, write to ouf, with command-line arguments args."""
