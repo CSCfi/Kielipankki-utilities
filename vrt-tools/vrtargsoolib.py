@@ -20,6 +20,8 @@ from enum import Enum
 
 import vrtargslib
 
+from libvrt.groupargs import ArgumentGrouping
+
 
 class CommonArgs(Enum):
     """Which arguments common to VRT tools to use"""
@@ -77,8 +79,8 @@ def argparser_add_args(argparser, argspecs):
     `ArgumentParser.add_argument`. If argdict contains a default value,
     information about it is appended to the usage string, unless the
     usage string already contains the word "default". Special argnames
-    are used to add a named or mutually exclusive argument group; see
-    below.
+    are used to add a named or mutually exclusive argument group or
+    grouped arguments; see below.
 
     argnames (or its first element) is of the following form:
         argname ('|' | ' ' | ',') argname)* ('=' metavar)? (':' type)?
@@ -109,6 +111,19 @@ def argparser_add_args(argparser, argspecs):
     description of the group and third is a list of argument
     specifications in the form described above.
 
+    An argument group for grouped command-line arguments is specified
+    with the special argnames "#GROUPED title" (case-insensitive),
+    which is similar in form to "#GROUP" above but the first argument
+    specification specifies the *grouping argument* and the rest the
+    *grouped arguments*. The value of the grouping argument is a dict
+    mapping from grouping argument values to namespaces containing
+    values for the grouped arguments. The values of grouped arguments
+    are attached to the preceding value of the grouping argument, and
+    the values of grouped arguments preceding any grouping argument
+    are set as default values in cases where a grouped argument is not
+    given a value after a grouping argument. (See libvrt.groupargs for
+    more information.)
+
     A mutually exclusive argument group is specified with the special
     argnames beginning with "#EXCLUSIVE" (case-insensitive), in which
     case the second element of the tuple (or list) is a list of argument
@@ -134,16 +149,29 @@ def argparser_add_args(argparser, argspecs):
                 group_title = argspec[0].split(None, 1)[1]
                 group_descr = argspec[1]
                 group = argparser.add_argument_group(group_title, group_descr)
-                for argspec_sub in argspec[2]:
-                    _argparser_add_arg(group, argspec_sub)
+                if optname_u.startswith('#GROUPED'):
+                    grouping = ArgumentGrouping()
+                    _argparser_add_arg(argparser, argspec[2][0],
+                                       lambda action: grouping.grouping_arg())
+                    for argspec_sub in argspec[2][1:]:
+                        _argparser_add_arg(
+                            group, argspec_sub,
+                            lambda action: grouping.grouped_arg(action))
+                else:
+                    for argspec_sub in argspec[2]:
+                        _argparser_add_arg(group, argspec_sub)
             else:
                 _argparser_add_arg(argparser, argspec)
 
 
-def _argparser_add_arg(argparser, argspec):
+def _argparser_add_arg(argparser, argspec, modify_action=None):
     """Add the argument specified in argspec to ArgumentParser argparser.
 
     See `argparser_add_args` for the format of `argspec`.
+
+    If `modify_action` is not `None`, it should be a function of one
+    argument, and the `action` of the argument to be added is replaced
+    by the value returned by `modify_action(action)`.
     """
 
     # TODO: Support integer-valued nargs. That may require changes to
@@ -262,6 +290,8 @@ def _argparser_add_arg(argparser, argspec):
                                            'metavar', 'nargs', 'type'])
         and argnames[0][0] == '-'):
         argdict['action'] = 'store_false' if 'neg' in argdict else 'store_true'
+    if modify_action:
+        argdict['action'] = modify_action(argdict.get('action'))
     del_keys(argdict, ['names', 'neg'])
     process_argnames(argnames)
     # Add information on the possible default value to the usage
