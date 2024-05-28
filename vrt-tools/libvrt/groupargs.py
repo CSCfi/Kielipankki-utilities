@@ -401,7 +401,7 @@ class ArgumentGrouping:
             'extend': GroupedExtendAction,
         }
         try:
-            return action_class[action]
+            return action_class[action or 'store']
         except KeyError:
             raise ValueError(f'unknown action "{action}"')
 
