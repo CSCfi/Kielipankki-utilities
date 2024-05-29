@@ -89,7 +89,9 @@ def argparser_add_args(argparser, argspecs, extra_types=None):
 
     If argdict (or argnames) contains a default value, information
     about it is appended to the usage string, unless the usage string
-    already contains the word "default".
+    already contains the word "default". Alternatively, argdict may
+    contain a value for "silent_default", which is converted to
+    "default" but whose value is not appended to the usage string.
 
     argnames (or its first element) is of the following form:
         argname ('|' | ' ' | ',') argname)* ('=' metavar)? (':' type)?
@@ -326,6 +328,11 @@ def _argparser_add_arg(argparser, argspec, extra_types=None,
             default_fmt = (
                 '%(default)s' if 'type' in argdict else '"%(default)s"')
         argdict['help'] += ' (default: ' + default_fmt + ')'
+    # silent_default is a default not to be mentioned in the help text
+    if 'silent_default' in argdict:
+        if 'default' not in argdict:
+            argdict['default'] = argdict['silent_default']
+        del argdict['silent_default']
     # print(repr(argnames), repr(argdict))
     argparser.add_argument(*argnames, **argdict)
 
