@@ -245,3 +245,70 @@
       </sentence>
       </text>
   transform: *transform-stdin-comma
+
+
+- name: 'vrt-unify-attrs: Structure-specific options'
+  input:
+    cmdline: vrt-unify-attrs --structure=text --first="b,c" --last=d --default="T" --structure=sentence --input-order --default="S" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text b="T" c="d" a="b" e="x" f="T" g="w" d="T">
+      <sentence c="S" e="S" b="S" d="S" a="S">
+      a
+      </sentence>
+      </text>
+      <text b="z" c="T" a="y" e="T" f="v" g="T" d="a">
+      <sentence c="2" e="4" b="1" d="S" a="S">
+      b
+      </sentence>
+      <sentence c="S" e="S" b="S" d="3" a="0">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: Structure-specific options only for some structures'
+  input:
+    cmdline: vrt-unify-attrs --structure=text --first="b,c" --last=d --default="T" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text b="T" c="d" a="b" e="x" f="T" g="w" d="T">
+      <sentence a="" b="" c="" d="" e="">
+      a
+      </sentence>
+      </text>
+      <text b="z" c="T" a="y" e="T" f="v" g="T" d="a">
+      <sentence a="" b="1" c="2" d="" e="4">
+      b
+      </sentence>
+      <sentence a="0" b="" c="" d="3" e="">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: Structure-specific and default options'
+  input:
+    cmdline: vrt-unify-attrs --default="_" --last=d --structure=text --first="b,c" --default="T" --structure=sentence --first=e in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text b="T" c="d" a="b" e="x" f="T" g="w" d="T">
+      <sentence e="_" a="_" b="_" c="_" d="_">
+      a
+      </sentence>
+      </text>
+      <text b="z" c="T" a="y" e="T" f="v" g="T" d="a">
+      <sentence e="4" a="_" b="1" c="2" d="_">
+      b
+      </sentence>
+      <sentence e="_" a="0" b="_" c="_" d="3">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma

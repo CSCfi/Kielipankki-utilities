@@ -33,17 +33,31 @@ class VrtStructAttrUnifier(InputProcessor):
     temporary file.
     """
     ARGSPECS = [
-        ('--default = str:encode_utf8 ""',
-         '''add missing attributes with value str'''),
-        ('--input-order',
-         '''order attributes to the order first encountered in input,
-            instead of sorting alphabetically; attributes encountered
-            only later are appended'''),
-        ('--first = attrlist:attrlist',
-         '''order attributes listed in attrlist before other attributes;
-            attributes in attrlist separated by spaces or commas'''),
-        ('--last = attrlist:attrlist',
-         '''order attributes listed in attrlist after other attributes'''),
+        ('#GROUPED structure-specific options',
+         '''The following options can be specified multiple times: each
+            occurrence applies to the --structure after which it is
+            specified. If an option is specified before any --structure, it
+            becomes the default for all structures.''',
+         [
+             ('--structure|element|e = struct:encode_utf8',
+              '''the options following this (up to the next --structure)
+                 apply to structures struct'''),
+             ('--default = str:encode_utf8 ""',
+              '''add missing attributes with value str'''),
+             ('--input-order',
+              '''order attributes to the order first encountered in input,
+                 instead of sorting alphabetically; attributes encountered
+                 only later are appended'''),
+             ('--first = attrlist:attrlist',
+              '''order attributes listed in attrlist before other attributes;
+                 attributes in attrlist separated by spaces or commas''',
+              # The processed value is a list, even though the option
+              # can be specified only once (for each structure)
+              dict(silent_default=[])),
+             ('--last = attrlist:attrlist',
+              '''order attributes listed in attrlist after other attributes''',
+              dict(silent_default=[])),
+         ]),
     ]
 
     @staticmethod
@@ -69,8 +83,7 @@ class VrtStructAttrUnifier(InputProcessor):
 
     def check_args(self, args):
         """Check and modify args (parsed command line arguments)."""
-        args.first = args.first or []
-        args.last = args.last or []
+        pass
 
     def main(self, args, inf, ouf):
         """Read inf, write to ouf, with command-line arguments args."""
@@ -86,6 +99,15 @@ class VrtStructAttrUnifier(InputProcessor):
         write_tmp = not inf.seekable() or inf.name == '<stdin>'
         seekable_inf = NamedTemporaryFile(delete=False) if write_tmp else inf
         seekable_inf_name = seekable_inf.name
+
+        def getarg(name, struct):
+            """Return the value for argument `name` for structure `struct`.
+
+            If --structure=struct has not been specified, use the
+            default value for `name` in `args`.
+            """
+            return getattr(args.structure.get(struct), name,
+                           getattr(args, name))
 
         def collect_attrs(inf, ouf_tmp):
             """Read inf, collect struct attrs; write to ouf_tmp if not None."""
@@ -113,15 +135,17 @@ class VrtStructAttrUnifier(InputProcessor):
 
         def make_order():
             """Return dict[list] containing attr order for each struct."""
-            sortfn = (lambda x: x) if args.input_order else sorted
             order = {}
             for struct, attrs in struct_attrs.items():
+                input_order = getarg('input_order', struct)
+                first = getarg('first', struct)
+                last = getarg('last', struct)
+                sortfn = (lambda x: x) if input_order else sorted
                 attrs = sortfn(list(attrs.keys()))
-                order[struct] = [attr for attr in args.first if attr in attrs]
-                order[struct].extend(
-                    attr for attr in attrs
-                    if attr not in args.first and attr not in args.last)
-                order[struct].extend(attr for attr in args.last if attr in attrs)
+                order[struct] = [attr for attr in first if attr in attrs]
+                order[struct].extend(attr for attr in attrs
+                                     if attr not in first and attr not in last)
+                order[struct].extend(attr for attr in last if attr in attrs)
             return order
 
         def order_attrs(line, order):
@@ -132,7 +156,8 @@ class VrtStructAttrUnifier(InputProcessor):
             """
             struct = ml.element(line)
             attrs = ml.mapping(line)
-            return ml.starttag(struct, ((name, attrs.get(name, args.default))
+            default = getarg('default', struct)
+            return ml.starttag(struct, ((name, attrs.get(name, default))
                                         for name in order[struct]))
 
         # Pass 1: Read input, collecting structural attribute names
