@@ -152,31 +152,31 @@ def argparser_add_args(argparser, argspecs, extra_types=None):
     allowed in argument specifications in addition to global and
     built-in types.
     """
-    if argspecs:
-        for argspec in argspecs:
-            optname_u = argspec[0].upper()
-            if optname_u.startswith('#EXCLUSIVE'):
-                group = argparser.add_mutually_exclusive_group(
-                    required=('REQUIRED' in optname_u))
-                for argspec_sub in argspec[1]:
-                    _argparser_add_arg(group, argspec_sub, extra_types)
-            elif optname_u.startswith('#GROUP'):
-                group_title = argspec[0].split(None, 1)[1]
-                group_descr = argspec[1]
-                group = argparser.add_argument_group(group_title, group_descr)
-                if optname_u.startswith('#GROUPED'):
-                    grouping = ArgumentGrouping()
-                    _argparser_add_arg(argparser, argspec[2][0], extra_types,
-                                       lambda action: grouping.grouping_arg())
-                    for argspec_sub in argspec[2][1:]:
-                        _argparser_add_arg(
-                            group, argspec_sub, extra_types,
-                            lambda action: grouping.grouped_arg(action))
-                else:
-                    for argspec_sub in argspec[2]:
-                        _argparser_add_arg(group, argspec_sub, extra_types)
+
+    for argspec in argspecs or []:
+        optname_u = argspec[0].upper()
+        if optname_u.startswith('#EXCLUSIVE'):
+            group = argparser.add_mutually_exclusive_group(
+                required=('REQUIRED' in optname_u))
+            for argspec_sub in argspec[1]:
+                _argparser_add_arg(group, argspec_sub, extra_types)
+        elif optname_u.startswith('#GROUP'):
+            group_title = argspec[0].split(None, 1)[1]
+            group_descr = argspec[1]
+            group = argparser.add_argument_group(group_title, group_descr)
+            if optname_u.startswith('#GROUPED'):
+                grouping = ArgumentGrouping()
+                _argparser_add_arg(argparser, argspec[2][0], extra_types,
+                                   lambda action: grouping.grouping_arg())
+                for argspec_sub in argspec[2][1:]:
+                    _argparser_add_arg(
+                        group, argspec_sub, extra_types,
+                        lambda action: grouping.grouped_arg(action))
             else:
-                _argparser_add_arg(argparser, argspec, extra_types)
+                for argspec_sub in argspec[2]:
+                    _argparser_add_arg(group, argspec_sub, extra_types)
+        else:
+            _argparser_add_arg(argparser, argspec, extra_types)
 
 
 def _argparser_add_arg(argparser, argspec, extra_types=None,
