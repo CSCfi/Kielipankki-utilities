@@ -74,17 +74,22 @@ def get_argparser(argspecs=None, *, common_args=CommonArgs.trans,
 def argparser_add_args(argparser, argspecs, extra_types=None):
     """Add the arguments specified in argspecs to ArgumentParser argparser.
 
-    `argspecs` is a list of command-line argument specifications, which
-    are in general lists or tuples of 2 or 3 elements: (argnames, help,
-    [argdict]) where argnames is either a single string or a list or
-    tuple of strings representing argument names (and optionally some
-    options, see below), help is the usage string and argdict is a
-    dictionary of the keyword arguments to be passed to
-    `ArgumentParser.add_argument`. If argdict contains a default value,
-    information about it is appended to the usage string, unless the
-    usage string already contains the word "default". Special argnames
-    are used to add a named or mutually exclusive argument group or
-    grouped arguments; see below.
+    `argspecs` is a list of command-line argument specifications,
+    which are in general lists or tuples of 2 or 3 elements:
+    (argnames, help, [argdict]), where argnames is either a single
+    string or a list or tuple of strings representing argument names
+    (and optionally some options, see below), help is the usage string
+    and argdict is a dictionary of the keyword arguments to be passed
+    to `ArgumentParser.add_argument`.
+
+    Special argnames prefixed with a "#" are used to add a named or
+    mutually exclusive argument group or grouped arguments, in which
+    case the meaning of content of the second and third element are
+    different. See below for more details.
+
+    If argdict (or argnames) contains a default value, information
+    about it is appended to the usage string, unless the usage string
+    already contains the word "default".
 
     argnames (or its first element) is of the following form:
         argname ('|' | ' ' | ',') argname)* ('=' metavar)? (':' type)?
