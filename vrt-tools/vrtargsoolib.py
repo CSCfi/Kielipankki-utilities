@@ -128,12 +128,12 @@ def argparser_add_args(argparser, argspecs, extra_types=None):
     specification specifies the *grouping argument* and the rest the
     *grouped arguments*. The value of the grouping argument is a dict
     mapping from grouping argument values to namespaces containing
-    values for the grouped arguments. The values of grouped arguments
-    are attached to the preceding value of the grouping argument, and
-    the values of grouped arguments preceding any grouping argument
-    are set as default values in cases where a grouped argument is not
-    given a value after a grouping argument. (See libvrt.groupargs for
-    more information.)
+    values for the grouped arguments (default: {}). The values of
+    grouped arguments are attached to the preceding value of the
+    grouping argument, and the values of grouped arguments preceding
+    any grouping argument are set as default values in cases where a
+    grouped argument is not given a value after a grouping argument.
+    (See libvrt.groupargs for more information.)
 
     A mutually exclusive argument group is specified with the special
     argnames beginning with "#EXCLUSIVE" (case-insensitive), in which
@@ -153,6 +153,14 @@ def argparser_add_args(argparser, argspecs, extra_types=None):
     built-in types.
     """
 
+    def update_argdict(argspec, key, value):
+        """Return `argspec` with its argdict updated with {`key`: `value`}."""
+        if len(argspec) == 3:
+            argspec[2][key] = value
+            return argspec
+        else:
+            return (argspec[0], argspec[1], {key: value})
+
     for argspec in argspecs or []:
         optname_u = argspec[0].upper()
         if optname_u.startswith('#EXCLUSIVE'):
@@ -166,8 +174,12 @@ def argparser_add_args(argparser, argspecs, extra_types=None):
             group = argparser.add_argument_group(group_title, group_descr)
             if optname_u.startswith('#GROUPED'):
                 grouping = ArgumentGrouping()
-                _argparser_add_arg(argparser, argspec[2][0], extra_types,
-                                   lambda action: grouping.grouping_arg())
+                _argparser_add_arg(
+                    argparser,
+                    # The value of the grouping argument defaults to
+                    # {}, not shown in the usage
+                    update_argdict(argspec[2][0], 'silent_default', {}),
+                    extra_types, lambda action: grouping.grouping_arg())
                 for argspec_sub in argspec[2][1:]:
                     _argparser_add_arg(
                         group, argspec_sub, extra_types,
