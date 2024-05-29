@@ -312,7 +312,14 @@ def _argparser_add_arg(argparser, argspec, extra_types=None,
     # Add information on the possible default value to the usage
     # message, unless it already contains the string "default".
     if 'default' in argdict and 'default' not in argdict['help']:
-        default_fmt = ('%(default)s' if 'type' in argdict else '"%(default)s"')
+        default_val = argdict['default']
+        # If the default value is bytes, format it directly as a
+        # string to get "..." instead of b'...'
+        if isinstance(default_val, bytes):
+            default_fmt = f'"{default_val.decode("UTF-8")}"'
+        else:
+            default_fmt = (
+                '%(default)s' if 'type' in argdict else '"%(default)s"')
         argdict['help'] += ' (default: ' + default_fmt + ')'
     # print(repr(argnames), repr(argdict))
     argparser.add_argument(*argnames, **argdict)
