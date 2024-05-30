@@ -68,6 +68,13 @@ class VrtStructAttrUnifier(InputProcessor):
                  attrlist value as for --first; attrlist may not contain any
                  attribute specified for --first''',
               dict(silent_default=[])),
+             ('--always = attrlist:attrlist',
+              '''always output attributes listed in attrlist, even if they
+                 did not occur in the input; with --input-order, non-occurring
+                 attributes are appended after occurring ones in the order
+                 specified in attrlist, unless also listed in --first or
+                 --last; attrlist value as for --first and --last''',
+              dict(silent_default=[])),
          ]),
     ]
 
@@ -175,7 +182,9 @@ class VrtStructAttrUnifier(InputProcessor):
                 input_order = getarg('input_order', struct)
                 first = getarg('first', struct)
                 last = getarg('last', struct)
+                always = getarg('always', struct)
                 sortfn = (lambda x: x) if input_order else sorted
+                attrs.update(dict((attr, None) for attr in always))
                 attrs = sortfn(list(attrs.keys()))
                 order[struct] = [attr for attr in first if attr in attrs]
                 order[struct].extend(attr for attr in attrs
