@@ -90,11 +90,14 @@ class VrtStructAttrUnifier(InputProcessor):
         The attributes in str s can be separated by commas or spaces.
         Return a list of bytes.
 
-        If the attribute list contains duplicates, raise
-        ArgumentTypeError.
+        Raise ArgumentTypeError if the attribute list contains
+        duplicates or if attribute names are invalid.
         """
         # Split by commas and spaces, and filter out empty strings
         attrs = [attr for attr in re.split(r'[,\s]+', s or '') if attr]
+        for attr in attrs:
+            if not re.fullmatch(r'[_a-z][_a-z0-9]*', attr):
+                raise ArgumentTypeError(f'invalid attribute name: {attr}')
         dupls = _find_duplicates(attrs)
         if dupls:
             raise ArgumentTypeError(

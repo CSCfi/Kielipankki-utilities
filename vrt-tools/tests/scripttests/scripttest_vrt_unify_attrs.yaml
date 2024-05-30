@@ -515,3 +515,66 @@
       contains: |
         vrt-unify-attrs: error: argument --always: duplicate attribute names: z
   transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: Attrlist with invalid attribute name (upper case)'
+  input:
+    cmdline: vrt-unify-attrs --always="x,aZ" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: ''
+    returncode: 2
+    stderr:
+      contains: |
+        vrt-unify-attrs: error: argument --always: invalid attribute name: aZ
+  transform: &transform-stdin-comma-invalid-attrname
+  - *transf-base
+  - *transf-stdin
+  - *transf-comma-space
+  - name: --first
+    input:
+      cmdline: &repl-always-first
+        replace: '/--always/--first/'
+    output:
+      stderr: *repl-always-first
+  - name: --last
+    input:
+      cmdline: &repl-always-last
+        replace: '/--always/--last/'
+    output:
+      stderr: *repl-always-last
+
+- name: 'vrt-unify-attrs: Attrlist with invalid attribute name (leading digit)'
+  input:
+    cmdline: vrt-unify-attrs --always="x,0a" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: ''
+    returncode: 2
+    stderr:
+      contains: |
+        vrt-unify-attrs: error: argument --always: invalid attribute name: 0a
+  transform: *transform-stdin-comma-invalid-attrname
+
+- name: 'vrt-unify-attrs: Attrlist with invalid attribute name (non-ASCII)'
+  input:
+    cmdline: vrt-unify-attrs --always="x,aä" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: ''
+    returncode: 2
+    stderr:
+      contains: |
+        vrt-unify-attrs: error: argument --always: invalid attribute name: aä
+  transform: *transform-stdin-comma-invalid-attrname
+
+- name: 'vrt-unify-attrs: Attrlist with invalid attribute name (punctuation)'
+  input:
+    cmdline: vrt-unify-attrs --always="x,a=" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: ''
+    returncode: 2
+    stderr:
+      contains: |
+        vrt-unify-attrs: error: argument --always: invalid attribute name: a=
+  transform: *transform-stdin-comma-invalid-attrname
