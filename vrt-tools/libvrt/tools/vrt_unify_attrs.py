@@ -183,17 +183,19 @@ class VrtStructAttrUnifier(InputProcessor):
             """Return dict[list] containing attr order for each struct."""
             order = {}
             for struct, attrs in struct_attrs.items():
-                input_order = getarg('input_order', struct)
-                first = getarg('first', struct)
-                last = getarg('last', struct)
-                always = getarg('always', struct)
-                sortfn = (lambda x: x) if input_order else sorted
-                attrs.update(dict((attr, None) for attr in always))
+                opts = dict(
+                    (name, getarg(name, struct))
+                    for name in ['input_order', 'first', 'last', 'always'])
+                sortfn = (lambda x: x) if opts['input_order'] else sorted
+                attrs.update(dict((attr, None) for attr in opts['always']))
                 attrs = sortfn(list(attrs.keys()))
-                order[struct] = [attr for attr in first if attr in attrs]
-                order[struct].extend(attr for attr in attrs
-                                     if attr not in first and attr not in last)
-                order[struct].extend(attr for attr in last if attr in attrs)
+                order[struct] = [
+                    attr for attr in opts['first'] if attr in attrs]
+                order[struct].extend(
+                    attr for attr in attrs
+                    if attr not in opts['first'] and attr not in opts['last'])
+                order[struct].extend(
+                    attr for attr in opts['last'] if attr in attrs)
             return order
 
         def order_attrs(line, order):
