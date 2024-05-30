@@ -117,8 +117,12 @@ class VrtStructAttrUnifier(InputProcessor):
         # a dict)
         super().__init__(extra_types=self.__class__.__dict__)
 
-    def check_args(self, args):
-        """Check and modify args (parsed command line arguments)."""
+    def check_args(self, args, struct=None):
+        """Check and modify args (parsed command line arguments).
+
+        The method is called recursively for structure-specific
+        arguments with struct as the structure name.
+        """
 
         def check_first_last_dupls(args, struct=None):
             """If args.first and args.last contain same attrs, error exit.
@@ -134,9 +138,11 @@ class VrtStructAttrUnifier(InputProcessor):
                     + ', '.join(dupl.decode('UTF-8') for dupl in dupls),
                     exitcode=2)
 
-        check_first_last_dupls(args)
-        for struct, struct_args in args.structure.items():
-            check_first_last_dupls(struct_args, struct)
+        check_first_last_dupls(args, struct)
+        # Process structure-specific arguments
+        if struct is None:
+            for struct2, struct_args in args.structure.items():
+                self.check_args(struct_args, struct2)
 
     def main(self, args, inf, ouf):
         """Read inf, write to ouf, with command-line arguments args."""
