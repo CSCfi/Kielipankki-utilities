@@ -93,7 +93,8 @@ class VrtStructAttrUnifier(InputProcessor):
         If the attribute list contains duplicates, raise
         ArgumentTypeError.
         """
-        attrs = re.split(r'[,\s]+', s or '')
+        # Split by commas and spaces, and filter out empty strings
+        attrs = [attr for attr in re.split(r'[,\s]+', s or '') if attr]
         dupls = _find_duplicates(attrs)
         if dupls:
             raise ArgumentTypeError(

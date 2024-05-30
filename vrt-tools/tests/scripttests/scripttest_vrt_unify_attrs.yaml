@@ -156,7 +156,7 @@
       </sentence>
       </text>
   output:
-    stdout: |
+    stdout: &output-4a |
       <!-- #vrt positional-attributes: word -->
       <text b="" c="d" a="b" d="" e="x" f="" g="w">
       <sentence b="" c="" a="" d="" e="">
@@ -179,6 +179,14 @@
     input:
       cmdline:
         replace: '/,/ /'
+
+- name: 'vrt-unify-attrs: Ignore leading, trailing and multiple consecutive commas in attrlist'
+  input:
+    cmdline: vrt-unify-attrs --first=",b,,,c,," in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: *output-4a
+  transform: *transform-stdin-comma
 
 - name: 'vrt-unify-attrs: --last'
   input:
