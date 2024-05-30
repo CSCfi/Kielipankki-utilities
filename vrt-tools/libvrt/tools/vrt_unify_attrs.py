@@ -11,12 +11,20 @@ Please run "vrt-unify-attrs -h" for more information.
 import sys
 import re
 
-from collections import defaultdict, OrderedDict
+from argparse import ArgumentTypeError
+from collections import defaultdict, OrderedDict, Counter
+from itertools import chain
 from tempfile import NamedTemporaryFile
 
 from libvrt import metaline as ml
 
 from vrtargsoolib import InputProcessor
+
+
+def _find_duplicates(*iters):
+    """Return list of items occurring more than once in iterables *iters."""
+    counts = Counter(chain(*iters))
+    return [item for item, cnt in counts.items() if cnt > 1]
 
 
 class VrtStructAttrUnifier(InputProcessor):
@@ -50,12 +58,14 @@ class VrtStructAttrUnifier(InputProcessor):
                  only later are appended'''),
              ('--first = attrlist:attrlist',
               '''order attributes listed in attrlist before other attributes;
-                 attributes in attrlist separated by spaces or commas''',
+                 attributes in attrlist separated by spaces or commas,
+                 duplicates not allowed''',
               # The processed value is a list, even though the option
               # can be specified only once (for each structure)
               dict(silent_default=[])),
              ('--last = attrlist:attrlist',
-              '''order attributes listed in attrlist after other attributes''',
+              '''order attributes listed in attrlist after other attributes,
+                 attrlist value as for --first''',
               dict(silent_default=[])),
          ]),
     ]
@@ -67,13 +77,20 @@ class VrtStructAttrUnifier(InputProcessor):
 
     @staticmethod
     def attrlist(s):
-        """Argument type function for a list of attribute names.
+        """Argument type function for a list of unique attribute names.
 
         The attributes in str s can be separated by commas or spaces.
         Return a list of bytes.
+
+        If the attribute list contains duplicates, raise
+        ArgumentTypeError.
         """
-        return [attr.encode('UTF-8')
-                for attr in re.split(r'[,\s]+', s or '')]
+        attrs = re.split(r'[,\s]+', s or '')
+        dupls = _find_duplicates(attrs)
+        if dupls:
+            raise ArgumentTypeError(
+                'duplicate attribute names: ' + ', '.join(dupls))
+        return [attr.encode('UTF-8') for attr in attrs]
 
     def __init__(self):
         # extra_types=... is needed for using the above static methods

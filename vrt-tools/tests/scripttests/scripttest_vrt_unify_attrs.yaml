@@ -246,6 +246,45 @@
       </text>
   transform: *transform-stdin-comma
 
+- name: 'vrt-unify-attrs: --first with duplicate attribute'
+  input:
+    cmdline: vrt-unify-attrs --first="b,c,b" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: ''
+    returncode: 2
+    stderr:
+      # Use "contains", as a usage message is also output to stderr
+      contains: |
+        vrt-unify-attrs: error: argument --first: duplicate attribute names: b
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --last with duplicate attributes'
+  input:
+    cmdline: vrt-unify-attrs --last="c,b,c,b" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: ''
+    returncode: 2
+    stderr:
+      # Use "contains", as a usage message is also output to stderr
+      contains: |
+        vrt-unify-attrs: error: argument --last: duplicate attribute names: c, b
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: Structure-specific --first with duplicate attribute'
+  input:
+    cmdline: vrt-unify-attrs --structure text --first="b,c,b" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: ''
+    returncode: 2
+    stderr:
+      # Use "contains", as a usage message is also output to stderr
+      contains: |
+        vrt-unify-attrs: error: argument --first: duplicate attribute names: b
+  transform: *transform-stdin-comma
+
 
 - name: 'vrt-unify-attrs: Structure-specific options'
   input:
