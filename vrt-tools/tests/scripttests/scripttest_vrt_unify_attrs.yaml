@@ -285,6 +285,39 @@
         vrt-unify-attrs: error: argument --first: duplicate attribute names: b
   transform: *transform-stdin-comma
 
+- name: 'vrt-unify-attrs: Same attributes in --first and --last'
+  input:
+    cmdline: vrt-unify-attrs --first="b,c" --last="d,b,a,c" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: ''
+    returncode: 2
+    stderr: |
+      vrt-unify-attrs: error: same attributes in both --first and --last: b, c
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: Same attributes in --first and --last (structure-specific)'
+  input:
+    cmdline: vrt-unify-attrs --structure=text --first="c,b" --last="d,b,a,c" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: ''
+    returncode: 2
+    stderr: |
+      vrt-unify-attrs: error: same attributes in both --first and --last (structure text): c, b
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: Same attributes in --first and --last (partly structure-specific)'
+  input:
+    cmdline: vrt-unify-attrs --first="b,c" --last="a" --structure=text --last="d,b,a,c" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: ''
+    returncode: 2
+    stderr: |
+      vrt-unify-attrs: error: same attributes in both --first and --last (structure text): b, c
+  transform: *transform-stdin-comma
+
 
 - name: 'vrt-unify-attrs: Structure-specific options'
   input:

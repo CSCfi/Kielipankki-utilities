@@ -65,7 +65,8 @@ class VrtStructAttrUnifier(InputProcessor):
               dict(silent_default=[])),
              ('--last = attrlist:attrlist',
               '''order attributes listed in attrlist after other attributes,
-                 attrlist value as for --first''',
+                 attrlist value as for --first; attrlist may not contain any
+                 attribute specified for --first''',
               dict(silent_default=[])),
          ]),
     ]
@@ -100,7 +101,24 @@ class VrtStructAttrUnifier(InputProcessor):
 
     def check_args(self, args):
         """Check and modify args (parsed command line arguments)."""
-        pass
+
+        def check_first_last_dupls(args, struct=None):
+            """If args.first and args.last contain same attrs, error exit.
+
+            If struct is a string, mention it in the error message.
+            """
+            dupls = _find_duplicates(args.first, args.last)
+            suffix = f' (structure {struct.decode("UTF-8")})' if struct else ''
+            if dupls:
+                self.error_exit(
+                    'error: same attributes in both --first and --last'
+                    + f'{suffix}: '
+                    + ', '.join(dupl.decode('UTF-8') for dupl in dupls),
+                    exitcode=2)
+
+        check_first_last_dupls(args)
+        for struct, struct_args in args.structure.items():
+            check_first_last_dupls(struct_args, struct)
 
     def main(self, args, inf, ouf):
         """Read inf, write to ouf, with command-line arguments args."""
