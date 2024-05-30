@@ -75,6 +75,13 @@ class VrtStructAttrUnifier(InputProcessor):
                  specified in attrlist, unless also listed in --first or
                  --last; attrlist value as for --first and --last''',
               dict(silent_default=[])),
+             # No (silent_)default for --only, as a specified empty
+             # value has a special meaning different from not
+             # specifying the option at all
+             ('--only = attrlist:attrlist',
+              '''output only attributes listed in attrlist (and occurring in
+                 input or listed with --always); an empty value removes all
+                 attributes'''),
          ]),
     ]
 
@@ -185,7 +192,11 @@ class VrtStructAttrUnifier(InputProcessor):
             for struct, attrs in struct_attrs.items():
                 opts = dict(
                     (name, getarg(name, struct))
-                    for name in ['input_order', 'first', 'last', 'always'])
+                    for name in ['input_order', 'first', 'last', 'always',
+                                 'only'])
+                if opts['only'] is not None:
+                    attrs = OrderedDict((attr, None) for attr in attrs.keys()
+                                        if attr in set(opts['only']))
                 sortfn = (lambda x: x) if opts['input_order'] else sorted
                 attrs.update(dict((attr, None) for attr in opts['always']))
                 attrs = sortfn(list(attrs.keys()))

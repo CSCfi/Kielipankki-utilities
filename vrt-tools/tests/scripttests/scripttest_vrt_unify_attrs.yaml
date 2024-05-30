@@ -578,3 +578,144 @@
       contains: |
         vrt-unify-attrs: error: argument --always: invalid attribute name: a=
   transform: *transform-stdin-comma-invalid-attrname
+
+
+- name: 'vrt-unify-attrs: --only with attributes occurring in input'
+  input:
+    cmdline: vrt-unify-attrs --only="a,b" --default="_" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: &output-4b |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="_">
+      <sentence a="_" b="_">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z">
+      <sentence a="_" b="1">
+      b
+      </sentence>
+      <sentence a="0" b="_">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --only with some attributes not occurring in input'
+  input:
+    cmdline: vrt-unify-attrs --only="a,b,z" --default="_" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: *output-4b
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --only, --always'
+  input:
+    cmdline: vrt-unify-attrs --only="a,b,z" --always="z" --default="_" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="_" z="_">
+      <sentence a="_" b="_" z="_">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" z="_">
+      <sentence a="_" b="1" z="_">
+      b
+      </sentence>
+      <sentence a="0" b="_" z="_">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --only, --always with non-only attributes'
+  input:
+    cmdline: vrt-unify-attrs --only="a,b,z" --always="z,x" --default="_" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="_" x="_" z="_">
+      <sentence a="_" b="_" x="_" z="_">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" x="_" z="_">
+      <sentence a="_" b="1" x="_" z="_">
+      b
+      </sentence>
+      <sentence a="0" b="_" x="_" z="_">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --only, --first'
+  input:
+    cmdline: vrt-unify-attrs --only="a,b" --first "b,c" --default="_" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text b="_" a="b">
+      <sentence b="_" a="_">
+      a
+      </sentence>
+      </text>
+      <text b="z" a="y">
+      <sentence b="1" a="_">
+      b
+      </sentence>
+      <sentence b="_" a="0">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --only with empty value, removing all attributes'
+  input:
+    cmdline: vrt-unify-attrs --only="" --default="_" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text>
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b
+      </sentence>
+      <sentence>
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: Structure-specific --only'
+  input:
+    cmdline: vrt-unify-attrs --default="_" --first "b,c" --structure=sentence --only="a,b" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text b="_" c="d" a="b" d="_" e="x" f="_" g="w">
+      <sentence b="_" a="_">
+      a
+      </sentence>
+      </text>
+      <text b="z" c="_" a="y" d="a" e="_" f="v" g="_">
+      <sentence b="1" a="_">
+      b
+      </sentence>
+      <sentence b="_" a="0">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
