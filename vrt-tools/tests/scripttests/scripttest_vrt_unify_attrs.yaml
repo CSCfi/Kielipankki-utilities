@@ -719,3 +719,142 @@
       </sentence>
       </text>
   transform: *transform-stdin-comma
+
+
+- name: 'vrt-unify-attrs: --exactly'
+  input:
+    cmdline: vrt-unify-attrs --exactly="a,b,z" --default="_" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: &output-4-abz |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="_" z="_">
+      <sentence a="_" b="_" z="_">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" z="_">
+      <sentence a="_" b="1" z="_">
+      b
+      </sentence>
+      <sentence a="0" b="_" z="_">
+      c
+      </sentence>
+      </text>
+  transform:
+  - *transf-base
+  - *transf-stdin
+  - *transf-comma-space
+  - name: override --always
+    input:
+      cmdline:
+        replace: '/--exactly/--always="a,b,c" --exactly/'
+    output:
+      stderr: |
+        vrt-unify-attrs: Warning: --exactly overrides --always
+  - name: override --only
+    input:
+      cmdline:
+        replace: '/--exactly/--only="a,c" --exactly/'
+    output:
+      stderr: |
+        vrt-unify-attrs: Warning: --exactly overrides --only
+  - name: override --always --only
+    input:
+      cmdline:
+        replace: '/--exactly/--always="a,x" --only="a,c" --exactly/'
+    output:
+      stderr: |
+        vrt-unify-attrs: Warning: --exactly overrides --always
+        vrt-unify-attrs: Warning: --exactly overrides --only
+
+- name: 'vrt-unify-attrs: Structure-specific --exactly'
+  input:
+    cmdline: vrt-unify-attrs --default="_" --structure=sentence --exactly="a,b,z" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="_" c="d" d="_" e="x" f="_" g="w">
+      <sentence a="_" b="_" z="_">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="_" d="a" e="_" f="v" g="_">
+      <sentence a="_" b="1" z="_">
+      b
+      </sentence>
+      <sentence a="0" b="_" z="_">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: Default and structure-specific --exactly'
+  input:
+    cmdline: vrt-unify-attrs --exactly="b,c,y" --default="_" --structure=sentence --exactly="a,b,z" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: &output-4-bcy-abz |
+      <!-- #vrt positional-attributes: word -->
+      <text b="_" c="d" y="_">
+      <sentence a="_" b="_" z="_">
+      a
+      </sentence>
+      </text>
+      <text b="z" c="_" y="_">
+      <sentence a="_" b="1" z="_">
+      b
+      </sentence>
+      <sentence a="0" b="_" z="_">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: Structure-specific --exactly overrides global --only and --always'
+  input:
+    cmdline: vrt-unify-attrs --only="b,c,y" --always="y,z" --default="_" --structure=sentence --exactly="a,b,z" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text b="_" c="d" y="_" z="_">
+      <sentence a="_" b="_" z="_">
+      a
+      </sentence>
+      </text>
+      <text b="z" c="_" y="_" z="_">
+      <sentence a="_" b="1" z="_">
+      b
+      </sentence>
+      <sentence a="0" b="_" z="_">
+      c
+      </sentence>
+      </text>
+    stderr: |
+      vrt-unify-attrs: Warning: --exactly overrides --always (structure sentence)
+      vrt-unify-attrs: Warning: --exactly overrides --only (structure sentence)
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: Global --exactly overrides structure-specific --only and --always'
+  input:
+    cmdline: vrt-unify-attrs --exactly="a,b,z" --default="_" --structure=sentence --only="b,c,y" --always="y,z" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: *output-4-abz
+    stderr: |
+      vrt-unify-attrs: Warning: --exactly overrides --always (structure sentence)
+      vrt-unify-attrs: Warning: --exactly overrides --only (structure sentence)
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: Global --exactly overrides structure-specific --exactly and --only'
+  input:
+    cmdline: vrt-unify-attrs --default="_" --exactly="b,c,y" --only="c,d,y" --structure=sentence --exactly="a,b,z" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: *output-4-bcy-abz
+    stderr: |
+      vrt-unify-attrs: Warning: --exactly overrides --only
+      vrt-unify-attrs: Warning: --exactly overrides --only (structure sentence)
+  transform: *transform-stdin-comma

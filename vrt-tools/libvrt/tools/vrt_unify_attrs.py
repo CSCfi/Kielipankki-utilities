@@ -111,6 +111,10 @@ class VrtStructAttrUnifier(InputProcessor):
               '''output only attributes listed in attrlist (and occurring in
                  input or listed with --always); an empty value removes all
                  attributes'''),
+             ('--exactly = attrlist:attrlist',
+              '''always output only attributes listed in attrlist, shorthand
+                 for --always=attrlist --only=attrlist; overrides the values
+                 for --always and --only'''),
          ]),
     ]
 
@@ -141,7 +145,27 @@ class VrtStructAttrUnifier(InputProcessor):
                     + ', '.join(dupl.decode('UTF-8') for dupl in dupls),
                     exitcode=2)
 
+        def convert_exactly(args, struct=None):
+            """Convert --exactly to --always --only.
+
+            Warn if also --always or --only has been specified.
+            """
+            if args.exactly is not None:
+                warn_fmt = (
+                    '--exactly overrides {}'
+                    + (f' (structure {struct.decode("UTF-8")})' if struct
+                       else ''))
+                if args.always:
+                    self.warn(warn_fmt.format('--always'))
+                if args.only is not None:
+                    self.warn(warn_fmt.format('--only'))
+                args.always = args.exactly.copy()
+                args.only = args.exactly.copy()
+
+        if struct is None:
+            super().check_args(args)
         check_first_last_dupls(args, struct)
+        convert_exactly(args, struct)
         # Process structure-specific arguments
         if struct is None:
             for struct2, struct_args in args.structure.items():
