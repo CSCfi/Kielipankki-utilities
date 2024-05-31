@@ -213,46 +213,48 @@ class VrtStructAttrUnifier(InputProcessor):
 
         def unify_attrs(inf):
             """Write inf to ouf, structural attributes unified and sorted."""
-            order = make_order()
+            orders = make_orders()
             for line in inf:
                 if ml.ismeta(line) and ml.isstarttag(line):
-                    line = order_attrs(line, order)
+                    line = order_attrs(line, orders)
                 ouf.write(line)
 
-        def make_order():
+        def make_orders():
             """Return dict[list] containing attr order for each struct."""
-            order = {}
+            orders = {}
             for struct, attrs in struct_attrs.items():
-                opts = dict(
-                    (name, getarg(name, struct))
-                    for name in ['input_order', 'first', 'last', 'always',
-                                 'only'])
-                if opts['only'] is not None:
-                    attrs = OrderedDict((attr, None) for attr in attrs.keys()
-                                        if attr in set(opts['only']))
-                sortfn = (lambda x: x) if opts['input_order'] else sorted
-                attrs.update(dict((attr, None) for attr in opts['always']))
-                attrs = sortfn(list(attrs.keys()))
-                order[struct] = [
-                    attr for attr in opts['first'] if attr in attrs]
-                order[struct].extend(
-                    attr for attr in attrs
-                    if attr not in opts['first'] and attr not in opts['last'])
-                order[struct].extend(
-                    attr for attr in opts['last'] if attr in attrs)
+                orders[struct] = make_order(struct, attrs)
+            return orders
+
+        def make_order(struct, attrs):
+            """Return list containing order of attrs for struct."""
+            opts = dict(
+                (name, getarg(name, struct))
+                for name in ['input_order', 'first', 'last', 'always', 'only'])
+            if opts['only'] is not None:
+                attrs = OrderedDict((attr, None) for attr in attrs.keys()
+                                    if attr in set(opts['only']))
+            sortfn = (lambda x: x) if opts['input_order'] else sorted
+            attrs.update(dict((attr, None) for attr in opts['always']))
+            attrs = sortfn(list(attrs.keys()))
+            order = [attr for attr in opts['first'] if attr in attrs]
+            order.extend(
+                attr for attr in attrs
+                if attr not in opts['first'] and attr not in opts['last'])
+            order.extend(attr for attr in opts['last'] if attr in attrs)
             return order
 
-        def order_attrs(line, order):
-            """Return start tag line, attributes ordered according to order.
+        def order_attrs(line, orders):
+            """Return start tag line, attributes ordered according to orders.
 
-            order is a dict mapping structure (element) name to a list
+            orders is a dict mapping structure (element) name to a list
             of attribute names.
             """
             struct = ml.element(line)
             attrs = ml.mapping(line)
             default = getarg('default', struct)
             return ml.starttag(struct, ((name, attrs.get(name, default))
-                                        for name in order[struct]))
+                                        for name in orders[struct]))
 
         # Pass 1: Read input, collecting structural attribute names
         collect_attrs(inf, seekable_inf if write_tmp else None)
