@@ -21,6 +21,35 @@ from libvrt import metaline as ml
 from vrtargsoolib import InputProcessor
 
 
+# TODO: Move the following functions to a library module
+
+
+def encode_utf8(s):
+    """Argument type function converting str s to UTF-8 bytes."""
+    return s.encode('UTF-8')
+
+
+def attrlist(s):
+    """Argument type function for a list of unique attribute names.
+
+    The attributes in str s can be separated by commas or spaces.
+    Return a list of bytes.
+
+    Raise ArgumentTypeError if the attribute list contains
+    duplicates or if attribute names are invalid.
+    """
+    # Split by commas and spaces, and filter out empty strings
+    attrs = [attr for attr in re.split(r'[,\s]+', s or '') if attr]
+    for attr in attrs:
+        if not re.fullmatch(r'[_a-z][_a-z0-9]*', attr):
+            raise ArgumentTypeError(f'invalid attribute name: {attr}')
+    dupls = _find_duplicates(attrs)
+    if dupls:
+        raise ArgumentTypeError(
+            'duplicate attribute names: ' + ', '.join(dupls))
+    return [attr.encode('UTF-8') for attr in attrs]
+
+
 def _find_duplicates(*iters):
     """Return list of items occurring more than once in iterables *iters."""
     counts = Counter(chain(*iters))
@@ -85,37 +114,11 @@ class VrtStructAttrUnifier(InputProcessor):
          ]),
     ]
 
-    @staticmethod
-    def encode_utf8(s):
-        """Argument type function converting str s to UTF-8 bytes."""
-        return s.encode('UTF-8')
-
-    @staticmethod
-    def attrlist(s):
-        """Argument type function for a list of unique attribute names.
-
-        The attributes in str s can be separated by commas or spaces.
-        Return a list of bytes.
-
-        Raise ArgumentTypeError if the attribute list contains
-        duplicates or if attribute names are invalid.
-        """
-        # Split by commas and spaces, and filter out empty strings
-        attrs = [attr for attr in re.split(r'[,\s]+', s or '') if attr]
-        for attr in attrs:
-            if not re.fullmatch(r'[_a-z][_a-z0-9]*', attr):
-                raise ArgumentTypeError(f'invalid attribute name: {attr}')
-        dupls = _find_duplicates(attrs)
-        if dupls:
-            raise ArgumentTypeError(
-                'duplicate attribute names: ' + ', '.join(dupls))
-        return [attr.encode('UTF-8') for attr in attrs]
-
     def __init__(self):
-        # extra_types=... is needed for using the above static methods
-        # as the type in ARGSPECS (otherwise, type could be passed via
-        # a dict)
-        super().__init__(extra_types=self.__class__.__dict__)
+        # extra_types=... is needed for using module-level functions
+        # as types in ARGSPECS (otherwise, type could be passed via a
+        # dict)
+        super().__init__(extra_types=globals())
 
     def check_args(self, args, struct=None):
         """Check and modify args (parsed command line arguments).
