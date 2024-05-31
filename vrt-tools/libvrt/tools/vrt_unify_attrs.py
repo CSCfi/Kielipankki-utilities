@@ -66,10 +66,14 @@ class VrtStructAttrUnifier(InputProcessor):
     and sort the attributes alphabetically.
     """
     EPILOG = """
+    The tool reads the input twice unless --single-pass is specified.
     If the input is not a file, the tool writes the input to a
-    temporary file.
+    temporary file for the second pass.
     """
     ARGSPECS = [
+        ('--single-pass',
+         '''read the input only once and output the attributes specified with
+            --always (or --exactly)'''),
         ('#GROUPED structure-specific options',
          '''The following options can be specified multiple times: each
             occurrence applies to the --structure after which it is
@@ -182,7 +186,8 @@ class VrtStructAttrUnifier(InputProcessor):
         # to a seekable temporary file. Python 3.6.8 on Puhti seems to
         # return seekable() == True for stdin, so also test for name
         # "<stdin>".
-        write_tmp = not inf.seekable() or inf.name == '<stdin>'
+        write_tmp = (not args.single_pass
+                     and (not inf.seekable() or inf.name == '<stdin>'))
         seekable_inf = NamedTemporaryFile(delete=False) if write_tmp else inf
         seekable_inf_name = seekable_inf.name
 
@@ -201,6 +206,14 @@ class VrtStructAttrUnifier(InputProcessor):
 
         def collect_attrs(inf, ouf_tmp):
             """Read inf, collect struct attrs; write to ouf_tmp if not None."""
+            if args.single_pass:
+                # If --single-pass, do not collect attributes but use
+                # the attributes listed in --always
+                for struct, struct_args in args.structure.items():
+                    struct_attrs[struct] = (
+                        OrderedDict((name, None)
+                                    for name in struct_args.always))
+                return
             for line in inf:
                 if ml.ismeta(line) and ml.isstarttag(line):
                     add_attrs(line)
@@ -226,8 +239,16 @@ class VrtStructAttrUnifier(InputProcessor):
         def make_orders():
             """Return dict[list] containing attr order for each struct."""
             orders = {}
-            for struct, attrs in struct_attrs.items():
-                orders[struct] = make_order(struct, attrs)
+            if args.single_pass:
+                for struct, struct_args in args.structure.items():
+                    if struct_args.only is not None:
+                        orders[struct] = make_order(
+                            struct, orddict(struct_args.only))
+                if args.only is not None:
+                    orders[None] = make_order(None, orddict(args.only))
+            else:
+                for struct, attrs in struct_attrs.items():
+                    orders[struct] = make_order(struct, attrs)
             return orders
 
         def make_order(struct, attrs):
@@ -257,8 +278,13 @@ class VrtStructAttrUnifier(InputProcessor):
             struct = ml.element(line)
             attrs = ml.mapping(line)
             default = getarg('default', struct)
-            return ml.starttag(struct, ((name, attrs.get(name, default))
-                                        for name in orders[struct]))
+            if args.single_pass:
+                order = (orders.get(struct) or orders.get(None)
+                         or make_order(struct, orddict(attrs)))
+            else:
+                order = orders.get(struct)
+            return ml.starttag(
+                struct, ((name, attrs.get(name, default)) for name in order))
 
         # Pass 1: Read input, collecting structural attribute names
         collect_attrs(inf, seekable_inf if write_tmp else None)
@@ -268,5 +294,6 @@ class VrtStructAttrUnifier(InputProcessor):
             with open(seekable_inf_name, 'rb') as seekable_inf:
                 unify_attrs(seekable_inf)
         else:
-            seekable_inf.seek(0)
+            if not args.single_pass:
+                seekable_inf.seek(0)
             unify_attrs(seekable_inf)
