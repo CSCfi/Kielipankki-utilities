@@ -195,6 +195,10 @@ class VrtStructAttrUnifier(InputProcessor):
             return getattr(args.structure.get(struct), name,
                            getattr(args, name))
 
+        def orddict(iter_):
+            """Return OrderedDict, keys from iterable iter_, values None."""
+            return OrderedDict((item, None) for item in iter_)
+
         def collect_attrs(inf, ouf_tmp):
             """Read inf, collect struct attrs; write to ouf_tmp if not None."""
             for line in inf:
@@ -208,7 +212,7 @@ class VrtStructAttrUnifier(InputProcessor):
         def add_attrs(line):
             """Add attributes from start tag line to struct_attrs."""
             struct = ml.element(line)
-            attrs = OrderedDict((name, None) for name, _ in ml.pairs(line))
+            attrs = orddict(name for name, _ in ml.pairs(line))
             struct_attrs[struct].update(attrs)
 
         def unify_attrs(inf):
@@ -232,8 +236,8 @@ class VrtStructAttrUnifier(InputProcessor):
                 (name, getarg(name, struct))
                 for name in ['input_order', 'first', 'last', 'always', 'only'])
             if opts['only'] is not None:
-                attrs = OrderedDict((attr, None) for attr in attrs.keys()
-                                    if attr in set(opts['only']))
+                attrs = orddict(attr for attr in attrs.keys()
+                                if attr in set(opts['only']))
             sortfn = (lambda x: x) if opts['input_order'] else sorted
             attrs.update(dict((attr, None) for attr in opts['always']))
             attrs = sortfn(list(attrs.keys()))
