@@ -118,6 +118,27 @@ class ArgumentGrouping:
             setattr(defaults, arg.dest, getattr(namespace, arg.dest, None))
         return defaults
 
+    def _set_grouped_value(self, namespace, dest, value):
+        """Set `dest` to `value` in `namespace`.
+
+        Set the value of attribute `dest` in the namespace for the
+        current value of the grouping argument, or the default
+        namespace if no grouping argument has been encountered yet.
+        """
+        self._modify_grouped_value(namespace, dest, lambda x: value)
+
+    def _modify_grouped_value(self, namespace, dest, func):
+        """Set `dest` to `func(dest)` in `namespace`.
+
+        Modify the value of attribute `dest` to the value returned by
+        `func` for `dest` in the namespace for the current value of
+        the grouping argument, or the default namespace if no grouping
+        argument has been encountered yet.
+        """
+        namespace = self._get_grouping_namespace(namespace)
+        value = func(getattr(namespace, dest, None))
+        setattr(namespace, dest, value)
+
     def grouping_arg(outer_self):
         """Return a class to be used as an action for a grouping argument.
 
@@ -207,8 +228,7 @@ class ArgumentGrouping:
                 argument, or the default namespace if no grouping
                 argument has been encountered yet.
                 """
-                namespace = outer_self._get_grouping_namespace(namespace)
-                setattr(namespace, self.dest, value)
+                outer_self._set_grouped_value(namespace, self.dest, value)
 
             def _modify_value(self, namespace, func):
                 """Set `self.dest` to `func(self.dest)` in `namespace`.
@@ -219,9 +239,7 @@ class ArgumentGrouping:
                 default namespace if no grouping argument has been
                 encountered yet.
                 """
-                namespace = outer_self._get_grouping_namespace(namespace)
-                value = func(getattr(namespace, self.dest, None))
-                setattr(namespace, self.dest, value)
+                outer_self._modify_grouped_value(namespace, self.dest, func)
 
             def _append_value(self, namespace, value):
                 """Append `value` to `self.dest` in `namespace`.
