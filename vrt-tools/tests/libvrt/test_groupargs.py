@@ -26,11 +26,14 @@ class TestArgumentGrouping:
         ap.add_argument('--bb', action=ag.grouped_arg())
         argstr = '--grp=a --aa=a1 --bb=b1 --grp=b --aa=a2'
         args = ap.parse_args(argstr.split())
+        assert args._explicit == set()
         assert args.grp
         assert args.grp['a'].aa == 'a1'
         assert args.grp['a'].bb == 'b1'
+        assert args.grp['a']._explicit == {'aa', 'bb'}
         assert args.grp['b'].aa == 'a2'
         assert args.grp['b'].bb == None
+        assert args.grp['b']._explicit == {'aa'}
 
     def test_argument_grouping_defaults(self):
         """Test ArgumentGrouping default values."""
@@ -42,16 +45,20 @@ class TestArgumentGrouping:
         ap.add_argument('--cc', action=ag.grouped_arg())
         argstr = '--bb=b0 --grp=a --aa=a1 --bb=b1 --grp=b --aa=a2 --grp=c'
         args = ap.parse_args(argstr.split())
+        assert args._explicit == {'bb'}
         assert args.grp
         assert args.grp['a'].aa == 'a1'
         assert args.grp['a'].bb == 'b1'
         assert args.grp['a'].cc == None
+        assert args.grp['a']._explicit == {'aa', 'bb'}
         assert args.grp['b'].aa == 'a2'
         assert args.grp['b'].bb == 'b0'
         assert args.grp['b'].cc == None
+        assert args.grp['b']._explicit == {'aa'}
         assert args.grp['c'].aa == 'a'
         assert args.grp['c'].bb == 'b0'
         assert args.grp['c'].cc == None
+        assert args.grp['c']._explicit == set()
 
     def test_non_grouped_args(self):
         """Test non-grouped arguments."""
@@ -62,9 +69,12 @@ class TestArgumentGrouping:
         ap.add_argument('--xx')
         argstr = '--grp=a --aa=a1 --grp=b --aa=a2 --xx=x'
         args = ap.parse_args(argstr.split())
+        assert args._explicit == set()
         assert args.grp
         assert args.grp['a'].aa == 'a1'
+        assert args.grp['a']._explicit == {'aa'}
         assert args.grp['b'].aa == 'a2'
+        assert args.grp['b']._explicit == {'aa'}
         assert args.xx == 'x'
         for key in ['a', 'b']:
             with pytest.raises(AttributeError):
@@ -83,16 +93,21 @@ class TestArgumentGrouping:
         ap.add_argument('--dd', action=ag2.grouped_arg())
         argstr = '--g1=a --aa=a1 --g2=c --bb=b1 --cc=c1 --g1=b --g2=d --cc=c2 --dd=d2 --aa=a2'
         args = ap.parse_args(argstr.split())
+        assert args._explicit == set()
         assert args.g1
         assert args.g1['a'].aa == 'a1'
         assert args.g1['a'].bb == 'b1'
+        assert args.g1['a']._explicit == {'aa', 'bb'}
         assert args.g1['b'].aa == 'a2'
         assert args.g1['b'].bb == None
+        assert args.g1['b']._explicit == {'aa'}
         assert args.g2
         assert args.g2['c'].cc == 'c1'
         assert args.g2['c'].dd == None
+        assert args.g2['c']._explicit == {'cc'}
         assert args.g2['d'].cc == 'c2'
         assert args.g2['d'].dd == 'd2'
+        assert args.g2['d']._explicit == {'cc', 'dd'}
 
     def test_two_grouping_arg_error(self):
         """Test that two grouping_arg calls raise ArgumentError."""
@@ -112,13 +127,17 @@ class TestArgumentGrouping:
         ap.add_argument('--bb', action=grouped_arg())
         argstr = '--bb=b0 --grp=a --aa=a1 --bb=b1 --grp=b --aa=a2 --grp=c'
         args = ap.parse_args(argstr.split())
+        assert args._explicit == {'bb'}
         assert args.grp
         assert args.grp['a'].aa == 'a1'
         assert args.grp['a'].bb == 'b1'
+        assert args.grp['a']._explicit == {'aa', 'bb'}
         assert args.grp['b'].aa == 'a2'
         assert args.grp['b'].bb == 'b0'
+        assert args.grp['b']._explicit == {'aa'}
         assert args.grp['c'].aa == 'a'
         assert args.grp['c'].bb == 'b0'
+        assert args.grp['c']._explicit == set()
 
     def test_convenience_funcs_grouping_arg_already_used(self):
         """Test that convenience functions support only one grouping."""
@@ -143,16 +162,20 @@ class TestArgumentGroupingGroupedActions:
         ap.add_argument('--cc', action=ag.grouped_arg('store'))
         argstr = '--bb=b0 --grp=a --aa=a1 --bb=b1 --grp=b --aa=a2 --grp=c'
         args = ap.parse_args(argstr.split())
+        assert args._explicit == {'bb'}
         assert args.grp
         assert args.grp['a'].aa == 'a1'
         assert args.grp['a'].bb == 'b1'
         assert args.grp['a'].cc == None
+        assert args.grp['a']._explicit == {'aa', 'bb'}
         assert args.grp['b'].aa == 'a2'
         assert args.grp['b'].bb == 'b0'
         assert args.grp['b'].cc == None
+        assert args.grp['b']._explicit == {'aa'}
         assert args.grp['c'].aa == 'a'
         assert args.grp['c'].bb == 'b0'
         assert args.grp['c'].cc == None
+        assert args.grp['c']._explicit == set()
 
     def test_store_const(self):
         """Test action "store_const"."""
@@ -167,10 +190,14 @@ class TestArgumentGroupingGroupedActions:
                         action=ag.grouped_arg('store_const'))
         argstr = '--bb --grp=a --aa --bb --grp=b --aa --grp=c'
         args = ap.parse_args(argstr.split())
+        assert args._explicit == {'x'}
         assert args.grp
         assert args.grp['a'].x == 'bb'
+        assert args.grp['a']._explicit == {'x'}
         assert args.grp['b'].x == 'aa'
+        assert args.grp['b']._explicit == {'x'}
         assert args.grp['c'].x == 'bb'
+        assert args.grp['c']._explicit == set()
 
     @pytest.mark.parametrize(
         "action,default,stored",
@@ -188,15 +215,19 @@ class TestArgumentGroupingGroupedActions:
         argstr = '--bb --grp=a --aa --bb --grp=b --aa --grp=c'
         args = ap.parse_args(argstr.split())
         assert args.grp
+        assert args._explicit == {'bb'}
         assert args.grp['a'].aa == stored
         assert args.grp['a'].bb == stored
         assert args.grp['a'].cc == default
+        assert args.grp['a']._explicit == {'aa', 'bb'}
         assert args.grp['b'].aa == stored
         assert args.grp['b'].bb == stored
         assert args.grp['b'].cc == default
+        assert args.grp['b']._explicit == {'aa'}
         assert args.grp['c'].aa == default
         assert args.grp['c'].bb == stored
         assert args.grp['c'].cc == default
+        assert args.grp['c']._explicit == set()
 
     def test_append(self):
         """Test action "append"."""
@@ -208,16 +239,20 @@ class TestArgumentGroupingGroupedActions:
         ap.add_argument('--cc', action=ag.grouped_arg('append'))
         argstr = '--bb=b0 --grp=a --aa=a1 --bb=b1 --grp=b --aa=a2 --aa=a3 --grp=c'
         args = ap.parse_args(argstr.split())
+        assert args._explicit == {'bb'}
         assert args.grp
         assert args.grp['a'].aa == ['a', 'a1']
         assert args.grp['a'].bb == ['b0', 'b1']
         assert args.grp['a'].cc == None
+        assert args.grp['a']._explicit == {'aa', 'bb'}
         assert args.grp['b'].aa == ['a', 'a2', 'a3']
         assert args.grp['b'].bb == ['b0']
         assert args.grp['b'].cc == None
+        assert args.grp['b']._explicit == {'aa'}
         assert args.grp['c'].aa == ['a']
         assert args.grp['c'].bb == ['b0']
         assert args.grp['c'].cc == None
+        assert args.grp['c']._explicit == set()
 
     def test_append_const(self):
         """Test action "append_const"."""
@@ -232,10 +267,14 @@ class TestArgumentGroupingGroupedActions:
                         action=ag.grouped_arg('append_const'))
         argstr = '--bb --grp=a --aa --bb --grp=b --aa --grp=c'
         args = ap.parse_args(argstr.split())
+        assert args._explicit == {'x'}
         assert args.grp
         assert args.grp['a'].x == ['bb', 'aa', 'bb']
+        assert args.grp['a']._explicit == {'x'}
         assert args.grp['b'].x == ['bb', 'aa']
+        assert args.grp['b']._explicit == {'x'}
         assert args.grp['c'].x == ['bb']
+        assert args.grp['c']._explicit == set()
 
     def test_count(self):
         """Test action "count"."""
@@ -247,16 +286,20 @@ class TestArgumentGroupingGroupedActions:
         ap.add_argument('--cc', action=ag.grouped_arg('count'))
         argstr = '--bb --grp=a --aa --bb --grp=b --aa --aa --grp=c'
         args = ap.parse_args(argstr.split())
+        assert args._explicit == {'bb'}
         assert args.grp
         assert args.grp['a'].aa == 2
         assert args.grp['a'].bb == 2
         assert args.grp['a'].cc == None
+        assert args.grp['a']._explicit == {'aa', 'bb'}
         assert args.grp['b'].aa == 3
         assert args.grp['b'].bb == 1
         assert args.grp['b'].cc == None
+        assert args.grp['b']._explicit == {'aa'}
         assert args.grp['c'].aa == 1
         assert args.grp['c'].bb == 1
         assert args.grp['c'].cc == None
+        assert args.grp['c']._explicit == set()
 
     def test_extend(self):
         """Test action "extend"."""
@@ -269,15 +312,19 @@ class TestArgumentGroupingGroupedActions:
         argstr = '--bb b0 --grp=a --aa a1 --bb b1 --grp=b --aa a2 a3 --grp=c'
         args = ap.parse_args(argstr.split())
         assert args.grp
+        assert args._explicit == {'bb'}
         assert args.grp['a'].aa == ['a', 'a1']
         assert args.grp['a'].bb == ['b', '0', 'b', '1']
         assert args.grp['a'].cc == None
+        assert args.grp['a']._explicit == {'aa', 'bb'}
         assert args.grp['b'].aa == ['a', 'a2', 'a3']
         assert args.grp['b'].bb == ['b', '0']
         assert args.grp['b'].cc == None
+        assert args.grp['b']._explicit == {'aa'}
         assert args.grp['c'].aa == ['a']
         assert args.grp['c'].bb == ['b', '0']
         assert args.grp['c'].cc == None
+        assert args.grp['c']._explicit == set()
 
     def test_unknown_action(self):
         """Test unknown action name."""
