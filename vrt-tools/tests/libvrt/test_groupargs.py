@@ -68,7 +68,7 @@ class TestArgumentGrouping:
         assert args.xx == 'x'
         for key in ['a', 'b']:
             with pytest.raises(AttributeError):
-                assert args.grp[key].x
+                assert args.grp[key].xx
 
     def test_two_argument_groupings(self):
         """Test two ArgumentGroupings."""
