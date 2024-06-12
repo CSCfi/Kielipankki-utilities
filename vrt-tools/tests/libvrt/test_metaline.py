@@ -6,6 +6,8 @@ Pytest tests for libvrt.metaline.
 """
 
 
+from collections import OrderedDict
+
 import pytest
 
 import libvrt.metaline as ml
@@ -56,6 +58,43 @@ class TestElement:
     def test_strelement_endtag(self, input, expected):
         """Test strelement() for an end tag."""
         assert ml.strelement(input) == expected
+
+
+@pytest.mark.parametrize(
+    'attrs,sort,expected',
+    [
+        ([], False, '<elem>\n'),
+        ([], True, '<elem>\n'),
+        ([('a', 'b')], False, '<elem a="b">\n'),
+        ([('a', 'b')], True, '<elem a="b">\n'),
+        ([('a', 'b'), ('b', 'c')], False, '<elem a="b" b="c">\n'),
+        ([('a', 'b'), ('b', 'c')], True, '<elem a="b" b="c">\n'),
+        ([('b', 'b'), ('a', 'c')], False, '<elem b="b" a="c">\n'),
+        ([('b', 'b'), ('a', 'c')], True, '<elem a="c" b="b">\n'),
+    ])
+class TestStartTag:
+
+    """Tests for functions starttag, strstarttag."""
+
+    def test_starttag_dict(self, attrs, sort, expected):
+        """Test starttag() with an OrderedDict."""
+        attrdict = OrderedDict((key.encode('UTF-8'), val.encode('UTF-8'))
+                               for key, val in attrs)
+        assert ml.starttag(b'elem', attrdict, sort) == expected.encode('UTF-8')
+
+    def test_starttag_pairlist(self, attrs, sort, expected):
+        """Test starttag() with a list of pairs."""
+        attrdict = [(key.encode('UTF-8'), val.encode('UTF-8'))
+                    for key, val in attrs]
+        assert ml.starttag(b'elem', attrdict, sort) == expected.encode('UTF-8')
+
+    def test_strstarttag_dict(self, attrs, sort, expected):
+        """Test strstarttag() with an OrderedDict."""
+        assert ml.strstarttag('elem', OrderedDict(attrs), sort) == expected
+
+    def test_strstarttag_pairlist(self, attrs, sort, expected):
+        """Test strstarttag() with a list of pairs."""
+        assert ml.strstarttag('elem', attrs, sort) == expected
 
 
 @pytest.mark.parametrize('line,expected',

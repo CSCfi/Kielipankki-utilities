@@ -1,0 +1,18 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+"""
+vrt-unify-attrs
+
+A VRT tool to unify structural attributes (annotations) within a
+single input: add missing attributes and sort them to the same order.
+
+The actual implementation is in libvrt.tools.vrt_unify_attrs.
+"""
+
+
+from libvrt.tools.vrt_unify_attrs import VrtStructAttrUnifier
+
+
+if __name__ == '__main__':
+    VrtStructAttrUnifier().run()

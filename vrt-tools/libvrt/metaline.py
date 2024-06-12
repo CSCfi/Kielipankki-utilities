@@ -141,8 +141,9 @@ def strescape(value):
     )
 
 def starttag(struct, attrs, sort=False):
-    '''Start tag line for struct (bytes) with attrs (dict[bytes, bytes]).
+    '''Start tag line for struct (bytes) with attrs (bytes, bytes).
 
+    attrs can be either a dict or a list of pairs (name, value).
     attrs should be an OrderedDict to preserve attribute order for
     Python versions prior to 3.8.
 
@@ -153,21 +154,27 @@ def starttag(struct, attrs, sort=False):
 
     '''
 
-    sortfn = sorted if sort else lambda x: x
     attrstr = b' '.join(name + b'="' + val + b'"'
-                        for name, val in sortfn(attrs.items()))
+                        for name, val in _get_attrs(attrs, sort))
     return b'<' + struct + (b' ' + attrstr if attrstr else b'') + b'>\n'
 
+def _get_attrs(attrs, sort=False):
+    '''Return items from attrs (dict or list of pairs), sorted if sort.'''
+    try:
+        items = attrs.items()
+    except AttributeError:
+        items = attrs
+    return sorted(items) if sort else items
+
 def strstarttag(struct, attrs, sort=False):
-    '''Start tag line for struct (str) with attrs (dict[str, str]).
+    '''Start tag line for struct (str) with attrs (str, str).
 
     This works the same way for strings as starttag for bytes.
 
     '''
 
-    sortfn = sorted if sort else lambda x: x
     attrstr = ' '.join(name + '="' + val + '"'
-                       for name, val in sortfn(attrs.items()))
+                       for name, val in _get_attrs(attrs, sort))
     return '<' + struct + (' ' + attrstr if attrstr else '') + '>\n'
 
 def ismeta(line):
