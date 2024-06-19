@@ -73,7 +73,7 @@ The task category marker is an italicized (slanted) and bolded character string.
 
 - _*MANAGE*_: general management and coordination of the corpus publication process and the related tasks (requires Jira permissions)
 - _*SUPPORT*_: advising and communicating with the data depositor (requires knowledge of data management practices and the applicable instructions)
-- _*META*_: metadata editing & curation (requires META-SHARE permissions)
+- _*META*_: metadata editing & curation (requires login + membership of the group FIN-CLARIN on COMEDI)
 - _*DISCUSS*_: Decisions about priorities, schedule and distribution of work (often requires a team meeting and/or consultation with leadership)
 - _*AGREEMENT*_: negotiations and administration regarding deposition agreements, license conditions, data protection practices etc. (requires legal knowledge, may require the opinion of a legal expert at UHEL, requires write access to the contract register at UHEL)
 - _*LEGAL*_: Legal decisions and formal contracts involving the University of Helsinki (requires a meeting with a legal expert)
@@ -125,20 +125,20 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ```
 # [ ] _*+MANAGE*_ Insert relevant parts of this task list in the resource publication Epic (sections under linked Jira Stories)
-# [ ] _*+META*_ Create and publish a preliminary META-SHARE record (skeletal information only) for the source version, which is ususally the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+GITHUB*_ Request a URN for the META-SHARE record
+# [ ] _*+META*_ Create and publish a preliminary COMEDI record (skeletal information only) for the source version, which is ususally the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+GITHUB*_ Request a URN for the COMEDI record
 # [ ] _*+GITHUB*_ Request URNs for license pages 
-# [ ] _*+META*_ Update the META-SHARE record with the URN
+# [ ] _*+META*_ Update the COMEDI record with the URN
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure the resource is displayed on the list of upcoming corpora
-# [ ] _*+META*_ Add citation information to the META-SHARE record
+# [ ] _*+META*_ Add citation information to the COMEDI record
 \\
 ```
 
 ### _shortname_: Plan the publication process with the depositor
 
 ```
-# [ ] _*+META*_ Review the META-SHARE record and fix the preliminary translations, at least for the time being
-# [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title, confirm the list of authors/creators if required)
+# [ ] _*+META*_ Review the COMEDI record and fix the preliminary translations, at least for the time being
+# [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the COMEDI record (finalize shortname and title, confirm the list of authors/creators if required)
 # [ ] _*?SUPPORT*_ Inform the depositor about citation practices, if relevant
 # [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
 # [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the data
@@ -180,7 +180,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?PORTAL*_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
 # [ ] _*?A*_ If required, request URNs for the PRIV condition pages
 # [ ] _*+PORTAL*_ Update the license PIDs in the resource database
-# [ ] _*+META*_ Create/update the META-SHARE record, including the license information [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/] and the people to be cited
+# [ ] _*+META*_ Create/update the COMEDI record, including the license information [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/] and the people to be cited
 # [ ] _*+PORTAL*_ In case the resource has a RES license, add it to the page Katselmointiprosessi (https://www.kielipankki.fi/intra/katselmointiprosessi/)
 # [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
 \\
@@ -206,8 +206,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Prepare for publishing the source data in Download
 
 ```
-# [ ] _*+META*_ Create or update the META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+GITHUB*_ Request access location URN for download version (and check that the URNs for META-SHARE and license pages are available and working)
+# [ ] _*+META*_ Create or update the COMEDI record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+GITHUB*_ Request access location URN for download version (and check that the URNs for COMEDI and license pages are available and working)
 # [ ] _*+DB*_ Make sure that the corpus is on the list of upcoming resources and citable, and update the resource database if required
 \\
 ```
@@ -234,11 +234,11 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
-# [ ] _*+META*_ Update the META-SHARE record: (update and) add the location PID and add the Availability start date (under Distribution)
+# [ ] _*+META*_ Update the COMEDI record: (update and) add the location PID and add the Availability start date (under Distribution)
 # [ ] _*?PORTAL*_ If applicable, add the new resource version to the license page of the previous versions [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
-# [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
-# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the META-SHARE record also contains a link to the resource group page
-# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
+# [ ] _*?META*_ Update the COMEDI record: add relations to previous or parallel versions/variants of the corpus
+# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the COMEDI record also contains a link to the resource group page
+# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the COMEDI record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
 # [ ] _*?SUPPORT*_ Inform the depositor/rightholder about the publication
 \\
@@ -258,11 +258,11 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Prepare for publishing the resource in Korp
 
 ```
-# [ ] _*+META*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+GITHUB*_ Request URNs (for META-SHARE, Korp, license pages)
+# [ ] _*+META*_ Create a COMEDI record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+GITHUB*_ Request URNs (for COMEDI, Korp, license pages)
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure it is on the list of upcoming resources and citable
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
-# [ ] _*+META*_ Add citation information to the META-SHARE record
+# [ ] _*+META*_ Add citation information to the COMEDI record
 \\
 ```
 
@@ -341,12 +341,12 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published (add status "beta" to the name!)
-# [ ] _*+META*_ Update META-SHARE record; add location PID and Availability start date (under Distribution)
-# [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
-# [ ] _*?META*_ Update the META-SHARE record: add annotation information and tools used during the corpus processing pipeline
-# [ ] _*+META*_ Add "beta" status information to META-SHARE record
+# [ ] _*+META*_ Update COMEDI record; add location PID and Availability start date (under Distribution)
+# [ ] _*?META*_ Update the COMEDI record: add relations to previous or parallel versions/variants of the corpus
+# [ ] _*?META*_ Update the COMEDI record: add annotation information and tools used during the corpus processing pipeline
+# [ ] _*+META*_ Add "beta" status information to COMEDI record
 # [ ] _*+PORTAL*_ Add "beta" status information to the resource group page
-# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
+# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the COMEDI record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
 # [ ] _*+PORTAL*_ Publish news about this new corpus in the portal
 # [ ] _*?SUPPORT*_ Inform corpus owner and possibly interested researchers on the corpus in Korp and ask them to test it
 \\
@@ -366,7 +366,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Announce the removal of beta status after publishing in Korp
 
 ```
-## [ ] _*+META*_ Remove beta status from the META-SHARE record
+## [ ] _*+META*_ Remove beta status from the COMEDI record
 ## [ ] _*+PORTAL*_ Remove beta status from the resource group page (and the resource database if needed)
 \\
 ```
@@ -379,12 +379,12 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Prepare for publishing the VRT data in Download
 
 ```
-# [ ] _*+META*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+GITHUB*_ Request URNs (for META-SHARE, download, license pages)
+# [ ] _*+META*_ Create a COMEDI record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+GITHUB*_ Request URNs (for COMEDI, download, license pages)
 # [ ] _*+DB*_ Add the details of the corpus variant to the resource database, status "upcoming"
 # [ ] _*+PORTAL*_ Create/update the license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*+DB*_ Link the corpus variant with the correct license row in the resource database
-# [ ] _*+META*_ Add citation information to the META-SHARE record
+# [ ] _*+META*_ Add citation information to the COMEDI record
 \\
 ```
 
@@ -408,11 +408,11 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Announce the publication of the VRT data in Download
 ```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
-# [ ] _*+META*_ Update the META-SHARE record; add location PID and Availability start date (under Distribution)
-# [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
+# [ ] _*+META*_ Update the COMEDI record; add location PID and Availability start date (under Distribution)
+# [ ] _*?META*_ Update the COMEDI record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+PORTAL*_ Create or update the resource group page
-## [ ] _*?META*_ If the package was published as beta (during the beta stage of the corresponding Korp corpus), remove beta status from the META-SHARE record and resource group page
-# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
+## [ ] _*?META*_ If the package was published as beta (during the beta stage of the corresponding Korp corpus), remove beta status from the COMEDI record and resource group page
+# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the COMEDI record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
 # [ ] _*?SUPPORT*_ Inform the depositor/rightholder and interested researchers about the VRT publication
 \\
