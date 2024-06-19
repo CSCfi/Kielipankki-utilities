@@ -27,25 +27,28 @@ Enter a new resource to the pipeline
 # [ ] _shortname_: Acquire the original data
 
 Publish the source data in Download
-# [ ] _shortname_: Prepare to publish the source data in Download
-# [ ] _shortname_: Package the source data
-# [ ] _shortname_: Publish the source data in Download
+# [ ] _shortname_: Prepare for publishing the source data in Download
+# [ ] _shortname_: Package and upload the source data
+# [ ] _shortname_: Announce the publication of the source data in Download
+# [ ] _shortname_: Clean up after publishing the source data in Download
 
 Publish the resource in Korp
-# [ ] _shortname_: Prepare publishing the resource in Korp
+# [ ] _shortname_: Prepare for publishing the resource in Korp
 # [ ] _shortname_: Convert the data for publishing the resource in Korp
 # [ ] _shortname_: Parse the data for publishing the resource in Korp
 # [ ] _shortname_: Create a Korp corpus package (korp-make)
 # [ ] _shortname_: Create the Korp corpus configuration
 # [ ] _shortname_: Create a Korp test version
 # [ ] _shortname_: Publish the corpus in Korp as beta
-# [ ] _shortname_: Announce the new Korp corpus as beta
-# [ ] _shortname_: Remove beta status
+# [ ] _shortname_: Announce the publication of the new Korp corpus as beta
+# [ ] _shortname_: Remove beta status and clean up after publishing in Korp
+# [ ] _shortname_: Announce the removal of beta status after publishing in Korp
 
 Publish the VRT data in Download
-# [ ] _shortname_: Prepare publishing the VRT data in Download
-# [ ] _shortname_: Package the VRT data
-# [ ] _shortname_: Publish the VRT data in Download
+# [ ] _shortname_: Prepare for publishing the VRT data in Download
+# [ ] _shortname_: Package and upload the VRT data
+# [ ] _shortname_: Announce the publication of the VRT data in Download
+# [ ] _shortname_: Clean up after publishing the VRT in Download (remove beta status if needed) 
 ```
 
    - Again, replace "_shortname_" with the short name of the resource in question.
@@ -415,7 +418,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Clean up after publishing the downloadable VRT (remove beta status if needed) 
+### _shortname_: Clean up after publishing the VRT in Download (remove beta status if needed) 
 ```
 # [ ] _*?PUHTI*_ If the package was published as beta (during the beta stage of the corresponding Korp corpus), remove the beta status after removing the beta status from Korp
 ## [ ] _*?PUHTI*_ Create a new download package with the beta status removed from the readme file and file names
