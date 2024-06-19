@@ -27,7 +27,7 @@ Enter a new resource to the pipeline
 # [ ] _shortname_: Acquire the original data
 
 Publish the source data in Download
-# [ ] _shortname_: Prepare publishing the source data in Download
+# [ ] _shortname_: Prepare to publish the source data in Download
 # [ ] _shortname_: Package the source data
 # [ ] _shortname_: Publish the source data in Download
 
@@ -177,7 +177,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?PORTAL*_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
 # [ ] _*?A*_ If required, request URNs for the PRIV condition pages
 # [ ] _*+PORTAL*_ Update the license PIDs in the resource database
-# [ ] _*+META*_ Create/update the META-SHARE record, including the license information [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+META*_ Create/update the META-SHARE record, including the license information [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/] and the people to be cited
 # [ ] _*+PORTAL*_ In case the resource has a RES license, add it to the page Katselmointiprosessi (https://www.kielipankki.fi/intra/katselmointiprosessi/)
 # [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
 \\
@@ -200,7 +200,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ***Publish the source data in Download***
 
-### _shortname_: Prepare to publish the source data in Download
+### _shortname_: Prepare for publishing the source data in Download
 
 ```
 # [ ] _*+META*_ Create or update the META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
@@ -209,7 +209,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Package the source data
+### _shortname_: Package and upload the source data
 
 ```
 # [ ] _*?IDA*_ Get the original data from IDA
@@ -227,7 +227,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Publish the source data in Download
+### _shortname_: Announce the publication of the source data in Download
 
 ```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
@@ -238,6 +238,11 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
 # [ ] _*?SUPPORT*_ Inform the depositor/rightholder about the publication
+\\
+```
+
+### _shortname_: Clean up after publishing the source data
+```
 # [ ] _*?CSC*_ Ask Martin (CSC) to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti if the source data is to be published there
 # [ ] _*+PUHTI*_ Remove the download package, MD5 checksum file and readme and license files from the directory {{/scratch/clarin/download_preview}} on Puhti
 \\
@@ -247,7 +252,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ***Publish the resource in Korp***
 
-### _shortname_: Prepare to publish the resource in Korp
+### _shortname_: Prepare for publishing the resource in Korp
 
 ```
 # [ ] _*+META*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
@@ -329,7 +334,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Announce the new Korp corpus as beta
+### _shortname_: Announce the publication of the new Korp corpus as beta
 
 ```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published (add status "beta" to the name!)
@@ -344,35 +349,43 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Remove beta status
-
+### _shortname_: Remove beta status and clean up after publishing in Korp 
 ```
 # [ ] _*?DATA*_ Fix corpus data based on feedback and re-publish (if needed)
 # [ ] _*?KORP*_ Fix corpus configuration in Korp and re-publish (if needed)
 # [ ] _*+KORP*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
 ## [ ] _*+KORP*_ Remove beta status from Korp configuration ({{{}master{}}}), push and install the updated {{master}}
-## [ ] _*+META*_ Remove beta status from the META-SHARE record and resource group page
 # [ ] _*+TEST*_ Remove the corpus from the testing environment of Korp (Korp test version)
 # [ ] _*+PUHTI*_ Remove any corpus data, used or created during the conversion process, from scratch on Puhti (usually the person who ran korp-make should take care of this)
 \\
 ```
 
+### _shortname_: Announce the removal of beta status after publishing in Korp
+
+```
+## [ ] _*+META*_ Remove beta status from the META-SHARE record
+## [ ] _*+PORTAL*_ Remove beta status from the resource group page (and the resource database if needed)
+\\
+```
+
+
 ***
 
 ***Publish the VRT data in Download***
 
-### _shortname_: Prepare publishing the VRT data in Download
+### _shortname_: Prepare for publishing the VRT data in Download
 
 ```
 # [ ] _*+META*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request URNs (for META-SHARE, download, license pages)
 # [ ] _*+DB*_ Add the details of the corpus variant to the resource database, status "upcoming"
-# [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
+# [ ] _*+PORTAL*_ Create/update the license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
+# [ ] _*+DB*_ Link the corpus variant with the correct license row in the resource database
 # [ ] _*+META*_ Add citation information to the META-SHARE record
 \\
 ```
 
-### _shortname_: Package the VRT data
+### _shortname_: Package and upload the VRT data
 
 ```
 # [ ] _*+KORP*_ Extract the data from Korp (unless more recent content can be acquired in VRT format from outside Korp)
@@ -389,21 +402,27 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Publish the VRT data in Download
+### _shortname_: Announce the publication of the VRT data in Download
 ```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
 # [ ] _*+META*_ Update the META-SHARE record; add location PID and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+PORTAL*_ Create or update the resource group page
+## [ ] _*?META*_ If the package was published as beta (during the beta stage of the corresponding Korp corpus), remove beta status from the META-SHARE record and resource group page
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
-# [ ] _*?SUPPORT*_ Inform the depositor/rightholder about the VRT publication
+# [ ] _*?SUPPORT*_ Inform the depositor/rightholder and interested researchers about the VRT publication
+\\
+```
+
+### _shortname_: Clean up after publishing the downloadable VRT (remove beta status if needed) 
+```
 # [ ] _*?PUHTI*_ If the package was published as beta (during the beta stage of the corresponding Korp corpus), remove the beta status after removing the beta status from Korp
 ## [ ] _*?PUHTI*_ Create a new download package with the beta status removed from the readme file and file names
 ## [ ] _*?PUHTI*_ Compute MD5 checksum for the zip package
 ## [ ] _*?CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
-## [ ] _*?META*_ Remove beta status from the META-SHARE record and resource group page
 # [ ] _*?CSC*_ Ask Martin to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti (if the corpus is PUB or ACA)
 # [ ] _*+PUHTI*_ Remove the download package, MD5 checksum file and readme and license files from the directory {{/scratch/clarin/download_preview}} on Puhti
 \\
 ```
+
