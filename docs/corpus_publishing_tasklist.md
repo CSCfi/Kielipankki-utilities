@@ -125,8 +125,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ```
 # [ ] _*+MANAGE*_ Insert relevant parts of this task list in the resource publication Epic (sections under linked Jira Stories)
-# [ ] _*+META*_ Create and publish a preliminary COMEDI record (skeletal information only) for the source version, which is ususally the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request a URN for the COMEDI record
+# [ ] _*+META*_ Create and publish a preliminary COMEDI record (skeletal information only) for the source version, which is ususally the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request URNs for license pages 
 # [ ] _*+META*_ Update the COMEDI record with the URN
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure the resource is displayed on the list of upcoming corpora
