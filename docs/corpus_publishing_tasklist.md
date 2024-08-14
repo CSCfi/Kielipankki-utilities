@@ -158,7 +158,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*?SUPPORT*_ Find out how the depositor informed the data subjects about the purpose of processing and to what the participants gave their permission/consent (is Kielipankki or similar mentioned?)
 ## [ ] _*?AGREEMENT*_ Ask the depositor to show their data protection information sheet (or the documents that passed ethical review, if applicable)
 ## [ ] _*?AGREEMENT*_ Obtain (or create) a description of the personal data categories that are included in the corpus
-## [ ] _*?AGREEMENT*_ Find out [if some further risk assessment or a DPIA was/is required, especially regarding potential distribution via Kielipankki | https://www.kielipankki.fi/support/pre-dpia/] and discuss further actions with the depositor if necessary
+## [ ] _*?AGREEMENT*_ Find out [if some further risk assessment or a DPIA is required, especially regarding potential distribution via Kielipankki | https://www.kielipankki.fi/support/pre-dpia/] and discuss further actions with the depositor if necessary
 ## [ ] _*?SUPPORT*_ Provide the depositor with further references regarding [personal data minimization and safeguards | https://www.kielipankki.fi/support/protective-measures/] that may be applied prior to submitting the corpus for distribution
 # [ ] _*+AGREEMENT*_ Make a copy of the [deposition agreement template | https://helsinkifi-my.sharepoint.com/:f:/r/personal/lennes_ad_helsinki_fi/Documents/Kielipankin%20sopimusasiat/DELA%20-%20Sopimuspohjat?csf=1&web=1&e=zRNnQQ] into a new folder (labeled as shortname) and prepare a preliminary version of the documents for discussion
 ## [ ] _*?AGREEMENT*_ Make arrangements to meet the depositor about the details of the deposition agreement
