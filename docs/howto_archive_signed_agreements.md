@@ -37,6 +37,8 @@ In case you cannot login to the contract register, update the relevant details t
 
 [Login to the contract register] (https://sopimus.helsinki.fi/)
 
+From the list of folders on the left, open "H402 Digitaalisten ihmistieteiden osasto" under "Humanistinen tiedekunta".
+
 1. On the top left corner, select **Uusi dokumentti** > **Tallenna tiedosto**.
 
 Add the PDF file including the signed agreement and click on **Lataa tiedosto uuteen dokumenttiin**.
