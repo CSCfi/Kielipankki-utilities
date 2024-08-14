@@ -27,4 +27,5 @@ The naming conventions for a base data package is: shortname-korp_yyyymmdd.zip +
 Agreements should be stored in IDA as well as on the HFST server, under data/corpora/agreements/'shortname'/. 
 Additionally, it was agreed on starting using the contracts register of the University of Helsinki, 
 to make the contracts accessible for the university administration and also because the system allows 
-for some metadata to be added to the contracts (details will be added later).
+for some metadata to be added to the contracts.
+For details on how to archive signed agreements, please see [docs: archive signed agreements](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_archive_signed_agreements.md).
