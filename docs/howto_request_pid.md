@@ -21,12 +21,13 @@ NOTE: Your changes and additions will come into effect only the following day!
 
 A resource usually needs PIDs for the following pages:
 
-- META-SHARE article
+- metadata article
 - access location
 - LICENSE in English
 - LICENSE in Finnish
 - resource group page in English
 - resource group page in Finnish
 
-NOTE: For META-SHARE URLs you need to add the prefix `https://kielipankki.fi/md_api/cproxy?md=` to the URL, to make it compatible with CLARIN format.
-e.g. https://kielipankki.fi/md_api/cproxy?md=https://metashare.csc.fi/repository/browse/colage-corpus-for-the-study-of-language-and-gender-in-mexico-and-spain/a4c9a3cedbb211eea280fa163eb87b84bc09440a579a419bb7462fe9832927f1/
+NOTE: For a metadata record the PID to COMEDI is usually constructed as `https://clarino.uib.no/comedi/editor/lb-yyyymmddxx`, e.g.
+
+	2024071601 https://clarino.uib.no/comedi/editor/lb-2024071601
