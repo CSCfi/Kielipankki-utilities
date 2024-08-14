@@ -37,7 +37,7 @@ In case you cannot login to the contract register, update the relevant details t
 
 [Login to the contract register] (https://sopimus.helsinki.fi/)
 
-From the list of folders on the left, open "H402 Digitaalisten ihmistieteiden osasto" under "Humanistinen tiedekunta".
+From the list of folders on the left, open "H402 Digitaalisten ihmistieteiden osasto" under "H40 Humanistinen tiedekunta".
 
 1. On the top left corner, select **Uusi dokumentti** > **Tallenna tiedosto**.
 
