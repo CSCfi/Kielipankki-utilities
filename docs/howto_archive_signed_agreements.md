@@ -29,12 +29,12 @@ The University of Helsinki is usually the legal party representing Kielipankki. 
 
 Currently, only some members of Kielipankki administrative staff have access and editing rights to the contract register (20240814: Mietta & Tommi). It is slightly cumbersome to get access permissions from the manager of the register, there is a learning curve, and the editors have read access to all contracts at UHEL. Therefore, editing permissions should not be requested unless needed on a regular basis.
 
-In case you cannot login to the contract register, please reassign the Jira issue to Mietta or Tommi.
-
+In case you cannot login to the contract register, update the relevant details to the following document, and then reassign the Jira issue to Mietta or Tommi:
+[Agreement metadata for the contract register] (https://helsinkifi-my.sharepoint.com/:x:/r/personal/lennes_ad_helsinki_fi/Documents/Kielipankin%20sopimusasiat/Sopimusrekisteri.xlsx?d=w061756453b6b4bcfad9c8c8d9ff52918&csf=1&web=1&e=tg8HUc)
 
 ### How to use the contract register:
 
-Login to the contract register at https://sopimus.helsinki.fi/
+[Login to the contract register] (https://sopimus.helsinki.fi/)
 
 1. On the top left corner, select **Uusi dokumentti** > **Tallenna tiedosto**.
 
