@@ -149,7 +149,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Clear the license for the resource
 
 ```
-# [ ] _*+DB*_ In the resource database, create a new (preliminary) license for the resource, or link an existing license instance to the resource, if available
+# [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2], create a new (preliminary) license for the resource, or link an existing license instance to the resource, if available
 # [ ] _*?AGREEMENT*_ Clear the license terms and conditions regarding copyrighted material
 ## [ ] _*?AGREEMENT*_ In case the corpus contains third-party copyrighted material, find out if the depositor has the rights to distribute it via the Language Bank (e.g., explicit license or permission from copyright holders)
 ## [ ] _*?LEGAL*_ When in doubt, bring the case up in a legal meeting
@@ -170,6 +170,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*+IDA*_ Upload and freeze the signed deposition agreement (or similar proof of the distribution license) as a pdf file (named as KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document) in IDA, under Administration/agreements/shortname.
 ## [ ] _*+HYSTORE*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (named as KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document) to the HFST server, under data/corpora/agreements/shortname.
 ## [ ] _*+AGREEMENT*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (filename KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document; document title "Kielipankki yyyy Aineistosopimus: shortname(s)") to the contract register of the University of Helsinki, under H402 Digitaalisten ihmistieteiden osasto. By default, agreements are not 'confidential'.
+## [ ] _*+DB*_ In the resource database, update the license status and the agreement locations.
 \\
 ```
 
