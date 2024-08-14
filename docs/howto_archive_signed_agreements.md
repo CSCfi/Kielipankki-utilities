@@ -1,15 +1,16 @@
 # Archiving the deposition agreement
 Immediately after a deposition agreement has been signed (e.g., via UniSign), the full document including all the appendices should be safely stored for future reference.
 
-Save the document (from UniSign) as a single PDF file, named as KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, where _yyyymmdd_ should correspond to the date of the last signature in the document.
-Make sure all the signatures are included.
+## Save the document (from UniSign) as a single PDF file
+Name the file as KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, where _yyyymmdd_ should correspond to the **date of the last signature** in the document.
+Make sure all the signatures are included!
 
-For the time being, identical copies of the document should be stored in: 
+For the time being, identical copies of the document should be stored in three locations: 
   - IDA
   - the HFST server
   - in the contract register of the University of Helsinki.
 
-## Storing the agreement to IDA
+## IDA
 Upload the document under Administration/agreements/shortname ([Go to IDA](https://ida.fairdata.fi/login))
   
 After the data is successfully uploaded, you should freeze it. For this, press the 'snowflake' button in the user interface of IDA. Only the frozen data will be backed up!
