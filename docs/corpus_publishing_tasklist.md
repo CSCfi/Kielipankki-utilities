@@ -115,7 +115,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*+MANAGE*_ Create a Jira Epic issue called "shortname: Publish XXX in Kielipankki (Korp/Download/…)"
 # [ ] _*?SUPPORT*_ Contact the potential depositor (by email; arrange a meeting if required) 
-# [ ] _*?SUPPORT*_ Ask the depositor to submit the basic details of the new corpus or resource (e-form: http://urn.fi/urn:nbn:fi:lb-2021121421)
+# [ ] _*?SUPPORT*_ Ask the depositor to submit the basic details of the new corpus or resource (e-form: [http://urn.fi/urn:nbn:fi:lb-2021121421](http://urn.fi/urn:nbn:fi:lb-2021121421))
 # [ ] _*+MANAGE*_ Insert the first pipeline Story under the Jira Epic and assign it forward
 # [ ] _*+MANAGE*_ Copy-paste the content of the e-form as a comment under the Story (tag the person to whom it is assigned)
 \\
@@ -125,11 +125,11 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ```
 # [ ] _*+MANAGE*_ Insert relevant parts of this task list in the resource publication Epic (sections under linked Jira Stories)
-# [ ] _*+GITHUB*_ Request a URN for the COMEDI record
-# [ ] _*+META*_ Create and publish a preliminary COMEDI record (skeletal information only) for the source version, which is usually the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+GITHUB*_ Request URNs for license pages 
-# [ ] _*+META*_ Update the COMEDI record with the URN
-# [ ] _*+DB*_ Add the corpus to the resource database and make sure the resource is displayed on the list of upcoming corpora
+# [ ] _*+GITHUB*_ [Request a URN] (https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration) for the metadata record [how to request PIDs](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_request_pid.md)
+# [ ] _*+GITHUB*_ [Request the URNs] (https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration) for the license pages [how to request PIDs](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_request_pid.md)
+# [ ] _*+META*_ In [COMEDI] (https://clarino.uib.no/comedi/records), create and publish a preliminary metadata record (skeletal information only) for the source version, which is usually the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+META*_ In [COMEDI] (https://clarino.uib.no/comedi/records), update the metadata record with the metadata URN
+# [ ] _*+DB*_ Add the [corpus to the resource database](https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1) and make sure the resource is displayed on the list of [upcoming corpora](https://www.kielipankki.fi/aineistot/tulevat/)
 # [ ] _*+META*_ Add citation information to the COMEDI record
 \\
 ```
@@ -137,7 +137,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Plan the publication process with the depositor
 
 ```
-# [ ] _*+META*_ Review the COMEDI record and fix the preliminary translations, at least for the time being
+# [ ] _*+META*_ Review the [COMEDI] (https://clarino.uib.no/comedi/records) record and fix the preliminary translations, at least for the time being
 # [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the COMEDI record (finalize shortname and title, confirm the list of authors/creators if required)
 # [ ] _*?SUPPORT*_ Inform the depositor about citation practices, if relevant
 # [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
@@ -149,7 +149,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Clear the license for the resource
 
 ```
-# [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2], create a new (preliminary) license for the resource, or link an existing license instance to the resource, if available
+# [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2], create a new (preliminary) license instance for the resource, or link an existing license instance to the resource, if available
 # [ ] _*?AGREEMENT*_ Clear the license terms and conditions regarding copyrighted material
 ## [ ] _*?AGREEMENT*_ In case the corpus contains third-party copyrighted material, find out if the depositor has the rights to distribute it via the Language Bank (e.g., explicit license or permission from copyright holders)
 ## [ ] _*?LEGAL*_ When in doubt, bring the case up in a legal meeting
@@ -160,7 +160,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*?AGREEMENT*_ Obtain (or create) a description of the personal data categories that are included in the corpus
 ## [ ] _*?AGREEMENT*_ Find out if some further risk assessment (or a DPIA) was/is required and discuss further actions with the depositor if necessary
 ## [ ] _*?SUPPORT*_ Provide the depositor with further references regarding personal data minimization and safeguards that may be applied prior to submitting the corpus for distribution
-# [ ] _*+AGREEMENT*_ Prepare a preliminary version of the deposition license agreement for discussion
+# [ ] _*+AGREEMENT*_ Prepare a preliminary version of the deposition license agreement for discussion (create a copy of the [deposition agreement template] (https://helsinkifi-my.sharepoint.com/:f:/r/personal/lennes_ad_helsinki_fi/Documents/Kielipankin%20sopimusasiat/DELA%20-%20Sopimuspohjat?csf=1&web=1&e=zRNnQQ))
 ## [ ] _*?AGREEMENT*_ Make arrangements to meet the depositor about the details of the deposition agreement
 ## [ ] _*?SUPPORT*_ Meet with the depositor/rightholder and take note of the action points
 ## [ ] _*+LEGAL*_ Make the final decision as to whether the resource can be distributed via the Language Bank of Finland (bring the case up in legal meeting, if necessary)
@@ -170,18 +170,18 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*+IDA*_ Upload and freeze the signed deposition agreement (or similar proof of the distribution license) as a pdf file (named as KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document) in IDA, under Administration/agreements/shortname. [How to archive signed agreements](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_archive_signed_agreements.md)
 ## [ ] _*+HYSTORE*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (named as KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document) to the HFST server, under data/corpora/agreements/shortname. [How to archive signed agreements](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_archive_signed_agreements.md)
 ## [ ] _*+AGREEMENT*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (filename KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document; document title "Kielipankki yyyy Aineistosopimus: shortname(s)") to the [contract register] (https://sopimus.helsinki.fi/) of the University of Helsinki, under H402 Digitaalisten ihmistieteiden osasto. By default, agreements are not 'confidential'. [How to archive signed agreements](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_archive_signed_agreements.md)
-## [ ] _*+DB*_ In the resource database, update the license status and the agreement locations.
+## [ ] _*+DB*_ In the [resource database](https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2), update the license status and the agreement locations.
 \\
 ```
 
 ### _shortname_: Publish the end-user license
 
 ```
-# [ ] _*+PORTAL*_ Create the license pages if required ([how to create license pages)|https://www.kielipankki.fi/intra/creating-license-pages/]
+# [ ] _*+PORTAL*_ [Create the license pages](https://www.kielipankki.fi/wp-admin/edit.php?post_type=page&page=cms-tpv-page-page) if required ([how to create license pages)|https://www.kielipankki.fi/intra/creating-license-pages/] 
 # [ ] _*?PORTAL*_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
-# [ ] _*?A*_ If required, request URNs for the PRIV condition pages
-# [ ] _*+PORTAL*_ Update the license PIDs in the resource database
-# [ ] _*+META*_ Create/update the COMEDI record, including the license information [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/] and the people to be cited
+# [ ] _*?A*_ If required, [request the URNs] (https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration) for the PRIV condition pages 
+# [ ] _*+PORTAL*_ Update the license PIDs in the [resource database](https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2) and make sure the resource in question is linked with the correct license instance in the resource database
+# [ ] _*+META*_ Create/update the COMEDI record, including the license information and the people to be cited, according to the agreement [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+PORTAL*_ In case the resource has a RES license, add it to the page Katselmointiprosessi (https://www.kielipankki.fi/intra/katselmointiprosessi/)
 # [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
 \\
