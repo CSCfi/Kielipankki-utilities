@@ -160,17 +160,17 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*?AGREEMENT*_ Obtain (or create) a description of the personal data categories that are included in the corpus
 ## [ ] _*?AGREEMENT*_ Find out if some further risk assessment (or a DPIA) was/is required and discuss further actions with the depositor if necessary
 ## [ ] _*?SUPPORT*_ Provide the depositor with further references regarding personal data minimization and safeguards that may be applied prior to submitting the corpus for distribution
-# [ ] _*+AGREEMENT*_ Prepare a preliminary version of the deposition license agreement for discussion (create a copy of the [deposition agreement template] (https://helsinkifi-my.sharepoint.com/:f:/r/personal/lennes_ad_helsinki_fi/Documents/Kielipankin%20sopimusasiat/DELA%20-%20Sopimuspohjat?csf=1&web=1&e=zRNnQQ))
+# [ ] _*+AGREEMENT*_ Make a copy of the [deposition agreement template | https://helsinkifi-my.sharepoint.com/:f:/r/personal/lennes_ad_helsinki_fi/Documents/Kielipankin%20sopimusasiat/DELA%20-%20Sopimuspohjat?csf=1&web=1&e=zRNnQQ] into a new folder (labeled as shortname) and prepare a preliminary version of the documents for discussion
 ## [ ] _*?AGREEMENT*_ Make arrangements to meet the depositor about the details of the deposition agreement
 ## [ ] _*?SUPPORT*_ Meet with the depositor/rightholder and take note of the action points
 ## [ ] _*+LEGAL*_ Make the final decision as to whether the resource can be distributed via the Language Bank of Finland (bring the case up in legal meeting, if necessary)
 ## [ ] _*+AGREEMENT*_ Prepare the final draft of the deposition license agreement and send it to corpus owner who should fill in the remaining gaps (ask for legal advice if needed)
-## [ ] _*+AGREEMENT*_ Check the final deposition agreement, combine all parts into a single pdf file and upload the document to the UniSign system for electronic signing by the rightholder (+ the data controller) and finally by the head of department at the University of Helsinki, https://unisign.helsinki.fi/sign/#/dashboard
+## [ ] _*+AGREEMENT*_ Check the final deposition agreement, combine all parts into a single pdf file and upload the document to the [UniSign | https://unisign.helsinki.fi/sign/#/dashboard] system for electronic signing by the rightholder (+ the data controller) and finally by the head of department at the University of Helsinki
 ## [ ] _*+AGREEMENT*_ In this Jira issue, add a comment stating the final license conditions, the rightholder(s), and the final list of the persons to be cited, according to the signed agreement.
-## [ ] _*+IDA*_ Upload and freeze the signed deposition agreement (or similar proof of the distribution license) as a pdf file (named as KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document) in IDA, under Administration/agreements/shortname. [How to archive signed agreements](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_archive_signed_agreements.md)
-## [ ] _*+HYSTORE*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (named as KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document) to the HFST server, under data/corpora/agreements/shortname. [How to archive signed agreements](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_archive_signed_agreements.md)
-## [ ] _*+AGREEMENT*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (filename KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document; document title "Kielipankki yyyy Aineistosopimus: shortname(s)") to the [contract register] (https://sopimus.helsinki.fi/) of the University of Helsinki, under H402 Digitaalisten ihmistieteiden osasto. By default, agreements are not 'confidential'. [How to archive signed agreements](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_archive_signed_agreements.md)
-## [ ] _*+DB*_ In the [resource database](https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2), update the license status and the agreement locations.
+## [ ] _*+IDA*_ Upload and freeze the signed deposition agreement (or similar proof of the distribution license) as a pdf file (named as KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document) in IDA, under Administration/agreements/shortname. [How to archive signed agreements | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_archive_signed_agreements.md]
+## [ ] _*+HYSTORE*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (named as KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document) to the HFST server, under data/corpora/agreements/shortname. [How to archive signed agreements | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_archive_signed_agreements.md]
+## [ ] _*+AGREEMENT*_ Upload the signed deposition agreement (or similar proof of the cleared distribution license) as a pdf file (filename KP_yyyy_AINEISTO_shortname_yyyymmdd.pdf, according to the date of the last signature in the document; document title "Kielipankki yyyy Aineistosopimus: shortname(s)") to the [contract register | https://sopimus.helsinki.fi/) of the University of Helsinki, under H402 Digitaalisten ihmistieteiden osasto. By default, agreements are not 'confidential'. [How to archive signed agreements | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_archive_signed_agreements.md]
+## [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2], update the license status and the agreement locations.
 \\
 ```
 
@@ -180,7 +180,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PORTAL*_ [Create the license pages](https://www.kielipankki.fi/wp-admin/edit.php?post_type=page&page=cms-tpv-page-page) if required ([how to create license pages)|https://www.kielipankki.fi/intra/creating-license-pages/] 
 # [ ] _*?PORTAL*_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
 # [ ] _*?A*_ If required, [request the URNs] (https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration) for the PRIV condition pages 
-# [ ] _*+PORTAL*_ Update the license PIDs in the [resource database](https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2) and make sure the resource in question is linked with the correct license instance in the resource database
+# [ ] _*+PORTAL*_ Update the license PIDs in the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2] and make sure the resource in question is linked with the correct license instance in the resource database
 # [ ] _*+META*_ Create/update the [COMEDI | https://clarino.uib.no/comedi/records] record, including the license information and the people to be cited, according to the agreement [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+PORTAL*_ In case the resource has a RES license, add it to the page Katselmointiprosessi (https://www.kielipankki.fi/intra/katselmointiprosessi/)
 # [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
@@ -209,7 +209,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*+META*_ Create or update the [COMEDI | https://clarino.uib.no/comedi/records]  record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request access location URN for download version (and check that the URNs for COMEDI and license pages are available and working)
-# [ ] _*+DB*_ Make sure that the corpus is on the list of upcoming resources and citable, and update the [resource database](https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1) if required
+# [ ] _*+DB*_ Make sure that the corpus is on the list of upcoming resources and citable, and update the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1] if required
 \\
 ```
 
@@ -368,7 +368,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ```
 ## [ ] _*+META*_ Remove beta status from the [COMEDI | https://clarino.uib.no/comedi/records] record
-## [ ] _*+PORTAL*_ Remove beta status from the resource group page (and the [resource database](https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1) if needed)
+## [ ] _*+PORTAL*_ Remove beta status from the resource group page (and the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1] if needed)
 \\
 ```
 
@@ -382,9 +382,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*+META*_ Create a [COMEDI | https://clarino.uib.no/comedi/records] record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request URNs (for COMEDI, download, license pages)
-# [ ] _*+DB*_ Add the details of the corpus variant to the [resource database](https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1), status "upcoming"
+# [ ] _*+DB*_ Add the details of the corpus variant to the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1], status "upcoming"
 # [ ] _*+PORTAL*_ Create/update the license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
-# [ ] _*+DB*_ Link the corpus variant with the correct license row in the [resource database](https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1)
+# [ ] _*+DB*_ Link the corpus variant with the correct license row in the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
 # [ ] _*+META*_ Add citation information to the [COMEDI | https://clarino.uib.no/comedi/records] record
 \\
 ```
