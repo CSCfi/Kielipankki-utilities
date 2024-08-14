@@ -209,7 +209,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*+META*_ Create or update the COMEDI record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request access location URN for download version (and check that the URNs for COMEDI and license pages are available and working)
-# [ ] _*+DB*_ Make sure that the corpus is on the list of upcoming resources and citable, and update the resource database if required
+# [ ] _*+DB*_ Make sure that the corpus is on the list of upcoming resources and citable, and update the [resource database](https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1) if required
 \\
 ```
 
@@ -368,7 +368,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ```
 ## [ ] _*+META*_ Remove beta status from the COMEDI record
-## [ ] _*+PORTAL*_ Remove beta status from the resource group page (and the resource database if needed)
+## [ ] _*+PORTAL*_ Remove beta status from the resource group page (and the [resource database](https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1) if needed)
 \\
 ```
 
@@ -380,12 +380,12 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Prepare for publishing the VRT data in Download
 
 ```
-# [ ] _*+META*_ Create a COMEDI record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+META*_ Create a [COMEDI] (https://clarino.uib.no/comedi/records) record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
 # [ ] _*+GITHUB*_ Request URNs (for COMEDI, download, license pages)
-# [ ] _*+DB*_ Add the details of the corpus variant to the resource database, status "upcoming"
+# [ ] _*+DB*_ Add the details of the corpus variant to the [resource database](https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1), status "upcoming"
 # [ ] _*+PORTAL*_ Create/update the license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
-# [ ] _*+DB*_ Link the corpus variant with the correct license row in the resource database
-# [ ] _*+META*_ Add citation information to the COMEDI record
+# [ ] _*+DB*_ Link the corpus variant with the correct license row in the [resource database](https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1)
+# [ ] _*+META*_ Add citation information to the [COMEDI] (https://clarino.uib.no/comedi/records) record
 \\
 ```
 
@@ -409,8 +409,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Announce the publication of the VRT data in Download
 ```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
-# [ ] _*+META*_ Update the COMEDI record; add location PID and Availability start date (under Distribution)
-# [ ] _*?META*_ Update the COMEDI record: add relations to previous or parallel versions/variants of the corpus
+# [ ] _*+META*_ Update the [COMEDI] (https://clarino.uib.no/comedi/records) record; add location PID and Availability start date (under Distribution)
+# [ ] _*?META*_ Update the [COMEDI] (https://clarino.uib.no/comedi/records) record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+PORTAL*_ Create or update the resource group page
 ## [ ] _*?META*_ If the package was published as beta (during the beta stage of the corresponding Korp corpus), remove beta status from the COMEDI record and resource group page
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the COMEDI record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
