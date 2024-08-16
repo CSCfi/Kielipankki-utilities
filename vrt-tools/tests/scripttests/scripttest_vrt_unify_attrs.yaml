@@ -832,31 +832,52 @@
       c
       </sentence>
       </text>
-    stderr: |
-      vrt-unify-attrs: Warning: --exactly overrides --always (structure sentence)
-      vrt-unify-attrs: Warning: --exactly overrides --only (structure sentence)
   transform: *transform-stdin-comma
 
-- name: 'vrt-unify-attrs: Global --exactly overrides structure-specific --only and --always'
+- name: 'vrt-unify-attrs: Structure-specific --only and --always override global --exactly'
   input:
     cmdline: vrt-unify-attrs --exactly="a,b,z" --default="_" --structure=sentence --only="b,c,y" --always="y,z" in.vrt
     file:in.vrt: *input-4
   output:
-    stdout: *output-4-abz
-    stderr: |
-      vrt-unify-attrs: Warning: --exactly overrides --always (structure sentence)
-      vrt-unify-attrs: Warning: --exactly overrides --only (structure sentence)
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="_" z="_">
+      <sentence b="_" c="_" y="_" z="_">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" z="_">
+      <sentence b="1" c="2" y="_" z="_">
+      b
+      </sentence>
+      <sentence b="_" c="_" y="_" z="_">
+      c
+      </sentence>
+      </text>
   transform: *transform-stdin-comma
 
-- name: 'vrt-unify-attrs: Global --exactly overrides structure-specific --exactly and --only'
+- name: 'vrt-unify-attrs: Structure-specific --exactly overrides global one'
   input:
     cmdline: vrt-unify-attrs --default="_" --exactly="b,c,y" --only="c,d,y" --structure=sentence --exactly="a,b,z" in.vrt
     file:in.vrt: *input-4
   output:
-    stdout: *output-4-bcy-abz
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text b="_" c="d" y="_">
+      <sentence a="_" b="_" z="_">
+      a
+      </sentence>
+      </text>
+      <text b="z" c="_" y="_">
+      <sentence a="_" b="1" z="_">
+      b
+      </sentence>
+      <sentence a="0" b="_" z="_">
+      c
+      </sentence>
+      </text>
     stderr: |
       vrt-unify-attrs: Warning: --exactly overrides --only
-      vrt-unify-attrs: Warning: --exactly overrides --only (structure sentence)
   transform: *transform-stdin-comma
 
 

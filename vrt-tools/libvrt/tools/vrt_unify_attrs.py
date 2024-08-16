@@ -118,7 +118,8 @@ class VrtStructAttrUnifier(InputProcessor):
              ('--exactly = attrlist:attrlist',
               '''always output only attributes listed in attrlist, shorthand
                  for --always=attrlist --only=attrlist; overrides the values
-                 for --always and --only'''),
+                 for --always and --only (but structure-specific --always and
+                 --only override global --exactly)'''),
          ]),
     ]
 
@@ -159,12 +160,18 @@ class VrtStructAttrUnifier(InputProcessor):
                     '--exactly overrides {}'
                     + (f' (structure {struct.decode("UTF-8")})' if struct
                        else ''))
-                if args.always:
-                    self.warn(warn_fmt.format('--always'))
-                if args.only is not None:
-                    self.warn(warn_fmt.format('--only'))
-                args.always = args.exactly.copy()
-                args.only = args.exactly.copy()
+                # --always=a --exactly=b -> exactly overrides, warn
+                # --always=a --struct=x --exactly=b -> structure-specific
+                #   overrides, do not warn
+                # --exactly=b --struct=x --always=a -> structure-specific
+                #   overrides, do not warn
+                if 'exactly' in args._explicit:
+                    if args.always and 'always' in args._explicit:
+                        self.warn(warn_fmt.format('--always'))
+                    if args.only is not None and 'only' in args._explicit:
+                        self.warn(warn_fmt.format('--only'))
+                    args.always = args.exactly.copy()
+                    args.only = args.exactly.copy()
 
         if struct is None:
             super().check_args(args)
