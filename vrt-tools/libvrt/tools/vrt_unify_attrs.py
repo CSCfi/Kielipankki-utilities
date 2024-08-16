@@ -241,11 +241,9 @@ class VrtStructAttrUnifier(InputProcessor):
             orders = {}
             if args.single_pass:
                 for struct, struct_args in args.structure.items():
-                    if struct_args.only is not None:
-                        orders[struct] = make_order(
-                            struct, orddict(struct_args.only))
-                if args.only is not None:
-                    orders[None] = make_order(None, orddict(args.only))
+                    orders[struct] = make_order(
+                        struct, orddict(struct_args.always or []))
+                orders[None] = make_order(None, orddict(args.always or []))
             else:
                 for struct, attrs in struct_attrs.items():
                     orders[struct] = make_order(struct, attrs)
@@ -278,11 +276,7 @@ class VrtStructAttrUnifier(InputProcessor):
             struct = ml.element(line)
             attrs = ml.mapping(line)
             default = getarg('default', struct)
-            if args.single_pass:
-                order = (orders.get(struct) or orders.get(None)
-                         or make_order(struct, orddict(attrs)))
-            else:
-                order = orders.get(struct)
+            order = orders.get(struct) or orders.get(None, [])
             return ml.starttag(
                 struct, ((name, attrs.get(name, default)) for name in order))
 
