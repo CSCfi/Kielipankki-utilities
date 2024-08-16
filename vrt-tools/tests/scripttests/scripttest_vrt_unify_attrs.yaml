@@ -858,3 +858,103 @@
       vrt-unify-attrs: Warning: --exactly overrides --only
       vrt-unify-attrs: Warning: --exactly overrides --only (structure sentence)
   transform: *transform-stdin-comma
+
+
+- name: 'vrt-unify-attrs: --single-pass, no --always'
+  input:
+    cmdline:
+    - vrt-unify-attrs --single-pass in.vrt
+    - vrt-unify-attrs --single-pass --first="a,b" --last="f,g" in.vrt
+    - vrt-unify-attrs --single-pass --only="f,g" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text>
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b
+      </sentence>
+      <sentence>
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --single-pass, global --always (or --exactly)'
+  input:
+    cmdline:
+    - vrt-unify-attrs --single-pass --always="b,a" in.vrt
+    - vrt-unify-attrs --single-pass --exactly="b,a" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="">
+      <sentence a="" b="">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z">
+      <sentence a="" b="1">
+      b
+      </sentence>
+      <sentence a="0" b="">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --single-pass, global --always (or --exactly), --input-order'
+  input:
+    cmdline:
+    - vrt-unify-attrs --single-pass --input-order --always="b,a" in.vrt
+    - vrt-unify-attrs --single-pass --input-order --exactly="b,a" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text b="" a="b">
+      <sentence b="" a="">
+      a
+      </sentence>
+      </text>
+      <text b="z" a="y">
+      <sentence b="1" a="">
+      b
+      </sentence>
+      <sentence b="" a="0">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --single-pass, structure-specific (and global) --always (or --exactly)'
+  input:
+    cmdline:
+    - vrt-unify-attrs --single-pass --structure=text --always="a,b" --structure=sentence --always="c,d" in.vrt
+    - vrt-unify-attrs --single-pass --structure=text --exactly="a,b" --structure=sentence --exactly="c,d" in.vrt
+    - vrt-unify-attrs --single-pass --always="c,d" --structure=text --always="a,b" in.vrt
+    - vrt-unify-attrs --single-pass --exactly="c,d" --structure=text --exactly="a,b" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="">
+      <sentence c="" d="">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z">
+      <sentence c="2" d="">
+      b
+      </sentence>
+      <sentence c="" d="3">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
