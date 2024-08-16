@@ -29,24 +29,27 @@ def encode_utf8(s):
     return s.encode('UTF-8')
 
 
-def attrlist(s):
-    """Argument type function for a list of unique attribute names.
+def _listtype_base(s, check_func, unique=True, values_name='values'):
+    """Base argument type function for a list of (unique) values.
 
-    The attributes in str s can be separated by commas or spaces.
+    Items in the list string s can be separated by commas or spaces.
     Return a list of bytes.
 
-    Raise ArgumentTypeError if the attribute list contains
-    duplicates or if attribute names are invalid.
+    check_func is a function taking a list item as its argument and
+    raising ArgumentTypeError if the item is invalid.
+
+    Raise ArgumentTypeError with message ('duplicate ' + value_names +
+    duplicate values), if unique and s contains duplicate values.
     """
     # Split by commas and spaces, and filter out empty strings
     attrs = [attr for attr in re.split(r'[,\s]+', s or '') if attr]
     for attr in attrs:
-        if not re.fullmatch(r'[_a-z][_a-z0-9]*', attr):
-            raise ArgumentTypeError(f'invalid attribute name: {attr}')
-    dupls = _find_duplicates(attrs)
-    if dupls:
-        raise ArgumentTypeError(
-            'duplicate attribute names: ' + ', '.join(dupls))
+        check_func(attr)
+    if unique:
+        dupls = _find_duplicates(attrs)
+        if dupls:
+            raise ArgumentTypeError(
+                f'duplicate {values_name}: ' + ', '.join(dupls))
     return [attr.encode('UTF-8') for attr in attrs]
 
 
@@ -54,6 +57,24 @@ def _find_duplicates(*iters):
     """Return list of items occurring more than once in iterables *iters."""
     counts = Counter(chain(*iters))
     return [item for item, cnt in counts.items() if cnt > 1]
+
+
+def attrlist(s):
+    """Argument type function for a list of unique attribute names.
+
+    The attribute specifications in str s can be separated by commas or spaces.
+    Return a list of bytes.
+
+    Raise ArgumentTypeError if the attribute list contains duplicates
+    or if an attribute name is invalid.
+    """
+
+    def check_attr(attr):
+        """Raise ArgumentTypeError if attr is an invalid attribute name."""
+        if not re.fullmatch(r'[_a-z][_a-z0-9]*', attr):
+            raise ArgumentTypeError(f'invalid attribute name: {attr}')
+
+    return _listtype_base(s, check_attr, True, 'attribute names')
 
 
 class VrtStructAttrUnifier(InputProcessor):
