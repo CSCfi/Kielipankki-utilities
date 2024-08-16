@@ -112,9 +112,9 @@ class VrtStructAttrUnifier(InputProcessor):
              # value has a special meaning different from not
              # specifying the option at all
              ('--only = attrlist:attrlist',
-              '''output only attributes listed in attrlist (and occurring in
-                 input or listed with --always); an empty value removes all
-                 attributes'''),
+              '''output only attributes listed in attrlist and occurring in
+                 input, in addition to those possibly listed with --always;
+                 an empty value (and no --always) removes all attributes'''),
              ('--exactly = attrlist:attrlist',
               '''always output only attributes listed in attrlist, shorthand
                  for --always=attrlist --only=attrlist; overrides the values
