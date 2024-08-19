@@ -77,6 +77,30 @@ def attrlist(s):
     return _listtype_base(s, check_attr, True, 'attribute names')
 
 
+def attr_regex_list(s):
+    """Argument type function for a list of unique attribute regexps.
+
+    The attribute regular expressions in str s can be separated by
+    commas or spaces.
+    Return a list of compiled regular expressions for bytes.
+
+    Raise ArgumentTypeError if the attribute regex list contains
+    duplicates or if a regex is invalid.
+    """
+
+    def check_attr(regex):
+        """Raise ArgumentTypeError if attr is an invalid attribute regex."""
+        try:
+            re.compile(regex)
+        except re.error as e:
+            raise ArgumentTypeError(
+                f'invalid attribute name regular expression: "{regex}": {e}')
+
+    return [re.compile(regex)
+            for regex in _listtype_base(s, check_attr, True,
+                                        'attribute name regular expressions')]
+
+
 class VrtStructAttrUnifier(InputProcessor):
 
     """Class implementing vrt-unify-attrs functionality."""
@@ -141,6 +165,10 @@ class VrtStructAttrUnifier(InputProcessor):
                  for --always=attrlist --only=attrlist; overrides the values
                  for --always and --only (but structure-specific --always and
                  --only override global --exactly)'''),
+             ('--drop = attr-regex-list:attr_regex_list',
+              '''drop (remove) attributes fully matching a regular expression
+                 in attr-regex-list (and not listed with --always, --only or
+                 --exactly); list items separated by spaces or commas'''),
          ]),
     ]
 
@@ -281,10 +309,15 @@ class VrtStructAttrUnifier(InputProcessor):
             """Return list containing order of attrs for struct."""
             opts = dict(
                 (name, getarg(name, struct))
-                for name in ['input_order', 'first', 'last', 'always', 'only'])
+                for name in ['input_order', 'first', 'last', 'always', 'only',
+                             'drop'])
             if opts['only'] is not None:
                 attrs = orddict(attr for attr in attrs.keys()
                                 if attr in set(opts['only']))
+            elif opts['drop'] is not None:
+                attrs = orddict(attr for attr in attrs.keys()
+                                if not any(drop_re.fullmatch(attr)
+                                           for drop_re in opts['drop']))
             sortfn = (lambda x: x) if opts['input_order'] else sorted
             attrs.update(dict((attr, None) for attr in opts['always']))
             attrs = sortfn(list(attrs.keys()))

@@ -979,3 +979,202 @@
       </sentence>
       </text>
   transform: *transform-stdin-comma
+
+
+- name: 'vrt-unify-attrs: --drop, fixed names'
+  input:
+    cmdline: vrt-unify-attrs --drop="_a,_c,ax,bx" in.vrt
+    file:in.vrt: &input-5 |
+      <!-- #vrt positional-attributes: word -->
+      <text gz="w" _a="b" _c="d" eab="x">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text bzz="z" fx="v" _a="y" d2="a">
+      <sentence c1="2" efg_="4" bx="1">
+      b
+      </sentence>
+      <sentence _d3="3" ax="0">
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: &output-5a |
+      <!-- #vrt positional-attributes: word -->
+      <text bzz="" d2="" eab="x" fx="" gz="w">
+      <sentence _d3="" c1="" efg_="">
+      a
+      </sentence>
+      </text>
+      <text bzz="z" d2="a" eab="" fx="v" gz="">
+      <sentence _d3="" c1="2" efg_="4">
+      b
+      </sentence>
+      <sentence _d3="3" c1="" efg_="">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --drop, regexps'
+  input:
+    cmdline: vrt-unify-attrs --drop="_[ac],[ab]x" in.vrt
+    file:in.vrt: *input-5
+  output:
+    stdout: *output-5a
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --drop, non-matching fixed names'
+  input:
+    cmdline: vrt-unify-attrs --drop="xab,zzy,bar" in.vrt
+    file:in.vrt: *input-5
+  output:
+    stdout: &output-5b |
+      <!-- #vrt positional-attributes: word -->
+      <text _a="b" _c="d" bzz="" d2="" eab="x" fx="" gz="w">
+      <sentence _d3="" ax="" bx="" c1="" efg_="">
+      a
+      </sentence>
+      </text>
+      <text _a="y" _c="" bzz="z" d2="a" eab="" fx="v" gz="">
+      <sentence _d3="" ax="" bx="1" c1="2" efg_="4">
+      b
+      </sentence>
+      <sentence _d3="3" ax="0" bx="" c1="" efg_="">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --drop, non-matching regexps'
+  input:
+    cmdline: vrt-unify-attrs --drop="_x..,[ab]y?" in.vrt
+    file:in.vrt: *input-5
+  output:
+    stdout: *output-5b
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --drop, structure-specific regexps'
+  input:
+    cmdline: vrt-unify-attrs --structure=text --drop="_[ac],.+[xz]" --structure=sentence --drop=".+[0-9]" in.vrt
+    file:in.vrt: *input-5
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text d2="" eab="x">
+      <sentence ax="" bx="" efg_="">
+      a
+      </sentence>
+      </text>
+      <text d2="a" eab="">
+      <sentence ax="" bx="1" efg_="4">
+      b
+      </sentence>
+      <sentence ax="0" bx="" efg_="">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --drop, regexps, --always'
+  input:
+    cmdline: vrt-unify-attrs --drop="_[ac],.+[xz]" --always="_a,ax,zz" in.vrt
+    file:in.vrt: *input-5
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text _a="b" ax="" d2="" eab="x" zz="">
+      <sentence _a="" _d3="" ax="" c1="" efg_="" zz="">
+      a
+      </sentence>
+      </text>
+      <text _a="y" ax="" d2="a" eab="" zz="">
+      <sentence _a="" _d3="" ax="" c1="2" efg_="4" zz="">
+      b
+      </sentence>
+      <sentence _a="" _d3="3" ax="0" c1="" efg_="" zz="">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --drop, regexps, --only'
+  input:
+    cmdline: vrt-unify-attrs --drop="_[ac],.+[xz]" --only="_a,ax" in.vrt
+    file:in.vrt: *input-5
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text _a="b">
+      <sentence ax="">
+      a
+      </sentence>
+      </text>
+      <text _a="y">
+      <sentence ax="">
+      b
+      </sentence>
+      <sentence ax="0">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --drop, regexps, --only'
+  input:
+    cmdline: vrt-unify-attrs --drop="_[ac],.+[xz]" --only="_a,ax" in.vrt
+    file:in.vrt: *input-5
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text _a="b">
+      <sentence ax="">
+      a
+      </sentence>
+      </text>
+      <text _a="y">
+      <sentence ax="">
+      b
+      </sentence>
+      <sentence ax="0">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --drop, duplicate regexps'
+  input:
+    cmdline: vrt-unify-attrs --drop="_[ac],_[ac]" in.vrt
+    file:in.vrt: *input-5
+  output:
+    stdout: ''
+    returncode: 2
+    stderr:
+      contains: |
+        vrt-unify-attrs: error: argument --drop: duplicate attribute name regular expressions: _[ac]
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --drop, invalid regexp (nothing to repeat)'
+  input:
+    cmdline: vrt-unify-attrs --drop="+." in.vrt
+    file:in.vrt: *input-5
+  output:
+    stdout: ''
+    returncode: 2
+    stderr:
+      contains: |
+        vrt-unify-attrs: error: argument --drop: invalid attribute name regular expression: "+.": nothing to repeat at position 0
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --drop, invalid regexp ('
+  input:
+    cmdline: vrt-unify-attrs --drop="a)b" in.vrt
+    file:in.vrt: *input-5
+  output:
+    stdout: ''
+    returncode: 2
+    stderr:
+      contains: |
+        vrt-unify-attrs: error: argument --drop: invalid attribute name regular expression: "a)b": unbalanced parenthesis at position 1
+  transform: *transform-stdin-comma
