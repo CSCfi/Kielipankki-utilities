@@ -610,12 +610,32 @@
     stdout: *output-4b
   transform: *transform-stdin-comma
 
+- name: 'vrt-unify-attrs: --only with regular expressions'
+  input:
+    cmdline: vrt-unify-attrs --only="[abz],.." --default="_" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: *output-4b
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --only with invalid an regular expression'
+  input:
+    cmdline: vrt-unify-attrs --only="[abz],+.." --default="_" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: ''
+    returncode: 2
+    stderr:
+      contains: |
+        vrt-unify-attrs: error: argument --only: invalid attribute name regular expression: "+..": nothing to repeat at position 0
+  transform: *transform-stdin-comma
+
 - name: 'vrt-unify-attrs: --only, --always'
   input:
     cmdline: vrt-unify-attrs --only="a,b,z" --always="z" --default="_" in.vrt
     file:in.vrt: *input-4
   output:
-    stdout: |
+    stdout: &output-4c |
       <!-- #vrt positional-attributes: word -->
       <text a="b" b="_" z="_">
       <sentence a="_" b="_" z="_">
@@ -630,6 +650,14 @@
       c
       </sentence>
       </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: --only (regular expression), --always'
+  input:
+    cmdline: vrt-unify-attrs --only="[abz],.." --always="z" --default="_" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: *output-4c
   transform: *transform-stdin-comma
 
 - name: 'vrt-unify-attrs: --only, --always with non-only attributes'

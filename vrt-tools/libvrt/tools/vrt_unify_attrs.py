@@ -156,10 +156,12 @@ class VrtStructAttrUnifier(InputProcessor):
              # No (silent_)default for --only, as a specified empty
              # value has a special meaning different from not
              # specifying the option at all
-             ('--only = attrlist:attrlist',
-              '''output only attributes listed in attrlist and occurring in
+             ('--only = attr-regex-list:attr_regex_list',
+              '''output only attributes whose names fully match a regular
+                 expression in attr-regex-list and which occur in
                  input, in addition to those possibly listed with --always;
-                 an empty value (and no --always) removes all attributes'''),
+                 an empty value (and no --always) removes all attributes;
+                 list items separated by spaces or commas'''),
              ('--exactly = attrlist:attrlist',
               '''always output only attributes listed in attrlist, shorthand
                  for --always=attrlist --only=attrlist; overrides the values
@@ -168,7 +170,7 @@ class VrtStructAttrUnifier(InputProcessor):
              ('--drop = attr-regex-list:attr_regex_list',
               '''drop (remove) attributes fully matching a regular expression
                  in attr-regex-list (and not listed with --always, --only or
-                 --exactly); list items separated by spaces or commas'''),
+                 --exactly)'''),
          ]),
     ]
 
@@ -220,7 +222,7 @@ class VrtStructAttrUnifier(InputProcessor):
                     if args.only is not None and 'only' in args._explicit:
                         self.warn(warn_fmt.format('--only'))
                     args.always = args.exactly.copy()
-                    args.only = args.exactly.copy()
+                    args.only = [re.compile(b'|'.join(args.exactly))]
 
         if struct is None:
             super().check_args(args)
@@ -313,7 +315,8 @@ class VrtStructAttrUnifier(InputProcessor):
                              'drop'])
             if opts['only'] is not None:
                 attrs = orddict(attr for attr in attrs.keys()
-                                if attr in set(opts['only']))
+                                if any(attr_re.fullmatch(attr)
+                                        for attr_re in opts['only']))
             elif opts['drop'] is not None:
                 attrs = orddict(attr for attr in attrs.keys()
                                 if not any(drop_re.fullmatch(attr)
