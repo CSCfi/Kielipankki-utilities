@@ -126,7 +126,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*+MANAGE*_ Insert relevant parts of this task list in the resource publication Epic (sections under linked Jira Stories)
 # [ ] _*+GITHUB*_ [Request a URN | https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration] for the metadata record [how to request PIDs | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_request_pid.md]
-# [ ] _*+GITHUB*_ [Request the URNs] (https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration) for the license pages [how to request PIDs | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_request_pid.md]
+# [ ] _*+GITHUB*_ [Request the URNs | https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration] for the license pages [how to request PIDs | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_request_pid.md]
 # [ ] _*+META*_ In [COMEDI | https://clarino.uib.no/comedi/records], create and publish a preliminary metadata record (skeletal information only) for the source version, which is usually the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/ ]
 # [ ] _*+META*_ In [COMEDI | https://clarino.uib.no/comedi/records], update the metadata record with the metadata URN
 # [ ] _*+DB*_ Add the [corpus to the resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1] and make sure the resource is displayed on the list of [upcoming corpora](https://www.kielipankki.fi/aineistot/tulevat/)
