@@ -12,11 +12,11 @@ import sys
 import re
 
 from argparse import ArgumentTypeError
-from collections import defaultdict, OrderedDict, Counter
-from itertools import chain
+from collections import defaultdict, OrderedDict
 from tempfile import NamedTemporaryFile
 
 from libvrt import metaline as ml
+from libvrt.iterutils import find_duplicates
 
 from vrtargsoolib import InputProcessor
 
@@ -46,17 +46,11 @@ def _listtype_base(s, check_func, unique=True, values_name='values'):
     for attr in attrs:
         check_func(attr)
     if unique:
-        dupls = _find_duplicates(attrs)
+        dupls = find_duplicates(attrs)
         if dupls:
             raise ArgumentTypeError(
                 f'duplicate {values_name}: ' + ', '.join(dupls))
     return [attr.encode('UTF-8') for attr in attrs]
-
-
-def _find_duplicates(*iters):
-    """Return list of items occurring more than once in iterables *iters."""
-    counts = Counter(chain(*iters))
-    return [item for item, cnt in counts.items() if cnt > 1]
 
 
 def attrlist(s):
@@ -232,7 +226,7 @@ class VrtStructAttrUnifier(InputProcessor):
 
             If struct is a string, mention it in the error message.
             """
-            dupls = _find_duplicates(args.first, args.last)
+            dupls = find_duplicates(args.first, args.last)
             suffix = f' (structure {struct.decode("UTF-8")})' if struct else ''
             if dupls:
                 self.error_exit(
