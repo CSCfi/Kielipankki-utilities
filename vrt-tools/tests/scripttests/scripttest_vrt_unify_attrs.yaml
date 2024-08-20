@@ -104,13 +104,171 @@
 
 - name: 'vrt-unify-attrs: Add missing attributes (non-default value)'
   input:
-    cmdline: vrt-unify-attrs --default="_" in.vrt
+    cmdline:
+    - vrt-unify-attrs --default="_" in.vrt
+    - vrt-unify-attrs --default=":_" in.vrt
     file:in.vrt: *input-3
   output:
     stdout:
       value: *output-3
       transform:
         replace: '/""/"_"/'
+  transform: *transform-stdin
+
+- name: 'vrt-unify-attrs: --default is colon'
+  input:
+    cmdline: vrt-unify-attrs --default="::" in.vrt
+    file:in.vrt: *input-3
+  output:
+    stdout:
+      value: *output-3
+      transform:
+        replace: '/""/":"/'
+  transform: *transform-stdin
+
+- name: 'vrt-unify-attrs: --default contains colon'
+  input:
+    cmdline: vrt-unify-attrs --default=":_:_" in.vrt
+    file:in.vrt: *input-3
+  output:
+    stdout:
+      value: *output-3
+      transform:
+        replace: '/""/"_:_"/'
+  transform: *transform-stdin
+
+- name: 'vrt-unify-attrs: Attribute-specific --default'
+  input:
+    cmdline:
+    - vrt-unify-attrs --default="a,c:_" in.vrt
+    - vrt-unify-attrs --default="[ac]:_" in.vrt
+    - vrt-unify-attrs --default="[^b].*:_" in.vrt
+    - vrt-unify-attrs --default="[adef],[cgh]:_" in.vrt
+    file:in.vrt: *input-3
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="" c="d">
+      <sentence a="_" b="">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="_">
+      <sentence a="_" b="1">
+      b
+      </sentence>
+      <sentence a="4" b="">
+      c
+      </sentence>
+      </text>
+  transform: &transform-stdin-comma
+  - *transf-base
+  - *transf-stdin
+  - &transf-comma-space
+    name: attrlist with spaces
+    input:
+      cmdline:
+        replace: '/,/ /'
+
+- name: 'vrt-unify-attrs: Multiple attribute-specific --default'
+  input:
+    cmdline: vrt-unify-attrs --default="a:A" --default="c:C" in.vrt
+    file:in.vrt: *input-3
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="" c="d">
+      <sentence a="A" b="">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="C">
+      <sentence a="A" b="1">
+      b
+      </sentence>
+      <sentence a="4" b="">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin
+
+- name: 'vrt-unify-attrs: Attribute-specific empty --default'
+  input:
+    cmdline: vrt-unify-attrs --default="_" --default="a:" in.vrt
+    file:in.vrt: *input-3
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="_" c="d">
+      <sentence a="" b="_">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="_">
+      <sentence a="" b="1">
+      b
+      </sentence>
+      <sentence a="4" b="_">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin
+
+- name: 'vrt-unify-attrs: Common and attribute-specific --default'
+  input:
+    cmdline: vrt-unify-attrs --default="_" --default="a:A" in.vrt
+    file:in.vrt: *input-3
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="_" c="d">
+      <sentence a="A" b="_">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="_">
+      <sentence a="A" b="1">
+      b
+      </sentence>
+      <sentence a="4" b="_">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin
+
+- name: 'vrt-unify-attrs: --default, multiple matching regular expressions'
+  input:
+    cmdline: vrt-unify-attrs --default=".:_" --default="[ab]:A" --default="[bd]:B" in.vrt
+    file:in.vrt: *input-3
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="B" c="d">
+      <sentence a="A" b="B">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="_">
+      <sentence a="A" b="1">
+      b
+      </sentence>
+      <sentence a="4" b="B">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin
+
+- name: 'vrt-unify-attrs: --default, invalid regular expression'
+  input:
+    cmdline: vrt-unify-attrs --default=".(:_" in.vrt
+    file:in.vrt: *input-3
+  output:
+    stdout: ''
+    returncode: 2
+    stderr:
+      # Use "contains", as a usage message is also output to stderr
+      contains: |
+        vrt-unify-attrs: error: argument --default: invalid attribute name regular expression: ".(": missing ), unterminated subpattern at position 1
   transform: *transform-stdin
 
 
@@ -171,14 +329,7 @@
       c
       </sentence>
       </text>
-  transform: &transform-stdin-comma
-  - *transf-base
-  - *transf-stdin
-  - &transf-comma-space
-    name: attrlist with spaces
-    input:
-      cmdline:
-        replace: '/,/ /'
+  transform: *transform-stdin-comma
 
 - name: 'vrt-unify-attrs: Ignore leading, trailing and multiple consecutive commas in attrlist'
   input:
@@ -388,6 +539,50 @@
       b
       </sentence>
       <sentence e="_" a="0" b="_" c="_" d="3">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: Structure-specific and default attribute-specific --default'
+  input:
+    cmdline: vrt-unify-attrs --default="_" --default="a,[cd]:_ACD" --structure=text --default="T" --default="c,d:_TCD" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="T" c="d" d="_TCD" e="x" f="T" g="w">
+      <sentence a="_ACD" b="_" c="_ACD" d="_ACD" e="_">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="_TCD" d="a" e="T" f="v" g="T">
+      <sentence a="_ACD" b="1" c="2" d="_ACD" e="4">
+      b
+      </sentence>
+      <sentence a="0" b="_" c="_ACD" d="3" e="_">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
+- name: 'vrt-unify-attrs: Structure-specific and default attribute-specific --default 2'
+  input:
+    cmdline: vrt-unify-attrs --default="_" --default="a,[cd]:_ACD" --structure=text --default="c,d:_TCD" --default="d:_TD" --structure=sentence --default="S" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="_" c="d" d="_TD" e="x" f="_" g="w">
+      <sentence a="S" b="S" c="S" d="S" e="S">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="_TCD" d="a" e="_" f="v" g="_">
+      <sentence a="S" b="1" c="2" d="S" e="4">
+      b
+      </sentence>
+      <sentence a="0" b="S" c="S" d="3" e="S">
       c
       </sentence>
       </text>

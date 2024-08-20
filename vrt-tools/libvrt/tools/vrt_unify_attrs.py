@@ -103,6 +103,30 @@ def attr_regex_list(s):
                 s, check_attr, True, 'attribute name regular expressions')))
 
 
+def attr_regex_list_value(s):
+    """Argument type function for attribute regex list and string value.
+
+    s is of the form [[attr_regex_list]:]str, where attr_regex_list is
+    a list of attribute name regular expressions, separated by commas
+    or spaces, and str is a string value. If attr_regex_list is
+    omitted, default to ".+"; the colon can then also be omitted
+    unless str contains a colon.
+
+    Return a pair (compiled_regex, str), where compiled_regex is a
+    compiled regular expression (bytes), with the list items as
+    alternatives, and str is the input str encoded as UTF-8 bytes.
+
+    Raise ArgumentTypeError if the attribute regex list contains
+    duplicates or if a regex is invalid.
+    """
+    if ':' not in s:
+        s = '.+:' + s
+    if s[0] == ':':
+        s = '.+' + s
+    regex_list, _, value = s.partition(':')
+    return (attr_regex_list(regex_list), encode_utf8(value))
+
+
 class VrtStructAttrUnifier(InputProcessor):
 
     """Class implementing vrt-unify-attrs functionality."""
@@ -130,8 +154,23 @@ class VrtStructAttrUnifier(InputProcessor):
              ('--structure|element|e = struct:encode_utf8',
               '''the options following this (up to the next --structure)
                  apply to structures struct'''),
-             ('--default = str:encode_utf8 ""',
-              '''add missing attributes with value str'''),
+             ('--default = ""',
+              '''Add missing attributes with value str (default: "").
+                 attr-regex-list is a list of attribute name regular
+                 expressions, separated by spaces or commas.
+                 If attr-regex-list is specified, apply to
+                 attributes whose names fully match one of the
+                 regular expressions in it, otherwise to all attributes.
+                 If attr-regex-list is omitted, the colon following it can
+                 also be omitted unless str contains a colon.
+                 If the option is specified multiple times with different
+                 attribute regular expressions, an attribute gets the str
+                 specified for the last regular expression matching the
+                 attribute name.''',
+              dict(action='append',
+                   type=attr_regex_list_value,
+                   silent_default=[],
+                   metavar='[[attr-regex-list]:]str')),
              ('--input-order',
               '''order attributes to the order first encountered in input,
                  instead of sorting alphabetically; attributes encountered
@@ -162,8 +201,7 @@ class VrtStructAttrUnifier(InputProcessor):
               '''output only attributes whose names fully match a regular
                  expression in attr-regex-list and which occur in
                  input, in addition to those possibly listed with --always;
-                 an empty value (and no --always) removes all attributes;
-                 list items separated by spaces or commas'''),
+                 an empty value (and no --always) removes all attributes'''),
              ('--exactly = attrlist:attrlist',
               '''always output only attributes listed in attrlist, shorthand
                  for --always=attrlist --only=attrlist; overrides the values
@@ -290,24 +328,40 @@ class VrtStructAttrUnifier(InputProcessor):
 
         def unify_attrs(inf):
             """Write inf to ouf, structural attributes unified and sorted."""
-            orders = make_orders()
+            orders, defaults = make_orders_and_defaults()
             for line in inf:
                 if ml.ismeta(line) and ml.isstarttag(line):
-                    line = order_attrs(line, orders)
+                    line = order_attrs(line, orders, defaults)
                 ouf.write(line)
 
-        def make_orders():
-            """Return dict[list] containing attr order for each struct."""
+        def make_orders_and_defaults():
+            """Return attribute order and defaults for each struct.
+
+            Return (dict[list], dict[dict[str]]): for each struct, the
+            order of attributes and default values for each attribute.
+            """
             orders = {}
+            defaults = {}
+
+            def add_order_and_default(struct, attrs):
+                """Set values for struct with attrs to orders and defaults."""
+                nonlocal orders, defaults
+                orders[struct], defaults[struct] = make_order_and_default(
+                    struct, attrs)
+
             if args.single_pass:
                 for struct, struct_args in args.structure.items():
-                    orders[struct] = make_order(
-                        struct, orddict(struct_args.always or []))
-                orders[None] = make_order(None, orddict(args.always or []))
+                    add_order_and_default(struct,
+                                          orddict(struct_args.always or []))
+                add_order_and_default(None, orddict(args.always or []))
             else:
                 for struct, attrs in struct_attrs.items():
-                    orders[struct] = make_order(struct, attrs)
-            return orders
+                    add_order_and_default(struct, attrs)
+            return orders, defaults
+
+        def make_order_and_default(struct, attrs):
+            """Return attribute order and defaults for struct with attrs."""
+            return make_order(struct, attrs), make_default(struct, attrs)
 
         def make_order(struct, attrs):
             """Return list containing order of attrs for struct."""
@@ -331,7 +385,19 @@ class VrtStructAttrUnifier(InputProcessor):
             order.extend(attr for attr in opts['last'] if attr in attrs)
             return order
 
-        def order_attrs(line, orders):
+        def make_default(struct, attrs):
+            """Return dict with default value for all attrs in struct."""
+            default = {}
+            default_vals = getarg('default', struct)
+            for attr in list(attrs) + (getarg('always', struct) or []):
+                # The last matching regexp specificies the default
+                for regex, value in reversed(default_vals):
+                    if regex.fullmatch(attr):
+                        default[attr] = value
+                        break
+            return default
+
+        def order_attrs(line, orders, defaults):
             """Return start tag line, attributes ordered according to orders.
 
             orders is a dict mapping structure (element) name to a list
@@ -339,10 +405,11 @@ class VrtStructAttrUnifier(InputProcessor):
             """
             struct = ml.element(line)
             attrs = ml.mapping(line)
-            default = getarg('default', struct)
+            default = defaults.get(struct) or defaults.get(None, {})
             order = orders.get(struct) or orders.get(None, [])
             return ml.starttag(
-                struct, ((name, attrs.get(name, default)) for name in order))
+                struct, ((name, attrs.get(name, default.get(name, b'')))
+                         for name in order))
 
         # Pass 1: Read input, collecting structural attribute names
         collect_attrs(inf, seekable_inf if write_tmp else None)
