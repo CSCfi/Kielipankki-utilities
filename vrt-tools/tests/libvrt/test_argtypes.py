@@ -80,9 +80,9 @@ class TestAttrlist:
         assert f'invalid attribute name: {invalid}' in str(excinfo.value)
 
 
-class TestAttrRegexList:
+class TestAttrRegexListCombined:
 
-    """Tests for vrtlib.argtypes function attr_regex_list."""
+    """Tests for vrtlib.argtypes function attr_regex_list_combined."""
 
     @pytest.mark.parametrize(
         'input,expected', [
@@ -98,9 +98,9 @@ class TestAttrRegexList:
             ('(?P<a>[a-z])(?P=a)', b'(?P<a>[a-z])(?P=a)'),
         ]
     )
-    def test_attr_regex_list(self, input, expected):
-        """Test attr_regex_list() with various inputs."""
-        assert at.attr_regex_list(input).pattern == expected
+    def test_attr_regex_list_combined(self, input, expected):
+        """Test attr_regex_list_combined() with various inputs."""
+        assert at.attr_regex_list_combined(input).pattern == expected
 
     @pytest.mark.parametrize(
         'input,dupl', [
@@ -110,10 +110,10 @@ class TestAttrRegexList:
             ('a.b,c, a.b', 'a.b'),
         ]
     )
-    def test_attr_regex_list_dupl(self, input, dupl):
-        """Test attr_regex_list() with duplicate values."""
+    def test_attr_regex_list_combined_dupl(self, input, dupl):
+        """Test attr_regex_list_combined() with duplicate values."""
         with pytest.raises(ArgumentTypeError) as excinfo:
-            assert at.attr_regex_list(input)
+            assert at.attr_regex_list_combined(input)
         assert (f'duplicate attribute name regular expressions: {dupl}'
                 in str(excinfo.value))
 
@@ -128,18 +128,76 @@ class TestAttrRegexList:
             ('a,aUb', 'aUb', 'contains upper-case characters'),
         ]
     )
-    def test_attr_regex_list_invalid(self, input, invalid, errmsg):
-        """Test attr_regex_list() with invalid values."""
+    def test_attr_regex_list_combined_invalid(self, input, invalid, errmsg):
+        """Test attr_regex_list_combined() with invalid values."""
         with pytest.raises(ArgumentTypeError) as excinfo:
-            assert at.attr_regex_list(input)
+            assert at.attr_regex_list_combined(input)
         assert (
             f'invalid attribute name regular expression: "{invalid}": {errmsg}'
             in str(excinfo.value))
 
 
-class TestAttrRegexListValue:
+class TestAttrRegexListIndividual:
 
-    """Tests for vrtlib.argtypes function attr_regex_list_value."""
+    """Tests for vrtlib.argtypes function attr_regex_list_individual."""
+
+    @pytest.mark.parametrize(
+        'input,expected', [
+            ('', []),
+            ('a', [b'a']),
+            ('a,b', [b'a', b'b']),
+            ('a b', [b'a', b'b']),
+            (' a   b  ', [b'a', b'b']),
+            (' a ,  b , ', [b'a', b'b']),
+            (',a,,,b,,,', [b'a', b'b']),
+            ('a.,b.+,c[de],f(g|hi)j', [b'a.', b'b.+', b'c[de]', b'f(g|hi)j']),
+            (r'a\Db', [br'a\Db']),
+            ('(?P<a>[a-z])(?P=a)', [b'(?P<a>[a-z])(?P=a)']),
+        ]
+    )
+    def test_attr_regex_list_individual(self, input, expected):
+        """Test attr_regex_list_individual() with various inputs."""
+        result = at.attr_regex_list_individual(input)
+        [regex.pattern for regex in result] == expected
+
+    @pytest.mark.parametrize(
+        'input,dupl', [
+            ('a,a', 'a'),
+            ('a a', 'a'),
+            ('a,b,a', 'a'),
+            ('a.b,c, a.b', 'a.b'),
+        ]
+    )
+    def test_attr_regex_list_individual_dupl(self, input, dupl):
+        """Test attr_regex_list_individual() with duplicate values."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            assert at.attr_regex_list_individual(input)
+        assert (f'duplicate attribute name regular expressions: {dupl}'
+                in str(excinfo.value))
+
+    @pytest.mark.parametrize(
+        'input,invalid,errmsg', [
+            ('a,+.', '+.', 'nothing to repeat at position 0'),
+            ('a,(a', '(a', 'missing ), unterminated subpattern at position 0'),
+            ('a,a)', 'a)', 'unbalanced parenthesis at position 1'),
+            ('a,[a', '[a', 'unterminated character set at position 0'),
+            ('a,aäb', 'aäb', 'contains non-ASCII characters'),
+            ('a,a\x01b', 'a\x01b', 'contains non-printable characters'),
+            ('a,aUb', 'aUb', 'contains upper-case characters'),
+        ]
+    )
+    def test_attr_regex_list_individual_invalid(self, input, invalid, errmsg):
+        """Test attr_regex_list_individual() with invalid values."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            assert at.attr_regex_list_individual(input)
+        assert (
+            f'invalid attribute name regular expression: "{invalid}": {errmsg}'
+            in str(excinfo.value))
+
+
+class TestAttrRegexListCombinedValue:
+
+    """Tests for vrtlib.argtypes function attr_regex_list_combined_value."""
 
     @pytest.mark.parametrize(
         'input,expected', [
@@ -165,9 +223,9 @@ class TestAttrRegexListValue:
             ('a.,b.+,c[de],f(g|hi)j:x', (b'a.|b.+|c[de]|f(g|hi)j', b'x')),
         ]
     )
-    def test_attr_regex_list_value(self, input, expected):
-        """Test attr_regex_list_value() with various inputs."""
-        result = at.attr_regex_list_value(input)
+    def test_attr_regex_list_combined_value(self, input, expected):
+        """Test attr_regex_list_combined_value() with various inputs."""
+        result = at.attr_regex_list_combined_value(input)
         assert (result[0].pattern, result[1]) == expected
 
     @pytest.mark.parametrize(
@@ -178,10 +236,10 @@ class TestAttrRegexListValue:
             ('a.b,c, a.b:x', 'a.b'),
         ]
     )
-    def test_attr_regex_list_value_dupl(self, input, dupl):
-        """Test attr_regex_list_value() with duplicate values."""
+    def test_attr_regex_list_combined_value_dupl(self, input, dupl):
+        """Test attr_regex_list_combined_value() with duplicate values."""
         with pytest.raises(ArgumentTypeError) as excinfo:
-            assert at.attr_regex_list_value(input)
+            assert at.attr_regex_list_combined_value(input)
         assert (f'duplicate attribute name regular expressions: {dupl}'
                 in str(excinfo.value))
 
@@ -197,10 +255,11 @@ class TestAttrRegexListValue:
             ('a,aUb:x', 'aUb', 'contains upper-case characters'),
         ]
     )
-    def test_attr_regex_list_value_invalid(self, input, invalid, errmsg):
-        """Test attr_regex_list_value() with invalid values."""
+    def test_attr_regex_list_combined_value_invalid(
+            self, input, invalid, errmsg):
+        """Test attr_regex_list_combined_value() with invalid values."""
         with pytest.raises(ArgumentTypeError) as excinfo:
-            assert at.attr_regex_list_value(input)
+            assert at.attr_regex_list_combined_value(input)
         assert (
             f'invalid attribute name regular expression: "{invalid}": {errmsg}'
             in str(excinfo.value))

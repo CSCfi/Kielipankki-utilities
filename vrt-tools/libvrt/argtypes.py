@@ -61,13 +61,12 @@ def attrlist(s):
     return _listtype_base(s, check_attr, True, 'attribute names')
 
 
-def attr_regex_list(s):
-    """Argument type function for a list of unique attribute regexps.
+def _attr_regex_list_base(s):
+    """Base argument type function for a list of unique attribute regexps.
 
     The attribute regular expressions in str s can be separated by
     commas or spaces.
-    Return a compiled regular expression (bytes), with the list items
-    as alternatives.
+    Return a list of regular expression strings (bytes).
 
     Raise ArgumentTypeError if the attribute regex list contains
     duplicates or if a regex is invalid or would match non-ASCII,
@@ -100,13 +99,41 @@ def attr_regex_list(s):
         except re.error as e:
             raise ArgumentTypeError(f'{msg_base}: {e}')
 
-    return re.compile(
-        b'|'.join(
-            regex for regex in _listtype_base(
-                s, check_attr, True, 'attribute name regular expressions')))
+    return _listtype_base(
+        s, check_attr, True, 'attribute name regular expressions')
 
 
-def attr_regex_list_value(s):
+def attr_regex_list_combined(s):
+    """Argument type for a list of unique attribute regexps, combined.
+
+    The attribute regular expressions in str s can be separated by
+    commas or spaces.
+    Return a compiled regular expression (bytes), with the list items
+    as alternatives.
+
+    Raise ArgumentTypeError if the attribute regex list contains
+    duplicates or if a regex is invalid or would match non-ASCII,
+    non-printable or upper-case characters.
+    """
+    return re.compile(b'|'.join(regex for regex in _attr_regex_list_base(s)))
+
+
+def attr_regex_list_individual(s):
+    """Argument type for a list of unique attribute regexps, individually.
+
+    The attribute regular expressions in str s can be separated by
+    commas or spaces.
+    Return a list of compiled regular expressions (for bytes), one for
+    each input list item.
+
+    Raise ArgumentTypeError if the attribute regex list contains
+    duplicates or if a regex is invalid or would match non-ASCII,
+    non-printable or upper-case characters.
+    """
+    return [re.compile(regex) for regex in _attr_regex_list_base(s)]
+
+
+def attr_regex_list_combined_value(s):
     """Argument type function for attribute regex list and string value.
 
     s is of the form [[attr_regex_list]:]str, where attr_regex_list is
@@ -127,4 +154,4 @@ def attr_regex_list_value(s):
     if s[0] == ':':
         s = '.+' + s
     regex_list, _, value = s.partition(':')
-    return (attr_regex_list(regex_list), encode_utf8(value))
+    return (attr_regex_list_combined(regex_list), encode_utf8(value))
