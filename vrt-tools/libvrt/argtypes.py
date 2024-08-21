@@ -70,16 +70,35 @@ def attr_regex_list(s):
     as alternatives.
 
     Raise ArgumentTypeError if the attribute regex list contains
-    duplicates or if a regex is invalid.
+    duplicates or if a regex is invalid or would match non-ASCII,
+    non-printable or upper-case characters.
     """
 
     def check_attr(regex):
-        """Raise ArgumentTypeError if attr is an invalid attribute regex."""
+        """Raise ArgumentTypeError if regex is an invalid attribute regex."""
+        msg_base = f'invalid attribute name regular expression: "{regex}"'
+
+        def match_lower(regex):
+            """Return True if regex does not match upper-case characters."""
+            stripped = re.sub(r'\\[ABDSWZ]|\(\?P|\W|\d', '', regex)
+            return not stripped or stripped.islower()
+
+        # This does not guarantee in any way that regex matches only
+        # valid attribute names, but try to check that it does not
+        # match non-ASCII, non-printable or upper-case characters
+        tests_types = [
+            (lambda r: r.isascii(), 'non-ASCII'),
+            (lambda r: r.isprintable(), 'non-printable'),
+            (match_lower, 'upper-case'),
+        ]
+        for test, type_ in tests_types:
+            if not test(regex):
+                raise ArgumentTypeError(
+                    f'{msg_base}: contains {type_} characters')
         try:
             re.compile(regex)
         except re.error as e:
-            raise ArgumentTypeError(
-                f'invalid attribute name regular expression: "{regex}": {e}')
+            raise ArgumentTypeError(f'{msg_base}: {e}')
 
     return re.compile(
         b'|'.join(

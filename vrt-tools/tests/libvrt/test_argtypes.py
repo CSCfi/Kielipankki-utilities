@@ -94,6 +94,8 @@ class TestAttrRegexList:
             (' a ,  b , ', b'a|b'),
             (',a,,,b,,,', b'a|b'),
             ('a.,b.+,c[de],f(g|hi)j', b'a.|b.+|c[de]|f(g|hi)j'),
+            (r'a\Db', br'a\Db'),
+            ('(?P<a>[a-z])(?P=a)', b'(?P<a>[a-z])(?P=a)'),
         ]
     )
     def test_attr_regex_list(self, input, expected):
@@ -121,6 +123,9 @@ class TestAttrRegexList:
             ('a,(a', '(a', 'missing ), unterminated subpattern at position 0'),
             ('a,a)', 'a)', 'unbalanced parenthesis at position 1'),
             ('a,[a', '[a', 'unterminated character set at position 0'),
+            ('a,aäb', 'aäb', 'contains non-ASCII characters'),
+            ('a,a\x01b', 'a\x01b', 'contains non-printable characters'),
+            ('a,aUb', 'aUb', 'contains upper-case characters'),
         ]
     )
     def test_attr_regex_list_invalid(self, input, invalid, errmsg):
@@ -187,6 +192,9 @@ class TestAttrRegexListValue:
              'missing ), unterminated subpattern at position 0'),
             ('a,a):x', 'a)', 'unbalanced parenthesis at position 1'),
             ('a,[a:x', '[a', 'unterminated character set at position 0'),
+            ('a,aäb:x', 'aäb', 'contains non-ASCII characters'),
+            ('a,a\x01b:x', 'a\x01b', 'contains non-printable characters'),
+            ('a,aUb:x', 'aUb', 'contains upper-case characters'),
         ]
     )
     def test_attr_regex_list_value_invalid(self, input, invalid, errmsg):
