@@ -227,40 +227,41 @@ class VrtStructAttrUnifier(InputProcessor):
 
         def unify_attrs(inf):
             """Write inf to ouf, structural attributes unified and sorted."""
-            orders, defaults = make_orders_and_defaults()
+            attrs_info = make_attrs_info()
             for line in inf:
                 if ml.ismeta(line) and ml.isstarttag(line):
-                    line = order_attrs(line, orders, defaults)
+                    line = order_attrs(line, attrs_info)
                 ouf.write(line)
 
-        def make_orders_and_defaults():
-            """Return attribute order and defaults for each struct.
+        def make_attrs_info():
+            """Return attribute info dict for each structure.
 
-            Return (dict[list], dict[dict[str]]): for each struct, the
-            order of attributes and default values for each attribute.
+            Return dict[str, dict]: for each structure, the order of
+            attributes and default values for each attribute.
             """
-            orders = {}
-            defaults = {}
 
-            def add_order_and_default(struct, attrs):
-                """Set values for struct with attrs to orders and defaults."""
-                nonlocal orders, defaults
-                orders[struct], defaults[struct] = make_order_and_default(
-                    struct, attrs)
+            attrs_info = {}
+
+            def add_attr_info(struct, attrs):
+                """Set attrs_info values for struct with attrs."""
+                nonlocal attrs_info
+                attrs_info[struct] = make_attr_info(struct, attrs)
 
             if args.single_pass:
                 for struct, struct_args in args.structure.items():
-                    add_order_and_default(struct,
-                                          orddict(struct_args.always or []))
-                add_order_and_default(None, orddict(args.always or []))
+                    add_attr_info(struct, orddict(struct_args.always or []))
+                add_attr_info(None, orddict(args.always or []))
             else:
                 for struct, attrs in struct_attrs.items():
-                    add_order_and_default(struct, attrs)
-            return orders, defaults
+                    add_attr_info(struct, attrs)
+            return attrs_info
 
-        def make_order_and_default(struct, attrs):
-            """Return attribute order and defaults for struct with attrs."""
-            return make_order(struct, attrs), make_default(struct, attrs)
+        def make_attr_info(struct, attrs):
+            """Return attribute info dict for struct with attrs."""
+            return {
+                'order': make_order(struct, attrs),
+                'default': make_default(struct, attrs),
+            }
 
         def make_order(struct, attrs):
             """Return list containing order of attrs for struct."""
@@ -296,16 +297,18 @@ class VrtStructAttrUnifier(InputProcessor):
                         break
             return default
 
-        def order_attrs(line, orders, defaults):
-            """Return start tag line, attributes ordered according to orders.
+        def order_attrs(line, attrs_info):
+            """Return start tag line, attributes according to attrs_info.
 
-            orders is a dict mapping structure (element) name to a list
-            of attribute names.
+            attrs_info dict contains for each structure the order (a
+            list of attribute names in the desired order) and defaults
+            (a dict mapping attribute names to their default values).
             """
             struct = ml.element(line)
             attrs = ml.mapping(line)
-            default = defaults.get(struct) or defaults.get(None, {})
-            order = orders.get(struct) or orders.get(None, [])
+            attr_info = attrs_info.get(struct) or attrs_info.get(None)
+            default = attr_info['default']
+            order = attr_info['order']
             return ml.starttag(
                 struct, ((name, attrs.get(name, default.get(name, b'')))
                          for name in order))
