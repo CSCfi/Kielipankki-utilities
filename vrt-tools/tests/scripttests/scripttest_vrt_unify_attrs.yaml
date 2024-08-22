@@ -904,7 +904,7 @@
     cmdline: vrt-unify-attrs --only="" --default="_" in.vrt
     file:in.vrt: *input-4
   output:
-    stdout: |
+    stdout: &output-noattrs |
       <!-- #vrt positional-attributes: word -->
       <text>
       <sentence>
@@ -1112,21 +1112,7 @@
     - vrt-unify-attrs --single-pass --only="f,g" in.vrt
     file:in.vrt: *input-4
   output:
-    stdout: |
-      <!-- #vrt positional-attributes: word -->
-      <text>
-      <sentence>
-      a
-      </sentence>
-      </text>
-      <text>
-      <sentence>
-      b
-      </sentence>
-      <sentence>
-      c
-      </sentence>
-      </text>
+    stdout: *output-noattrs
   transform: *transform-stdin-comma
 
 - name: 'vrt-unify-attrs: --single-pass, global --always (or --exactly)'
