@@ -79,7 +79,7 @@ def _attr_regex_list_base(s):
 
         def match_lower(regex):
             """Return True if regex does not match upper-case characters."""
-            stripped = re.sub(r'\\[ABDSWZ]|\(\?P|\W|\d', '', regex)
+            stripped = re.sub(r'\\[ABDSWZ]|\(\?P|\W|\d|_', '', regex)
             return not stripped or stripped.islower()
 
         # This does not guarantee in any way that regex matches only
