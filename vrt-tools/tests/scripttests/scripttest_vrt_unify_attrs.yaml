@@ -699,6 +699,28 @@
       </text>
   transform: *transform-stdin-comma
 
+- name: 'vrt-unify-attrs: Structure-specific empty --always overriding global'
+  input:
+    cmdline: vrt-unify-attrs --default="_" --always="z,f,_a,a" --first="f,z" --structure=text --always="" in.vrt
+    file:in.vrt: *input-4
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text f="_" a="b" b="_" c="d" d="_" e="x" g="w">
+      <sentence f="_" z="_" _a="_" a="_" b="_" c="_" d="_" e="_">
+      a
+      </sentence>
+      </text>
+      <text f="v" a="y" b="z" c="_" d="a" e="_" g="_">
+      <sentence f="_" z="_" _a="_" a="_" b="1" c="2" d="_" e="4">
+      b
+      </sentence>
+      <sentence f="_" z="_" _a="_" a="0" b="_" c="_" d="3" e="_">
+      c
+      </sentence>
+      </text>
+  transform: *transform-stdin-comma
+
 - name: 'vrt-unify-attrs: --always with duplicate attribute names'
   input:
     cmdline: vrt-unify-attrs --always="z,f,z,a" in.vrt
