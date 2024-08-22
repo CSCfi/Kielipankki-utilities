@@ -107,6 +107,11 @@ class VrtStructAttrUnifier(InputProcessor):
                  for --always=attrlist --only=attrlist; overrides the values
                  for --always and --only (but structure-specific --always and
                  --only override global --exactly)'''),
+             ('--optional = attr-regex-list:attr_regex_list_combined',
+              '''do not add attributes fully matching a regular expression in
+                 attr-regex-list to structures from which they are missing
+                 (unless listed with --always); has no effect with
+                 --single-pass'''),
              ('--drop = attr-regex-list:attr_regex_list_combined',
               '''drop (remove) attributes fully matching a regular expression
                  in attr-regex-list (and not listed with --always, --only or
@@ -172,6 +177,11 @@ class VrtStructAttrUnifier(InputProcessor):
         if struct is None:
             for struct2, struct_args in args.structure.items():
                 self.check_args(struct_args, struct2)
+            if args.single_pass:
+                if args.optional or any(
+                        struct_args.optional
+                        for struct_args in args.structure.values()):
+                    self.warn('--optional has no effect with --single-pass')
 
     def main(self, args, inf, ouf):
         """Read inf, write to ouf, with command-line arguments args."""
@@ -262,6 +272,7 @@ class VrtStructAttrUnifier(InputProcessor):
             return {
                 'order': make_order(struct, attrs),
                 'default': make_default(struct, attrs),
+                'optional': make_optional(struct, attrs),
             }
 
         def make_order(struct, attrs):
@@ -298,6 +309,15 @@ class VrtStructAttrUnifier(InputProcessor):
                         break
             return default
 
+        def make_optional(struct, attrs):
+            """Return set containing attrs matching --optional for struct. """
+            optional_re = getarg('optional', struct)
+            if not optional_re:
+                return set()
+            always = getarg('always', struct) or []
+            return set(attr for attr in attrs
+                       if attr not in always and optional_re.fullmatch(attr))
+
         def order_attrs(line, attrs_info):
             """Return start tag line, attributes according to attrs_info.
 
@@ -310,9 +330,11 @@ class VrtStructAttrUnifier(InputProcessor):
             attr_info = attrs_info.get(struct) or attrs_info.get(None)
             default = attr_info['default']
             order = attr_info['order']
+            optional = attr_info['optional']
             return ml.starttag(
                 struct, ((name, attrs.get(name, default.get(name, b'')))
-                         for name in order))
+                         for name in order
+                         if name in attrs or name not in optional))
 
         # Pass 1: Read input, collecting structural attribute names
         collect_attrs(inf, seekable_inf if write_tmp else None)
