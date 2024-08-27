@@ -357,13 +357,15 @@
         vrt-extract-seed: error: --distance=random requires specifying --last
     returncode: 1
 
-- name: 'vrt-extract-seed: --distance=random, --count greater than --last'
+- name: 'vrt-extract-seed: --distance=random/even, --count greater than --last'
   input:
-    cmdline: vrt-extract-seed --count=4 --distance=random --last=3
+    cmdline:
+    - vrt-extract-seed --count=4 --distance=random --last=3
+    - vrt-extract-seed --count=4 --distance=even --last=3
     stdin: *input-1
   output:
     stdout: |
       foobarbaz
     stderr:
       contains: |
-        vrt-extract-seed: Warning: --count greater than --last with --distance=random, resetting to the value of --last (3)
+        vrt-extract-seed: Warning: --count greater than --last, resetting to the value of --last (3)

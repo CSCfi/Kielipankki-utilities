@@ -88,16 +88,17 @@ class SeedExtractor(InputProcessor):
 
     def check_args(self, args):
         """Check the validity of `args` (combinations of options)."""
-        if args.distance == DIST_EVEN and not args.last:
-            self.error_exit('error: --distance=even requires specifying --last')
-        elif args.distance == DIST_RANDOM:
-            if not args.last:
-                self.error_exit(
-                    'error: --distance=random requires specifying --last')
-            elif args.count > args.last:
-                self.warn('--count greater than --last with --distance=random,'
-                          f' resetting to the value of --last ({args.last})')
+        if args.last:
+            if args.count > args.last:
+                self.warn('--count greater than --last, resetting to the'
+                          f' value of --last ({args.last})')
                 args.count = args.last
+        else:
+            for dist_val, dist_str in [
+                    (DIST_EVEN, 'even'), (DIST_RANDOM, 'random')]:
+                if args.distance == dist_val:
+                    self.error_exit(f'error: --distance={dist_str} requires'
+                                    ' specifying --last')
         if args.baseseed == '':
             # Non-reproducibly random
             args.baseseed = None
