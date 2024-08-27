@@ -95,8 +95,9 @@ class SeedExtractor(InputProcessor):
                 self.error_exit(
                     'error: --distance=random requires specifying --last')
             elif args.count > args.last:
-                self.error_exit('error: --count cannot be larger than --last'
-                                ' with --distance=random')
+                self.warn('--count greater than --last with --distance=random,'
+                          f' resetting to the value of --last ({args.last})')
+                args.count = args.last
         if args.baseseed == '':
             # Non-reproducibly random
             args.baseseed = None
