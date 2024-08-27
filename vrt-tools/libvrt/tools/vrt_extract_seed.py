@@ -58,6 +58,11 @@ class SeedExtractor(InputProcessor):
     values of the first positional attribute if the input has no
     positional-attributes comment or attribute named "word".
     """
+    EPILOG = """
+    Note that the output may be an empty line (no words) if the option
+    --last is given a value smaller than the value of --distance (an
+    integer).
+    """
     ARGSPECS = [
         ('--count = num',
          '''the maximum number of words to extract for the seed''',
@@ -70,8 +75,8 @@ class SeedExtractor(InputProcessor):
          dict(type=distance_arg, default=100)),
         ('--last = num',
          '''the number of the last token to include in the seed
-            (typically the number of tokens in the input VRT), to be
-            used with --distance=even and --distance=random''',
+            (typically the number of tokens in the input VRT);
+            required with --distance=even and --distance=random''',
          dict(type=posint)),
         ('--baseseed = str',
          '''use str as the random number generator seed for
