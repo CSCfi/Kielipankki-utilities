@@ -599,8 +599,8 @@ run_cmd () {
 }
 
 process_vrt () {
-    run_cmd "$@" < $vrt_file > $vrt_file.new
-    replace_file $vrt_file $vrt_file.new
+    run_cmd "$@" < $vrt_file > $vrt_file.new &&
+        replace_file $vrt_file $vrt_file.new
 }
 
 time_stage () {
