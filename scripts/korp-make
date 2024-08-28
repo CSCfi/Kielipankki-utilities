@@ -558,6 +558,9 @@ if [ "x$verbose" != x ]; then
     verbose_opt=--verbose
 fi
 
+input_token_count=0
+existing_token_count=0
+
 
 remove_existing_data () {
     rm -f $datadir/* $cwb_regdir/$corpus $tsvdir/$corpus_*.tsv.gz \
@@ -754,7 +757,6 @@ stages=(
 
 
 combine_input () {
-    local input_token_count existing_token_count
     # Skip empty lines in the input VRT, in order to avoid a differing
     # number of tokens from the already encoded attributes (assuming
     # that cwb-encode was told to skip empty lines).
@@ -776,8 +778,10 @@ combine_input () {
 test_skip_combine_input () {
     # If other conditions for not combining input have been met,
     # $vrt_file has already been removed in check_for_existing_data
-    [ -r $vrt_file ] && [ -s $vrt_file ] &&
+    if [ -r $vrt_file ] && [ -s $vrt_file ]; then
 	echo "using existing VRT file $vrt_file"
+        input_token_count=$(vrt_get_token_count "$vrt_file")
+    fi
 }
 
 check_input_attrs () {
