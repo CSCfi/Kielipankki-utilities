@@ -202,8 +202,12 @@ lemgrams-keep-letters-with-diacritics=CHARS \
 add-structure-ids|add-element-ids=STRUCTLIST \
   "text paragraph sentence" add_struct_ids
     add id attributes to the structures listed in STRUCTLIST
-    (separated by spaces); if STRUCTLIST is an empty string, do not
-    add id attributes
+    (separated by spaces); id values are based on unique random
+    integers; unless --overwrite-structure-ids is specified, rename
+    possible existing id attributes to id_N, where N is the smallest
+    positive integer for which attribute id_N does not already exist
+    in the structure; if STRUCTLIST is an empty string, do not add id
+    attributes
 overwrite-structure-ids|overwrite-element-ids !keep_struct_ids
     overwrite possible existing id attribute values in the structures
     listed with --add-structure-ids
@@ -392,7 +396,7 @@ vrt_fix_attrs=$progdir/vrt-fix-attrs.py
 vrt_add_lemma_nobound=$vrttoolsdir/vrt-add-lemma-nobound
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
 vrt_sort=$vrttoolsdir/vrt-sort
-vrt_add_struct_ids=$progdir/vrt-add-struct-ids.sh
+vrt_add_id=$vrttoolsdir/vrt-add-id
 vrt_convert_chars=$vrttoolsdir/vrt-convert-chars
 vrt_extract_timespans=$progdir/vrt-extract-timespans.py
 vrt_extract_seed=$vrttoolsdir/vrt-extract-seed
@@ -420,6 +424,19 @@ text_sort_opts=
 sort_texts=
 add_lemgrams_opts=
 
+
+# Default structural attribute id formats
+declare -A struct_id_format
+struct_id_format=(
+    # Standard structures
+    text "t-{hash:.8}-{id}"
+    paragraph "p-{hash:.8}-{idnum[text]}-{id}"
+    sentence "s-{hash:.8}-{idnum[text]}-{id}"
+    # Structures used in some corpora
+    link "l-{hash:.8}-{idnum[text]}-{id}"
+    clause "c-{hash:.8}-{idnum[text]}-{idnum[sentence]}-{id}"
+    chapter "ch-{hash:.8}-{idnum[text]}-{idnum[sentence]}-{id}"
+)
 
 add_auth_opts () {
     local type opt val
@@ -1221,13 +1238,52 @@ test_skip_scramble_structs () {
 add_struct_ids () {
     local opts=
     local struct
+    local use_defaults=1
     if [ "x$keep_struct_ids" = x ]; then
 	opts=--force
+    else
+        # If the VRT data already has id attributes, rename them
+        for struct in $add_struct_ids; do
+            if vrt_has_struct_id $struct; then
+                opts=--rename
+                break
+            fi
+        done
     fi
-    for struct in $add_struct_ids; do
-	opts="$opts --structure=$struct"
-    done
-    process_vrt $vrt_add_struct_ids $opts
+    # Use vrt-add-id defaults if $add_struct_ids contains "text",
+    # "paragraph" and "sentence" (the default) and nothing else
+    if ! word_in "text" "$add_struct_ids" ||
+            ! word_in "paragraph" "$add_struct_ids" ||
+            ! word_in "sentence" "$add_struct_ids"; then
+        use_defaults=
+    else
+        for struct in $add_struct_ids; do
+            if ! word_in $struct "text paragraph sentence"; then
+                use_defaults=
+            fi
+        done
+    fi
+    if [ "$use_defaults" != "1" ]; then
+        for struct in $add_struct_ids; do
+	    opts="$opts --element=$struct"
+            if [ "${struct_id_format[$struct]}" != "" ]; then
+                opts="$opts --format=${struct_id_format[$struct]}"
+            fi
+        done
+    fi
+    process_vrt $vrt_add_id --hash=$corpus --seed="<$seed_file" $opts
+}
+
+vrt_has_struct_id () {
+    # Return true if $vrt_file has attribute "id" in structure $1.
+    # Note that this also returns true if an attribute value ends in
+    # " id=".
+    # If $vrt_file does not contain $struct structures, this greps
+    # through the whole file. An alternative could be to take only a
+    # head of $vrt_file, but it would be more complex, as it would
+    # have to handle SIGPIPE somehow.
+    grep -m1 "^<$struct[ >]" $vrt_file |
+        grep -sq ' id="'
 }
 
 test_skip_add_struct_ids () {
@@ -1238,7 +1294,7 @@ test_skip_add_struct_ids () {
         return
     fi
     for struct in $add_struct_ids; do
-        if grep -q -s "^<$struct " "$vrt_file"; then
+        if grep -q -s "^<$struct[ >]" "$vrt_file"; then
             has_structs=1
             break
         fi
@@ -1247,18 +1303,6 @@ test_skip_add_struct_ids () {
         echo "no structures ($(delimit ", " $add_struct_ids)) present"
         return
     fi
-    # It would be nice if this could modify $add_struct_ids to
-    # contain only the structures without ids, but the function is
-    # run as a subprocess, so the change would not propagate to
-    # the parent
-    for struct in $add_struct_ids; do
-        # FIXME (how?): The following also matches if an attribute
-        # value ends in "id="
-        if ! grep -m1 "^<$struct " "$vrt_file" | grep -q -s ' id="'; then
-            return
-        fi
-    done
-    echo "already present"
 }
 
 filter_new_attrs () {
