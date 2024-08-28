@@ -527,6 +527,8 @@ echo_verb "Processed arguments: $cmdline_args_processed"
 
 input_files=( "$@" )
 
+vrt_subdir=${vrt_subdir//CORPUS/$corpus}
+tsv_subdir=${tsv_subdir//CORPUS/$corpus}
 vrtdir=${vrtdir:-$corpus_root/$vrt_subdir}
 vrtdir=${vrtdir//CORPUS/$corpus}
 tsvdir=${tsvdir:-$corpus_root/$tsv_subdir}
