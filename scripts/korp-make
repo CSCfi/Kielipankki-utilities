@@ -412,6 +412,8 @@ cwb_describe_corpus=$cwb_bindir/cwb-describe-corpus
 cwb_make=$cwb_perl_bindir/cwb-make
 
 vrt_file=
+# Complete, unscrambled VRT file with no structures removed
+vrt_file_full=
 
 
 text_sort_opts=
@@ -548,6 +550,7 @@ if [ "x$vrt_file" = "x" ]; then
 	vrt_file=$tmp_prefix.$corpus.vrt
     else
 	vrt_file=$vrtdir/$corpus.vrt
+        vrt_file_full=$vrtdir/$corpus-complete.vrt
     fi
 fi
 
@@ -746,6 +749,7 @@ stages=(
     add_lemgrams "Adding lemgrams"
     add_datefromto "Adding datefrom and dateto"
     sort_texts "Sorting text elements"
+    save_full_vrt "Saving complete VRT file"
     omit_structures "Omitting structures"
     scramble_structs "Scrambling structures"
     cwb_encode "Encoding the attributes for CWB"
@@ -1142,6 +1146,15 @@ test_skip_sort_texts () {
     echo "not requested"
 }
 
+save_full_vrt () {
+    run_cmd cp -p $vrt_file $vrt_file_full
+}
+
+test_skip_save_full_vrt () {
+    [ "x$augment_data" != x ] &&
+        echo "not done when augmenting data"
+}
+
 # find_containing_struct struct vrt_fname
 #
 # Print the structure immediately containing struct in the VRT file
@@ -1489,9 +1502,9 @@ make_corpus_package () {
     extra_opts="$extra_opts --extra-file=$package_extra_file"
     [ -e "$seed_file" ] &&
         seed_file_opt="--extra-file=$seed_file:$vrt_subdir/"
-    run_cmd gzip --no-name --force $vrt_file
+    run_cmd gzip --no-name --force $vrt_file $vrt_file_full
     if [ "x$augment_data" = x ]; then
-	vrt_opt="--vrt-file $vrt_file.gz"
+	vrt_opt="--vrt-file $vrt_file.gz --vrt-file $vrt_file_full.gz"
     else
 	vrt_opt="--update-vrt"
     fi
