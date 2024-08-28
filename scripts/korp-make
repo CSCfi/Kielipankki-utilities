@@ -395,6 +395,7 @@ vrt_sort=$vrttoolsdir/vrt-sort
 vrt_add_struct_ids=$progdir/vrt-add-struct-ids.sh
 vrt_convert_chars=$vrttoolsdir/vrt-convert-chars
 vrt_extract_timespans=$progdir/vrt-extract-timespans.py
+vrt_extract_seed=$vrttoolsdir/vrt-extract-seed
 vrt_list_struct_attrs=$progdir/vrt-list-struct-attrs.py
 korp_convert_timedata=$progdir/korp-convert-timedata.sh
 vrt_scramble=$progdir/vrt-scramble.py
@@ -552,6 +553,7 @@ fi
 
 stages_file=$vrtdir/$corpus.stages
 opts_file=$vrtdir/$corpus.opts
+seed_file=$vrtdir/$corpus.seed
 # Should the information from a previous run be checked
 check_prev_run=
 
@@ -566,7 +568,8 @@ existing_token_count=0
 
 remove_existing_data () {
     rm -f $datadir/* $cwb_regdir/$corpus $tsvdir/$corpus_*.tsv.gz \
-       $vrtdir/$corpus.vrt $vrtdir/$corpus.vrt.gz $stages_file $opts_file
+       $vrtdir/$corpus.vrt $vrtdir/$corpus.vrt.gz $stages_file $opts_file \
+       $seed_file
 }
 
 run_cmd () {
@@ -735,6 +738,7 @@ stages=(
     "*check_input_attrs" "Checking input attributes"
     # Stage 3 information set in check_input_attrs if needed
     "" ""
+    extract_random_seed "Extracting random seed"
     copy_struct_attrs "Copying structural attributes"
     rename_struct_attrs "Renaming structural attributes"
     add_struct_ids "Adding structure ids"
@@ -989,6 +993,24 @@ generate_input () {
     # Replace lex with lex/ (lemgram has feature-set values)
     input_attrs=$(suffix_word "$input_attrs" lex /)
     initial_input_attrs=$input_attrs
+}
+
+extract_random_seed () {
+    local cnt=256
+    if [ $input_token_count -lt $(($cnt * 4)) ]; then
+        # Add 1 to avoid having $cnt = 0
+        cnt=$(($input_token_count / 4 + 1))
+    fi
+    run_cmd $vrt_extract_seed --separator=" " --baseseed=$corpus --count=$cnt \
+            --distance=random --last=$input_token_count $vrt_file > $seed_file
+}
+
+test_skip_extract_random_seed () {
+    if [ "x$add_struct_ids" = x ] && [ "x$scramble" = x ]; then
+        echo "not required"
+    elif [ -e "$seed_file" ]; then
+        echo "already extracted"
+    fi
 }
 
 copy_struct_attrs () {
@@ -1448,7 +1470,7 @@ test_skip_adjust_posattrs_comment () {
 }
 
 make_corpus_package () {
-    local extra_opts vrt_opt
+    local extra_opts vrt_opt seed_file_opt
     [ "x$korp_frontend_dir" != x ] &&
     extra_opts="$extra_opts --korp-frontend-dir=$korp_frontend_dir"
     [ "x$package_readme_file" != x ] &&
@@ -1465,6 +1487,8 @@ make_corpus_package () {
     extra_opts="$extra_opts --extra-dir=$package_extra_dir"
     [ "x$package_extra_file" != x ] &&
     extra_opts="$extra_opts --extra-file=$package_extra_file"
+    [ -e "$seed_file" ] &&
+        seed_file_opt="--extra-file=$seed_file:$vrt_subdir/"
     run_cmd gzip --no-name --force $vrt_file
     if [ "x$augment_data" = x ]; then
 	vrt_opt="--vrt-file $vrt_file.gz"
@@ -1474,7 +1498,7 @@ make_corpus_package () {
     run_cmd $korp_make_corpus_package --target-corpus-root /v/corpora \
 	--corpus-root "$corpus_root" \
 	--tsv-dir "$tsvdir" --database-format tsv --compress gzip \
-	$vrt_opt $auth_opts $extra_opts $corpus
+	$vrt_opt $auth_opts $seed_file_opt $extra_opts $corpus
 }
 
 test_skip_make_corpus_package () {
