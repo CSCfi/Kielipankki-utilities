@@ -208,6 +208,12 @@ add-structure-ids|add-element-ids=STRUCTLIST \
     positive integer for which attribute id_N does not already exist
     in the structure; if STRUCTLIST is an empty string, do not add id
     attributes
+structure-id-format|element-id-format=STRUCT:FORMAT * \
+  { add_struct_id_format "$1" }
+    format the value of the id attribute for structure STRUCT with
+    FORMAT; run "vrt-add-id -h" for more information on FORMAT (in the
+    usage description of option --format) but note that FORMAT may not
+    contain spaces here
 overwrite-structure-ids|overwrite-element-ids !keep_struct_ids
     overwrite possible existing id attribute values in the structures
     listed with --add-structure-ids
@@ -464,6 +470,14 @@ add_lemgram_opt () {
     # occur
     add_lemgrams_opts="$add_lemgrams_opts $optname $optarg"
 }
+
+add_struct_id_format () {
+    local optarg=$1
+    local struct=${optarg%%:*}
+    local format=${optarg#*:}
+    struct_id_format[$struct]="$format"
+}
+
 
 # Process options
 eval "$optinfo_opt_handler"
