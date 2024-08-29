@@ -38,6 +38,9 @@ wordpict_relmap_ud_default=$mapdir/wordpict_relmap_ud_fi.tsv
 compound_boundary_marker_default="|"
 compound_boundary_marker_ud_default="#"
 
+# Designates that the corpus id should be used as the base seed
+random_seed_default="{CORPUS}"
+
 usage_header="Usage: $progname [options] [corpus] [input_file ...]
 
 Process a VRT file to make a Korp corpus package containing CWB data files and
@@ -197,6 +200,15 @@ lemgrams-keep-letters-with-diacritics=CHARS \
     regular expression (as [^CHARS]). CHARS are retained regardless of
     their case.
 
+@ Random-number generator seed
+
+random-seed=SEED "'"$random_seed_default"'"
+    use the string SEED as the base seed for the random-number
+    generator, to be used for generating structure id attributes and
+    scrambling data; the actual seed is generated using SEED and seed
+    for scrambling data; "" for a random seed (non-reproducible
+    results) (default: corpus id)
+
 @ Structure ids
 
 add-structure-ids|add-element-ids=STRUCTLIST \
@@ -271,10 +283,6 @@ scramble=STRUCTS
     parallel corpus parts); they are scrambled within the immediately
     containing structure, typically within paragraph and text,
     respectively; "sentence paragraph" scrambles both ways
-scramble-seed=SEED
-    use the string SEED as the random number generator seed for
-    scrambling data; "0" for random seed (non-reproducible order)
-    (default: corpus id)
 
 @ Copying and renaming structural attributes
 
@@ -1036,8 +1044,12 @@ extract_random_seed () {
         # Add 1 to avoid having $cnt = 0
         cnt=$(($input_token_count / 4 + 1))
     fi
-    run_cmd $vrt_extract_seed --separator=" " --baseseed=$corpus --count=$cnt \
-            --distance=random --last=$input_token_count $vrt_file > $seed_file
+    if [ "$random_seed" = "$random_seed_default" ]; then
+        random_seed=$corpus
+    fi
+    run_cmd $vrt_extract_seed --separator=" " --baseseed="$random_seed" \
+            --count=$cnt --distance=random --last=$input_token_count \
+            $vrt_file > $seed_file
 }
 
 test_skip_extract_random_seed () {
@@ -1225,8 +1237,8 @@ find_containing_struct () {
 
 scramble_structs () {
     local unit within
-    if [ "x$scramble_seed" = x ]; then
-	scramble_seed=$corpus
+    if [ "$random_seed" = "$random_seed_default" ]; then
+	random_seed=$corpus
     fi
     for unit in $scramble; do
 	within=$(find_containing_struct $unit "$vrt_file")
@@ -1238,7 +1250,7 @@ scramble_structs () {
 	    warn "Scrambling $unit structures instead of the usual sentence, paragraph or link"
 	fi
 	if [ "x$within" != x ]; then
-	    process_vrt $vrt_scramble --seed $scramble_seed \
+	    process_vrt $vrt_scramble --seed "$random_seed" \
 		--unit $unit --within $within
 	fi
     done
