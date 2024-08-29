@@ -416,7 +416,7 @@ vrt_extract_timespans=$progdir/vrt-extract-timespans.py
 vrt_extract_seed=$vrttoolsdir/vrt-extract-seed
 vrt_list_struct_attrs=$progdir/vrt-list-struct-attrs.py
 korp_convert_timedata=$progdir/korp-convert-timedata.sh
-vrt_scramble=$progdir/vrt-scramble.py
+vrt_scramble=$vrttoolsdir/vrt-scramble
 cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
 vrt_extract_lemgrams=$progdir/vrt-extract-lemgrams.sh
 run_extract_rels=$progdir/run-extract-rels.sh
@@ -1237,9 +1237,6 @@ find_containing_struct () {
 
 scramble_structs () {
     local unit within
-    if [ "$random_seed" = "$random_seed_default" ]; then
-	random_seed=$corpus
-    fi
     for unit in $scramble; do
 	within=$(find_containing_struct $unit "$vrt_file")
 	if [ $? != 0 ]; then
@@ -1250,7 +1247,7 @@ scramble_structs () {
 	    warn "Scrambling $unit structures instead of the usual sentence, paragraph or link"
 	fi
 	if [ "x$within" != x ]; then
-	    process_vrt $vrt_scramble --seed "$random_seed" \
+	    process_vrt $vrt_scramble --seed "<$seed_file" \
 		--unit $unit --within $within
 	fi
     done
