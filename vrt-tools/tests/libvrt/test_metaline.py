@@ -106,6 +106,10 @@ def _add_sort(paramlist):
         ([], '<elem>\n'),
         ([('a', 'b')], '<elem a="b">\n'),
         ([('a', 'b'), ('b', 'c')], '<elem a="b" b="c">\n'),
+        # Attribute values are not (re-)encoded
+        ([('a', '&amp;&quot;<')], '<elem a="&amp;&quot;<">\n'),
+        # Attribute name beginning with an underscore
+        ([('_ab1', 'cd')], '<elem _ab1="cd">\n'),
         ([('b', 'b'), ('a', 'c')], {False: '<elem b="b" a="c">\n',
                                     True: '<elem a="c" b="b">\n'}),
     ]))
