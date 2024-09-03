@@ -60,18 +60,40 @@ class TestElement:
         assert ml.strelement(input) == expected
 
 
+def _add_sort(paramlist):
+    """Add parameter sort to items in paramlist, to parametrize TestStarttag.
+
+    This function is used to expand the parameter list to TestStarttag
+    methods to reduce redundancy in the list.
+
+    paramlist is a list of pairs (attrs, expected), where the value of
+    expected can be str or dict[bool, str]. If str, the value is
+    expected to result with both False and True values for the sort
+    argument. If dict, the key is the value of the sort argument and
+    the value the expected result.
+
+    The function returns triple (attrs, sort, expected), to be passed
+    to TestStarttag methods, with sort extracted from the expected of
+    paramlist.
+    """
+    result = []
+    for attrs, expected in paramlist:
+        if not isinstance(expected, dict):
+            expected = {False: expected, True: expected}
+        for sort, expected1 in expected.items():
+            result.append((attrs, sort, expected1))
+    return result
+
+
 @pytest.mark.parametrize(
     'attrs,sort,expected',
-    [
-        ([], False, '<elem>\n'),
-        ([], True, '<elem>\n'),
-        ([('a', 'b')], False, '<elem a="b">\n'),
-        ([('a', 'b')], True, '<elem a="b">\n'),
-        ([('a', 'b'), ('b', 'c')], False, '<elem a="b" b="c">\n'),
-        ([('a', 'b'), ('b', 'c')], True, '<elem a="b" b="c">\n'),
-        ([('b', 'b'), ('a', 'c')], False, '<elem b="b" a="c">\n'),
-        ([('b', 'b'), ('a', 'c')], True, '<elem a="c" b="b">\n'),
-    ])
+    _add_sort([
+        ([], '<elem>\n'),
+        ([('a', 'b')], '<elem a="b">\n'),
+        ([('a', 'b'), ('b', 'c')], '<elem a="b" b="c">\n'),
+        ([('b', 'b'), ('a', 'c')], {False: '<elem b="b" a="c">\n',
+                                    True: '<elem a="c" b="b">\n'}),
+    ]))
 class TestStartTag:
 
     """Tests for functions starttag, strstarttag."""
