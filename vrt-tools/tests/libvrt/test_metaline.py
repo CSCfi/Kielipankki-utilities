@@ -13,6 +13,21 @@ import pytest
 import libvrt.metaline as ml
 
 
+def encode_utf8(obj):
+    """Recursively encode strings in obj to UTF-8 bytes."""
+    if isinstance(obj, str):
+        return obj.encode('UTF-8')
+    elif isinstance(obj, dict):
+        # Use type(obj) to retain the type of OrderedDict and other
+        # dict subclasses
+        return type(obj)((encode_utf8(name), encode_utf8(val))
+                         for name, val in obj.items())
+    elif isinstance(obj, (list, tuple)):
+        return type(obj)(encode_utf8(item) for item in obj)
+    else:
+        return obj
+
+
 class TestElement:
 
     """Tests for vrtlib.metaline functions .element, strelement."""
@@ -100,15 +115,13 @@ class TestStartTag:
 
     def test_starttag_dict(self, attrs, sort, expected):
         """Test starttag() with an OrderedDict."""
-        attrdict = OrderedDict((key.encode('UTF-8'), val.encode('UTF-8'))
-                               for key, val in attrs)
-        assert ml.starttag(b'elem', attrdict, sort) == expected.encode('UTF-8')
+        assert (ml.starttag(b'elem', encode_utf8(OrderedDict(attrs)), sort)
+                == encode_utf8(expected))
 
     def test_starttag_pairlist(self, attrs, sort, expected):
         """Test starttag() with a list of pairs."""
-        attrdict = [(key.encode('UTF-8'), val.encode('UTF-8'))
-                    for key, val in attrs]
-        assert ml.starttag(b'elem', attrdict, sort) == expected.encode('UTF-8')
+        assert (ml.starttag(b'elem', encode_utf8(attrs), sort)
+                == encode_utf8(expected))
 
     def test_strstarttag_dict(self, attrs, sort, expected):
         """Test strstarttag() with an OrderedDict."""
