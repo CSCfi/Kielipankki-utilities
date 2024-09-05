@@ -75,6 +75,10 @@ class VrtStructAttrDropper(InputProcessor):
         # The values of command-line options --drop and --keep by
         # structure name; if not explicitly specified, the default
         struct_args = defaultdict(dict)
+        # Possibly drop attributes from all structures (global --drop)
+        check_all_structs = 'drop' in getattr(args, '_explicit', set())
+        # Structures from which to drop attributes explicitly
+        check_structs = set(args.structure.keys())
 
         def getarg(name, struct):
             """Return the value for argument `name` for structure `struct`.
@@ -112,10 +116,15 @@ class VrtStructAttrDropper(InputProcessor):
             Drop attributes as specified with command-line options.
             """
             struct = ml.element(line)
-            return ml.starttag(
-                struct, ((name, val) for name, val in ml.pairs(line)
-                         if (keep_attr[struct].get(name)
-                             or check_keep_attr(struct, name)) - 1))
+            if check_all_structs or struct in check_structs:
+                return ml.starttag(
+                    struct, ((name, val) for name, val in ml.pairs(line)
+                             if (keep_attr[struct].get(name)
+                                 or check_keep_attr(struct, name)) - 1))
+            else:
+                # If attributes are not to be removed from struct,
+                # return line as is, since it is much faster
+                return line
 
         for line in inf:
             if ml.ismeta(line) and ml.isstarttag(line):
