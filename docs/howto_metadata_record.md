@@ -1,7 +1,9 @@
-# Maintaining metadata in META-SHARE
-## How to create a META-SHARE record
+# Maintaining metadata in COMEDI
+## How to create a metadata record
 
-You need the rights to edit in META-SHARE (ask for access from CSC, if you do not have the rights yet). Login to META-SHARE. 
+NOTE: This page is currently being updated and adapted to the new editor 'COMEDI'!
+
+You need the rights to edit in COMEDI (ask for access in the group FIN-CLARIN from CSC, if you do not have the rights yet). Login to COMEDI. 
 In order to create a new article, open the menu under "Manage Resources" and choose "Manage your own resources" or "Manage all resources".
 In the upper left corner, choose "Add Resource +". 
 Select a resource type (corpus, tool or lexical resource).
@@ -24,7 +26,7 @@ Note: An organization should never be cited as the author, since in the copyrigh
 
 When changing an existing META-SHARE article, add your name as a 'metadata creator', if it is not already there.
 Add a short explanation of your change in the field 'revision', this will also change the date in the field 'last updated'.
-For more complex explanations on a change add a **CHANGE LOG** with the current date under 'documentation'. For an example see [META-SHARE: lehdet90ff-v1](http://urn.fi/urn:nbn:fi:lb-2016011101)
+For more complex explanations on a change add a **CHANGE LOG** with the current date, formatted like 2017-07-17 (in the order of year, month and day; ISO standard) under 'documentation'. For an example see the metadata of [STT](http://urn.fi/urn:nbn:fi:lb-2020031201)
   
 Remember to add a link to the resource's group page via its URN under 'documentation', and name it **Resource group page**. If a resource group page is not created yet, you can add it later. See [docs: Instructions on how to create a resource group page](howto_resource_group_page.md).
 
