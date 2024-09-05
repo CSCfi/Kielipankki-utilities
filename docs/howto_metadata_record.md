@@ -3,7 +3,7 @@
 
 NOTE: This page is currently being updated and adapted to the new editor 'COMEDI'!
 
-You need the rights to edit in COMEDI (ask for access in the group FIN-CLARIN from CSC, if you do not have the rights yet). Login to COMEDI. 
+You need the rights to edit in COMEDI (ask for access in the group FIN-CLARIN from CSC, if you do not have the rights yet). Login to [COMEDI](https://clarino.uib.no/comedi/records). 
 In order to create a new article, open the menu under "Manage Resources" and choose "Manage your own resources" or "Manage all resources".
 In the upper left corner, choose "Add Resource +". 
 Select a resource type (corpus, tool or lexical resource).
