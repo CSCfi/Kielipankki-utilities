@@ -28,6 +28,8 @@ class VrtStructAttrDropper(InputProcessor):
     VRT whose name matches a specified regular expression.
     """
     ARGSPECS = [
+        ('--verbose|v',
+         '''output to stderr the number of attributes dropped by structure'''),
         ('#GROUPED structure-specific options',
          '''The following options can be specified multiple times: each
             occurrence applies to the --structure after which it is
@@ -79,6 +81,9 @@ class VrtStructAttrDropper(InputProcessor):
         check_all_structs = 'drop' in getattr(args, '_explicit', set())
         # Structures from which to drop attributes explicitly
         check_structs = set(args.structure.keys())
+        # The number of attributes dropped by structure and attribute;
+        # output with --verbose
+        drop_counts = defaultdict(lambda: defaultdict(int))
 
         def getarg(name, struct):
             """Return the value for argument `name` for structure `struct`.
@@ -110,6 +115,18 @@ class VrtStructAttrDropper(InputProcessor):
             keep_attr[struct][attrname] = result
             return result
 
+        def attr_is_kept_base(struct, attrname):
+            """Return `True` if `attrname` in `struct` should be kept."""
+            return ((keep_attr[struct].get(attrname)
+                     or check_keep_attr(struct, attrname)) - 1)
+
+        def attr_is_kept_count(struct, attrname):
+            """As `attr_is_kept_base` but increment count in `drop_counts`."""
+            keep = attr_is_kept_base(struct, attrname)
+            if not keep:
+                drop_counts[struct][attrname] += 1
+            return keep
+
         def drop_attrs(line):
             """Return start tag line `line` with attributes dropped.
 
@@ -119,14 +136,41 @@ class VrtStructAttrDropper(InputProcessor):
             if check_all_structs or struct in check_structs:
                 return ml.starttag(
                     struct, ((name, val) for name, val in ml.pairs(line)
-                             if (keep_attr[struct].get(name)
-                                 or check_keep_attr(struct, name)) - 1))
+                             if attr_is_kept(struct, name)))
             else:
                 # If attributes are not to be removed from struct,
                 # return line as is, since it is much faster
                 return line
 
+        def print_drop_counts():
+            """Print to stderr the number of attributes dropped.
+
+            Structures are printed in the order they are in the
+            `drop_counts` dict, that is, for Python 3.8+, in the order
+            of the first occurrence of the structure. Attributes are
+            printed in alphabetical order.
+            """
+            if not drop_counts:
+                sys.stderr.write('No attributes dropped\n')
+            else:
+                sys.stderr.write(
+                    'Number of attributes dropped:\n'
+                    'structure\tattribute\tcount\n')
+                for struct in drop_counts.keys():
+                    for attrname, count in sorted(drop_counts[struct].items()):
+                        sys.stderr.write(
+                            '\t'.join([struct.decode('UTF-8'),
+                                       attrname.decode('UTF-8'),
+                                       str(count)])
+                            + '\n')
+
+        # The attr_is_kept function to be used; depends on whether
+        # --verbose is specified (print counts) or not
+        attr_is_kept = attr_is_kept_count if args.verbose else attr_is_kept_base
+
         for line in inf:
             if ml.ismeta(line) and ml.isstarttag(line):
                 line = drop_attrs(line)
             ouf.write(line)
+        if args.verbose:
+            print_drop_counts()
