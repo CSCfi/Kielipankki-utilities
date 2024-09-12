@@ -22,6 +22,7 @@ from libvrt.argtypes import (
     attrlist,
     attr_regex_list_combined,
     attr_regex_list_combined_value)
+from libvrt.seekable import get_seekable
 
 from vrtargsoolib import InputProcessor
 
@@ -190,14 +191,6 @@ class VrtStructAttrUnifier(InputProcessor):
         # (keys only) instead of a dict to be able to retain original
         # order with --input-order
         struct_attrs = defaultdict(OrderedDict)
-        # If the original input is not seekable, the input is copied
-        # to a seekable temporary file. Python 3.6.8 on Puhti seems to
-        # return seekable() == True for stdin, so also test for name
-        # "<stdin>".
-        write_tmp = (not args.single_pass
-                     and (not inf.seekable() or inf.name == '<stdin>'))
-        seekable_inf = NamedTemporaryFile(delete=False) if write_tmp else inf
-        seekable_inf_name = seekable_inf.name
 
         def getarg(name, struct):
             """Return the value for argument `name` for structure `struct`.
@@ -212,8 +205,8 @@ class VrtStructAttrUnifier(InputProcessor):
             """Return OrderedDict, keys from iterable iter_, values None."""
             return OrderedDict((item, None) for item in iter_)
 
-        def collect_attrs(inf, ouf_tmp):
-            """Read inf, collect struct attrs; write to ouf_tmp if not None."""
+        def collect_attrs(inf):
+            """Read inf and collect structural attributes."""
             if args.single_pass:
                 # If --single-pass, do not collect attributes but use
                 # the attributes listed in --always
@@ -225,10 +218,6 @@ class VrtStructAttrUnifier(InputProcessor):
             for line in inf:
                 if ml.ismeta(line) and ml.isstarttag(line):
                     add_attrs(line)
-                if ouf_tmp:
-                    ouf_tmp.write(line)
-            if ouf_tmp:
-                ouf_tmp.close()
 
         def add_attrs(line):
             """Add attributes from start tag line to struct_attrs."""
@@ -336,14 +325,19 @@ class VrtStructAttrUnifier(InputProcessor):
                          for name in order
                          if name in attrs or name not in optional))
 
-        # Pass 1: Read input, collecting structural attribute names
-        collect_attrs(inf, seekable_inf if write_tmp else None)
-        # Pass 2: Read input (original or temporary copy) and write
-        # output with attribute names unified and sorted
-        if write_tmp:
-            with open(seekable_inf_name, 'rb') as seekable_inf:
-                unify_attrs(seekable_inf)
-        else:
+        if not args.single_pass:
+            # If the original input is not seekable, wrap it to appear
+            # such
+            inf = get_seekable(inf)
+        # CHECK: Is this with statement needed? Does it work correctly
+        # regardless of whether inf is the original inf or made
+        # seekable?
+        with inf as inf:
+            # Pass 1: Read input, collecting structural attribute
+            # names; if --single-pass, take attributes from --always
+            collect_attrs(inf)
+            # Pass 2: Reread input (original or temporary copy) and
+            # write output with attribute names unified and sorted
             if not args.single_pass:
-                seekable_inf.seek(0)
-            unify_attrs(seekable_inf)
+                inf.seek(0)
+            unify_attrs(inf)
