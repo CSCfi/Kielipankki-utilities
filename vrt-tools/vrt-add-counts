@@ -1,0 +1,19 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+"""
+vrt-add-counts
+
+A VRT tool to add various kinds of count and number attributes to
+texts, paragraphs and sentences: the number of inner structures and
+the number of the structure within the containing one.
+
+The actual implementation is in libvrt.tools.vrt_add_counts
+"""
+
+
+from libvrt.tools.vrt_add_counts import VrtCountAdder
+
+
+if __name__ == '__main__':
+    VrtCountAdder().run()

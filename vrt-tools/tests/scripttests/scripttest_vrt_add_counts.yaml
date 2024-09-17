@@ -1,0 +1,403 @@
+
+# scripttestlib tests for vrt-add-counts
+
+
+# Default input and output
+
+- defaults:
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+- name: 'vrt-add-counts: Simple input, no existing attributes'
+  input:
+    cmdline: vrt-add-counts
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text>
+      <paragraph>
+      <sentence>
+      a
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text paragraph_count="1" sentence_count="1" token_count="1" word_count="1">
+      <paragraph sentence_count="1" token_count="1" word_count="1">
+      <sentence token_count="1" word_count="1">
+      a
+      </sentence>
+      </paragraph>
+      </text>
+
+- name: 'vrt-add-counts: Longer input with attributes'
+  input:
+    cmdline: vrt-add-counts
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text t="1">
+      <paragraph p="1">
+      <sentence s="1">
+      a
+      bb
+      </sentence>
+      <sentence s="2">
+      b
+      cc
+      ddd
+      </sentence>
+      </paragraph>
+      <paragraph p="2">
+      <sentence s="3">
+      c
+      dd
+      </sentence>
+      </paragraph>
+      <paragraph p="4">
+      <sentence s="4">
+      d
+      ee
+      fff
+      gggg
+      </sentence>
+      <sentence s="5">
+      e
+      </sentence>
+      <sentence s="6">
+      ff
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text t="1" paragraph_count="3" sentence_count="6" token_count="13" word_count="13">
+      <paragraph p="1" sentence_count="2" token_count="5" word_count="5">
+      <sentence s="1" token_count="2" word_count="2">
+      a
+      bb
+      </sentence>
+      <sentence s="2" token_count="3" word_count="3">
+      b
+      cc
+      ddd
+      </sentence>
+      </paragraph>
+      <paragraph p="2" sentence_count="1" token_count="2" word_count="2">
+      <sentence s="3" token_count="2" word_count="2">
+      c
+      dd
+      </sentence>
+      </paragraph>
+      <paragraph p="4" sentence_count="3" token_count="6" word_count="6">
+      <sentence s="4" token_count="4" word_count="4">
+      d
+      ee
+      fff
+      gggg
+      </sentence>
+      <sentence s="5" token_count="1" word_count="1">
+      e
+      </sentence>
+      <sentence s="6" token_count="1" word_count="1">
+      ff
+      </sentence>
+      </paragraph>
+      </text>
+
+- name: 'vrt-add-counts: Multiple texts, no paragraphs'
+  input:
+    cmdline: vrt-add-counts
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text t="1">
+      <sentence s="1">
+      a
+      bb
+      </sentence>
+      <sentence s="2">
+      b
+      </sentence>
+      </text>
+      <text t="2">
+      <sentence s="3">
+      a
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text t="1" sentence_count="2" token_count="3" word_count="3">
+      <sentence s="1" token_count="2" word_count="2">
+      a
+      bb
+      </sentence>
+      <sentence s="2" token_count="1" word_count="1">
+      b
+      </sentence>
+      </text>
+      <text t="2" sentence_count="1" token_count="1" word_count="1">
+      <sentence s="3" token_count="1" word_count="1">
+      a
+      </sentence>
+      </text>
+
+- name: 'vrt-add-counts: Arbitrary structure names'
+  input:
+    cmdline: vrt-add-counts
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <t t="1">
+      <s s="1">
+      a
+      bb
+      </s>
+      <s s="2">
+      b
+      </s>
+      </t>
+      <t t="2">
+      <s s="3">
+      a
+      </s>
+      </t>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <t t="1" s_count="2" token_count="3" word_count="3">
+      <s s="1" token_count="2" word_count="2">
+      a
+      bb
+      </s>
+      <s s="2" token_count="1" word_count="1">
+      b
+      </s>
+      </t>
+      <t t="2" s_count="1" token_count="1" word_count="1">
+      <s s="3" token_count="1" word_count="1">
+      a
+      </s>
+      </t>
+
+- name: 'vrt-add-counts: Structure type spanning only some tokens'
+  input:
+    cmdline: vrt-add-counts
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text t="1">
+      <sentence s="1">
+      a
+      <ne n="1">
+      bb
+      </ne>
+      </sentence>
+      <sentence s="2">
+      b
+      </sentence>
+      </text>
+      <text t="2">
+      <sentence s="3">
+      aa
+      <ne n="2">
+      b
+      </ne>
+      <ne n="3">
+      cc
+      </ne>
+      </sentence>
+      <sentence s="4">
+      <ne n="4">
+      ddd
+      ee
+      </ne>
+      </sentence>
+      <sentence s="5">
+      e
+      ff
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text t="1" sentence_count="2" token_count="3" word_count="3" ne_count="1">
+      <sentence s="1" token_count="2" word_count="2" ne_count="1">
+      a
+      <ne n="1" token_count="1" word_count="1">
+      bb
+      </ne>
+      </sentence>
+      <sentence s="2" token_count="1" word_count="1">
+      b
+      </sentence>
+      </text>
+      <text t="2" sentence_count="3" token_count="7" word_count="7" ne_count="3">
+      <sentence s="3" token_count="3" word_count="3" ne_count="2">
+      aa
+      <ne n="2" token_count="1" word_count="1">
+      b
+      </ne>
+      <ne n="3" token_count="1" word_count="1">
+      cc
+      </ne>
+      </sentence>
+      <sentence s="4" ne_count="1" token_count="2" word_count="2">
+      <ne n="4" token_count="2" word_count="2">
+      ddd
+      ee
+      </ne>
+      </sentence>
+      <sentence s="5" token_count="2" word_count="2">
+      e
+      ff
+      </sentence>
+      </text>
+
+- name: 'vrt-add-counts: Non-word tokens'
+  input:
+    cmdline: vrt-add-counts
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text t="1">
+      <sentence s="1">
+      a
+      ,
+      1
+      :)
+      .b
+      äö
+      «
+      c)
+      %
+      $
+      €
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text t="1" sentence_count="1" token_count="11" word_count="5">
+      <sentence s="1" token_count="11" word_count="5">
+      a
+      ,
+      1
+      :)
+      .b
+      äö
+      «
+      c)
+      %
+      $
+      €
+      </sentence>
+      </text>
+
+- name: 'vrt-add-counts: Word tokens from different scripts'
+  input:
+    cmdline: vrt-add-counts
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text t="1">
+      <sentence s="1">
+      a
+      äö
+      µ
+      кты
+      س
+      한글
+      नागरि
+      አማርኛ
+      大鹿
+      אָלֶף־בֵּית
+      ひらがな
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text t="1" sentence_count="1" token_count="11" word_count="11">
+      <sentence s="1" token_count="11" word_count="11">
+      a
+      äö
+      µ
+      кты
+      س
+      한글
+      नागरि
+      አማርኛ
+      大鹿
+      אָלֶף־בֵּית
+      ひらがな
+      </sentence>
+      </text>
+
+- name: 'vrt-add-counts: "word" as non-first positional attribute'
+  input:
+    cmdline: vrt-add-counts
+    stdin: |
+      <!-- #vrt positional-attributes: n word -->
+      <text t="1">
+      <sentence s="1">
+      1	a
+      2	.
+      </sentence>
+      <sentence s="2">
+      3	c
+      </sentence>
+      <sentence s="3">
+      4	aa
+      5	b
+      6	.
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: n word -->
+      <text t="1" sentence_count="3" token_count="6" word_count="4">
+      <sentence s="1" token_count="2" word_count="1">
+      1	a
+      2	.
+      </sentence>
+      <sentence s="2" token_count="1" word_count="1">
+      3	c
+      </sentence>
+      <sentence s="3" token_count="3" word_count="2">
+      4	aa
+      5	b
+      6	.
+      </sentence>
+      </text>
+
+- name: 'vrt-add-counts: Positional-attributes comment without "word"'
+  input:
+    cmdline: vrt-add-counts
+    stdin: |
+      <!-- #vrt positional-attributes: a -->
+      <text t="1">
+      <sentence s="1">
+      a
+      </sentence>
+      </text>
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-counts: <stdin>:1: positional-attributes comment without "word"
+    returncode: 1
+
+- name: 'vrt-add-counts: Tag mismatch'
+  input:
+    cmdline: vrt-add-counts
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text t="1">
+      <sentence s="1">
+      a
+      </text>
+  output:
+    stdout: ''
+    stderr: |
+      vrt-add-counts: <stdin>:5: expected </sentence>, got </text>
+    returncode: 1
