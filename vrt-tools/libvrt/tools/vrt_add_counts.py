@@ -45,7 +45,8 @@ class VrtCountAdder(InputProcessor):
         """Read `inf`, write to `ouf`, with command-line arguments `args`."""
         struct_stack = []
         lines = []
-        counts = defaultdict(lambda: defaultdict(int))
+        struct_counts = defaultdict(lambda: defaultdict(int))
+        token_counts = defaultdict(lambda: defaultdict(int))
         # Structure start line number in lines
         struct_start_linenums = defaultdict(int)
         struct = None
@@ -64,14 +65,25 @@ class VrtCountAdder(InputProcessor):
 
         def isword(word):
             """Return True if word contains a Unicode-alpahnumeric char."""
-            return any(c.isalnum() for c in word.decode('utf-8'))
+            return any(c.isalnum() for c in word)
 
-        def append_count_attrs(line, counts):
-            """Append count attributes from `counts` to start tag `line`."""
-            line_end = b''.join(
-                b' ' + name + b'_count="' + str(count).encode('utf-8') + b'"'
-                for name, count in counts.items())
-            return line.replace(b'>\n', line_end + b'>\n')
+        def append_count_attrs(line, struct, struct_counts, token_counts):
+            """Append count attrs from counts to `struct` start tag `line`."""
+            # print(line, struct, struct_counts, token_counts)
+            attrs = ([(name + b'_count', count)
+                      for name, count in struct_counts[struct].items()
+                      if count > 0]
+                     + [(name + b'_count', count)
+                        for name, count in token_counts[struct].items()]
+                     + [(b'num_in_' + ancestor, struct_counts[ancestor][struct])
+                        for ancestor in struct_counts
+                        if (ancestor != struct
+                            and struct_counts[ancestor][struct] > 0)])
+            line_end = b' '.join(
+                name + b'="' + str(value).encode('utf-8') + b'"'
+                for name, value in attrs)
+            # print(line_end)
+            return line.replace(b'>\n', b' ' + line_end + b'>\n')
 
         for linenr, line in enumerate(inf):
             lines.append(line)
@@ -79,10 +91,10 @@ class VrtCountAdder(InputProcessor):
                 if ml.isstarttag(line):
                     struct = ml.element(line)
                     struct_start_linenums[struct] = len(lines) - 1
-                    if struct_stack:
+                    for containing_struct in struct_stack:
                         # Increment the number of this kind of struct
-                        # in the containing struct
-                        counts[struct_stack[-1]][struct] += 1
+                        # in the containing structs
+                        struct_counts[containing_struct][struct] += 1
                     struct_stack.append(struct)
                 elif ml.isendtag(line):
                     closing_struct = ml.element(line)
@@ -94,21 +106,26 @@ class VrtCountAdder(InputProcessor):
                     struct_stack.pop()
                     start_linenum = struct_start_linenums[struct]
                     lines[start_linenum] = append_count_attrs(
-                        lines[start_linenum], counts[closing_struct])
+                        lines[start_linenum], closing_struct, struct_counts,
+                        token_counts)
                     if struct_stack:
                         struct = struct_stack[-1]
-                        for key, count in counts[closing_struct].items():
-                            counts[struct][key] += count
+                        for key in token_counts[closing_struct]:
+                            token_counts[struct][key] += (
+                                token_counts[closing_struct][key])
                     else:
                         struct = None
                         ouf.writelines(lines)
                         lines = []
-                    counts[closing_struct].clear()
+                    struct_counts[closing_struct].clear()
+                    token_counts[closing_struct].clear()
                 elif nl.isnameline(line):
                     attrnum_word = get_attrnum_word(line, linenr)
                     token_split_count = attrnum_word + 1
             else:
-                counts[struct][b'token'] += 1
-                word = line[:-1].split(b'\t', token_split_count)[attrnum_word]
+                # Token line
+                token_counts[struct][b'token'] += 1
+                word = (line[:-1].split(b'\t', token_split_count)[attrnum_word]
+                        .decode('utf-8'))
                 # int + bool is faster than int + int(bool)
-                counts[struct][b'word'] += isword(word)
+                token_counts[struct][b'word'] += isword(word)
