@@ -22,7 +22,12 @@ Usage example:
 >>> ap.add_argument('--bb', action=grouped_arg())
 >>> args = '--bb=b0 --grp=a --aa=a1 --bb=b1 --grp=b --aa=a2 --grp=c'
 >>> ap.parse_args(args.split())
-Namespace(grp={'a': Namespace(aa='a1', bb='b1'), 'b': Namespace(aa='a2', bb='b0'), 'c': Namespace(aa='a', bb='b0')}, aa='a', bb='b0')
+Namespace(grp={'a': Namespace(aa='a1', bb='b1', _explicit={'aa', 'bb'}), 'b': Namespace(aa='a2', bb='b0', _explicit={'aa'}), 'c': Namespace(aa='a', bb='b0', _explicit=set())}, aa='a', bb='b0', _explicit={'bb'})
+
+The value of the attribute `_explicit` is a set of the names of
+attributes corresponding to grouped arguments whose values have been
+explicitly set for an grouping argument value (or before any grouping
+argument at the top level), as opposed to using a default.
 
 Non-grouped arguments can be added as usual.
 
@@ -95,7 +100,13 @@ class ArgumentGrouping:
 
         If no grouping argument has yet been encountered, return
         `namespace` for setting defaults.
+        Also add attribute `_explicit` to `namespace` for adding
+        explicitly specified arguments if it does not exist yet.
         """
+        # Check _explicit here, so that it is added even when no
+        # default, non-grouping arguments are specified
+        if not hasattr(namespace, '_explicit'):
+            setattr(namespace, '_explicit', set())
         if self._grouping_val:
             return (
                 getattr(namespace, self._grouping_arg.dest, {})
@@ -111,12 +122,41 @@ class ArgumentGrouping:
         """Return a namespace with defaults for grouped arguments.
 
         The defaults are taken from the values of the attributes
-        corresponding to grouped arguments in `namespace`
+        corresponding to grouped arguments in `namespace`.
+        Also set `_explicit` in the namespace to an empty set, for
+        listing the arguments explicitly specified for a grouped
+        value.
         """
         defaults = Namespace()
         for arg in self._grouped_args:
             setattr(defaults, arg.dest, getattr(namespace, arg.dest, None))
+        setattr(defaults, '_explicit', set())
         return defaults
+
+    def _set_grouped_value(self, namespace, dest, value):
+        """Set `dest` to `value` in `namespace`.
+
+        Set the value of attribute `dest` in the namespace for the
+        current value of the grouping argument, or the default
+        namespace if no grouping argument has been encountered yet.
+        """
+        self._modify_grouped_value(namespace, dest, lambda x: value)
+
+    def _modify_grouped_value(self, namespace, dest, func):
+        """Set `dest` to `func(dest)` in `namespace`.
+
+        Modify the value of attribute `dest` to the value returned by
+        `func` for `dest` in the namespace for the current value of
+        the grouping argument, or the default namespace if no grouping
+        argument has been encountered yet.
+        Also add `dest` to `namespace._explicit`.
+        """
+        namespace = self._get_grouping_namespace(namespace)
+        value = func(getattr(namespace, dest, None))
+        setattr(namespace, dest, value)
+        # If setting value in a grouped namespace, mark the value as
+        # explicitly set
+        namespace._explicit.add(dest)
 
     def grouping_arg(outer_self):
         """Return a class to be used as an action for a grouping argument.
@@ -207,8 +247,7 @@ class ArgumentGrouping:
                 argument, or the default namespace if no grouping
                 argument has been encountered yet.
                 """
-                namespace = outer_self._get_grouping_namespace(namespace)
-                setattr(namespace, self.dest, value)
+                outer_self._set_grouped_value(namespace, self.dest, value)
 
             def _modify_value(self, namespace, func):
                 """Set `self.dest` to `func(self.dest)` in `namespace`.
@@ -219,9 +258,7 @@ class ArgumentGrouping:
                 default namespace if no grouping argument has been
                 encountered yet.
                 """
-                namespace = outer_self._get_grouping_namespace(namespace)
-                value = func(getattr(namespace, self.dest, None))
-                setattr(namespace, self.dest, value)
+                outer_self._modify_grouped_value(namespace, self.dest, func)
 
             def _append_value(self, namespace, value):
                 """Append `value` to `self.dest` in `namespace`.
@@ -401,7 +438,7 @@ class ArgumentGrouping:
             'extend': GroupedExtendAction,
         }
         try:
-            return action_class[action]
+            return action_class[action or 'store']
         except KeyError:
             raise ValueError(f'unknown action "{action}"')
 
