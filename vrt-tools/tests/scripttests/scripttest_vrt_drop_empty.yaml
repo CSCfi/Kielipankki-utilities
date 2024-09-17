@@ -1,0 +1,443 @@
+
+# scripttestlib tests for vrt-drop-empty
+
+
+# Default input and output
+
+- defaults:
+    input:
+      cmdline: vrt-drop-empty
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+- name: 'vrt-drop-empty: No empty structures'
+  input:
+    stdin: &input-1 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="3">
+      e
+      </sentence>
+      <sentence n="4">
+      f
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="3">
+      <sentence n="5">
+      j
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: *input-1
+  transform:
+  - {}
+  - input: &verbose
+      cmdline:
+        append: ' --verbose'
+    output:
+      stderr: |
+        No structures dropped
+
+
+- name: 'vrt-drop-empty: Empty sentence at the beginning'
+  input:
+    stdin: &input-2 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="3">
+      e
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="3">
+      <sentence n="5">
+      j
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout:
+      value: *input-2
+      transform:
+        python: |
+          return value.replace('<sentence n="1">\n</sentence>\n', '')
+  transform: &transform-verbose-1s
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          sentence: 1
+
+- name: 'vrt-drop-empty: Empty sentence in the middle'
+  input:
+    stdin: &input-3 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="2">
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="3">
+      e
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="3">
+      <sentence n="5">
+      j
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout:
+      value: *input-3
+      transform:
+        python: |
+          return value.replace('<sentence n="2">\n</sentence>\n', '')
+  transform: *transform-verbose-1s
+
+- name: 'vrt-drop-empty: Empty sentence at the end'
+  input:
+    stdin: &input-4 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="3">
+      e
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="3">
+      <sentence n="5">
+      j
+      </sentence>
+      <sentence n="6">
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout:
+      value: *input-4
+      transform:
+        python: |
+          return value.replace('<sentence n="6">\n</sentence>\n', '')
+  transform: *transform-verbose-1s
+
+- name: 'vrt-drop-empty: Multiple empty sentences'
+  input:
+    stdin: &input-5 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="3">
+      e
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="3">
+      <sentence n="5">
+      j
+      </sentence>
+      <sentence n="6">
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout:
+      value: *input-5
+      transform:
+        python: |
+          return re.sub('<sentence n="[16]">\n</sentence>\n', '', value)
+  transform:
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          sentence: 2
+
+- name: 'vrt-drop-empty: Multiple consecutive empty sentences'
+  input:
+    stdin: &input-6 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1a">
+      </sentence>
+      <sentence n="1b">
+      </sentence>
+      <sentence n="1c">
+      </sentence>
+      <sentence n="2">
+      b
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="3">
+      e
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="3">
+      <sentence n="5">
+      j
+      </sentence>
+      <sentence n="6">
+      k
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout:
+      value: *input-6
+      transform:
+        python: |
+          return re.sub('<sentence n="1[abc]">\n</sentence>\n', '', value)
+  transform:
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          sentence: 3
+
+- name: 'vrt-drop-empty: Empty paragraphs and texts'
+  input:
+    stdin: &input-7 |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      </paragraph>
+      <paragraph n="2">
+      <sentence n="3">
+      e
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="3">
+      <sentence n="5">
+      j
+      </sentence>
+      <sentence n="6">
+      k
+      </sentence>
+      </paragraph>
+      </text>
+      <text n="3">
+      </text>
+  output:
+    stdout:
+      value: *input-7
+      transform:
+        python: |
+          value = re.sub('<paragraph n="1">\n</paragraph>\n', '', value)
+          return re.sub('<text n="3">\n</text>\n', '', value)
+  transform:
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          paragraph: 1
+          text: 1
+
+
+- name: 'vrt-drop-empty: Empty paragraphs and texts containing lower-level structures'
+  input:
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      </sentence>
+      </paragraph>
+      <paragraph n="2">
+      </paragraph>
+      </text>
+      <text n="2">
+      <paragraph n="3">
+      <sentence n="5">
+      </sentence>
+      </paragraph>
+      <paragraph n="4">
+      <sentence n="6">
+      k
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="2">
+      <paragraph n="4">
+      <sentence n="6">
+      k
+      </sentence>
+      </paragraph>
+      </text>
+  transform:
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          paragraph: 3
+          sentence: 2
+          text: 1
+
+- name: 'vrt-drop-empty: Empty structures without attributes'
+  input:
+    stdin: &input-8 |
+      <!-- #vrt positional-attributes: word -->
+      <text>
+      <paragraph>
+      </paragraph>
+      <paragraph>
+      <sentence>
+      </sentence>
+      </paragraph>
+      </text>
+      <text>
+      <paragraph>
+      <sentence>
+      j
+      </sentence>
+      <sentence>
+      k
+      </sentence>
+      </paragraph>
+      </text>
+      <text>
+      </text>
+  output:
+    stdout:
+      value: *input-8
+      transform:
+        python: |
+          value = re.sub('<sentence>\n</sentence>\n', '', value)
+          value = re.sub('<paragraph>\n</paragraph>\n', '', value)
+          return re.sub('<text>\n</text>\n', '', value)
+  transform:
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          paragraph: 2
+          sentence: 1
+          text: 2
+
+
+- name: 'vrt-drop-empty: Empty structure within a sentence'
+  input:
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      <ne n="1">
+      </ne>
+      b
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      b
+      </sentence>
+      </paragraph>
+      </text>
+  transform:
+  - {}
+  - input: *verbose
+    output:
+      stderr: |
+        Dropped structures:
+          ne: 1
+
+
+- name: 'vrt-drop-empty: Comment within an empty structure'
+  input:
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      <!-- Comment before -->
+      <sentence n="2">
+      <!-- Comment in -->
+      </sentence>
+      <!-- Comment after -->
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <paragraph n="1">
+      <sentence n="1">
+      a
+      </sentence>
+      <!-- Comment before -->
+      <!-- Comment in -->
+      <!-- Comment after -->
+      </paragraph>
+      </text>
+  transform: *transform-verbose-1s
