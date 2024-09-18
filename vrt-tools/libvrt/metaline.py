@@ -160,11 +160,9 @@ def starttag(struct, attrs, sort=False):
 
 def _get_attrs(attrs, sort=False):
     '''Return items from attrs (dict or list of pairs), sorted if sort.'''
-    try:
-        items = attrs.items()
-    except AttributeError:
-        items = attrs
-    return sorted(items) if sort else items
+    if isinstance(attrs, dict):
+        attrs = attrs.items()
+    return sorted(attrs) if sort else attrs
 
 def strstarttag(struct, attrs, sort=False):
     '''Start tag line for struct (str) with attrs (str, str).

@@ -13,6 +13,21 @@ import pytest
 import libvrt.metaline as ml
 
 
+def encode_utf8(obj):
+    """Recursively encode strings in obj to UTF-8 bytes."""
+    if isinstance(obj, str):
+        return obj.encode('UTF-8')
+    elif isinstance(obj, dict):
+        # Use type(obj) to retain the type of OrderedDict and other
+        # dict subclasses
+        return type(obj)((encode_utf8(name), encode_utf8(val))
+                         for name, val in obj.items())
+    elif isinstance(obj, (list, tuple)):
+        return type(obj)(encode_utf8(item) for item in obj)
+    else:
+        return obj
+
+
 class TestElement:
 
     """Tests for vrtlib.metaline functions .element, strelement."""
@@ -60,33 +75,57 @@ class TestElement:
         assert ml.strelement(input) == expected
 
 
+def _add_sort(paramlist):
+    """Add parameter sort to items in paramlist, to parametrize TestStarttag.
+
+    This function is used to expand the parameter list to TestStarttag
+    methods to reduce redundancy in the list.
+
+    paramlist is a list of pairs (attrs, expected), where the value of
+    expected can be str or dict[bool, str]. If str, the value is
+    expected to result with both False and True values for the sort
+    argument. If dict, the key is the value of the sort argument and
+    the value the expected result.
+
+    The function returns triple (attrs, sort, expected), to be passed
+    to TestStarttag methods, with sort extracted from the expected of
+    paramlist.
+    """
+    result = []
+    for attrs, expected in paramlist:
+        if not isinstance(expected, dict):
+            expected = {False: expected, True: expected}
+        for sort, expected1 in expected.items():
+            result.append((attrs, sort, expected1))
+    return result
+
+
 @pytest.mark.parametrize(
     'attrs,sort,expected',
-    [
-        ([], False, '<elem>\n'),
-        ([], True, '<elem>\n'),
-        ([('a', 'b')], False, '<elem a="b">\n'),
-        ([('a', 'b')], True, '<elem a="b">\n'),
-        ([('a', 'b'), ('b', 'c')], False, '<elem a="b" b="c">\n'),
-        ([('a', 'b'), ('b', 'c')], True, '<elem a="b" b="c">\n'),
-        ([('b', 'b'), ('a', 'c')], False, '<elem b="b" a="c">\n'),
-        ([('b', 'b'), ('a', 'c')], True, '<elem a="c" b="b">\n'),
-    ])
+    _add_sort([
+        ([], '<elem>\n'),
+        ([('a', 'b')], '<elem a="b">\n'),
+        ([('a', 'b'), ('b', 'c')], '<elem a="b" b="c">\n'),
+        # Attribute values are not (re-)encoded
+        ([('a', '&amp;&quot;<')], '<elem a="&amp;&quot;<">\n'),
+        # Attribute name beginning with an underscore
+        ([('_ab1', 'cd')], '<elem _ab1="cd">\n'),
+        ([('b', 'b'), ('a', 'c')], {False: '<elem b="b" a="c">\n',
+                                    True: '<elem a="c" b="b">\n'}),
+    ]))
 class TestStartTag:
 
     """Tests for functions starttag, strstarttag."""
 
     def test_starttag_dict(self, attrs, sort, expected):
         """Test starttag() with an OrderedDict."""
-        attrdict = OrderedDict((key.encode('UTF-8'), val.encode('UTF-8'))
-                               for key, val in attrs)
-        assert ml.starttag(b'elem', attrdict, sort) == expected.encode('UTF-8')
+        assert (ml.starttag(b'elem', encode_utf8(OrderedDict(attrs)), sort)
+                == encode_utf8(expected))
 
     def test_starttag_pairlist(self, attrs, sort, expected):
         """Test starttag() with a list of pairs."""
-        attrdict = [(key.encode('UTF-8'), val.encode('UTF-8'))
-                    for key, val in attrs]
-        assert ml.starttag(b'elem', attrdict, sort) == expected.encode('UTF-8')
+        assert (ml.starttag(b'elem', encode_utf8(attrs), sort)
+                == encode_utf8(expected))
 
     def test_strstarttag_dict(self, attrs, sort, expected):
         """Test strstarttag() with an OrderedDict."""

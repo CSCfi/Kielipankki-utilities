@@ -1,0 +1,18 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+"""
+vrt-drop-attrs
+
+A VRT tool to remove structural attributes (annotations) whose names
+match specified regular expressions.
+
+The actual implementation is in libvrt.tools.vrt_drop_attrs.
+"""
+
+
+from libvrt.tools.vrt_drop_attrs import VrtStructAttrDropper
+
+
+if __name__ == '__main__':
+    VrtStructAttrDropper().run()

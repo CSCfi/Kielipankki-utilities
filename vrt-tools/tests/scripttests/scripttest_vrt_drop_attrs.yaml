@@ -1,0 +1,484 @@
+
+# scripttestlib tests for vrt-drop-attrs
+
+
+# Default input and output
+
+- defaults:
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+- name: 'vrt-drop-attrs: No changes: no attributes'
+  input:
+    cmdline: vrt-drop-attrs
+    stdin: &input-noattrs |
+      <!-- #vrt positional-attributes: word -->
+      <text>
+      <paragraph>
+      <sentence>
+      a
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: *input-noattrs
+
+- name: 'vrt-drop-attrs: No changes: no options specified'
+  input:
+    cmdline: vrt-drop-attrs
+    stdin: &input-1 |
+      <!-- #vrt positional-attributes: word -->
+      <text y="_" a="b" b="a" c="d">
+      <sentence z="_" a="0" b="1">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="x">
+      <sentence a="1" b="2">
+      b
+      </sentence>
+      <sentence a="3" b="4">
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: *input-1
+
+- name: 'vrt-drop-attrs: No changes: non-matching attribute and/or structure names or only --keep'
+  input:
+    cmdline:
+    - vrt-drop-attrs --drop="d,_.*"
+    - vrt-drop-attrs --structure=paragraph --drop="a,b"
+    - vrt-drop-attrs --drop="d,_.*" --structure=paragraph --drop="a,b"
+    - vrt-drop-attrs --keep="a,b,c"
+    stdin: *input-1
+  output:
+    stdout: *input-1
+  transform: &transform-comma-space
+  - name: attrlist with spaces
+    input:
+      cmdline:
+        replace: '/,/ /'
+
+
+- name: 'vrt-drop-attrs: Global --drop'
+  input:
+    cmdline: vrt-drop-attrs --drop="a"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text y="_" b="a" c="d">
+      <sentence z="_" b="1">
+      a
+      </sentence>
+      </text>
+      <text b="z" c="x">
+      <sentence b="2">
+      b
+      </sentence>
+      <sentence b="4">
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-drop-attrs: Global --drop, multiple attrs'
+  input:
+    cmdline: vrt-drop-attrs --drop="a,b,c"
+    stdin: *input-1
+  output:
+    stdout: &output-1yz |
+      <!-- #vrt positional-attributes: word -->
+      <text y="_">
+      <sentence z="_">
+      a
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b
+      </sentence>
+      <sentence>
+      c
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+- name: 'vrt-drop-attrs: Global --drop, regexp'
+  input:
+    cmdline: vrt-drop-attrs --drop="[a-c].*"
+    stdin: *input-1
+  output:
+    stdout: *output-1yz
+  transform: *transform-comma-space
+
+- name: 'vrt-drop-attrs: Global --drop, multiple regexps'
+  input:
+    cmdline: vrt-drop-attrs --drop="[ab].*,.*[c-x]"
+    stdin: *input-1
+  output:
+    stdout: *output-1yz
+  transform: *transform-comma-space
+
+- name: 'vrt-drop-attrs: Global --drop, regexp matches all'
+  input:
+    cmdline: vrt-drop-attrs --drop=".*"
+    stdin: *input-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text>
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b
+      </sentence>
+      <sentence>
+      c
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+- name: 'vrt-drop-attrs: Global --drop, regexp fullmatch'
+  input:
+    cmdline: vrt-drop-attrs --drop="[a-c]"
+    stdin: &input-2 |
+      <!-- #vrt positional-attributes: word -->
+      <text y="_" a="b" b="a" c="d" de="e" _fg="f">
+      <sentence z="_" a="0" b="1" cde="2" _fg="3">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="x" de="w" _fg="v">
+      <sentence a="1" b="2" cde="3" _fg="4">
+      b
+      </sentence>
+      <sentence cde="5" _fg="6" a="3" b="4">
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text y="_" de="e" _fg="f">
+      <sentence z="_" cde="2" _fg="3">
+      a
+      </sentence>
+      </text>
+      <text de="w" _fg="v">
+      <sentence cde="3" _fg="4">
+      b
+      </sentence>
+      <sentence cde="5" _fg="6">
+      c
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+- name: 'vrt-drop-attrs: Global --drop, regexp, multi-char attrs'
+  input:
+    cmdline: vrt-drop-attrs --drop=".*[bdf].*"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text y="_" a="b" c="d">
+      <sentence z="_" a="0">
+      a
+      </sentence>
+      </text>
+      <text a="y" c="x">
+      <sentence a="1">
+      b
+      </sentence>
+      <sentence a="3">
+      c
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+
+- name: 'vrt-drop-attrs: Global --drop regexp, --keep excepting'
+  input:
+    cmdline: vrt-drop-attrs --drop=".*[bdf].*" --keep="_.*"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text y="_" a="b" c="d" _fg="f">
+      <sentence z="_" a="0" _fg="3">
+      a
+      </sentence>
+      </text>
+      <text a="y" c="x" _fg="v">
+      <sentence a="1" _fg="4">
+      b
+      </sentence>
+      <sentence _fg="6" a="3">
+      c
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+- name: 'vrt-drop-attrs: Global --drop regexp, --keep multiple'
+  input:
+    cmdline: vrt-drop-attrs --drop=".*[bdf].*" --keep="b,de"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text y="_" a="b" b="a" c="d" de="e">
+      <sentence z="_" a="0" b="1">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="x" de="w">
+      <sentence a="1" b="2">
+      b
+      </sentence>
+      <sentence a="3" b="4">
+      c
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+- name: 'vrt-drop-attrs: Global --drop regexp, --keep all'
+  input:
+    cmdline: vrt-drop-attrs --drop=".*[bdf].*" --keep=".*"
+    stdin: *input-2
+  output:
+    stdout: *input-2
+  transform: *transform-comma-space
+
+
+- name: 'vrt-drop-attrs: Structure-specific --drop'
+  input:
+    cmdline: vrt-drop-attrs --structure=sentence --drop="[a-c]"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text y="_" a="b" b="a" c="d" de="e" _fg="f">
+      <sentence z="_" cde="2" _fg="3">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="x" de="w" _fg="v">
+      <sentence cde="3" _fg="4">
+      b
+      </sentence>
+      <sentence cde="5" _fg="6">
+      c
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+- name: 'vrt-drop-attrs: Structure-specific --drop and --keep'
+  input:
+    cmdline: vrt-drop-attrs --structure=sentence --drop=".*[bdf].*" --keep="_.*"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text y="_" a="b" b="a" c="d" de="e" _fg="f">
+      <sentence z="_" a="0" _fg="3">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="x" de="w" _fg="v">
+      <sentence a="1" _fg="4">
+      b
+      </sentence>
+      <sentence _fg="6" a="3">
+      c
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+- name: 'vrt-drop-attrs: Structure-specific --drop and --keep, two structures'
+  input:
+    cmdline: vrt-drop-attrs --structure=text --drop="..+" --keep="de" --structure=sentence --drop=".*[bdf].*" --keep="_.*"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text y="_" a="b" b="a" c="d" de="e">
+      <sentence z="_" a="0" _fg="3">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" c="x" de="w">
+      <sentence a="1" _fg="4">
+      b
+      </sentence>
+      <sentence _fg="6" a="3">
+      c
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+- name: 'vrt-drop-attrs: Structure-specific --drop overrides global'
+  input:
+    cmdline: vrt-drop-attrs --drop="a,b,c" --structure=sentence --drop=".*[bdf].*"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text y="_" de="e" _fg="f">
+      <sentence z="_" a="0">
+      a
+      </sentence>
+      </text>
+      <text de="w" _fg="v">
+      <sentence a="1">
+      b
+      </sentence>
+      <sentence a="3">
+      c
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+- name: 'vrt-drop-attrs: Structure-specific --keep'
+  input:
+    cmdline: vrt-drop-attrs --drop="." --structure=sentence --keep="a,b"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text de="e" _fg="f">
+      <sentence a="0" b="1" cde="2" _fg="3">
+      a
+      </sentence>
+      </text>
+      <text de="w" _fg="v">
+      <sentence a="1" b="2" cde="3" _fg="4">
+      b
+      </sentence>
+      <sentence cde="5" _fg="6" a="3" b="4">
+      c
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+- name: 'vrt-drop-attrs: Structure-specific --keep overrides global'
+  input:
+    cmdline: vrt-drop-attrs --drop="." --keep="a,b" --structure=sentence --keep="b,z"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b" b="a" de="e" _fg="f">
+      <sentence z="_" b="1" cde="2" _fg="3">
+      a
+      </sentence>
+      </text>
+      <text a="y" b="z" de="w" _fg="v">
+      <sentence b="2" cde="3" _fg="4">
+      b
+      </sentence>
+      <sentence cde="5" _fg="6" b="4">
+      c
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+- name: 'vrt-drop-attrs: Structure-specific --drop, global --keep'
+  input:
+    cmdline: vrt-drop-attrs --keep="b" --structure=text --drop="a,b" --structure=sentence --drop="."
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text y="_" b="a" c="d" de="e" _fg="f">
+      <sentence b="1" cde="2" _fg="3">
+      a
+      </sentence>
+      </text>
+      <text b="z" c="x" de="w" _fg="v">
+      <sentence b="2" cde="3" _fg="4">
+      b
+      </sentence>
+      <sentence cde="5" _fg="6" b="4">
+      c
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+
+# --verbose
+
+- name: 'vrt-drop-attrs: --verbose, nothing dropped'
+  input:
+    cmdline:
+    - vrt-drop-attrs --verbose
+    - vrt-drop-attrs --verbose --drop="d,.*_"
+    - vrt-drop-attrs --verbose --structure=paragraph --drop="a,b"
+    stdin: *input-2
+  output:
+    stdout: *input-2
+    stderr: |
+      No attributes dropped
+
+- name: 'vrt-drop-attrs: --verbose, attributes dropped'
+  input:
+    cmdline: vrt-drop-attrs --verbose --drop="[abyz]"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text c="d" de="e" _fg="f">
+      <sentence cde="2" _fg="3">
+      a
+      </sentence>
+      </text>
+      <text c="x" de="w" _fg="v">
+      <sentence cde="3" _fg="4">
+      b
+      </sentence>
+      <sentence cde="5" _fg="6">
+      c
+      </sentence>
+      </text>
+    stderr: |
+      Number of attributes dropped:
+      structure	attribute	count
+      text	a	2
+      text	b	2
+      text	y	1
+      sentence	a	3
+      sentence	b	3
+      sentence	z	1
+
+- name: 'vrt-drop-attrs: --verbose, attributes dropped, structure-specific'
+  input:
+    cmdline: vrt-drop-attrs --verbose --structure=text --drop="[abyz]"
+    stdin: *input-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text c="d" de="e" _fg="f">
+      <sentence z="_" a="0" b="1" cde="2" _fg="3">
+      a
+      </sentence>
+      </text>
+      <text c="x" de="w" _fg="v">
+      <sentence a="1" b="2" cde="3" _fg="4">
+      b
+      </sentence>
+      <sentence cde="5" _fg="6" a="3" b="4">
+      c
+      </sentence>
+      </text>
+    stderr: |
+      Number of attributes dropped:
+      structure	attribute	count
+      text	a	2
+      text	b	2
+      text	y	1
