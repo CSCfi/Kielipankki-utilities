@@ -284,7 +284,7 @@ scramble=STRUCTS
     containing structure, typically within paragraph and text,
     respectively; "sentence paragraph" scrambles both ways
 
-@ Copying and renaming structural attributes
+@ Copying, renaming and omitting structural attributes
 
 copy-struct-attr|copy-structure-attribute=TARGET:SOURCELIST *
     copy structural attributes from a preceding (enclosing) structure.
@@ -312,6 +312,16 @@ rename-struct-attr|rename-structure-attribute=STRUCT/SOURCE:TARGET *
     attribute rename operations may be specified either by listing
     them in the argument separated by spaces or by specifying this
     option multiple times.
+omit-struct-attr|omit-structure-attribute=[STRUCT/]ATTRLIST *
+    Omit in structures STRUCT attributes whose names fully match a
+    (Python) regular expression in ATTRLIST (expressions separated by
+    commas). If STRUCT/ is omitted, omit matching attributes from all
+    structures with no structure-specific value specified. This option
+    can be used, for example, to omit from scrambled corpora
+    attributes that would reveal the original order. This option can
+    be specified multiple times for different structures, but all the
+    attributes to be omitted for a certain structure must be listed
+    within the same option value.
 
 @ Date information
 
@@ -416,6 +426,7 @@ vrt_extract_timespans=$progdir/vrt-extract-timespans.py
 vrt_extract_seed=$vrttoolsdir/vrt-extract-seed
 vrt_list_struct_attrs=$progdir/vrt-list-struct-attrs.py
 korp_convert_timedata=$progdir/korp-convert-timedata.sh
+vrt_drop_attrs=$vrttoolsdir/vrt-drop-attrs
 vrt_scramble=$vrttoolsdir/vrt-scramble
 cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
 vrt_extract_lemgrams=$progdir/vrt-extract-lemgrams.sh
@@ -790,6 +801,7 @@ stages=(
     sort_texts "Sorting text elements"
     save_full_vrt "Saving complete VRT file"
     omit_structures "Omitting structures"
+    omit_struct_attrs "Omitting structural attributes"
     scramble_structs "Scrambling structures"
     cwb_encode "Encoding the attributes for CWB"
     cwb_make "Indexing and compressing the CWB data"
@@ -1233,6 +1245,30 @@ find_containing_struct () {
 	/^<\// { top-- }
     '
     return 0
+}
+
+omit_struct_attrs () {
+    local opt
+    local global_opt=
+    local struct_opts=
+    local attrlist=
+    for opt in $omit_struct_attr; do
+        attrlist=${opt#*/}
+        if [ "$attrlist" = "$opt" ]; then
+            # No structure specified; applies to all
+            global_opt="--drop '$attrlist'"
+        else
+            struct_opts="$struct_opts --structure ${opt%/*} --drop '$attrlist'"
+        fi
+    done
+    # Use eval to preserve the quotation marks in $global_opts and
+    # $struct_opts
+    eval process_vrt $vrt_drop_attrs $global_opt $struct_opts
+}
+
+test_skip_omit_struct_attrs () {
+    [ "x$omit_struct_attr" = x ] &&
+    echo "not requested"
 }
 
 scramble_structs () {
