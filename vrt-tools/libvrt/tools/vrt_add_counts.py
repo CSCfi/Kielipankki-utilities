@@ -91,12 +91,15 @@ class VrtCountAdder(InputProcessor):
         for linenr, line in enumerate(inf):
             if ml.ismeta(line):
                 if ml.isstarttag(line):
-                    if lines and not struct_stack:
-                        # New top-level structure; output previous one
-                        ouf.writelines(lines)
-                        lines = []
-                    lines.append(line)
                     struct = ml.element(line)
+                    if not struct_stack:
+                        # Count top-level structures within the input
+                        struct_counts[b'corpus'][struct] += 1
+                        if lines:
+                            # New top-level structure; output previous one
+                            ouf.writelines(lines)
+                            lines = []
+                    lines.append(line)
                     struct_start_linenums[struct] = len(lines) - 1
                     for containing_struct in struct_stack:
                         # Increment the number of this kind of struct

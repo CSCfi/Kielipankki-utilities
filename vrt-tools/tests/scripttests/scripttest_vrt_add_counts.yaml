@@ -26,7 +26,7 @@
   output:
     stdout: |
       <!-- #vrt positional-attributes: word charcount -->
-      <text paragraph_count="1" sentence_count="1" token_count="1" word_count="1" char_count="1">
+      <text paragraph_count="1" sentence_count="1" token_count="1" word_count="1" char_count="1" num_in_corpus="1">
       <paragraph sentence_count="1" token_count="1" word_count="1" char_count="1" num_in_text="1">
       <sentence token_count="1" word_count="1" char_count="1" num_in_text="1" num_in_paragraph="1">
       a	1
@@ -53,7 +53,7 @@
     stdout: |
       <!-- #vrt positional-attributes: word charcount -->
       <!-- Begin -->
-      <text paragraph_count="1" sentence_count="1" token_count="1" word_count="1" char_count="1">
+      <text paragraph_count="1" sentence_count="1" token_count="1" word_count="1" char_count="1" num_in_corpus="1">
       <paragraph sentence_count="1" token_count="1" word_count="1" char_count="1" num_in_text="1">
       <sentence token_count="1" word_count="1" char_count="1" num_in_text="1" num_in_paragraph="1">
       <!-- Tokens -->
@@ -104,7 +104,7 @@
   output:
     stdout: |
       <!-- #vrt positional-attributes: word charcount -->
-      <text t="1" paragraph_count="3" sentence_count="6" token_count="13" word_count="13" char_count="25">
+      <text t="1" paragraph_count="3" sentence_count="6" token_count="13" word_count="13" char_count="25" num_in_corpus="1">
       <paragraph p="1" sentence_count="2" token_count="5" word_count="5" char_count="9" num_in_text="1">
       <sentence s="1" token_count="2" word_count="2" char_count="3" num_in_text="1" num_in_paragraph="1">
       a	1
@@ -160,7 +160,7 @@
   output:
     stdout: |
       <!-- #vrt positional-attributes: word charcount -->
-      <text t="1" sentence_count="2" token_count="3" word_count="3" char_count="4">
+      <text t="1" sentence_count="2" token_count="3" word_count="3" char_count="4" num_in_corpus="1">
       <sentence s="1" token_count="2" word_count="2" char_count="3" num_in_text="1">
       a	1
       bb	2
@@ -169,7 +169,7 @@
       b	1
       </sentence>
       </text>
-      <text t="2" sentence_count="1" token_count="1" word_count="1" char_count="1">
+      <text t="2" sentence_count="1" token_count="1" word_count="1" char_count="1" num_in_corpus="2">
       <sentence s="3" token_count="1" word_count="1" char_count="1" num_in_text="1">
       a	1
       </sentence>
@@ -197,7 +197,7 @@
   output:
     stdout: |
       <!-- #vrt positional-attributes: word charcount -->
-      <t t="1" s_count="2" token_count="3" word_count="3" char_count="4">
+      <t t="1" s_count="2" token_count="3" word_count="3" char_count="4" num_in_corpus="1">
       <s s="1" token_count="2" word_count="2" char_count="3" num_in_t="1">
       a	1
       bb	2
@@ -206,7 +206,7 @@
       b	1
       </s>
       </t>
-      <t t="2" s_count="1" token_count="1" word_count="1" char_count="1">
+      <t t="2" s_count="1" token_count="1" word_count="1" char_count="1" num_in_corpus="2">
       <s s="3" token_count="1" word_count="1" char_count="1" num_in_t="1">
       a	1
       </s>
@@ -252,7 +252,7 @@
   output:
     stdout: |
       <!-- #vrt positional-attributes: word charcount -->
-      <text t="1" sentence_count="2" ne_count="1" token_count="3" word_count="3" char_count="4">
+      <text t="1" sentence_count="2" ne_count="1" token_count="3" word_count="3" char_count="4" num_in_corpus="1">
       <sentence s="1" ne_count="1" token_count="2" word_count="2" char_count="3" num_in_text="1">
       a	1
       <ne n="1" token_count="1" word_count="1" char_count="2" num_in_text="1" num_in_sentence="1">
@@ -263,7 +263,7 @@
       b	1
       </sentence>
       </text>
-      <text t="2" sentence_count="3" ne_count="3" token_count="7" word_count="7" char_count="13">
+      <text t="2" sentence_count="3" ne_count="3" token_count="7" word_count="7" char_count="13" num_in_corpus="2">
       <sentence s="3" ne_count="2" token_count="3" word_count="3" char_count="5" num_in_text="1">
       aa	2
       <ne n="2" token_count="1" word_count="1" char_count="1" num_in_text="1" num_in_sentence="1">
@@ -308,7 +308,7 @@
   output:
     stdout: |
       <!-- #vrt positional-attributes: word charcount -->
-      <text t="1" sentence_count="1" token_count="11" word_count="5" char_count="15">
+      <text t="1" sentence_count="1" token_count="11" word_count="5" char_count="15" num_in_corpus="1">
       <sentence s="1" token_count="11" word_count="5" char_count="15" num_in_text="1">
       a	1
       ,	1
@@ -347,7 +347,7 @@
   output:
     stdout: |
       <!-- #vrt positional-attributes: word charcount -->
-      <text t="1" sentence_count="1" token_count="11" word_count="11" char_count="36">
+      <text t="1" sentence_count="1" token_count="11" word_count="11" char_count="36" num_in_corpus="1">
       <sentence s="1" token_count="11" word_count="11" char_count="36" num_in_text="1">
       a	1
       äö	2
@@ -385,7 +385,7 @@
   output:
     stdout: |
       <!-- #vrt positional-attributes: n word charcount -->
-      <text t="1" sentence_count="3" token_count="6" word_count="4" char_count="7">
+      <text t="1" sentence_count="3" token_count="6" word_count="4" char_count="7" num_in_corpus="1">
       <sentence s="1" token_count="2" word_count="1" char_count="2" num_in_text="1">
       1	a	1
       2	.	1
