@@ -91,6 +91,10 @@ class VrtCountAdder(InputProcessor):
         for linenr, line in enumerate(inf):
             if ml.ismeta(line):
                 if ml.isstarttag(line):
+                    if lines and not struct_stack:
+                        # New top-level structure; output previous one
+                        ouf.writelines(lines)
+                        lines = []
                     lines.append(line)
                     struct = ml.element(line)
                     struct_start_linenums[struct] = len(lines) - 1
@@ -119,8 +123,6 @@ class VrtCountAdder(InputProcessor):
                                 token_counts[closing_struct][key])
                     else:
                         struct = None
-                        ouf.writelines(lines)
-                        lines = []
                     struct_counts[closing_struct].clear()
                     token_counts[closing_struct].clear()
                 elif nl.isnameline(line):

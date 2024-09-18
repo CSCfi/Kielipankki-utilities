@@ -426,7 +426,8 @@
       a
       </text>
   output:
-    stdout: ''
+    stdout: |
+      <!-- #vrt positional-attributes: word charcount -->
     stderr: |
       vrt-add-counts: <stdin>:5: expected </sentence>, got </text>
     returncode: 1
