@@ -43,6 +43,7 @@ class VrtCountAdder(InputProcessor):
 
     def main(self, args, inf, ouf):
         """Read `inf`, write to `ouf`, with command-line arguments `args`."""
+        charcount_posattr = b'charcount'
         struct_stack = []
         lines = []
         struct_counts = defaultdict(lambda: defaultdict(int))
@@ -53,9 +54,11 @@ class VrtCountAdder(InputProcessor):
         attrnum_word = 0
         token_split_count = attrnum_word + 1
 
-        def get_attrnum_word(line, linenr):
-            """Get the number of attr "word" in pos-attrs comment `line`."""
-            pos_attrs = nl.parsenameline(line)
+        def get_attrnum_word(pos_attrs, linenr):
+            """Get the number of attribute ``word`` in `pos_attrs`.
+
+            `linenr` is used only in a possible error message.
+            """
             try:
                 wordnum = pos_attrs.index(b'word')
             except ValueError:
@@ -86,9 +89,9 @@ class VrtCountAdder(InputProcessor):
             return line.replace(b'>\n', b' ' + line_end + b'>\n')
 
         for linenr, line in enumerate(inf):
-            lines.append(line)
             if ml.ismeta(line):
                 if ml.isstarttag(line):
+                    lines.append(line)
                     struct = ml.element(line)
                     struct_start_linenums[struct] = len(lines) - 1
                     for containing_struct in struct_stack:
@@ -97,6 +100,7 @@ class VrtCountAdder(InputProcessor):
                         struct_counts[containing_struct][struct] += 1
                     struct_stack.append(struct)
                 elif ml.isendtag(line):
+                    lines.append(line)
                     closing_struct = ml.element(line)
                     if closing_struct != struct:
                         self.error_exit(
@@ -120,8 +124,11 @@ class VrtCountAdder(InputProcessor):
                     struct_counts[closing_struct].clear()
                     token_counts[closing_struct].clear()
                 elif nl.isnameline(line):
-                    attrnum_word = get_attrnum_word(line, linenr)
+                    pos_attrs = nl.parsenameline(line)
+                    attrnum_word = get_attrnum_word(pos_attrs, linenr)
                     token_split_count = attrnum_word + 1
+                    lines.append(
+                        nl.makenameline(pos_attrs + [charcount_posattr]))
             else:
                 # Token line
                 token_counts[struct][b'token'] += 1
@@ -129,3 +136,7 @@ class VrtCountAdder(InputProcessor):
                         .decode('utf-8'))
                 # int + bool is faster than int + int(bool)
                 token_counts[struct][b'word'] += isword(word)
+                wordlen = len(word)
+                token_counts[struct][b'char'] += wordlen
+                lines.append(line[:-1] + b'\t' + str(wordlen).encode('utf-8')
+                             + b'\n')
