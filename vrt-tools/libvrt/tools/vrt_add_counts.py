@@ -129,6 +129,8 @@ class VrtCountAdder(InputProcessor):
                     token_split_count = attrnum_word + 1
                     lines.append(
                         nl.makenameline(pos_attrs + [charcount_posattr]))
+                else:
+                    lines.append(line)
             else:
                 # Token line
                 token_counts[struct][b'token'] += 1
@@ -140,3 +142,5 @@ class VrtCountAdder(InputProcessor):
                 token_counts[struct][b'char'] += wordlen
                 lines.append(line[:-1] + b'\t' + str(wordlen).encode('utf-8')
                              + b'\n')
+        if lines:
+            ouf.writelines(lines)

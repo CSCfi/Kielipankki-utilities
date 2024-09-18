@@ -34,6 +34,35 @@
       </paragraph>
       </text>
 
+- name: 'vrt-add-counts: Simple input with comments, no existing attributes'
+  input:
+    cmdline: vrt-add-counts
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <!-- Begin -->
+      <text>
+      <paragraph>
+      <sentence>
+      <!-- Tokens -->
+      a
+      </sentence>
+      </paragraph>
+      </text>
+      <!-- End -->
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word charcount -->
+      <!-- Begin -->
+      <text paragraph_count="1" sentence_count="1" token_count="1" word_count="1" char_count="1">
+      <paragraph sentence_count="1" token_count="1" word_count="1" char_count="1" num_in_text="1">
+      <sentence token_count="1" word_count="1" char_count="1" num_in_text="1" num_in_paragraph="1">
+      <!-- Tokens -->
+      a	1
+      </sentence>
+      </paragraph>
+      </text>
+      <!-- End -->
+
 - name: 'vrt-add-counts: Longer input with attributes'
   input:
     cmdline: vrt-add-counts
