@@ -312,16 +312,20 @@ rename-struct-attr|rename-structure-attribute=STRUCT/SOURCE:TARGET *
     attribute rename operations may be specified either by listing
     them in the argument separated by spaces or by specifying this
     option multiple times.
-omit-struct-attr|omit-structure-attribute=[STRUCT/]ATTRLIST *
+omit-struct-attr|omit-structure-attribute=[STRUCT/][OMITLIST][![KEEPLIST]] *
     Omit in structures STRUCT attributes whose names fully match a
-    (Python) regular expression in ATTRLIST (expressions separated by
-    commas). If STRUCT/ is omitted, omit matching attributes from all
-    structures with no structure-specific value specified. This option
-    can be used, for example, to omit from scrambled corpora
-    attributes that would reveal the original order. This option can
-    be specified multiple times for different structures, but all the
-    attributes to be omitted for a certain structure must be listed
-    within the same option value.
+    (Python) regular expression in OMITLIST and do not match one in
+    KEEPLIST. OMITLIST and KEEPLIST may contain multiple regular
+    expressions separated by commas. This option can be specified
+    multiple times with different STRUCT values, for different
+    structures. If STRUCT/ is omitted, omit matching attributes from
+    all structures with no structure-specific value specified. A value
+    without OMITLIST but with !KEEPLIST adds a structure-specific list
+    of expressions to keep, overriding a non-structure-specific value.
+    A value with an "!" but no KEEPLIST keeps nothing in STRUCT. A
+    value with only STRUCT/ omits nothing in STRUCT. This option can
+    be used, for example, to omit from scrambled corpora attributes
+    that would reveal the original structure order.
 
 @ Date information
 
@@ -1248,22 +1252,42 @@ find_containing_struct () {
 }
 
 omit_struct_attrs () {
-    local opt
-    local global_opt=
+    local opt attrlist drop keep struct drop_attrs_opts
+    local global_opts=
     local struct_opts=
-    local attrlist=
     for opt in $omit_struct_attr; do
         attrlist=${opt#*/}
+        drop_attrs_opts="$(_make_vrt_drop_attrs_opts "$attrlist")"
+        # echo "$attrlist:$drop_attrs_opts"
         if [ "$attrlist" = "$opt" ]; then
             # No structure specified; applies to all
-            global_opt="--drop '$attrlist'"
+            global_opts="$drop_attrs_opts"
         else
-            struct_opts="$struct_opts --structure ${opt%/*} --drop '$attrlist'"
+            struct=${opt%%/*}
+            struct_opts="$struct_opts --structure $struct $drop_attrs_opts"
         fi
     done
     # Use eval to preserve the quotation marks in $global_opts and
     # $struct_opts
-    eval process_vrt $vrt_drop_attrs $global_opt $struct_opts
+    eval process_vrt $vrt_drop_attrs $global_opts $struct_opts
+}
+
+_make_vrt_drop_attrs_opts () {
+    local drop keep
+    local attrlist=$1
+    local opts=
+    drop=${attrlist%%!*}
+    # "!attr" keeps attr, overriding global --keep, but does not add
+    # --drop "" (not dropping anything)
+    if [ "x$drop" != x ] || [ "x$attrlist" = x ]; then
+        opts="--drop '$drop'"
+    fi
+    keep=${attrlist#*!}
+    # If $keep = $attrlist, $attrlist did not contain an "!"
+    if [ "$keep" != "$attrlist" ]; then
+        opts="$opts --keep '$keep'"
+    fi
+    echo "$opts"
 }
 
 test_skip_omit_struct_attrs () {
