@@ -38,6 +38,9 @@ wordpict_relmap_ud_default=$mapdir/wordpict_relmap_ud_fi.tsv
 compound_boundary_marker_default="|"
 compound_boundary_marker_ud_default="#"
 
+# Designates that the corpus id should be used as the base seed
+random_seed_default="{CORPUS}"
+
 usage_header="Usage: $progname [options] [corpus] [input_file ...]
 
 Process a VRT file to make a Korp corpus package containing CWB data files and
@@ -197,13 +200,32 @@ lemgrams-keep-letters-with-diacritics=CHARS \
     regular expression (as [^CHARS]). CHARS are retained regardless of
     their case.
 
+@ Random-number generator seed
+
+random-seed=SEED "'"$random_seed_default"'"
+    use the string SEED as the base seed for the random-number
+    generator, to be used for generating structure id attributes and
+    scrambling data; the actual seed is generated using SEED and seed
+    for scrambling data; "" for a random seed (non-reproducible
+    results) (default: corpus id)
+
 @ Structure ids
 
 add-structure-ids|add-element-ids=STRUCTLIST \
   "text paragraph sentence" add_struct_ids
     add id attributes to the structures listed in STRUCTLIST
-    (separated by spaces); if STRUCTLIST is an empty string, do not
-    add id attributes
+    (separated by spaces); id values are based on unique random
+    integers; unless --overwrite-structure-ids is specified, rename
+    possible existing id attributes to id_N, where N is the smallest
+    positive integer for which attribute id_N does not already exist
+    in the structure; if STRUCTLIST is an empty string, do not add id
+    attributes
+structure-id-format|element-id-format=STRUCT:FORMAT * \
+  { add_struct_id_format "$1" }
+    format the value of the id attribute for structure STRUCT with
+    FORMAT; run "vrt-add-id -h" for more information on FORMAT (in the
+    usage description of option --format) but note that FORMAT may not
+    contain spaces here
 overwrite-structure-ids|overwrite-element-ids !keep_struct_ids
     overwrite possible existing id attribute values in the structures
     listed with --add-structure-ids
@@ -261,12 +283,8 @@ scramble=STRUCTS
     parallel corpus parts); they are scrambled within the immediately
     containing structure, typically within paragraph and text,
     respectively; "sentence paragraph" scrambles both ways
-scramble-seed=SEED
-    use the string SEED as the random number generator seed for
-    scrambling data; "0" for random seed (non-reproducible order)
-    (default: corpus id)
 
-@ Copying and renaming structural attributes
+@ Copying, renaming and omitting structural attributes
 
 copy-struct-attr|copy-structure-attribute=TARGET:SOURCELIST *
     copy structural attributes from a preceding (enclosing) structure.
@@ -294,6 +312,20 @@ rename-struct-attr|rename-structure-attribute=STRUCT/SOURCE:TARGET *
     attribute rename operations may be specified either by listing
     them in the argument separated by spaces or by specifying this
     option multiple times.
+omit-struct-attr|omit-structure-attribute=[STRUCT/][OMITLIST][![KEEPLIST]] *
+    Omit in structures STRUCT attributes whose names fully match a
+    (Python) regular expression in OMITLIST and do not match one in
+    KEEPLIST. OMITLIST and KEEPLIST may contain multiple regular
+    expressions separated by commas. This option can be specified
+    multiple times with different STRUCT values, for different
+    structures. If STRUCT/ is omitted, omit matching attributes from
+    all structures with no structure-specific value specified. A value
+    without OMITLIST but with !KEEPLIST adds a structure-specific list
+    of expressions to keep, overriding a non-structure-specific value.
+    A value with an "!" but no KEEPLIST keeps nothing in STRUCT. A
+    value with only STRUCT/ omits nothing in STRUCT. This option can
+    be used, for example, to omit from scrambled corpora attributes
+    that would reveal the original structure order.
 
 @ Date information
 
@@ -392,12 +424,14 @@ vrt_fix_attrs=$progdir/vrt-fix-attrs.py
 vrt_add_lemma_nobound=$vrttoolsdir/vrt-add-lemma-nobound
 vrt_add_lemgrams=$progdir/vrt-add-lemgrams.py
 vrt_sort=$vrttoolsdir/vrt-sort
-vrt_add_struct_ids=$progdir/vrt-add-struct-ids.sh
+vrt_add_id=$vrttoolsdir/vrt-add-id
 vrt_convert_chars=$vrttoolsdir/vrt-convert-chars
 vrt_extract_timespans=$progdir/vrt-extract-timespans.py
+vrt_extract_seed=$vrttoolsdir/vrt-extract-seed
 vrt_list_struct_attrs=$progdir/vrt-list-struct-attrs.py
 korp_convert_timedata=$progdir/korp-convert-timedata.sh
-vrt_scramble=$progdir/vrt-scramble.py
+vrt_drop_attrs=$vrttoolsdir/vrt-drop-attrs
+vrt_scramble=$vrttoolsdir/vrt-scramble
 cwbdata_extract_info=$progdir/cwbdata-extract-info.sh
 vrt_extract_lemgrams=$progdir/vrt-extract-lemgrams.sh
 run_extract_rels=$progdir/run-extract-rels.sh
@@ -411,12 +445,27 @@ cwb_describe_corpus=$cwb_bindir/cwb-describe-corpus
 cwb_make=$cwb_perl_bindir/cwb-make
 
 vrt_file=
+# Complete, unscrambled VRT file with no structures removed
+vrt_file_full=
 
 
 text_sort_opts=
 sort_texts=
 add_lemgrams_opts=
 
+
+# Default structural attribute id formats
+declare -A struct_id_format
+struct_id_format=(
+    # Standard structures
+    text "t-{hash:.8}-{id}"
+    paragraph "p-{hash:.8}-{idnum[text]}-{id}"
+    sentence "s-{hash:.8}-{idnum[text]}-{id}"
+    # Structures used in some corpora
+    link "l-{hash:.8}-{idnum[text]}-{id}"
+    clause "c-{hash:.8}-{idnum[text]}-{idnum[sentence]}-{id}"
+    chapter "ch-{hash:.8}-{idnum[text]}-{idnum[sentence]}-{id}"
+)
 
 add_auth_opts () {
     local type opt val
@@ -444,6 +493,14 @@ add_lemgram_opt () {
     # occur
     add_lemgrams_opts="$add_lemgrams_opts $optname $optarg"
 }
+
+add_struct_id_format () {
+    local optarg=$1
+    local struct=${optarg%%:*}
+    local format=${optarg#*:}
+    struct_id_format[$struct]="$format"
+}
+
 
 # Process options
 eval "$optinfo_opt_handler"
@@ -527,6 +584,8 @@ echo_verb "Processed arguments: $cmdline_args_processed"
 
 input_files=( "$@" )
 
+vrt_subdir=${vrt_subdir//CORPUS/$corpus}
+tsv_subdir=${tsv_subdir//CORPUS/$corpus}
 vrtdir=${vrtdir:-$corpus_root/$vrt_subdir}
 vrtdir=${vrtdir//CORPUS/$corpus}
 tsvdir=${tsvdir:-$corpus_root/$tsv_subdir}
@@ -545,11 +604,13 @@ if [ "x$vrt_file" = "x" ]; then
 	vrt_file=$tmp_prefix.$corpus.vrt
     else
 	vrt_file=$vrtdir/$corpus.vrt
+        vrt_file_full=$vrtdir/$corpus-complete.vrt
     fi
 fi
 
 stages_file=$vrtdir/$corpus.stages
 opts_file=$vrtdir/$corpus.opts
+seed_file=$vrtdir/$corpus.seed
 # Should the information from a previous run be checked
 check_prev_run=
 
@@ -558,10 +619,14 @@ if [ "x$verbose" != x ]; then
     verbose_opt=--verbose
 fi
 
+input_token_count=0
+existing_token_count=0
+
 
 remove_existing_data () {
     rm -f $datadir/* $cwb_regdir/$corpus $tsvdir/$corpus_*.tsv.gz \
-       $vrtdir/$corpus.vrt $vrtdir/$corpus.vrt.gz $stages_file $opts_file
+       $vrtdir/$corpus.vrt $vrtdir/$corpus.vrt.gz $stages_file $opts_file \
+       $seed_file
 }
 
 run_cmd () {
@@ -571,8 +636,8 @@ run_cmd () {
 }
 
 process_vrt () {
-    run_cmd "$@" < $vrt_file > $vrt_file.new
-    replace_file $vrt_file $vrt_file.new
+    run_cmd "$@" < $vrt_file > $vrt_file.new &&
+        replace_file $vrt_file $vrt_file.new
 }
 
 time_stage () {
@@ -730,15 +795,18 @@ stages=(
     "*check_input_attrs" "Checking input attributes"
     # Stage 3 information set in check_input_attrs if needed
     "" ""
+    extract_random_seed "Extracting random seed"
     copy_struct_attrs "Copying structural attributes"
     rename_struct_attrs "Renaming structural attributes"
-    omit_structures "Omitting structures"
+    add_struct_ids "Adding structure ids"
     add_lemmas_without_boundaries "Adding lemmas without compound boundaries"
     add_lemgrams "Adding lemgrams"
     add_datefromto "Adding datefrom and dateto"
     sort_texts "Sorting text elements"
+    save_full_vrt "Saving complete VRT file"
+    omit_structures "Omitting structures"
+    omit_struct_attrs "Omitting structural attributes"
     scramble_structs "Scrambling structures"
-    add_struct_ids "Adding structure ids"
     cwb_encode "Encoding the attributes for CWB"
     cwb_make "Indexing and compressing the CWB data"
     convert_timedata "Converting and augmenting time data"
@@ -754,7 +822,6 @@ stages=(
 
 
 combine_input () {
-    local input_token_count existing_token_count
     # Skip empty lines in the input VRT, in order to avoid a differing
     # number of tokens from the already encoded attributes (assuming
     # that cwb-encode was told to skip empty lines).
@@ -776,8 +843,10 @@ combine_input () {
 test_skip_combine_input () {
     # If other conditions for not combining input have been met,
     # $vrt_file has already been removed in check_for_existing_data
-    [ -r $vrt_file ] && [ -s $vrt_file ] &&
+    if [ -r $vrt_file ] && [ -s $vrt_file ]; then
 	echo "using existing VRT file $vrt_file"
+        input_token_count=$(vrt_get_token_count "$vrt_file")
+    fi
 }
 
 check_input_attrs () {
@@ -985,6 +1054,28 @@ generate_input () {
     initial_input_attrs=$input_attrs
 }
 
+extract_random_seed () {
+    local cnt=256
+    if [ $input_token_count -lt $(($cnt * 4)) ]; then
+        # Add 1 to avoid having $cnt = 0
+        cnt=$(($input_token_count / 4 + 1))
+    fi
+    if [ "$random_seed" = "$random_seed_default" ]; then
+        random_seed=$corpus
+    fi
+    run_cmd $vrt_extract_seed --separator=" " --baseseed="$random_seed" \
+            --count=$cnt --distance=random --last=$input_token_count \
+            $vrt_file > $seed_file
+}
+
+test_skip_extract_random_seed () {
+    if [ "x$add_struct_ids" = x ] && [ "x$scramble" = x ]; then
+        echo "not required"
+    elif [ -e "$seed_file" ]; then
+        echo "already extracted"
+    fi
+}
+
 copy_struct_attrs () {
     process_vrt $vrt_fix_attrs \
 		$(add_prefix "--copy-struct-attribute " $copy_struct_attr)
@@ -1114,6 +1205,15 @@ test_skip_sort_texts () {
     echo "not requested"
 }
 
+save_full_vrt () {
+    run_cmd cp -p $vrt_file $vrt_file_full
+}
+
+test_skip_save_full_vrt () {
+    [ "x$augment_data" != x ] &&
+        echo "not done when augmenting data"
+}
+
 # find_containing_struct struct vrt_fname
 #
 # Print the structure immediately containing struct in the VRT file
@@ -1151,11 +1251,52 @@ find_containing_struct () {
     return 0
 }
 
+omit_struct_attrs () {
+    local opt attrlist drop keep struct drop_attrs_opts
+    local global_opts=
+    local struct_opts=
+    for opt in $omit_struct_attr; do
+        attrlist=${opt#*/}
+        drop_attrs_opts="$(_make_vrt_drop_attrs_opts "$attrlist")"
+        # echo "$attrlist:$drop_attrs_opts"
+        if [ "$attrlist" = "$opt" ]; then
+            # No structure specified; applies to all
+            global_opts="$drop_attrs_opts"
+        else
+            struct=${opt%%/*}
+            struct_opts="$struct_opts --structure $struct $drop_attrs_opts"
+        fi
+    done
+    # Use eval to preserve the quotation marks in $global_opts and
+    # $struct_opts
+    eval process_vrt $vrt_drop_attrs $global_opts $struct_opts
+}
+
+_make_vrt_drop_attrs_opts () {
+    local drop keep
+    local attrlist=$1
+    local opts=
+    drop=${attrlist%%!*}
+    # "!attr" keeps attr, overriding global --keep, but does not add
+    # --drop "" (not dropping anything)
+    if [ "x$drop" != x ] || [ "x$attrlist" = x ]; then
+        opts="--drop '$drop'"
+    fi
+    keep=${attrlist#*!}
+    # If $keep = $attrlist, $attrlist did not contain an "!"
+    if [ "$keep" != "$attrlist" ]; then
+        opts="$opts --keep '$keep'"
+    fi
+    echo "$opts"
+}
+
+test_skip_omit_struct_attrs () {
+    [ "x$omit_struct_attr" = x ] &&
+    echo "not requested"
+}
+
 scramble_structs () {
     local unit within
-    if [ "x$scramble_seed" = x ]; then
-	scramble_seed=$corpus
-    fi
     for unit in $scramble; do
 	within=$(find_containing_struct $unit "$vrt_file")
 	if [ $? != 0 ]; then
@@ -1166,7 +1307,7 @@ scramble_structs () {
 	    warn "Scrambling $unit structures instead of the usual sentence, paragraph or link"
 	fi
 	if [ "x$within" != x ]; then
-	    process_vrt $vrt_scramble --seed $scramble_seed \
+	    process_vrt $vrt_scramble --seed "<$seed_file" \
 		--unit $unit --within $within
 	fi
     done
@@ -1180,13 +1321,52 @@ test_skip_scramble_structs () {
 add_struct_ids () {
     local opts=
     local struct
+    local use_defaults=1
     if [ "x$keep_struct_ids" = x ]; then
 	opts=--force
+    else
+        # If the VRT data already has id attributes, rename them
+        for struct in $add_struct_ids; do
+            if vrt_has_struct_id $struct; then
+                opts=--rename
+                break
+            fi
+        done
     fi
-    for struct in $add_struct_ids; do
-	opts="$opts --structure=$struct"
-    done
-    process_vrt $vrt_add_struct_ids $opts
+    # Use vrt-add-id defaults if $add_struct_ids contains "text",
+    # "paragraph" and "sentence" (the default) and nothing else
+    if ! word_in "text" "$add_struct_ids" ||
+            ! word_in "paragraph" "$add_struct_ids" ||
+            ! word_in "sentence" "$add_struct_ids"; then
+        use_defaults=
+    else
+        for struct in $add_struct_ids; do
+            if ! word_in $struct "text paragraph sentence"; then
+                use_defaults=
+            fi
+        done
+    fi
+    if [ "$use_defaults" != "1" ]; then
+        for struct in $add_struct_ids; do
+	    opts="$opts --element=$struct"
+            if [ "${struct_id_format[$struct]}" != "" ]; then
+                opts="$opts --format=${struct_id_format[$struct]}"
+            fi
+        done
+    fi
+    process_vrt $vrt_add_id --hash=$corpus --seed="<$seed_file" $opts
+}
+
+vrt_has_struct_id () {
+    # Return true if $vrt_file has attribute "id" in structure $1.
+    # Note that this also returns true if an attribute value ends in
+    # " id=".
+    # If $vrt_file does not contain $struct structures, this greps
+    # through the whole file. An alternative could be to take only a
+    # head of $vrt_file, but it would be more complex, as it would
+    # have to handle SIGPIPE somehow.
+    grep -m1 "^<$struct[ >]" $vrt_file |
+        grep -sq ' id="'
 }
 
 test_skip_add_struct_ids () {
@@ -1197,7 +1377,7 @@ test_skip_add_struct_ids () {
         return
     fi
     for struct in $add_struct_ids; do
-        if grep -q -s "^<$struct " "$vrt_file"; then
+        if grep -q -s "^<$struct[ >]" "$vrt_file"; then
             has_structs=1
             break
         fi
@@ -1206,18 +1386,6 @@ test_skip_add_struct_ids () {
         echo "no structures ($(delimit ", " $add_struct_ids)) present"
         return
     fi
-    # It would be nice if this could modify $add_struct_ids to
-    # contain only the structures without ids, but the function is
-    # run as a subprocess, so the change would not propagate to
-    # the parent
-    for struct in $add_struct_ids; do
-        # FIXME (how?): The following also matches if an attribute
-        # value ends in "id="
-        if ! grep -m1 "^<$struct " "$vrt_file" | grep -q -s ' id="'; then
-            return
-        fi
-    done
-    echo "already present"
 }
 
 filter_new_attrs () {
@@ -1442,7 +1610,7 @@ test_skip_adjust_posattrs_comment () {
 }
 
 make_corpus_package () {
-    local extra_opts vrt_opt
+    local extra_opts vrt_opt seed_file_opt
     [ "x$korp_frontend_dir" != x ] &&
     extra_opts="$extra_opts --korp-frontend-dir=$korp_frontend_dir"
     [ "x$package_readme_file" != x ] &&
@@ -1459,16 +1627,18 @@ make_corpus_package () {
     extra_opts="$extra_opts --extra-dir=$package_extra_dir"
     [ "x$package_extra_file" != x ] &&
     extra_opts="$extra_opts --extra-file=$package_extra_file"
-    run_cmd gzip --no-name --force $vrt_file
+    [ -e "$seed_file" ] &&
+        seed_file_opt="--extra-file=$seed_file:$vrt_subdir/"
+    run_cmd gzip --no-name --force $vrt_file $vrt_file_full
     if [ "x$augment_data" = x ]; then
-	vrt_opt="--vrt-file $vrt_file.gz"
+	vrt_opt="--vrt-file $vrt_file.gz --vrt-file $vrt_file_full.gz"
     else
 	vrt_opt="--update-vrt"
     fi
     run_cmd $korp_make_corpus_package --target-corpus-root /v/corpora \
 	--corpus-root "$corpus_root" \
 	--tsv-dir "$tsvdir" --database-format tsv --compress gzip \
-	$vrt_opt $auth_opts $extra_opts $corpus
+	$vrt_opt $auth_opts $seed_file_opt $extra_opts $corpus
 }
 
 test_skip_make_corpus_package () {
