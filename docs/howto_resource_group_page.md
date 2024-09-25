@@ -17,8 +17,8 @@ In the [list of tools](https://www.kielipankki.fi/tools/) the link to the resour
 In order to create a resource group page in the portal, go to [Kielipankki.fi/wp-admin](https://www.kielipankki.fi/wp-admin/) (login with your university account, you need the VPN when working remotely).
 It is possible to edit existing pages.
 Open the editor for the English and the Finnish template pages on separate browser tabs and create a copy of each page as the starting points for the new resource group pages – click on 'Kopioi uudeksi luonnokseksi':
-[kielipankki.fi/intra/aineistosivumalli-eng/](https://www.kielipankki.fi/intra/aineistosivumalli-eng/) | 
-[kielipankki.fi/intra/aineistosivumalli](https://www.kielipankki.fi/intra/aineistosivumalli/)
+[kielipankki.fi/corpora/aineistosivumalli/](https://www.kielipankki.fi/corpora/aineistosivumalli/) | 
+[kielipankki.fi/aineistot/aineistosivumalli](https://www.kielipankki.fi/aineistot/aineistosivumalli/)
 (Or, to start by creating a new blank page, press 'uusi sivu'.)
 The first, bold text (document) will be the name of the page (link).
 The following bold text will be the headline of the page.
@@ -26,9 +26,8 @@ The following bold text will be the headline of the page.
 The content of a resource group page is usually:
 
 - The name of the resource (headline)
-- A description of the resource containing all relevant details, sometimes also links to related sources outside of Kielipankki. Check the META-SHARE record and take all relevant information from there.
-- A table of the latest versions/subcorpora of the resource. Each version/subcorpus is put to its own row in the table. Links to the particular META-SHARE record, citation information and access location are given.
-- A link to all available versions of this resource in META-SHARE (search result list)
+- A table of all available versions/subcorpora of the resource. The table will be filled automatically with the content from the **corpus database**, based on the resource group shortname. Each version/subcorpus is put to its own row in the table. Links to the particular metadata record, citation information and access location are given.
+- A description of the resource containing all relevant details, sometimes also links to related sources outside of Kielipankki. Check the metadata record and take all relevant information from there.
 - A PID
 
 In the WordPress page editor, in the window on the right, you should choose one or more of the given categories (resource families). 
@@ -46,8 +45,10 @@ After everything is done, the page should be put to 'public' and be published.
 
 The page can be moved in the 'tree view' in the menu on the left (e.g. to the folder 'corpora'). This can also be done after publishing the page.
 
-The PID of the (English) resource group page should then be added to the [resource families page](https://www.kielipankki.fi/corpora/resource-families-fin-clarin/ "resource families page"), to the resource's META-SHARE record and to the corpus database or the list of tools respectively.
+The PID of the (English) resource group page should then be added to the resource's metadata record in COMEDI and to the corpus database or the list of tools respectively.
 
 After a new resource group is added to the **corpus database**, the particular resource group can be chosen from the dropdown list of the field 'Resource group' within a corpus entry. 
 The particular Clarin resource family/families are to be chosen from the selection lists of the fields 'Clarin Resource Family' in English and Finnish.
+
+The [resource families page](https://www.kielipankki.fi/corpora/resource-families-fin-clarin/ "resource families page") will be filled automatically with information from the corpus database.
 
