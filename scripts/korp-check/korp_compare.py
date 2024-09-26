@@ -9,7 +9,7 @@ import pathlib
 import time
 
 korp1_url = "https://korp.csc.fi/cgi-bin/korp/korp.cgi"
-korp2_url = "https://kielipankki.fi/korp/api8"
+korp2_url = "https://www.kielipankki.fi/korp/api8"
 simple_query_cqp = 'word="h%C3%A4n"'
 
 
@@ -56,25 +56,18 @@ def time_format(s):
     return f"{h} hours, {m} minutes, {s:.2f} seconds"
 
 
-def query_korp_with_args(argdict, version):
+def query_korp_with_args(base_url, argdict):
     argdict["cache"] = "false"
-    assert version in (1, 2)
-    if version == 1:
-        url_args = "&".join((f"{k}={v}" for k, v in argdict.items()))
-        response = request.urlopen(f"{korp1_url}?{url_args}")
-        return json.loads(response.read())
-
-    elif version == 2:
-        assert "command" in argdict
-        command = argdict["command"]
-        del argdict["command"]
-        url_args = "&".join((f"{k}={v}" for k, v in argdict.items()))
-        response = request.urlopen(f"{korp2_url}/{command}?{url_args}")
-        return json.loads(response.read())
+    assert "command" in argdict
+    command = argdict["command"]
+    del argdict["command"]
+    url_args = "&".join((f"{k}={v}" for k, v in argdict.items()))
+    response = request.urlopen(f"{base_url}/{command}?{url_args}")
+    return json.loads(response.read())
 
 
-def get_info(version):
-    return query_korp_with_args({"command": "info"}, version)
+def get_info(base_url):
+    return query_korp_with_args(base_url, {"command": "info"})
 
 
 def corpora_from_info(info):
@@ -87,8 +80,9 @@ def corpora_from_info(info):
     }
 
 
-def make_simple_query(corpora, version):
+def make_simple_query(base_url, corpora):
     return query_korp_with_args(
+        base_url,
         {
             "command": "query",
             "cqp": simple_query_cqp,
@@ -97,7 +91,6 @@ def make_simple_query(corpora, version):
             "end": 0,
             "cut": 0,
         },
-        version,
     )
 
 
@@ -108,12 +101,12 @@ def kwic_summary(kwic):
     return {"charsum": charsum}
 
 
-def iterate_batch(batch, result_dict, version):
+def iterate_batch(base_url, batch, result_dict):
     """If a batch has a problem, we go over it in more detail"""
     for corpus in batch:
         result_dict["corpora_processed"] += 1
         try:
-            single_result = make_simple_query([corpus], version)
+            single_result = make_simple_query(base_url, [corpus])
         except urllib.error.HTTPError:
             print(f"      {corpus} failed with an HTTPError")
         if "ERROR" in single_result:
@@ -127,7 +120,7 @@ def iterate_batch(batch, result_dict, version):
                 print(f"    {corpus}: unexpected output: {truncate(single_result)}")
 
 
-def simple_query_summary(corpora, version):
+def simple_query_summary(base_url, corpora):
     batch_size = 100
     all_results = {"hits": 0, "corpus_hits": {}, "kwic": [], "corpora_processed": 0}
     for i in range(len(corpora) // batch_size + 1):
@@ -137,19 +130,19 @@ def simple_query_summary(corpora, version):
         starttime = time.time()
         done = False
         try:
-            result = make_simple_query(batch, version)
+            result = make_simple_query(base_url, batch)
         except urllib.error.HTTPError:
             print(
                 f"    some corpora failed with an HTTPError in batch {batch_start + 1} - {batch_start + len(batch)}, retrying each one..."
             )
-            iterate_batch(batch, all_results, version)
+            iterate_batch(base_url, batch, all_results)
             done = True
 
         if not done and "ERROR" in result:
             print(
                 f"    some corpora returned an ERROR in batch {batch_start + 1} - {batch_start + len(batch)}: {result['ERROR']}, locating failed corpora..."
             )
-            iterate_batch(batch, all_results, version)
+            iterate_batch(base_url, batch, all_results)
             done = True
 
         print(
@@ -167,15 +160,15 @@ def simple_query_summary(corpora, version):
     }
 
 
-def get_summary(version):
+def get_summary(base_url):
     starttime = time.time()
-    result = corpora_from_info(get_info(version))
+    result = corpora_from_info(get_info(base_url))
     print(
         f"  got info with {len(result['corpora'])} total corpora, of which {len(result['protected_corpora'])} protected and {len(result['public_corpora'])} public, in {time_format(time.time()-starttime)}"
     )
     starttime = time.time()
     result["simple_query_summary"] = simple_query_summary(
-        result["public_corpora"], version
+        base_url, result["public_corpora"]
     )
     print(
         f"  queried all {len(result['public_corpora'])} corpora in {time_format(time.time()-starttime)} with {len(result['simple_query_summary']['corpus_hits'])} corpora working correctly"
@@ -184,10 +177,8 @@ def get_summary(version):
 
 
 def scan_korp(source):
-    if source == "old_korp":
-        return get_summary(version=1)
-    elif source == "new_korp":
-        return get_summary(version=2)
+    if source.startswith("http://") or source.startswith("https://"):
+        return get_summary(source)
     else:
         return json.load(open(source))
 
@@ -211,7 +202,7 @@ def report_differences(first, second, args):
     second_corpora_s = set(second["corpora"])
     failed = first_corpora_s != second_corpora_s
     if not failed_ncorp and not failed:
-        report(f"Corpora names match", failed)
+        report(f"Corpora names match", log_fobj, failed)
     else:
         cmp1 = first_corpora_s.difference(second_corpora_s)
         cmp2 = second_corpora_s.difference(first_corpora_s)
@@ -275,13 +266,13 @@ if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument(
         "--first",
-        default="old_korp",
-        help="old_korp (default), new_korp or filename with json dump",
+        default=korp2_url,
+        help="korp2 (default), another URL or a filename with json dump",
     )
     argparser.add_argument(
         "--second",
-        default="new_korp",
-        help="old_korp, new_korp (default), filename with json dump or none",
+        default=None,
+        help="URL or filename with json dump, default is none",
     )
     argparser.add_argument(
         "--outfile-first", help="Filename in which to write dump from --first"
@@ -306,7 +297,7 @@ if __name__ == "__main__":
 
     print()
 
-    if args.second == "none":
+    if args.second == None:
         exit()
 
     starttime = time.time()
