@@ -455,16 +455,15 @@ add_lemgrams_opts=
 
 
 # Default structural attribute id formats
-declare -A struct_id_format
-struct_id_format=(
+declare -A struct_id_format=(
     # Standard structures
-    text "t-{hash:.8}-{id}"
-    paragraph "p-{hash:.8}-{idnum[text]}-{id}"
-    sentence "s-{hash:.8}-{idnum[text]}-{id}"
+    [text]="t-{hash:.8}-{id}"
+    [paragraph]="p-{hash:.8}-{idnum[text]}-{id}"
+    [sentence]="s-{hash:.8}-{idnum[text]}-{id}"
     # Structures used in some corpora
-    link "l-{hash:.8}-{idnum[text]}-{id}"
-    clause "c-{hash:.8}-{idnum[text]}-{idnum[sentence]}-{id}"
-    chapter "ch-{hash:.8}-{idnum[text]}-{idnum[sentence]}-{id}"
+    [link]="l-{hash:.8}-{idnum[text]}-{id}"
+    [clause]="c-{hash:.8}-{idnum[text]}-{idnum[sentence]}-{id}"
+    [chapter]="ch-{hash:.8}-{idnum[text]}-{idnum[sentence]}-{id}"
 )
 
 add_auth_opts () {
