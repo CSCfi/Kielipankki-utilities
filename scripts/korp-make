@@ -464,6 +464,7 @@ declare -A struct_id_format=(
     [link]="l-{hash:.8}-{idnum[text]}-{id}"
     [clause]="c-{hash:.8}-{idnum[text]}-{idnum[sentence]}-{id}"
     [chapter]="ch-{hash:.8}-{idnum[text]}-{id}"
+    [utterance]="u-{hash:.8}-{idnum[text]}-{id}"
 )
 
 add_auth_opts () {
