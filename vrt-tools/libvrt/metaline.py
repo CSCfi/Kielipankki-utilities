@@ -10,13 +10,16 @@ import sys
 from collections import OrderedDict
 
 def attributes(line):
+    '''Get list of attribute names in start tag line (bytes).'''
     return tuple(name for name, value in pairs(line))
 
 def mapping(line):
+    '''Get OrderedDict of attrs (name, value) in start tag line (bytes).'''
     it = OrderedDict(pairs(line))
     return it
 
 def pairs(line):
+    '''Get list of attribute (name, value) pairs in start tag line (bytes).'''
     return re.findall(br'(\S+?)="([^"]*)"', line)
 
 def element(line):
