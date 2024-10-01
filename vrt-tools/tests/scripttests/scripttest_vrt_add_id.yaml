@@ -2702,3 +2702,38 @@
       </paragraph>
       </text>
   transform: *transform-fast-t2p3s3
+
+
+# Attribute values with "="
+
+- name: 'vrt-add-id: Existing attribute values with "="'
+  input:
+    cmdline: vrt-add-id --type=counter --element=sentence
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" b="b=">
+      a
+      </sentence>
+      <sentence a="a=" b="b">
+      b
+      </sentence>
+      <sentence a="a=a" b="b=b">
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <sentence a="a" b="b=" id="1">
+      a
+      </sentence>
+      <sentence a="a=" b="b" id="2">
+      b
+      </sentence>
+      <sentence a="a=a" b="b=b" id="3">
+      c
+      </sentence>
+      </text>
+  transform: *transform-fast-s3
