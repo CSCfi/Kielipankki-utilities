@@ -28,6 +28,42 @@ def encode_utf8(obj):
         return obj
 
 
+@pytest.mark.parametrize(
+    'input,attrs', [
+        # No attributes
+        (b'<elem>\n', []),
+        (b'<elem a="b">\n', [(b'a', b'b')]),
+        (b'<elem a="b" b="&lt;">\n', [(b'a', b'b'), (b'b', b'&lt;')]),
+        # Attribute values with spaces
+        (b'<elem a=" b " b="  ">\n', [(b'a', b' b '), (b'b', b'  ')]),
+        # Attribute names with digits, underscores
+        (b'<elem a1="b" b_="c">\n', [(b'a1', b'b'), (b'b_', b'c')]),
+        (b'<elem _a="b" b_c="c">\n', [(b'_a', b'b'), (b'b_c', b'c')]),
+        (b'<elem _1="b" b_1_="c">\n', [(b'_1', b'b'), (b'b_1_', b'c')]),
+        (b'<elem __1="b" b_1__="c">\n', [(b'__1', b'b'), (b'b_1__', b'c')]),
+        (b'<elem _="b" __="c">\n', [(b'_', b'b'), (b'__', b'c')]),
+        # Attribute values ending in "="
+        (b'<elem a="=" b="=">\n', [(b'a', b'='), (b'b', b'=')]),
+        (b'<elem a="b=" b="x=">\n', [(b'a', b'b='), (b'b', b'x=')]),
+        (b'<elem a="=b=" b="=x=">\n', [(b'a', b'=b='), (b'b', b'=x=')]),
+    ])
+class TestAttributeFuncs:
+
+    """Tests for vrtlib.metaline functions pairs, mapping, attributes."""
+
+    def test_pairs(self, input, attrs):
+        """Test that pairs(input) == attrs."""
+        assert ml.pairs(input) == attrs
+
+    def test_mapping(self, input, attrs):
+        """Test that mapping(input) == OrderedDict(attrs)."""
+        assert ml.mapping(input) == OrderedDict(attrs)
+
+    def test_attributes(self, input, attrs):
+        """Test that attributes(input) contains names in attrs."""
+        assert ml.attributes(input) == tuple(name for name, _ in attrs)
+
+
 class TestElement:
 
     """Tests for vrtlib.metaline functions .element, strelement."""

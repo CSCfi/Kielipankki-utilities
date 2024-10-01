@@ -17,7 +17,7 @@ def mapping(line):
     return it
 
 def pairs(line):
-    return re.findall(br'(\S+)="([^""]*)"', line)
+    return re.findall(br'(\S+?)="([^"]*)"', line)
 
 def element(line):
     '''Get start or end tag element name from line (bytes).'''
