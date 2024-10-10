@@ -98,40 +98,59 @@
     stdout: *input-no-names
 
 
+# Attribute-name options
+
+- name: 'vrt-augment-name-attrs: Attribute-name options'
+  input:
+    cmdline: vrt-augment-name-attrs --word=wd --lemma=bf --nertag=nertag
+    stdin:
+      value: &input-single1 |
+        <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+        <text a="b">
+        <sentence x="y">
+        01.06.2001	01.06.2001	TimexTmeDat-F	|TimexTmeDat-F-0|	B-DATE
+        1.07	1.07	TimexTmeHrm-F	|TimexTmeHrm-F-0|	B-MISC
+        A100	A100	EnamexProXxx-F	|EnamexProXxx-F-0|	B-PRO
+        Aaltoseen	Aaltonen	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+        </sentence>
+        </text>
+      transform: &transf-attr-names
+        python: |
+          lines = value.split('\n')
+          lines[0] = (lines[0].replace('word', 'wd').replace('lemma', 'bf')
+                      .replace('nertag2', 'nertag'))
+          return '\n'.join(lines)
+  output:
+    stdout:
+      value: &output-single1 |
+        <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+        <text a="b">
+        <sentence x="y">
+        <ne name="01.06.2001" fulltype="TimexTmeDat" ex="TIMEX" type="TME" subtype="DAT" placename="" placename_source="">
+        01.06.2001	01.06.2001	TimexTmeDat-F	|TimexTmeDat-F-0|	B-DATE
+        </ne>
+        <ne name="1.07" fulltype="TimexTmeHrm" ex="TIMEX" type="TME" subtype="HRM" placename="" placename_source="">
+        1.07	1.07	TimexTmeHrm-F	|TimexTmeHrm-F-0|	B-MISC
+        </ne>
+        <ne name="A100" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+        A100	A100	EnamexProXxx-F	|EnamexProXxx-F-0|	B-PRO
+        </ne>
+        <ne name="Aaltonen" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
+        Aaltoseen	Aaltonen	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+        </ne>
+        </sentence>
+        </text>
+      transform: *transf-attr-names
+
+
 # Single-word names
 
 - name: 'vrt-augment-name-attrs: Single-word names, nothing else'
   input:
     cmdline: vrt-augment-name-attrs
-    stdin: |
-      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
-      <text a="b">
-      <sentence x="y">
-      01.06.2001	01.06.2001	TimexTmeDat-F	|TimexTmeDat-F-0|	B-DATE
-      1.07	1.07	TimexTmeHrm-F	|TimexTmeHrm-F-0|	B-MISC
-      A100	A100	EnamexProXxx-F	|EnamexProXxx-F-0|	B-PRO
-      Aaltoseen	Aaltonen	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
-      </sentence>
-      </text>
+    stdin: *input-single1
   output:
-    stdout: |
-      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
-      <text a="b">
-      <sentence x="y">
-      <ne name="01.06.2001" fulltype="TimexTmeDat" ex="TIMEX" type="TME" subtype="DAT" placename="" placename_source="">
-      01.06.2001	01.06.2001	TimexTmeDat-F	|TimexTmeDat-F-0|	B-DATE
-      </ne>
-      <ne name="1.07" fulltype="TimexTmeHrm" ex="TIMEX" type="TME" subtype="HRM" placename="" placename_source="">
-      1.07	1.07	TimexTmeHrm-F	|TimexTmeHrm-F-0|	B-MISC
-      </ne>
-      <ne name="A100" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
-      A100	A100	EnamexProXxx-F	|EnamexProXxx-F-0|	B-PRO
-      </ne>
-      <ne name="Aaltonen" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
-      Aaltoseen	Aaltonen	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
-      </ne>
-      </sentence>
-      </text>
+    stdout: *output-single1
 
 - name: 'vrt-augment-name-attrs: Single-word names, non-name tokens'
   input:

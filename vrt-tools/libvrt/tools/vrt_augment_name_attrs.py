@@ -9,7 +9,6 @@ Please run "vrt-augment-name-attrs -h" for more information.
 
 
 # TODO:
-# - Add options for positional attribute names
 # - Add nested ne tags for nested names (optionally?)
 # - Try to improve intra-name tag nesting in cases such as: "<tag>
 #   nameword1 </tag> nameword2", now tagged as "<tag> <ne> nameword1
@@ -22,6 +21,7 @@ import re
 
 from libvrt import metaline as ml
 from libvrt import nameline as nl
+from libvrt.argtypes import encode_utf8
 
 from vrtargsoolib import InputProcessor
 
@@ -31,10 +31,16 @@ class VrtNameAttrAugmenter(InputProcessor):
     """Class implementing vrt-augment-name-attrs functionality."""
 
     DESCRIPTION = """
-    Augment VRT input containing positional name attributes (nertag2)
+    Augment VRT input containing positional name attributes
     with <ne> structures with attributes.
     """
     ARGSPECS = [
+        ('--word = attr:encode_utf8 "word"',
+         '''positional attribute name for word form is attr'''),
+        ('--lemma = attr:encode_utf8 "lemma"',
+         '''positional attribute name for base form (lemma) is attr'''),
+        ('--nertag = attr:encode_utf8 "nertag2"',
+         '''positional attribute name for maximal NER tag is attr'''),
     ]
 
     def __init__(self):
@@ -128,15 +134,16 @@ class VrtNameAttrAugmenter(InputProcessor):
                         # Positional-attributes comment not yet seen
                         if nl.isnameline(line):
                             attrs = nl.parsenameline(line)
-                            for attrname in [b'nertag2', b'lemma', b'word']:
+                            for attrname in [
+                                    args.nertag, args.lemma, args.word]:
                                 if attrname not in attrs:
                                     self.error_exit(
                                         'No positional attribute \''
                                         + attrname.decode('utf-8')
                                         + '\' in input')
-                            attrnum_nertag = attrs.index(b'nertag2')
-                            attrnum_word = attrs.index(b'word')
-                            attrnum_lemma = attrs.index(b'lemma')
+                            attrnum_nertag = attrs.index(args.nertag)
+                            attrnum_word = attrs.index(args.word)
+                            attrnum_lemma = attrs.index(args.lemma)
                     ouf.write(line)
             elif attrnum_nertag is None:
                 # Token line, no positional-attributes comment seen
