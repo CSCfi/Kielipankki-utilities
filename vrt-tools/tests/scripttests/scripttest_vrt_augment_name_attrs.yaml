@@ -1,0 +1,732 @@
+
+# scripttestlib tests for vrt-augment-name-attrs
+
+
+# Default input and output
+
+- defaults:
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+# Defective input
+
+- name: 'vrt-augment-name-attrs: No positional-attributes comment'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <text a="b">
+      <sentence x="y">
+      a
+      </sentence>
+      </text>
+  output:
+    returncode: 1
+    stdout: |
+      <text a="b">
+      <sentence x="y">
+    stderr: |
+      vrt-augment-name-attrs: No positional-attributes comment before the first token
+
+- name: 'vrt-augment-name-attrs: No nertag2 attribute'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="b">
+      <sentence x="y">
+      a
+      </sentence>
+      </text>
+  output:
+    returncode: 1
+    stdout: ''
+    stderr: |
+      vrt-augment-name-attrs: No positional attribute 'nertag2' in input
+
+- name: 'vrt-augment-name-attrs: No lemma attribute'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word nertag2 -->
+      <text a="b">
+      <sentence x="y">
+      a	_
+      </sentence>
+      </text>
+  output:
+    returncode: 1
+    stdout: ''
+    stderr: |
+      vrt-augment-name-attrs: No positional attribute 'lemma' in input
+
+- name: 'vrt-augment-name-attrs: No word attribute'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: lemma nertag2 -->
+      <text a="b">
+      <sentence x="y">
+      a	_
+      </sentence>
+      </text>
+  output:
+    returncode: 1
+    stdout: ''
+    stderr: |
+      vrt-augment-name-attrs: No positional attribute 'word' in input
+
+
+# No names
+
+- name: 'vrt-augment-name-attrs: No names, output intact'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: &input-no-names |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      A	a	_	|	O
+      on	olla	_	|	O
+      alussa	alku	_	|	O
+      .	.	_	|	O
+      </sentence>
+      </text>
+  output:
+    stdout: *input-no-names
+
+
+# Single-word names
+
+- name: 'vrt-augment-name-attrs: Single-word names, nothing else'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      01.06.2001	01.06.2001	TimexTmeDat-F	|TimexTmeDat-F-0|	B-DATE
+      1.07	1.07	TimexTmeHrm-F	|TimexTmeHrm-F-0|	B-MISC
+      A100	A100	EnamexProXxx-F	|EnamexProXxx-F-0|	B-PRO
+      Aaltoseen	Aaltonen	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="01.06.2001" fulltype="TimexTmeDat" ex="TIMEX" type="TME" subtype="DAT" placename="" placename_source="">
+      01.06.2001	01.06.2001	TimexTmeDat-F	|TimexTmeDat-F-0|	B-DATE
+      </ne>
+      <ne name="1.07" fulltype="TimexTmeHrm" ex="TIMEX" type="TME" subtype="HRM" placename="" placename_source="">
+      1.07	1.07	TimexTmeHrm-F	|TimexTmeHrm-F-0|	B-MISC
+      </ne>
+      <ne name="A100" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      A100	A100	EnamexProXxx-F	|EnamexProXxx-F-0|	B-PRO
+      </ne>
+      <ne name="Aaltonen" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
+      Aaltoseen	Aaltonen	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+      </ne>
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Single-word names, non-name tokens'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      On	olla	_	|	O
+      01.06.2001	01.06.2001	TimexTmeDat-F	|TimexTmeDat-F-0|	B-DATE
+      aika	aika	_	|	O
+      1.07	1.07	TimexTmeHrm-F	|TimexTmeHrm-F-0|	B-MISC
+      .	.	_	|	O
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      On	olla	_	|	O
+      <ne name="01.06.2001" fulltype="TimexTmeDat" ex="TIMEX" type="TME" subtype="DAT" placename="" placename_source="">
+      01.06.2001	01.06.2001	TimexTmeDat-F	|TimexTmeDat-F-0|	B-DATE
+      </ne>
+      aika	aika	_	|	O
+      <ne name="1.07" fulltype="TimexTmeHrm" ex="TIMEX" type="TME" subtype="HRM" placename="" placename_source="">
+      1.07	1.07	TimexTmeHrm-F	|TimexTmeHrm-F-0|	B-MISC
+      </ne>
+      .	.	_	|	O
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Single-word names, different attr order, extra attrs'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: id word nerbio2 nertag2 nertags2/ x lemma -->
+      <text a="b">
+      <sentence x="y">
+      1	On	O	_	|	x	olla
+      2	01.06.2001	B-DATE	TimexTmeDat-F	|TimexTmeDat-F-0|	y	01.06.2001
+      3	aika	O	_	|	z	aika
+      4	1.07	B-MISC	TimexTmeHrm-F	|TimexTmeHrm-F-0|	z	1.07
+      5	.	O	_	|	z	.
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: id word nerbio2 nertag2 nertags2/ x lemma -->
+      <text a="b">
+      <sentence x="y">
+      1	On	O	_	|	x	olla
+      <ne name="01.06.2001" fulltype="TimexTmeDat" ex="TIMEX" type="TME" subtype="DAT" placename="" placename_source="">
+      2	01.06.2001	B-DATE	TimexTmeDat-F	|TimexTmeDat-F-0|	y	01.06.2001
+      </ne>
+      3	aika	O	_	|	z	aika
+      <ne name="1.07" fulltype="TimexTmeHrm" ex="TIMEX" type="TME" subtype="HRM" placename="" placename_source="">
+      4	1.07	B-MISC	TimexTmeHrm-F	|TimexTmeHrm-F-0|	z	1.07
+      </ne>
+      5	.	O	_	|	z	.
+      </sentence>
+      </text>
+
+
+# Multi-word names
+
+- name: 'vrt-augment-name-attrs: Multi-word names, no nesting'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      0,25	0,25	NumexMsrXxx-B	|NumexMsrXxx-B-0|	B-MISC
+      litraa	litra	NumexMsrXxx-E	|NumexMsrXxx-E-0|	I-MISC
+      Aamuruskontie	aamuruskotie	EnamexLocStr-B	|EnamexLocStr-B-0|	B-LOC
+      6	6	EnamexLocStr-E	|EnamexLocStr-E-0|	I-LOC
+      Äänikortti	äänikortti	EnamexProXxx-B	|EnamexProXxx-B-0|	B-PRO
+      Sound	Sound	_	|	I-PRO
+      Blaster	Blaster	_	|	I-PRO
+      Live	live	_	|	I-PRO
+      1024	1024	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      Adrian	Adrian	EnamexPrsHum-B	|EnamexPrsHum-B-0|	B-PER
+      Erlandsson	Erlandsson	EnamexPrsHum-E	|EnamexPrsHum-E-0|	I-PER
+      Agia	Agia	EnamexLocPpl-B	|EnamexLocPpl-B-0|	B-LOC
+      Napa	napa	EnamexLocPpl-E	|EnamexLocPpl-E-0|	I-LOC
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="0,25 litraa" fulltype="NumexMsrXxx" ex="NUMEX" type="MSR" subtype="XXX" placename="" placename_source="">
+      0,25	0,25	NumexMsrXxx-B	|NumexMsrXxx-B-0|	B-MISC
+      litraa	litra	NumexMsrXxx-E	|NumexMsrXxx-E-0|	I-MISC
+      </ne>
+      <ne name="Aamuruskontie 6" fulltype="EnamexLocStr" ex="ENAMEX" type="LOC" subtype="STR" placename="Aamuruskontie 6" placename_source="ner">
+      Aamuruskontie	aamuruskotie	EnamexLocStr-B	|EnamexLocStr-B-0|	B-LOC
+      6	6	EnamexLocStr-E	|EnamexLocStr-E-0|	I-LOC
+      </ne>
+      <ne name="Äänikortti Sound Blaster Live 1024" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      Äänikortti	äänikortti	EnamexProXxx-B	|EnamexProXxx-B-0|	B-PRO
+      Sound	Sound	_	|	I-PRO
+      Blaster	Blaster	_	|	I-PRO
+      Live	live	_	|	I-PRO
+      1024	1024	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </ne>
+      <ne name="Adrian Erlandsson" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
+      Adrian	Adrian	EnamexPrsHum-B	|EnamexPrsHum-B-0|	B-PER
+      Erlandsson	Erlandsson	EnamexPrsHum-E	|EnamexPrsHum-E-0|	I-PER
+      </ne>
+      <ne name="Agia Napa" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Agia Napa" placename_source="ner">
+      Agia	Agia	EnamexLocPpl-B	|EnamexLocPpl-B-0|	B-LOC
+      Napa	napa	EnamexLocPpl-E	|EnamexLocPpl-E-0|	I-LOC
+      </ne>
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Inflected or case-changed names'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      0,1	0,1	NumexMsrXxx-B	|NumexMsrXxx-B-0|	B-MISC
+      grammaa	gramma	NumexMsrXxx-E	|NumexMsrXxx-E-0|	I-MISC
+      10.	10.	TimexTmeDat-B	|TimexTmeDat-B-0|	B-DATE
+      kesäkuuta	kesäkuu	TimexTmeDat-E	|TimexTmeDat-E-0|	I-DATE
+      Ahteesta	ahde	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+      Ahteen	ahde	EnamexPrsHum-B	|EnamexPrsHum-B-0|	B-PER
+      Mattikin	matti	EnamexPrsHum-E	|EnamexPrsHum-E-0|	I-PER
+      Ahti	Ahti	EnamexPrsHum-B	|EnamexPrsHum-B-0|	B-PER
+      Karjalaisen	Karjalainen	EnamexPrsHum-E	|EnamexPrsHum-E-0|	I-PER
+      6th	6th	EnamexLocStr-B	|EnamexLocStr-B-0|	B-LOC
+      Avenue	avenue	EnamexLocStr-E	|EnamexLocStr-E-0|	I-LOC
+      Aaltosen	Aaltonen	EnamexOrgClt-B	|EnamexOrgClt-B-0|EnamexLocPpl-F-1|	B-ORG
+      taidemuseossa	taidemuseo	EnamexOrgClt-E	|EnamexOrgClt-E-0|	I-ORG
+      AAMOS	Aamos	EnamexProXxx-F	|EnamexProXxx-F-0|	B-PRO
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      Siistinä	siisti	_	|	I-ORG
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      Ruusu	ruusu	EnamexPrsHum-B	|EnamexPrsHum-B-0|	B-PER
+      Olit	olla	EnamexPrsHum-E	|EnamexPrsHum-E-0|	I-PER
+      Ruotsalaisen	ruotsalainen	EnamexOrgTvr-B	|EnamexOrgTvr-B-0|	B-ORG
+      Bilsport	Bilsport	_	|	I-ORG
+      -lehden	lehti	EnamexOrgTvr-E	|EnamexOrgTvr-E-0|	I-ORG
+      RUOKKIMAAN	ruokkimaa	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      KONETTA	kone	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="0,1 grammaa" fulltype="NumexMsrXxx" ex="NUMEX" type="MSR" subtype="XXX" placename="" placename_source="">
+      0,1	0,1	NumexMsrXxx-B	|NumexMsrXxx-B-0|	B-MISC
+      grammaa	gramma	NumexMsrXxx-E	|NumexMsrXxx-E-0|	I-MISC
+      </ne>
+      <ne name="10. kesäkuuta" fulltype="TimexTmeDat" ex="TIMEX" type="TME" subtype="DAT" placename="" placename_source="">
+      10.	10.	TimexTmeDat-B	|TimexTmeDat-B-0|	B-DATE
+      kesäkuuta	kesäkuu	TimexTmeDat-E	|TimexTmeDat-E-0|	I-DATE
+      </ne>
+      <ne name="Ahde" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
+      Ahteesta	ahde	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+      </ne>
+      <ne name="Ahteen Matti" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
+      Ahteen	ahde	EnamexPrsHum-B	|EnamexPrsHum-B-0|	B-PER
+      Mattikin	matti	EnamexPrsHum-E	|EnamexPrsHum-E-0|	I-PER
+      </ne>
+      <ne name="Ahti Karjalainen" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
+      Ahti	Ahti	EnamexPrsHum-B	|EnamexPrsHum-B-0|	B-PER
+      Karjalaisen	Karjalainen	EnamexPrsHum-E	|EnamexPrsHum-E-0|	I-PER
+      </ne>
+      <ne name="6th Avenue" fulltype="EnamexLocStr" ex="ENAMEX" type="LOC" subtype="STR" placename="6th Avenue" placename_source="ner">
+      6th	6th	EnamexLocStr-B	|EnamexLocStr-B-0|	B-LOC
+      Avenue	avenue	EnamexLocStr-E	|EnamexLocStr-E-0|	I-LOC
+      </ne>
+      <ne name="Aaltosen taidemuseo" fulltype="EnamexOrgClt" ex="ENAMEX" type="ORG" subtype="CLT" placename="" placename_source="">
+      Aaltosen	Aaltonen	EnamexOrgClt-B	|EnamexOrgClt-B-0|EnamexLocPpl-F-1|	B-ORG
+      taidemuseossa	taidemuseo	EnamexOrgClt-E	|EnamexOrgClt-E-0|	I-ORG
+      </ne>
+      <ne name="AAMOS" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      AAMOS	Aamos	EnamexProXxx-F	|EnamexProXxx-F-0|	B-PRO
+      </ne>
+      <ne name="Saaristo Siistinä ry:llä" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      Siistinä	siisti	_	|	I-ORG
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      <ne name="Ruusu Olla" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
+      Ruusu	ruusu	EnamexPrsHum-B	|EnamexPrsHum-B-0|	B-PER
+      Olit	olla	EnamexPrsHum-E	|EnamexPrsHum-E-0|	I-PER
+      </ne>
+      <ne name="Ruotsalaisen Bilsport lehti" fulltype="EnamexOrgTvr" ex="ENAMEX" type="ORG" subtype="TVR" placename="" placename_source="">
+      Ruotsalaisen	ruotsalainen	EnamexOrgTvr-B	|EnamexOrgTvr-B-0|	B-ORG
+      Bilsport	Bilsport	_	|	I-ORG
+      -lehden	lehti	EnamexOrgTvr-E	|EnamexOrgTvr-E-0|	I-ORG
+      </ne>
+      <ne name="RUOKKIMAAN KONE" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      RUOKKIMAAN	ruokkimaa	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      KONETTA	kone	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Names with XML character references'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Aake	Aake	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      &amp;	&amp;	_	|	I-ORG
+      Co	Co	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      &lt;1500	&lt;1500	NumexMsrXxx-B	|NumexMsrXxx-B-0|	B-MISC
+      kg	kg	NumexMsrXxx-E	|NumexMsrXxx-E-0|	I-MISC
+      Saab	Saab	EnamexProXxx-B	|EnamexProXxx-B-0|EnamexOrgCrp-F-1|	B-PRO
+      9000	9000	_	|	I-PRO
+      170hp-&gt;235hp	170hp-&gt;235hp	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="Aake &amp; Co" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      Aake	Aake	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      &amp;	&amp;	_	|	I-ORG
+      Co	Co	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      <ne name="&lt;1500 kg" fulltype="NumexMsrXxx" ex="NUMEX" type="MSR" subtype="XXX" placename="" placename_source="">
+      &lt;1500	&lt;1500	NumexMsrXxx-B	|NumexMsrXxx-B-0|	B-MISC
+      kg	kg	NumexMsrXxx-E	|NumexMsrXxx-E-0|	I-MISC
+      </ne>
+      <ne name="Saab 9000 170hp-&gt;235hp" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      Saab	Saab	EnamexProXxx-B	|EnamexProXxx-B-0|EnamexOrgCrp-F-1|	B-PRO
+      9000	9000	_	|	I-PRO
+      170hp-&gt;235hp	170hp-&gt;235hp	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </ne>
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Names with double quotation marks'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      15"	15"	NumexMsrXxx-B	|NumexMsrXxx-B-0|	B-MISC
+      tuuman	tuuma	NumexMsrXxx-E	|NumexMsrXxx-E-0|	I-MISC
+      15""	15""	NumexMsrXxx-B	|NumexMsrXxx-B-0|	B-MISC
+      tuuman	tuuma	NumexMsrXxx-E	|NumexMsrXxx-E-0|	I-MISC
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="15&quot; tuuman" fulltype="NumexMsrXxx" ex="NUMEX" type="MSR" subtype="XXX" placename="" placename_source="">
+      15"	15"	NumexMsrXxx-B	|NumexMsrXxx-B-0|	B-MISC
+      tuuman	tuuma	NumexMsrXxx-E	|NumexMsrXxx-E-0|	I-MISC
+      </ne>
+      <ne name="15&quot;&quot; tuuman" fulltype="NumexMsrXxx" ex="NUMEX" type="MSR" subtype="XXX" placename="" placename_source="">
+      15""	15""	NumexMsrXxx-B	|NumexMsrXxx-B-0|	B-MISC
+      tuuman	tuuma	NumexMsrXxx-E	|NumexMsrXxx-E-0|	I-MISC
+      </ne>
+      </sentence>
+      </text>
+
+
+# Intra-sentence tags
+
+- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence comments'
+  status: xfail:Intra-name tags not yet handled correctly
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <!-- Comment before -->
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      <!-- Comment middle -->
+      Siistinä	siisti	_	|	I-ORG
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      <!-- Comment after -->
+      .	.	_	|	O
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <!-- Comment before -->
+      <ne name="Saaristo Siistinä ry:llä" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      <!-- Comment middle -->
+      Siistinä	siisti	_	|	I-ORG
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      <!-- Comment after -->
+      .	.	_	|	O
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure around name'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <emph>
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      Siistinä	siisti	_	|	I-ORG
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </emph>
+      .	.	_	|	O
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <emph>
+      <ne name="Saaristo Siistinä ry:llä" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      Siistinä	siisti	_	|	I-ORG
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      </emph>
+      .	.	_	|	O
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure covers first word of name'
+  status: xfail:Intra-name tags not yet handled correctly
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <emph>
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      </emph>
+      Siistinä	siisti	_	|	I-ORG
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      .	.	_	|	O
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="Saaristo Siistinä ry:llä" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      <emph>
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      </emph>
+      Siistinä	siisti	_	|	I-ORG
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      .	.	_	|	O
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure ends within name'
+  status: xfail:Intra-name tags not yet handled correctly
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <emph>
+      oli	olla	_	|	O
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      </emph>
+      Siistinä	siisti	_	|	I-ORG
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      .	.	_	|	O
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <emph>
+      oli	olla	_	|	O
+      <ne name="Saaristo Siistinä ry:llä" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      </emph>
+      Siistinä	siisti	_	|	I-ORG
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      .	.	_	|	O
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure covers last word of name'
+  status: xfail:Intra-name tags not yet handled correctly
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      Siistinä	siisti	_	|	I-ORG
+      <emph>
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </emph>
+      .	.	_	|	O
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="Saaristo Siistinä ry:llä" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      Siistinä	siisti	_	|	I-ORG
+      <emph>
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </emph>
+      </ne>
+      .	.	_	|	O
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure begins within name'
+  status: xfail:Intra-name tags not yet handled correctly
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      Siistinä	siisti	_	|	I-ORG
+      <emph>
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      .	.	_	|	O
+      </emph>
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="Saaristo Siistinä ry:llä" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      Siistinä	siisti	_	|	I-ORG
+      <emph>
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      .	.	_	|	O
+      </emph>
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure completely within name'
+  status: xfail:Intra-name tags not yet handled correctly
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      <emph>
+      Siistinä	siisti	_	|	I-ORG
+      </emph>
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      .	.	_	|	O
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="Saaristo Siistinä ry:llä" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      <emph>
+      Siistinä	siisti	_	|	I-ORG
+      </emph>
+      ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      .	.	_	|	O
+      </sentence>
+      </text>
+
+
+# Multi-level names
+
+- name: 'vrt-augment-name-attrs: Two-level names'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      100	100	NumexMsrCur-B	|NumexMsrCur-B-0|	B-MISC
+      miljardia	miljardi	_	|	I-MISC
+      Suomen	Suomi	_	|EnamexLocPpl-F-1|	I-MISC
+      markkaa	markka	NumexMsrCur-E	|NumexMsrCur-E-0|	I-MISC
+      9.40	9.40	TimexTmeHrm-B	|TimexTmeHrm-B-0|	B-MISC
+      Keski-Euroopan	Keski-Euroopan	_	|EnamexLocPpl-F-1|	I-MISC
+      aikaa	aika	TimexTmeHrm-E	|TimexTmeHrm-E-0|	I-MISC
+      Aaltosen	Aaltonen	EnamexOrgClt-B	|EnamexOrgClt-B-0|EnamexLocPpl-F-1|	B-ORG
+      taidemuseossa	taidemuseo	EnamexOrgClt-E	|EnamexOrgClt-E-0|	I-ORG
+      Adobe	Adobe	EnamexProXxx-B	|EnamexProXxx-B-0|EnamexOrgCrp-F-1|	B-PRO
+      Acrobat	Acrobat	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      Agia	Agia	EnamexLocFnc-B	|EnamexLocFnc-B-0|EnamexLocPpl-B-1|	B-LOC
+      Napan	nappa	_	|EnamexLocPpl-E-1|	I-LOC
+      vesipuistossa	vesipuisto	EnamexLocFnc-E	|EnamexLocFnc-E-0|	I-LOC
+      Alfa	alfa	EnamexProXxx-B	|EnamexProXxx-B-0|EnamexOrgCrp-B-1|	B-PRO
+      Romeo	Romeo	_	|EnamexOrgCrp-E-1|	I-PRO
+      155	155	_	|	I-PRO
+      2.0 16V	2.0 16V	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="100 miljardia Suomen markkaa" fulltype="NumexMsrCur" ex="NUMEX" type="MSR" subtype="CUR" placename="" placename_source="">
+      100	100	NumexMsrCur-B	|NumexMsrCur-B-0|	B-MISC
+      miljardia	miljardi	_	|	I-MISC
+      Suomen	Suomi	_	|EnamexLocPpl-F-1|	I-MISC
+      markkaa	markka	NumexMsrCur-E	|NumexMsrCur-E-0|	I-MISC
+      </ne>
+      <ne name="9.40 Keski-Euroopan aikaa" fulltype="TimexTmeHrm" ex="TIMEX" type="TME" subtype="HRM" placename="" placename_source="">
+      9.40	9.40	TimexTmeHrm-B	|TimexTmeHrm-B-0|	B-MISC
+      Keski-Euroopan	Keski-Euroopan	_	|EnamexLocPpl-F-1|	I-MISC
+      aikaa	aika	TimexTmeHrm-E	|TimexTmeHrm-E-0|	I-MISC
+      </ne>
+      <ne name="Aaltosen taidemuseo" fulltype="EnamexOrgClt" ex="ENAMEX" type="ORG" subtype="CLT" placename="" placename_source="">
+      Aaltosen	Aaltonen	EnamexOrgClt-B	|EnamexOrgClt-B-0|EnamexLocPpl-F-1|	B-ORG
+      taidemuseossa	taidemuseo	EnamexOrgClt-E	|EnamexOrgClt-E-0|	I-ORG
+      </ne>
+      <ne name="Adobe Acrobat" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      Adobe	Adobe	EnamexProXxx-B	|EnamexProXxx-B-0|EnamexOrgCrp-F-1|	B-PRO
+      Acrobat	Acrobat	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </ne>
+      <ne name="Agia Napan vesipuisto" fulltype="EnamexLocFnc" ex="ENAMEX" type="LOC" subtype="FNC" placename="Agia Napan vesipuisto" placename_source="ner">
+      Agia	Agia	EnamexLocFnc-B	|EnamexLocFnc-B-0|EnamexLocPpl-B-1|	B-LOC
+      Napan	nappa	_	|EnamexLocPpl-E-1|	I-LOC
+      vesipuistossa	vesipuisto	EnamexLocFnc-E	|EnamexLocFnc-E-0|	I-LOC
+      </ne>
+      <ne name="Alfa Romeo 155 2.0 16V" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      Alfa	alfa	EnamexProXxx-B	|EnamexProXxx-B-0|EnamexOrgCrp-B-1|	B-PRO
+      Romeo	Romeo	_	|EnamexOrgCrp-E-1|	I-PRO
+      155	155	_	|	I-PRO
+      2.0 16V	2.0 16V	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </ne>
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Three-level names'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	B-ORG
+      hiippakunnan	hiippakunta	_	|EnamexLocPpl-E-1|	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="Lapuan hiippakunnan tuomiokapituli" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	B-ORG
+      hiippakunnan	hiippakunta	_	|EnamexLocPpl-E-1|	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      </sentence>
+      </text>
