@@ -412,7 +412,6 @@
 # Intra-sentence tags
 
 - name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence comments'
-  status: xfail:Intra-name tags not yet handled correctly
   input:
     cmdline: vrt-augment-name-attrs
     stdin: |
@@ -477,7 +476,6 @@
       </text>
 
 - name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure covers first word of name'
-  status: xfail:Intra-name tags not yet handled correctly
   input:
     cmdline: vrt-augment-name-attrs
     stdin: |
@@ -497,8 +495,8 @@
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
       <sentence x="y">
-      <ne name="Saaristo Siistinä ry:llä" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
       <emph>
+      <ne name="Saaristo Siistinä ry:llä" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
       Saaristo	saaristo	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
       </emph>
       Siistinä	siisti	_	|	I-ORG
@@ -509,7 +507,6 @@
       </text>
 
 - name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure ends within name'
-  status: xfail:Intra-name tags not yet handled correctly
   input:
     cmdline: vrt-augment-name-attrs
     stdin: |
@@ -543,7 +540,6 @@
       </text>
 
 - name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure covers last word of name'
-  status: xfail:Intra-name tags not yet handled correctly
   input:
     cmdline: vrt-augment-name-attrs
     stdin: |
@@ -568,14 +564,13 @@
       Siistinä	siisti	_	|	I-ORG
       <emph>
       ry:llä	ry:llä	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
-      </emph>
       </ne>
+      </emph>
       .	.	_	|	O
       </sentence>
       </text>
 
 - name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure begins within name'
-  status: xfail:Intra-name tags not yet handled correctly
   input:
     cmdline: vrt-augment-name-attrs
     stdin: |
@@ -607,7 +602,6 @@
       </text>
 
 - name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure completely within name'
-  status: xfail:Intra-name tags not yet handled correctly
   input:
     cmdline: vrt-augment-name-attrs
     stdin: |

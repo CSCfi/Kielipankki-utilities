@@ -9,9 +9,12 @@ Please run "vrt-augment-name-attrs -h" for more information.
 
 
 # TODO:
-# - Handle intra-name tags and comments
 # - Add options for positional attribute names
 # - Add nested ne tags for nested names (optionally?)
+# - Try to improve intra-name tag nesting in cases such as: "<tag>
+#   nameword1 </tag> nameword2", now tagged as "<tag> <ne> nameword1
+#   </tag> nameword2 </ne>", and "nameword1 <tag> nameword2 </tag>",
+#   now tagged "<ne> nameword1 <tag> nameword2 </ne> </tag>"
 
 
 import sys
@@ -110,26 +113,31 @@ class VrtNameAttrAugmenter(InputProcessor):
 
         # Input lines within a (multi-word) name
         namelines = []
-        # namelines split into attributes, to avoid to splitting
-        # multiple times
+        # namelines (tokens) split into attributes, to avoid to
+        # splitting multiple times
         name_tokens = []
         for line in inf:
             if ml.ismeta(line):
                 # Structure or comment line
-                if attrnum_nertag is None:
-                    # Positional-attributes comment not yet seen
-                    if nl.isnameline(line):
-                        attrs = nl.parsenameline(line)
-                        for attrname in [b'nertag2', b'lemma', b'word']:
-                            if attrname not in attrs:
-                                self.error_exit(
-                                    'No positional attribute \''
-                                    + attrname.decode('utf-8')
-                                    + '\' in input')
-                        attrnum_nertag = attrs.index(b'nertag2')
-                        attrnum_word = attrs.index(b'word')
-                        attrnum_lemma = attrs.index(b'lemma')
-                ouf.write(line)
+                if namelines:
+                    # Inside a name
+                    namelines.append(line)
+                else:
+                    # Outside a name
+                    if attrnum_nertag is None:
+                        # Positional-attributes comment not yet seen
+                        if nl.isnameline(line):
+                            attrs = nl.parsenameline(line)
+                            for attrname in [b'nertag2', b'lemma', b'word']:
+                                if attrname not in attrs:
+                                    self.error_exit(
+                                        'No positional attribute \''
+                                        + attrname.decode('utf-8')
+                                        + '\' in input')
+                            attrnum_nertag = attrs.index(b'nertag2')
+                            attrnum_word = attrs.index(b'word')
+                            attrnum_lemma = attrs.index(b'lemma')
+                    ouf.write(line)
             elif attrnum_nertag is None:
                 # Token line, no positional-attributes comment seen
                 self.error_exit(
