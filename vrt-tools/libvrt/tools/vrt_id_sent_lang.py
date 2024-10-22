@@ -2,10 +2,11 @@
 # -*- mode: Python; -*-
 
 '''A language-identification implementation, using pr1 and a meta
-component. The underlying tool is the HeLI 1.3 recognizer that reads
+component. The underlying tool is the HeLI 2.0 recognizer that reads
 each sentence on a line of its own and writes a corresponding language
-code on a line of its own, with -c also a confidence score except no
-tab and no confidence score if code is xxx:
+code on a line of its own, with -c also a confidence score. (Old 1.3
+produced no tab and no confidence score if code was xxx, this 2.0 is
+better and produces und and a score instead. Though does it always?)
 
 https://doi.org/10.5281/zenodo.6077089
 
@@ -23,7 +24,9 @@ from libvrt.pr1 import transput
 from libvrt.dataline import unescape
 
 try:
-    from outsidelib import HeLI_1_3 as HeLI
+    # leaving HeLI_1_3 in outsidelib for puhti for now but do we ever
+    # need to run it again?
+    from outsidelib import HeLI_2_0 as HeLI
 except ImportError as exn:
     # So it will crash when actually trying to launch the underlying
     # tool and HeLI is not defined, but --help and --version
@@ -34,7 +37,7 @@ def parsearguments(argv):
 
     description = '''
 
-    Exercise a language-identification mechanism (HeLI 1.3) for
+    Exercise a language-identification mechanism (HeLI OTS 2.0) for
     sentences in VRT documents to add (or overwrite) in each processed
     sentence a language code attribute, with a confidence value in
     another attribute.
