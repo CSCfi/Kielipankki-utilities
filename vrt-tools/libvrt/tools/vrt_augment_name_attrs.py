@@ -117,12 +117,22 @@ class VrtNameAttrAugmenter(InputProcessor):
                                   for token in name_tokens[:-1]]
                                  + [last_lemma])
 
+        def warn(msg, nertag, linenum):
+            """Output to stderr a warning with message `msg`.
+
+            The warning message also includes the NER tag `nertag`,
+            input file name (or ``<stdin>``) and input line number
+            `linenum`.
+            """
+            self.warn(msg + ': "' + nertag.decode('utf-8') + '"',
+                      filename=inf.name, linenr=linenum + 1)
+
         # Input lines within a (multi-word) name
         namelines = []
         # namelines (tokens) split into attributes, to avoid to
         # splitting multiple times
         name_tokens = []
-        for line in inf:
+        for linenum, line in enumerate(inf):
             if ml.ismeta(line):
                 # Structure or comment line
                 if namelines:
@@ -153,7 +163,7 @@ class VrtNameAttrAugmenter(InputProcessor):
                 # Token line
                 attrs = line[:-1].split(b'\t')
                 nertag = attrs[attrnum_nertag]
-                nertag_type = nertag[-1]
+                nertag_type = nertag[-1] if nertag else b''
                 if namelines:
                     # Within a multi-word name
                     namelines.append(line)
@@ -164,6 +174,8 @@ class VrtNameAttrAugmenter(InputProcessor):
                             add_ne_tags(nertag, namelines, name_tokens))
                         namelines = []
                         name_tokens = []
+                    elif nertag_type != NERTAG_NONE:
+                        warn('Invalid NER tag within name', nertag, linenum)
                 elif nertag_type == NERTAG_NONE:
                     # Not a name
                     ouf.write(line)
@@ -174,3 +186,9 @@ class VrtNameAttrAugmenter(InputProcessor):
                     # Begin a multi-word name
                     namelines.append(line)
                     name_tokens.append(attrs)
+                elif nertag_type == NERTAG_END:
+                    warn('NER end tag without start tag', nertag, linenum)
+                    ouf.write(line)
+                else:
+                    warn('Invalid NER tag', nertag, linenum)
+                    ouf.write(line)

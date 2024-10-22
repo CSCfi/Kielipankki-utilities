@@ -78,6 +78,84 @@
     stderr: |
       vrt-augment-name-attrs: No positional attribute 'word' in input
 
+- name: 'vrt-augment-name-attrs: Invalid NER tags'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: &input-invalid-nertag |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      A	a		|	O
+      on	olla	A	|	O
+      alussa	alku	1	|	O
+      .	.	A-1	|	O
+      </sentence>
+      </text>
+  output:
+    stdout: *input-invalid-nertag
+    stderr: |
+      vrt-augment-name-attrs: <stdin>:4: Warning: Invalid NER tag: ""
+      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid NER tag: "A"
+      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid NER tag: "1"
+      vrt-augment-name-attrs: <stdin>:7: Warning: Invalid NER tag: "A-1"
+
+- name: 'vrt-augment-name-attrs: Invalid NER tags within a name'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Äänikortti	äänikortti	EnamexProXxx-B	|EnamexProXxx-B-0|	B-PRO
+      Sound	Sound	EnamexProXxx-B	|	I-PRO
+      Blaster	Blaster	EnamexProXxx-F	|	I-PRO
+      Live	live		|	I-PRO
+      Plus	plus	1	|	I-PRO
+      1024	1024	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="Äänikortti Sound Blaster Live Plus 1024" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      Äänikortti	äänikortti	EnamexProXxx-B	|EnamexProXxx-B-0|	B-PRO
+      Sound	Sound	EnamexProXxx-B	|	I-PRO
+      Blaster	Blaster	EnamexProXxx-F	|	I-PRO
+      Live	live		|	I-PRO
+      Plus	plus	1	|	I-PRO
+      1024	1024	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </ne>
+      </sentence>
+      </text>
+    stderr: |
+      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid NER tag within name: "EnamexProXxx-B"
+      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid NER tag within name: "EnamexProXxx-F"
+      vrt-augment-name-attrs: <stdin>:7: Warning: Invalid NER tag within name: ""
+      vrt-augment-name-attrs: <stdin>:8: Warning: Invalid NER tag within name: "1"
+
+- name: 'vrt-augment-name-attrs: NER end tag without start tag'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Aalto	aalto	EnamexPrsHum-E	|EnamexPrsHum-E-0|	B-PRS
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Aalto	aalto	EnamexPrsHum-E	|EnamexPrsHum-E-0|	B-PRS
+      </sentence>
+      </text>
+    stderr: |
+      vrt-augment-name-attrs: <stdin>:4: Warning: NER end tag without start tag: "EnamexPrsHum-E"
+
 
 # No names
 
