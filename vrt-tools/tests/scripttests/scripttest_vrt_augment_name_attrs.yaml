@@ -1070,3 +1070,34 @@
       </ne>
       </sentence>
       </text>
+
+- name: 'vrt-augment-name-attrs: Two-level name with each word as a complete name'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      Euroopan	Eurooppa	EnamexLocPpl-B	|EnamexLocPpl-B-0|EnamexLocPpl-F-1|	B-LOC
+      Suomen	Suomi	_	|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	I-LOC
+      Turussa	Turku	EnamexLocPpl-E	|EnamexLocPpl-E-0|EnamexLocPpl-E-1|EnamexLocPpl-F-2|	I-LOC
+      </sentence>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      <ne name="Euroopan Suomen Turku" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Euroopan Suomen Turku" placename_source="ner">
+      <ne name="Eurooppa" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Eurooppa" placename_source="ner">
+      Euroopan	Eurooppa	EnamexLocPpl-B	|EnamexLocPpl-B-0|EnamexLocPpl-F-1|	B-LOC
+      </ne>
+      <ne name="Suomen Turku" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Suomen Turku" placename_source="ner">
+      <ne name="Suomi" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Suomi" placename_source="ner">
+      Suomen	Suomi	_	|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	I-LOC
+      </ne>
+      <ne name="Turku" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Turku" placename_source="ner">
+      Turussa	Turku	EnamexLocPpl-E	|EnamexLocPpl-E-0|EnamexLocPpl-E-1|EnamexLocPpl-F-2|	I-LOC
+      </ne>
+      </ne>
+      </ne>
+      </sentence>

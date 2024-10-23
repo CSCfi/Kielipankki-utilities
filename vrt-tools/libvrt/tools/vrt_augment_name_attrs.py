@@ -124,7 +124,7 @@ class VrtNameAttrAugmenter(InputProcessor):
             # nameline_index[i] is the number of the line in namelines
             # whose number was i in the input namelines but which may
             # be different after adding <ne> tags
-            nameline_index = list(range(len(namelines)))
+            nameline_index = list(range(len(namelines) + 1))
             for depth in range(maxdepth, 0, -1):
                 for nameinfo in nested_names[depth - 1]:
                     nertag, start, end = nameinfo
