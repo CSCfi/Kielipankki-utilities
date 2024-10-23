@@ -9,7 +9,6 @@ Please run "vrt-augment-name-attrs -h" for more information.
 
 
 # TODO:
-# - Add nested ne tags for nested names (optionally?)
 # - Try to improve intra-name tag nesting in cases such as: "<tag>
 #   nameword1 </tag> nameword2", now tagged as "<tag> <ne> nameword1
 #   </tag> nameword2 </ne>", and "nameword1 <tag> nameword2 </tag>",
@@ -18,6 +17,8 @@ Please run "vrt-augment-name-attrs -h" for more information.
 
 import sys
 import re
+
+from collections import defaultdict
 
 from libvrt import metaline as ml
 from libvrt import nameline as nl
@@ -41,6 +42,11 @@ class VrtNameAttrAugmenter(InputProcessor):
          '''positional attribute name for base form (lemma) is attr'''),
         ('--nertag = attr:encode_utf8 "nertag2"',
          '''positional attribute name for maximal NER tag is attr'''),
+        ('--multi-nertag = attr:encode_utf8 "nertags2"',
+         '''positional attribute name for multiple (nested, non-maximal) NER
+            tags is attr'''),
+        ('--maximal-only',
+         '''enclose only maximal names, no nested ones'''),
     ]
 
     def __init__(self):
@@ -51,13 +57,15 @@ class VrtNameAttrAugmenter(InputProcessor):
 
     def check_args(self, args):
         """Check and modify `args` (parsed command line arguments)."""
+        args.multi_nertag = args.multi_nertag.rstrip(b'/') + b'/'
         self.args = args
 
     def main(self, args, inf, ouf):
         """Read `inf`, write to `ouf`, with command-line arguments `args`."""
 
-        # Index of the positional attribute for nertag, word and lemma
-        attrnum_nertag = attrnum_word = attrnum_lemma = None
+        # Index of the positional attribute for nertag, nertags, word
+        # and lemma
+        attrnum_nertag = attrnum_nertags = attrnum_word = attrnum_lemma = None
         # The type of a NER tag based on the last character of the
         # value
         NERTAG_NONE = b'_'[0]
@@ -72,6 +80,74 @@ class VrtNameAttrAugmenter(InputProcessor):
             `namelines` split into attributes.
             """
             # print('add_ne_tags', nertag, namelines, name_tokens, file=sys.stderr)
+            if not args.maximal_only:
+                namelines = add_nested_ne_tags(namelines, name_tokens)
+            return enclose_in_ne(nertag, namelines, name_tokens)
+
+        def add_nested_ne_tags(namelines, name_tokens):
+            """Return `namelines` with nested names enclosed in <ne>.
+
+            Enclose nested, non-maximal (non-top-level) names in
+            `namelines` in <ne> structures. `name_tokens` is
+            `namelines` split into positional attributes. The function
+            uses the attribute ``nertags`` to get information on
+            nested names.
+            """
+            # Names by nesting depth
+            nested_names = defaultdict(list)
+            maxdepth = 0
+            for token_num, token in enumerate(name_tokens):
+                nertags = token[attrnum_nertags].strip(b'|').split(b'|')
+                for nertag in nertags:
+                    if not nertag:
+                        continue
+                    if len(nertag) < 5:
+                        warn('Invalid nested NER tag', nertag, linenum)
+                        continue
+                    try:
+                        depth = int(nertag[-1:])
+                    except ValueError:
+                        warn('Invalid nested NER tag', nertag, linenum)
+                    # Ignore depth 0 (top level)
+                    if depth:
+                        maxdepth = max(depth, maxdepth)
+                        tagtype = nertag[-3]
+                        if tagtype == NERTAG_FULL:
+                            nested_names[depth - 1].append(
+                                [nertag, token_num, token_num + 1])
+                        elif tagtype == NERTAG_BEGIN:
+                            nested_names[depth - 1].append([nertag, token_num])
+                        elif tagtype == NERTAG_END:
+                            nested_names[depth - 1][-1].append(token_num + 1)
+                        else:
+                            warn('Invalid nested NER tag', nertag, linenum)
+            # nameline_index[i] is the number of the line in namelines
+            # whose number was i in the input namelines but which may
+            # be different after adding <ne> tags
+            nameline_index = list(range(len(namelines)))
+            for depth in range(maxdepth, 0, -1):
+                for nameinfo in nested_names[depth - 1]:
+                    nertag, start, end = nameinfo
+                    nameline_start = nameline_index[start]
+                    nameline_end = nameline_index[end]
+                    namelines[nameline_start:nameline_end] = (
+                        enclose_in_ne(nertag,
+                                      namelines[nameline_start:nameline_end],
+                                      name_tokens[start:end]))
+                    # Adjust nameline_index by the start tag
+                    for i in range(start + 1, end):
+                        nameline_index[i] += 1
+                    # Adjust nameline_index by the start and end tag
+                    for i in range(end, len(nameline_index)):
+                        nameline_index[i] += 2
+            return namelines
+
+        def enclose_in_ne(nertag, namelines, name_tokens):
+            """Return `namelines` enclosed in <ne> with NER tag `nertag`.
+
+            `name_tokens` is `namelines` split into positional
+            attributes.
+            """
             return (
                 [ml.starttag(
                     b'ne', make_ne_attrs(nertag, name_tokens))]
@@ -144,8 +220,11 @@ class VrtNameAttrAugmenter(InputProcessor):
                         # Positional-attributes comment not yet seen
                         if nl.isnameline(line):
                             attrs = nl.parsenameline(line)
-                            for attrname in [
-                                    args.nertag, args.lemma, args.word]:
+                            attrnames_check = [
+                                args.nertag, args.lemma, args.word]
+                            if not args.maximal_only:
+                                attrnames_check.append(args.multi_nertag)
+                            for attrname in attrnames_check:
                                 if attrname not in attrs:
                                     self.error_exit(
                                         'No positional attribute \''
@@ -154,6 +233,8 @@ class VrtNameAttrAugmenter(InputProcessor):
                             attrnum_nertag = attrs.index(args.nertag)
                             attrnum_word = attrs.index(args.word)
                             attrnum_lemma = attrs.index(args.lemma)
+                            if not args.maximal_only:
+                                attrnum_nertags = attrs.index(args.multi_nertag)
                     ouf.write(line)
             elif attrnum_nertag is None:
                 # Token line, no positional-attributes comment seen

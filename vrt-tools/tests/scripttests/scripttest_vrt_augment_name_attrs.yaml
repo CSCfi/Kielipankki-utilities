@@ -135,6 +135,36 @@
       vrt-augment-name-attrs: <stdin>:7: Warning: Invalid NER tag within name: ""
       vrt-augment-name-attrs: <stdin>:8: Warning: Invalid NER tag within name: "1"
 
+- name: 'vrt-augment-name-attrs: Invalid NER tags in multi-level NER attribute'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-B-X|F-X-12|	B-ORG
+      hiippakunnan	hiippakunta	_	|EnamexLocPpl-1|F-1|	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      <ne name="Lapuan hiippakunnan tuomiokapituli" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-B-X|F-X-12|	B-ORG
+      hiippakunnan	hiippakunta	_	|EnamexLocPpl-1|F-1|	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      </sentence>
+      </text>
+    stderr: |
+      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid nested NER tag: "EnamexLocPpl-B-X"
+      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid nested NER tag: "F-X-12"
+      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid nested NER tag: "EnamexLocPpl-1"
+      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid nested NER tag: "F-1"
+
 - name: 'vrt-augment-name-attrs: NER end tag without start tag'
   input:
     cmdline: vrt-augment-name-attrs
@@ -219,6 +249,38 @@
         </sentence>
         </text>
       transform: *transf-attr-names
+
+- name: 'vrt-augment-name-attrs: --multi-nertag'
+  input:
+    cmdline:
+    - vrt-augment-name-attrs --multi-nertag=nertags
+    # The same with slash at the end of the attribute name
+    - vrt-augment-name-attrs --multi-nertag=nertags/
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	B-ORG
+      hiippakunnan	hiippakunta	_	|EnamexLocPpl-E-1|	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      <ne name="Lapuan hiippakunnan tuomiokapituli" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      <ne name="Lapuan hiippakunta" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Lapuan hiippakunta" placename_source="ner">
+      <ne name="Lapua" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Lapua" placename_source="ner">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	B-ORG
+      </ne>
+      hiippakunnan	hiippakunta	_	|EnamexLocPpl-E-1|	I-ORG
+      </ne>
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      </sentence>
+      </text>
 
 
 # Single-word names
@@ -410,7 +472,9 @@
       Avenue	avenue	EnamexLocStr-E	|EnamexLocStr-E-0|	I-LOC
       </ne>
       <ne name="Aaltosen taidemuseo" fulltype="EnamexOrgClt" ex="ENAMEX" type="ORG" subtype="CLT" placename="" placename_source="">
+      <ne name="Aaltonen" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Aaltonen" placename_source="ner">
       Aaltosen	Aaltonen	EnamexOrgClt-B	|EnamexOrgClt-B-0|EnamexLocPpl-F-1|	B-ORG
+      </ne>
       taidemuseossa	taidemuseo	EnamexOrgClt-E	|EnamexOrgClt-E-0|	I-ORG
       </ne>
       <ne name="AAMOS" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
@@ -469,7 +533,9 @@
       kg	kg	NumexMsrXxx-E	|NumexMsrXxx-E-0|	I-MISC
       </ne>
       <ne name="Saab 9000 170hp-&gt;235hp" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      <ne name="Saab" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
       Saab	Saab	EnamexProXxx-B	|EnamexProXxx-B-0|EnamexOrgCrp-F-1|	B-PRO
+      </ne>
       9000	9000	_	|	I-PRO
       170hp-&gt;235hp	170hp-&gt;235hp	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
       </ne>
@@ -767,57 +833,240 @@
       <ne name="100 miljardia Suomen markkaa" fulltype="NumexMsrCur" ex="NUMEX" type="MSR" subtype="CUR" placename="" placename_source="">
       100	100	NumexMsrCur-B	|NumexMsrCur-B-0|	B-MISC
       miljardia	miljardi	_	|	I-MISC
+      <ne name="Suomi" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Suomi" placename_source="ner">
       Suomen	Suomi	_	|EnamexLocPpl-F-1|	I-MISC
+      </ne>
       markkaa	markka	NumexMsrCur-E	|NumexMsrCur-E-0|	I-MISC
       </ne>
       <ne name="9.40 Keski-Euroopan aikaa" fulltype="TimexTmeHrm" ex="TIMEX" type="TME" subtype="HRM" placename="" placename_source="">
       9.40	9.40	TimexTmeHrm-B	|TimexTmeHrm-B-0|	B-MISC
+      <ne name="Keski-Euroopan" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Keski-Euroopan" placename_source="ner">
       Keski-Euroopan	Keski-Euroopan	_	|EnamexLocPpl-F-1|	I-MISC
+      </ne>
       aikaa	aika	TimexTmeHrm-E	|TimexTmeHrm-E-0|	I-MISC
       </ne>
       <ne name="Aaltosen taidemuseo" fulltype="EnamexOrgClt" ex="ENAMEX" type="ORG" subtype="CLT" placename="" placename_source="">
+      <ne name="Aaltonen" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Aaltonen" placename_source="ner">
       Aaltosen	Aaltonen	EnamexOrgClt-B	|EnamexOrgClt-B-0|EnamexLocPpl-F-1|	B-ORG
+      </ne>
       taidemuseossa	taidemuseo	EnamexOrgClt-E	|EnamexOrgClt-E-0|	I-ORG
       </ne>
       <ne name="Adobe Acrobat" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      <ne name="Adobe" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
       Adobe	Adobe	EnamexProXxx-B	|EnamexProXxx-B-0|EnamexOrgCrp-F-1|	B-PRO
+      </ne>
       Acrobat	Acrobat	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
       </ne>
       <ne name="Agia Napan vesipuisto" fulltype="EnamexLocFnc" ex="ENAMEX" type="LOC" subtype="FNC" placename="Agia Napan vesipuisto" placename_source="ner">
+      <ne name="Agia Nappa" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Agia Nappa" placename_source="ner">
       Agia	Agia	EnamexLocFnc-B	|EnamexLocFnc-B-0|EnamexLocPpl-B-1|	B-LOC
       Napan	nappa	_	|EnamexLocPpl-E-1|	I-LOC
+      </ne>
       vesipuistossa	vesipuisto	EnamexLocFnc-E	|EnamexLocFnc-E-0|	I-LOC
       </ne>
       <ne name="Alfa Romeo 155 2.0 16V" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      <ne name="Alfa Romeo" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
       Alfa	alfa	EnamexProXxx-B	|EnamexProXxx-B-0|EnamexOrgCrp-B-1|	B-PRO
       Romeo	Romeo	_	|EnamexOrgCrp-E-1|	I-PRO
+      </ne>
       155	155	_	|	I-PRO
       2.0 16V	2.0 16V	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
       </ne>
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Three-level names'
+- name: 'vrt-augment-name-attrs: Multi-level names'
   input:
     cmdline: vrt-augment-name-attrs
-    stdin: |
+    stdin: &input-multilevel |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
-      <sentence x="y">
+      <sentence x="1">
       Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	B-ORG
       hiippakunnan	hiippakunta	_	|EnamexLocPpl-E-1|	I-ORG
       tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </sentence>
+      <!-- The following examples are artificial for testing purposes; -->
+      <!-- FiNER most likely would not tag them this way. -->
+      <sentence x="2">
+      Turun	Turku	EnamexPrsTit-B	|EnamexPrsTit-B-0|EnamexOrgCrp-B-1|EnamexOrgCrp-B-2|EnamexLocPpl-B-3|EnamexLocPpl-F-4|	B-PRS
+      ja	ja	_	|		I-PRS
+      Porin	Pori	_	|EnamexLocPpl-F-4|	I-PRS
+      läänin	lääni	_	|EnamexLocPpl-E-3|	I-PRS
+      lääninhallituksen	lääninhallitus	_	|EnamexOrgCrp-E-2|	I-PRS
+      talousvaliokunnan	talousvaliokunta	_	|EnamexOrgCrp-E-1|	I-PRS
+      puheenjohtajalla	puheenjohtaja	EnamexPrsTit-E	|EnamexPrsTit-E-0|	I-PRS
+      </sentence>
+      <sentence x="3">
+      Trinidadin	Trinidad	EnamexPrsTit-B	|EnamexPrsTit-B-0|EnamexOrgCrp-B-1|EnamexLocPpl-B-2|EnamexLocPpl-F-3|	B-PRS
+      ja	ja	_	|	I-PRS
+      Tobagon	Tobago	_	|EnamexLocPpl-E-2|EnamexLocPpl-F-3|	I-PRS
+      sekä	sekä	_	|	I-PRS
+      Saint	Saint	_	|EnamexLocPpl-B-2|EnamexLocPpl-B-3|	I-PRS
+      Christopherin	Christopher	_	|EnamexLocPpl-E-3|	I-PRS
+      ja	ja	_	|	I-PRS
+      Nevisin	Nevis	_	|EnamexLocPpl-F-3|	I-PRS
+      federaation	federaatio	_	|EnamexLocPpl-E-2|	I-PRS
+      liiton	liitto	_	|EnamexOrgCrp-E-1|	I-PRS
+      Ison-Britannian	Iso-Britannia	_	|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	I-PRS
+      ja	ja	_	|	I-PRS
+      Pohjois-Irlannin	Pohjois-Irlanti	_	|EnamexLocPpl-F-2|	I-PRS
+      yhdistyneen	yhdistynyt	_	|	I-PRS
+      kuningaskunnan	kuningaskunta	_	|EnamexLocPpl-E-1|	I-PRS
+      asiainhoitajalla	asiainhoitaja	EnamexPrsTit-E	|EnamexPrsTit-E-0|	I-PRS
       </sentence>
       </text>
   output:
     stdout: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
-      <sentence x="y">
+      <sentence x="1">
+      <ne name="Lapuan hiippakunnan tuomiokapituli" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      <ne name="Lapuan hiippakunta" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Lapuan hiippakunta" placename_source="ner">
+      <ne name="Lapua" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Lapua" placename_source="ner">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	B-ORG
+      </ne>
+      hiippakunnan	hiippakunta	_	|EnamexLocPpl-E-1|	I-ORG
+      </ne>
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      </sentence>
+      <!-- The following examples are artificial for testing purposes; -->
+      <!-- FiNER most likely would not tag them this way. -->
+      <sentence x="2">
+      <ne name="Turun ja Porin läänin lääninhallituksen talousvaliokunnan puheenjohtaja" fulltype="EnamexPrsTit" ex="ENAMEX" type="PRS" subtype="TIT" placename="" placename_source="">
+      <ne name="Turun ja Porin läänin lääninhallituksen talousvaliokunta" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      <ne name="Turun ja Porin läänin lääninhallitus" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      <ne name="Turun ja Porin lääni" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Turun ja Porin lääni" placename_source="ner">
+      <ne name="Turku" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Turku" placename_source="ner">
+      Turun	Turku	EnamexPrsTit-B	|EnamexPrsTit-B-0|EnamexOrgCrp-B-1|EnamexOrgCrp-B-2|EnamexLocPpl-B-3|EnamexLocPpl-F-4|	B-PRS
+      </ne>
+      ja	ja	_	|		I-PRS
+      <ne name="Pori" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Pori" placename_source="ner">
+      Porin	Pori	_	|EnamexLocPpl-F-4|	I-PRS
+      </ne>
+      läänin	lääni	_	|EnamexLocPpl-E-3|	I-PRS
+      </ne>
+      lääninhallituksen	lääninhallitus	_	|EnamexOrgCrp-E-2|	I-PRS
+      </ne>
+      talousvaliokunnan	talousvaliokunta	_	|EnamexOrgCrp-E-1|	I-PRS
+      </ne>
+      puheenjohtajalla	puheenjohtaja	EnamexPrsTit-E	|EnamexPrsTit-E-0|	I-PRS
+      </ne>
+      </sentence>
+      <sentence x="3">
+      <ne name="Trinidadin ja Tobagon sekä Saint Christopherin ja Nevisin federaation liiton Ison-Britannian ja Pohjois-Irlannin yhdistyneen kuningaskunnan asiainhoitaja" fulltype="EnamexPrsTit" ex="ENAMEX" type="PRS" subtype="TIT" placename="" placename_source="">
+      <ne name="Trinidadin ja Tobagon sekä Saint Christopherin ja Nevisin federaation liitto" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      <ne name="Trinidadin ja Tobago" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Trinidadin ja Tobago" placename_source="ner">
+      <ne name="Trinidad" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Trinidad" placename_source="ner">
+      Trinidadin	Trinidad	EnamexPrsTit-B	|EnamexPrsTit-B-0|EnamexOrgCrp-B-1|EnamexLocPpl-B-2|EnamexLocPpl-F-3|	B-PRS
+      </ne>
+      ja	ja	_	|	I-PRS
+      <ne name="Tobago" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Tobago" placename_source="ner">
+      Tobagon	Tobago	_	|EnamexLocPpl-E-2|EnamexLocPpl-F-3|	I-PRS
+      </ne>
+      </ne>
+      sekä	sekä	_	|	I-PRS
+      <ne name="Saint Christopherin ja Nevisin federaatio" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Saint Christopherin ja Nevisin federaatio" placename_source="ner">
+      <ne name="Saint Christopher" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Saint Christopher" placename_source="ner">
+      Saint	Saint	_	|EnamexLocPpl-B-2|EnamexLocPpl-B-3|	I-PRS
+      Christopherin	Christopher	_	|EnamexLocPpl-E-3|	I-PRS
+      </ne>
+      ja	ja	_	|	I-PRS
+      <ne name="Nevis" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Nevis" placename_source="ner">
+      Nevisin	Nevis	_	|EnamexLocPpl-F-3|	I-PRS
+      </ne>
+      federaation	federaatio	_	|EnamexLocPpl-E-2|	I-PRS
+      </ne>
+      liiton	liitto	_	|EnamexOrgCrp-E-1|	I-PRS
+      </ne>
+      <ne name="Ison-Britannian ja Pohjois-Irlannin yhdistyneen kuningaskunta" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Ison-Britannian ja Pohjois-Irlannin yhdistyneen kuningaskunta" placename_source="ner">
+      <ne name="Iso-Britannia" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Iso-Britannia" placename_source="ner">
+      Ison-Britannian	Iso-Britannia	_	|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	I-PRS
+      </ne>
+      ja	ja	_	|	I-PRS
+      <ne name="Pohjois-Irlanti" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Pohjois-Irlanti" placename_source="ner">
+      Pohjois-Irlannin	Pohjois-Irlanti	_	|EnamexLocPpl-F-2|	I-PRS
+      </ne>
+      yhdistyneen	yhdistynyt	_	|	I-PRS
+      kuningaskunnan	kuningaskunta	_	|EnamexLocPpl-E-1|	I-PRS
+      </ne>
+      asiainhoitajalla	asiainhoitaja	EnamexPrsTit-E	|EnamexPrsTit-E-0|	I-PRS
+      </ne>
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Multi-level names, --maximal-only'
+  input:
+    cmdline: vrt-augment-name-attrs --maximal-only
+    stdin: *input-multilevel
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
       <ne name="Lapuan hiippakunnan tuomiokapituli" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
       Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	B-ORG
       hiippakunnan	hiippakunta	_	|EnamexLocPpl-E-1|	I-ORG
       tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      </sentence>
+      <!-- The following examples are artificial for testing purposes; -->
+      <!-- FiNER most likely would not tag them this way. -->
+      <sentence x="2">
+      <ne name="Turun ja Porin läänin lääninhallituksen talousvaliokunnan puheenjohtaja" fulltype="EnamexPrsTit" ex="ENAMEX" type="PRS" subtype="TIT" placename="" placename_source="">
+      Turun	Turku	EnamexPrsTit-B	|EnamexPrsTit-B-0|EnamexOrgCrp-B-1|EnamexOrgCrp-B-2|EnamexLocPpl-B-3|EnamexLocPpl-F-4|	B-PRS
+      ja	ja	_	|		I-PRS
+      Porin	Pori	_	|EnamexLocPpl-F-4|	I-PRS
+      läänin	lääni	_	|EnamexLocPpl-E-3|	I-PRS
+      lääninhallituksen	lääninhallitus	_	|EnamexOrgCrp-E-2|	I-PRS
+      talousvaliokunnan	talousvaliokunta	_	|EnamexOrgCrp-E-1|	I-PRS
+      puheenjohtajalla	puheenjohtaja	EnamexPrsTit-E	|EnamexPrsTit-E-0|	I-PRS
+      </ne>
+      </sentence>
+      <sentence x="3">
+      <ne name="Trinidadin ja Tobagon sekä Saint Christopherin ja Nevisin federaation liiton Ison-Britannian ja Pohjois-Irlannin yhdistyneen kuningaskunnan asiainhoitaja" fulltype="EnamexPrsTit" ex="ENAMEX" type="PRS" subtype="TIT" placename="" placename_source="">
+      Trinidadin	Trinidad	EnamexPrsTit-B	|EnamexPrsTit-B-0|EnamexOrgCrp-B-1|EnamexLocPpl-B-2|EnamexLocPpl-F-3|	B-PRS
+      ja	ja	_	|	I-PRS
+      Tobagon	Tobago	_	|EnamexLocPpl-E-2|EnamexLocPpl-F-3|	I-PRS
+      sekä	sekä	_	|	I-PRS
+      Saint	Saint	_	|EnamexLocPpl-B-2|EnamexLocPpl-B-3|	I-PRS
+      Christopherin	Christopher	_	|EnamexLocPpl-E-3|	I-PRS
+      ja	ja	_	|	I-PRS
+      Nevisin	Nevis	_	|EnamexLocPpl-F-3|	I-PRS
+      federaation	federaatio	_	|EnamexLocPpl-E-2|	I-PRS
+      liiton	liitto	_	|EnamexOrgCrp-E-1|	I-PRS
+      Ison-Britannian	Iso-Britannia	_	|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	I-PRS
+      ja	ja	_	|	I-PRS
+      Pohjois-Irlannin	Pohjois-Irlanti	_	|EnamexLocPpl-F-2|	I-PRS
+      yhdistyneen	yhdistynyt	_	|	I-PRS
+      kuningaskunnan	kuningaskunta	_	|EnamexLocPpl-E-1|	I-PRS
+      asiainhoitajalla	asiainhoitaja	EnamexPrsTit-E	|EnamexPrsTit-E-0|	I-PRS
+      </ne>
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: --maximal-only, no multi-level NER attribute'
+  input:
+    cmdline: vrt-augment-name-attrs --maximal-only
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      Lapuan	Lapua	EnamexOrgCrp-B	B-ORG
+      hiippakunnan	hiippakunta	_	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	I-ORG
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      <ne name="Lapuan hiippakunnan tuomiokapituli" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      Lapuan	Lapua	EnamexOrgCrp-B	B-ORG
+      hiippakunnan	hiippakunta	_	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	I-ORG
       </ne>
       </sentence>
       </text>
