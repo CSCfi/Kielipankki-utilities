@@ -136,10 +136,11 @@ class VrtNameAttrAugmenter(InputProcessor):
                         tagtype = nertag_parts['kind'][0]
                         if tagtype == NERTAG_FULL:
                             nested_names[depth - 1].append(
-                                [nertag_parts, token_num, token_num + 1])
+                                [nertag, nertag_parts, token_num,
+                                 token_num + 1])
                         elif tagtype == NERTAG_BEGIN:
                             nested_names[depth - 1].append(
-                                [nertag_parts, token_num])
+                                [nertag, nertag_parts, token_num])
                         elif tagtype == NERTAG_END:
                             nested_names[depth - 1][-1].append(token_num + 1)
                         else:
@@ -150,7 +151,11 @@ class VrtNameAttrAugmenter(InputProcessor):
             nameline_index = list(range(len(namelines) + 1))
             for depth in range(maxdepth, 0, -1):
                 for nameinfo in nested_names[depth - 1]:
-                    nertag_parts, start, end = nameinfo
+                    if len(nameinfo) < 4:
+                        warn('No end tag for nested NER tag', nameinfo[0],
+                             linenum)
+                        continue
+                    _, nertag_parts, start, end = nameinfo
                     nameline_start = nameline_index[start]
                     nameline_end = nameline_index[end]
                     namelines[nameline_start:nameline_end] = (

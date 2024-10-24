@@ -234,6 +234,35 @@
     stderr: |
       vrt-augment-name-attrs: <stdin>:3: Warning: End of input at the middle of a name: EnamexLocStr-E expected
 
+- name: 'vrt-augment-name-attrs: Nested NER tag not closed at end of maximal name'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	B-ORG
+      hiippakunnan	hiippakunta	_	|	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      <ne name="Lapuan hiippakunnan tuomiokapituli" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      <ne name="Lapua" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Lapua" placename_source="ner">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-B-1|EnamexLocPpl-F-2|	B-ORG
+      </ne>
+      hiippakunnan	hiippakunta	_	|	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      </sentence>
+      </text>
+    stderr: |
+      vrt-augment-name-attrs: <stdin>:6: Warning: No end tag for nested NER tag: "EnamexLocPpl-B-1"
+
 
 # No names
 
