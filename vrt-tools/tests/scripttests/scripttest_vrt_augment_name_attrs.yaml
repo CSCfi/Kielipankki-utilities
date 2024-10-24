@@ -89,6 +89,15 @@
       on	olla	A	|	O
       alussa	alku	1	|	O
       .	.	A-1	|	O
+      X	x	NamexFooBar-F	|	O
+      X	x	EnamexFoo-F	|	O
+      X	x	EnamexFB-F	|	O
+      X	x	ENAMEXPRSHUM-F	|	O
+      X	x	EnamexFo1Bo1-F	|	O
+      X	x	EnamexFooBarBaz-F	|	O
+      X	x	EnamexFooB-F	|	O
+      X	x	EnamexFBar-F	|	O
+      X	x	EnamexFoBo-G	|	O
       </sentence>
       </text>
   output:
@@ -97,6 +106,15 @@
       vrt-augment-name-attrs: <stdin>:5: Warning: Invalid NER tag: "A"
       vrt-augment-name-attrs: <stdin>:6: Warning: Invalid NER tag: "1"
       vrt-augment-name-attrs: <stdin>:7: Warning: Invalid NER tag: "A-1"
+      vrt-augment-name-attrs: <stdin>:8: Warning: Invalid NER tag: "NamexFooBar-F"
+      vrt-augment-name-attrs: <stdin>:9: Warning: Invalid NER tag: "EnamexFoo-F"
+      vrt-augment-name-attrs: <stdin>:10: Warning: Invalid NER tag: "EnamexFB-F"
+      vrt-augment-name-attrs: <stdin>:11: Warning: Invalid NER tag: "ENAMEXPRSHUM-F"
+      vrt-augment-name-attrs: <stdin>:12: Warning: Invalid NER tag: "EnamexFo1Bo1-F"
+      vrt-augment-name-attrs: <stdin>:13: Warning: Invalid NER tag: "EnamexFooBarBaz-F"
+      vrt-augment-name-attrs: <stdin>:14: Warning: Invalid NER tag: "EnamexFooB-F"
+      vrt-augment-name-attrs: <stdin>:15: Warning: Invalid NER tag: "EnamexFBar-F"
+      vrt-augment-name-attrs: <stdin>:16: Warning: Invalid NER tag: "EnamexFoBo-G"
 
 - name: 'vrt-augment-name-attrs: Invalid NER tags within a name'
   input:
@@ -131,7 +149,7 @@
     stderr: |
       vrt-augment-name-attrs: <stdin>:5: Warning: Invalid NER tag within name: "EnamexProXxx-B"
       vrt-augment-name-attrs: <stdin>:6: Warning: Invalid NER tag within name: "EnamexProXxx-F"
-      vrt-augment-name-attrs: <stdin>:8: Warning: Invalid NER tag within name: "1"
+      vrt-augment-name-attrs: <stdin>:8: Warning: Invalid NER tag: "1"
 
 - name: 'vrt-augment-name-attrs: Invalid NER tags in multi-level NER attribute'
   input:
@@ -351,6 +369,66 @@
       5	.	O	_	|	z	.
       </sentence>
       </text>
+
+- name: 'vrt-augment-name-attrs: Single-word names, arbitrary name types'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      01.06.2001	01.06.2001	TimexTmDa-F	|TimexTmDa-F-0|	B-DATE
+      1.07	1.07	TimexTimeHourminsecs-F	|TimexTimeHourminsecs-F-0|	B-MISC
+      A100	A100	EnamexPrXx-F	|EnamexPrXx-F-0|	B-PRO
+      Aaltoseen	Aaltonen	EnamexPersonHuman-F	|EnamexPersonHuman-F-0|	B-PER
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="01.06.2001" fulltype="TimexTmDa" ex="TIMEX" type="TM" subtype="DA" placename="" placename_source="">
+      01.06.2001	01.06.2001	TimexTmDa-F	|TimexTmDa-F-0|	B-DATE
+      </ne>
+      <ne name="1.07" fulltype="TimexTimeHourminsecs" ex="TIMEX" type="TIME" subtype="HOURMINSECS" placename="" placename_source="">
+      1.07	1.07	TimexTimeHourminsecs-F	|TimexTimeHourminsecs-F-0|	B-MISC
+      </ne>
+      <ne name="A100" fulltype="EnamexPrXx" ex="ENAMEX" type="PR" subtype="XX" placename="" placename_source="">
+      A100	A100	EnamexPrXx-F	|EnamexPrXx-F-0|	B-PRO
+      </ne>
+      <ne name="Aaltonen" fulltype="EnamexPersonHuman" ex="ENAMEX" type="PERSON" subtype="HUMAN" placename="" placename_source="">
+      Aaltoseen	Aaltonen	EnamexPersonHuman-F	|EnamexPersonHuman-F-0|	B-PER
+      </ne>
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Multi-level names, arbitrary nested name types'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLoPp-B-1|EnamexLocationPolitical-F-2|	B-ORG
+      hiippakunnan	hiippakunta	_	|EnamexLoPp-E-1|	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </sentence>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      <ne name="Lapuan hiippakunnan tuomiokapituli" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      <ne name="Lapuan hiippakunta" fulltype="EnamexLoPp" ex="ENAMEX" type="LO" subtype="PP" placename="" placename_source="">
+      <ne name="Lapua" fulltype="EnamexLocationPolitical" ex="ENAMEX" type="LOCATION" subtype="POLITICAL" placename="" placename_source="">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLoPp-B-1|EnamexLocationPolitical-F-2|	B-ORG
+      </ne>
+      hiippakunnan	hiippakunta	_	|EnamexLoPp-E-1|	I-ORG
+      </ne>
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      </sentence>
 
 
 # Multi-word names

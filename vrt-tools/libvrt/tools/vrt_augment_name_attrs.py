@@ -72,17 +72,41 @@ class VrtNameAttrAugmenter(InputProcessor):
         NERTAG_BEGIN = b'B'[0]
         NERTAG_END = b'E'[0]
         NERTAG_FULL = b'F'[0]
+        # The names of ne attributes extracted from the NER tag, both
+        # as str and bytes
+        nertag_part_attrnames = tuple(
+            (attrname, attrname.encode('utf-8'))
+            for attrname in ('ex', 'type', 'subtype'))
 
-        def add_ne_tags(nertag, namelines, name_tokens):
+        def split_nertag(nertag):
+            """Return a dict containing `nertag` parts.
+
+            If `nertag` value is not valid, that is, it does not match
+            the NER tag regexp
+            ``(Ena|Nu|Ti)mex[A-Z][a-z]+[A-Z][a-z]+-[BEF](-[0-9]+)?``,
+            return `None`.
+            """
+            mo = re.match(rb'''(?P<fulltype>
+                                 (?P<ex> (?: Ena|Nu|Ti ) mex )
+                                 (?P<type> [A-Z] [a-z]+ )
+                                 (?P<subtype> [A-Z] [a-z]+ )
+                               )
+                               - (?P<kind> [BEF] )
+                               (?: - (?P<depth> [0-9]+ ) )?''',
+                          nertag, re.X)
+            return mo.groupdict() if mo else None
+
+        def add_ne_tags(nertag_parts, namelines, name_tokens):
             """Return `namelines` surrounded by an <ne> structure.
 
-            `nertag` is the tag for the name and `name_tokens` is
-            `namelines` split into attributes.
+            `nertag_parts` is a dict containing the parts of the NER
+            tag and `name_tokens` is `namelines` split into
+            attributes.
             """
             # print('add_ne_tags', nertag, namelines, name_tokens, file=sys.stderr)
             if not args.maximal_only:
                 namelines = add_nested_ne_tags(namelines, name_tokens)
-            return enclose_in_ne(nertag, namelines, name_tokens)
+            return enclose_in_ne(nertag_parts, namelines, name_tokens)
 
         def add_nested_ne_tags(namelines, name_tokens):
             """Return `namelines` with nested names enclosed in <ne>.
@@ -101,22 +125,21 @@ class VrtNameAttrAugmenter(InputProcessor):
                 for nertag in nertags:
                     if not nertag:
                         continue
-                    if len(nertag) < 5:
+                    nertag_parts = split_nertag(nertag)
+                    if not nertag_parts or not nertag_parts['depth']:
                         warn('Invalid nested NER tag', nertag, linenum)
                         continue
-                    try:
-                        depth = int(nertag[-1:])
-                    except ValueError:
-                        warn('Invalid nested NER tag', nertag, linenum)
+                    depth = int(nertag_parts['depth'])
                     # Ignore depth 0 (top level)
                     if depth:
                         maxdepth = max(depth, maxdepth)
-                        tagtype = nertag[-3]
+                        tagtype = nertag_parts['kind'][0]
                         if tagtype == NERTAG_FULL:
                             nested_names[depth - 1].append(
-                                [nertag, token_num, token_num + 1])
+                                [nertag_parts, token_num, token_num + 1])
                         elif tagtype == NERTAG_BEGIN:
-                            nested_names[depth - 1].append([nertag, token_num])
+                            nested_names[depth - 1].append(
+                                [nertag_parts, token_num])
                         elif tagtype == NERTAG_END:
                             nested_names[depth - 1][-1].append(token_num + 1)
                         else:
@@ -127,11 +150,11 @@ class VrtNameAttrAugmenter(InputProcessor):
             nameline_index = list(range(len(namelines) + 1))
             for depth in range(maxdepth, 0, -1):
                 for nameinfo in nested_names[depth - 1]:
-                    nertag, start, end = nameinfo
+                    nertag_parts, start, end = nameinfo
                     nameline_start = nameline_index[start]
                     nameline_end = nameline_index[end]
                     namelines[nameline_start:nameline_end] = (
-                        enclose_in_ne(nertag,
+                        enclose_in_ne(nertag_parts,
                                       namelines[nameline_start:nameline_end],
                                       name_tokens[start:end]))
                     # Adjust nameline_index by the start tag
@@ -142,32 +165,31 @@ class VrtNameAttrAugmenter(InputProcessor):
                         nameline_index[i] += 2
             return namelines
 
-        def enclose_in_ne(nertag, namelines, name_tokens):
-            """Return `namelines` enclosed in <ne> with NER tag `nertag`.
+        def enclose_in_ne(nertag_parts, namelines, name_tokens):
+            """Return `namelines` enclosed in <ne> with NER tag `nertag_parts`.
 
             `name_tokens` is `namelines` split into positional
             attributes.
             """
             return (
                 [ml.starttag(
-                    b'ne', make_ne_attrs(nertag, name_tokens))]
+                    b'ne', make_ne_attrs(nertag_parts, name_tokens))]
                 + namelines
                 + [b'</ne>\n'])
 
-        def make_ne_attrs(nertag, name_tokens):
+        def make_ne_attrs(nertag_parts, name_tokens):
             """Return attribute (name, value) pairs for <ne> structure.
 
-            Return structural attributes for `nertag` and `name_tokens`
+            Return structural attributes for `nertag_parts` and `name_tokens`
             """
-            mo = re.match(rb'((?:Ena|Nu|Ti)mex)(...)(...)', nertag)
-            is_placename = mo.group(2) == b'Loc'
-            name = make_name(name_tokens, mo.group(1)).replace(b'"', b'&quot;')
+            is_placename = nertag_parts['type'] == b'Loc'
+            name = (make_name(name_tokens, nertag_parts['ex'])
+                    .replace(b'"', b'&quot;'))
             return (
                 (b'name', name),
-                (b'fulltype', mo.group(0)),
-                *((attrname, mo.group(group + 1).upper())
-                  for group, attrname in enumerate(
-                          (b'ex', b'type', b'subtype'))),
+                (b'fulltype', nertag_parts['fulltype']),
+                *((attrname_b, nertag_parts[attrname].upper())
+                  for attrname, attrname_b in nertag_part_attrnames),
                 (b'placename', name if is_placename else b''),
                 (b'placename_source', b'ner' if is_placename else b''))
 
@@ -226,6 +248,8 @@ class VrtNameAttrAugmenter(InputProcessor):
         # namelines (tokens) split into attributes, to avoid to
         # splitting multiple times
         name_tokens = []
+        # NER tag split into parts
+        nertag_parts = {}
         for linenum, line in enumerate(inf):
             if ml.ismeta(line):
                 # Structure or comment line
@@ -247,7 +271,15 @@ class VrtNameAttrAugmenter(InputProcessor):
                 # Token line
                 attrs = line[:-1].split(b'\t')
                 nertag = attrs[attrnum_nertag]
-                nertag_type = nertag[-1] if nertag else NERTAG_NONE
+                if nertag and nertag != b'_':
+                    nertag_parts = split_nertag(nertag)
+                    if nertag_parts:
+                        nertag_type = nertag_parts['kind'][0]
+                    else:
+                        warn('Invalid NER tag', nertag, linenum)
+                        nertag_type = NERTAG_NONE
+                else:
+                    nertag_type = NERTAG_NONE
                 if namelines:
                     # Within a multi-word name
                     namelines.append(line)
@@ -255,7 +287,7 @@ class VrtNameAttrAugmenter(InputProcessor):
                     if nertag_type == NERTAG_END:
                         # Last token of the name
                         ouf.writelines(
-                            add_ne_tags(nertag, namelines, name_tokens))
+                            add_ne_tags(nertag_parts, namelines, name_tokens))
                         namelines = []
                         name_tokens = []
                     elif nertag_type != NERTAG_NONE:
@@ -265,7 +297,7 @@ class VrtNameAttrAugmenter(InputProcessor):
                     ouf.write(line)
                 elif nertag_type == NERTAG_FULL:
                     # Single-word name
-                    ouf.writelines(add_ne_tags(nertag, [line], [attrs]))
+                    ouf.writelines(add_ne_tags(nertag_parts, [line], [attrs]))
                 elif nertag_type == NERTAG_BEGIN:
                     # Begin a multi-word name
                     namelines.append(line)
