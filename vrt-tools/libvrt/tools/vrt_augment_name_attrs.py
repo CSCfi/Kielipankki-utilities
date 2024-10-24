@@ -247,7 +247,7 @@ class VrtNameAttrAugmenter(InputProcessor):
                 # Token line
                 attrs = line[:-1].split(b'\t')
                 nertag = attrs[attrnum_nertag]
-                nertag_type = nertag[-1] if nertag else b''
+                nertag_type = nertag[-1] if nertag else NERTAG_NONE
                 if namelines:
                     # Within a multi-word name
                     namelines.append(line)

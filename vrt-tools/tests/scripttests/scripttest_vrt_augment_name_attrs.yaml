@@ -94,7 +94,6 @@
   output:
     stdout: *input-invalid-nertag
     stderr: |
-      vrt-augment-name-attrs: <stdin>:4: Warning: Invalid NER tag: ""
       vrt-augment-name-attrs: <stdin>:5: Warning: Invalid NER tag: "A"
       vrt-augment-name-attrs: <stdin>:6: Warning: Invalid NER tag: "1"
       vrt-augment-name-attrs: <stdin>:7: Warning: Invalid NER tag: "A-1"
@@ -132,7 +131,6 @@
     stderr: |
       vrt-augment-name-attrs: <stdin>:5: Warning: Invalid NER tag within name: "EnamexProXxx-B"
       vrt-augment-name-attrs: <stdin>:6: Warning: Invalid NER tag within name: "EnamexProXxx-F"
-      vrt-augment-name-attrs: <stdin>:7: Warning: Invalid NER tag within name: ""
       vrt-augment-name-attrs: <stdin>:8: Warning: Invalid NER tag within name: "1"
 
 - name: 'vrt-augment-name-attrs: Invalid NER tags in multi-level NER attribute'
