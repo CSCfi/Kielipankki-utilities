@@ -203,6 +203,24 @@ class VrtNameAttrAugmenter(InputProcessor):
             self.warn(msg + ': "' + nertag.decode('utf-8') + '"',
                       filename=inf.name, linenr=linenum + 1)
 
+        def set_attrnums(line):
+            """Set `attrnum_*` variables from pos attrs comment `line`."""
+            nonlocal attrnum_nertag, attrnum_nertags
+            nonlocal attrnum_word, attrnum_lemma
+            attrs = nl.parsenameline(line)
+            attrnames_check = [args.nertag, args.lemma, args.word]
+            if not args.maximal_only:
+                attrnames_check.append(args.multi_nertag)
+            for attrname in attrnames_check:
+                if attrname not in attrs:
+                    self.error_exit('No positional attribute \''
+                                    + attrname.decode('utf-8') + '\' in input')
+            attrnum_nertag = attrs.index(args.nertag)
+            attrnum_word = attrs.index(args.word)
+            attrnum_lemma = attrs.index(args.lemma)
+            if not args.maximal_only:
+                attrnum_nertags = attrs.index(args.multi_nertag)
+
         # Input lines within a (multi-word) name
         namelines = []
         # namelines (tokens) split into attributes, to avoid to
@@ -219,22 +237,7 @@ class VrtNameAttrAugmenter(InputProcessor):
                     if attrnum_nertag is None:
                         # Positional-attributes comment not yet seen
                         if nl.isnameline(line):
-                            attrs = nl.parsenameline(line)
-                            attrnames_check = [
-                                args.nertag, args.lemma, args.word]
-                            if not args.maximal_only:
-                                attrnames_check.append(args.multi_nertag)
-                            for attrname in attrnames_check:
-                                if attrname not in attrs:
-                                    self.error_exit(
-                                        'No positional attribute \''
-                                        + attrname.decode('utf-8')
-                                        + '\' in input')
-                            attrnum_nertag = attrs.index(args.nertag)
-                            attrnum_word = attrs.index(args.word)
-                            attrnum_lemma = attrs.index(args.lemma)
-                            if not args.maximal_only:
-                                attrnum_nertags = attrs.index(args.multi_nertag)
+                            set_attrnums(line)
                     ouf.write(line)
             elif attrnum_nertag is None:
                 # Token line, no positional-attributes comment seen
