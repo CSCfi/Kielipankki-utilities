@@ -32,8 +32,13 @@ class VrtNameAttrAugmenter(InputProcessor):
     """Class implementing vrt-augment-name-attrs functionality."""
 
     DESCRIPTION = """
-    Augment VRT input containing positional name attributes
-    with <ne> structures with attributes.
+    Augment VRT input containing positional name attributes with <ne>
+    structures with attributes. The tool expects a positional
+    attribute to contain NER tags for maximal names, matching the
+    regular expression "(Ena|Nu|Ti)mex[A-Z][a-z]+[A-Z][a-z]+-[BEF]",
+    as produced by vrt-finnish-nertag. Another attribute can contain a
+    set of NER tags for possible nested names, with "-N" appended
+    where N is the nesting level.
     """
     ARGSPECS = [
         ('--word = attr:encode_utf8 "word"',
