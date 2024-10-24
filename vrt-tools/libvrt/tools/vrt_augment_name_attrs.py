@@ -255,7 +255,18 @@ class VrtNameAttrAugmenter(InputProcessor):
                 # Structure or comment line
                 if namelines:
                     # Inside a name
-                    namelines.append(line)
+                    if ml.isendtag(line) and ml.element(line) == b'sentence':
+                        # Names may not cross sentence boundaries
+                        self.warn(f'No NER end tag for {nertag.decode("utf-8")}'
+                                  ' within sentence',
+                                  filename=inf.name, linenr=linenum + 1)
+                        ouf.writelines(namelines)
+                        ouf.write(line)
+                        namelines = []
+                        name_tokens = []
+                        continue
+                    else:
+                        namelines.append(line)
                 else:
                     # Outside a name
                     if attrnum_nertag is None:
@@ -308,3 +319,10 @@ class VrtNameAttrAugmenter(InputProcessor):
                 else:
                     warn('Invalid NER tag', nertag, linenum)
                     ouf.write(line)
+        if namelines:
+            # This means that a sentence is open, too, and the input
+            # is incomplete
+            self.warn('End of input at the middle of a name: '
+                      + nertag.decode('utf-8')[:-1] + 'E expected',
+                      filename=inf.name, linenr=linenum)
+            ouf.writelines(namelines)

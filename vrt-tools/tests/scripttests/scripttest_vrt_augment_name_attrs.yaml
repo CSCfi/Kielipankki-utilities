@@ -202,6 +202,38 @@
     stderr: |
       vrt-augment-name-attrs: <stdin>:4: Warning: NER end tag without start tag: "EnamexPrsHum-E"
 
+- name: 'vrt-augment-name-attrs: Name does not end within a sentence'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: &input-sentence-breaks-name |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Aamuruskontie	aamuruskotie	EnamexLocStr-B	|EnamexLocStr-B-0|	B-LOC
+      </sentence>
+      <sentence x="z">
+      6	6	EnamexLocStr-E	|EnamexLocStr-E-0|	I-LOC
+      </sentence>
+      </text>
+  output:
+    stdout: *input-sentence-breaks-name
+    stderr: |
+      vrt-augment-name-attrs: <stdin>:5: Warning: No NER end tag for EnamexLocStr-B within sentence
+      vrt-augment-name-attrs: <stdin>:7: Warning: NER end tag without start tag: "EnamexLocStr-E"
+
+- name: 'vrt-augment-name-attrs: End of input at the middle of name'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: &input-unexpected-end |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Aamuruskontie	aamuruskotie	EnamexLocStr-B	|EnamexLocStr-B-0|	B-LOC
+  output:
+    stdout: *input-unexpected-end
+    stderr: |
+      vrt-augment-name-attrs: <stdin>:3: Warning: End of input at the middle of a name: EnamexLocStr-E expected
+
 
 # No names
 
