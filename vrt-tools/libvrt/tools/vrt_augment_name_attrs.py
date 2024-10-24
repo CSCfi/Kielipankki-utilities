@@ -39,7 +39,9 @@ class VrtNameAttrAugmenter(InputProcessor):
         ('--word = attr:encode_utf8 "word"',
          '''positional attribute name for word form is attr'''),
         ('--lemma = attr:encode_utf8 "lemma"',
-         '''positional attribute name for base form (lemma) is attr'''),
+         '''positional attribute name for base form (lemma) is attr;
+            if the input does not contain attr, use word forms in the
+            place of lemmas (specify "" to suppress a warning)'''),
         ('--nertag = attr:encode_utf8 "nertag2"',
          '''positional attribute name for maximal NER tag is attr'''),
         ('--multi-nertag = attr:encode_utf8 "nertags2"',
@@ -235,7 +237,7 @@ class VrtNameAttrAugmenter(InputProcessor):
             nonlocal attrnum_nertag, attrnum_nertags
             nonlocal attrnum_word, attrnum_lemma
             attrs = nl.parsenameline(line)
-            attrnames_check = [args.nertag, args.lemma, args.word]
+            attrnames_check = [args.nertag, args.word]
             if not args.maximal_only:
                 attrnames_check.append(args.multi_nertag)
             for attrname in attrnames_check:
@@ -244,7 +246,14 @@ class VrtNameAttrAugmenter(InputProcessor):
                                     + attrname.decode('utf-8') + '\' in input')
             attrnum_nertag = attrs.index(args.nertag)
             attrnum_word = attrs.index(args.word)
-            attrnum_lemma = attrs.index(args.lemma)
+            if args.lemma in attrs:
+                attrnum_lemma = attrs.index(args.lemma)
+            else:
+                if args.lemma:
+                    self.warn('No positional attribute \''
+                              + args.lemma.decode('utf-8') + '\' in input;'
+                              ' using word forms in the place of lemmas')
+                attrnum_lemma = attrnum_word
             if not args.maximal_only:
                 attrnum_nertags = attrs.index(args.multi_nertag)
 

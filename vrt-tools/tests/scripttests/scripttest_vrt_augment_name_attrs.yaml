@@ -46,22 +46,6 @@
     stderr: |
       vrt-augment-name-attrs: No positional attribute 'nertag2' in input
 
-- name: 'vrt-augment-name-attrs: No lemma attribute'
-  input:
-    cmdline: vrt-augment-name-attrs
-    stdin: |
-      <!-- #vrt positional-attributes: word nertag2 -->
-      <text a="b">
-      <sentence x="y">
-      a	_
-      </sentence>
-      </text>
-  output:
-    returncode: 1
-    stdout: ''
-    stderr: |
-      vrt-augment-name-attrs: No positional attribute 'lemma' in input
-
 - name: 'vrt-augment-name-attrs: No word attribute'
   input:
     cmdline: vrt-augment-name-attrs
@@ -704,6 +688,78 @@
       <ne name="15&quot;&quot; tuuman" fulltype="NumexMsrXxx" ex="NUMEX" type="MSR" subtype="XXX" placename="" placename_source="">
       15""	15""	NumexMsrXxx-B	|NumexMsrXxx-B-0|	B-MISC
       tuuman	tuuma	NumexMsrXxx-E	|NumexMsrXxx-E-0|	I-MISC
+      </ne>
+      </sentence>
+      </text>
+
+- name: 'vrt-augment-name-attrs: Inflected names, no lemmas'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Ahteesta	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+      Ahti	EnamexPrsHum-B	|EnamexPrsHum-B-0|	B-PER
+      Karjalaisen	EnamexPrsHum-E	|EnamexPrsHum-E-0|	I-PER
+      Aaltosen	EnamexOrgClt-B	|EnamexOrgClt-B-0|EnamexLocPpl-F-1|	B-ORG
+      taidemuseossa	EnamexOrgClt-E	|EnamexOrgClt-E-0|	I-ORG
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="Ahteesta" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
+      Ahteesta	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+      </ne>
+      <ne name="Ahti Karjalaisen" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
+      Ahti	EnamexPrsHum-B	|EnamexPrsHum-B-0|	B-PER
+      Karjalaisen	EnamexPrsHum-E	|EnamexPrsHum-E-0|	I-PER
+      </ne>
+      <ne name="Aaltosen taidemuseossa" fulltype="EnamexOrgClt" ex="ENAMEX" type="ORG" subtype="CLT" placename="" placename_source="">
+      <ne name="Aaltosen" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Aaltosen" placename_source="ner">
+      Aaltosen	EnamexOrgClt-B	|EnamexOrgClt-B-0|EnamexLocPpl-F-1|	B-ORG
+      </ne>
+      taidemuseossa	EnamexOrgClt-E	|EnamexOrgClt-E-0|	I-ORG
+      </ne>
+      </sentence>
+      </text>
+    stderr: |
+      vrt-augment-name-attrs: Warning: No positional attribute 'lemma' in input; using word forms in the place of lemmas
+
+- name: 'vrt-augment-name-attrs: Inflected names, explicitly ignore lemmas'
+  input:
+    cmdline: vrt-augment-name-attrs --lemma=""
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Ahteesta	ahde	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+      Ahti	Ahti	EnamexPrsHum-B	|EnamexPrsHum-B-0|	B-PER
+      Karjalaisen	Karjalainen	EnamexPrsHum-E	|EnamexPrsHum-E-0|	I-PER
+      Aaltosen	Aaltonen	EnamexOrgClt-B	|EnamexOrgClt-B-0|EnamexLocPpl-F-1|	B-ORG
+      taidemuseossa	taidemuseo	EnamexOrgClt-E	|EnamexOrgClt-E-0|	I-ORG
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="Ahteesta" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
+      Ahteesta	ahde	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+      </ne>
+      <ne name="Ahti Karjalaisen" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
+      Ahti	Ahti	EnamexPrsHum-B	|EnamexPrsHum-B-0|	B-PER
+      Karjalaisen	Karjalainen	EnamexPrsHum-E	|EnamexPrsHum-E-0|	I-PER
+      </ne>
+      <ne name="Aaltosen taidemuseossa" fulltype="EnamexOrgClt" ex="ENAMEX" type="ORG" subtype="CLT" placename="" placename_source="">
+      <ne name="Aaltosen" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Aaltosen" placename_source="ner">
+      Aaltosen	Aaltonen	EnamexOrgClt-B	|EnamexOrgClt-B-0|EnamexLocPpl-F-1|	B-ORG
+      </ne>
+      taidemuseossa	taidemuseo	EnamexOrgClt-E	|EnamexOrgClt-E-0|	I-ORG
       </ne>
       </sentence>
       </text>
