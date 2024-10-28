@@ -186,10 +186,14 @@ cwb_registry_add_posattr () {
 # the very end of the registry file.)
 cwb_registry_add_structattr () {
     local _corpus _struct _regfile _new_attrs _new_attrs_prefixed
-    local _new_attrdecls _xml_attrs _added_attrs
+    local _new_attrdecls _xml_attrs _added_attrs _attr _attrs
     _corpus=$1
     _struct=$2
     shift 2
+    # Strip possible trailing slash
+    for _attr in "$@"; do
+        _attrs="$_attrs ${_attr%/}"
+    done
     _regfile="$cwb_regdir/$_corpus"
     _added_attrs=
     # If struct does not exist in the registry file, add it after
@@ -215,7 +219,7 @@ cwb_registry_add_structattr () {
     fi
     _new_attrs=$(
 	_cwb_registry_find_nonexistent_attrs "$_regfile" \
-	    "STRUCTURE ${_struct}_" $*
+	    "STRUCTURE ${_struct}_" $_attrs
     )
     if [ "x$_new_attrs" != "x" ]; then
 	_new_attrs_prefixed=$(
