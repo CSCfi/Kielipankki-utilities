@@ -103,13 +103,11 @@ _cwb_registry_find_nonexistent_attrs () {
 
 # _cwb_registry_make_attrdecls format attrname ...
 _cwb_registry_make_attrdecls () {
-    local _format _attrname
+    local _format
     _format=$1
     shift
-    for _attrname in $*; do
-	echo $_attrname;
-    done |
-    awk '{printf "'"$_format"'\\n", $0}'
+    # Output literal \n as the result is to be used in Awk printf
+    printf "$_format\\\\n" $*
 }
 
 # cwb_registry_reorder_posattrs corpus attrname1 attrname2
@@ -328,17 +326,11 @@ cwb_registry_add_structattr () {
         # Add attribute names suffixed with a digit for each embedding
         # level
         _new_attrs_embed=$(_make_embedded_attrs $_depth $_new_attrs)
-	_new_attrs_prefixed=$(
-	    echo $_new_attrs_embed |
-	    awk '{ for (i = 1; i <= NF; i++) { print "'$_struct'_" $i } }'
-	)
+	_new_attrs_prefixed=$(add_prefix ${_struct}_ $_new_attrs_embed)
 	_new_attrdecls="$(
 	    _cwb_registry_make_attrdecls "STRUCTURE %-20s # [annotations]" $_new_attrs_prefixed
         )"
-	_xml_attrs="$(
-	    echo $_new_attrs |
-	    awk '{ for (i = 1; i <= NF; i++) { printf " %s=\\\"..\\\"", $i } }'
-	)"
+	_xml_attrs="$(printf ' %s=\\"..\\"' $_new_attrs)"
 	cp -p "$_regfile" "$_regfile.old"
 	awk '
             /^# <'$_struct'[ >]/ { sub(/>/, "'"$_xml_attrs"'>") }
