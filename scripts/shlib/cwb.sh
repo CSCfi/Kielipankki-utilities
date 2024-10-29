@@ -176,6 +176,33 @@ cwb_registry_add_posattr () {
     ensure_perms "$_regfile" "$_regfile.old"
 }
 
+# _make_embedded_attrs depth attrname ...
+#
+# Output attrnames and their embedded variants (suffixed with a
+# digit). If depth = 0, output attrnames as such. If depth = N > 0,
+# the output contains "attrname attrname1 ... attrnameN" for each
+# attrname. The function can be used for both structures and their
+# attributes (struct_attr).
+_make_embedded_attrs () {
+    local depth attr d result
+    depth=$1
+    shift
+    if [ $depth -le 0 ]; then
+        result="$@"
+    else
+        result=
+        for attr in "$@"; do
+            result="$result $attr"
+            d=1
+            while [ $d -le $depth ]; do
+                result="$result $attr$d"
+                d=$(($d + 1))
+            done
+        done
+    fi
+    safe_echo $result
+}
+
 # cwb_registry_add_structattr corpus struct [depth] [attrname ...]
 #
 # Add structural attributes (annotations) of the structure struct to
@@ -214,16 +241,9 @@ cwb_registry_add_structattr () {
     # If struct does not exist in the registry file, add it after
     # existing structural attributes
     if ! grep -q "STRUCTURE $_struct\$" "$_regfile"; then
-        _added_attrs="$_struct "
         # If the structure can be nested (embedded), also add
         # structures structN where N = 1...depth
-        if [ $_depth -gt 0 ]; then
-            d=1
-            while [ $d -le $_depth ]; do
-                _added_attrs="$_added_attrs$_struct$d "
-                d=$(($d + 1))
-            done
-        fi
+        _added_attrs=$(_make_embedded_attrs $_depth $_struct)
 	cp -p "$_regfile" "$_regfile.old"
 	awk '
             # Return a comment on the allowed nesting depth for struct
@@ -279,21 +299,9 @@ cwb_registry_add_structattr () {
 	    "STRUCTURE ${_struct}_" $_attrs
     )
     if [ "x$_new_attrs" != "x" ]; then
-        if [ $_depth -gt 0 ]; then
-            # Add attribute names suffixed with a digit for each
-            # embedding level
-            _new_attrs_embed=
-            for _attr in $_new_attrs; do
-                _new_attrs_embed="$_new_attrs_embed $_attr"
-                d=1
-                while [ $d -le $_depth ]; do
-                    _new_attrs_embed="$_new_attrs_embed $_attr$d"
-                    d=$(($d + 1))
-                done
-            done
-        else
-            _new_attrs_embed=$_new_attrs
-        fi
+        # Add attribute names suffixed with a digit for each embedding
+        # level
+        _new_attrs_embed=$(_make_embedded_attrs $_depth $_new_attrs)
 	_new_attrs_prefixed=$(
 	    echo $_new_attrs_embed |
 	    awk '{ for (i = 1; i <= NF; i++) { print "'$_struct'_" $i } }'
@@ -330,7 +338,7 @@ cwb_registry_add_structattr () {
             }
         ' "$_regfile.old" > "$_regfile"
     fi
-    _added_attrs="$_added_attrs$_new_attrs_prefixed"
+    _added_attrs="$_added_attrs $_new_attrs_prefixed"
     if [ "x$_added_attrs" != x ]; then
         cwb_registry_add_change_comment \
             $_corpus \
