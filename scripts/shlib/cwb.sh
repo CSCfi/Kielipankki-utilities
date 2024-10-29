@@ -271,6 +271,51 @@ _cwb_registry_get_struct_depth () {
     echo $depth
 }
 
+
+# _cwb_registry_add_structattrs regfile struct new_attrs new_attrs_prefixed
+#
+# Add to CWB registry file regfile structural attributes (annotations)
+# new_attrs to structure struct, which is assumed to be already
+# present in regfile. new_attrs contains bare attribute (annotation)
+# names, whereas new_attrs_prefixed contains them prefixed with
+# struct_ and containing the digit-suffixed variants for structures
+# allowing recursive embedding (nesting).
+_cwb_registry_add_structattrs () {
+    local regfile struct new_attrs new_attrs_prefixed new_attrdecls xml_attrs
+    regfile=$1
+    struct=$2
+    new_attrs=$3
+    new_attrs_prefixed=$4
+    new_attrdecls="$(
+        _cwb_registry_make_attrdecls "STRUCTURE %-20s # [annotations]" $new_attrs_prefixed
+    )"
+    xml_attrs="$(printf ' %s=\\"..\\"' $new_attrs)"
+    cp -p "$regfile" "$regfile.old"
+    awk '
+        /^# <'$struct'[ >]/ { sub(/>/, "'"$xml_attrs"'>") }
+        /^STRUCTURE '$struct'(_|$)/ {
+            prev_struct = 1
+            print
+            next
+        }
+        # Add the declarations at the end of the attribute
+        # declarations for struct: before a blank line, a comment
+        # line beginning with "# <" or a STRUCTURE declaration of
+        # a different structural attribute.
+        prev_struct && ! printed \
+            && (/^ *$/ || /^# </ \
+                || (/^STRUCTURE / && ! /^STRUCTURE '$struct'(_|[0-9]?$)/)) {
+            printf "'"$new_attrdecls"'"
+            printed = 1
+            prev_struct = 0
+        }
+        { print }
+        END {
+            if (! printed) { printf "'"$new_attrdecls"'" }
+        }
+    ' "$regfile.old" > "$regfile"
+}
+
 # cwb_registry_add_structattr corpus struct [depth] [attrname ...]
 #
 # Add structural attributes (annotations) of the structure struct to
@@ -290,7 +335,7 @@ _cwb_registry_get_struct_depth () {
 # attributes at the very end of the registry file.)
 cwb_registry_add_structattr () {
     local _corpus _struct _depth _regfile _new_attrs _new_attrs_prefixed
-    local _new_attrs_embed _new_attrdecls _xml_attrs _added_attrs _attr _attrs
+    local _new_attrs_embed _added_attrs _attr _attrs
     _corpus=$1
     _struct=$2
     shift 2
@@ -327,34 +372,8 @@ cwb_registry_add_structattr () {
         # level
         _new_attrs_embed=$(_make_embedded_attrs $_depth $_new_attrs)
 	_new_attrs_prefixed=$(add_prefix ${_struct}_ $_new_attrs_embed)
-	_new_attrdecls="$(
-	    _cwb_registry_make_attrdecls "STRUCTURE %-20s # [annotations]" $_new_attrs_prefixed
-        )"
-	_xml_attrs="$(printf ' %s=\\"..\\"' $_new_attrs)"
-	cp -p "$_regfile" "$_regfile.old"
-	awk '
-            /^# <'$_struct'[ >]/ { sub(/>/, "'"$_xml_attrs"'>") }
-            /^STRUCTURE '$_struct'(_|$)/ {
-                prev_struct = 1
-                print
-                next
-            }
-            # Add the declarations at the end of the attribute
-            # declarations for struct: before a blank line, a comment
-            # line beginning with "# <" or a STRUCTURE declaration of
-            # a different structural attribute.
-            prev_struct && ! printed \
-                && (/^ *$/ || /^# </ \
-                    || (/^STRUCTURE / && ! /^STRUCTURE '$_struct'(_|[0-9]?$)/)) {
-                printf "'"$_new_attrdecls"'"
-                printed = 1
-                prev_struct = 0
-            }
-            { print }
-            END {
-                if (! printed) { printf "'"$_new_attrdecls"'" }
-            }
-        ' "$_regfile.old" > "$_regfile"
+        _cwb_registry_add_structattrs \
+            $_regfile $_struct "$_new_attrs" "$_new_attrs_prefixed"
     fi
     _added_attrs="$_added_attrs $_new_attrs_prefixed"
     if [ "x$_added_attrs" != x ]; then
