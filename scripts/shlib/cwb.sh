@@ -203,6 +203,76 @@ _make_embedded_attrs () {
     safe_echo $result
 }
 
+# _cwb_registry_add_struct regfile struct depth
+#
+# If structure struct does not exist in the registry file regfile, add
+# it after existing structural attributes (without annotation
+# attributes), with recursive embedding of up to depth levels.
+_cwb_registry_add_struct () {
+    local regfile struct depth
+    regfile=$1
+    struct=$2
+    depth=$3
+    cp -p "$regfile" "$regfile.old"
+    awk '
+        # Return a comment on the allowed nesting depth for struct
+        function make_embedding_comment (struct, depth) {
+            if (depth == 0) {
+                return "(no recursive embedding allowed)"
+            } else {
+                val = "(" depth " levels of embedding: <" struct ">, "
+                for (d = 1; d <= depth; d++) {
+                    val = val "<" struct d ">"
+                    if (d < depth) {
+                        val = val ", "
+                    }
+                }
+                return val ")"
+                # cwb-encode would append a full stop after the
+                # closing bracket here, but we do not, as cwb-encode
+                # does not append it after "(no recursive embedding
+                # allowed)"
+            }
+        }
+        function output () {
+            print "\n# <'$struct'> ... </'$struct'>"
+            print "# " make_embedding_comment("'$struct'", '$depth')
+            print "STRUCTURE '$struct'"
+            for (d = 1; d <= '$depth'; d++) {
+                print "STRUCTURE '$struct'" d
+            }
+            printed = 1
+        }
+        /^$/ { empty = empty "\n"; next }
+        /^(# Yours sincerely|ALIGNED)/ {
+            output()
+            if (empty == "") { empty = "\n" }
+        }
+        /./ { printf empty; print; empty = "" }
+        END {
+            if (! printed) { output() }
+        }
+    ' "$regfile.old" > "$regfile"
+}
+
+# _cwb_registry_get_struct_depth regfile struct
+#
+# Output the number of recursive embedding levels (nesting depth)
+# specified for struct in CWB registry file regfile; 0 if struct does
+# not exist in regfile.
+_cwb_registry_get_struct_depth () {
+    local regfile struct depth
+    regfile=$1
+    struct=$2
+    depth=$(grep -B1 "STRUCTURE $_struct\$" "$_regfile")
+    depth=${depth#*\(}
+    depth=${depth%% *}
+    if [ "x$depth" = x ] || [ "$depth" = "no" ]; then
+        depth=0
+    fi
+    echo $depth
+}
+
 # cwb_registry_add_structattr corpus struct [depth] [attrname ...]
 #
 # Add structural attributes (annotations) of the structure struct to
@@ -222,7 +292,7 @@ _make_embedded_attrs () {
 # attributes at the very end of the registry file.)
 cwb_registry_add_structattr () {
     local _corpus _struct _depth _regfile _new_attrs _new_attrs_prefixed
-    local _new_attrs_embed _new_attrdecls _xml_attrs _added_attrs _attr _attrs d
+    local _new_attrs_embed _new_attrdecls _xml_attrs _added_attrs _attr _attrs
     _corpus=$1
     _struct=$2
     shift 2
@@ -244,55 +314,11 @@ cwb_registry_add_structattr () {
         # If the structure can be nested (embedded), also add
         # structures structN where N = 1...depth
         _added_attrs=$(_make_embedded_attrs $_depth $_struct)
-	cp -p "$_regfile" "$_regfile.old"
-	awk '
-            # Return a comment on the allowed nesting depth for struct
-            function make_embedding_comment (struct, depth) {
-                if (depth == 0) {
-                    return "(no recursive embedding allowed)"
-                } else {
-                    val = "(" depth " levels of embedding: <" struct ">, "
-                    for (d = 1; d <= depth; d++) {
-                        val = val "<" struct d ">"
-                        if (d < depth) {
-                            val = val ", "
-                        }
-                    }
-                    return val ")"
-                    # cwb-encode would append a full stop after the
-                    # closing bracket here, but we do not, as
-                    # cwb-encode does not append it after "(no
-                    # recursive embedding allowed)"
-                }
-            }
-            function output () {
-                print "\n# <'$_struct'> ... </'$_struct'>"
-                print "# " make_embedding_comment("'$_struct'", '$_depth')
-                print "STRUCTURE '$_struct'"
-                for (d = 1; d <= '$_depth'; d++) {
-                    print "STRUCTURE '$_struct'" d
-                }
-                printed = 1
-            }
-            /^$/ { empty = empty "\n"; next }
-            /^(# Yours sincerely|ALIGNED)/ {
-                output()
-                if (empty == "") { empty = "\n" }
-            }
-            /./ { printf empty; print; empty = "" }
-            END {
-                if (! printed) { output() }
-            }
-        ' "$_regfile.old" > "$_regfile"
+        _cwb_registry_add_struct "$_regfile" $_struct $_depth
     else
         # Get the existing number of struct embedding levels from the
         # registry file
-        _depth=$(grep -B1 "STRUCTURE $_struct\$" "$_regfile")
-        _depth=${_depth%% *}
-        _depth=${_depth#\(}
-        if [ "x$_depth" = x ] || [ "$_depth" = "no" ]; then
-            _depth=0
-        fi
+        _depth=$(_cwb_registry_get_struct_depth "$_regfile" $_struct)
     fi
     _new_attrs=$(
 	_cwb_registry_find_nonexistent_attrs "$_regfile" \
