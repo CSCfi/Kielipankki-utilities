@@ -198,12 +198,17 @@
       <sentence x="z">
       6	6	EnamexLocStr-E	|EnamexLocStr-E-0|	I-LOC
       </sentence>
+      <sentence x="y">
+      Aamuruskontie	aamuruskotie	EnamexLocStr-B	|EnamexLocStr-B-0|	B-LOC
+      6	6	_	|	I-LOC
+      </sentence>
       </text>
   output:
     stdout: *input-sentence-breaks-name
     stderr: |
       vrt-augment-name-attrs: <stdin>:5: Warning: No NER end tag for EnamexLocStr-B within sentence
       vrt-augment-name-attrs: <stdin>:7: Warning: NER end tag without start tag: "EnamexLocStr-E"
+      vrt-augment-name-attrs: <stdin>:12: Warning: No NER end tag for EnamexLocStr-B within sentence
 
 - name: 'vrt-augment-name-attrs: End of input at the middle of name'
   input:

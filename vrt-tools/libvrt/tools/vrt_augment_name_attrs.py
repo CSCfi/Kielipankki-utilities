@@ -276,9 +276,11 @@ class VrtNameAttrAugmenter(InputProcessor):
                     # Inside a name
                     if ml.isendtag(line) and ml.element(line) == b'sentence':
                         # Names may not cross sentence boundaries
-                        self.warn(f'No NER end tag for {nertag.decode("utf-8")}'
-                                  ' within sentence',
-                                  filename=inf.name, linenr=linenum + 1)
+                        self.warn(
+                            'No NER end tag for '
+                            + name_tokens[0][attrnum_nertag].decode('utf-8')
+                            + ' within sentence',
+                            filename=inf.name, linenr=linenum + 1)
                         ouf.writelines(namelines)
                         ouf.write(line)
                         namelines = []
