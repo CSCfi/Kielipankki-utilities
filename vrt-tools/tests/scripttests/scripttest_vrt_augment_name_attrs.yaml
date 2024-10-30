@@ -206,9 +206,9 @@
   output:
     stdout: *input-sentence-breaks-name
     stderr: |
-      vrt-augment-name-attrs: <stdin>:5: Warning: No NER end tag for EnamexLocStr-B within sentence
+      vrt-augment-name-attrs: <stdin>:4: Warning: NER start tag without end tag within sentence: "EnamexLocStr-B"
       vrt-augment-name-attrs: <stdin>:7: Warning: NER end tag without start tag: "EnamexLocStr-E"
-      vrt-augment-name-attrs: <stdin>:12: Warning: No NER end tag for EnamexLocStr-B within sentence
+      vrt-augment-name-attrs: <stdin>:10: Warning: NER start tag without end tag within sentence: "EnamexLocStr-B"
 
 - name: 'vrt-augment-name-attrs: End of input at the middle of name'
   input:
