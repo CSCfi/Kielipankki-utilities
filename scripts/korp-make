@@ -1425,10 +1425,8 @@ add_attrs_to_registry () {
     # existing in the corpus.
     cwb_registry_add_posattr $corpus ${input_attrs///}
     for structspec in $structspecs; do
-	# Remove the nesting depth
-	structspec=${structspec/:[0-9]/}
-	# Arguments: struct name followed by attr names
-	cwb_registry_add_structattr $corpus ${structspec//+/ }
+	# Arguments: corpus, struct name, nesting depth, attr names
+	cwb_registry_add_structattr $corpus ${structspec//[:+]/ }
     done
     # If needed, move lemmacomp to immediately after lemma. This is
     # relevant when augmenting existing data: if the data has other
