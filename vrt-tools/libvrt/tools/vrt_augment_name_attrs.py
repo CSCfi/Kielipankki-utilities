@@ -252,7 +252,7 @@ class VrtNameAttrAugmenter(InputProcessor):
             input file name (or ``<stdin>``) and input line number
             `linenum`.
             """
-            self.warn(msg + ': "' + nertag.decode('utf-8') + '"',
+            self.warn(msg + ': ' + nertag.decode('utf-8'),
                       filename=inf.name, linenr=linenum + 1)
 
         def set_attrnums(line):

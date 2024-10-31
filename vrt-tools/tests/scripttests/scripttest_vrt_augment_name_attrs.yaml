@@ -87,18 +87,18 @@
   output:
     stdout: *input-invalid-nertag
     stderr: |
-      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid NER tag: "A"
-      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid NER tag: "1"
-      vrt-augment-name-attrs: <stdin>:7: Warning: Invalid NER tag: "A-1"
-      vrt-augment-name-attrs: <stdin>:8: Warning: Invalid NER tag: "NamexFooBar-F"
-      vrt-augment-name-attrs: <stdin>:9: Warning: Invalid NER tag: "EnamexFoo-F"
-      vrt-augment-name-attrs: <stdin>:10: Warning: Invalid NER tag: "EnamexFB-F"
-      vrt-augment-name-attrs: <stdin>:11: Warning: Invalid NER tag: "ENAMEXPRSHUM-F"
-      vrt-augment-name-attrs: <stdin>:12: Warning: Invalid NER tag: "EnamexFo1Bo1-F"
-      vrt-augment-name-attrs: <stdin>:13: Warning: Invalid NER tag: "EnamexFooBarBaz-F"
-      vrt-augment-name-attrs: <stdin>:14: Warning: Invalid NER tag: "EnamexFooB-F"
-      vrt-augment-name-attrs: <stdin>:15: Warning: Invalid NER tag: "EnamexFBar-F"
-      vrt-augment-name-attrs: <stdin>:16: Warning: Invalid NER tag: "EnamexFoBo-G"
+      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid NER tag: A
+      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid NER tag: 1
+      vrt-augment-name-attrs: <stdin>:7: Warning: Invalid NER tag: A-1
+      vrt-augment-name-attrs: <stdin>:8: Warning: Invalid NER tag: NamexFooBar-F
+      vrt-augment-name-attrs: <stdin>:9: Warning: Invalid NER tag: EnamexFoo-F
+      vrt-augment-name-attrs: <stdin>:10: Warning: Invalid NER tag: EnamexFB-F
+      vrt-augment-name-attrs: <stdin>:11: Warning: Invalid NER tag: ENAMEXPRSHUM-F
+      vrt-augment-name-attrs: <stdin>:12: Warning: Invalid NER tag: EnamexFo1Bo1-F
+      vrt-augment-name-attrs: <stdin>:13: Warning: Invalid NER tag: EnamexFooBarBaz-F
+      vrt-augment-name-attrs: <stdin>:14: Warning: Invalid NER tag: EnamexFooB-F
+      vrt-augment-name-attrs: <stdin>:15: Warning: Invalid NER tag: EnamexFBar-F
+      vrt-augment-name-attrs: <stdin>:16: Warning: Invalid NER tag: EnamexFoBo-G
 
 - name: 'vrt-augment-name-attrs: Invalid NER tags within a name'
   input:
@@ -131,9 +131,9 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid NER tag within name: "EnamexProXxx-B"
-      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid NER tag within name: "EnamexProXxx-F"
-      vrt-augment-name-attrs: <stdin>:8: Warning: Invalid NER tag: "1"
+      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid NER tag within name: EnamexProXxx-B
+      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid NER tag within name: EnamexProXxx-F
+      vrt-augment-name-attrs: <stdin>:8: Warning: Invalid NER tag: 1
 
 - name: 'vrt-augment-name-attrs: Invalid NER tags in multi-level NER attribute'
   input:
@@ -160,10 +160,10 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:4: Warning: Invalid nested NER tag: "EnamexLocPpl-B-X"
-      vrt-augment-name-attrs: <stdin>:4: Warning: Invalid nested NER tag: "F-X-12"
-      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid nested NER tag: "EnamexLocPpl-1"
-      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid nested NER tag: "F-1"
+      vrt-augment-name-attrs: <stdin>:4: Warning: Invalid nested NER tag: EnamexLocPpl-B-X
+      vrt-augment-name-attrs: <stdin>:4: Warning: Invalid nested NER tag: F-X-12
+      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid nested NER tag: EnamexLocPpl-1
+      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid nested NER tag: F-1
 
 - name: 'vrt-augment-name-attrs: NER end tag without start tag'
   input:
@@ -184,7 +184,7 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:4: Warning: NER end tag without start tag: "EnamexPrsHum-E"
+      vrt-augment-name-attrs: <stdin>:4: Warning: NER end tag without start tag: EnamexPrsHum-E
 
 - name: 'vrt-augment-name-attrs: Invalid NER begin and end tags within a name'
   input:
@@ -219,8 +219,8 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:7: Warning: Invalid NER tag within name: "EnamexLocStr-B"
-      vrt-augment-name-attrs: <stdin>:8: Warning: NER end tag does not match start tag EnamexProXxx-B: "EnamexLocStr-E"
+      vrt-augment-name-attrs: <stdin>:7: Warning: Invalid NER tag within name: EnamexLocStr-B
+      vrt-augment-name-attrs: <stdin>:8: Warning: NER end tag does not match start tag EnamexProXxx-B: EnamexLocStr-E
 
 - name: 'vrt-augment-name-attrs: Invalid NER begin and end tags within a multi-level name'
   input:
@@ -277,9 +277,9 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:7: Warning: Nested NER tag EnamexOrgClt-B-1 already open at level 1: "EnamexLocStr-B-1"
-      vrt-augment-name-attrs: <stdin>:8: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: "EnamexLocStr-E-1"
-      vrt-augment-name-attrs: <stdin>:16: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: "EnamexLocStr-E-1"
+      vrt-augment-name-attrs: <stdin>:7: Warning: Nested NER tag EnamexOrgClt-B-1 already open at level 1: EnamexLocStr-B-1
+      vrt-augment-name-attrs: <stdin>:8: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: EnamexLocStr-E-1
+      vrt-augment-name-attrs: <stdin>:16: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: EnamexLocStr-E-1
 
 - name: 'vrt-augment-name-attrs: Name does not end within a sentence'
   input:
@@ -301,9 +301,9 @@
   output:
     stdout: *input-sentence-breaks-name
     stderr: |
-      vrt-augment-name-attrs: <stdin>:4: Warning: NER start tag without end tag within sentence: "EnamexLocStr-B"
-      vrt-augment-name-attrs: <stdin>:7: Warning: NER end tag without start tag: "EnamexLocStr-E"
-      vrt-augment-name-attrs: <stdin>:10: Warning: NER start tag without end tag within sentence: "EnamexLocStr-B"
+      vrt-augment-name-attrs: <stdin>:4: Warning: NER start tag without end tag within sentence: EnamexLocStr-B
+      vrt-augment-name-attrs: <stdin>:7: Warning: NER end tag without start tag: EnamexLocStr-E
+      vrt-augment-name-attrs: <stdin>:10: Warning: NER start tag without end tag within sentence: EnamexLocStr-B
 
 - name: 'vrt-augment-name-attrs: End of input at the middle of name'
   input:
@@ -345,7 +345,7 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:4: Warning: No end tag for nested NER tag: "EnamexLocPpl-B-1"
+      vrt-augment-name-attrs: <stdin>:4: Warning: No end tag for nested NER tag: EnamexLocPpl-B-1
 
 
 # No names
