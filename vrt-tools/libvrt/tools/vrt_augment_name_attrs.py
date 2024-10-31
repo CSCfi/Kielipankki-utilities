@@ -127,14 +127,17 @@ class VrtNameAttrAugmenter(InputProcessor):
             # Names by nesting depth
             nested_names = defaultdict(list)
             maxdepth = 0
+            # Line number of namelines[0]
+            linenum1 = linenum - len(namelines) + 1
             for token_num, token in enumerate(name_tokens):
+                token_linenum = linenum1 + token_num
                 nertags = token[attrnum_nertags].strip(b'|').split(b'|')
                 for nertag in nertags:
                     if not nertag:
                         continue
                     nertag_parts = split_nertag(nertag)
                     if not nertag_parts or not nertag_parts['depth']:
-                        warn('Invalid nested NER tag', nertag, linenum)
+                        warn('Invalid nested NER tag', nertag, token_linenum)
                         continue
                     depth = int(nertag_parts['depth'])
                     # Ignore depth 0 (top level)
@@ -155,7 +158,7 @@ class VrtNameAttrAugmenter(InputProcessor):
                                 warn('Nested NER tag '
                                      + depth_names[-1][0].decode('utf-8')
                                      + f' already open at level {depth}',
-                                     nertag, linenum)
+                                     nertag, token_linenum)
                         elif tagtype == NERTAG_END:
                             open_name = depth_names[-1]
                             if (nertag_parts['fulltype']
@@ -164,7 +167,7 @@ class VrtNameAttrAugmenter(InputProcessor):
                             else:
                                 warn('Nested NER end tag does not match start'
                                      ' tag ' + open_name[0].decode('utf-8'),
-                                     nertag, linenum)
+                                     nertag, token_linenum)
                         else:
                             warn('Invalid nested NER tag', nertag, linenum)
             # nameline_index[i] is the number of the line in namelines
@@ -175,7 +178,7 @@ class VrtNameAttrAugmenter(InputProcessor):
                 for nameinfo in nested_names[depth - 1]:
                     if len(nameinfo) < 4:
                         warn('No end tag for nested NER tag', nameinfo[0],
-                             linenum)
+                             linenum1 + nameinfo[2])
                         continue
                     _, nertag_parts, start, end = nameinfo
                     nameline_start = nameline_index[start]

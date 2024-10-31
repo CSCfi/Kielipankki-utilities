@@ -160,10 +160,10 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid nested NER tag: "EnamexLocPpl-B-X"
-      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid nested NER tag: "F-X-12"
-      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid nested NER tag: "EnamexLocPpl-1"
-      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid nested NER tag: "F-1"
+      vrt-augment-name-attrs: <stdin>:4: Warning: Invalid nested NER tag: "EnamexLocPpl-B-X"
+      vrt-augment-name-attrs: <stdin>:4: Warning: Invalid nested NER tag: "F-X-12"
+      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid nested NER tag: "EnamexLocPpl-1"
+      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid nested NER tag: "F-1"
 
 - name: 'vrt-augment-name-attrs: NER end tag without start tag'
   input:
@@ -277,9 +277,9 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:10: Warning: Nested NER tag EnamexOrgClt-B-1 already open at level 1: "EnamexLocStr-B-1"
-      vrt-augment-name-attrs: <stdin>:10: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: "EnamexLocStr-E-1"
-      vrt-augment-name-attrs: <stdin>:18: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: "EnamexLocStr-E-1"
+      vrt-augment-name-attrs: <stdin>:7: Warning: Nested NER tag EnamexOrgClt-B-1 already open at level 1: "EnamexLocStr-B-1"
+      vrt-augment-name-attrs: <stdin>:8: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: "EnamexLocStr-E-1"
+      vrt-augment-name-attrs: <stdin>:16: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: "EnamexLocStr-E-1"
 
 - name: 'vrt-augment-name-attrs: Name does not end within a sentence'
   input:
@@ -345,7 +345,7 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:6: Warning: No end tag for nested NER tag: "EnamexLocPpl-B-1"
+      vrt-augment-name-attrs: <stdin>:4: Warning: No end tag for nested NER tag: "EnamexLocPpl-B-1"
 
 
 # No names
