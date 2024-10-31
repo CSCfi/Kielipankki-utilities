@@ -186,6 +186,101 @@
     stderr: |
       vrt-augment-name-attrs: <stdin>:4: Warning: NER end tag without start tag: "EnamexPrsHum-E"
 
+- name: 'vrt-augment-name-attrs: Invalid NER begin and end tags within a name'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <!-- This  is really produced by FiNER as of 2024-10-31 -->
+      <!-- if preceded by another name enclosed in double quotes. -->
+      "	"	EnamexProXxx-B	|EnamexProXxx-B-0|	B-PRO
+      Green	Green	EnamexLocStr-B	|EnamexLocStr-B-0|	B-LOC
+      street	street	EnamexLocStr-E	|EnamexLocStr-E-0|	I-LOC
+      hooligans	hooligans	_	|	O
+      "	"	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <!-- This  is really produced by FiNER as of 2024-10-31 -->
+      <!-- if preceded by another name enclosed in double quotes. -->
+      <ne name="&quot; Green street hooligans &quot;" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      "	"	EnamexProXxx-B	|EnamexProXxx-B-0|	B-PRO
+      Green	Green	EnamexLocStr-B	|EnamexLocStr-B-0|	B-LOC
+      street	street	EnamexLocStr-E	|EnamexLocStr-E-0|	I-LOC
+      hooligans	hooligans	_	|	O
+      "	"	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </ne>
+      </sentence>
+      </text>
+    stderr: |
+      vrt-augment-name-attrs: <stdin>:7: Warning: Invalid NER tag within name: "EnamexLocStr-B"
+      vrt-augment-name-attrs: <stdin>:8: Warning: NER end tag does not match start tag EnamexProXxx-B: "EnamexLocStr-E"
+
+- name: 'vrt-augment-name-attrs: Invalid NER begin and end tags within a multi-level name'
+  input:
+    cmdline: vrt-augment-name-attrs
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <!-- These are artificial examples for testing purposes -->
+      <sentence x="1">
+      "	"	EnamexProXxx-B	|EnamexProXxx-B-0|	B-PRO
+      Second	Second	_	|EnamexOrgClt-B-1|	I-PRO
+      Green	Green	_	|EnamexLocStr-B-1|	I-PRO
+      street	street	_	|EnamexLocStr-E-1|	I-PRO
+      hooligans	hooligans	_	|EnamexOrgClt-E-1|	I-PRO
+      "	"	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </sentence>
+      <sentence x="2">
+      "	"	EnamexProXxx-B	|EnamexProXxx-B-0|	B-PRO
+      Second	Second	_	|EnamexOrgClt-B-1|	I-PRO
+      Green	Green	_	|	I-PRO
+      street	street	_	|EnamexLocStr-E-1|	I-PRO
+      hooligans	hooligans	_	|EnamexOrgClt-E-1|	I-PRO
+      "	"	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <!-- These are artificial examples for testing purposes -->
+      <sentence x="1">
+      <ne name="&quot; Second Green street hooligans &quot;" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      "	"	EnamexProXxx-B	|EnamexProXxx-B-0|	B-PRO
+      <ne name="Second Green street hooligans" fulltype="EnamexOrgClt" ex="ENAMEX" type="ORG" subtype="CLT" placename="" placename_source="">
+      Second	Second	_	|EnamexOrgClt-B-1|	I-PRO
+      Green	Green	_	|EnamexLocStr-B-1|	I-PRO
+      street	street	_	|EnamexLocStr-E-1|	I-PRO
+      hooligans	hooligans	_	|EnamexOrgClt-E-1|	I-PRO
+      </ne>
+      "	"	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </ne>
+      </sentence>
+      <sentence x="2">
+      <ne name="&quot; Second Green street hooligans &quot;" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      "	"	EnamexProXxx-B	|EnamexProXxx-B-0|	B-PRO
+      <ne name="Second Green street hooligans" fulltype="EnamexOrgClt" ex="ENAMEX" type="ORG" subtype="CLT" placename="" placename_source="">
+      Second	Second	_	|EnamexOrgClt-B-1|	I-PRO
+      Green	Green	_	|	I-PRO
+      street	street	_	|EnamexLocStr-E-1|	I-PRO
+      hooligans	hooligans	_	|EnamexOrgClt-E-1|	I-PRO
+      </ne>
+      "	"	EnamexProXxx-E	|EnamexProXxx-E-0|	I-PRO
+      </ne>
+      </sentence>
+      </text>
+    stderr: |
+      vrt-augment-name-attrs: <stdin>:10: Warning: Nested NER tag EnamexOrgClt-B-1 already open at level 1: "EnamexLocStr-B-1"
+      vrt-augment-name-attrs: <stdin>:10: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: "EnamexLocStr-E-1"
+      vrt-augment-name-attrs: <stdin>:18: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: "EnamexLocStr-E-1"
+
 - name: 'vrt-augment-name-attrs: Name does not end within a sentence'
   input:
     cmdline: vrt-augment-name-attrs

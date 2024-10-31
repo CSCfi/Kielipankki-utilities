@@ -141,15 +141,30 @@ class VrtNameAttrAugmenter(InputProcessor):
                     if depth:
                         maxdepth = max(depth, maxdepth)
                         tagtype = nertag_parts['kind'][0]
+                        depth_names = nested_names[depth - 1]
                         if tagtype == NERTAG_FULL:
-                            nested_names[depth - 1].append(
+                            depth_names.append(
                                 [nertag, nertag_parts, token_num,
                                  token_num + 1])
                         elif tagtype == NERTAG_BEGIN:
-                            nested_names[depth - 1].append(
-                                [nertag, nertag_parts, token_num])
+                            if not depth_names or len(depth_names[-1]) == 4:
+                                # No open tag at depth
+                                depth_names.append(
+                                    [nertag, nertag_parts, token_num])
+                            else:
+                                warn('Nested NER tag '
+                                     + depth_names[-1][0].decode('utf-8')
+                                     + f' already open at level {depth}',
+                                     nertag, linenum)
                         elif tagtype == NERTAG_END:
-                            nested_names[depth - 1][-1].append(token_num + 1)
+                            open_name = depth_names[-1]
+                            if (nertag_parts['fulltype']
+                                    == open_name[1]['fulltype']):
+                                open_name.append(token_num + 1)
+                            else:
+                                warn('Nested NER end tag does not match start'
+                                     ' tag ' + open_name[0].decode('utf-8'),
+                                     nertag, linenum)
                         else:
                             warn('Invalid nested NER tag', nertag, linenum)
             # nameline_index[i] is the number of the line in namelines
@@ -269,6 +284,8 @@ class VrtNameAttrAugmenter(InputProcessor):
         name_tokens = []
         # NER tag split into parts
         nertag_parts = {}
+        # Parts of the currently open NER tag
+        open_nertag_parts = {}
         for linenum, line in enumerate(inf):
             if ml.ismeta(line):
                 # Structure or comment line
@@ -315,11 +332,19 @@ class VrtNameAttrAugmenter(InputProcessor):
                     namelines.append(line)
                     name_tokens.append(attrs)
                     if nertag_type == NERTAG_END:
-                        # Last token of the name
-                        ouf.writelines(
-                            add_ne_tags(nertag_parts, namelines, name_tokens))
-                        namelines = []
-                        name_tokens = []
+                        if (nertag_parts['fulltype']
+                                == open_nertag_parts['fulltype']):
+                            # Last token of the name
+                            ouf.writelines(
+                                add_ne_tags(nertag_parts, namelines,
+                                            name_tokens))
+                            namelines = []
+                            name_tokens = []
+                        else:
+                            warn('NER end tag does not match start tag '
+                                 + open_nertag_parts['fulltype'].decode('utf-8')
+                                 + '-B',
+                                 nertag, linenum)
                     elif nertag_type != NERTAG_NONE:
                         warn('Invalid NER tag within name', nertag, linenum)
                 elif nertag_type == NERTAG_NONE:
@@ -332,6 +357,7 @@ class VrtNameAttrAugmenter(InputProcessor):
                     # Begin a multi-word name
                     namelines.append(line)
                     name_tokens.append(attrs)
+                    open_nertag_parts = nertag_parts
                 elif nertag_type == NERTAG_END:
                     warn('NER end tag without start tag', nertag, linenum)
                     ouf.write(line)
