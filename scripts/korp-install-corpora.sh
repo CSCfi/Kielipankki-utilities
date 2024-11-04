@@ -215,6 +215,23 @@ run_command () {
     fi
 }
 
+make_pkgname_cond () {
+    # Output package name condition for find for the package base
+    # names listed as arguments
+    local name suff suffs result
+    suffs="t\?z tar.\*"
+    result=
+    for name in "$@"; do
+        for suff in $suffs; do
+            if [ "x$result" != x ]; then
+                result="$result -o"
+            fi
+            result="$result -name $name.$suff"
+        done
+    done
+    safe_echo "$result"
+}
+
 find_corpus_packages () {
     local pkgspec pkghost use_find current_pkgdir pkgname_cond ls_cmd cmd \
 	  mode links owner group size timestamp pkgname
@@ -236,13 +253,14 @@ find_corpus_packages () {
 	    ;;
 	*/* )
 	    current_pkgdir=$pkgspec
-	    pkgname_cond="-name \*_korp_20\*.t?z -o -name \*_korp_20\*.tar.\* -o -name $pkg_prefix\*.t?z -o -name $pkg_prefix\*.tar.*"
+	    pkgname_cond=$(make_pkgname_cond "\*_korp_20\*" "$pkg_prefix\*")
 	    ;;
 	*.* )
 	    pkgname_cond="-name $pkgspec"
 	    ;;
 	* )
-	    pkgname_cond="-name ${pkgspec}_korp_20\*.t?z -o -name ${pkgspec}_korp_20\*.tar.\* -o -name $pkg_prefix$pkgspec.t?z -o -name $pkg_prefix$pkgspec.tar.*"
+	    pkgname_cond=$(
+                make_pkgname_cond "${pkgspec}_korp_20\*" "$pkg_prefix$pkgspec")
 	    ;;
     esac
     # Use -v "natural sort of (version) numbers" of GNU ls to use the
