@@ -338,9 +338,16 @@ check_pause_import () {
         return
     fi
     tmpfile=$tmp_prefix.pause_period
-    # Allow comment lines beginning with a #
     # No pipe, so that start and end are set in this process
-    grep -v '^ *#' "$pause_period_fname" > $tmpfile
+    {
+        # The start and end time can be on the same line or on
+        # different lines; allow empty and comment lines beginning
+        # with a #
+        grep -v '^ *#' "$pause_period_fname" |
+            grep -v '^[[:space:]]*$' |
+            tr '\n' ' '
+        printf '\n'
+    } > $tmpfile
     read start end < $tmpfile
     if ! time_is_valid start "$start" || ! time_is_valid end "$end"; then
         return
