@@ -42,6 +42,8 @@ immediate-database-import !delay_db
     import database data immediately after extracting each corpus
     package, instead of only after extracting all packages
     (authorization data is always imported immediately)
+no-database-import no_db
+    do not import database data (except authorization data)
 load-limit=LIMIT "$num_cpus"
     install corpus data only if the CPU load is below LIMIT (a
     positive integer); otherwise wait for the load to decrease;
@@ -74,6 +76,11 @@ eval "$optinfo_opt_handler"
 # Set the default for --load-limit if empty
 if [ "x$load_limit" = x ]; then
     load_limit=$num_cpus
+fi
+
+# If not importing database, do not delay it
+if [ "x$no_db" != x ]; then
+    delay_db=
 fi
 
 # This is only for compatibility with older corpus packages
@@ -330,8 +337,12 @@ filter_corpora () {
 		    echo "  $corpname: installing $formatted_pkgname because of --force, even though $not_newer_msg" >> /dev/stderr
 		else
                     if [ -s $(make_dbfile_list_filename $corpname) ]; then
-                        echo "  $corpname: $formatted_pkgname already installed but importing the database files not yet imported" >> /dev/stderr
-                        install_only_dbfiles_corpora="$install_only_dbfiles_corpora $corpname"
+                        if [ "x$no_db" = x ]; then
+                            echo "  $corpname: $formatted_pkgname already installed but importing the database files not yet imported" >> /dev/stderr
+                            install_only_dbfiles_corpora="$install_only_dbfiles_corpora $corpname"
+                        else
+                            echo "  $corpname: $formatted_pkgname already installed but has database files not yet imported; not importing them because of --no-database-import" >> /dev/stderr
+                        fi
                     else
 		        echo "  $corpname: skipping $formatted_pkgname as $not_newer_msg" >> /dev/stderr
                     fi
@@ -553,8 +564,10 @@ install_corpus () {
     printf "%s\t%s\t%s\t%s\t%s\n" \
 	$(date "$timestamp_format") $corp $(basename "$corpus_pkg") \
 	$pkgtime $(whoami) >> $installed_list
-    if [ "x$delay_db" != x ]; then
-	echo "  (Installing (the rest of) the database files after extracting all packages)"
+    if [ "x$no_db" != x ]; then
+        echo "  (Not installing database files because of --no-database-import)"
+    elif [ "x$delay_db" != x ]; then
+        echo "  (Installing (the rest of) the database files after extracting all packages)"
     else
         install_corpora_dbtables install_db $corp "$dbtable_install_order"
     fi
