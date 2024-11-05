@@ -1,14 +1,16 @@
 # Model for a README.txt to be included in a download package
 
-Name of the corpus in English
+Resource title (English)
 
-Name of the corpus in Finnish
+Resource title (Finnish)
 
 Shortname: shortname
 
 Metadata: `http://urn.fi/urn:nbn:fi:lb-xxx`
 
 Rightholder: *e.g.* The National Library of Finland
+
+*optional*: Data controller (for PRIV data)
 
 License: e.g. CLARIN RES +NC v2.1  
 The complete license is available at `http://urn.fi/urn:nbn:fi:lb-xxx`
@@ -21,7 +23,7 @@ refer to the latest version of the license at the above link.
 
 Resource group page: `http://urn.fi/urn:nbn:fi:lb-xxx`
 
-Corpus description: *e.g.*  
+Resource description: *e.g.*  
 The corpus is the downloadable version of The Finnish Sub-corpus of the 
 Newspaper and Periodical Corpus of the National Library of Finland version 2, Korp. 
 It consists of Finnish newspapers and magazines starting from 1771 up to 2021, compiled 
