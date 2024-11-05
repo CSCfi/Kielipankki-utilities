@@ -33,13 +33,7 @@ we need a list of the relevant tasks that must be completed.
     English: http://urn.fi/urn:nbn:fi:lb-xxx
     Finnish: http://urn.fi/urn:nbn:fi:lb-xxx
 
-    Korp version
-    ...
-
-    VRT version
-    ...
     
-
     Resource group page: http://urn.fi/urn:nbn:fi:lb-xxx
 
     Resource description: short description of the data
