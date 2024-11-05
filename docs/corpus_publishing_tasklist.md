@@ -13,9 +13,39 @@ we need a list of the relevant tasks that must be completed.
    - Replace "XXX" with the common title of the resource group in question, to make the issue easier to find in Jira.
    - In brackets, you may specify the resource variant(s) that is/are to be published during this Epic, according to current plan: just the Download, and/or Korp, etc. 
    - NB: Both the _Epic Name_ and _Summary_ fields of the Jira Epic issue should contain identical text (= the title of the issue, composed as above).
+   - Add to the description field all important metadata (for all versions, as a collection), as soon as they are created resp. PIDs are requested, in the following form:
+
+    Source (Korp/VRT) version
+
+    Resource title (English)
+
+    Resource title (Finnish)
+
+    Shortname: shortname
+
+    Metadata: http://urn.fi/urn:nbn:fi:lb-xxx
+
+    Rightholder: e.g. The National Library of Finland
+
+    Data controller: (optional, for PRIV data only)
+
+    License: e.g. CC-BY
+    English: http://urn.fi/urn:nbn:fi:lb-xxx
+    Finnish: http://urn.fi/urn:nbn:fi:lb-xxx
+
+    Korp version
+    ...
+
+    VRT version
+    ...
+    
+
+    Resource group page: http://urn.fi/urn:nbn:fi:lb-xxx
+
+    Resource description: short description of the data
 
 
-### 2. Copy the following list of section titles to the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
+### 2. Copy the following list of section titles to the top of the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
 
 ```
 Enter a new resource to the pipeline
