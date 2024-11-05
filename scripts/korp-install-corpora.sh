@@ -312,12 +312,24 @@ get_package_name_date () {
     date=${date%%.*}
     # Separate suffix
     suffix=${date#*-}
-    # If no suffix, default to 0
     if [ $suffix = $date ]; then
+        # If no suffix, default to 0
         suffix=0
+    else
+        # Remove suffix from date
+        date=${date%-*}
+        # Remove up to three possible leading zeros from suffix to
+        # avoid printf error "invalid octal number"
+        suffix=${suffix#0}
+        suffix=${suffix#0}
+        suffix=${suffix#0}
+        # A suffix containing only zeros may have been emptied
+        # completely, so restore it to 0 (although printf "%d" ""
+        # would also print "0")
+        if [ "x$suffix" = x ]; then
+            suffix=0
+        fi
     fi
-    # Remove suffix from date
-    date=${date%-*}
     printf "%s%04d" "$date" "$suffix"
 }
 
