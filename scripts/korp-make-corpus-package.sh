@@ -38,7 +38,13 @@ usage_header="Usage: $progname [options] corpus_name [corpus_id ...]
 Make an archive package for corpus corpus_name, containing the Korp
 corpora corpus_id ... (or corpus_name if corpus_id not specified).
 corpus_id may contain shell wildcards, in which case all matching
-corpora in the corpus registry are included."
+corpora in the corpus registry are included.
+
+The package is a (compressed) tar archive whose name is
+corpus_name_korp_yyyymmdd[-xx] where yyyymmdd is the most recent
+modification date of the included files and xx is a two-digit
+zero-padded number appended if a package without it (or with any lower
+xx) already exists."
 
 optspecs='
 @ Directory options
