@@ -41,10 +41,10 @@ corpus_id may contain shell wildcards, in which case all matching
 corpora in the corpus registry are included.
 
 The package is a (compressed) tar archive whose name is
-corpus_name_korp_yyyymmdd[-xx] where yyyymmdd is the most recent
-modification date of the included files and xx is a two-digit
-zero-padded number appended if a package without it (or with any lower
-xx) already exists."
+corpus_name_korp_yyyymmdd_hhmmss[-xx] where yyyymmdd_hhmmss is the
+most recent modification date and time of the included files and xx is
+a two-digit zero-padded number appended if a package without it (or
+with any lower xx) already exists."
 
 optspecs='
 @ Directory options
@@ -644,17 +644,19 @@ dump_database () {
     done
 }
 
+# Output the date (timestamp as YYYYMMMDD_hhmmss) of the most recently
+# modified file of the arguments. Note that this also includes
+# possibly excluded files. Directory names should end in a slash for
+# the dates of the included files to be considered.
+# FIXME: Make work with file names containing spaces
 get_corpus_date () {
-    (
-	cd $datadir
-	ls -lt --time-style=long-iso "$@" |
-	grep -A1 '^total' |
-	grep -E -v '^(total|--)' |
-	awk '{print $6}' |
-	sort -r |
-	head -1 |
-	tr -d '-'
-    )
+    local files newest_file
+    files="$@ "
+    # Append "*" after trailing slashes to get all the files in
+    # directories
+    files=${files/// //* }
+    newest_file=$(ls -td $files | head -1)
+    date --reference="$newest_file" "+%Y%m%d_%H%M%S"
 }
 
 # FIXME: list_existing_db_files_by_type, list_existing_db_files and
@@ -750,7 +752,7 @@ for corpus_id in $corpus_ids; do
     # even if omitting CWB data
     add_corpus_files "$target_regdir/$corpus_id"
     if [ "x$omit_cwb_data" = x ]; then
-	add_corpus_files "$datadir/$corpus_id"
+	add_corpus_files "$datadir/$corpus_id/"
     fi
     if [ "x$export_db" != x ]; then
 	$korp_mysql_export --corpus-root "$corpus_root" \
@@ -776,13 +778,13 @@ for corpus_id in $corpus_ids; do
 	--info-from-file "$extra_info_file" $corpus_id
 done
 
-corpus_date=`get_corpus_date $corpus_ids`
+corpus_date=$(get_corpus_date $corpus_files)
 mkdir_perms $pkgdir/$corpus_name
 archive_basename=${corpus_name}_${archive_type_name}_$corpus_date
 archive_name=$pkgdir/$corpus_name/$archive_basename.$archive_ext
 archive_num=0
 while [ -e $archive_name ]; do
-    archive_num=`expr $archive_num + 1`
+    archive_num=$(($archive_num + 1))
     archive_name=$pkgdir/$corpus_name/$archive_basename-`printf %02d $archive_num`.$archive_ext
 done
 
