@@ -350,11 +350,7 @@ filter_corpora () {
     # variables would not be retained.
     sort -t"	" -s -k1,1 -k3,3Vr $listfile > $listfile.srt
     while read corpname pkghost pkgfile timestamp pkgsize; do
-	if [ "x$corpname" = "x$corpname_prev" ]; then
-	    :
-	    # TODO: Show this only with --verbose
-	    # echo "  $corpname: skipping $pkgfile as older than $corp_pkgfile" >> /dev/stderr
-	else
+	if [ "x$corpname" != "x$corpname_prev" ]; then
 	    installed_pkg=$(grep -E "^[^	]+	$corpname	" $installed_list \
 		| cut -d'	' -f3 \
 		| sort -Vr \
@@ -383,6 +379,10 @@ filter_corpora () {
 		$timestamp $pkgsize
 	    corpora_to_install="$corpora_to_install $corpname"
 	    corp_pkgfile=$pkgfile
+	else
+	    :
+	    # TODO: Show this only with --verbose
+	    # echo "  $corpname: skipping $pkgfile as older than $corp_pkgfile" >> /dev/stderr
 	fi
     done < $listfile.srt
 }
