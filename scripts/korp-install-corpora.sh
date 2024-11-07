@@ -348,11 +348,11 @@ filter_corpora () {
     corpora_to_install=
     # The following cannot be a pipeline because the values of the
     # variables would not be retained.
-    sort -t"	" -s -k1,1 -k3,3Vr $listfile > $listfile.srt
+    sort -t"$tab" -s -k1,1 -k3,3Vr $listfile > $listfile.srt
     while read corpname pkghost pkgfile timestamp pkgsize; do
 	if [ "x$corpname" != "x$corpname_prev" ]; then
-	    installed_pkg=$(grep -E "^[^	]+	$corpname	" $installed_list \
-		| cut -d'	' -f3 \
+	    installed_pkg=$(grep -E "^[^$tab]+$tab$corpname$tab" $installed_list \
+		| cut -d"$tab" -f3 \
 		| sort -Vr \
 		| head -1)
 	    corpname_prev=$corpname
