@@ -142,6 +142,9 @@ dbfile_list_prefix=$install_state_dir/dbfile_queue-
 
 install_only_dbfiles_corpora=
 
+# Non-empty if database files need to be installed at the end
+install_dbfiles=
+
 # If not --times, use empty TIMEFORMAT not to print times.
 # This requires Bash; does not work on Dash.
 if [ "x$times" != x ]; then
@@ -543,7 +546,8 @@ install_corpora_dbtables () {
 }
 
 install_corpus () {
-    local corp corpus_pkg pkgtime pkgsize pkghost install_base_msg tables_re
+    local corp corpus_pkg pkgtime pkgsize pkghost install_base_msg tables_re \
+          dbfile_list_file
     corp=$1
     corpus_pkg=$2
     pkgtime=$3
@@ -585,8 +589,8 @@ install_corpus () {
 	ensure_perms $(cat $filelistfile)
     )
     adjust_registry $filelistfile
-    grep -E '\.(sql|tsv)(\.(bz2|gz|xz))?$' $filelistfile \
-         > $(make_dbfile_list_filename $corp)
+    dbfile_list_file=$(make_dbfile_list_filename $corp)
+    grep -E '\.(sql|tsv)(\.(bz2|gz|xz))?$' $filelistfile > "$dbfile_list_file"
     install_corpora_dbtables install_db $corp "$dbtable_install_order_immediate"
     # Log to the list of installed corpora: current time, corpus name,
     # package file name, package file modification time, installing
@@ -597,7 +601,10 @@ install_corpus () {
     if [ "x$no_db" != x ]; then
         echo "  (Not installing database files because of --no-database-import)"
     elif [ "x$delay_db" != x ]; then
-        echo "  (Installing (the rest of) the database files after extracting all packages)"
+        if [ -s "$dbfile_list_file" ]; then
+            echo "  (Installing (the rest of) the database files after extracting all packages)"
+            install_dbfiles=1
+        fi
     else
         install_corpora_dbtables install_db $corp "$dbtable_install_order"
     fi
@@ -639,7 +646,8 @@ install_corpora () {
         corpora="$corpora $corpname"
     done < $pkglistfile
     if [ "x$install_only_dbfiles_corpora" != x ] || {
-           [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; }
+           [ "x$dry_run" = x ] && [ "x$delay_db" != x ] &&
+           [ "x$install_dbfiles" != x ]; }
     then
 	echo
 	echo "Installing database files$dry_run_msg"
