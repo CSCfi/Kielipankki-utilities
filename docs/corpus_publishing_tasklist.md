@@ -15,28 +15,47 @@ we need a list of the relevant tasks that must be completed.
    - NB: Both the _Epic Name_ and _Summary_ fields of the Jira Epic issue should contain identical text (= the title of the issue, composed as above).
    - Add to the description field all important metadata (for all versions, as a collection), as soon as they are created resp. PIDs are requested, in the following form:
 
-    Source (Korp/VRT) version
+----
+*Resource group page (English):* 
+----
+*Source version:*
 
-    Resource title (English)
+*Resource title in English:* Corpus of… version 2, source
+*Resource title in Finnish:* … korpus, versio 2, lähdemateriaali
+*Shortname:* shortname-v2-src
 
-    Resource title (Finnish)
+*Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
-    Shortname: shortname
+*Resource description:* This resource contains…
 
-    Metadata: http://urn.fi/urn:nbn:fi:lb-xxx
+*License label:* e.g., CC BY
+*License page (English):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
+*License (Finnish):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
-    Rightholder: e.g. The National Library of Finland
+*Rightholder:* 
+*Data controller, regarding personal data (if applicable):*
 
-    Data controller: (optional, for PRIV data only)
+----
+*Korp version:*
 
-    License: e.g. CC-BY
-    English: http://urn.fi/urn:nbn:fi:lb-xxx
-    Finnish: http://urn.fi/urn:nbn:fi:lb-xxx
+*Resource title in English:* Corpus of…, version 2, Korp
+*Resource title in Finnish:* … korpus, versio 2, Korp
+*Shortname:* shortname-v2-korp
 
-    
-    Resource group page: http://urn.fi/urn:nbn:fi:lb-xxx
+*Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
-    Resource description: short description of the data
+(Include license information if different from the source version)
+
+----
+*VRT version:*
+
+*Resource title in English:* Corpus of… version 2, VRT
+*Resource title in Finnish:* … korpus, versio 2, VRT
+*Shortname:* shortname-v2-vrt
+
+*Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
+
+(Include license information if different from the Korp version)
 
 
 ### 2. Copy the following list of section titles to the top of the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
