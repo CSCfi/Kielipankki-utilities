@@ -15,6 +15,7 @@ we need a list of the relevant tasks that must be completed.
    - NB: Both the _Epic Name_ and _Summary_ fields of the Jira Epic issue should contain identical text (= the title of the issue, composed as above).
    - Add to the description field all important metadata (for all versions, as a collection), as soon as they are created resp. PIDs are requested, in the following form:
 
+```
 ----
 *Resource group page (English):* 
 ----
@@ -56,6 +57,7 @@ we need a list of the relevant tasks that must be completed.
 *Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
 (Include license information if different from the Korp version)
+```
 
 
 ### 2. Copy the following list of section titles to the top of the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
