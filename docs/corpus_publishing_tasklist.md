@@ -21,9 +21,9 @@ we need a list of the relevant tasks that must be completed.
 ----
 *Source version:*
 
-*Resource title in English:* Corpus of… version 2, source
-*Resource title in Finnish:* … korpus, versio 2, lähdemateriaali
-*Shortname:* shortname-v2-src
+*Resource title in English:* …, source
+*Resource title in Finnish:* …, lähdemateriaali
+*Shortname:* shortname-src
 
 *Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
@@ -39,24 +39,24 @@ we need a list of the relevant tasks that must be completed.
 ----
 *Korp version:*
 
-*Resource title in English:* Corpus of…, version 2, Korp
-*Resource title in Finnish:* … korpus, versio 2, Korp
-*Shortname:* shortname-v2-korp
+*Resource title in English:* …, Korp
+*Resource title in Finnish:* …, Korp
+*Shortname:* shortname-korp
 
 *Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
-(Include license information if different from the source version)
+(Include the license information if different from the source version)
 
 ----
 *VRT version:*
 
-*Resource title in English:* Corpus of… version 2, VRT
-*Resource title in Finnish:* … korpus, versio 2, VRT
-*Shortname:* shortname-v2-vrt
+*Resource title in English:* …, VRT
+*Resource title in Finnish:* …, VRT
+*Shortname:* shortname-vrt
 
 *Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
-(Include license information if different from the Korp version)
+(Include the license information if different from the source/Korp version)
 ```
 
 
