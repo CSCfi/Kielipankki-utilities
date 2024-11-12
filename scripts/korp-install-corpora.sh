@@ -412,7 +412,7 @@ backup_corpus () {
     tar_cmd="tar tf $pkgname $(get_tar_compress_opt $pkgname) \
             --wildcards --wildcards-match-slash \
 	    --transform 's,.*/\(data\|registry\|sql\)/,\1/,' \
-	    --show-transformed-names '*/data' '*/registry' '*/sql'"
+	    --show-transformed-names '*/data' '*/registry' '*/sql' 2> /dev/null"
     backup_msg_shown=
     run_command "$pkghost" "$tar_cmd" |
     cut -d/ -f1,2 |
