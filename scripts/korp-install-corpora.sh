@@ -573,10 +573,10 @@ install_corpus () {
 	--show-transformed-names '*/data' '*/registry' '*/sql' 2>&1 \
 	| tee $filelistfile \
 	| sed -e 's/^/    /'
-    # Allow missing directory sql
+    # Allow missing directories
     if grep '^tar:' $filelistfile > $tmp_prefix.tar_errors; then
 	if grep -E -q -v \
-	    '(\*/sql: Not found|Cannot (utime|change mode)|Exiting with failure)' \
+	    '(Not found|Cannot (utime|change mode)|Exiting with failure)' \
 	    $tmp_prefix.tar_errors;
 	then
 	    error "Errors in extracting $corpus_pkg"
