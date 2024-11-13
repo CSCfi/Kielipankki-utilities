@@ -161,8 +161,8 @@ cwb_registry_add_posattr () {
     _new_attrs=$(
 	_cwb_registry_find_nonexistent_attrs "$_regfile" "ATTRIBUTE " $*
     )
-    _new_attrdecls="$(_cwb_registry_make_attrdecls "ATTRIBUTE %s" $_new_attrs)"
-    if [ "x$_new_attrdecls" != "x" ]; then
+    if [ "x$_new_attrs" != "x" ]; then
+        _new_attrdecls="$(_cwb_registry_make_attrdecls "ATTRIBUTE %s" $_new_attrs)"
 	cp -p "$_regfile" "$_regfile.old"
 	awk '/^ATTRIBUTE/ { prev_attr = 1 }
 	     /^$/ && prev_attr { printf "'"$_new_attrdecls"'"; prev_attr = 0 }
