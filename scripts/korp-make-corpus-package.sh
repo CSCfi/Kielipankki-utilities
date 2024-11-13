@@ -928,7 +928,7 @@ echo_dbg "$dir_transforms"
 tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
     -f $archive_name --exclude-backups $(make_tar_excludes $exclude_files) \
     $(make_tar_transforms "$dir_transforms") \
-    --ignore-failed-read \
+    --ignore-failed-read --sort=name \
     "$tar_newer_opt" \
     --show-transformed-names $corpus_files
 
