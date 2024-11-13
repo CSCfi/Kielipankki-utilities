@@ -1361,10 +1361,11 @@ vrt_has_struct_id () {
     # Return true if $vrt_file has attribute "id" in structure $1.
     # Note that this also returns true if an attribute value ends in
     # " id=".
-    # If $vrt_file does not contain $struct structures, this greps
+    # If $vrt_file does not contain $1 structures, this greps
     # through the whole file. An alternative could be to take only a
     # head of $vrt_file, but it would be more complex, as it would
     # have to handle SIGPIPE somehow.
+    local struct=$1
     grep -m1 "^<$struct[ >]" $vrt_file |
         grep -sq ' id="'
 }
