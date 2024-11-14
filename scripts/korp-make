@@ -761,7 +761,10 @@ run_stage () {
         fi
     fi
     if type -t "test_skip_$name" > /dev/null; then
-	msg=$(test_skip_$name 2> $tmp_prefix.errmsg)
+        # Redirect output to file instead of using $(...) so that
+        # values assigned to global variables in test_skip_ functions
+        # are visible outside.
+	test_skip_$name > $tmp_prefix.msg 2> $tmp_prefix.errmsg
 	exitstat=$?
 	# Exit with error if the test function (or the programs it
 	# runs) outputs something to stderr. An alternative would be [
@@ -771,7 +774,8 @@ run_stage () {
 	    cat $tmp_prefix.errmsg
 	    exit $exitstat
 	fi
-	if [ "x$msg" != "x" ]; then
+	if [ -s $tmp_prefix.msg ]; then
+            msg=$(< $tmp_prefix.msg)
 	    echo_verb "(Skipping ${descr,}: $msg)"
             echo "$name: $msg" >> $stages_file
 	    return
