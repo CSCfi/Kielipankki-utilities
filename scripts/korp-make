@@ -603,12 +603,11 @@ datadir=$corpus_root/data/$corpus
 mkdir_perms $vrtdir $tsvdir 2> /dev/null
 
 if [ "x$vrt_file" = "x" ]; then
-    # If augmenting data and not generating input from VRT, do not use
-    # possible existing VRT file. Another option might be to have an
-    # option for ignoring an existing VRT file and to write the
-    # augmented VRT file to $corpus.augm.vrt, for example.
+    # If augmenting data and not generating input from VRT, use VRT
+    # file $corpus-augm.vrt. Would we also need an option for ignoring
+    # an existing VRT file?
     if [ "x$augment_data" != x ] && [ "x$generate_input" = x ]; then
-	vrt_file=$tmp_prefix.$corpus.vrt
+	vrt_file=$vrtdir/$corpus-augm.vrt
     else
 	vrt_file=$vrtdir/$corpus.vrt
         vrt_file_full=$vrtdir/$corpus-complete.vrt
@@ -633,7 +632,7 @@ existing_token_count=0
 remove_existing_data () {
     # Remove VRT files and korp-make state
     echo_verb "Removing korp-make state files because of --force"
-    rm -f $vrtdir/$corpus.vrt{,.gz} $stages_file $opts_file $seed_file
+    rm -f $vrtdir/$corpus{,-augm}.vrt{,.gz} $stages_file $opts_file $seed_file
     if [ "x$augment_data" = x ]; then
         # If not augmenting, also remove generated corpus data
         echo_verb "Removing existing corpus data because of --force"
