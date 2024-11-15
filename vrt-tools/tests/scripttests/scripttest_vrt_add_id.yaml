@@ -2737,3 +2737,204 @@
       </sentence>
       </text>
   transform: *transform-fast-s3
+
+
+# Recursively embedded elements
+
+- name: 'vrt-add-id: Element with up to two levels of recursive embedding, no ids added to it'
+  input:
+    cmdline: vrt-add-id --type=counter --element=sentence
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <div n="1">
+      <div n="1.1">
+      <div n="1.1.1">
+      <paragraph p="p1">
+      <sentence a="a">
+      a
+      </sentence>
+      </paragraph>
+      </div>
+      <paragraph p="p2">
+      <sentence a="b">
+      b
+      </sentence>
+      </paragraph>
+      </div>
+      <div n="1.2">
+      <div n="1.2.1">
+      <paragraph p="p3">
+      <sentence a="c">
+      c
+      </sentence>
+      </paragraph>
+      </div>
+      </div>
+      </div>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <div n="1">
+      <div n="1.1">
+      <div n="1.1.1">
+      <paragraph p="p1">
+      <sentence a="a" id="1">
+      a
+      </sentence>
+      </paragraph>
+      </div>
+      <paragraph p="p2">
+      <sentence a="b" id="2">
+      b
+      </sentence>
+      </paragraph>
+      </div>
+      <div n="1.2">
+      <div n="1.2.1">
+      <paragraph p="p3">
+      <sentence a="c" id="3">
+      c
+      </sentence>
+      </paragraph>
+      </div>
+      </div>
+      </div>
+      </text>
+  transform: *transform-fast-s3
+
+- name: 'vrt-add-id: Element with up to two levels of recursive embedding, ids added to it'
+  input:
+    cmdline: vrt-add-id --type=counter --element=sentence --element=div
+    stdin: &input-div |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <div n="1">
+      <div n="1.1">
+      <div n="1.1.1">
+      <paragraph p="p1">
+      <sentence a="a">
+      a
+      </sentence>
+      </paragraph>
+      </div>
+      <paragraph p="p2">
+      <sentence a="b">
+      b
+      </sentence>
+      </paragraph>
+      </div>
+      <div n="1.2">
+      <div n="1.2.1">
+      <paragraph p="p3">
+      <sentence a="c">
+      c
+      </sentence>
+      </paragraph>
+      </div>
+      </div>
+      <paragraph p="p4">
+      <sentence a="d">
+      d
+      </sentence>
+      </paragraph>
+      </div>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <div n="1" id="1">
+      <div n="1.1" id="2">
+      <div n="1.1.1" id="3">
+      <paragraph p="p1">
+      <sentence a="a" id="1">
+      a
+      </sentence>
+      </paragraph>
+      </div>
+      <paragraph p="p2">
+      <sentence a="b" id="2">
+      b
+      </sentence>
+      </paragraph>
+      </div>
+      <div n="1.2" id="4">
+      <div n="1.2.1" id="5">
+      <paragraph p="p3">
+      <sentence a="c" id="3">
+      c
+      </sentence>
+      </paragraph>
+      </div>
+      </div>
+      <paragraph p="p4">
+      <sentence a="d" id="4">
+      d
+      </sentence>
+      </paragraph>
+      </div>
+      </text>
+  transform: &transform-fast-d5s4
+  - {}
+  # Test that the command with --no-optimize produces the same result
+  - *transf-no-optimize
+  # Test the command with --verbose
+  - name: --verbose
+    input: *cmdline-verbose
+    output-expected:
+      stderr: |
+        vrt-add-id: using the faster method
+        vrt-add-id: added 4 sentence ids, 5 div ids
+  # Test the command with --verbose --no-optimize
+  - name: --verbose --no-optimize
+    input: *cmdline-verbose-no-optimize
+    output-expected:
+      stderr: |
+        vrt-add-id: using the slower method because of --no-optimize
+        vrt-add-id: added 4 sentence ids, 5 div ids
+
+- name: 'vrt-add-id: Element with up to two levels of recursive embedding, inner element id format refers to it'
+  input:
+    cmdline: vrt-add-id --type=counter --element=sentence --format="{idnum[div]}:{id}" --element=div
+    stdin: *input-div
+  # xfail should actually be only for stdout
+  status: 'xfail:idnum[div] refers to the most recently opened div even if it were already closed, not the innermost currently open div'
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text n="1">
+      <div n="1" id="1">
+      <div n="1.1" id="2">
+      <div n="1.1.1" id="3">
+      <paragraph p="p1">
+      <sentence a="a" id="3:1">
+      a
+      </sentence>
+      </paragraph>
+      </div>
+      <paragraph p="p2">
+      <sentence a="b" id="2:2">
+      b
+      </sentence>
+      </paragraph>
+      </div>
+      <div n="1.2" id="4">
+      <div n="1.2.1" id="5">
+      <paragraph p="p3">
+      <sentence a="c" id="5:3">
+      c
+      </sentence>
+      </paragraph>
+      </div>
+      </div>
+      <paragraph p="p4">
+      <sentence a="d" id="1:4">
+      d
+      </sentence>
+      </paragraph>
+      </div>
+      </text>
+  transform: *transform-fast-d5s4

@@ -665,6 +665,11 @@ def main(args, ins, ous):
     # attribute, process the lines that far in this function and the
     # rest in fast_main; otherwise, process all lines here.
 
+    # FIXME: Handle correctly recursively embedded (nested) elements.
+    # Now if elem1 contains another elem1 and elem2 after the end of
+    # the inner elem1, idnum[elem1] in the format of elem2 is the id
+    # of the most recently opened elem1, not the currently open one.
+
     id_elem_names_list = list(args.element.keys())
     # Names of elements to which to add ids
     id_elem_names = set(elem for elem in id_elem_names_list)
@@ -699,10 +704,7 @@ def main(args, ins, ous):
             elem = element(line)
             elem_s = elem.decode('UTF-8')
 
-            if isendtag(line):
-                del elem_attrs[elem_s]
-
-            elif isstarttag(line):
+            if isstarttag(line):
                 attrs = elem_attrs[elem_s] = mapping(line)
 
                 if elem in id_elem_names:
@@ -856,11 +858,15 @@ def fast_main(args, ins, ous, id_elem_names, ids, idnums_curr, id_counts):
         if idnums_curr.get(elem):
             idnums[elem] = format_idnum[elem](idnums_curr[elem]).encode('UTF-8')
 
-    # NOTE: If the format of elem2 refers to idnum[elem1] of enclosing
-    # elem1 and the current elem2 is not enclosed in elem1 but elem1
-    # has occurred previously in the input, the previous value of
-    # idnum[elem1] is used. To raise an error, we should also handle
-    # element end tags.
+    # NOTE/FIXME: If the format of elem2 refers to idnum[elem1] of
+    # enclosing elem1 and the current elem2 is not enclosed in elem1
+    # but elem1 has occurred previously in the input, the previous
+    # value of idnum[elem1] is used. To raise an error, we should also
+    # handle element end tags. A similar issue is with recursively
+    # embedded (nested same) elements: if elem1 contains another elem1
+    # and elem2 after the end of the inner elem1, idnum[elem1] is the
+    # id of the most recently opened elem1, not the currently open
+    # one.
     for line in ins:
         if ismeta(line) and isstarttag(line):
             elem = element(line)
