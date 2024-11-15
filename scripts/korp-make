@@ -72,7 +72,10 @@ force
     force all stages of processing by first removing all the output
     files if they exist; existing output files are also removed if any
     of the input files is newer than the VRT file stored on a previous
-    run for the same corpus (unless --augment-data is specified)
+    run for the same corpus (unless --augment-data is specified); with
+    --augment-data and --generate-input-from-data, remove only
+    korp-make state files and intermediate VRT files, not actual
+    existing corpus data
 config-file|configuration-file=FILE
     read FILE as an INI-style configuration file (without sections).
     Configuration keys correspond to option names without the leading
@@ -143,14 +146,13 @@ augment-data|augment-existing-data
     augment existing corpus data with the data in the input, for
     example, to add parse annotations to a corpus already encoded; if
     the input contains values for existing attributes, they override
-    existing values; you cannot use this option with --force
+    existing values
 generate-input-from-data generate_input
     use the existing (CWB) corpus data as the input, which is to be
     augmented if needed with lemgrams, lemmas without compound
     boundaries and the appropriate database data (implies
     --augment-data); the list of input attribute names is read from
-    the data (overrides --input-attrs); you cannot use this option
-    with --force
+    the data (overrides --input-attrs)
 
 @ Annotation mappings
 
@@ -523,9 +525,6 @@ preprocess_posattrs=
 initial_vrt_posattrs=
 
 if [ "x$generate_input" != x ]; then
-    if [ "x$force" != x ]; then
-	error "You cannot specify both --force and --generate-input-from-data"
-    fi
     augment_data=1
     stage1_fn=generate_input
     stage1_descr="Generating input VRT file from CWB data"
@@ -537,9 +536,6 @@ fi
 if [ "x$augment_data" != x ]; then
     if [ "$(list_corpora --on-error : "$corpus")" != "$corpus" ]; then
 	error "Corpus $corpus not found; cannot augment corpus data"
-    fi
-    if [ "x$force" != x ]; then
-	error "You cannot specify both --force and --augment-data"
     fi
 fi
 
@@ -635,9 +631,14 @@ existing_token_count=0
 
 
 remove_existing_data () {
-    rm -f $datadir/* $cwb_regdir/$corpus $tsvdir/$corpus_*.tsv.gz \
-       $vrtdir/$corpus.vrt $vrtdir/$corpus.vrt.gz $stages_file $opts_file \
-       $seed_file
+    # Remove VRT files and korp-make state
+    echo_verb "Removing korp-make state files because of --force"
+    rm -f $vrtdir/$corpus.vrt{,.gz} $stages_file $opts_file $seed_file
+    if [ "x$augment_data" = x ]; then
+        # If not augmenting, also remove generated corpus data
+        echo_verb "Removing existing corpus data because of --force"
+        rm -f $datadir/* $cwb_regdir/$corpus $tsvdir/$corpus_*.tsv.gz
+    fi
 }
 
 run_cmd () {
