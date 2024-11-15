@@ -37,6 +37,8 @@ wordpict_relmap_default=$mapdir/wordpict_relmap_tdt.tsv
 wordpict_relmap_ud_default=$mapdir/wordpict_relmap_ud_fi.tsv
 compound_boundary_marker_default="|"
 compound_boundary_marker_ud_default="#"
+add_struct_ids_default="text paragraph sentence"
+
 
 # Designates that the corpus id should be used as the base seed
 random_seed_default="{CORPUS}"
@@ -211,15 +213,15 @@ random-seed=SEED "'"$random_seed_default"'"
 
 @ Structure ids
 
-add-structure-ids|add-element-ids=STRUCTLIST \
-  "text paragraph sentence" add_struct_ids
+add-structure-ids|add-element-ids=STRUCTLIST "DEFAULT" add_struct_ids
     add id attributes to the structures listed in STRUCTLIST
     (separated by spaces); id values are based on unique random
     integers; unless --overwrite-structure-ids is specified, rename
     possible existing id attributes to id_N, where N is the smallest
     positive integer for which attribute id_N does not already exist
     in the structure; if STRUCTLIST is an empty string, do not add id
-    attributes
+    attributes (default: "$add_struct_ids_default"; with
+    --augment-data, "" (do not add ids))
 structure-id-format|element-id-format=STRUCT:FORMAT * \
   { add_struct_id_format "$1" }
     format the value of the id attribute for structure STRUCT with
@@ -1389,6 +1391,14 @@ vrt_has_struct_id () {
 test_skip_add_struct_ids () {
     local struct
     local has_structs=
+    if [ "$add_struct_ids" = "DEFAULT" ]; then
+        if [ "x$augment_data" != x ]; then
+            echo "not adding with --augment-data as not specified explicitly"
+            return
+        else
+            add_struct_ids="$add_struct_ids_default"
+        fi
+    fi
     if [ "x$add_struct_ids" = x ]; then
         echo "requested not to add"
         return
