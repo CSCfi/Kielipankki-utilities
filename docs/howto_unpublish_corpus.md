@@ -1,7 +1,7 @@
 # How to unpublish a resource
 
 ## When is it necessary?
-   * When a license for a resource has expired or if it was revoked, the resource must be removed from Kielipankki's services. Example cases: 'Triangle of Aspects Analysis of Frozen' (http://urn.fi/urn:nbn:fi:lb-2019022701), or the fulltext versions of the Finnish News Agency Archive (http://urn.fi/urn:nbn:fi:lb-2019041502)
+   * When the license of a resource expires or if the license was revoked by the rightholder, the resource must be removed from Kielipankki's services. Examples: 'Triangle of Aspects Analysis of Frozen' (http://urn.fi/urn:nbn:fi:lb-2019022701), or the fulltext versions of the Finnish News Agency Archive (http://urn.fi/urn:nbn:fi:lb-2019041502)
    * A resource, or some of its versions, may also need to be archived, e.g., to save storage space, or because they have become deprecated.
 
 ## Task list for unpublishing a resource
