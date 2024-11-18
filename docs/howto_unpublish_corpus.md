@@ -7,7 +7,7 @@ Example case: 'Triangle of Aspects Analysis of Frozen' (http://urn.fi/urn:nbn:fi
 ## Steps for unpublishing
 Metadata: 
 
-- the access location has to be removed
+- the access location should be removed from the metadata record, so that the metadata record is no longer listed on VLO.
 
 - information has to be added to the description, e.g. 'This resource was previously available for download in Kielipankki - The Language Bank of Finland. However, *reason for removing the corpus*.'
 
