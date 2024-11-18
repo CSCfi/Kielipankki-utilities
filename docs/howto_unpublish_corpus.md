@@ -6,7 +6,9 @@
 
 ## Task list for unpublishing a resource
 
-### _shortname_: Archive|Remove the versions XYZ from Kielipankki
+Create a Jira Story with one of the following titles:
+### _shortname_: Archive the version(s) XYZ in Kielipankki
+### _shortname_: Remove the version(s) XYZ from Kielipankki
 
 ```
 # [ ] _*+DB*_ Move the removed versions to status 'archived' in the resource database, so they will not show up on the list of corpora, and add an internal comment including the date and reason for unpublishing.
