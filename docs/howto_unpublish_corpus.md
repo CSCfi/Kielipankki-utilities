@@ -5,6 +5,9 @@
    * A resource, or some of its versions, may also need to be archived, e.g., to save storage space, or because they have become deprecated.
 
 ## Task list for unpublishing a resource
+
+### _shortname_: Archive|Remove the versions XYZ from Kielipankki
+
 ```
 # [ ] _*+DB*_ Move the removed versions to status 'archived' in the resource database, so they will not show up on the list of corpora, and add an internal comment including the date and reason for unpublishing.
 # [ ] _*+PORTAL*_ In case of a restricted corpus, add an internal note in Katselmointiprosessi about the resource not being available anymore, including the date and the reason for unpublishing. LBR applications should no longer be processed.
