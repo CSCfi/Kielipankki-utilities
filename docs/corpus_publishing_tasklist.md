@@ -191,6 +191,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
+<a name="license"></a>
+
 ### _shortname_: Clear the license for the resource
 
 ```
@@ -296,6 +298,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PUHTI*_ Remove the download package, MD5 checksum file and readme and license files from the directory {{/scratch/clarin/download_preview}} on Puhti
 \\
 ```
+
+<a name="korp"></a>
 
 ***
 
