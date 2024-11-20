@@ -1,0 +1,13 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+import sys
+
+from libvrt.args import transput
+from libvrt.tools.hrt_s24_2023 import parsearguments, main
+
+if __name__ == '__main__':
+    # csv.reader requires text mode input so text it is,
+    # using python's line reader to not choke on NUL
+    # before passing the data to csv.reader
+    transput(parsearguments(sys.argv[1:]), main)
