@@ -50,11 +50,11 @@ def parsearguments(argv, *, prog = None):
 
     # may have defaults here, too, only
     parser.add_argument('--limit', metavar = 'N',
-                        default = 10,
+                        default = 100,
                         type = nat,
                         help = '''
 
-                        Exit after reporting N (10) lines that fail.
+                        Exit after reporting N (100) lines that fail.
 
                         ''')
     parser.add_argument('--no-limit', action = 'store_true',
@@ -81,6 +81,8 @@ def main(args, infile, outfile):
     # print('infile:', infile)
     # print('outfile:', outfile)
 
+    nolimit = [ '--no-limit' ] if args.no_limit else []
+
     now = _secs()
     args.quiet or print('{} -- {} (utf8)'.format(now, args.prog))
     args.quiet or print('{} -- whether a line is UTF-8 at all'
@@ -90,7 +92,8 @@ def main(args, infile, outfile):
              (
                  [
                      '--out', outfile + '.utf8',
-                     '--limit=10',
+                     '--limit={}'.format(args.limit or 100),
+                     *nolimit,
                      infile
                  ],
                  prog = '{} (utf8)'.format(args.prog)
@@ -126,7 +129,8 @@ def main(args, infile, outfile):
              (
                  [
                      '--out', outfile + '.ctl',
-                     '--limit=100',
+                     '--limit={}'.format(args.limit or 100),
+                     *nolimit,
                      infile
                  ],
                  prog = '{} (control)'.format(args.prog)
@@ -142,7 +146,8 @@ def main(args, infile, outfile):
              (
                  [
                      '--out', outfile + '.non',
-                     '--limit=100',
+                     '--limit={}'.format(args.limit or 100),
+                     *nolimit,
                      infile
                  ],
                  prog = '{} (nonchar)'.format(args.prog)
@@ -158,7 +163,8 @@ def main(args, infile, outfile):
              (
                  [
                      '--out', outfile + '.priv',
-                     '--limit=100',
+                     '--limit={}'.format(args.limit or 100),
+                     *nolimit,
                      infile
                  ],
                  prog = '{} (private)'.format(args.prog)
@@ -174,7 +180,8 @@ def main(args, infile, outfile):
              (
                  [
                      '--out', outfile + '.tag',
-                     '--limit=100',
+                     '--limit={}'.format(args.limit or 100),
+                     *nolimit,
                      infile
                  ],
                  prog = '{} (tags)'.format(args.prog)
@@ -190,7 +197,8 @@ def main(args, infile, outfile):
              (
                  [
                      '--out', outfile + '.bidi',
-                     '--limit=100',
+                     '--limit={}'.format(args.limit or 100),
+                     *nolimit,
                      infile
                  ],
                  prog = '{} (bidi)'.format(args.prog)
@@ -206,7 +214,8 @@ def main(args, infile, outfile):
              (
                  [
                      '--out', outfile + '.shy',
-                     '--limit=100',
+                     '--limit={}'.format(args.limit or 100),
+                     *nolimit,
                      infile
                  ],
                  prog = '{} (shy)'.format(args.prog)
