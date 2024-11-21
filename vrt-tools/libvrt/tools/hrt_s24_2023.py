@@ -114,6 +114,25 @@ def esc_meta(value):
     # specific what is already entified and what is entified here
     return value.translate(ESC_META)
 
+ESC_DATA = str.maketrans({
+    # to be used _after_ breaking paragraphs at <br /><br />, when
+    # some stray < and > still remain to be encoded; cannot also
+    # replace & because many such characters are already encoded! so
+    # use another mechanism (re.sub) to replace &
+    '<' : '&lt;',
+    '>' : '&gt;'
+})
+
+def esc_data(value):
+    '''Replace & with &amp; unless the & already starts &amp; or &lt; or
+    &gt; (so this is quite rather brittle, hope value is as expected),
+    then replace any <, > with &lt;, &gt; (also brittle! do not use
+    this function too early!)
+
+    '''
+    value = re.sub(r'&(?!amp;|lt;|gt;)', '&amp;', value)
+    return value.translate(ESC_DATA)
+
 def begin_thread(record, ous):
     [ THREAD_ID, TITLE, BODY,
       ANONNICK, CREATED, TOPICS,
@@ -227,7 +246,7 @@ def ship_body(body, quid, ous):
         para = para.replace('<br />', '\n')
         if re.fullmatch(r'\s*', para): continue
         print('<paragraph type="body">', file = ous)
-        print(para, file = ous)
+        print(esc_data(para), file = ous)
         print('</paragraph>', file = ous)
 
 def fix(data):
