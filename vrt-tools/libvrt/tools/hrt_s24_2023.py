@@ -170,10 +170,10 @@ def begin_thread(record, ous):
 
     # paragraph number?
     # type is head? or title?
-    # need escaping?
+    # need escaping? yes, there are bare & in these
 
     print('<paragraph type="head">', file = ous)
-    print(TITLE.replace('&quot;', '"') or '_', file = ous)
+    print(esc_data(TITLE.replace('&quot;', '"') or '_'), file = ous)
     print('</paragraph>', file = ous)
 
 def begin_comment(record, ous):
