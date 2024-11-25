@@ -29,7 +29,8 @@ def parsearguments(argv, *, prog = None):
                         help = '''
 
                         Fix character-level issues that were observed
-                        specifically in s24-2018-2020-src.
+                        specifically in s24-2018-2020-src and then in
+                        s24-2021-2023.
 
                         ''')
     
@@ -312,6 +313,8 @@ character_fixes = str.maketrans({
     '\u0018' : None, # delete C0 CAN ^X
     '\u0019' : None, # delete C0 EM ^Y
     '\u001A' : None, # delete C0 SUB ^Z
+    '\u001B' : '\u241B', # replace C0 ESC with control picture (2023)
+    '\u001C' : None, # delete C0 FS (2023)
     '\u001D' : None, # delete C0 GS ^]
     '\u001E' : None, # delete C0 RS ^^
     '\u001F' : None, # delete C0 US ^_
@@ -328,12 +331,16 @@ character_fixes = str.maketrans({
     '\u0085' : '\u2026', # C1 NEL : … (HORIZONTAL ELLIPSIS)
     '\u0086' : 'U+0086', # C1 SSA : GIGO († makes no sense)
     '\u0089' : None, # delete C1 HTJ (‰ makes no sense)
+    '\u008A' : '\u0160', # C1 LTS : Š (S with caron, blindly in 2023, once)
     '\u0090' : 'U+0090', # C1 DCS : GIGO (not in Windows-1252)
     '\u0091' : '\u2018', # C1 PU1 : ‘ (once, twice)
     '\u0092' : '\u2019', # C1 PU2 : ’
     '\u0093' : '\u201C', # C1 STS : “
     '\u0094' : '\u201D', # C1 CCH : ”
-    '\u0096' : '\u2013', # C1 SPA : –
+    '\u0095' : '\u2022', # C1 MW : • (bullet, used to mask the letters in a vulgar word in 2023)
+    '\u0096' : '\u2013', # C1 SPA : – (en dash)
+    '\u0097' : '\u2014', # C1 EPA : — (em dash, blindly in 2023, once)
+    '\u009A' : '\u0161', # C1 SCI : š (s with caron, blindly in 2023, once)
     '\u009D' : None, # delete C1 OSC (not in Windows-1252)
 
     # LS, LINE SEPARATOR, 108 occurrences in comments_2018, no way to
