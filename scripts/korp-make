@@ -1212,6 +1212,9 @@ test_skip_add_datefromto () {
         echo "no text structures"
     elif grep -q -s '^<text.* datefrom="' $vrt_file; then
         echo "already present"
+    elif [ "x$augment_data" != x ] && corpus_has_attr $corpus s "text_datefrom";
+    then
+        echo "augmenting data and already present in existing data"
     fi
 }
 
@@ -1535,9 +1538,19 @@ convert_timedata () {
 }
 
 test_skip_convert_timedata () {
-    corpus_has_attr $corpus s text_timefrom &&
-    [ -s $tsvdir/${corpus}_timedata.tsv.gz ] &&
-    echo "already converted"
+    if corpus_has_attr $corpus s text_timefrom &&
+            [ -s $tsvdir/${corpus}_timedata.tsv.gz ];
+    then
+        echo "already converted"
+    elif [ "x$augment_data" != x ]; then
+        if ! grep -qs '^<text ' $vrt_file; then
+            echo "augmenting data does not contain text structures"
+        elif grep -m1 '^<text ' $vrt_file |
+                grep -E -v -qs ' (date|time)(from|to)="';
+        then
+            echo "augmenting data does not contain time data"
+        fi
+    fi
 }
 
 extract_info () {
