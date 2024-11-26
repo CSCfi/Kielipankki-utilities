@@ -4,6 +4,8 @@
 After discovering a new resource that should be made available via Kielipankki, 
 we need a list of the relevant tasks that must be completed.
 
+In case an already published resource has to be **un-published**, please follow these instructions [docs: howto unpublish a resource](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_unpublish_corpus.md).
+
 ### 1. For each new resource (or a new version of an existing resource), create an "Epic" issue on Jira. 
    - Name the Epic as:
    
