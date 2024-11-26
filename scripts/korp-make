@@ -209,9 +209,8 @@ lemgrams-keep-letters-with-diacritics=CHARS \
 random-seed=SEED "'"$random_seed_default"'"
     use the string SEED as the base seed for the random-number
     generator, to be used for generating structure id attributes and
-    scrambling data; the actual seed is generated using SEED and seed
-    for scrambling data; "" for a random seed (non-reproducible
-    results) (default: corpus id)
+    scrambling data; the actual seed is generated using SEED; "" for a
+    random seed (non-reproducible results) (default: corpus id)
 
 @ Structure ids
 
