@@ -1086,7 +1086,11 @@ extract_random_seed () {
 }
 
 test_skip_extract_random_seed () {
-    if [ "x$add_struct_ids" = x ] && [ "x$scramble" = x ]; then
+    if [ "x$scramble" = x ] && {
+           [ "x$add_struct_ids" = x ] || {
+               [ "$add_struct_ids" = "DEFAULT" ] && [ "x$augment_data" != x ];
+           }; };
+    then
         echo "not required"
     elif [ -e "$seed_file" ]; then
         echo "already extracted"
