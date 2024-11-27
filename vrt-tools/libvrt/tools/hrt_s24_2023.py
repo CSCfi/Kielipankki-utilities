@@ -357,5 +357,84 @@ character_fixes = str.maketrans({
 
     # The *only* nonchar (of 66 possible) in this data, occurs in word
     # forms in what seems to be copy-paste, and seems removable.
-    '\uFFFE' : None
+    '\uFFFE' : None,
+
+    # Private codes.
+    '\uF04A' : '(private+F04A)', # times in 2021-2023: 10
+    '\uF071' : '(private+F071)', # times in 2021-2023: 12
+    '\uF095' : '(private+F095)', # times in 2021-2023: 12
+    '\uF0C5' : '(private+F0C5)', # times in 2021-2023: 13
+    '\uF0B7' : '(private+F0B7)', # times in 2021-2023: 148
+    '\uF02B' : '(private+F02B)', # times in 2021-2023: 15
+    '\uF0D8' : '(private+F0D8)', # times in 2021-2023: 19
+    '\U00100B35' : '(private+100B35)', # times in 2021-2023: 1
+    '\uE002' : '(private+E002)', # times in 2021-2023: 1
+    '\uE007' : '(private+E007)', # times in 2021-2023: 1
+    '\uE00A' : '(private+E00A)', # times in 2021-2023: 1
+    '\uE00B' : '(private+E00B)', # times in 2021-2023: 1
+    '\uE019' : '(private+E019)', # times in 2021-2023: 1
+    '\uE01B' : '(private+E01B)', # times in 2021-2023: 1
+    '\uE01C' : '(private+E01C)', # times in 2021-2023: 1
+    '\uE092' : '(private+E092)', # times in 2021-2023: 1
+    '\uE099' : '(private+E099)', # times in 2021-2023: 1
+    '\uE09A' : '(private+E09A)', # times in 2021-2023: 1
+    '\uE09B' : '(private+E09B)', # times in 2021-2023: 1
+    '\uE09C' : '(private+E09C)', # times in 2021-2023: 1
+    '\uE292' : '(private+E292)', # times in 2021-2023: 1
+    '\uE715' : '(private+E715)', # times in 2021-2023: 1
+    '\uE8C8' : '(private+E8C8)', # times in 2021-2023: 1
+    '\uF017' : '(private+F017)', # times in 2021-2023: 1
+    '\uF02A' : '(private+F02A)', # times in 2021-2023: 1
+    '\uF02F' : '(private+F02F)', # times in 2021-2023: 1
+    '\uF057' : '(private+F057)', # times in 2021-2023: 1
+    '\uF058' : '(private+F058)', # times in 2021-2023: 1
+    '\uF05E' : '(private+F05E)', # times in 2021-2023: 1
+    '\uF061' : '(private+F061)', # times in 2021-2023: 1
+    '\uF073' : '(private+F073)', # times in 2021-2023: 1
+    '\uF074' : '(private+F074)', # times in 2021-2023: 1
+    '\uF0E8' : '(private+F0E8)', # times in 2021-2023: 1
+    '\uF8FF' : '(private+F8FF)', # times in 2021-2023: 1
+    '\uE008' : '(private+E008)', # times in 2021-2023: 210
+    '\uF0A7' : '(private+F0A7)', # times in 2021-2023: 23
+    '\uF007' : '(private+F007)', # times in 2021-2023: 29
+    '\U00100B36' : '(private+100B36)', # times in 2021-2023: 2
+    '\uE001' : '(private+E001)', # times in 2021-2023: 2
+    '\uE814' : '(private+E814)', # times in 2021-2023: 2
+    '\uF070' : '(private+F070)', # times in 2021-2023: 2
+    '\uF279' : '(private+F279)', # times in 2021-2023: 2
+    '\uF041' : '(private+F041)', # times in 2021-2023: 31
+    '\uF0A1' : '(private+F0A1)', # times in 2021-2023: 31
+    '\uF0FC' : '(private+F0FC)', # times in 2021-2023: 36
+    '\uF0E0' : '(private+F0E0)', # times in 2021-2023: 38
+    '\uE014' : '(private+E014)', # times in 2021-2023: 3
+    '\uE01E' : '(private+E01E)', # times in 2021-2023: 3
+    '\uE61F' : '(private+E61F)', # times in 2021-2023: 3
+    '\uF063' : '(private+F063)', # times in 2021-2023: 3
+    '\uF109' : '(private+F109)', # times in 2021-2023: 3
+    '\U00100191' : '(private+100191)', # times in 2021-2023: 4
+    '\uE000' : '(private+E000)', # times in 2021-2023: 4
+    '\uF06C' : '(private+F06C)', # times in 2021-2023: 5
+    '\uF072' : '(private+F072)', # times in 2021-2023: 5
+    '\uF02D' : '(private+F02D)', # times in 2021-2023: 6
+
+    # BiDi: overrides to be avoided where possible, embeddings
+    # discouraged since 2013 (in favour of isolates), and there is a
+    # likelihood of abuse - indeed *all* LRE and LRO seem merely
+    # redundant in 2021-2023, and the *one* RLO *might* be a correct
+    # use but also is potentially dangerous when tokenized; after
+    # ocular inspection threatened to never end, removing all of these
+    # as harmless at best (even the appropriate uses seem to be around
+    # RTL characters that arrange themselves, large number of odd uses
+    # are setting even a single character to LTR in LTR context,
+    # typically LRO-PDF pairs in Bible references, and LRM is either
+    # thoroughly redundant or just too weird, as itemizing some list
+    # or what? let them go now)
+    '\u200E' : None, # '(LRM)', # 3140 of these - LR, why should one need these?
+    '\u200F' : None, # '(RLM)', # 249 of these - should one be worried?
+    '\u202A' : None, # '(LRE)', # discouraged since 2023, yet 82 in 2021-2023
+    '\u202C' : None, # '(PDF)', # pop? 1229 of these
+    '\u202D' : None, # '(LRO)', # avoided where possible, yet 1301 in 2021-2023
+    '\u202E' : None, # '(RLO)', # avoided where possible, just 1 in 2021-2023
+    '\u2066' : None, # '(LRI)', # 36 of these - LR, why should one need these?
+    '\u2069' : None, # '(PDI)', # 24 of these - to pop LRI?
 })
