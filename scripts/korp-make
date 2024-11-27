@@ -1470,7 +1470,6 @@ add_attrs_to_registry () {
 
 cwb_encode () {
     local structnames reg_opt
-    echo cwb_encode: "$input_attrs"
     echo_verb "  Inferring structural attributes from the VRT file"
     structnames=$(grep '^<' $vrt_file | run_cmd $vrt_list_struct_attrs)
     mkdir_perms $datadir
