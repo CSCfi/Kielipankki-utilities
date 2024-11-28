@@ -611,7 +611,7 @@ install_file_tsv () {
 }
 
 install_dbfiles () {
-    local type msg corp tables_re listfile files file
+    local type msg corp tables_re listfile files file retval
     type=$1
     msg=$2
     corp=$3
@@ -631,8 +631,11 @@ install_dbfiles () {
 	    echo "    $file (size `filesize $corpus_root/$file`)"
             if [ "x$dry_run" = x ]; then
                 wait_for_low_load
-	        time install_file_$type "$corpus_root/$file"
-	        if [ $? -ne 0 ]; then
+	        time install_file_$type "$corpus_root/$file" \
+                     > $tmp_prefix.install.out 2>&1
+                retval=$?
+                indent_input 6 < $tmp_prefix.install.out
+	        if [ $retval -ne 0 ]; then
 		    error "Errors in loading $file"
                 else
                     grep -Fv "$file" $listfile > $listfile.new
