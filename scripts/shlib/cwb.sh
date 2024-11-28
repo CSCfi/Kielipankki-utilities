@@ -20,10 +20,11 @@ shlib_required_libs="base msgs file str"
 # (default: $cwb_regdir), expanding shell wildcards. The result is
 # sorted (as done by ls) and uniquified. If no corpus_ids are
 # specified, list all corpora found. If some listed corpora are not
-# found, call error_cmd (default: error) with an error message.
+# found, call error_cmd (default: error) with an error message and
+# return false (1).
 list_corpora () {
-    local no_error error_func error_files registry
-    no_error=
+    local retval error_func error_files registry
+    retval=0
     error_func=error
     registry=$cwb_regdir
     while [ "x${1##--}" != "x$1" ]; do
@@ -54,9 +55,11 @@ list_corpora () {
 	))
 	$error_func \
 	    "Corpora not found in the CWB corpus registry $registry: $error_files"
+        retval=1
     fi
     cat $tmp_prefix.corpids
     rm -rf $tmp_prefix.corpids $tmp_prefix.corpid_errors
+    return $retval
 }
 
 # set_corpus_registry dir
