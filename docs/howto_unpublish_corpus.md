@@ -7,8 +7,8 @@
 ## Task list for unpublishing a resource
 
 Create a Jira Story with one of the following titles:
-### _shortname_: Archive the version(s) XYZ in Kielipankki
-### _shortname_: Remove the version(s) XYZ from Kielipankki
+### _shortname_: Stage 1: Archive the version(s) XYZ in Kielipankki
+### _shortname_: Stage 1: Remove the version(s) XYZ from Kielipankki
 
 ```
 # [ ] _*+DB*_ Move the removed versions to status 'archived' in the resource database, so they will not show up on the list of corpora, and add an internal comment including the date and reason for unpublishing.
@@ -29,10 +29,37 @@ Create a Jira Story with one of the following titles:
 # [ ] _*?KORP*_ In case of an important corpus published in Korp, add a notification in Korp about the removal schedule of the resource (e.g., 2 weeks in advance).
 # [ ] _*?DB*_ When the removal time comes, if resource versions are to be removed completely, change their status into 'removed' in the resource database and add an internal comment including the date and reason for unpublishing. Check that the resource is not visible on the list of published corpora any longer.
 # [ ] _*?DB*_ If the license of some resource versions was revoked, change the license status into 'needs_review' (unless an option 'revoked' is available!), to hide the license from users. If required, update the 'License Validity End Date'.
-# [ ] _*+CSC*_ In case of a downloadable corpus is to be archived or removed, remove the data and corpus folder from the download server.
 # [ ] _*+KORP*_ In case of a corpus published in Korp, remove the corpus from the Korp server and from the Korp corpus configuration.
 # [ ] _*+PORTAL*_ On the resource group page, update the text describing which versions were (archived or) removed, when and why.
 # [ ] _*+META*_ If some resource versions were removed completely, specify the 'Availability end date' (under Distribution) in their metadata records.
 # [ ] _*?SUPPORT*_ If applicable, contact the depositor, the rightholder or the data controller, and politely inform them about the removal of the data.
+# [ ] _*?ADMIN*_ Schedule and assign the next stage of the removal/archival process.
 ```
 
+### _shortname_: Stage 2: Remove the version(s) XYZ from Kielipankki
+### _shortname_: Stage 2: Archive the version(s) XYZ from Kielipankki
+
+```
+# [ ] _*+GITHUB*_ Re-direct the access location PID to the resource group page.
+ # [ ] _*?SUPPORT*_ In case restricted corpus versions are to be archived or removed, send a reminder email to the users with a valid license 2 weeks before removing the data, stating the license terms, the reason and the schedule of removal.
+ # [-] _*+CSC*_ In case a downloadable corpus is to be archived (to be available on request only, no longer promoted), create and assign an issue to CSC to create an archive copy of the downloadable data to IDA and freeze it.
+```
+
+### _shortname_: Internally archive and remove the version(s) XYZ from Kielipankki (Download|Other)
+
+```
+(Deadline of removing the data: DD.MM.YYYY)
+# [ ] _*+CSC*_ Create an archive copy of the downloadable data to IDA and freeze it (in the case of dataset removal, this is for internal emergency use only).
+# [ ] *_?CSC_* In case restricted corpus versions are to be removed, ensure with the UHEL team that the end-users are sent a final reminder to remove their copy of the data about 2 weeks before the deadline.
+# [ ] _*+CSC*_ Remove the restricted data and the corpus folder from the download server (by the deadline).
+# [ ] _*+CSC*_ Inform the UHEL team about the completion of the removal/archival process and mention the address of the archival copy in IDA.
+```
+
+If applicable, add the following issue, to complete the removal process requested by the rightholder(s):
+
+### _shortname_: Stage 3: Inform the depositor, the rightholder or the data controller about the removal of the data
+```
+# [ ] _*?DB*_ Ensure that the status of the corpus version and its license in the resource database are up to date.
+# [ ] _*?META*_ Ensure that the access location points to the resource group page (with tombstone information).
+ # [ ] _*?SUPPORT*_ If applicable, contact the depositor, the rightholder and/or the data controller, and politely inform them about the removal of the data.
+```
