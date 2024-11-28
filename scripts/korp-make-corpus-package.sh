@@ -506,9 +506,17 @@ if [ "x$archive_ext" = x ]; then
 fi
 
 if [ "x$1" = "x" ]; then
-    corpus_ids=$corpus_name
+    # list_corpora detects non-existent corpora
+    corpus_ids=$(list_corpora $corpus_name)
 else
     corpus_ids="$(list_corpora "$@")"
+fi
+# list_corpora calls function error on error but as it is run in a
+# subshell, it does not exit this script, so check the return value
+# and exit on errors
+retval=$?
+if [ $retval != 0 ]; then
+    exit $retval
 fi
 
 if [ "x$korp_frontend_dir" = "x" ]; then
