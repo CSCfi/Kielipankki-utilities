@@ -42,7 +42,7 @@ Create a Jira Story with one of the following titles:
 ```
 # [ ] _*+GITHUB*_ Re-direct the access location PID to the resource group page.
  # [ ] _*?SUPPORT*_ In case restricted corpus versions are to be archived or removed, send a reminder email to the users with a valid license 2 weeks before removing the data, stating the license terms, the reason and the schedule of removal.
- # [-] _*+CSC*_ In case a downloadable corpus is to be archived (to be available on request only, no longer promoted), create and assign an issue to CSC to create an archive copy of the downloadable data to IDA and freeze it.
+ # [ ] _*+CSC*_ In case a  corpus is to be archived (to be available on request only, no longer promoted) or completely removed, create and assign an issue to CSC to create an archive copy of the data and to remove the data from the download service.
 ```
 
 ### _shortname_: Internally archive and remove the version(s) XYZ from Kielipankki (Download|Other)
