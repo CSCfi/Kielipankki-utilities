@@ -38,12 +38,17 @@ backup-suffix=SUFFIX ".bak"
 f|force
     force installing a corpus package that is older than or as old as
     the currently installed package
-immediate-database-import !delay_db
-    import database data immediately after extracting each corpus
-    package, instead of only after extracting all packages
-    (authorization data is always imported immediately)
-no-database-import no_db
-    do not import database data (except authorization data)
+database-import=MODE db_import
+    when to import database data (other than authorization data)
+    included in the corpus packages to be installed: MODE is one of
+    the following: "delay" (after extracting all corpus packages),
+    "immediate" (immediately after extracting each corpus), "later"
+    (on a later run of '"$progname"'), or "no" (do not import at all
+    nor extract database files from corpus packages); note that
+    authorization data is always imported immediately (default:
+    "delay")
+immediate-database-import immediate_import
+    DEPRECATED: use --database-import=immediate instead
 load-limit=LIMIT "$num_cpus"
     install corpus data only if the CPU load is below LIMIT (a
     positive integer); otherwise wait for the load to decrease;
@@ -73,14 +78,38 @@ num_cpus=$(get_num_cpus)
 # Process options
 eval "$optinfo_opt_handler"
 
+# Validate and set --database-import option value
+case "$db_import" in
+    delay | immediate | later | no )
+        if [ "x$immediate_import" != x ]; then
+            error "--immediate-database-import is deprecated and conflicts with --database-import=$db_import"
+        fi
+        ;;
+    "" )
+        # Default value
+        if [ "x$immediate_import" != x ]; then
+            warn "--immediate-database-import is deprecated: use --database-import=immediate instead"
+            db_import=immediate
+        else
+            db_import=delay
+        fi
+        ;;
+    * )
+        error '--database-import argument value must be one of "delay", "immediate", "later" or "no"'
+        ;;
+esac
+
+# By default, extract all database files from corpus package
+extract_dbfiles="*"
+# With --database-import=no, extract only authorization files
+if [ "$db_import" = no ]; then
+    # "CORPUS" will be replaced with the actual corpus id
+    extract_dbfiles="*/CORPUS_auth_*"
+fi
+
 # Set the default for --load-limit if empty
 if [ "x$load_limit" = x ]; then
     load_limit=$num_cpus
-fi
-
-# If not importing database, do not delay it
-if [ "x$no_db" != x ]; then
-    delay_db=
 fi
 
 # This is only for compatibility with older corpus packages
@@ -458,11 +487,13 @@ filter_corpora () {
 		    echo "  $corpname: installing $formatted_pkgname because of --force, even though $not_newer_msg" >> /dev/stderr
 		else
                     if [ -s $(make_dbfile_list_filename $corpname) ]; then
-                        if [ "x$no_db" = x ]; then
+                        if [ "$db_import" = "delay" ] ||
+                               [ "$db_import" = "immediate" ];
+                        then
                             echo "  $corpname: $formatted_pkgname already installed but importing the database files not yet imported" >> /dev/stderr
                             install_only_dbfiles_corpora="$install_only_dbfiles_corpora $corpname"
                         else
-                            echo "  $corpname: $formatted_pkgname already installed but has database files not yet imported; not importing them because of --no-database-import" >> /dev/stderr
+                            echo "  $corpname: $formatted_pkgname already installed but has database files not yet imported; not importing them because of --database-import=$db_import" >> /dev/stderr
                         fi
                     else
 		        echo "  $corpname: skipping $formatted_pkgname as $not_newer_msg" >> /dev/stderr
@@ -673,7 +704,7 @@ install_corpora_dbtables () {
 
 install_corpus () {
     local corp corpus_pkg pkgtime pkgsize pkghost install_base_msg tables_re \
-          update dbfile_list_file
+          update dbfile_list_file extract_dbfiles_expanded
     corp=$1
     corpus_pkg=$2
     pkgtime=$3
@@ -695,12 +726,15 @@ install_corpus () {
     if [ "x$backups" != x ]; then
 	backup_corpus $corpus_pkg $pkghost
     fi
+    # Replace "CORPUS" with the actual corpus id
+    extract_dbfiles_expanded=${extract_dbfiles/CORPUS/$corp}
     echo "  Copying CWB files"
     time run_command "$pkghost" "cat '$corpus_pkg'" |
     tar xvp -C $corpus_root -f- $(get_tar_compress_opt $corpus_pkg) \
 	--wildcards --wildcards-match-slash \
 	--transform 's,.*/\(data\|registry\|sql\)/,\1/,' \
-	--show-transformed-names '*/data' '*/registry' '*/sql' 2>&1 \
+	--show-transformed-names \
+        '*/data' '*/registry' "*/sql/$extract_dbfiles_expanded" 2>&1 \
 	| tee $filelistfile \
 	| sed -e 's/^/    /'
     # Allow missing directories
@@ -728,15 +762,17 @@ install_corpus () {
     printf "%s\t%s\t%s\t%s\t%s\n" \
 	$(date "$timestamp_format") $corp $(basename "$corpus_pkg") \
 	$pkgtime $(whoami) >> $installed_list
-    if [ "x$no_db" != x ]; then
-        echo "  (Not installing database files because of --no-database-import)"
-    elif [ "x$delay_db" != x ]; then
-        if [ -s "$dbfile_list_file" ]; then
+    if [ "$db_import" = "no" ]; then
+        echo "  (Not installing database files because of --database-import=no)"
+    elif [ -s "$dbfile_list_file" ]; then
+        if [ "$db_import" = "delay" ]; then
             echo "  (Installing (the rest of) the database files after extracting all packages)"
             install_dbfiles=1
+        elif [ "$db_import" = "later" ]; then
+            echo "  (Marking (the rest of) the database files to be installed on a later run)"
+        else
+            install_corpora_dbtables install_db $corp "$dbtable_install_order"
         fi
-    else
-        install_corpora_dbtables install_db $corp "$dbtable_install_order"
     fi
 }
 
@@ -747,7 +783,7 @@ install_corpora_db () {
     if [ "x$install_only_dbfiles_corpora" != x ]; then
         install_corpora_db_aux "$install_only_dbfiles_corpora" "$tables_re"
     fi
-    if [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; then
+    if [ "x$install_dbfiles" != x ]; then
         install_corpora_db_aux "$corpora" "$tables_re"
     fi
 }
@@ -775,9 +811,8 @@ install_corpora () {
 	install_corpus $corpname "$pkgfile" $pkgtime $pkgsize $pkghost
         corpora="$corpora $corpname"
     done < $pkglistfile
-    if [ "x$install_only_dbfiles_corpora" != x ] || {
-           [ "x$dry_run" = x ] && [ "x$delay_db" != x ] &&
-           [ "x$install_dbfiles" != x ]; }
+    if [ "x$install_only_dbfiles_corpora" != x ] ||
+           [ "x$install_dbfiles" != x ];
     then
 	echo
 	echo "Installing database files$dry_run_msg"
