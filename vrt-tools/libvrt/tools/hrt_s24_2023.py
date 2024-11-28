@@ -261,7 +261,7 @@ def fix(data):
     '''
     if FIXING:
         data = remove_internal_shy(data)
-        return data.translate(character_fixes)
+        data = data.translate(character_fixes)
     return data
 
 def remove_internal_shy(data):
@@ -276,12 +276,39 @@ def remove_internal_shy(data):
 
     Some (few) double SHY were spotted, so remove runs.
 
+    In 2021-2023, also replace runs adjacent to a full stop (before,
+    or after), with a SPACE (some software shows them as spaces).
+    There was a lot of spammy messages in 2021-2023 with these, and
+    some image captions, and sometimes a stray SHY at the end of a
+    sentence (also end of a line). These were observed after the
+    removal of control codes and BiDi and such, but perhaps those do
+    not affect this heuristic? (Before: 2059 SHY. After: 142 SHY.)
+
+    Then remove SHY at end of line between letters. These are genuine
+    hyphenation and would seem to work. The line break is indicated by
+    the <br /> at this point!
+
+    Then SHY or more at the beginning of line (including the whole
+    data) before a letter, replace with a hyphen and space.
+
+    Many that remain seem to be a combination of EN DASH U+2013 with
+    SHY before or after, in one case quite a many SHY before. Make
+    them just EN DASH.
+
+    Remove quote-adjacent SHY, as observed, also before colon or
+    comma. Then rest can become hyphens.
+
     '''
 
     if '\xad' not in data: return data # premature optimization
     data = re.sub(r'(?<=\w)\xad+(?=\w)', '', data)
     data = re.sub(r'(?<=[\s\-])\xad+|\xad+(?=[\s\-])', '', data)
-
+    data = re.sub(r'(?<=[.])\xad+|\xad+(?=[.])', ' ', data)
+    data = re.sub(r'(?<=[a-zäö])\xad<br />(?=[a-z])', '', data)
+    data = re.sub(r'(?<=<br />)\xad+(?=[A-Za-z])', '- ', data)
+    data = re.sub(r'^\xad+(?=[A-Za-z])', '- ', data)
+    data = re.sub(r'\xad+\u2013|\u2013\xad', '\u2013', data)
+    data = re.sub(r'\xad(?=[”\",:])|(?<=[\'\"])\xad', '', data)
     return data
 
 character_fixes = str.maketrans({
@@ -437,4 +464,12 @@ character_fixes = str.maketrans({
     '\u202E' : None, # '(RLO)', # avoided where possible, just 1 in 2021-2023
     '\u2066' : None, # '(LRI)', # 36 of these - LR, why should one need these?
     '\u2069' : None, # '(PDI)', # 24 of these - to pop LRI?
+
+    # show remaining 2059 SHY (translate is called after removal of
+    # some) (ocular inspection indicates replacement with *space* when
+    # adjacent to a full stop - mainly spam though, some at end of
+    # line - then there will be far fewer still), deal with many
+    # context sensitive cases in a function above, then finally
+    # replace the few remaining ones with an ordinary hyphen.
+    '\xad' : '-', # '(SHY)'
 })
