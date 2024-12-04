@@ -314,6 +314,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+GITHUB*_ Request URNs (for COMEDI, Korp, license pages)
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure it is on the list of upcoming resources and citable
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
+# [ ] _*?LBR*_ Ask CSC to create an LBR record (for a RES corpus! This needs the official corpus name, a persistant identifier for the metadata and a rudimental license page with PID)
 # [ ] _*+META*_ Add citation information to the [COMEDI | https://clarino.uib.no/comedi/records] record
 \\
 ```
@@ -369,6 +370,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Create a Korp test version
 
 ```
+# [ ] _*?LBR*_ Create an LBR record (for a RES corpus, if the corpus does not yet have one)
 # [ ] _*+KORP*_ Create a Korp test instance and install the new configuration branch to it (or ask someone with the rights to do that)
 # [ ] _*?KORP*_ For a non-PUB corpus, add temporary access rights for the people who should test it (with the {{authing/auth}} script on the Korp server)
 # [ ] _*+TEST*_ Test the corpus in Korp (Korp test version) and ask someone else to test it, too
@@ -383,9 +385,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*+KORP*_ Publish the corpus in Korp as a beta test version
 ## [ ] _*+GITHUB*_ Merge the corpus configuration branch to branch {{master}}
-## [ ] _*+GITHUB*_ Add news about this new corpus to the Korp newsdesk ([https://github.com/CSCfi/Kielipankki-korp-frontend/tree/news/master])
 ## [ ] _*+KORP*_ Install the updated {{master}} branch to production Korp (or ask someone with the rights to do that)
-# [ ] _*?LBR*_ Create an LBR record (for a RES corpus, if the corpus does not yet have one)
+# [ ] _*+GITHUB*_ Add news about this new corpus to the Korp newsdesk ([https://github.com/CSCfi/Kielipankki-korp-frontend/tree/news/master])
+
 \\
 ```
 
