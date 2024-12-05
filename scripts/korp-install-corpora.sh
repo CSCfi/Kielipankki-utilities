@@ -800,17 +800,19 @@ install_corpora_db_aux () {
 install_corpora () {
     local pkglistfile corpname pkghost pkgfile pkgtime pkgsize corpora \
           tables_re order
-    pkglistfile=$1
-    echo
-    echo "Installing Korp corpora$dry_run_msg:"
-    for corpname in $corpora_to_install; do
-	echo "  $corpname"
-    done
-    corpora=
-    while read corpname pkghost pkgfile pkgtime pkgsize; do
-	install_corpus $corpname "$pkgfile" $pkgtime $pkgsize $pkghost
-        corpora="$corpora $corpname"
-    done < $pkglistfile
+    if [ "x$corpora_to_install" != x ]; then
+        pkglistfile=$1
+        echo
+        echo "Installing Korp corpora$dry_run_msg:"
+        for corpname in $corpora_to_install; do
+            echo "  $corpname"
+        done
+        corpora=
+        while read corpname pkghost pkgfile pkgtime pkgsize; do
+            install_corpus $corpname "$pkgfile" $pkgtime $pkgsize $pkghost
+            corpora="$corpora $corpname"
+        done < $pkglistfile
+    fi
     if [ "x$install_only_dbfiles_corpora" != x ] ||
            [ "x$install_dbfiles" != x ];
     then
