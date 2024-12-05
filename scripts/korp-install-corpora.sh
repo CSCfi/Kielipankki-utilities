@@ -13,7 +13,7 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 
-usage_header="Usage: $progname [options] corpus|package ...
+usage_header="Usage: $progname [options] corpus|package|--import-all-pending [corpus|package ...]
 
 Install or update the specified corpora from corpus packages to Corpus
 Workbench and Korp database.
@@ -38,10 +38,25 @@ backup-suffix=SUFFIX ".bak"
 f|force
     force installing a corpus package that is older than or as old as
     the currently installed package
-immediate-database-import !delay_db
-    import database data immediately after extracting each corpus
-    package, instead of only after extracting all packages
-    (authorization data is always imported immediately)
+database-import=MODE db_import
+    when to import database data (other than authorization data)
+    included in the corpus packages to be installed: MODE is one of
+    the following: "delay" (after extracting all corpus packages),
+    "immediate" (immediately after extracting each corpus), "later"
+    (on a later run of '"$progname"'), or "no" (do not import at all
+    nor extract database files from corpus packages); note that
+    authorization data is always imported immediately (default:
+    "delay")
+import-all-pending import_all
+    in addition to or instead of installing corpus packages, import
+    all database data pending importing from previous runs of
+    '"$progname"', either because of using --database-import=later or
+    because of an interrupted run; this option can be used without
+    specifying a corpus or package to install; --database-import=no or
+    --database-import=later does not affect this option but only the
+    database data from the corpus packages to be installed on this run
+immediate-database-import immediate_import
+    DEPRECATED: use --database-import=immediate instead
 load-limit=LIMIT "$num_cpus"
     install corpus data only if the CPU load is below LIMIT (a
     positive integer); otherwise wait for the load to decrease;
@@ -71,6 +86,35 @@ num_cpus=$(get_num_cpus)
 # Process options
 eval "$optinfo_opt_handler"
 
+# Validate and set --database-import option value
+case "$db_import" in
+    delay | immediate | later | no )
+        if [ "x$immediate_import" != x ]; then
+            error "--immediate-database-import is deprecated and conflicts with --database-import=$db_import"
+        fi
+        ;;
+    "" )
+        # Default value
+        if [ "x$immediate_import" != x ]; then
+            warn "--immediate-database-import is deprecated: use --database-import=immediate instead"
+            db_import=immediate
+        else
+            db_import=delay
+        fi
+        ;;
+    * )
+        error '--database-import argument value must be one of "delay", "immediate", "later" or "no"'
+        ;;
+esac
+
+# By default, extract all database files from corpus package
+extract_dbfiles="*"
+# With --database-import=no, extract only authorization files
+if [ "$db_import" = no ]; then
+    # "CORPUS" will be replaced with the actual corpus id
+    extract_dbfiles="*/CORPUS_auth_*"
+fi
+
 # Set the default for --load-limit if empty
 if [ "x$load_limit" = x ]; then
     load_limit=$num_cpus
@@ -95,8 +139,8 @@ dbtable_install_order_immediate="auth_.*"
 dbtable_install_order="timedata(_date)? lemgrams .*"
 
 
-if [ "x$1" = x ]; then
-    error "Please specify the names of corpus packages or corpora to install.
+if [ "x$1" = x ] && [ "x$import_all" = x ]; then
+    error "Please specify the names of corpus packages or corpora to install (or option --import-all-pending).
 For more information, run '$0 --help'."
 fi
 
@@ -132,8 +176,12 @@ if [ ! -e "$install_state_dir" ]; then
 fi
 
 dbfile_list_prefix=$install_state_dir/dbfile_queue-
+dbfile_list_ext=.list
 
 install_only_dbfiles_corpora=
+
+# Non-empty if database files need to be installed at the end
+install_dbfiles=
 
 # If not --times, use empty TIMEFORMAT not to print times.
 # This requires Bash; does not work on Dash.
@@ -175,7 +223,7 @@ wait_for_low_load () {
 make_dbfile_list_filename () {
     local corp
     corp=$1
-    echo "$dbfile_list_prefix$corp.list"
+    echo "$dbfile_list_prefix$corp$dbfile_list_ext"
 }
 
 host_is_remote () {
@@ -208,6 +256,23 @@ run_command () {
     fi
 }
 
+make_pkgname_cond () {
+    # Output package name condition for find for the package base
+    # names listed as arguments
+    local name suff suffs result
+    suffs="t\?z tar.\*"
+    result=
+    for name in "$@"; do
+        for suff in $suffs; do
+            if [ "x$result" != x ]; then
+                result="$result -o"
+            fi
+            result="$result -name $name.$suff"
+        done
+    done
+    safe_echo "$result"
+}
+
 find_corpus_packages () {
     local pkgspec pkghost use_find current_pkgdir pkgname_cond ls_cmd cmd \
 	  mode links owner group size timestamp pkgname
@@ -229,13 +294,14 @@ find_corpus_packages () {
 	    ;;
 	*/* )
 	    current_pkgdir=$pkgspec
-	    pkgname_cond="-name \*_korp_20\*.t?z -o -name \*_korp_20\*.tar.\* -o -name $pkg_prefix\*.t?z -o -name $pkg_prefix\*.tar.*"
+	    pkgname_cond=$(make_pkgname_cond "\*_korp_20\*" "$pkg_prefix\*")
 	    ;;
 	*.* )
 	    pkgname_cond="-name $pkgspec"
 	    ;;
 	* )
-	    pkgname_cond="-name ${pkgspec}_korp_20\*.t?z -o -name ${pkgspec}_korp_20\*.tar.\* -o -name $pkg_prefix$pkgspec.t?z -o -name $pkg_prefix$pkgspec.tar.*"
+	    pkgname_cond=$(
+                make_pkgname_cond "${pkgspec}_korp_20\*" "$pkg_prefix$pkgspec")
 	    ;;
     esac
     # Use -v "natural sort of (version) numbers" of GNU ls to use the
@@ -276,52 +342,152 @@ format_package_name_host () {
     printf "%s\n" $1
 }
 
+# Output the numeric suffix of the file name given as the argument:
+# the suffix is preceded by a hyphen and may consist of 1 to 4 digits,
+# possibly with leading zeros. If the file name has no suffix, output
+# "0".
+get_suffix () {
+    local suffix
+    # Separate suffix from base file name
+    suffix=${1##*-}
+    if [ "$suffix" = "$1" ]; then
+        # If no suffix, default to 0
+        suffix=0
+    else
+        # Remove up to three possible leading zeros from suffix to
+        # avoid printf error "invalid octal number"
+        suffix=${suffix#0}
+        suffix=${suffix#0}
+        suffix=${suffix#0}
+        # A suffix containing only zeros may have been emptied
+        # completely, so restore it to 0 (although printf "%d" ""
+        # would also print "0")
+        if [ "x$suffix" = x ]; then
+            suffix=0
+        fi
+    fi
+    echo "$suffix"
+}
+
+# Get package date with the possible running number suffix of up to
+# 9999.
 get_package_name_date () {
-    # Get package date with the possible running number suffix of up
-    # to 9999
     local date suffix
     date=$1
-    # Remove everything up to and including the last underscore
-    date=${date##*_}
+    # Remove everything up to and including "_korp_"
+    date=${date##*_korp_}
     # Remove extension(s)
     date=${date%%.*}
-    # Separate suffix
-    suffix=${date#*-}
-    # If no suffix, default to 0
-    if [ $suffix = $date ]; then
-        suffix=0
-    fi
+    # Extract suffix
+    suffix=$(get_suffix "$date")
     # Remove suffix from date
     date=${date%-*}
+    # Remove possible "after" date (update package)
+    date=${date%%_a_*}
+    if [ "${date%%_*}" = "$date" ]; then
+        # If date contains no time (after an underscore), assume
+        # 00:00:00
+        date=${date}000000
+    else
+        # Remove underscore to allow numerical comparison
+        date=${date/_/}
+    fi
     printf "%s%04d" "$date" "$suffix"
+}
+
+# Output the "after" date of the update package file name given as the
+# argument.
+get_update_package_after_date () {
+    # Make update package name look like full package name by removing
+    # the first date and time (between "_korp_" and "_a_") and use
+    # get_package_name_date to get the "after" date.
+    get_package_name_date "${1/_korp_*_*_a_/_korp_}"
 }
 
 package_is_not_newer () {
     [ "$(get_package_name_date $1)" -le "$(get_package_name_date $2)" ]
 }
 
+# Return true if the package name given as the argument is an update
+# package, recognized from the occurrence of "_korp_20*_a_20" in the
+# file name.
+is_update_package () {
+    [ "${1%_korp_20*_a_20*}" != "$1" ]
+}
+
+# Sort input with package names expected to be in the third
+# tab-separated field on each line, with optional preceding sorting
+# options specified in the first argument. Transform package names to
+# get the desired order: descending dates (sort -Vr), full packages
+# before update packages with the same date and time (convert "_" to
+# "!" in "_a_"), packages with an -xx suffix before those without one
+# (corresponding to -00; convert "." to "*"), and (older) packages
+# with only date after packages with the same date and explicit time
+# (corresponding to time 000000; "-" and "*" precede "_" in reversed
+# order).
+sort_packages () {
+    local presort
+    presort=$1
+    sed -e 's/_\(a_........_......\.\)/!\1/' |
+        tr '.' '*' |
+        sort -t"$tab" -s $presort -k3,3Vr |
+        tr '!*' '_.'
+}
+
+# Given the following input (and installed) package dates, function
+# filter_corpora should output the names of the packages 4, 3 and 1,
+# in this order. Older packages are installed first, so that possible
+# changes in newer ones override.
+#
+#   0 installed: 20241029_151515
+#   1 update: 20241031_121010_a_20241030_202020
+#   2 update: 20241031_101010_a_20241030_202020
+#   3 update: 20241030_202020_a_20241030_101010
+#   4 full: 20241030_101010
+#   5 update: 20241030_101010_a_20241029_151515
+#
+# 5 is not output, since a full package (4) should always contain the
+# files in an update package with the same base date. 2 is not output
+# as it has the same "after" date as 1 but is older than 1.
+
 filter_corpora () {
-    local listfile corpname_prev corp_pkgfile \
+    local listfile corpname_prev corp_pkgfile corp_pkgs pkg_info \
 	  corpname pkghost pkgfile timestamp pkgsize installed_pkg \
-	  formatted_pkgname not_newer_msg
+	  formatted_pkgname not_newer_msg after_date after_date2
     listfile=$1
     corpname_prev=
     corp_pkgfile=
+    # Info lines for packages to install for the current corpus
+    corp_pkgs=
     # global corpora_to_install
     corpora_to_install=
-    # The following cannot be a pipeline because the values of the
+    # Sort packages first by corpus name (is it needed?), then by
+    # package name
+    sort_packages -k1,1 < $listfile > $listfile.srt
+    # We cannot read from a pipeline because the values of the
     # variables would not be retained.
-    sort -t"	" -s -k1,1 -k3,3Vr $listfile > $listfile.srt
     while read corpname pkghost pkgfile timestamp pkgsize; do
-	if [ "x$corpname" = "x$corpname_prev" ]; then
-	    :
-	    # TODO: Show this only with --verbose
-	    # echo "  $corpname: skipping $pkgfile as older than $corp_pkgfile" >> /dev/stderr
-	else
-	    installed_pkg=$(grep -E "^[^	]+	$corpname	" $installed_list \
-		| cut -d'	' -f3 \
-		| sort -Vr \
-		| head -1)
+        pkg_info="$corpname$tab$pkghost$tab$pkgfile$tab$timestamp$tab$pkgsize"
+	if [ "$corpname" != "$corpname_prev" ]; then
+            # Different corpus than for the previously checked package
+            # (or the first package): the most recent package for this
+            # corpus
+            # The "after" date of an update package, empty for full
+            # packages; if non-empty, check further packages for this
+            # corpus
+            after_date=
+            # Output possible packages for the previous corpus
+            if [ "x$corp_pkgs" != x ]; then
+                safe_echo "$corp_pkgs"
+            fi
+            corp_pkgs=
+            # sort_packages works here, too, as the package name is
+            # the third field in the list of installed corpora
+	    installed_pkg=$(
+                grep -E "^[^$tab]+$tab$corpname$tab" $installed_list |
+                    sort_packages |
+		    head -1 |
+		    cut -d"$tab" -f3)
 	    corpname_prev=$corpname
 	    if package_is_not_newer "$pkgfile" "$installed_pkg"; then
 		formatted_pkgname="$(format_package_name_host $pkgfile $pkghost)"
@@ -330,20 +496,62 @@ filter_corpora () {
 		    echo "  $corpname: installing $formatted_pkgname because of --force, even though $not_newer_msg" >> /dev/stderr
 		else
                     if [ -s $(make_dbfile_list_filename $corpname) ]; then
-                        echo "  $corpname: $formatted_pkgname already installed but importing the database files not yet imported" >> /dev/stderr
-                        install_only_dbfiles_corpora="$install_only_dbfiles_corpora $corpname"
+                        if [ "$db_import" = "delay" ] ||
+                               [ "$db_import" = "immediate" ] ||
+                               [ "x$import_all" != x ];
+                        then
+                            echo "  $corpname: $formatted_pkgname already installed but importing the database files not yet imported" >> /dev/stderr
+                            install_only_dbfiles_corpora="$install_only_dbfiles_corpora $corpname"
+                        else
+                            echo "  $corpname: $formatted_pkgname already installed but has database files not yet imported; not importing them because of --database-import=$db_import" >> /dev/stderr
+                        fi
                     else
 		        echo "  $corpname: skipping $formatted_pkgname as $not_newer_msg" >> /dev/stderr
                     fi
 		    continue
 		fi
 	    fi
-	    printf "%s\t%s\t%s\t%s\t%s\n" $corpname $pkghost "$pkgfile" \
-		$timestamp $pkgsize
+	    corp_pkgs="$pkg_info"
 	    corpora_to_install="$corpora_to_install $corpname"
 	    corp_pkgfile=$pkgfile
-	fi
+            if is_update_package "$pkgfile"; then
+                after_date=$(get_update_package_after_date "$pkgfile")
+            fi
+	elif [ "x$after_date" != x ]; then
+            # The previous candidate checked for this corpus was an
+            # update package
+            if package_is_not_newer "$pkgfile" "$installed_pkg"; then
+                # If the installed package is newer than this, no need
+                # to check the rest of the packages for this corpus
+                after_date=
+            else
+                if is_update_package "$pkgfile"; then
+                    # If this is an update package with an "after"
+                    # date same as (or later than, but that should not
+                    # be possible) the previous one, skip this
+                    after_date2=$(get_update_package_after_date "$pkgfile")
+                    if [ "$after_date2" -ge "$after_date" ]; then
+                        continue
+                    fi
+                    after_date=$after_date2
+                else
+                    # No need to check older full packages for this
+                    # corpus
+                    after_date=
+                fi
+                # Prepend package info to $corp_pkgs to install older
+                # packages first (before updates)
+                corp_pkgs="$pkg_info$nl$corp_pkgs"
+            fi
+        else
+            :
+            # TODO: Show this only with --verbose
+            # echo "  $corpname: skipping $pkgfile as older than $corp_pkgfile" >> /dev/stderr
+        fi
     done < $listfile.srt
+    if [ "x$corp_pkgs" != x ]; then
+        safe_echo "$corp_pkgs"
+    fi
 }
 
 get_tar_compress_opt () {
@@ -368,7 +576,7 @@ backup_corpus () {
     tar_cmd="tar tf $pkgname $(get_tar_compress_opt $pkgname) \
             --wildcards --wildcards-match-slash \
 	    --transform 's,.*/\(data\|registry\|sql\)/,\1/,' \
-	    --show-transformed-names '*/data' '*/registry' '*/sql'"
+	    --show-transformed-names '*/data' '*/registry' '*/sql' 2> /dev/null"
     backup_msg_shown=
     run_command "$pkghost" "$tar_cmd" |
     cut -d/ -f1,2 |
@@ -444,7 +652,7 @@ install_file_tsv () {
 }
 
 install_dbfiles () {
-    local type msg corp tables_re listfile files file
+    local type msg corp tables_re listfile files file retval
     type=$1
     msg=$2
     corp=$3
@@ -464,8 +672,11 @@ install_dbfiles () {
 	    echo "    $file (size `filesize $corpus_root/$file`)"
             if [ "x$dry_run" = x ]; then
                 wait_for_low_load
-	        time install_file_$type "$corpus_root/$file"
-	        if [ $? -ne 0 ]; then
+	        time install_file_$type "$corpus_root/$file" \
+                     > $tmp_prefix.install.out 2>&1
+                retval=$?
+                indent_input 6 < $tmp_prefix.install.out
+	        if [ $retval -ne 0 ]; then
 		    error "Errors in loading $file"
                 else
                     grep -Fv "$file" $listfile > $listfile.new
@@ -502,13 +713,18 @@ install_corpora_dbtables () {
 }
 
 install_corpus () {
-    local corp corpus_pkg pkgtime pkgsize pkghost install_base_msg tables_re
+    local corp corpus_pkg pkgtime pkgsize pkghost install_base_msg tables_re \
+          update dbfile_list_file extract_dbfiles_expanded
     corp=$1
     corpus_pkg=$2
     pkgtime=$3
     pkgsize=$4
     pkghost=$5
-    install_base_msg="$corp from $(format_package_name_host $corpus_pkg $pkghost) (compressed size $(human_readable_size $pkgsize))"
+    update=
+    if is_update_package $corpus_pkg; then
+        update=" (update)"
+    fi
+    install_base_msg="$corp$update from $(format_package_name_host $corpus_pkg $pkghost) (compressed size $(human_readable_size $pkgsize))"
     echo
     if [ "x$dry_run" != x ]; then
 	echo "Would install $install_base_msg (dry run)"
@@ -520,18 +736,21 @@ install_corpus () {
     if [ "x$backups" != x ]; then
 	backup_corpus $corpus_pkg $pkghost
     fi
+    # Replace "CORPUS" with the actual corpus id
+    extract_dbfiles_expanded=${extract_dbfiles/CORPUS/$corp}
     echo "  Copying CWB files"
     time run_command "$pkghost" "cat '$corpus_pkg'" |
     tar xvp -C $corpus_root -f- $(get_tar_compress_opt $corpus_pkg) \
 	--wildcards --wildcards-match-slash \
 	--transform 's,.*/\(data\|registry\|sql\)/,\1/,' \
-	--show-transformed-names '*/data' '*/registry' '*/sql' 2>&1 \
+	--show-transformed-names \
+        '*/data' '*/registry' "*/sql/$extract_dbfiles_expanded" 2>&1 \
 	| tee $filelistfile \
 	| sed -e 's/^/    /'
-    # Allow missing directory sql
+    # Allow missing directories
     if grep '^tar:' $filelistfile > $tmp_prefix.tar_errors; then
 	if grep -E -q -v \
-	    '(\*/sql: Not found|Cannot (utime|change mode)|Exiting with failure)' \
+	    '(Not found|Cannot (utime|change mode)|Exiting with failure)' \
 	    $tmp_prefix.tar_errors;
 	then
 	    error "Errors in extracting $corpus_pkg"
@@ -544,8 +763,8 @@ install_corpus () {
 	ensure_perms $(cat $filelistfile)
     )
     adjust_registry $filelistfile
-    grep -E '\.(sql|tsv)(\.(bz2|gz|xz))?$' $filelistfile \
-         > $(make_dbfile_list_filename $corp)
+    dbfile_list_file=$(make_dbfile_list_filename $corp)
+    grep -E '\.(sql|tsv)(\.(bz2|gz|xz))?$' $filelistfile > "$dbfile_list_file"
     install_corpora_dbtables install_db $corp "$dbtable_install_order_immediate"
     # Log to the list of installed corpora: current time, corpus name,
     # package file name, package file modification time, installing
@@ -553,10 +772,17 @@ install_corpus () {
     printf "%s\t%s\t%s\t%s\t%s\n" \
 	$(date "$timestamp_format") $corp $(basename "$corpus_pkg") \
 	$pkgtime $(whoami) >> $installed_list
-    if [ "x$delay_db" != x ]; then
-	echo "  (Installing (the rest of) the database files after extracting all packages)"
-    else
-        install_corpora_dbtables install_db $corp "$dbtable_install_order"
+    if [ "$db_import" = "no" ]; then
+        echo "  (Not installing database files because of --database-import=no)"
+    elif [ -s "$dbfile_list_file" ]; then
+        if [ "$db_import" = "delay" ]; then
+            echo "  (Installing (the rest of) the database files after extracting all packages)"
+            install_dbfiles=1
+        elif [ "$db_import" = "later" ]; then
+            echo "  (Marking (the rest of) the database files to be installed on a later run)"
+        else
+            install_corpora_dbtables install_db $corp "$dbtable_install_order"
+        fi
     fi
 }
 
@@ -567,7 +793,7 @@ install_corpora_db () {
     if [ "x$install_only_dbfiles_corpora" != x ]; then
         install_corpora_db_aux "$install_only_dbfiles_corpora" "$tables_re"
     fi
-    if [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; then
+    if [ "x$install_dbfiles" != x ]; then
         install_corpora_db_aux "$corpora" "$tables_re"
     fi
 }
@@ -584,19 +810,21 @@ install_corpora_db_aux () {
 install_corpora () {
     local pkglistfile corpname pkghost pkgfile pkgtime pkgsize corpora \
           tables_re order
-    pkglistfile=$1
-    echo
-    echo "Installing Korp corpora$dry_run_msg:"
-    for corpname in $corpora_to_install; do
-	echo "  $corpname"
-    done
-    corpora=
-    while read corpname pkghost pkgfile pkgtime pkgsize; do
-	install_corpus $corpname "$pkgfile" $pkgtime $pkgsize $pkghost
-        corpora="$corpora $corpname"
-    done < $pkglistfile
-    if [ "x$install_only_dbfiles_corpora" != x ] || {
-           [ "x$dry_run" = x ] && [ "x$delay_db" != x ]; }
+    if [ "x$corpora_to_install" != x ]; then
+        pkglistfile=$1
+        echo
+        echo "Installing Korp corpora$dry_run_msg:"
+        for corpname in $corpora_to_install; do
+            echo "  $corpname"
+        done
+        corpora=
+        while read corpname pkghost pkgfile pkgtime pkgsize; do
+            install_corpus $corpname "$pkgfile" $pkgtime $pkgsize $pkghost
+            corpora="$corpora $corpname"
+        done < $pkglistfile
+    fi
+    if [ "x$install_only_dbfiles_corpora" != x ] ||
+           [ "x$install_dbfiles" != x ];
     then
 	echo
 	echo "Installing database files$dry_run_msg"
@@ -616,17 +844,42 @@ install_corpora () {
     echo "Installation complete$dry_run_msg"
 }
 
+# Add to $install_only_dbfiles_corpora corpora with database data
+# pending import but not listed as arguments.
+find_corpora_pending_import () {
+    local prefix_len omit_corpora fname corp
+    prefix_len=${#dbfile_list_prefix}
+    omit_corpora="$corpora_to_install $install_only_dbfiles_corpora"
+    ls "$dbfile_list_prefix"* 2> /dev/null > $tmp_prefix.pending
+    while read fname; do
+        corp=${fname:$prefix_len}
+        corp=${corp%$dbfile_list_ext}
+        if ! word_in $corp "$omit_corpora"; then
+            install_only_dbfiles_corpora="$install_only_dbfiles_corpora $corp"
+            echo "  $corp"
+        fi
+    done < $tmp_prefix.pending
+}
+
 main () {
     timestamp
-    echo Searching for corpus packages to install
-    find_package_candidates $pkglistfile.base "$@"
-    if [ ! -s $pkglistfile.base ]; then
-        error "No matching corpus packages found"
+    if [ $# -gt 0 ]; then
+        echo Searching for corpus packages to install
+        find_package_candidates $pkglistfile.base "$@"
+        if [ ! -s $pkglistfile.base ]; then
+            error "No matching corpus packages found"
+        fi
+        # The following two cannot be in a pipeline, because the former
+        # constructs the value of the variable corpora_to_install that the
+        # latter uses
+        filter_corpora $pkglistfile.base > $pkglistfile
     fi
-    # The following two cannot be in a pipeline, because the former
-    # constructs the value of the variable corpora_to_install that the
-    # latter uses
-    filter_corpora $pkglistfile.base > $pkglistfile
+    if [ "x$import_all" != x ]; then
+        echo
+        echo "Searching for (other) corpora with database data pending import"
+        find_corpora_pending_import
+    fi
+    # if [ "x$install_only_dbfiles_corpora" != x ]; then
     if [ "x$corpora_to_install" = x ] &&
            [ "x$install_only_dbfiles_corpora" = x ];
     then

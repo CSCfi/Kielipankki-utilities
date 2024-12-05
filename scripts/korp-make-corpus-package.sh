@@ -38,7 +38,14 @@ usage_header="Usage: $progname [options] corpus_name [corpus_id ...]
 Make an archive package for corpus corpus_name, containing the Korp
 corpora corpus_id ... (or corpus_name if corpus_id not specified).
 corpus_id may contain shell wildcards, in which case all matching
-corpora in the corpus registry are included."
+corpora in the corpus registry are included.
+
+The package is a (compressed) tar archive whose name is in general
+corpus_name_korp_yyyymmdd_hhmmss[-xx] where yyyymmdd_hhmmss is the
+most recent modification date and time of the included files and xx is
+a two-digit zero-padded number appended if a package without it (or
+with any lower xx) already exists. With option --newer, the archive
+name is slightly different; see the description of --newer below."
 
 optspecs='
 @ Directory options
@@ -148,6 +155,15 @@ f|database-format=FMT "auto" dbformat { set_db_format "$1" }
 export-database export_db { export_db=1; set_db_format "tsv" }
     export database data into TSV files to be packaged; implies
    --database-format=tsv
+newer|after=DATE
+    include only files whose modification date is later than DATE;
+    DATE can be specified as an ISO date and time (or in any other
+    format supported by GNU Tar); if DATE begins with a "/" or ".", it
+    is taken to be the name of a file whose modification date is to be
+    used as a reference; when using this option, the package base name
+    is corpus_name_yyyymmdd_hhmmss_a_yyyymmdd_hhmmss[-xx]: the package
+    contains files whose modification date is newer than ("after") the
+    yyyymmdd_hhmmss following "_a_" (the other parts are as usual)
 z|compress=PROG "gzip" { set_compress "$1" }
     compress files with PROG; "none" for no compression
 '
@@ -201,6 +217,9 @@ archive_ext_bzip2=tbz
 archive_ext_xz=txz
 
 archive_type_name=korp
+# The marker in a package name indicating that it contains files newer
+# than the specified given date
+newer_marker=a
 
 sql_file_types="lemgrams rels timespans timedata timedata_date"
 sql_file_types_multicorpus="lemgrams timespans timedata timedata_date"
@@ -487,9 +506,17 @@ if [ "x$archive_ext" = x ]; then
 fi
 
 if [ "x$1" = "x" ]; then
-    corpus_ids=$corpus_name
+    # list_corpora detects non-existent corpora
+    corpus_ids=$(list_corpora $corpus_name)
 else
     corpus_ids="$(list_corpora "$@")"
+fi
+# list_corpora calls function error on error but as it is run in a
+# subshell, it does not exit this script, so check the return value
+# and exit on errors
+retval=$?
+if [ $retval != 0 ]; then
+    exit $retval
 fi
 
 if [ "x$korp_frontend_dir" = "x" ]; then
@@ -638,17 +665,19 @@ dump_database () {
     done
 }
 
+# Output the date (timestamp as YYYYMMMDD_hhmmss) of the most recently
+# modified file of the arguments. Note that this also includes
+# possibly excluded files. Directory names should end in a slash for
+# the dates of the included files to be considered.
+# FIXME: Make work with file names containing spaces
 get_corpus_date () {
-    (
-	cd $datadir
-	ls -lt --time-style=long-iso "$@" |
-	grep -A1 '^total' |
-	grep -E -v '^(total|--)' |
-	awk '{print $6}' |
-	sort -r |
-	head -1 |
-	tr -d '-'
-    )
+    local files newest_file
+    files="$@ "
+    # Append "*" after trailing slashes to get all the files in
+    # directories
+    files=${files/// //* }
+    newest_file=$(ls -td $files | head -1)
+    date --reference="$newest_file" "+%Y%m%d_%H%M%S"
 }
 
 # FIXME: list_existing_db_files_by_type, list_existing_db_files and
@@ -744,7 +773,7 @@ for corpus_id in $corpus_ids; do
     # even if omitting CWB data
     add_corpus_files "$target_regdir/$corpus_id"
     if [ "x$omit_cwb_data" = x ]; then
-	add_corpus_files "$datadir/$corpus_id"
+	add_corpus_files "$datadir/$corpus_id/"
     fi
     if [ "x$export_db" != x ]; then
 	$korp_mysql_export --corpus-root "$corpus_root" \
@@ -770,13 +799,52 @@ for corpus_id in $corpus_ids; do
 	--info-from-file "$extra_info_file" $corpus_id
 done
 
-corpus_date=`get_corpus_date $corpus_ids`
+# Output the ISO date and time (at seconds precision) for the date
+# passed as an argument, as returned by "date". As with tar --newer,
+# if the argument begins with a "." or "/", treat it as the name of a
+# file, whose last modification is output. On error, return 1 and
+# output the error message from "date".
+get_newer_date () {
+    local indate outdate dateopt retval
+    indate=$1
+    # File name if begins with "." or "/"
+    if [ "${indate#[./]}" != "$indate" ]; then
+        dateopt=reference
+    else
+        dateopt=date
+    fi
+    outdate=$(date --$dateopt="$indate" +"%Y-%m-%d %H:%M:%S" 2>&1)
+    retval=$?
+    echo "$outdate"
+    return $retval
+}
+
+# tar option to create a package with files newer than specified
+tar_newer_opt=
+# File base name suffix for a package with files newer than specified
+newer_suff=
+
+# --newer specified, so set tar_newer_opt and newer_suff based on its
+# argument
+if [ "x$newer" != x ]; then
+    date=$(get_newer_date "$newer")
+    if [ $? != 0 ]; then
+        error "Invalid value for --newer: ${date#date: }"
+    fi
+    safe_echo "Packaging only files modified after $date"
+    date=${date//[:-]/}
+    date=${date/ /_}
+    newer_suff="_${newer_marker}_$date"
+    tar_newer_opt=--newer-mtime="$newer"
+fi
+
+corpus_date=$(get_corpus_date $corpus_files)
 mkdir_perms $pkgdir/$corpus_name
-archive_basename=${corpus_name}_${archive_type_name}_$corpus_date
+archive_basename=${corpus_name}_${archive_type_name}_$corpus_date$newer_suff
 archive_name=$pkgdir/$corpus_name/$archive_basename.$archive_ext
 archive_num=0
 while [ -e $archive_name ]; do
-    archive_num=`expr $archive_num + 1`
+    archive_num=$(($archive_num + 1))
     archive_name=$pkgdir/$corpus_name/$archive_basename-`printf %02d $archive_num`.$archive_ext
 done
 
@@ -868,7 +936,8 @@ echo_dbg "$dir_transforms"
 tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
     -f $archive_name --exclude-backups $(make_tar_excludes $exclude_files) \
     $(make_tar_transforms "$dir_transforms") \
-    --ignore-failed-read \
+    --ignore-failed-read --sort=name \
+    "$tar_newer_opt" \
     --show-transformed-names $corpus_files
 
 chgrp $filegroup $archive_name

@@ -20,10 +20,11 @@ shlib_required_libs="base msgs file str"
 # (default: $cwb_regdir), expanding shell wildcards. The result is
 # sorted (as done by ls) and uniquified. If no corpus_ids are
 # specified, list all corpora found. If some listed corpora are not
-# found, call error_cmd (default: error) with an error message.
+# found, call error_cmd (default: error) with an error message and
+# return false (1).
 list_corpora () {
-    local no_error error_func error_files registry
-    no_error=
+    local retval error_func error_files registry
+    retval=0
     error_func=error
     registry=$cwb_regdir
     while [ "x${1##--}" != "x$1" ]; do
@@ -54,9 +55,11 @@ list_corpora () {
 	))
 	$error_func \
 	    "Corpora not found in the CWB corpus registry $registry: $error_files"
+        retval=1
     fi
     cat $tmp_prefix.corpids
     rm -rf $tmp_prefix.corpids $tmp_prefix.corpid_errors
+    return $retval
 }
 
 # set_corpus_registry dir
@@ -103,13 +106,11 @@ _cwb_registry_find_nonexistent_attrs () {
 
 # _cwb_registry_make_attrdecls format attrname ...
 _cwb_registry_make_attrdecls () {
-    local _format _attrname
+    local _format
     _format=$1
     shift
-    for _attrname in $*; do
-	echo $_attrname;
-    done |
-    awk '{printf "'"$_format"'\\n", $0}'
+    # Output literal \n as the result is to be used in Awk printf
+    printf "$_format\\\\n" $*
 }
 
 # cwb_registry_reorder_posattrs corpus attrname1 attrname2
@@ -163,8 +164,8 @@ cwb_registry_add_posattr () {
     _new_attrs=$(
 	_cwb_registry_find_nonexistent_attrs "$_regfile" "ATTRIBUTE " $*
     )
-    _new_attrdecls="$(_cwb_registry_make_attrdecls "ATTRIBUTE %s" $_new_attrs)"
-    if [ "x$_new_attrdecls" != "x" ]; then
+    if [ "x$_new_attrs" != "x" ]; then
+        _new_attrdecls="$(_cwb_registry_make_attrdecls "ATTRIBUTE %s" $_new_attrs)"
 	cp -p "$_regfile" "$_regfile.old"
 	awk '/^ATTRIBUTE/ { prev_attr = 1 }
 	     /^$/ && prev_attr { printf "'"$_new_attrdecls"'"; prev_attr = 0 }
@@ -176,85 +177,208 @@ cwb_registry_add_posattr () {
     ensure_perms "$_regfile" "$_regfile.old"
 }
 
-# cwb_registry_add_structattr corpus struct [attrname ...]
+# _make_embedded_attrs depth attrname ...
+#
+# Output attrnames and their embedded variants (suffixed with a
+# digit). If depth = 0, output attrnames as such. If depth = N > 0,
+# the output contains "attrname attrname1 ... attrnameN" for each
+# attrname. The function can be used for both structures and their
+# attributes (struct_attr).
+_make_embedded_attrs () {
+    local depth attr d result
+    depth=$1
+    shift
+    if [ $depth -le 0 ]; then
+        result="$@"
+    else
+        result=
+        for attr in "$@"; do
+            result="$result $attr"
+            d=1
+            while [ $d -le $depth ]; do
+                result="$result $attr$d"
+                d=$(($d + 1))
+            done
+        done
+    fi
+    safe_echo $result
+}
+
+# _cwb_registry_add_struct regfile struct depth
+#
+# If structure struct does not exist in the registry file regfile, add
+# it after existing structural attributes (without annotation
+# attributes), with recursive embedding of up to depth levels.
+_cwb_registry_add_struct () {
+    local regfile struct depth
+    regfile=$1
+    struct=$2
+    depth=$3
+    cp -p "$regfile" "$regfile.old"
+    awk '
+        # Return a comment on the allowed nesting depth for struct
+        function make_embedding_comment (struct, depth) {
+            if (depth == 0) {
+                return "(no recursive embedding allowed)"
+            } else {
+                val = "(" depth " levels of embedding: <" struct ">, "
+                for (d = 1; d <= depth; d++) {
+                    val = val "<" struct d ">"
+                    if (d < depth) {
+                        val = val ", "
+                    }
+                }
+                return val ")"
+                # cwb-encode would append a full stop after the
+                # closing bracket here, but we do not, as cwb-encode
+                # does not append it after "(no recursive embedding
+                # allowed)"
+            }
+        }
+        function output () {
+            print "\n# <'$struct'> ... </'$struct'>"
+            print "# " make_embedding_comment("'$struct'", '$depth')
+            print "STRUCTURE '$struct'"
+            for (d = 1; d <= '$depth'; d++) {
+                print "STRUCTURE '$struct'" d
+            }
+            printed = 1
+        }
+        /^$/ { empty = empty "\n"; next }
+        /^(# Yours sincerely|ALIGNED)/ {
+            output()
+            if (empty == "") { empty = "\n" }
+        }
+        /./ { printf empty; print; empty = "" }
+        END {
+            if (! printed) { output() }
+        }
+    ' "$regfile.old" > "$regfile"
+}
+
+# _cwb_registry_get_struct_depth regfile struct
+#
+# Output the number of recursive embedding levels (nesting depth)
+# specified for struct in CWB registry file regfile; 0 if struct does
+# not exist in regfile.
+_cwb_registry_get_struct_depth () {
+    local regfile struct depth
+    regfile=$1
+    struct=$2
+    depth=$(grep -B1 "STRUCTURE $_struct\$" "$_regfile")
+    depth=${depth#*\(}
+    depth=${depth%% *}
+    if [ "x$depth" = x ] || [ "$depth" = "no" ]; then
+        depth=0
+    fi
+    echo $depth
+}
+
+
+# _cwb_registry_add_structattrs regfile struct new_attrs new_attrs_prefixed
+#
+# Add to CWB registry file regfile structural attributes (annotations)
+# new_attrs to structure struct, which is assumed to be already
+# present in regfile. new_attrs contains bare attribute (annotation)
+# names, whereas new_attrs_prefixed contains them prefixed with
+# struct_ and containing the digit-suffixed variants for structures
+# allowing recursive embedding (nesting).
+_cwb_registry_add_structattrs () {
+    local regfile struct new_attrs new_attrs_prefixed new_attrdecls xml_attrs
+    regfile=$1
+    struct=$2
+    new_attrs=$3
+    new_attrs_prefixed=$4
+    new_attrdecls="$(
+        _cwb_registry_make_attrdecls "STRUCTURE %-20s # [annotations]" $new_attrs_prefixed
+    )"
+    xml_attrs="$(printf ' %s=\\"..\\"' $new_attrs)"
+    cp -p "$regfile" "$regfile.old"
+    awk '
+        /^# <'$struct'[ >]/ { sub(/>/, "'"$xml_attrs"'>") }
+        /^STRUCTURE '$struct'(_|$)/ {
+            prev_struct = 1
+            print
+            next
+        }
+        # Add the declarations at the end of the attribute
+        # declarations for struct: before a blank line, a comment
+        # line beginning with "# <" or a STRUCTURE declaration of
+        # a different structural attribute.
+        prev_struct && ! printed \
+            && (/^ *$/ || /^# </ \
+                || (/^STRUCTURE / && ! /^STRUCTURE '$struct'(_|[0-9]?$)/)) {
+            printf "'"$new_attrdecls"'"
+            printed = 1
+            prev_struct = 0
+        }
+        { print }
+        END {
+            if (! printed) { printf "'"$new_attrdecls"'" }
+        }
+    ' "$regfile.old" > "$regfile"
+}
+
+# cwb_registry_add_structattr corpus struct [depth] [attrname ...]
 #
 # Add structural attributes (annotations) of the structure struct to
 # the CWB registry file for corpus at the end of the list of
-# structural attributes if they do not already exist. If attrname are
-# not specified, only add struct without annotations. (The function
-# does not use cwb-regedit, because it would append the attributes at
-# the very end of the registry file.)
+# structural attributes if they do not already exist.
+#
+# depth is an integer (0...9) specifying the number of recursive
+# embedding (nesting) levels for struct; if omitted, 0 is assumed. If
+# the registry file already contains structure struct, the number of
+# levels is taken from the registry file and depth has no effect.
+# (TODO: Allow changing the number of embedding levels or warn if
+# depth differs from the existing number of levels.)
+#
+# If attrname are not specified, only add struct without annotations.
+#
+# (The function does not use cwb-regedit, because it would append the
+# attributes at the very end of the registry file.)
 cwb_registry_add_structattr () {
-    local _corpus _struct _regfile _new_attrs _new_attrs_prefixed
-    local _new_attrdecls _xml_attrs _added_attrs
+    local _corpus _struct _depth _regfile _new_attrs _new_attrs_prefixed
+    local _new_attrs_embed _added_attrs _attr _attrs
     _corpus=$1
     _struct=$2
     shift 2
+    if word_in "$1" "0 1 2 3 4 5 6 7 8 9"; then
+        _depth=$1
+        shift
+    else
+        _depth=0
+    fi
+    # Strip possible trailing slash
+    for _attr in "$@"; do
+        _attrs="$_attrs ${_attr%/}"
+    done
     _regfile="$cwb_regdir/$_corpus"
     _added_attrs=
     # If struct does not exist in the registry file, add it after
     # existing structural attributes
     if ! grep -q "STRUCTURE $_struct\$" "$_regfile"; then
-        _added_attrs="$_struct "
-	cp -p "$_regfile" "$_regfile.old"
-	awk '
-            function output () {
-                printf "\n# <'$_struct'> ... </'$_struct'>\n# (no recursive embedding allowed)\nSTRUCTURE '$_struct'\n"
-                printed = 1
-            }
-            /^$/ { empty = empty "\n"; next }
-            /^(# Yours sincerely|ALIGNED)/ {
-                output()
-                if (empty == "") { empty = "\n" }
-            }
-            /./ { printf empty; print; empty = "" }
-            END {
-                if (! printed) { output() }
-            }
-        ' "$_regfile.old" > "$_regfile"
+        # If the structure can be nested (embedded), also add
+        # structures structN where N = 1...depth
+        _added_attrs=$(_make_embedded_attrs $_depth $_struct)
+        _cwb_registry_add_struct "$_regfile" $_struct $_depth
+    else
+        # Get the existing number of struct embedding levels from the
+        # registry file
+        _depth=$(_cwb_registry_get_struct_depth "$_regfile" $_struct)
     fi
     _new_attrs=$(
 	_cwb_registry_find_nonexistent_attrs "$_regfile" \
-	    "STRUCTURE ${_struct}_" $*
+	    "STRUCTURE ${_struct}_" $_attrs
     )
     if [ "x$_new_attrs" != "x" ]; then
-	_new_attrs_prefixed=$(
-	    echo $_new_attrs |
-	    awk '{ for (i = 1; i <= NF; i++) { print "'$_struct'_" $i } }'
-	)
-	_new_attrdecls="$(
-	    _cwb_registry_make_attrdecls "STRUCTURE %-20s # [annotations]" $_new_attrs_prefixed
-        )"
-	_xml_attrs="$(
-	    echo $_new_attrs |
-	    awk '{ for (i = 1; i <= NF; i++) { printf " %s=\\\"..\\\"", $i } }'
-	)"
-	cp -p "$_regfile" "$_regfile.old"
-	awk '
-            /^# <'$_struct'[ >]/ { sub(/>/, "'"$_xml_attrs"'>") }
-            /^STRUCTURE '$_struct'(_|$)/ {
-                prev_struct = 1
-                print
-                next
-            }
-            # Add the declarations at the end of the attribute
-            # declarations for struct: before a blank line, a comment
-            # line beginning with "# <" or a STRUCTURE declaration of
-            # a different structural attribute.
-            prev_struct && ! printed \
-                && (/^ *$/ || /^# </ \
-                    || (/^STRUCTURE / && ! /^STRUCTURE '$_struct'(_|$)/)) {
-                printf "'"$_new_attrdecls"'"
-                printed = 1
-                prev_struct = 0
-            }
-            { print }
-            END {
-                if (! printed) { printf "'"$_new_attrdecls"'" }
-            }
-        ' "$_regfile.old" > "$_regfile"
+        # Add attribute names suffixed with a digit for each embedding
+        # level
+        _new_attrs_embed=$(_make_embedded_attrs $_depth $_new_attrs)
+	_new_attrs_prefixed=$(add_prefix ${_struct}_ $_new_attrs_embed)
+        _cwb_registry_add_structattrs \
+            $_regfile $_struct "$_new_attrs" "$_new_attrs_prefixed"
     fi
-    _added_attrs="$_added_attrs$_new_attrs_prefixed"
+    _added_attrs="$_added_attrs $_new_attrs_prefixed"
     if [ "x$_added_attrs" != x ]; then
         cwb_registry_add_change_comment \
             $_corpus \

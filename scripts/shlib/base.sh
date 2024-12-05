@@ -3,11 +3,15 @@
 # shlib/base.sh
 #
 # Generic initialization code for Bourne shell scripts: temporary
-# directory and tab character
+# directory and tab and newline characters
 
 
 # The tab character
 tab='	'
+
+# The newline (linefeed) character
+nl='
+'
 
 # Directory for temporary files
 tmpdir=
