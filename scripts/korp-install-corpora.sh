@@ -13,7 +13,7 @@ progname=`basename $0`
 progdir=`dirname $0`
 
 
-usage_header="Usage: $progname [options] corpus|package ...
+usage_header="Usage: $progname [options] corpus|package|--import-all-pending [corpus|package ...]
 
 Install or update the specified corpora from corpus packages to Corpus
 Workbench and Korp database.
@@ -47,6 +47,14 @@ database-import=MODE db_import
     nor extract database files from corpus packages); note that
     authorization data is always imported immediately (default:
     "delay")
+import-all-pending import_all
+    in addition to or instead of installing corpus packages, import
+    all database data pending importing from previous runs of
+    '"$progname"', either because of using --database-import=later or
+    because of an interrupted run; this option can be used without
+    specifying a corpus or package to install; --database-import=no or
+    --database-import=later does not affect this option but only the
+    database data from the corpus packages to be installed on this run
 immediate-database-import immediate_import
     DEPRECATED: use --database-import=immediate instead
 load-limit=LIMIT "$num_cpus"
@@ -131,8 +139,8 @@ dbtable_install_order_immediate="auth_.*"
 dbtable_install_order="timedata(_date)? lemgrams .*"
 
 
-if [ "x$1" = x ]; then
-    error "Please specify the names of corpus packages or corpora to install.
+if [ "x$1" = x ] && [ "x$import_all" = x ]; then
+    error "Please specify the names of corpus packages or corpora to install (or option --import-all-pending).
 For more information, run '$0 --help'."
 fi
 
@@ -168,6 +176,7 @@ if [ ! -e "$install_state_dir" ]; then
 fi
 
 dbfile_list_prefix=$install_state_dir/dbfile_queue-
+dbfile_list_ext=.list
 
 install_only_dbfiles_corpora=
 
@@ -214,7 +223,7 @@ wait_for_low_load () {
 make_dbfile_list_filename () {
     local corp
     corp=$1
-    echo "$dbfile_list_prefix$corp.list"
+    echo "$dbfile_list_prefix$corp$dbfile_list_ext"
 }
 
 host_is_remote () {
@@ -488,7 +497,8 @@ filter_corpora () {
 		else
                     if [ -s $(make_dbfile_list_filename $corpname) ]; then
                         if [ "$db_import" = "delay" ] ||
-                               [ "$db_import" = "immediate" ];
+                               [ "$db_import" = "immediate" ] ||
+                               [ "x$import_all" != x ];
                         then
                             echo "  $corpname: $formatted_pkgname already installed but importing the database files not yet imported" >> /dev/stderr
                             install_only_dbfiles_corpora="$install_only_dbfiles_corpora $corpname"
@@ -834,17 +844,42 @@ install_corpora () {
     echo "Installation complete$dry_run_msg"
 }
 
+# Add to $install_only_dbfiles_corpora corpora with database data
+# pending import but not listed as arguments.
+find_corpora_pending_import () {
+    local prefix_len omit_corpora fname corp
+    prefix_len=${#dbfile_list_prefix}
+    omit_corpora="$corpora_to_install $install_only_dbfiles_corpora"
+    ls "$dbfile_list_prefix"* 2> /dev/null > $tmp_prefix.pending
+    while read fname; do
+        corp=${fname:$prefix_len}
+        corp=${corp%$dbfile_list_ext}
+        if ! word_in $corp "$omit_corpora"; then
+            install_only_dbfiles_corpora="$install_only_dbfiles_corpora $corp"
+            echo "  $corp"
+        fi
+    done < $tmp_prefix.pending
+}
+
 main () {
     timestamp
-    echo Searching for corpus packages to install
-    find_package_candidates $pkglistfile.base "$@"
-    if [ ! -s $pkglistfile.base ]; then
-        error "No matching corpus packages found"
+    if [ $# -gt 0 ]; then
+        echo Searching for corpus packages to install
+        find_package_candidates $pkglistfile.base "$@"
+        if [ ! -s $pkglistfile.base ]; then
+            error "No matching corpus packages found"
+        fi
+        # The following two cannot be in a pipeline, because the former
+        # constructs the value of the variable corpora_to_install that the
+        # latter uses
+        filter_corpora $pkglistfile.base > $pkglistfile
     fi
-    # The following two cannot be in a pipeline, because the former
-    # constructs the value of the variable corpora_to_install that the
-    # latter uses
-    filter_corpora $pkglistfile.base > $pkglistfile
+    if [ "x$import_all" != x ]; then
+        echo
+        echo "Searching for (other) corpora with database data pending import"
+        find_corpora_pending_import
+    fi
+    # if [ "x$install_only_dbfiles_corpora" != x ]; then
     if [ "x$corpora_to_install" = x ] &&
            [ "x$install_only_dbfiles_corpora" = x ];
     then
