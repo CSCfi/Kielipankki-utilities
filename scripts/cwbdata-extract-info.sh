@@ -142,7 +142,7 @@ get_date_mysql () {
     _type=$1
     _corpname=$2
     _corpname_u=$(echo "$_corpname" | sed -e 's/.*/\U&\E/')
-    if [ "x$_type" = "xfirst" ]; then
+    if [ "x$_type" = "xFirst" ]; then
 	_func=min
 	_field=datefrom
     else
@@ -158,7 +158,7 @@ get_date_tsv () {
     local type corpname fieldnr sort_opts
     type=$1
     corpname=$2
-    if [ "x$type" = "xfirst" ]; then
+    if [ "x$type" = "xFirst" ]; then
 	fieldnr=2
 	sort_opts=-n
     else
@@ -173,21 +173,52 @@ get_date_tsv () {
     sed -e 's/\([0-9][0-9][0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)\([0-9][0-9]\)/\1-\2-\3 \4:\5:\6/'
 }
 
-get_date () {
-    corpname=$2
-    if [ "x$tsvdir" != x ]; then
-	 if test_compr_file -s "$tsvdir/${corpname}_timedata.tsv"; then
-	     get_date_tsv "$@"
-	 else
-	     # FIXME: The message is inexact, as test_compr_file and
-	     # comprcat also recognize .bz2 and .xz files.
-	     warn "File $tsvdir/${corpname}_timedata.tsv(.gz) not found or empty: cannot get FirstDate and LastDate information"
-	 fi
-    elif [ "x$mysql_bin" != x ]; then
-	get_date_mysql "$@"
-    else
-	warn "No MySQL client found and no --tsv-dir specified: cannot get FirstDate and LastDate information"
+get_existing_date () {
+    local type corpdir infofile date
+    type=$1
+    # This function ignores argument $2 (corpus name)
+    corpdir=$3
+    infofile="$corpdir/.info"
+    if [ -s "$infofile" ]; then
+        date=$(grep "^${type}Date:" "$infofile")
+        echo "${date#*: }"
     fi
+}
+
+get_date () {
+    local type corpname date tsvfile msg
+    type=$1
+    corpname=$2
+    date=
+    if [ "x$tsvdir" != x ]; then
+        tsvfile=$tsvdir/${corpname}_timedata.tsv
+	if test_compr_file -s "$tsvfile"; then
+	    date=$(get_date_tsv "$@")
+            if [ "x$date" = x ]; then
+                msg="No dates found in file $tsvfile(.gz)"
+            fi
+	else
+	    # FIXME: The message is inexact, as test_compr_file and
+	    # comprcat also recognize .bz2 and .xz files.
+	    msg="File $tsvfile(.gz) not found or empty"
+	fi
+    elif [ "x$mysql_bin" != x ]; then
+	date=$(get_date_mysql "$@")
+        if [ "x$date" = x ]; then
+            msg="No dates found in Korp MySQL database for corpus $corpname"
+        fi
+    else
+	msg="No MySQL client found and no --tsv-dir specified"
+    fi
+    if [ "x$date" = x ]; then
+        date=$(get_existing_date "$@")
+        if [ "x$date" = x ]; then
+            warn "$msg, and no existing ${type}Date found"
+        else
+            warn "$msg: using existing ${type}Date"
+        fi
+    fi
+    echo "$date"
 }
 
 extract_info () {
@@ -195,8 +226,8 @@ extract_info () {
     corpname=$2
     sentcount=$(get_sentence_count $corpname)
     updated=$(get_updated "$corpdir")
-    firstdate=$(get_date first $corpname)
-    lastdate=$(get_date last $corpname)
+    firstdate=$(get_date First $corpname "$corpdir")
+    lastdate=$(get_date Last $corpname "$corpdir")
     echo "Sentences: $sentcount"
     echo "Updated: $updated"
     if [ "x$firstdate" != x ]; then
