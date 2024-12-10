@@ -19,24 +19,49 @@
 progname=`basename $0`
 progdir=`dirname $0`
 
-shortopts="hc:r:d:s:tuvA"
-longopts="help,cwbdir:,registry:,data-root-dir:,tsv-dir:,set-info:,info-from-file:,test,update,verbose,all,no-backups,backup-suffix:"
+
+usage_header="Usage: $progname [options] [corpus ... | --all] [> .info]
+
+Extract from or update the information to be written to the .info file
+of a Corpus Workbench corpus (or a list of corpora): the total number
+of sentences and the date of the last update. Corpus name arguments
+may contain shell wildcards."
+
+optspecs='
+c|cwbdir=DIR "$cwb_bindir" cwb_bindir
+    use the CWB binaries in DIR
+r|registry=DIR "$cwb_regdir" cwb_regdir
+    use DIR as the CWB registry
+d|data-root-dir=DIR data_rootdir
+    use DIR as the corpus data root directory containing the
+    corpus-specific data directories, overriding the data directory
+    specified the registry file
+s|set-info=KEY:VALUE * { set_info "$1" }
+    set the information item KEY to the value VALUE, where KEY is of
+    the form [SECTION_]SUBITEM, where SECTION can be "Metadata",
+    "Licence" or "Compiler" and SUBITEM "URL", "URN", "Name" or
+    "Description"; this option can be repeated multiple times
+info-from-file=FILENAME { read_info_file < "$1" }
+    read information items to be added from file FILENAME
+tsv-dir=DIR tsvdir
+    extract FirstDate and LastDate information from
+    DIR/CORPUS_timedata.tsv.gz instead of the MySQL database
+t|test
+    test whether the .info files need updating
+u|update
+    update the .info files for the corpora if needed
+v|verbose
+    show information about the processed corpora
+A|all all_corpora
+    process all corpora in the CWB corpus registry
+no-backups !backups
+    do not make backups of the info files when updating
+backup-suffix=SUFFIX ".bak"
+    use SUFFIX as the backup file suffix
+'
 
 . $progdir/korp-lib.sh
 
-
-cwb_regdir=${CORPUS_REGISTRY:-$corpus_root/registry}
-# Use the data directory specified in the registry file of a corpus,
-# unless specified via an option
-data_rootdir=
-tsvdir=
-
-update=
-verbose=
-test=
-all_corpora=
-backups=1
-backup_suffix=.bak
 
 std_info_keys_list="Sentences Updated FirstDate LastDate"
 std_info_keys=$(echo "$std_info_keys_list" | sed -e 's/ /|/g')
@@ -46,49 +71,6 @@ if which wdiff > /dev/null 2>&1; then
 else
     wdiff=diff
 fi
-
-tmp_prefix=$tmpdir/$progname.$$.tmp
-
-
-usage () {
-    cat <<EOF
-Usage: $progname [options] [corpus ... | --all] [> .info]
-
-Extract from or update the information to be written to the .info file
-of a Corpus Workbench corpus (or a list of corpora): the total number
-of sentences and the date of the last update. Corpus name arguments
-may contain shell wildcards.
-
-Options:
-  -h, --help      show this help
-  -c, --cwbdir DIR
-                  use the CWB binaries in DIR (default: $cwb_bindir)
-  -r, --registry DIR
-                  use DIR as the CWB registry (default: $cwb_regdir)
-  -d, --data-root-dir DIR
-                  use DIR as the corpus data root directory containing the
-                  corpus-specific data directories, overriding the data
-                  directory specified the registry file
-  -s, --set-info KEY:VALUE
-                  set the information item KEY to the value VALUE, where KEY
-                  is of the form [SECTION_]SUBITEM, where SECTION can be
-                  "Metadata", "Licence" or "Compiler" and SUBITEM "URL",
-                  "URN", "Name" or "Description"; this option can be repeated
-                  multiple times
-  --info-from-file FILENAME
-                  read information items to be added from file FILENAME
-  --tsv-dir DIR   extract FirstDate and LastDate information from
-                  DIR/CORPUS_timedata.tsv.gz instead of the MySQL database
-  -t, --test      test whether the .info files need updating
-  -u, --update    update the .info files for the corpora if needed
-  -v, --verbose   show information about the processed corpora
-  -A, --all       process all corpora in the CWB corpus registry
-  --no-backups    do not make backups of the info files when updating
-  --backup-suffix SUFFIX
-                  use SUFFIX as the backup file suffix (default: $backup_suffix)
-EOF
-    exit 0
-}
 
 
 info_items=
@@ -118,68 +100,7 @@ read_info_file () {
 
 
 # Process options
-while [ "x$1" != "x" ] ; do
-    case "$1" in
-	-h | --help )
-	    usage
-	    ;;
-	-c | --cwbdir )
-	    cwb_bindir=$2
-	    shift
-	    ;;
-	-r | --registry )
-	    cwb_regdir=$2
-	    shift
-	    ;;
-	-d | --data-root-dir )
-	    data_rootdir=$2
-	    shift
-	    ;;
-	--tsv-dir )
-	    tsvdir=$2
-	    shift
-	    ;;
-	-s | --set-info )
-	    set_info "$2"
-	    shift
-	    ;;
-	--info-from-file )
-	    read_info_file < "$2"
-	    shift
-	    ;;
-	-t | --test )
-	    test=1
-	    update=1
-	    ;;
-	-u | --update )
-	    update=1
-	    ;;
-	-v | --verbose )
-	    verbose=1
-	    ;;
-	-A | --all )
-	    all_corpora=1
-	    ;;
-	--no-backups )
-	    backups=
-	    ;;
-	--backup-suffix )
-	    backup_suffix=$2
-	    shift
-	    ;;
-	-- )
-	    shift
-	    break
-	    ;;
-	--* )
-	    warn "Unrecognized option: $1"
-	    ;;
-	* )
-	    break
-	    ;;
-    esac
-    shift
-done
+eval "$optinfo_opt_handler"
 
 
 cwb_describe_corpus=$(find_prog cwb-describe-corpus $cwb_bindir)
