@@ -117,16 +117,18 @@ def validateline(k, line, respond):
 
     # yes line terminators may be reported again in the following
 
-    for cat in set(map(category, line.replace('\t', ' '))):
+    for cat, ch in ((category(ch), ch)
+                    for ch in line
+                    if ch != '\t'):
         if cat == 'Cc':
             # \t is Cc but fine in data - to check separately in meta
-            respond(k, 'code', 'warning', 'control character in line')
+            respond(k, 'code', 'warning', 'control character: ' + repr(ch))
         elif cat == 'Cn':
-            respond(k, 'code', 'warning', 'unassigned character in line')
+            respond(k, 'code', 'warning', 'unassigned character: ' + repr(ch))
         elif cat == 'Co':
-            respond(k, 'code', 'warning', 'private character in line')
+            respond(k, 'code', 'warning', 'private character: ' + repr(ch))
         elif cat == 'Cs':
-            respond(k, 'code', 'warning', 'surrogate character in line')
+            respond(k, 'code', 'warning', 'surrogate character: ' + repr(ch))
         else:
             # TODO bidi, ...
             pass
