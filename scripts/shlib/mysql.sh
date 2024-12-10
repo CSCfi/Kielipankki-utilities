@@ -136,7 +136,7 @@ if [ "x$KORP_MYSQL_PASSWORD" != "x" ]; then
 elif [ "x$MYSQL_PASSWORD" != "x" ]; then
     mysql_opts="$mysql_opts --password=$MYSQL_PASSWORD"
 fi
-if [ "x$KORP_MYSQL_BIN" != "x" ]; then
+if [ "x$KORP_MYSQL_BIN" != "x" ] && [ -x "$KORP_MYSQL_BIN" ]; then
     mysql_bin=$KORP_MYSQL_BIN
 elif [ -x /opt/mariadb/bin/mysql ]; then
     # MariaDB on the Korp server

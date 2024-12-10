@@ -1555,7 +1555,11 @@ test_skip_convert_timedata () {
 extract_info () {
     # --verbose would add the corpus id to the .info file which is not
     # desired.
-    run_cmd $cwbdata_extract_info --tsv-dir "$tsvdir" $corpus > $datadir/.info
+    # cwbdata-extract-info may read FirstDate and LastDate from
+    # $datadir/.info if it exists (when augmenting data), so output
+    # first to a temporary file and then move it to $datadir/info.
+    run_cmd $cwbdata_extract_info --tsv-dir "$tsvdir" $corpus > $tmp_prefix.info
+    mv $tmp_prefix.info $datadir/.info
 }
 
 extract_lemgrams () {
