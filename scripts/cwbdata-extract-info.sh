@@ -231,7 +231,7 @@ infofile_comb=$tmp_prefix.comb
 if [ "x$all_corpora" != "x" ]; then
     corpora=$(list_corpora "*")
 else
-    corpora=$(list_corpora $*)
+    corpora=$(list_corpora "$@")
 fi
 
 for corpus in $corpora; do
