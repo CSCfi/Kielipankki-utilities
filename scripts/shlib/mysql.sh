@@ -40,8 +40,8 @@ shlib_required_libs="msgs file"
 run_mysql () {
     local _db sql_cmd
     _db=$korpdb
-    if [ "x$mysql_bin" = x ]; then
-	warn "MySQL client mysql not found"
+    if [ "x$mysql_error" != x ]; then
+	warn "$mysql_error"
 	return 1
     fi
     if [ "x$1" = "x--auth" ]; then
@@ -136,6 +136,10 @@ if [ "x$KORP_MYSQL_PASSWORD" != "x" ]; then
 elif [ "x$MYSQL_PASSWORD" != "x" ]; then
     mysql_opts="$mysql_opts --password=$MYSQL_PASSWORD"
 fi
+# If the mysql binary or the Korp MySQL database cannot be accessed,
+# $mysql_error contains an error message (otherwise empty) and
+# $mysql_bin is empty
+mysql_error=
 if [ "x$KORP_MYSQL_BIN" != "x" ] && [ -x "$KORP_MYSQL_BIN" ]; then
     mysql_bin=$KORP_MYSQL_BIN
 elif [ -x /opt/mariadb/bin/mysql ]; then
@@ -143,7 +147,13 @@ elif [ -x /opt/mariadb/bin/mysql ]; then
     mysql_bin="/opt/mariadb/bin/mysql --defaults-extra-file=/var/lib/mariadb/my.cnf"
 else
     mysql_bin=$(find_prog mysql)
-    if [ "x$(run_mysql ";" 2>&1)" != x ]; then
-	mysql_bin=
+    if [ $? != 0 ]; then
+	mysql_error="MySQL client mysql not found"
+        mysql_bin=
     fi
+fi
+mysql_error="$(run_mysql ";" 2>&1)"
+if [ "x$mysql_error" != x ]; then
+    mysql_error="Cannot access Korp MySQL database: $mysql_error"
+    mysql_bin=
 fi
