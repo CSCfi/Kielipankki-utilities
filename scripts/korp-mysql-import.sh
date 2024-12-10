@@ -329,6 +329,10 @@ done
 
 mysql_opts="$mysql_opts --local-infile --skip-reconnect $mysql_extra_opts"
 
+if [ "x$mysql_bin" = x ]; then
+    error "$mysql_error"
+fi
+
 
 # If $pause_period_fname exists and if the current time is within the
 # period specified in the file, sleep until the end of the period
