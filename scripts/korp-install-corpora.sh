@@ -47,6 +47,10 @@ database-import=MODE db_import
     nor extract database files from corpus packages); note that
     authorization data is always imported immediately (default:
     "delay")
+ignore-import-errors
+    do not halt corpus installation on database import errors; without
+    this, installation is halted even with --database-import=no if the
+    package contains authorization data
 import-all-pending import_all
     in addition to or instead of installing corpus packages, import
     all database data pending importing from previous runs of
@@ -677,7 +681,11 @@ install_dbfiles () {
                 retval=$?
                 indent_input 6 < $tmp_prefix.install.out
 	        if [ $retval -ne 0 ]; then
-		    error "Errors in loading $file"
+                    if [ "x$ignore_import_errors" != x ]; then
+                        warn "Ignoring errors in loading $file because of --ignore-import-errors"
+                    else
+		        error "Errors in loading $file"
+                    fi
                 else
                     grep -Fv "$file" $listfile > $listfile.new
                     replace_file $listfile $listfile.new
