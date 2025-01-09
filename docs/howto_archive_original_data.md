@@ -4,7 +4,7 @@ The data should be accompanied by a simple readme file to explain the content of
 For the time being, the original data is stored in IDA as well as on the HFST server.
 
 ## Instructions in detail:
-1. Create a simple shortname-orig_yyyymmdd_README.txt for the original data, [see template](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/shortname-orig_yyyymmdd_README.txt). Mandatory content: 
+1. Create a simple _shortname-orig_yyyymmdd_README.txt_ file for the original data, [see template](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/shortname-orig_yyyymmdd_README.txt). Mandatory content: 
   - resource title
   - PID for the metadata record of the first version
   - link to the associated epic in Jira.
