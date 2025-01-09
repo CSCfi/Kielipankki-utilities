@@ -242,7 +242,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DATA*_ Receive, download or harvest the data
 # [ ] _*+DATA*_ Check the data: format and validity
 ## [ ] _*?DATA*_ Clean up the data
-# [ ] _*+DATA*_ Create a simple shortname-orig_yyyymmdd_README.txt for the original data. Include: 1) resource title; 2) PID(s) for the metadata record(s) of the first version(s); 3) link(s) to Jira issue(s).
+# [ ] _*+DATA*_ Create a simple shortname-orig_yyyymmdd_README.txt for the original data, see [instructions| [https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_archive_original_data.md ].
 # [ ] _*+IDA*_ Upload the original data as a zip file (named as shortname-orig_yyyymmdd.zip) and the separate shortname-orig_yyyymmdd_README.txt file to IDA, under the folder with the resource group shortname, in lowercase characters.
 # [ ] _*+IDA*_ Freeze the new files in the original data folder in IDA
 # [ ] _*+HYSTORE*_ Upload the original data as a zip file (named as shortname-orig_yyyymmdd.zip) and the separate shortname-orig_yyyymmdd_README.txt file to the HFST server, under data/corpora/originals/.
