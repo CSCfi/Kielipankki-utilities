@@ -5,20 +5,20 @@ The **source data** is offered as is, meaning that usually it is not changed by 
 
 The **VRT data** can be extracted from Korp in order to create a download package. You have to ask someone with access rights to the Korp server for this.
 
-As for all resources and all their versions, a META-SHARE record has to be created, URNs to be requested, the resource has to be added to the list of upcoming resources, if not there yet. (See the respective [instructions](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/))
+As for all resources and all their versions, a metadata record has to be created, URNs to be requested, the resource has to be added to the list of upcoming resources, if not there yet. (See the respective [instructions](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/))
 
 The name of the **source version** of a resource should contain the additional information 'source', e.g. `Yle Finnish News Archive 2011-2018, source`. The short name should have the suffix '-src', e.g. `ylenews-fi-2011-2018-src`.
 
 Accordingly, the name of the **VRT version** of a resource should contain the information 'VRT', e.g. `Yle Finnish News Archive 2011-2018, VRT`. The short name should have the suffix '-vrt', e.g. `ylenews-fi-2011-2018-vrt`. Please follow Kielipankki's [Language resource naming conventions](https://www.kielipankki.fi/development/language-resource-naming-conventions/).
 
-License pages in the portal have to be created and linked to from META-SHARE.
-Citation information also has to be added to the META-SHARE record.
+License pages in the portal have to be created and linked to from the metadata record.
+Citation information also has to be added to the metadata record.
 
 ## Creating the download package
 Download the data from IDA or the HFST server to your work directory on CSC's computing environment (Puhti) in a separate folder. 
 
 Create a **README.txt** containing at least the following information:
-long name of the corpus, shortname, metadata PID, license information, short description of the corpus as given in META-SHARE, link to the resource group page. Add an explanation of the structure of the download package if needed.
+long name of the corpus, shortname, metadata PID, license information, short description of the corpus as given in the metadata, link to the resource group page. Add an explanation of the structure of the download package if needed.
 For a model of the README.txt, please see [docs: model of the download package README.txt](model_download-package-README.md)
 
 Create a **LICENSE.txt**. The content of this file should be copied from the respective license page in the portal.
@@ -83,14 +83,15 @@ Check the uploaded resource, or better, have it checked by someone else of the t
 Check if:
 
 - the download folder has the correct name (short-name)
-- the description has the correct name (possibly slightly shortened) and links via URN to META-SHARE
-- the subdirectory contains the zip file (short-name.zip)
-- the subdirectory contains the uncompressed README.txt and sometimes separate LICENSE.txt
+- the description has the correct name (possibly slightly shortened) and links via URN to the metadata record
+- the subdirectory contains the zip file(s) (short-name.zip)
+- the subdirectory contains the uncompressed README.txt and LICENSE.txt
 - for restricted corpora a license and acceptance page opens, that needs to be approved before download
+- for RES corpora, check the functionality of the LBR record
 
-Move the resource from the list of upcoming resources to the list of published resources. See instructions under [docs: how to maintain resources lists](howto_maintain_resource_lists_database.md)
+Mark the resource as published in the database. See instructions under [docs: how to maintain resources lists](howto_maintain_resource_lists_database.md)
 
-Update the META-SHARE record and add the location PID.
+Update the metadata record and add the location PID.
 
 Create or upate the resource group page, see [docs: how to create a resource group page](howto_resource_group_page.md).
 
