@@ -85,6 +85,7 @@ Check if:
 - the download folder has the correct name (short-name)
 - the description has the correct name (possibly slightly shortened) and links via URN to the metadata record
 - the subdirectory contains the zip file(s) (short-name.zip)
+- the description of the zip file(s) offers the name and type of license and links via URN to the license page in the portal
 - the subdirectory contains the uncompressed README.txt and LICENSE.txt
 - for restricted corpora a license and acceptance page opens, that needs to be approved before download
 - for RES corpora, check the functionality of the LBR record
