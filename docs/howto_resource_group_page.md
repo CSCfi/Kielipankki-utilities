@@ -10,7 +10,7 @@ A group page in the portal should be tagged with categories (the particular Clar
 
 Each resource group page has to have a PID. For instructions on how to request a PID, see [docs: how to request a PID](howto_request_pid.md)
 
-The resource group page is linked to from the respective META-SHARE record of the resource as well as from the [list of published corpora](https://www.kielipankki.fi/corpora/) in the portal (column 'Resource group and help') via its PID. (NOTE: Resources and tools not directly offered by Kielipankki, but by a member organization of FIN-CLARIN, might not have a META-SHARE record.)
+The resource group page is linked to from the respective metadata record of the resource as well as from the [list of published corpora](https://www.kielipankki.fi/corpora/) in the portal (column 'Resource group and help') via its PID. (NOTE: Resources and tools not directly offered by Kielipankki, but by a member organization of FIN-CLARIN, might not have a metadata record.)
 
 In the [list of tools](https://www.kielipankki.fi/tools/) the link to the resource group page is added to the column 'Info'.
 
