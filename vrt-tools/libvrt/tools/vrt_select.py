@@ -95,6 +95,22 @@ class StructSelect(InputProcessor):
         super().__init__()
 
     def check_args(self, args):
+
+        def make_regexp_test(attrname, regexp):
+            """Return function for testing if value of attrname matches regexp.
+
+            The returned function takes an attribute dictionary
+            attrdict as its argument and tests if attrdict[attrname]
+            fully matches regexp.
+            """
+            compiled_re = re.compile(regexp.lstrip())
+
+            def match(attrdict):
+                return compiled_re.fullmatch(
+                    attrdict.get(attrname, b'').decode())
+
+            return match
+
         super().check_args(args)
         tests = []
         for test in args.tests:
@@ -102,8 +118,7 @@ class StructSelect(InputProcessor):
             if '=' not in test or not attrname:
                 self.error_exit(
                     f'Attribute test not of the form attrname=regexp: {test}')
-            tests.append(
-                (attrname.strip().encode(), re.compile(regexp.lstrip())))
+            tests.append(make_regexp_test(attrname.strip().encode(), regexp))
         args.tests = tests
 
     def main(self, args, inf, ouf):
@@ -131,9 +146,7 @@ class StructSelect(InputProcessor):
         def keep_struct(struct_line):
             """Return true if struct_line begins a structure to be kept."""
             attrdict = make_attrdict(struct_line)
-            return combine_tests(
-                regexp.fullmatch(attrdict.get(attrname, b'').decode())
-                for attrname, regexp in tests)
+            return combine_tests(test(attrdict) for test in tests)
 
         struct_count = 0
         keep_count = 0
