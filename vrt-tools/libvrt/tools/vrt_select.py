@@ -113,9 +113,11 @@ class StructSelect(InputProcessor):
         struct_begin = b'<' + args.struct.encode() + b' '
         struct_end = b'</' + args.struct.encode() + b'>'
         count = args.verbose or args.comment
-        # test_func is a test function for attribute value matches
-        test_func0 = all if args.all_tests else any
-        test_func = test_func0 if args.keep else lambda x: not test_func0(x)
+        # combine_tests is a function combining tests for attribute
+        # value matches
+        combine_tests_base = all if args.all_tests else any
+        combine_tests = (combine_tests_base if args.keep
+                         else lambda tests: not combine_tests_base(tests))
         tests = args.tests
 
         def make_attrdict(line):
@@ -129,7 +131,7 @@ class StructSelect(InputProcessor):
         def keep_struct(struct_line):
             """Return true if struct_line begins a structure to be kept."""
             attrdict = make_attrdict(struct_line)
-            return test_func(
+            return combine_tests(
                 regexp.fullmatch(attrdict.get(attrname, b'').decode())
                 for attrname, regexp in tests)
 
