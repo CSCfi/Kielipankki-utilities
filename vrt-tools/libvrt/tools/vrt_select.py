@@ -42,8 +42,8 @@ class StructSelect(InputProcessor):
     """
     ARGSPECS = [
         ('--structure|--element|-s|-e = struct = "text" -> struct',
-         'Select structures (elements) struct (default: %(default)s).'
-         ' Any lines outside structs are output intact.'),
+         '''Select structures (elements) struct (default: %(default)s).
+            Any lines outside structs are output intact.'''),
         ('#EXCLUSIVE',
          (
              ('--keep|-k -> keep',
@@ -58,13 +58,13 @@ class StructSelect(InputProcessor):
               dict(action='store_const', const=False)),
          )),
         ('--test|-t = test -> tests',
-         'Select (keep or drop) a structure if its attribute attrname'
-         ' matches the (Python) regular expression regexp.'
-         ' regexp needs to match in full, so use .* at the beginning and/or'
-         ' end to allow substring matches.'
-         ' If multiple tests are specified, the structure needs to match'
-         ' either all of them (the default) or at least one of them (with'
-         ' --any).',
+         '''Select (keep or drop) a structure if its attribute attrname
+            matches the (Python) regular expression regexp.
+            regexp needs to match in full, so use .* at the beginning and/or
+            end to allow substring matches.
+            If multiple tests are specified, the structure needs to match
+            either all of them (the default) or at least one of them (with
+            --any).''',
          dict(required=True,
               metavar='attrname=regexp',
               action='append')),
@@ -78,8 +78,8 @@ class StructSelect(InputProcessor):
               dict(action='store_const', const=False)),
          )),
         ('--comment|-c',
-         'Add a VRT comment to the end of output with the number of'
-         ' structures kept and dropped.'),
+         '''Add a VRT comment to the end of output with the number of
+            structures kept and dropped.'''),
         ('--verbose|-v',
          'Write to stderr the number of structures kept and dropped.'),
     ]
