@@ -60,15 +60,18 @@ class StructSelect(InputProcessor):
         ('--test|-t = test -> tests',
          '''Select (keep or drop) a structure if the value of its
             attribute attrname matches the (Python) regular expression
-            regexp or equals to one of the lines in filename.
-            regexp needs to match in full, so use .* at the beginning and/or
-            end to allow substring matches.
+            regexp or any line in file filename. If filename is preceded by
+            *, treat the lines as regular expressions, otherwise as literal
+            strings.
+            regexp and regular expressions read from filename need to match
+            in full, so use .* at the beginning and/or end to allow
+            substring matches.
             If regexp should match values beginning with <, prefix it with ^.
             If multiple tests are specified, the structure needs to match
             either all of them (the default) or at least one of them (with
             --any).''',
          dict(required=True,
-              metavar='attrname=(regexp|<filename)',
+              metavar='attrname=(regexp|<[*]filename)',
               action='append')),
         ('#EXCLUSIVE',
          (
@@ -150,6 +153,16 @@ class StructSelect(InputProcessor):
 
             return test
 
+        def make_regexp_file_test(attrname, fname):
+            """Return function to test if value of attrname matches RE in fname.
+
+            The returned function takes an attribute dictionary
+            attrdict as its argument and tests if attrdict[attrname]
+            fully matches any regular expression read from file fname
+            (each line is treated as a single regular expression).
+            """
+            return make_regexp_test(attrname, '|'.join(read_file(fname)))
+
         super().check_args(args)
         tests = []
         for test in args.tests:
@@ -157,8 +170,11 @@ class StructSelect(InputProcessor):
             if '=' not in test or not attrname:
                 self.error_exit(
                     f'Attribute test not of the form attrname=regexp or'
-                    f' attrname=<filename: {test}')
-            if value and value[0] == '<':
+                    f' attrname=<[*]filename: {test}')
+            if value.startswith('<*'):
+                make_test = make_regexp_file_test
+                value = value[2:].strip()
+            elif value and value[0] == '<':
                 make_test = make_file_test
                 value = value[1:].strip()
             else:

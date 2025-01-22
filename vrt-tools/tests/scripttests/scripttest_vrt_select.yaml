@@ -61,7 +61,7 @@
   output:
     returncode: 1
     stderr:
-      regex: '.*Attribute test not of the form attrname=regexp or attrname=<filename: a.*'
+      regex: '.*Attribute test not of the form attrname=regexp or attrname=<\[\*\]filename: a.*'
     stdout: ''
 
 
@@ -71,7 +71,7 @@
   output:
     returncode: 1
     stderr:
-      regex: '.*Attribute test not of the form attrname=regexp or attrname=<filename: =a.*'
+      regex: '.*Attribute test not of the form attrname=regexp or attrname=<\[\*\]filename: =a.*'
     stdout: ''
 
 
@@ -739,7 +739,7 @@
   input:
     cmdline: vrt-select --keep --test "a=<a.txt" --test "a1=<a.txt"
     file:a.txt: *file-a
-    stdin: |
+    stdin: &input-a-a1 |
       <!-- #vrt positional-attributes: word -->
       <text a="aa" a1="ab">
       <sentence>
@@ -867,6 +867,182 @@
 - name: 'vrt-select: Values from file not found'
   input:
     cmdline: vrt-select --keep --test "a=<a.txt"
+  output:
+    returncode: 1
+    stderr: |
+      vrt-select: Error reading file a.txt: [Errno 2] No such file or directory: 'a.txt'
+    stdout: ''
+
+
+# Read regular expressions to match from file
+
+
+- name: 'vrt-select: Single attribute, regexps from file, --keep'
+  input:
+    cmdline:
+    - vrt-select --keep --test "b=<*re-a.txt"
+    - vrt-select --keep --test "b=<* re-a.txt "
+    file:re-a.txt: &file-re-a |
+      a.
+      .a
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, regexps from different files, --keep'
+  input:
+    cmdline: vrt-select --keep --test "a=<*re-b.txt" --test "b=<*re-a.txt"
+    files: &files-re-a-b
+      re-a.txt: *file-re-a
+      re-b.txt: |
+        .*b.*
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, regexps from different files, --keep, --any'
+  input:
+    cmdline: vrt-select --keep --any --test "a=<*re-b.txt" --test "b=<*re-a.txt"
+    files: *files-re-a-b
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, regexps from same file, --keep'
+  input:
+    cmdline: vrt-select --keep --test "a=<*re-a.txt" --test "b=<*re-a.txt"
+    file:re-a.txt: *file-re-a
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, regexp + regexps from file, --keep'
+  input:
+    cmdline: vrt-select --keep --test "n=.*2.*" --test "b=<*re-a.txt"
+    file:re-a.txt: *file-re-a
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, regexp + regexps from file, --keep, --any'
+  input:
+    cmdline: vrt-select --keep --any --test "n=.*2.*" --test "b=<*re-a.txt"
+    file:re-a.txt: *file-re-a
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Single attribute, two tests, regexps from different files, --keep'
+  input:
+    cmdline: vrt-select --keep --test "a=<*re-a.txt" --test "a=<*re-b.txt"
+    files: *files-re-a-b
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Single attribute, two tests, regexps from different files, --keep, --any'
+  input:
+    cmdline: vrt-select --keep --any --test "a=<*re-a.txt" --test "a=<*re-b.txt"
+    files: *files-re-a-b
+  output:
+    stdout: *input-1
+
+- name: 'vrt-select: Single attribute, two tests, regexp + regexps from file, --keep'
+  input:
+    cmdline: vrt-select --keep --test "a=.d" --test "a=<*a.txt"
+    file:a.txt: *file-a
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Regexps from file not found'
+  input:
+    cmdline: vrt-select --keep --test "a=<*a.txt"
   output:
     returncode: 1
     stderr: |
