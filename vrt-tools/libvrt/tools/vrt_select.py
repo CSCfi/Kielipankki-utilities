@@ -98,6 +98,29 @@ class StructSelect(InputProcessor):
 
     def check_args(self, args):
 
+        def read_file(fname, values=None, add_fn=None):
+            """Return values read from file fname, items added with add_fn.
+
+            Each line (with possible trailing newline removed) in
+            fname is added to values with add_fn.
+            If values is None, it defaults to an empty list.
+            add_fn is used to add items to values (default: append to
+            list).
+            Exit with an error message if file fname cannot be read.
+            """
+            if values is None:
+                values = []
+                add_fn = None
+            if add_fn is None:
+                add_fn = lambda vals, x: vals.append(x)
+            try:
+                with open(fname, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        add_fn(values, line.rstrip('\n'))
+            except IOError as e:
+                self.error_exit(f'Error reading file {fname}: {e}')
+            return values
+
         def make_regexp_test(attrname, regexp):
             """Return function for testing if value of attrname matches regexp.
 
@@ -120,13 +143,7 @@ class StructSelect(InputProcessor):
             attrdict as its argument and tests if attrdict[attrname]
             exactly matches any line read from file fname.
             """
-            values = set()
-            try:
-                with open(fname, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        values.add(line.rstrip('\n'))
-            except IOError as e:
-                self.error_exit(f'Error reading file {fname}: {e}')
+            values = read_file(fname, set(), lambda vals, x: vals.add(x))
 
             def test(attrdict):
                 return attrdict.get(attrname, b'').decode() in values
