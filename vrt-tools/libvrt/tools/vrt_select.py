@@ -66,7 +66,9 @@ class StructSelect(InputProcessor):
             regexp and regular expressions read from filename need to match
             in full, so use .* at the beginning and/or end to allow
             substring matches.
-            If regexp should match values beginning with <, prefix it with ^.
+            Characters < > & " should be XML-encoded as &lt; &gt; &amp;
+            &quot; in regular expressions and string values, as in VRT
+            attribute values.
             If multiple tests are specified, the structure needs to match
             either all of them (the default) or at least one of them (with
             --any).''',
