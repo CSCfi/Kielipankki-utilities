@@ -58,15 +58,17 @@ class StructSelect(InputProcessor):
               dict(action='store_const', const=False)),
          )),
         ('--test|-t = test -> tests',
-         '''Select (keep or drop) a structure if its attribute attrname
-            matches the (Python) regular expression regexp.
+         '''Select (keep or drop) a structure if the value of its
+            attribute attrname matches the (Python) regular expression
+            regexp or equals to one of the lines in filename.
             regexp needs to match in full, so use .* at the beginning and/or
             end to allow substring matches.
+            If regexp should match values beginning with <, prefix it with ^.
             If multiple tests are specified, the structure needs to match
             either all of them (the default) or at least one of them (with
             --any).''',
          dict(required=True,
-              metavar='attrname=regexp',
+              metavar='attrname=(regexp|<filename)',
               action='append')),
         ('#EXCLUSIVE',
          (
@@ -111,14 +113,40 @@ class StructSelect(InputProcessor):
 
             return match
 
+        def make_file_test(attrname, fname):
+            """Return function for testing if value of attrname is in fname.
+
+            The returned function takes an attribute dictionary
+            attrdict as its argument and tests if attrdict[attrname]
+            exactly matches any line read from file fname.
+            """
+            values = set()
+            try:
+                with open(fname, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        values.add(line.rstrip('\n'))
+            except IOError as e:
+                self.error_exit(f'Error reading file {fname}: {e}')
+
+            def test(attrdict):
+                return attrdict.get(attrname, b'').decode() in values
+
+            return test
+
         super().check_args(args)
         tests = []
         for test in args.tests:
-            attrname, _, regexp = test.partition('=')
+            attrname, _, value = test.partition('=')
             if '=' not in test or not attrname:
                 self.error_exit(
-                    f'Attribute test not of the form attrname=regexp: {test}')
-            tests.append(make_regexp_test(attrname.strip().encode(), regexp))
+                    f'Attribute test not of the form attrname=regexp or'
+                    f' attrname=<filename: {test}')
+            if value and value[0] == '<':
+                make_test = make_file_test
+                value = value[1:].strip()
+            else:
+                make_test = make_regexp_test
+            tests.append(make_test(attrname.strip().encode(), value))
         args.tests = tests
 
     def main(self, args, inf, ouf):

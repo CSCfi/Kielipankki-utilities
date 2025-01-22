@@ -61,7 +61,7 @@
   output:
     returncode: 1
     stderr:
-      regex: '.*Attribute test not of the form attrname=regexp: a.*'
+      regex: '.*Attribute test not of the form attrname=regexp or attrname=<filename: a.*'
     stdout: ''
 
 
@@ -71,7 +71,7 @@
   output:
     returncode: 1
     stderr:
-      regex: '.*Attribute test not of the form attrname=regexp: =a.*'
+      regex: '.*Attribute test not of the form attrname=regexp or attrname=<filename: =a.*'
     stdout: ''
 
 
@@ -639,3 +639,236 @@
       <paragraph d="p3">
       </paragraph>
       </text>
+
+
+# Read values to test for from file
+
+
+- name: 'vrt-select: Single attribute, values from file, --keep'
+  input:
+    cmdline:
+    - vrt-select --keep --test "a=<a.txt"
+    - vrt-select --keep --test "a=< a.txt "
+    file:a.txt: &file-a |
+      aa
+      ad
+      az
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Single attribute, values from file, --drop'
+  input:
+    cmdline: vrt-select --drop --test "a=<a.txt"
+    file:a.txt: *file-a
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, values from different files, --keep'
+  input:
+    cmdline: vrt-select --keep --test "a=<a.txt" --test "b=<b.txt"
+    files: &files-a-b
+      a.txt: *file-a
+      b.txt: |
+        ba
+        bc
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, values from different files, --keep, --any'
+  input:
+    cmdline: vrt-select --keep --any --test "a=<a.txt" --test "b=<b.txt"
+    files: *files-a-b
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, values from same file, --keep'
+  input:
+    cmdline: vrt-select --keep --test "a=<a.txt" --test "a1=<a.txt"
+    file:a.txt: *file-a
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" a1="ab">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="aa" a1="ad">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ab" a1="ad">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ab" a1="ac">
+      <sentence>
+      g
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" a1="ad">
+      <sentence>
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, regexp + values from file, --keep'
+  input:
+    cmdline: vrt-select --keep --test "n=.*1.*" --test "a=<a.txt"
+    file:a.txt: *file-a
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, regexp + values from file, --keep, --any'
+  input:
+    cmdline: vrt-select --keep --any --test "n=.*1.*" --test "a=<a.txt"
+    file:a.txt: *file-a
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Single attribute, two tests, values from different files, --keep'
+  input:
+    cmdline: vrt-select --keep --test "a=<a.txt" --test "a=<a1.txt"
+    file:a.txt: *file-a
+    file:a1.txt: &file-a1 |
+      aa
+      ac
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Single attribute, two tests, values from different files, --keep, --any'
+  input:
+    cmdline: vrt-select --keep --any --test "a=<a.txt" --test "a=<a1.txt"
+    file:a.txt: *file-a
+    file:a1.txt: *file-a1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Single attribute, two tests, regexp + values from file, --keep'
+  input:
+    cmdline: vrt-select --keep --test "a=.d" --test "a=<a.txt"
+    file:a.txt: *file-a
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Values from file not found'
+  input:
+    cmdline: vrt-select --keep --test "a=<a.txt"
+  output:
+    returncode: 1
+    stderr: |
+      vrt-select: Error reading file a.txt: [Errno 2] No such file or directory: 'a.txt'
+    stdout: ''
