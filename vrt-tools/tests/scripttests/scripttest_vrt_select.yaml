@@ -75,6 +75,79 @@
     stdout: ''
 
 
+# Strip spaces in attribute test
+
+- name: 'vrt-select: Spaces stripped around attribute name and regexp'
+  input:
+    cmdline:
+    - vrt-select --test "b=.a"
+    - vrt-select --test "b= .a "
+    - vrt-select --test " b = .a "
+    - vrt-select --test "  b  !=  .b  "
+  output:
+    stdout: &output-ba |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Spaces stripped around filename'
+  input:
+    cmdline:
+    - vrt-select --test "b=<a.txt"
+    - vrt-select --test "b =< a.txt "
+    - vrt-select --test "b = <a.txt "
+    - vrt-select --test "  b  =  <  a.txt  "
+    file:a.txt: |
+      ba
+      bd
+  output:
+    stdout: *output-ba
+
+- name: 'vrt-select: Spaces stripped around filename with regexps'
+  input:
+    cmdline:
+    - vrt-select --test "b=<*re-a.txt"
+    - vrt-select --test "b =<* re-a.txt "
+    - vrt-select --test "b = <*re-a.txt "
+    - vrt-select --test "  b  =  <*  re-a.txt  "
+    file:re-a.txt: |
+      b[ad]
+  output:
+    stdout: *output-ba
+
+- name: 'vrt-select: Spaces not stripped from strings read from file'
+  input:
+    cmdline: vrt-select --test "b=<a.txt"
+    # The last line of the following file content intentionally
+    # contains a trailing space character
+    file:a.txt: &file-a-spaces |
+      ba
+       bb
+      bb 
+  output:
+    stdout: *output-ba
+
+- name: 'vrt-select: Spaces not stripped from regexps read from file'
+  input:
+    cmdline: vrt-select --test "b=<*a.txt"
+    file:a.txt: *file-a-spaces
+  output:
+    stdout: *output-ba
+
+
 # Extra comments and other tags
 
 
@@ -646,9 +719,7 @@
 
 - name: 'vrt-select: Single attribute, values from file, --keep'
   input:
-    cmdline:
-    - vrt-select --keep --test "a=<a.txt"
-    - vrt-select --keep --test "a=< a.txt "
+    cmdline: vrt-select --keep --test "a=<a.txt"
     file:a.txt: &file-a |
       aa
       ad
@@ -879,9 +950,7 @@
 
 - name: 'vrt-select: Single attribute, regexps from file, --keep'
   input:
-    cmdline:
-    - vrt-select --keep --test "b=<*re-a.txt"
-    - vrt-select --keep --test "b=<* re-a.txt "
+    cmdline: vrt-select --keep --test "b=<*re-a.txt"
     file:re-a.txt: &file-re-a |
       a.
       .a

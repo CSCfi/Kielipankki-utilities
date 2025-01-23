@@ -67,6 +67,10 @@ class StructSelect(InputProcessor):
             regexp and regular expressions read from filename need to match
             in full, so use .* at the beginning and/or end to allow
             substring matches.
+            Leading and trailing whitespace is removed from attrname, regexp
+            and filename but preserved in strings and regular expressions
+            read from file filename. To make regexp match a leading or
+            trailing space, use e.g. \\s or \\x20.
             Characters < > & " should be XML-encoded as &lt; &gt; &amp;
             &quot; in regular expressions and string values, as in VRT
             attribute values.
@@ -134,7 +138,7 @@ class StructSelect(InputProcessor):
             attrdict as its argument and tests if attrdict[attrname]
             fully matches regexp.
             """
-            compiled_re = re.compile(regexp.lstrip())
+            compiled_re = re.compile(regexp)
 
             def match(attrdict):
                 return compiled_re.fullmatch(
@@ -174,19 +178,20 @@ class StructSelect(InputProcessor):
                 self.error_exit(
                     f'Attribute test not of the form'
                     f' attrname[!]=(regexp|<[*]filename): {test}')
+            value = value.strip()
             if value.startswith('<*'):
                 make_test = make_regexp_file_test
-                value = value[2:].strip()
+                value = value[2:]
             elif value and value[0] == '<':
                 make_test = make_file_test
-                value = value[1:].strip()
+                value = value[1:]
             else:
                 make_test = make_regexp_test
             negate = False
             if attrname[-1] == '!':
                 negate = True
                 attrname = attrname[:-1]
-            test_func = make_test(attrname.strip().encode(), value)
+            test_func = make_test(attrname.strip().encode(), value.strip())
             if negate:
                 test_func = lambda attrdict, tf=test_func: not tf(attrdict)
             tests.append(test_func)
