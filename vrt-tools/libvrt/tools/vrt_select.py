@@ -63,6 +63,7 @@ class StructSelect(InputProcessor):
             regexp or any line in file filename. If filename is preceded by
             *, treat the lines as regular expressions, otherwise as literal
             strings.
+            ! immediately before = negates the test.
             regexp and regular expressions read from filename need to match
             in full, so use .* at the beginning and/or end to allow
             substring matches.
@@ -73,7 +74,7 @@ class StructSelect(InputProcessor):
             either all of them (the default) or at least one of them (with
             --any).''',
          dict(required=True,
-              metavar='attrname=(regexp|<[*]filename)',
+              metavar='attrname[!]=(regexp|<[*]filename)',
               action='append')),
         ('#EXCLUSIVE',
          (
@@ -171,8 +172,8 @@ class StructSelect(InputProcessor):
             attrname, _, value = test.partition('=')
             if '=' not in test or not attrname:
                 self.error_exit(
-                    f'Attribute test not of the form attrname=regexp or'
-                    f' attrname=<[*]filename: {test}')
+                    f'Attribute test not of the form attrname[!]=regexp or'
+                    f' attrname[!]=<[*]filename: {test}')
             if value.startswith('<*'):
                 make_test = make_regexp_file_test
                 value = value[2:].strip()
@@ -181,7 +182,14 @@ class StructSelect(InputProcessor):
                 value = value[1:].strip()
             else:
                 make_test = make_regexp_test
-            tests.append(make_test(attrname.strip().encode(), value))
+            negate = False
+            if attrname[-1] == '!':
+                negate = True
+                attrname = attrname[:-1]
+            test_func = make_test(attrname.strip().encode(), value)
+            if negate:
+                test_func = lambda attrdict, tf=test_func: not tf(attrdict)
+            tests.append(test_func)
         args.tests = tests
 
     def main(self, args, inf, ouf):

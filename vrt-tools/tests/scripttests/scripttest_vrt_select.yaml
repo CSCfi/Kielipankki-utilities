@@ -61,7 +61,7 @@
   output:
     returncode: 1
     stderr:
-      regex: '.*Attribute test not of the form attrname=regexp or attrname=<\[\*\]filename: a.*'
+      regex: '.*Attribute test not of the form attrname\[!\]=regexp or attrname\[!\]=<\[\*\]filename: a.*'
     stdout: ''
 
 
@@ -71,7 +71,7 @@
   output:
     returncode: 1
     stderr:
-      regex: '.*Attribute test not of the form attrname=regexp or attrname=<\[\*\]filename: =a.*'
+      regex: '.*Attribute test not of the form attrname\[!\]=regexp or attrname\[!\]=<\[\*\]filename: =a.*'
     stdout: ''
 
 
@@ -1048,3 +1048,388 @@
     stderr: |
       vrt-select: Error reading file a.txt: [Errno 2] No such file or directory: 'a.txt'
     stdout: ''
+
+
+# Negated tests
+
+
+- name: 'vrt-select: Keep structures based on a single negated test'
+  input:
+    cmdline: vrt-select --test "b!=.a"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Drop structures based on a single negated test'
+  input:
+    cmdline: vrt-select --drop --test "b!=.a"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Attribute test requires a full match (negated)'
+  input:
+    cmdline: vrt-select --test "n!=."
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Keep structures based on both of two negated tests'
+  input:
+    cmdline: vrt-select --test "a!=.[de]" --test "c!=cb"
+  output:
+    stdout: *output-2
+
+- name: 'vrt-select: Keep structures based on both a normal and negated test'
+  input:
+    cmdline: vrt-select --test "a=.[abc]" --test "c!=ca"
+  output:
+    stdout: &output-ab |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Keep structures based on a negated and normal test'
+  input:
+    cmdline: vrt-select --test "c!=ca" --test "a=.[abc]"
+  output:
+    stdout: *output-ab
+
+- name: 'vrt-select: Keep structures based on either of two negated tests'
+  input:
+    cmdline: vrt-select --any --test "a!=.[abc]" --test "c!=ca"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Keep structures based on either a normal or negated test'
+  input:
+    cmdline: vrt-select --any --test "a=.[abc]" --test "c!=ca"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Drop structures based on both of two negated tests'
+  input:
+    cmdline: vrt-select --drop --test "a!=.[abc]" --test "c!=ca"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Drop structures based on either of two negated tests'
+  input:
+    cmdline: vrt-select --drop --any --test "a!=.[abc]" --test "c!=ca"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Drop structures based on a normal and negated test'
+  input:
+    cmdline: vrt-select --drop --test "a=.[abc]" --test "c!=ca"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Keep structures based on both of two negated tests for the same attribute'
+  input:
+    cmdline: vrt-select --test "n!=.*1.*" --test "n!=.*2.*"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Drop structures based on both of two negated tests for the same attribute'
+  input:
+    cmdline: vrt-select --drop --test "n!=.*1.*" --test "n!=.*2.*"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="ba" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Keep structures based on a normal and negated test for the same attribute'
+  input:
+    cmdline: vrt-select --test "n=.*1.*" --test "n!=.*2.*"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Drop structures based on either a normal or negated test for the same attribute'
+  input:
+    cmdline: vrt-select --drop --any --test "n=.*1.*" --test "n!=.*2.*"
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Values from file, negated, --keep'
+  input:
+    cmdline: vrt-select --keep --test "a!=<a.txt"
+    file:a.txt: *file-a
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, values from different files, negated, --keep'
+  input:
+    cmdline: vrt-select --keep --test "a!=<a.txt" --test "b!=<b.txt"
+    files: *files-a-b
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, values from file + regexp, negated, --keep'
+  input:
+    cmdline: vrt-select --keep --any --test "a!=<a.txt" --test "b!=ba"
+    file:a.txt: *file-a
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ab" b="ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text a="ac" b="ba" c="ca" n="10">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Single attribute, regexps from file, negated, --keep'
+  input:
+    cmdline: vrt-select --keep --test "b!=<*re-a.txt"
+    file:re-a.txt: *file-re-a
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, regexps from different files, negated, --keep'
+  input:
+    cmdline: vrt-select --keep --test "a!=<*re-b.txt" --test "b!=<*re-a.txt"
+    files: *files-re-a-b
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ad" b="bb" c="ca" n="2">
+      <sentence>
+      g
+      </sentence>
+      </text>
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
+
+- name: 'vrt-select: Two attributes, regexp + regexps from file, negated, --keep'
+  input:
+    cmdline: vrt-select --keep --test "n!=.*2.*" --test "b!=<*re-a.txt"
+    file:re-a.txt: *file-re-a
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="ae" b="bb" c="cb" n="3">
+      <sentence>
+      i
+      </sentence>
+      </text>
