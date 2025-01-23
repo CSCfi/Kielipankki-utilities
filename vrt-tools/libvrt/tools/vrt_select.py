@@ -141,6 +141,10 @@ class StructSelect(InputProcessor):
             compiled_re = re.compile(regexp)
 
             def match(attrdict):
+                # TODO?: Decode attribute value only once even if used
+                # in multiple tests. However, having multiple tests
+                # for a single attribute may be a relatively rare use
+                # case.
                 return compiled_re.fullmatch(
                     attrdict.get(attrname, b'').decode())
 
@@ -206,6 +210,12 @@ class StructSelect(InputProcessor):
         count = args.verbose or args.comment
         # combine_tests is a function combining tests for attribute
         # value matches
+        # TODO?: Lazily evaluate the tests. It would require all- and
+        # any-like functions that would take functions as arguments
+        # and call them only until one returns False (all) or True
+        # (any). However, it would improve performance only with
+        # multiple tests, which may be a rarer use case than a single
+        # test.
         combine_tests_base = all if args.all_tests else any
         combine_tests = (combine_tests_base if args.keep
                          else lambda tests: not combine_tests_base(tests))
