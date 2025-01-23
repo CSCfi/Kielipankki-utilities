@@ -27,6 +27,7 @@ from itertools import groupby
 
 from vrtargsoolib import InputProcessor
 from vrtcommentlib import makebinvrtcomment
+import libvrt.metaline as ml
 
 
 class StructSelect(InputProcessor):
@@ -226,8 +227,7 @@ class StructSelect(InputProcessor):
             # attribute test by having a separate function to extract
             # only the value of a single attribute and by choosing the
             # function to use in advance
-            return dict((name, val) for name, val
-                        in re.findall(rb' ([\w-]+)="(.*?)"', line))
+            return ml.mapping(line)
 
         def keep_struct(struct_line):
             """Return true if struct_line begins a structure to be kept."""
