@@ -61,7 +61,7 @@
   output:
     returncode: 1
     stderr:
-      regex: '.*Attribute test not of the form attrname\[!\]=regexp or attrname\[!\]=<\[\*\]filename: a.*'
+      regex: '.*Attribute test not of the form attrname\[!\]=\(regexp\|<\[\*\]filename\): a.*'
     stdout: ''
 
 
@@ -71,7 +71,7 @@
   output:
     returncode: 1
     stderr:
-      regex: '.*Attribute test not of the form attrname\[!\]=regexp or attrname\[!\]=<\[\*\]filename: =a.*'
+      regex: '.*Attribute test not of the form attrname\[!\]=\(regexp\|<\[\*\]filename\): =a.*'
     stdout: ''
 
 

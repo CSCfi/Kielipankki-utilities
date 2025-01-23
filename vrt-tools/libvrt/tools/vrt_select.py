@@ -172,8 +172,8 @@ class StructSelect(InputProcessor):
             attrname, _, value = test.partition('=')
             if '=' not in test or not attrname:
                 self.error_exit(
-                    f'Attribute test not of the form attrname[!]=regexp or'
-                    f' attrname[!]=<[*]filename: {test}')
+                    f'Attribute test not of the form'
+                    f' attrname[!]=(regexp|<[*]filename): {test}')
             if value.startswith('<*'):
                 make_test = make_regexp_file_test
                 value = value[2:].strip()
