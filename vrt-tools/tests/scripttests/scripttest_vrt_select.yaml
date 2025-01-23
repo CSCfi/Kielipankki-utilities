@@ -220,6 +220,35 @@
       <!-- End -->
 
 
+# Attribute value ending in "="
+
+- name: 'vrt-select: Input attribute value ending in "="'
+  input:
+    cmdline:
+    - vrt-select --test "b=b ba."
+    - vrt-select --test "b=b ba="
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="b ba=" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="ab" b="b ba" c="cb" n="1">
+      <sentence>
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="aa" b="b ba=" c="ca" n="21">
+      <sentence>
+      a
+      </sentence>
+      </text>
+
+
 # Single attribute test
 
 
