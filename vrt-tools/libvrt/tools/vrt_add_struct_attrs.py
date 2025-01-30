@@ -75,25 +75,25 @@ class StructAttrAdder(InputProcessor):
     """
 
     ARGSPECS = [
-        ('--structure-name=STRUCT "text" -> struct_name',
+        ('--structure|element|e=STRUCT "text" -> struct_name',
          'Add attributes (annotations) to structures STRUCT.'),
         ('--data-file=FILENAME',
          'Add annotations from the TSV data file FILENAME.',
          dict(required=True)),
-        ('--attribute-names=ATTRLIST -> attr_names',
+        ('--attributes=ATTRLIST -> attr_names',
          """Add attributes (annotations) listed in space-separated ATTRLIST,
          corresponding to the columns (fields) of the TSV data file. If not
          specified, the first row of the TSV file is considered as a heading
          listing the attribute names. If an attribute named in ATTRLIST
          already exists in the VRT, check that its value is the same than in
-         the TSV file, unless --overwrite-attributes lists the attribute.
+         the TSV file, unless --overwrite lists the attribute.
          """),
-        ('--overwrite-attributes=ATTRLIST -> overwrite_attrs',
+        ('--overwrite=ATTRLIST -> overwrite_attrs',
          """Overwrite the possibly existing values of attributes listed in
          space-separated ATTRLIST, instead of warning if their values differ
          and keeping the existing value.
          """),
-        ('--key-attributes=ATTRLIST -> key_attrs',
+        ('--key=ATTRLIST -> key_attrs',
          """Use the attributes listed in space-separated ATTRLIST as a key:
          when their values in a VRT structure match those of a row in a data
          file, add the remaining attributes in the data file to the VRT.

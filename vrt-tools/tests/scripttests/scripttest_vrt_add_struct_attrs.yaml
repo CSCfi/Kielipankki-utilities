@@ -219,9 +219,9 @@
       </text>
 
 
-- name: 'vrt-add-struct-attrs: --structure-name'
+- name: 'vrt-add-struct-attrs: --structure'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --structure-name sentence
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --structure sentence
     stdin: |
       <text a="1">
       <sentence>
@@ -252,7 +252,7 @@
 
 - name: 'vrt-add-struct-attrs: --attribute names, no column heading row'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --attribute-names "b c"
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --attributes "b c"
     stdin: |
       <text a="1">
       <sentence>
@@ -291,9 +291,9 @@
       </text>
 
 
-- name: 'vrt-add-struct-attrs: --overwrite-attributes (some)'
+- name: 'vrt-add-struct-attrs: --overwrite (some)'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --overwrite-attributes a1
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --overwrite a1
     stdin: |
       <text a1="ab" a2="bb">
       <sentence>
@@ -323,9 +323,9 @@
       </text>
 
 
-- name: 'vrt-add-struct-attrs: --overwrite-attributes (all)'
+- name: 'vrt-add-struct-attrs: --overwrite (all)'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --overwrite-attributes "a1 a2"
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --overwrite "a1 a2"
     stdin: |
       <text a1="ab" a2="bb">
       <sentence>
@@ -390,7 +390,7 @@
 
 - name: 'vrt-add-struct-attrs: Key attribute, header row'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key-attributes a
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key a
     stdin: |
       <text a="1">
       <sentence>
@@ -424,7 +424,7 @@
 
 - name: 'vrt-add-struct-attrs: Two key attributes, header row'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key-attributes "a a1"
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key "a a1"
     stdin: |
       <text a="1" a1="aa">
       <sentence>
@@ -456,8 +456,8 @@
 - name: 'vrt-add-struct-attrs: Two key attributes, no header row'
   input:
     cmdline: >
-      vrt-add-struct-attrs --data-file attrs.tsv --key-attributes "a a1"
-      --attribute-names "a a1 a2"
+      vrt-add-struct-attrs --data-file attrs.tsv --key "a a1"
+      --attributes "a a1 a2"
     stdin: |
       <text a="1" a1="aa">
       <sentence>
@@ -490,7 +490,7 @@
 
 - name: 'vrt-add-struct-attrs: Non-existent key attribute'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key-attributes "a b"
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key "a b"
     stdin: |
       <text a="1">
       <sentence>
@@ -512,7 +512,7 @@
 
 - name: 'vrt-add-struct-attrs: Two non-existent key attributes'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key-attributes "a b c"
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key "a b c"
     stdin: |
       <text a="1">
       <sentence>
@@ -534,7 +534,7 @@
 
 - name: 'vrt-add-struct-attrs: Duplicate value for key attribute'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key-attributes a
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key a
     stdin: |
       <text a="1">
       <sentence>
@@ -570,7 +570,7 @@
 
 - name: 'vrt-add-struct-attrs: No value for key attribute'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key-attributes a
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key a
     stdin: |
       <text a="1">
       <sentence>
@@ -602,7 +602,7 @@
 
 - name: 'vrt-add-struct-attrs: No single key attribute in structure'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key-attributes a
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key a
     stdin: |
       <text a="1">
       <sentence>
@@ -634,7 +634,7 @@
 
 - name: 'vrt-add-struct-attrs: No multiple key attribute in structure'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key-attributes "a a1"
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key "a a1"
     stdin: |
       <text a="1" a1="aa">
       <sentence>
@@ -666,7 +666,7 @@
 
 - name: 'vrt-add-struct-attrs: Key attribute; check existing attribute (match)'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key-attributes a
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key a
     stdin: |
       <text a="1" a1="aa">
       <sentence>
@@ -697,7 +697,7 @@
 
 - name: 'vrt-add-struct-attrs: Key attribute; check existing attribute (mismatch)'
   input:
-    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key-attributes a
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key a
     stdin: |
       <text a="1" a1="aa">
       <sentence>
