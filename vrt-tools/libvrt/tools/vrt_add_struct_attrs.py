@@ -204,7 +204,7 @@ class StructAttrAdder(InputProcessor):
                          vrtline=linenr))
                 return (OrderedDict((attrname, attrs[attrname]
                                      if attrname in key_attrs else b'')
-                                    for attrname in new_attr_names),
+                                    for attrname in tsv_reader.fieldnames),
                         -1)
 
         def add_attributes(line, attrs, add_attrs, linenr, tsv_line_num):
