@@ -41,25 +41,25 @@ class TsvReader:
         self.line_num = 0
 
     def __next__(self):
+        if self.fieldnames is None:
+            self.fieldnames = self._read_fields()
+        fieldvals = self._read_fields()
+        return OrderedDict(zip(self.fieldnames, fieldvals))
+
+    def _read_fields(self):
 
         def encode_entities(line):
             return re.sub(rb'([<>"]|&(?!(?:lt|gt|amp|quot);))',
                           lambda mo: self.entities[mo.group(1)],
                           line)
 
-        def read_fields():
-            line = self._infile.readline()
-            if not line:
-                raise StopIteration
-            self.line_num += 1
-            if self._entities:
-                line = encode_entities(line)
-            return line[:-1].split(b'\t')
-
-        if self.fieldnames is None:
-            self.fieldnames = read_fields()
-        fieldvals = read_fields()
-        return OrderedDict(zip(self.fieldnames, fieldvals))
+        line = self._infile.readline()
+        if not line:
+            raise StopIteration
+        self.line_num += 1
+        if self._entities:
+            line = encode_entities(line)
+        return line[:-1].split(b'\t')
 
 
 class StructAttrAdder(InputProcessor):
