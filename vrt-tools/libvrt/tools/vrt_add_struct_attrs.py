@@ -133,26 +133,23 @@ class StructAttrAdder(InputProcessor):
         new_attr_values = {}
 
         def read_keyed_data(tsv_reader):
-            nonlocal new_attr_names
+            missing_key_attrs = [attr for attr in key_attrs
+                                 if attr not in new_attr_names]
+            if missing_key_attrs:
+                plural = len(missing_key_attrs) > 1
+                self.error_exit(
+                    ('Key attribute{s} {attrs} {do} not exist in'
+                     ' {datafile}').format(
+                         s='s' if plural else '',
+                         attrs=', '.join(attr.decode()
+                                         for attr in missing_key_attrs),
+                         do='do' if plural else 'does',
+                         datafile=args.data_file))
             attrs = {}
             while attrs is not None:
                 attrs = next(tsv_reader, None)
                 if attrs is None:
                     break
-                if new_attr_names is None:
-                    new_attr_names = set(tsv_reader.fieldnames)
-                    missing_key_attrs = [attr for attr in key_attrs
-                                         if attr not in new_attr_names]
-                    if missing_key_attrs:
-                        plural = len(missing_key_attrs) > 1
-                        self.error_exit(
-                            ('Key attribute{s} {attrs} {do} not exist in'
-                             ' {datafile}').format(
-                                 s='s' if plural else '',
-                                 attrs=', '.join(attr.decode()
-                                                 for attr in missing_key_attrs),
-                                 do='do' if plural else 'does',
-                                 datafile=args.data_file))
                 key = tuple(attrs[attrname] for attrname in key_attrs)
                 if key in new_attr_values:
                     self.warn(
@@ -166,10 +163,7 @@ class StructAttrAdder(InputProcessor):
                 new_attr_values[key] = (attrs, tsv_reader.line_num)
 
         def get_add_attrs_ordered(tsv_reader, line, attrs, linenr):
-            nonlocal new_attr_names
             add_attrs = next(tsv_reader, None)
-            if new_attr_names is None:
-                new_attr_names = set(tsv_reader.fieldnames)
             if add_attrs is None:
                 # If the data file is too short, output the rest of the
                 # VRT as is and exit with error
@@ -247,6 +241,7 @@ class StructAttrAdder(InputProcessor):
                                    entities=True)
             if not args.attr_names:
                 tsv_reader.read_fieldnames()
+            new_attr_names = set(tsv_reader.fieldnames or [])
             if key_attrs:
                 read_keyed_data(tsv_reader)
             linenr = 0
