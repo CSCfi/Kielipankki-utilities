@@ -61,6 +61,14 @@ class TsvReader:
             line = encode_entities(line)
         return line[:-1].split(b'\t')
 
+    def read_fieldnames(self):
+        if self.fieldnames is None:
+            try:
+                self.fieldnames = self._read_fields()
+            except StopIteration:
+                pass
+        return self.fieldnames
+
 
 class StructAttrAdder(InputProcessor):
 
@@ -237,6 +245,8 @@ class StructAttrAdder(InputProcessor):
         with open(args.data_file, 'rb') as attrf:
             tsv_reader = TsvReader(attrf, fieldnames=args.attr_names,
                                    entities=True)
+            if not args.attr_names:
+                tsv_reader.read_fieldnames()
             if key_attrs:
                 read_keyed_data(tsv_reader)
             linenr = 0
