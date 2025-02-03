@@ -127,8 +127,8 @@ class StructAttrAdder(InputProcessor):
             args.attr_names = [name.encode()
                                for name in args.attr_names.split()]
         struct_begin = ('<' + args.struct_name).encode()
-        struct_begin_endpos = len(args.struct_name) + 1
-        struct_begin_endchars = b' >'
+        struct_begin_alts = tuple(struct_begin + endchar
+                                  for endchar in [b' ', b'>'])
         check_overlap_attrs = set()
         new_attr_names = None
         new_attr_values = {}
@@ -248,8 +248,7 @@ class StructAttrAdder(InputProcessor):
             linenr = 0
             for line in inf:
                 linenr += 1
-                if (line[0] == LESS_THAN and line.startswith(struct_begin)
-                        and line[struct_begin_endpos] in struct_begin_endchars):
+                if line[0] == LESS_THAN and line.startswith(struct_begin_alts):
                     attrs = OrderedDict(re.findall(rb'(\w+)="(.*?)"', line))
                     add_attrs, tsv_linenr = get_add_attrs(
                         tsv_reader, line, attrs, linenr)
