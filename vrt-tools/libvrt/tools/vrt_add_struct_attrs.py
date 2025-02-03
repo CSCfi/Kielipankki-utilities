@@ -129,6 +129,7 @@ class StructAttrAdder(InputProcessor):
         struct_begin = ('<' + args.struct_name).encode()
         struct_begin_endpos = len(args.struct_name) + 1
         struct_begin_endchars = b' >'
+        check_overlap_attrs = set()
         new_attr_names = None
         new_attr_values = {}
 
@@ -210,21 +211,20 @@ class StructAttrAdder(InputProcessor):
                         -1)
 
         def add_attributes(line, attrs, add_attrs, linenr, tsv_line_num):
-            for overlap_attr in attrs:
-                if (overlap_attr in new_attr_names
-                        and overlap_attr not in overwrite_attrs
-                        and add_attrs[overlap_attr] != attrs[overlap_attr]
-                        and tsv_line_num != -1):
-                    self.warn(
-                        ('Values for attribute {attr} differ on'
-                         ' line {dataline} of {datafile} and'
-                         ' line {vrtline} of VRT input').format(
-                             attr=overlap_attr.decode(),
-                             dataline=tsv_line_num,
-                             datafile=args.data_file,
-                             vrtline=linenr))
-                    # In case of conflict, the existing value is kept
-                    add_attrs[overlap_attr] = attrs[overlap_attr]
+            if tsv_line_num != -1:
+                for overlap_attr in check_overlap_attrs:
+                    if (overlap_attr in attrs.keys()
+                            and add_attrs[overlap_attr] != attrs[overlap_attr]):
+                        self.warn(
+                            ('Values for attribute {attr} differ on'
+                             ' line {dataline} of {datafile} and'
+                             ' line {vrtline} of VRT input').format(
+                                 attr=overlap_attr.decode(),
+                                 dataline=tsv_line_num,
+                                 datafile=args.data_file,
+                                 vrtline=linenr))
+                        # In case of conflict, the existing value is kept
+                        add_attrs[overlap_attr] = attrs[overlap_attr]
             for attrname, attrval in add_attrs.items():
                 # This is redundant for the attributes that are for checking
                 # value equality only, but is this faster anyway?
@@ -242,6 +242,7 @@ class StructAttrAdder(InputProcessor):
             if not args.attr_names:
                 tsv_reader.read_fieldnames()
             new_attr_names = set(tsv_reader.fieldnames or [])
+            check_overlap_attrs = new_attr_names - overwrite_attrs
             if key_attrs:
                 read_keyed_data(tsv_reader)
             linenr = 0
