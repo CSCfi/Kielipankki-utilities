@@ -16,6 +16,7 @@ import sys
 
 from collections import OrderedDict
 
+from libvrt.metaline import mapping, starttag
 from vrtargsoolib import InputProcessor
 
 
@@ -126,8 +127,8 @@ class StructAttrAdder(InputProcessor):
         if args.attr_names:
             args.attr_names = [name.encode()
                                for name in args.attr_names.split()]
-        struct_begin = ('<' + args.struct_name).encode()
-        struct_begin_alts = tuple(struct_begin + endchar
+        struct_name = args.struct_name.encode()
+        struct_begin_alts = tuple(b'<' + struct_name + endchar
                                   for endchar in [b' ', b'>'])
         check_overlap_attrs = set()
         new_attr_names = None
@@ -229,10 +230,7 @@ class StructAttrAdder(InputProcessor):
                 # This is redundant for the attributes that are for checking
                 # value equality only, but is this faster anyway?
                 attrs[attrname] = attrval
-            return (struct_begin + b' '
-                    + b' '.join(attrname + b'="' + attrval + b'"'
-                                for attrname, attrval in attrs.items())
-                    + b'>\n')
+            return starttag(struct_name, attrs)
 
         get_add_attrs = (
             get_add_attrs_keyed if key_attrs else get_add_attrs_ordered)
@@ -249,7 +247,7 @@ class StructAttrAdder(InputProcessor):
             for line in inf:
                 linenr += 1
                 if line[0] == LESS_THAN and line.startswith(struct_begin_alts):
-                    attrs = OrderedDict(re.findall(rb'(\w+)="(.*?)"', line))
+                    attrs = mapping(line)
                     add_attrs, tsv_linenr = get_add_attrs(
                         tsv_reader, line, attrs, linenr)
                     if add_attrs:
