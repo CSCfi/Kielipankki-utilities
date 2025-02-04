@@ -44,6 +44,7 @@ from tempfile import NamedTemporaryFile
 from time import sleep
 
 from vrtargsoolib import InputProcessor
+from libvrt.seekable import get_seekable
 
 
 class VrtSorter(InputProcessor):
@@ -241,15 +242,9 @@ class VrtSorter(InputProcessor):
                     + b'\n')
 
         LESS_THAN = '<'.encode('utf-8')[0]
-        # If the original input is not seekable, the input is copied
-        # to a seekable temporary file. Python 3.6.8 on Puhti seems to
-        # return seekable() == True for stdin, so also test for name
-        # "<stdin>".
-        write_tmp = not inf.seekable() or inf.name == '<stdin>'
-        seekable_inf = NamedTemporaryFile(delete=False) if write_tmp else inf
-        seekable_inf_name = seekable_inf.name
-        # print(inf.seekable(), write_tmp, inf, seekable_inf_name,
-        #       file=sys.stderr)
+        # If the original input is not seekable, wrap it to appear
+        # such
+        inf = get_seekable(inf)
         # Use Popen as context manager to close standard file
         # descriptors and wait for the process on exit
         with Popen(['sort', '-s', '-t\t'] + self._sorter_key_opts,
@@ -284,9 +279,10 @@ class VrtSorter(InputProcessor):
                 start_offset = end_offset = 0
                 # Write keys and text start and end offsets to the
                 # sorter pipe to be sorted
+                # CHECK: Should this be enclosed in "with inf as inf",
+                # as inf is different from the argument inf if the
+                # original was not seekable?
                 for line in inf:
-                    if write_tmp:
-                        seekable_inf.write(line)
                     linenr += 1
                     end_offset += len(line)
                     if text_open:
@@ -314,17 +310,13 @@ class VrtSorter(InputProcessor):
                             'the last <text> structure in input not closed;'
                             ' keeping it at the end')
                 sorter.stdin.close()
-                if write_tmp:
-                    seekable_inf.close()
         # Read text start and end offsets from the sorted file, read
         # the texts from the input (or its copy) in that order and
         # write to output
-        with open(seekable_inf_name, 'rb') as seekable_inf:
-            with open(orderf_name, 'rb') as orderf:
-                self._write_output(seekable_inf, ouf, orderf, comment_offsets)
+        # CHECK: Should this be enclosed in "with inf as inf"?
+        with open(orderf_name, 'rb') as orderf:
+            self._write_output(inf, ouf, orderf, comment_offsets)
         os.remove(orderf_name)
-        if write_tmp:
-            os.remove(seekable_inf_name)
 
     def _write_output(self, inf, ouf, orderf, comment_offsets):
 
