@@ -65,7 +65,7 @@ def define_transform_func(code):
     elif is_single_expr(code):
         body = 'return ' + code
     else:
-        if not re.search(r'(^|;)\s*return', code):
+        if not re.search(r'(^|;)\s*return', code, re.MULTILINE):
             body = code + '\nreturn val'
         else:
             body = code
