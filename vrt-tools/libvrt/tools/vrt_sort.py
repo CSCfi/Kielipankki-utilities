@@ -234,14 +234,6 @@ class VrtSorter(InputProcessor):
         return transfunc
 
     def main(self, args, inf, ouf):
-
-        def make_sort_line(key, start, end):
-            return (b'\t'.join([key,
-                                str(start).encode(),
-                                str(end).encode()])
-                    + b'\n')
-
-        LESS_THAN = '<'.encode('utf-8')[0]
         # If the original input is not seekable, wrap it to appear
         # such
         inf = get_seekable(inf)
@@ -269,46 +261,7 @@ class VrtSorter(InputProcessor):
                        bufsize=-1) as cutter:
                 # Close sorter stdout to make it detect SIGPIPE
                 sorter.stdout.close()
-                keysep = b'\x01' if self._concat_all_keys else b'\t'
-                text_seen = False
-                text_open = False
-                comment_offsets = {'initial': [0, 0], 'final': [0, 0]}
-                key = ''
-                linenr = 0
-                text_start_offset = 0
-                start_offset = end_offset = 0
-                # Write keys and text start and end offsets to the
-                # sorter pipe to be sorted
-                # CHECK: Should this be enclosed in "with inf as inf",
-                # as inf is different from the argument inf if the
-                # original was not seekable?
-                for line in inf:
-                    linenr += 1
-                    end_offset += len(line)
-                    if text_open:
-                        if line[0] == LESS_THAN and line.startswith(b'</text>'):
-                            text_open = False
-                            sorter.stdin.write(
-                                make_sort_line(key, text_start_offset,
-                                               end_offset))
-                            # Next text starts immediately after
-                            text_start_offset = end_offset
-                    else:
-                        if line[0] == LESS_THAN and line.startswith(b'<text '):
-                            key = self._make_key(line, keysep, linenr)
-                            # Initial comments
-                            if not text_seen and linenr > 1:
-                                comment_offsets['initial'] = [0, start_offset]
-                                text_start_offset = start_offset
-                            text_open = text_seen = True
-                    start_offset = end_offset
-                # Final comments
-                if text_start_offset != end_offset:
-                    comment_offsets['final'] = [text_start_offset, end_offset]
-                    if text_open:
-                        self.warn(
-                            'the last <text> structure in input not closed;'
-                            ' keeping it at the end')
+                comment_offsets = self._read_input(inf, sorter)
                 sorter.stdin.close()
         # Read text start and end offsets from the sorted file, read
         # the texts from the input (or its copy) in that order and
@@ -317,6 +270,58 @@ class VrtSorter(InputProcessor):
         with open(orderf_name, 'rb') as orderf:
             self._write_output(inf, ouf, orderf, comment_offsets)
         os.remove(orderf_name)
+
+    def _read_input(self, inf, sorter):
+        # NOTE: It seems that if this this method raises a run-time
+        # error, it makes subprocess.__exit__ wait indefinitely. Could
+        # that be avoided somehow?
+
+        def make_sort_line(key, start, end):
+            return (b'\t'.join([key,
+                                str(start).encode(),
+                                str(end).encode()])
+                    + b'\n')
+
+        LESS_THAN = b'<'[0]
+        keysep = b'\x01' if self._concat_all_keys else b'\t'
+        text_seen = False
+        text_open = False
+        comment_offsets = {'initial': [0, 0], 'final': [0, 0]}
+        key = ''
+        linenr = 0
+        text_start_offset = 0
+        start_offset = end_offset = 0
+        # Write keys and text start and end offsets to the sorter pipe
+        # to be sorted
+        # CHECK: Should this be enclosed in "with inf as inf", as inf
+        # is different from the argument inf if the original was not
+        # seekable?
+        for line in inf:
+            linenr += 1
+            end_offset += len(line)
+            if text_open:
+                if line[0] == LESS_THAN and line.startswith(b'</text>'):
+                    text_open = False
+                    sorter.stdin.write(
+                        make_sort_line(key, text_start_offset, end_offset))
+                    # Next text starts immediately after
+                    text_start_offset = end_offset
+            else:
+                if line[0] == LESS_THAN and line.startswith(b'<text '):
+                    key = self._make_key(line, keysep, linenr)
+                    # Initial comments
+                    if not text_seen and linenr > 1:
+                        comment_offsets['initial'] = [0, start_offset]
+                        text_start_offset = start_offset
+                    text_open = text_seen = True
+            start_offset = end_offset
+        # Final comments
+        if text_start_offset != end_offset:
+            comment_offsets['final'] = [text_start_offset, end_offset]
+            if text_open:
+                self.warn('the last <text> structure in input not closed;'
+                          ' keeping it at the end')
+        return comment_offsets
 
     def _write_output(self, inf, ouf, orderf, comment_offsets):
 
