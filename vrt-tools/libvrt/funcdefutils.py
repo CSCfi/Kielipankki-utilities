@@ -45,23 +45,11 @@ def define_transform_func(code):
 
     body = ''
     if code.startswith('s/'):
-        mo = re.fullmatch(r's/((?:[^/]|\\/)+)/((?:[^/]|\\/)*)/([agilx]*)',
-                          code)
-        if not mo:
+        body = convert_perl_subst(code)
+        if body is None:
             raise FuncDefError(f'Perl-style substitution not of the form'
                                f' s/regexp/repl/[agilx]*: {code}')
-        regexp = mo.group(1)
-        repl = mo.group(2)
-        repl = re.sub(r'\$(\d)', r'\\\1', repl)
-        flags = mo.group(3)
-        count = 0 if 'g' in flags else 1
-        flags = '|'.join('re.' + flag.upper()
-                         for flag in flags if flag != 'g')
-        if not flags:
-            flags = '0'
-        # f-strings require at least Python 3.5
-        body = (f'return re.sub(r"""{regexp}""",'
-                f' r"""{repl}""", val, {count}, {flags})')
+        body = 'return ' + body
     elif is_single_expr(code):
         body = 'return ' + code
     else:
@@ -89,3 +77,29 @@ def define_transform_func(code):
         # transforming values.
         pass
     return (transfunc, funcdef)
+
+
+def convert_perl_subst(expr):
+    """Convert Perl-style substitution `expr` to a Python `re.sub` call.
+
+    Convert Perl-style regular-expression substitution `expr` of the
+    form `s/regepx/subst/flags` to a Python `re.sub` expression and
+    return it. Return `None` if `expr` is not valid.
+
+    The flags a, g, i, l and x are converted, and Perl-style group
+    references $N in the are converted to \\N, but otherwise the
+    regular expression and the substitution expression must follow
+    Python syntax. Only slashes are recognized as separators.
+    """
+    mo = re.fullmatch(r's/((?:[^/]|\\/)+)/((?:[^/]|\\/)*)/([agilx]*)', expr)
+    if not mo:
+        return None
+    regexp = mo.group(1)
+    repl = re.sub(r'\$(\d)', r'\\\1', mo.group(2))
+    flags = mo.group(3)
+    count = 0 if 'g' in flags else 1
+    flags = '|'.join('re.' + flag.upper()
+                     for flag in flags if flag != 'g')
+    if not flags:
+        flags = '0'
+    return f're.sub(r"""{regexp}""", r"""{repl}""", val, {count}, {flags})'
