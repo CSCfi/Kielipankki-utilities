@@ -43,6 +43,7 @@ _perl_subst_testcases_invalid = [
     's/a/s/z',
 ]
 
+
 class TestDefineTransformFunc:
 
     """Tests for function define_transform_func."""
@@ -121,3 +122,27 @@ class TestDefineTransformFunc:
                 fdu.FuncDefError,
                 match=f'Invalid transformation:(.|\n)*{error}'):
             func, funcdef = fdu.define_transform_func(code)
+
+
+class TestConvertPerlSubst:
+
+    """Tests for function convert_perl_subst."""
+
+    @pytest.mark.parametrize(
+        # Ignore the result parameter
+        'expr,_,regexp,repl,count,flags',
+        _perl_subst_testcases,
+    )
+    def test_convert_perl_subst(self, expr, _, regexp, repl, count, flags):
+        """Test convert_perl_subst with various substitution expressions."""
+        result = (
+            f're.sub(r"""{regexp}""", r"""{repl}""", val, {count}, {flags})')
+        assert fdu.convert_perl_subst(expr) == result
+
+    @pytest.mark.parametrize(
+        'expr',
+        _perl_subst_testcases_invalid
+    )
+    def test_convert_perl_subst_invalid(self, expr):
+        """Test convert_perl_subst with invalid substitution expressions."""
+        assert fdu.convert_perl_subst(expr) == None
