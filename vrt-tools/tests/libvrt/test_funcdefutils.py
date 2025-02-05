@@ -8,7 +8,7 @@ Pytest tests for libvrt.funcdefutils.
 
 import pytest
 
-from libvrt.funcdefutils import define_transform_func, FuncDefError
+import libvrt.funcdefutils as fdu
 
 
 class TestDefineTransformFunc:
@@ -17,7 +17,7 @@ class TestDefineTransformFunc:
 
     def test_define_transform_func_single_expr(self):
         """Test define_transform_func with a single expression."""
-        func, funcdef = define_transform_func('val + "x"')
+        func, funcdef = fdu.define_transform_func('val + "x"')
         assert func('y') == 'yx'
         assert funcdef == 'def transfunc(val):\n  return val + "x"'
 
@@ -45,7 +45,7 @@ class TestDefineTransformFunc:
     def test_define_transform_func_perl_subst(self, code, result, regexp, repl,
                                               count, flags):
         """Test define_transform_func with a Perl-style regexp substitution."""
-        func, funcdef = define_transform_func(code)
+        func, funcdef = fdu.define_transform_func(code)
         assert func('aaa abc bbc AAb') == result
         assert funcdef == (f'def transfunc(val):\n  return re.sub('
                            f'r"""{regexp}""", r"""{repl}""", val, {count},'
@@ -61,7 +61,7 @@ class TestDefineTransformFunc:
             code += '\nreturn result'
         else:
             code += '\nval = result'
-        func, funcdef = define_transform_func(code)
+        func, funcdef = fdu.define_transform_func(code)
         assert func('abcde') == 'aabbccdd'
         assert funcdef == ('def transfunc(val):\n  '
                            + code.replace('\n', '\n  ')
@@ -81,10 +81,10 @@ class TestDefineTransformFunc:
     def test_define_transform_func_perl_subst_error(self, code):
         """Test define_transform_func with invalid Perl-style substitution."""
         with pytest.raises(
-                FuncDefError,
+                fdu.FuncDefError,
                 match=('Perl-style substitution not of the form'
                        r' s/regexp/repl/\[agilx]\*:')):
-            func, funcdef = define_transform_func(code)
+            func, funcdef = fdu.define_transform_func(code)
 
     @pytest.mark.parametrize(
         'code',
@@ -96,9 +96,9 @@ class TestDefineTransformFunc:
     def test_define_transform_func_syntax_error(self, code):
         """Test define_transform_func with code raising Python syntax error."""
         with pytest.raises(
-                FuncDefError,
+                fdu.FuncDefError,
                 match='Syntax error in transformation:'):
-            func, funcdef = define_transform_func(code)
+            func, funcdef = fdu.define_transform_func(code)
 
     @pytest.mark.parametrize(
         'code,error',
@@ -110,6 +110,6 @@ class TestDefineTransformFunc:
     def test_define_transform_func_invalid_code(self, code, error):
         """Test define_transform_func, code raising NameError or ImportError."""
         with pytest.raises(
-                FuncDefError,
+                fdu.FuncDefError,
                 match=f'Invalid transformation:(.|\n)*{error}'):
-            func, funcdef = define_transform_func(code)
+            func, funcdef = fdu.define_transform_func(code)
