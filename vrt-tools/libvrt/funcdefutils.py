@@ -89,13 +89,24 @@ def convert_perl_subst(expr):
     The flags a, g, i, l and x are converted, and Perl-style group
     references $N in the are converted to \\N, but otherwise the
     regular expression and the substitution expression must follow
-    Python syntax. Only slashes are recognized as separators.
+    Python syntax.
+
+    Only slashes are recognized as separators. To include a literal
+    slash in `regexp` or `subst`, precede it with a backslash.
     """
+
+    def unprotect_slashes(str):
+        """Return `str` with backslash protection removed from slashes."""
+        # Protect \\ from removal, replace \/ with /, restore \\
+        return (str.replace(r'\\', '\x01')
+                .replace(r'\/', '/')
+                .replace('\x01', r'\\'))
+
     mo = re.fullmatch(r's/((?:[^/]|\\/)+)/((?:[^/]|\\/)*)/([agilx]*)', expr)
     if not mo:
         return None
-    regexp = mo.group(1)
-    repl = re.sub(r'\$(\d)', r'\\\1', mo.group(2))
+    regexp = unprotect_slashes(mo.group(1))
+    repl = re.sub(r'\$(\d)', r'\\\1', unprotect_slashes(mo.group(2)))
     flags = mo.group(3)
     count = 0 if 'g' in flags else 1
     flags = '|'.join('re.' + flag.upper()
