@@ -90,7 +90,7 @@ def define_func(code, name='func', args='val', returns='val',
     return (func, funcdef)
 
 
-def define_transform_func(code):
+def define_transform_func(code, extra_args=None):
     """Define a function for transforming an input value.
 
     Define function based on `code` and return a pair with the
@@ -99,9 +99,11 @@ def define_transform_func(code):
     `code` can be a function body, a single expression or a Perl-style
     substitution expression (s/regexp/subst/flags). The function body
     and single expression take parameter `val` as the argument and
-    return it as transformed by the expression or body. If the
-    function body contains no explicit `return` statement, `return
-    val` is appended to it.
+    return it as transformed by the expression or body. If
+    `extra_args` is not `None`, it should be a tuple or
+    comma-separated string containing the names of additional
+    arguments to the function. If the function body contains no
+    explicit `return` statement, `return val` is appended to it.
     """
 
     def is_single_expr(code):
@@ -121,7 +123,13 @@ def define_transform_func(code):
             raise FuncDefError(f'Perl-style substitution not of the form'
                                f' s/regexp/repl/[agilx]*: {code}')
         code = sub_code
-    return define_func(code, name='transfunc', functype='transformation')
+    if extra_args is None:
+        args = 'val'
+    else:
+        args = 'val, ' + (extra_args if isinstance(extra_args, str)
+                          else ', '.join(extra_args))
+    return define_func(code, name='transfunc', args=args,
+                       functype='transformation')
 
 
 def convert_perl_subst(expr):

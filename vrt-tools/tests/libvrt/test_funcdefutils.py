@@ -206,6 +206,22 @@ class TestDefineFunc(_TestDefineFuncBase):
         self._test_define_invalid_code(fdu.define_func, 'function', code, error)
 
 
+# Parameters for define_transform_func tests testing extra arguments
+# CHECK: Would it be possible to define these within the class and
+# access them somehow? It seems that it does not work to define them
+# as static variables.
+_test_transform_extra_arg_params = [
+    # Multiple extra arguments as tuple
+    ('val + x + y', ('x', 'y'), ('ab', 'cd', 'ef'), 'abcdef'),
+    # Multiple extra arguments as string
+    ('val + x + y', 'x, y', ('ab', 'cd', 'ef'), 'abcdef'),
+    # dict extra argument
+    ('val + d["a"] + d["b"]', 'd', ('ab', {'a': 'x', 'b': 'y'}), 'abxy'),
+    # list extra argument
+    ('val + " ".join(lst)', 'lst', ('ab', ['x', 'y', 'z']), 'abx y z'),
+]
+
+
 class TestDefineTransformFunc(_TestDefineFuncBase):
 
     """Tests for function define_transform_func."""
@@ -213,6 +229,18 @@ class TestDefineTransformFunc(_TestDefineFuncBase):
     def test_define_transform_func_single_expr(self):
         """Test define_transform_func with a single expression."""
         self._test_define_single_expr(fdu.define_transform_func, 'transfunc')
+
+    @pytest.mark.parametrize(
+        'expr,extra_args,argvals,result', _test_transform_extra_arg_params
+    )
+    def test_define_transform_func_single_expr_extra_args(
+            self, expr, extra_args, argvals, result):
+        """Test define_transform_func: single expression, extra args."""
+        func, funcdef = fdu.define_transform_func(expr, extra_args=extra_args)
+        argstr = 'val, ' + (extra_args if isinstance(extra_args, str)
+                            else', '.join(extra_args))
+        assert func(*argvals) == result
+        assert funcdef == f'def transfunc({argstr}):\n  return {expr}'
 
     @pytest.mark.parametrize(
         'code,result,regexp,repl,count,flags',
@@ -232,6 +260,25 @@ class TestDefineTransformFunc(_TestDefineFuncBase):
         """Test define_transform_func with a multi-line function body."""
         self._test_define_multi_line(
             fdu.define_transform_func, 'transfunc', with_return)
+
+    @pytest.mark.parametrize(
+        'code,extra_args,argvals,result',
+        [('val = ' + params[0],) + params[1:]
+         for params in _test_transform_extra_arg_params]
+    )
+    @pytest.mark.parametrize('with_return', [False, True])
+    def test_define_transform_func_multi_line_extra_args(
+            self, code, extra_args, argvals, result, with_return):
+        """Test def_func a multi-line function body (and defaults)."""
+        if with_return:
+            code += '\nreturn val'
+        func, funcdef = fdu.define_transform_func(code, extra_args=extra_args)
+        assert func(*argvals) == result
+        argstr = 'val, ' + (extra_args if isinstance(extra_args, str)
+                            else', '.join(extra_args))
+        assert funcdef == (f'def transfunc({argstr}):\n  '
+                           + code.replace('\n', '\n  ')
+                           + ('\n  return val' if not with_return else ''))
 
     @pytest.mark.parametrize(
         'code',
