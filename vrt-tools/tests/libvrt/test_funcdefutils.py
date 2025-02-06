@@ -122,6 +122,90 @@ class _TestDefineFuncBase:
             func, funcdef = def_func(code)
 
 
+class TestDefineFunc(_TestDefineFuncBase):
+
+    """Tests for function define_func."""
+
+    def test_define_func_single_expr_defaults(self):
+        """Test define_func with a single expression and defaults."""
+        self._test_define_single_expr(fdu.define_func, 'func')
+
+    @pytest.mark.parametrize(
+        'name,args,code,argvals,result',
+        [
+            # No arguments
+            ('f', '', '"x"', (), 'x'),
+            # No arguments as a tuple
+            ('f', (), '"x"', (), 'x'),
+            # Single argument
+            ('f', 'x', 'x + "y"', ('a',), 'ay'),
+            # Single argument as a tuple
+            ('f', ('x',), 'x + "y"', ('a',), 'ay'),
+            # Multiple arguments as a tuple
+            ('f1', ('x', 'y'), 'x + y', ('a', 'b'), 'ab'),
+            # Multiple arguments as a single string
+            ('f1', 'x, y', 'x + y', ('a', 'b'), 'ab'),
+        ]
+    )
+    def test_define_func_single_expr_args(self, name, args, code, argvals,
+                                          result):
+        """Test define_func with a single expression and non-default args."""
+        func, funcdef = fdu.define_func(code, name=name, args=args)
+        assert func(*argvals) == result
+        argstr = args if isinstance(args, str) else ', '.join(args)
+        assert funcdef == f'def {name}({argstr}):\n  return {code}'
+
+    @pytest.mark.parametrize('with_return', [False, True])
+    def test_define_func_multi_line_defaults(self, with_return):
+        """Test define_func with a multi-line function body and defaults."""
+        self._test_define_multi_line(fdu.define_func, 'func', with_return)
+
+    @pytest.mark.parametrize(
+        'name,args,code,returns,argvals,result',
+        [
+            # No arguments, no return value (None)
+            ('f0', '', 'pass', '', (), None),
+            # No arguments, return fixed value
+            ('f1', '', 'pass', '1', (), 1),
+            # No arguments (tuple), return assigned value
+            ('f2', (), 'x = 1', 'x', (), 1),
+            # Multiple arguments (tuple), return single value
+            ('f3', ('x', 'y'), 'z = x + y', 'z', (1, 2), 3),
+            # Multiple arguments (string), return single value
+            ('f4', 'x, y', 'z = x + y', 'z', (1, 2), 3),
+            # Multiple arguments (string), multi-line code
+            ('f5', 'x, y', 'for i in range(x):\n  y *= y', 'y', (4, 2), 65536),
+            # Multiple arguments (string), multiple return values
+            ('f6', 'x, y', 'for i in range(x):\n  y *= y\n  x += x', 'x, y',
+             (4, 2), (64, 65536)),
+        ]
+    )
+    @pytest.mark.parametrize('with_return', [False, True])
+    def test_define_func_multi_line_args(self, name, args, code, returns,
+                                         argvals, result, with_return):
+        """Test define_func with multi-line function body, non-default args."""
+        if with_return:
+            code += f'\nreturn {returns}'
+        func, funcdef = fdu.define_func(
+            code, name=name, args=args, returns=returns)
+        assert func(*argvals) == result
+        argstr = args if isinstance(args, str) else ', '.join(args)
+        assert funcdef == (f'def {name}({argstr}):\n  '
+                           + code.replace('\n', '\n  ')
+                           + (f'\n  return {returns}' if not with_return
+                              else ''))
+
+    @pytest.mark.parametrize('code', _TestDefineFuncBase._syntax_error_code)
+    def test_define_func_syntax_error(self, code):
+        """Test define_func with code raising Python syntax error."""
+        self._test_define_syntax_error(fdu.define_func, 'function', code)
+
+    @pytest.mark.parametrize('code,error', _TestDefineFuncBase._invalid_code)
+    def test_define_func_invalid_code(self, code, error):
+        """Test define_func, code raising NameError or ImportError."""
+        self._test_define_invalid_code(fdu.define_func, 'function', code, error)
+
+
 class TestDefineTransformFunc(_TestDefineFuncBase):
 
     """Tests for function define_transform_func."""
