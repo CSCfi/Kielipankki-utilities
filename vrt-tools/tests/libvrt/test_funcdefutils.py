@@ -12,43 +12,48 @@ import libvrt.funcdefutils as fdu
 
 
 # Input string for testing Perl-style substitution expressions
-_perl_subst_input = r'aaa abc/bbc\/ AAb'
+_perl_subst_input = r'áaaa abc/bbc\/ AAb'
 
 # Parametrized test cases for Perl-style substitution expressions:
 # expression, result (for _perl_subst_input), regexp, repl, count,
 # flags
 _perl_subst_testcases = [
     # Base case
-    ('s/a+/z/', 'z abc/bbc\\/ AAb', 'a+', 'z', '1', '0'),
+    ('s/a+/z/', 'áz abc/bbc\\/ AAb', 'a+', 'z', '1', '0'),
+    # \w matches Unicode letters
+    (r's/\w+/z/', 'z abc/bbc\\/ AAb', r'\w+', 'z', '1', '0'),
+    # /a: \w does not match Unicode letters
+    (r's/\w+/z/a', 'áz abc/bbc\\/ AAb', r'\w+', 'z', '1', 're.A'),
     # /g
-    ('s/[ab]+/z/g', 'z zc/zc\\/ AAz', '[ab]+', 'z', '0', '0'),
+    ('s/[ab]+/z/g', 'áz zc/zc\\/ AAz', '[ab]+', 'z', '0', '0'),
     # /i
-    ('s/[ab]+/z/gi', 'z zc/zc\\/ z', '[ab]+', 'z', '0', 're.I'),
+    ('s/[ab]+/z/gi', 'áz zc/zc\\/ z', '[ab]+', 'z', '0', 're.I'),
     # /x
-    ('s/ [ab] + \t/z/x', 'z abc/bbc\\/ AAb', ' [ab] + \t', 'z', '1', 're.X'),
+    ('s/ [ab] + \t/z/x', 'áz abc/bbc\\/ AAb', ' [ab] + \t', 'z', '1', 're.X'),
     # /xig (multiple flags)
-    ('s/ [ab] + \t/z/xig', 'z zc/zc\\/ z', ' [ab] + \t', 'z', '0', 're.X|re.I'),
+    ('s/ [ab] + \t/z/xig', 'áz zc/zc\\/ z', ' [ab] + \t', 'z', '0',
+     're.X|re.I'),
     # Group reference
-    ('s/(a+)(b+)/$2-$1/ig', 'aaa b-ac/bbc\\/ b-AA', '(a+)(b+)', r'\2-\1', '0',
+    ('s/(a+)(b+)/$2-$1/ig', 'áaaa b-ac/bbc\\/ b-AA', '(a+)(b+)', r'\2-\1', '0',
      're.I'),
     # Backslash-protected slash at the beginning of regexp
-    (r's/\/[bd]/x/', 'aaa abcxbc\\/ AAb', '/[bd]', 'x', '1', '0'),
+    (r's/\/[bd]/x/', 'áaaa abcxbc\\/ AAb', '/[bd]', 'x', '1', '0'),
     # Backslash-protected slash in the middle of regexp
-    (r's/[ac]\/[bd]/x/', 'aaa abxbc\\/ AAb', '[ac]/[bd]', 'x', '1', '0'),
+    (r's/[ac]\/[bd]/x/', 'áaaa abxbc\\/ AAb', '[ac]/[bd]', 'x', '1', '0'),
     # Backslash-protected slash at end of regexp
-    (r's/[ac]\//x/', 'aaa abxbbc\\/ AAb', '[ac]/', 'x', '1', '0'),
+    (r's/[ac]\//x/', 'áaaa abxbbc\\/ AAb', '[ac]/', 'x', '1', '0'),
     # Backslash followed by a backslash-protected slash
-    (r's/[ac]\//x/', 'aaa abxbbc\\/ AAb', '[ac]/', 'x', '1', '0'),
+    (r's/[ac]\//x/', 'áaaa abxbbc\\/ AAb', '[ac]/', 'x', '1', '0'),
     # Backslash-protected slash at the beginning of repl
-    (r's/[a-c] /\/x/', 'aa/xabc/bbc\\/ AAb', '[a-c] ', '/x', '1', '0'),
+    (r's/[a-c] /\/x/', 'áaa/xabc/bbc\\/ AAb', '[a-c] ', '/x', '1', '0'),
     # Backslash-protected slash in the middle of repl
-    (r's/[a-c] /x\/y/', 'aax/yabc/bbc\\/ AAb', '[a-c] ', 'x/y', '1', '0'),
+    (r's/[a-c] /x\/y/', 'áaax/yabc/bbc\\/ AAb', '[a-c] ', 'x/y', '1', '0'),
     # Backslash-protected slash at the end of repl
-    (r's/[a-c] /x\//', 'aax/abc/bbc\\/ AAb', '[a-c] ', 'x/', '1', '0'),
+    (r's/[a-c] /x\//', 'áaax/abc/bbc\\/ AAb', '[a-c] ', 'x/', '1', '0'),
     # Backslashes followed by backslash-protected slash in regexp
-    (r's/[ac]\\\/ /x/', 'aaa abc/bbxAAb', r'[ac]\\/ ', 'x', '1', '0'),
+    (r's/[ac]\\\/ /x/', 'áaaa abc/bbxAAb', r'[ac]\\/ ', 'x', '1', '0'),
     # Backslashes followed by backslash-protected slash in repl
-    (r's/[a-c] /x\\\/y/', r'aax\/yabc/bbc\/ AAb', '[a-c] ', r'x\\/y', '1', '0'),
+    (r's/[a-c] /x\\\/y/', r'áaax\/yabc/bbc\/ AAb', '[a-c] ', r'x\\/y', '1', '0'),
     # TODO: Test /l (run-time locale rules)
 ]
 
