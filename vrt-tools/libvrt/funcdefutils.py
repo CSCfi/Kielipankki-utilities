@@ -3,8 +3,8 @@
 libvrt.funcdefutils
 
 This library module contains a utility function for dynamically
-defining functions for transforming a value, for example, based on
-command-line arguments.
+defining functions, typically for transforming a value, for example,
+based on command-line arguments.
 """
 
 
@@ -16,6 +16,78 @@ class FuncDefError(Exception):
     """Error in a function definition."""
 
     pass
+
+
+def define_func(code, name='func', args='val', returns='val',
+                functype='function'):
+    """Dynamically define a functions based on `code`.
+
+    Return the function (function object) and its definition (`str`).
+
+    `code` can be either a single expression to be returned or a
+    complete function body. In the latter case, if `code` does not
+    contain a `return` statement, one returning `returns` is appended.
+
+    The name of the function is `name` (default ``func``), its
+    arguments `args` (`str` or a list of `str` for multiple arguments,
+    default ``val``) and the value to be returned `returns` if `code`
+    has no explicit `return` statement (default ``val``). The value of
+    `functype` is used in the messages of raised `FuncDefError`
+    exceptions (default ``function``).
+
+    Raises `FuncDefError` if `code` raises `SyntaxError` when defining
+    the function or `ImportError` or `NameError` when calling it.
+    """
+
+    def make_args(args):
+        """If `args` is a sequence, return its items joined by comma."""
+        return (args if isinstance(args, str) else ', '.join(args))
+
+    def is_single_expr(code):
+        # Use eval to check if the code is a single expression
+        try:
+            compile(code, '', mode='eval')
+        except SyntaxError:
+            return False
+        return True
+
+    def indent(lines):
+        return '  ' + lines.replace('\n', '\n  ')
+
+    args = make_args(args)
+    body = ''
+    if is_single_expr(code):
+        body = f'return {code}'
+    elif re.search(r'(^|;)\s*return', code, re.MULTILINE):
+        body = code
+    else:
+        returns = make_args(returns)
+        body = f'{code}\nreturn {returns}'
+    funcdef = f'def {name}({args}):\n{indent(body)}'
+    # sys.stderr.write(funcdef + '\n')
+    try:
+        exec(funcdef, globals())
+    except SyntaxError as e:
+        raise FuncDefError(f'Syntax error in {functype}: {code}\n{e}:\n'
+                           + indent(funcdef))
+    # Make func refer to the function, regardless of its name
+    exec(f'func = {name}', globals())
+    # Test func with as many empty strings as arguments as given in
+    # args
+    test_args = (('',) * (args.count(',') + 1)) if args else ()
+    try:
+        _ = func(*test_args)
+    except (ImportError, NameError) as e:
+        raise FuncDefError(f'Invalid {functype}: {code}\n'
+                           f'{e.__class__.__name__}: {e}:\n'
+                           + indent(funcdef))
+    except Exception:
+        # Should we also check some other exceptions here? At least
+        # IndexError, KeyError and ValueError may depend on the
+        # argument value, so they are checked when actually
+        # transforming values.
+        pass
+    return (func, funcdef)
 
 
 def define_transform_func(code):
@@ -43,40 +115,13 @@ def define_transform_func(code):
     def indent(lines):
         return '  ' + lines.replace('\n', '\n  ')
 
-    body = ''
     if code.startswith('s/'):
-        body = convert_perl_subst(code)
-        if body is None:
+        sub_code = convert_perl_subst(code)
+        if sub_code is None:
             raise FuncDefError(f'Perl-style substitution not of the form'
                                f' s/regexp/repl/[agilx]*: {code}')
-        body = 'return ' + body
-    elif is_single_expr(code):
-        body = 'return ' + code
-    else:
-        if not re.search(r'(^|;)\s*return', code, re.MULTILINE):
-            body = code + '\nreturn val'
-        else:
-            body = code
-    funcdef = 'def transfunc(val):\n' + indent(body)
-    # sys.stderr.write(funcdef + '\n')
-    try:
-        exec(funcdef, globals())
-    except SyntaxError as e:
-        raise FuncDefError(f'Syntax error in transformation: {code}\n{e}:\n'
-                           + indent(funcdef))
-    try:
-        _ = transfunc('')
-    except (ImportError, NameError) as e:
-        raise FuncDefError(f'Invalid transformation: {code}\n'
-                           f'{e.__class__.__name__}: {e}:\n'
-                           + indent(funcdef))
-    except Exception:
-        # Should we also check some other exceptions here? At least
-        # IndexError, KeyError and ValueError may depend on the
-        # argument value, so they are checked when actually
-        # transforming values.
-        pass
-    return (transfunc, funcdef)
+        code = sub_code
+    return define_func(code, name='transfunc', functype='transformation')
 
 
 def convert_perl_subst(expr):
