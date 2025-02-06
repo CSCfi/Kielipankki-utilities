@@ -62,15 +62,73 @@ _perl_subst_testcases_invalid = [
 ]
 
 
-class TestDefineTransformFunc:
+class _TestDefineFuncBase:
+
+    """
+    Common test functionality for define_func, define_transform_func.
+
+    Methods in this class get the actual function to be tested as
+    argument def_func, and funcname is the name of the defined
+    function.
+    """
+
+    def _test_define_single_expr(self, def_func, funcname):
+        """Test def_func with defaults and a single expression."""
+        func, funcdef = def_func('val + "x"')
+        assert func('y') == 'yx'
+        assert funcdef == f'def {funcname}(val):\n  return val + "x"'
+
+    def _test_define_multi_line(self, def_func, funcname, with_return):
+        """Test def_func a multi-line function body (and defaults)."""
+        code = ('result = ""\n'
+                'for c in val[:-1]:\n'
+                '  result += c + c')
+        if with_return:
+            code += '\nreturn result'
+        else:
+            code += '\nval = result'
+        func, funcdef = def_func(code)
+        assert func('abcde') == 'aabbccdd'
+        assert funcdef == (f'def {funcname}(val):\n  '
+                           + code.replace('\n', '\n  ')
+                           + ('\n  return val' if not with_return else ''))
+
+    # Code causing syntax error, for test parametrizing tests using
+    # _test_define_syntax_error
+    _syntax_error_code = [
+        'if else',
+        'for i in range(10):\n  if else',
+    ]
+
+    def _test_define_syntax_error(self, def_func, functype, code):
+        """Test def_func with code raising Python syntax error."""
+        with pytest.raises(
+                fdu.FuncDefError,
+                match=f'Syntax error in {functype}:'):
+            func, funcdef = def_func(code)
+
+    # Invalid code causing other errors, for test parametrizing tests
+    # using _test_define_invalid_code
+    _invalid_code = [
+        ('x', 'NameError'),
+        ('import _xyz\nreturn val', 'ModuleNotFoundError'),
+    ]
+
+    def _test_define_invalid_code(self, def_func, functype, code, error):
+        """Test def_func, with code raising NameError or ImportError."""
+        with pytest.raises(
+                fdu.FuncDefError,
+                match=f'Invalid {functype}:(.|\n)*{error}'):
+            func, funcdef = def_func(code)
+
+
+class TestDefineTransformFunc(_TestDefineFuncBase):
 
     """Tests for function define_transform_func."""
 
     def test_define_transform_func_single_expr(self):
         """Test define_transform_func with a single expression."""
-        func, funcdef = fdu.define_transform_func('val + "x"')
-        assert func('y') == 'yx'
-        assert funcdef == 'def transfunc(val):\n  return val + "x"'
+        self._test_define_single_expr(fdu.define_transform_func, 'transfunc')
 
     @pytest.mark.parametrize(
         'code,result,regexp,repl,count,flags',
@@ -88,18 +146,8 @@ class TestDefineTransformFunc:
     @pytest.mark.parametrize('with_return', [False, True])
     def test_define_transform_func_multi_line(self, with_return):
         """Test define_transform_func with a multi-line function body."""
-        code = ('result = ""\n'
-                'for c in val[:-1]:\n'
-                '  result += c + c')
-        if with_return:
-            code += '\nreturn result'
-        else:
-            code += '\nval = result'
-        func, funcdef = fdu.define_transform_func(code)
-        assert func('abcde') == 'aabbccdd'
-        assert funcdef == ('def transfunc(val):\n  '
-                           + code.replace('\n', '\n  ')
-                           + ('\n  return val' if not with_return else ''))
+        self._test_define_multi_line(
+            fdu.define_transform_func, 'transfunc', with_return)
 
     @pytest.mark.parametrize(
         'code',
@@ -113,33 +161,17 @@ class TestDefineTransformFunc:
                        r' s/regexp/repl/\[agilx]\*:')):
             func, funcdef = fdu.define_transform_func(code)
 
-    @pytest.mark.parametrize(
-        'code',
-        [
-            'if else',
-            'for i in range(10):\n  if else',
-        ]
-    )
+    @pytest.mark.parametrize('code', _TestDefineFuncBase._syntax_error_code)
     def test_define_transform_func_syntax_error(self, code):
         """Test define_transform_func with code raising Python syntax error."""
-        with pytest.raises(
-                fdu.FuncDefError,
-                match='Syntax error in transformation:'):
-            func, funcdef = fdu.define_transform_func(code)
+        self._test_define_syntax_error(
+            fdu.define_transform_func, 'transformation', code)
 
-    @pytest.mark.parametrize(
-        'code,error',
-        [
-            ('x', 'NameError'),
-            ('import _xyz\nreturn val', 'ModuleNotFoundError'),
-        ]
-    )
+    @pytest.mark.parametrize('code,error', _TestDefineFuncBase._invalid_code)
     def test_define_transform_func_invalid_code(self, code, error):
         """Test define_transform_func, code raising NameError or ImportError."""
-        with pytest.raises(
-                fdu.FuncDefError,
-                match=f'Invalid transformation:(.|\n)*{error}'):
-            func, funcdef = fdu.define_transform_func(code)
+        self._test_define_invalid_code(
+            fdu.define_transform_func, 'transformation', code, error)
 
 
 class TestConvertPerlSubst:
