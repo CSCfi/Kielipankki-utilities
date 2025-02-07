@@ -71,11 +71,13 @@ def main(args, ins, ous):
 
     # pytorch/1.6 is the default pytorch module at the time, needed to
     # run Sam's tool, apparently incompatible with something in kieli
-    # module, so load the module just for the external process
+    # module at the time, so loaded the module just for the external
+    # process; in 2025, pytorch/1.6 is gone, but default seems to
+    # work, so load default version now
     proc = Popen([ '/bin/bash', '-c',
                    '''
 
-                   module load pytorch/1.6
+                   module load pytorch
                    /projappl/clarin/s24-cnn-sentiment/sentiment-classification/main.py
 
                    ''' ],
