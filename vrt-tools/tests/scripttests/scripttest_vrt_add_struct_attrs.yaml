@@ -2,6 +2,15 @@
 # Tests for vrt-add-struct-attrs
 
 
+# Defaults
+
+- defaults:
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
 # Base cases
 
 - name: 'vrt-add-struct-attrs: No data file'
@@ -20,8 +29,6 @@
     cmdline: vrt-add-struct-attrs --data-file /dev/null
     stdin: ''
   output:
-    returncode: 0
-    stderr: ''
     stdout: ''
 
 
@@ -34,8 +41,6 @@
       aa	bb
       cc	dd
   output:
-    returncode: 0
-    stderr: ''
     stdout: ''
 
 
@@ -55,8 +60,6 @@
       </text>
     file:attrs.tsv: *tsv-1
   output:
-    returncode: 0
-    stderr: ''
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -81,8 +84,6 @@
       </text>
     file:attrs.tsv: *tsv-1
   output:
-    returncode: 0
-    stderr: ''
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -141,8 +142,6 @@
       </text>
     file:attrs.tsv: *tsv-1
   output:
-    returncode: 0
-    stderr: ''
     stdout: |
       <text a1="aa" a2="bb">
       <sentence>
@@ -172,8 +171,6 @@
       </text>
     file:attrs.tsv: *tsv-1
   output:
-    returncode: 0
-    stderr: ''
     stdout: |
       <text a1="aa" a2="bb">
       <sentence>
@@ -203,7 +200,6 @@
       </text>
     file:attrs.tsv: *tsv-1
   output:
-    returncode: 0
     stderr: |
       vrt-add-struct-attrs: Warning: Values for attribute a1 differ on line 2 of attrs.tsv and line 1 of VRT input
     stdout: |
@@ -235,8 +231,6 @@
       </text>
     file:attrs.tsv: *tsv-1
   output:
-    returncode: 0
-    stderr: ''
     stdout: |
       <text a="1">
       <sentence a1="aa" a2="bb">
@@ -271,8 +265,6 @@
       </text>
     file:attrs.tsv: *tsv-1
   output:
-    returncode: 0
-    stderr: ''
     stdout: |
       <text a="1" b="a1" c="a2">
       <sentence>
@@ -307,7 +299,6 @@
       </text>
     file:attrs.tsv: *tsv-1
   output:
-    returncode: 0
     stderr: |
       vrt-add-struct-attrs: Warning: Values for attribute a2 differ on line 3 of attrs.tsv and line 6 of VRT input
     stdout: |
@@ -339,8 +330,6 @@
       </text>
     file:attrs.tsv: *tsv-1
   output:
-    returncode: 0
-    stderr: ''
     stdout: |
       <text a1="aa" a2="bb">
       <sentence>
@@ -373,8 +362,6 @@
       <>	ab&"cd
       &quot;&lt;	ab&gt;cd&amp;ef&amp
   output:
-    returncode: 0
-    stderr: ''
     stdout: |
       <text a="1" a1="&lt;&gt;" a2="ab&amp;&quot;cd">
       <sentence>
@@ -407,8 +394,6 @@
       2	cc	dd
       1	aa	bb
   output:
-    returncode: 0
-    stderr: ''
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -438,8 +423,6 @@
       </text>
     file:attrs.tsv: *tsv-2
   output:
-    returncode: 0
-    stderr: ''
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -473,8 +456,6 @@
       2	cc	dd
       1	aa	bb
   output:
-    returncode: 0
-    stderr: ''
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -552,7 +533,6 @@
       1	aa	bb
       2	ee	ff
   output:
-    returncode: 0
     stderr: |
       vrt-add-struct-attrs: Warning: Duplicate value for key ('2',) on line 4 of attrs.tsv overrides previous value on line 2
     stdout: |
@@ -584,7 +564,6 @@
       </text>
     file:attrs.tsv: *tsv-2
   output:
-    returncode: 0
     stderr: |
       vrt-add-struct-attrs: Warning: No data for key ('3',) in attrs.tsv on VRT line 6; using empty values
     stdout: |
@@ -616,7 +595,6 @@
       </text>
     file:attrs.tsv: *tsv-2
   output:
-    returncode: 0
     stderr: |
       vrt-add-struct-attrs: Warning: No key attribute a on line 6 of VRT input
     stdout: |
@@ -648,7 +626,6 @@
       </text>
     file:attrs.tsv: *tsv-2
   output:
-    returncode: 0
     stderr: |
       vrt-add-struct-attrs: Warning: No key attributes a, a1 on line 6 of VRT input
     stdout: |
@@ -680,8 +657,6 @@
       </text>
     file:attrs.tsv: *tsv-2
   output:
-    returncode: 0
-    stderr: ''
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -711,7 +686,6 @@
       </text>
     file:attrs.tsv: *tsv-2
   output:
-    returncode: 0
     stderr: |
       vrt-add-struct-attrs: Warning: Values for attribute a1 differ on line 2 of attrs.tsv and line 6 of VRT input
     stdout: |
