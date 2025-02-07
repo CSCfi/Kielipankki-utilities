@@ -130,7 +130,6 @@ class StructAttrAdder(InputProcessor):
         struct_name = args.struct_name.encode()
         struct_begin_alts = tuple(b'<' + struct_name + endchar
                                   for endchar in [b' ', b'>'])
-        check_overlap_attrs = set()
         new_attr_names = None
         new_attr_values = {}
 
@@ -211,7 +210,8 @@ class StructAttrAdder(InputProcessor):
                                     for attrname in tsv_reader.fieldnames),
                         -1)
 
-        def add_attributes(line, attrs, add_attrs, linenr, tsv_line_num):
+        def add_attributes(line, attrs, add_attrs, linenr, tsv_line_num,
+                           check_overlap_attrs):
             if tsv_line_num != -1:
                 for overlap_attr in check_overlap_attrs:
                     if (overlap_attr in attrs.keys()
@@ -232,17 +232,14 @@ class StructAttrAdder(InputProcessor):
                 attrs[attrname] = attrval
             return starttag(struct_name, attrs)
 
-        get_add_attrs = (
-            get_add_attrs_keyed if key_attrs else get_add_attrs_ordered)
-        with open(args.data_file, 'rb') as attrf:
-            tsv_reader = TsvReader(attrf, fieldnames=args.attr_names,
-                                   entities=True)
-            if not args.attr_names:
-                tsv_reader.read_fieldnames()
-            new_attr_names = set(tsv_reader.fieldnames or [])
+        def process_input(inf, get_add_attrs, tsv_reader, new_attr_names):
+            """Process VRT input from inf.
+
+            Use function get_add_attrs to get the attributes to be
+            added, reading TSV data with tsv_reader, with new
+            attribute names new_attr_names.
+            """
             check_overlap_attrs = new_attr_names - overwrite_attrs
-            if key_attrs:
-                read_keyed_data(tsv_reader)
             linenr = 0
             for line in inf:
                 linenr += 1
@@ -252,5 +249,18 @@ class StructAttrAdder(InputProcessor):
                         tsv_reader, line, attrs, linenr)
                     if add_attrs:
                         line = add_attributes(
-                            line, attrs, add_attrs, linenr, tsv_linenr)
+                            line, attrs, add_attrs, linenr, tsv_linenr,
+                            check_overlap_attrs)
                 ouf.write(line)
+
+        get_add_attrs = (
+            get_add_attrs_keyed if key_attrs else get_add_attrs_ordered)
+        with open(args.data_file, 'rb') as attrf:
+            tsv_reader = TsvReader(attrf, fieldnames=args.attr_names,
+                                   entities=True)
+            if not args.attr_names:
+                tsv_reader.read_fieldnames()
+            new_attr_names = set(tsv_reader.fieldnames or [])
+            if key_attrs:
+                read_keyed_data(tsv_reader)
+            process_input(inf, get_add_attrs, tsv_reader, new_attr_names)
