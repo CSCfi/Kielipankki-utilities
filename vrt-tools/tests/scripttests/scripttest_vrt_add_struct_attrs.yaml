@@ -106,22 +106,32 @@
       b
       </sentence>
       </text>
+      <text a="3">
+      <sentence>
+      c
+      </sentence>
+      </text>
     file:attrs.tsv: |
       a1	a2
       aa	bb
   output:
-    returncode: 1
+    returncode: 0
     stderr: |
-      vrt-add-struct-attrs: Data file attrs.tsv has fewer data lines (1) than the input VRT has text structures
+      vrt-add-struct-attrs: Warning: Data file attrs.tsv has fewer data lines (1) than the input VRT has text structures; adding empty attribute values for the rest of the structures
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
       a
       </sentence>
       </text>
-      <text a="2">
+      <text a="2" a1="" a2="">
       <sentence>
       b
+      </sentence>
+      </text>
+      <text a="3" a1="" a2="">
+      <sentence>
+      c
       </sentence>
       </text>
 

@@ -132,6 +132,12 @@ class StructAttrAdder(InputProcessor):
                                   for endchar in [b' ', b'>'])
         new_attr_names = None
         new_attr_values = {}
+        # True if an ordered TSV file does not contain lines for all
+        # structures in VRT
+        tsv_exhausted = False
+        # Attributes from the TSV file with empty values; set and used
+        # when tsv_exhausted = True
+        tsv_attrs_empty = None
 
         def read_keyed_data(tsv_reader):
             missing_key_attrs = [attr for attr in key_attrs
@@ -164,21 +170,23 @@ class StructAttrAdder(InputProcessor):
                 new_attr_values[key] = (attrs, tsv_reader.line_num)
 
         def get_add_attrs_ordered(tsv_reader, line, attrs, linenr):
+            nonlocal tsv_exhausted, tsv_attrs_empty
+            if tsv_exhausted:
+                return tsv_attrs_empty, -1
             add_attrs = next(tsv_reader, None)
             if add_attrs is None:
-                # If the data file is too short, output the rest of the
-                # VRT as is and exit with error
-                ouf.write(line)
-                for line in inf:
-                    ouf.write(line)
-                self.error_exit(
-                    ('Data file {datafile} has fewer data lines'
-                     ' ({numlines}) than the input VRT has {struct}'
-                     ' structures').format(
-                         datafile=args.data_file,
-                         numlines=(tsv_reader.line_num -
-                                   int(args.attr_names is None)),
-                         struct=args.struct_name))
+                # If the data file is too short, add empty attribute
+                # values to the rest of the VRT
+                numlines = tsv_reader.line_num - int(args.attr_names is None)
+                self.warn(
+                    f'Data file {args.data_file} has fewer data lines'
+                    f' ({numlines}) than the input VRT has {args.struct_name}'
+                    ' structures; adding empty attribute values for the rest'
+                    ' of the structures')
+                tsv_exhausted = True
+                tsv_attrs_empty = OrderedDict(
+                    (attrname, b'') for attrname in tsv_reader.fieldnames)
+                return tsv_attrs_empty, -1
             return add_attrs, tsv_reader.line_num
 
         def get_add_attrs_keyed(tsv_reader, line, attrs, linenr):
