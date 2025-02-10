@@ -19,7 +19,7 @@ Instructions on how to upload and download data to IDA can be found here: [IDA u
 More information on how to freeze, see [IDA user guide](https://www.fairdata.fi/en/ida/user-guide/ "https://www.fairdata.fi/en/ida/user-guide/").
 
 ## HFST server
-Transfer the pdf document to the **HFST server** (hfst-17.it.helsinki.fi) and place it under data/corpora/agreements/shortname (ensure permissions for group!).
+Transfer the pdf document to the **HFST server** (hfst-17.it.helsinki.fi) and place it under /data/corpora/agreements/shortname (ensure permissions for group!).
 (If needed, create a subfolder named with the resource group shortname, in lowercase characters.)
 Note that you need a VPN connection to the University of Helsinki to be able to access the HFST server. In order to be able to connect to Puhti from the HFST server, you can use e.g. sftp.
 
