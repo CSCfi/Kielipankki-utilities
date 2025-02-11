@@ -158,30 +158,44 @@ class TestTsvReader:
             assert reader.read_fieldnames() == fieldnames
             self._test_tsv_content(reader, fieldnames, content, True)
 
-    def test_encode_entities(self, open_infile):
-        """Test `TsvReader` encoding entities."""
+    def test_encode_entities_always(self, open_infile):
+        """Test `TsvReader` always encoding entities."""
         fieldnames = [b'a', b'b', b'c']
         content = [b'a\tb\tc\n',
                    b'"\tb<\t>c&\n',
-                   # & characters in the following are not re-encoded
                    b'a&lt;b\te&gt;e\tf&quot;f&amp;\n']
         content_joined = b''.join(content)
-        content_enc = [content[0], escape(content[1]), content[2]]
-        content_enc_all = [content[0], content_enc[1], escape(content[2])]
+        content_enc = [escape(line) for line in content]
         # Always encoding entities
         for entities in [None, tsv.EncodeEntities.ALWAYS]:
             with open_infile(content_joined) as inf:
                 reader = tsv.TsvReader(inf, entities=entities)
                 assert reader.read_fieldnames() == fieldnames
                 self._test_tsv_content(
-                    reader, fieldnames, content_enc_all, True)
-        # Encoding entities (but not & in existing entities)
+                    reader, fieldnames, content_enc, True)
+
+    def test_encode_entities_non_entities(self, open_infile):
+        """Test `TsvReader` encoding entities but no & in existing ones."""
+        fieldnames = [b'a', b'b', b'c']
+        content = [b'a\tb\tc\n',
+                   b'"\tb<\t>c&\n',
+                   # &'s in the following are not encoded
+                   b'a&lt;b\te&gt;e\tf&quot;f&amp;\n']
+        content_joined = b''.join(content)
+        content_enc = [content[0], escape(content[1]), content[2]]
         with open_infile(content_joined) as inf:
             reader = tsv.TsvReader(
                 inf, entities=tsv.EncodeEntities.NON_ENTITIES)
             assert reader.read_fieldnames() == fieldnames
             self._test_tsv_content(reader, fieldnames, content_enc, True)
-        # Not encoding entities
+
+    def test_encode_entities_never(self, open_infile):
+        """Test `TsvReader` never encoding entities."""
+        fieldnames = [b'a', b'b', b'c']
+        content = [b'a\tb\tc\n',
+                   b'"\tb<\t>c&\n',
+                   b'a&lt;b\te&gt;e\tf&quot;f&amp;\n']
+        content_joined = b''.join(content)
         with open_infile(content_joined) as inf:
             reader = tsv.TsvReader(inf, entities=tsv.EncodeEntities.NEVER)
             assert reader.read_fieldnames() == fieldnames
