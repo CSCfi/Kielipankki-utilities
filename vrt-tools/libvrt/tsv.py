@@ -39,10 +39,6 @@ class TsvReader:
     When iterated over, return `OrderedDict` instances with field
     (column) names as keys.
 
-    By default, convert the characters ``<>&"`` to the corresponding
-    XML predefined entities (``&`` only if not followed by ``lt;``,
-    ``gt;``, ``quot;`` or ``amp;``).
-
     This tries to be somewhat compatible with `csv.DictReader`, which
     does not support reading from a binary file, which is faster.
     """
@@ -63,11 +59,12 @@ class TsvReader:
         `entities` controls whether to encode the special characters
         ``<>"&`` to XML predefined entities. Its value can be one of
         the following:
+        - `None` or `EncodeEntities.ALWAYS` (default): Always encode
+          the characters.
+        - `EncodeEntities.NON_ENTITIES`: Encode ``&`` only if not
+           followed by ``lt;``, ``gt;``, ``quot;`` or ``amp;``; always
+           encode the ``<>"``.
         - `EncodeEntities.NEVER`: Preserve the characters as they are.
-        - `EncodeEntities.ALWAYS`: Always encode the characters.
-        - `None` or `EncodeEntities.NON_ENTITIES` (default): Encode
-           ``&`` only if not followed by ``lt;``, ``gt;``, ``quot;``
-           or ``amp;``; always encode the ``<>"``.
         """
         self._infile = infile
         self.fieldnames = fieldnames
@@ -76,14 +73,14 @@ class TsvReader:
         # not to be converted
         if entities == EncodeEntities.NEVER:
             self._encode_entities = None
-        elif entities == EncodeEntities.ALWAYS:
-            self._encode_entities = escape
-        else:
-            # Default if entities is None or EncodeEntities.NON_ENTITIES
+        elif entities == EncodeEntities.NON_ENTITIES:
             entities_re = re.compile(rb'([<>"]|&(?!(?:lt|gt|amp|quot);))')
             subst_fn = lambda mo: self.entities[mo.group(1)]
             self._encode_entities = (
                 lambda line: entities_re.sub(subst_fn, line))
+        else:
+            # Default if entities is None or EncodeEntities.ALWAYS
+            self._encode_entities = escape
         self.line_num = 0
 
     def __next__(self):

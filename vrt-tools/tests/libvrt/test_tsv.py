@@ -168,17 +168,19 @@ class TestTsvReader:
         content_joined = b''.join(content)
         content_enc = [content[0], escape(content[1]), content[2]]
         content_enc_all = [content[0], content_enc[1], escape(content[2])]
-        # Encoding entities (but not & in existing entities)
-        for entities in [None, tsv.EncodeEntities.NON_ENTITIES]:
+        # Always encoding entities
+        for entities in [None, tsv.EncodeEntities.ALWAYS]:
             with open_infile(content_joined) as inf:
                 reader = tsv.TsvReader(inf, entities=entities)
                 assert reader.read_fieldnames() == fieldnames
-                self._test_tsv_content(reader, fieldnames, content_enc, True)
-        # Always encoding entities
+                self._test_tsv_content(
+                    reader, fieldnames, content_enc_all, True)
+        # Encoding entities (but not & in existing entities)
         with open_infile(content_joined) as inf:
-            reader = tsv.TsvReader(inf, entities=tsv.EncodeEntities.ALWAYS)
+            reader = tsv.TsvReader(
+                inf, entities=tsv.EncodeEntities.NON_ENTITIES)
             assert reader.read_fieldnames() == fieldnames
-            self._test_tsv_content(reader, fieldnames, content_enc_all, True)
+            self._test_tsv_content(reader, fieldnames, content_enc, True)
         # Not encoding entities
         with open_infile(content_joined) as inf:
             reader = tsv.TsvReader(inf, entities=tsv.EncodeEntities.NEVER)
