@@ -1,72 +1,17 @@
-# Map Achemenet POS tags to the POS tags used in Korp lemgrams
-
-# not pos-tagged [AS: treenidatan epäsäännöllisyydestä johtuva juttu, saa jäädä, tämä on yleenä "u"]
-_	xx
-# adjective
-AJ	jj
-# adposition
-Adp	pp
-# adverb
-AV	ab
-# conjunction
-CNJ 	kn
-# proper name
-CN	pm
-# determiner
-DET	dt
-#
-DET&&N	xx
-# proper name
-DN	pm
-# proper name
-DP	pn
-# proper name
-EN	pm
-# proper name
-GN	pm
-# pronoun
-IP	pn
-# interjection?
-J	in
-# proper name
-LN	pm
-# proper name
-MN	pm
-# number written in cuneiform
-n	rg
-# noun
-N	nn
+adjective	jj
+adposition	pp
+adverb	ab
+commonnoun	nn
+conjunction	kn
+DET&&N	nn
+Divine	xx
+interjection	in
+miscunknown	xx
+MN&&AJ	nn
 N&&AJ	nn
 N&&N	nn
-noun	nn
-# number
-NU	rg
-# proper name
-ON	pm
-# proper name
-PN	pm
-# preposition
-PP	pp
-PRP	pp
-# proper name
-QN	pm
-# pronoun
-QP	pn
-# relative pronoun
-REL	pn
-# proper name
-RN	pm
-# subjunction?
-SBJ	sn
-# proper name
-SN	pm
-# proper name
-TN	pm
-# unknown due to damage in text
-u	xx
-# verb
-V	vb
-# proper name
-WN	pm
-# pronoun
-XP	pn
+number	rg
+particle	xx
+pronoun	pn
+propernoun	pm
+verb	vb
