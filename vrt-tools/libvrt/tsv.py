@@ -15,6 +15,20 @@ a class for reading TSV data as binary, each row as an OrderedDict.
 import re
 
 from collections import OrderedDict
+from enum import Enum
+
+from libvrt.metaline import escape
+
+
+class EncodeEntities(Enum):
+    """Specify when to encode characters as XML predefined entities."""
+    # Do not encode
+    NEVER = 0
+    # Encode all others except & beginning an entity, that is,
+    # followed by one of lt;, gt;, quot;, amp;
+    NON_ENTITIES = 1
+    # Always encode, even & beginning an entity
+    ALWAYS = 2
 
 
 class TsvReader:
@@ -38,19 +52,38 @@ class TsvReader:
     entities = dict((spec[0].encode(), ('&' + spec[1:] + ';').encode())
                     for spec in '<lt >gt &amp "quot'.split())
 
-    def __init__(self, infile, fieldnames=None, entities=True):
+    def __init__(self, infile, fieldnames=None, entities=None):
         """Initialize for reading from `infile` with field names `fieldnames`.
 
-        If `entities` is `True` (default), convert special characters
-        to XML predefined entities.
         If `fieldnames` is `None` (default), treat the first line of
         `infile` as a column heading row containing the names of the
         fields; otherwise, `fieldnames` should be a sequence of
         `bytes` to be used as field names.
+
+        `entities` controls whether to encode the special characters
+        ``<>"&`` to XML predefined entities. Its value can be one of
+        the following:
+        - `EncodeEntities.NEVER`: Preserve the characters as they are.
+        - `EncodeEntities.ALWAYS`: Always encode the characters.
+        - `None` or `EncodeEntities.NON_ENTITIES` (default): Encode
+           ``&`` only if not followed by ``lt;``, ``gt;``, ``quot;``
+           or ``amp;``; always encode the ``<>"``.
         """
         self._infile = infile
         self.fieldnames = fieldnames
-        self._entities = entities
+        # self._encode_entities is a function to convert <>&" in a
+        # bytes string to XML predefined entities; None if they are
+        # not to be converted
+        if entities == EncodeEntities.NEVER:
+            self._encode_entities = None
+        elif entities == EncodeEntities.ALWAYS:
+            self._encode_entities = escape
+        else:
+            # Default if entities is None or EncodeEntities.NON_ENTITIES
+            entities_re = re.compile(rb'([<>"]|&(?!(?:lt|gt|amp|quot);))')
+            subst_fn = lambda mo: self.entities[mo.group(1)]
+            self._encode_entities = (
+                lambda line: entities_re.sub(subst_fn, line))
         self.line_num = 0
 
     def __next__(self):
@@ -70,25 +103,12 @@ class TsvReader:
 
         Raise `StopIteration` if the input is exhausted.
         """
-
-        def encode_entities(line):
-            """Convert ``<>&"`` on `line` to XML predefined entities.
-
-            Convert ``&`` only if not followed by ``lt;``, ``gt;``,
-            ``quot;`` or ``amp;``.
-            """
-            # TODO: Decide if we should always convert &, or should it
-            # be parametrizable
-            return re.sub(rb'([<>"]|&(?!(?:lt|gt|amp|quot);))',
-                          lambda mo: self.entities[mo.group(1)],
-                          line)
-
         line = self._infile.readline()
         if not line:
             raise StopIteration
         self.line_num += 1
-        if self._entities:
-            line = encode_entities(line)
+        if self._encode_entities:
+            line = self._encode_entities(line)
         return line[:-1].split(b'\t')
 
     def read_fieldnames(self):
