@@ -224,29 +224,33 @@ class TestTsvReader:
             self._test_tsv_content(
                 reader, fieldnames_abc, content_abc_entities, True)
 
-    def test_duplicate_fieldnames_arg(self, open_infile, fieldnames_aba,
-                                      content_base):
-        """Test handling duplicate fieldnames given as `fieldnames`."""
+    def _duplicate_fieldnames_asserts(self, reader, fieldnames):
+        """Common assertions for duplicate fieldnames tests."""
+        assert reader.read_fieldnames() == fieldnames
+        fields = next(reader)
+        assert fields[b'a'] == b'cc'
+        assert fields[b'b'] == b'bb'
 
-        def asserts(reader, fieldnames):
-            # Assertions common to two test cases
-            assert reader.read_fieldnames() == fieldnames_aba
-            fields = next(reader)
-            assert fields[b'a'] == b'cc'
-            assert fields[b'b'] == b'bb'
-
-        # Warn on duplicates
+    def test_duplicate_fieldnames_arg_warn(self, open_infile, fieldnames_aba,
+                                           content_base):
+        """Test warning on duplicate fieldnames given as `fieldnames`."""
         with open_infile(content_base) as inf:
             with pytest.warns(UserWarning, match='Duplicate field names: a'):
                 reader = tsv.TsvReader(inf, fieldnames=fieldnames_aba,
                                        duplicates='warn')
-            asserts(reader, fieldnames_aba)
-        # Ignore duplicates
+            self._duplicate_fieldnames_asserts(reader, fieldnames_aba)
+
+    def test_duplicate_fieldnames_arg_ignore(self, open_infile, fieldnames_aba,
+                                             content_base):
+        """Test ignoring duplicate fieldnames given as `fieldnames`."""
         with open_infile(content_base) as inf:
             reader = tsv.TsvReader(inf, fieldnames=fieldnames_aba,
                                    duplicates='ignore')
-            asserts(reader, fieldnames_aba)
-        # Raise error on duplicates
+            self._duplicate_fieldnames_asserts(reader, fieldnames_aba)
+
+    def test_duplicate_fieldnames_arg_error(self, open_infile, fieldnames_aba,
+                                            content_base):
+        """Test raising error on duplicate fieldnames given as `fieldnames`."""
         with open_infile(content_base) as inf:
             with pytest.raises(ValueError, match='Duplicate field names: a'):
                 reader = tsv.TsvReader(inf, fieldnames=fieldnames_aba,
