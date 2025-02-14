@@ -97,6 +97,12 @@ def content_abc(fieldnames_abc, content_base):
 
 
 @pytest.fixture
+def content_aba(fieldnames_aba, content_base):
+    """Fixture returning field names (a, b, a) and three content lines."""
+    yield b'\t'.join(fieldnames_aba) + b'\n' + content_base
+
+
+@pytest.fixture
 def content_abc_entities(fieldnames_abc):
     """Fixture returning field names and content with chars to be encoded.
 
@@ -226,32 +232,67 @@ class TestTsvReader:
 
     def _duplicate_fieldnames_asserts(self, reader, fieldnames):
         """Common assertions for duplicate fieldnames tests."""
-        assert reader.read_fieldnames() == fieldnames
+        # If next() is called only after read_fieldnames, pytest.warns
+        # and pytest.raises do not seem to report catch the warning
+        # and error
         fields = next(reader)
+        assert reader.read_fieldnames() == fieldnames
         assert fields[b'a'] == b'cc'
         assert fields[b'b'] == b'bb'
 
-    def test_duplicate_fieldnames_arg_warn(self, open_infile, fieldnames_aba,
-                                           content_base):
-        """Test warning on duplicate fieldnames given as `fieldnames`."""
-        with open_infile(content_base) as inf:
-            with pytest.warns(UserWarning, match='Duplicate field names: a'):
-                reader = tsv.TsvReader(inf, fieldnames=fieldnames_aba,
-                                       duplicates='warn')
-            self._duplicate_fieldnames_asserts(reader, fieldnames_aba)
+    def _handle_duplicates_base(self, inf, fieldnames, fieldnames_dupl,
+                                dupl_mode='ignore'):
+        """Call `self._duplicate_fieldnames_asserts` for a TSV reader.
 
-    def test_duplicate_fieldnames_arg_ignore(self, open_infile, fieldnames_aba,
-                                             content_base):
-        """Test ignoring duplicate fieldnames given as `fieldnames`."""
-        with open_infile(content_base) as inf:
-            reader = tsv.TsvReader(inf, fieldnames=fieldnames_aba,
-                                   duplicates='ignore')
-            self._duplicate_fieldnames_asserts(reader, fieldnames_aba)
+        `inf is an open TSV file to read, `fieldnames` the
+        `fieldnames` argument to pass to `TsvReader`,
+        `fieldnames_dupl` field names containing a duplicate and
+        `dupl_mode` the mode for handling duplicate field names.
+        """
+        reader = tsv.TsvReader(inf, fieldnames=fieldnames, duplicates=dupl_mode)
+        self._duplicate_fieldnames_asserts(reader, fieldnames_dupl)
 
-    def test_duplicate_fieldnames_arg_error(self, open_infile, fieldnames_aba,
-                                            content_base):
-        """Test raising error on duplicate fieldnames given as `fieldnames`."""
-        with open_infile(content_base) as inf:
-            with pytest.raises(ValueError, match='Duplicate field names: a'):
-                reader = tsv.TsvReader(inf, fieldnames=fieldnames_aba,
-                                       duplicates='error')
+    def _handle_duplicates_warn(self, *args):
+        """Check that reading duplicate field names causes a warning."""
+        with pytest.warns(UserWarning, match='Duplicate field names: a$'):
+            self._handle_duplicates_base(*args, dupl_mode='warn')
+
+    def _handle_duplicates_error(self, *args):
+        """Check that reading duplicate field names raises an error."""
+        with pytest.raises(ValueError, match='Duplicate field names: a$'):
+            self._handle_duplicates_base(*args, dupl_mode='error')
+
+    @pytest.mark.parametrize(
+        # Parametrize whether to ignore, warn on or raise error on
+        # duplicate field names
+        'handle_func',
+        [
+            _handle_duplicates_base,
+            _handle_duplicates_warn,
+            _handle_duplicates_error,
+        ]
+    )
+    @pytest.mark.parametrize(
+        # Parametrize the content fixture (containing or not
+        # containing field names) and whether fieldnames should be
+        # explicitly specified
+        'content_fixt,explicit_fieldnames',
+        [
+            ('content_base', True),
+            ('content_aba', False),
+        ]
+    )
+    def test_duplicate_fieldnames(self, handle_func,
+                                  content_fixt, explicit_fieldnames,
+                                  open_infile, fieldnames_aba, request):
+        """Test handling duplicate fieldnames.
+
+        `handle_func` is the function (method) to be used for testing
+        (using a certain mode of handling duplicates), `content_fixt`
+        the name of the fixture providing TSV content, and
+        `explicit_fieldnames` a Boolean specifying whether fieldnames
+        should be explicitly passed to TsvReader.
+        """
+        fieldnames = fieldnames_aba if explicit_fieldnames else None
+        with open_infile(request.getfixturevalue(content_fixt)) as inf:
+            handle_func(self, inf, fieldnames, fieldnames_aba)
