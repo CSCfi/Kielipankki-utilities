@@ -71,6 +71,49 @@ def open_infile(infile):
         file_.__exit__(None, None, None)
 
 
+@pytest.fixture
+def fieldnames_abc():
+    """Fixture returning field names (a, b, c)."""
+    yield [b'a', b'b', b'c']
+
+
+@pytest.fixture
+def fieldnames_aba():
+    """Fixture returning field names containing a duplicate (a, b, a)."""
+    yield [b'a', b'b', b'a']
+
+
+@pytest.fixture
+def content_base():
+    """Fixture returning basic two-line, three-field TSV content."""
+    yield (b'aa\tbb\tcc\n'
+           b'dd\tee\tff\n')
+
+
+@pytest.fixture
+def content_abc(fieldnames_abc, content_base):
+    """Fixture returning field names (a, b, c) and three content lines."""
+    yield b'\t'.join(fieldnames_abc) + b'\n' + content_base
+
+
+@pytest.fixture
+def content_abc_entities(fieldnames_abc):
+    """Fixture returning field names and content with chars to be encoded.
+
+    Returns a list of lines.
+    """
+    yield [b'\t'.join(fieldnames_abc) + b'\n',
+           b'"\tb<\t>c&\n',
+           # Already-encoded entities
+           b'a&lt;b\te&gt;e\tf&quot;f&amp;\n']
+
+
+@pytest.fixture
+def content_abc_entities_joined(content_abc_entities):
+    """Fixture returning content with entities, joined to a single bytes."""
+    return b''.join(content_abc_entities)
+
+
 class TestTsvReader:
 
     """Tests for `vrtlib.tsv.TsvReader`."""
@@ -106,127 +149,105 @@ class TestTsvReader:
         with pytest.raises(StopIteration):
             d = next(reader)
 
-    def test_fieldnames_arg(self, open_infile):
+    def test_fieldnames_arg(self, open_infile, fieldnames_abc, content_base):
         """Test `TsvReader` with field names as an argument."""
-        fieldnames = [b'a', b'b', b'c']
-        content = (b'aa\tbb\tcc\n'
-                   b'dd\tee\tff\n')
-        with open_infile(content) as inf:
-            reader = tsv.TsvReader(inf, fieldnames=fieldnames)
+        with open_infile(content_base) as inf:
+            reader = tsv.TsvReader(inf, fieldnames=fieldnames_abc)
             # Also test TsvReader.read_fieldnames()
-            assert reader.read_fieldnames() == fieldnames
-            self._test_tsv_content(reader, fieldnames, content)
+            assert reader.read_fieldnames() == fieldnames_abc
+            self._test_tsv_content(reader, fieldnames_abc, content_base)
 
-    def test_fieldnames_arg_empty(self, open_infile):
+    def test_fieldnames_arg_empty(self, open_infile, fieldnames_abc):
         """Test `TsvReader`, field names as argument, empty input file."""
-        fieldnames = [b'a', b'b', b'c']
         content = b''
         with open_infile(content) as inf:
-            reader = tsv.TsvReader(inf, fieldnames=fieldnames)
-            assert reader.read_fieldnames() == fieldnames
+            reader = tsv.TsvReader(inf, fieldnames=fieldnames_abc)
+            assert reader.read_fieldnames() == fieldnames_abc
             with pytest.raises(StopIteration):
                 d = next(reader)
 
-    def test_fieldnames_heading_row(self, open_infile):
+    def test_fieldnames_heading_row(self, open_infile, fieldnames_abc,
+                                    content_abc):
         """Test `TsvReader` with field names in a heading row."""
-        fieldnames = [b'a', b'b', b'c']
-        content = (b'a\tb\tc\n'
-                   b'aa\tbb\tcc\n'
-                   b'dd\tee\tff\n')
-        with open_infile(content) as inf:
+        with open_infile(content_abc) as inf:
             reader = tsv.TsvReader(inf)
-            self._test_tsv_content(reader, fieldnames, content, True)
+            self._test_tsv_content(reader, fieldnames_abc, content_abc, True)
 
-    def test_fieldnames_heading_row_empty(self, open_infile):
+    def test_fieldnames_heading_row_empty(self, open_infile, fieldnames_abc):
         """Test `TsvReader`, field names in a heading row, empty rest."""
-        fieldnames = [b'a', b'b', b'c']
         content = b'a\tb\tc\n'
         with open_infile(content) as inf:
             reader = tsv.TsvReader(inf)
             with pytest.raises(StopIteration):
                 d = next(reader)
-            assert reader.fieldnames == fieldnames
+            assert reader.fieldnames == fieldnames_abc
 
-    def test_read_fieldnames(self, open_infile):
+    def test_read_fieldnames(self, open_infile, fieldnames_abc, content_abc):
         """Test `TsvReader.read_fieldnames`."""
-        fieldnames = [b'a', b'b', b'c']
-        content = (b'a\tb\tc\n'
-                   b'aa\tbb\tcc\n'
-                   b'dd\tee\tff\n')
-        with open_infile(content) as inf:
+        with open_infile(content_abc) as inf:
             reader = tsv.TsvReader(inf)
-            assert reader.read_fieldnames() == fieldnames
-            self._test_tsv_content(reader, fieldnames, content, True)
+            assert reader.read_fieldnames() == fieldnames_abc
+            self._test_tsv_content(reader, fieldnames_abc, content_abc, True)
 
-    def test_encode_entities_always(self, open_infile):
+    def test_encode_entities_always(self, open_infile, fieldnames_abc,
+                                    content_abc_entities,
+                                    content_abc_entities_joined):
         """Test `TsvReader` always encoding entities."""
-        fieldnames = [b'a', b'b', b'c']
-        content = [b'a\tb\tc\n',
-                   b'"\tb<\t>c&\n',
-                   b'a&lt;b\te&gt;e\tf&quot;f&amp;\n']
-        content_joined = b''.join(content)
-        content_enc = [escape(line) for line in content]
+        content_enc = [escape(line) for line in content_abc_entities]
         # Always encoding entities
         for entities in [None, tsv.EncodeEntities.ALWAYS]:
-            with open_infile(content_joined) as inf:
+            with open_infile(content_abc_entities_joined) as inf:
                 reader = tsv.TsvReader(inf, entities=entities)
-                assert reader.read_fieldnames() == fieldnames
+                assert reader.read_fieldnames() == fieldnames_abc
                 self._test_tsv_content(
-                    reader, fieldnames, content_enc, True)
+                    reader, fieldnames_abc, content_enc, True)
 
-    def test_encode_entities_non_entities(self, open_infile):
+    def test_encode_entities_non_entities(self, open_infile, fieldnames_abc,
+                                          content_abc_entities,
+                                          content_abc_entities_joined):
         """Test `TsvReader` encoding entities but no & in existing ones."""
-        fieldnames = [b'a', b'b', b'c']
-        content = [b'a\tb\tc\n',
-                   b'"\tb<\t>c&\n',
-                   # &'s in the following are not encoded
-                   b'a&lt;b\te&gt;e\tf&quot;f&amp;\n']
-        content_joined = b''.join(content)
-        content_enc = [content[0], escape(content[1]), content[2]]
-        with open_infile(content_joined) as inf:
+        content_enc = [content_abc_entities[0], escape(content_abc_entities[1]),
+                       content_abc_entities[2]]
+        with open_infile(content_abc_entities_joined) as inf:
             reader = tsv.TsvReader(
                 inf, entities=tsv.EncodeEntities.NON_ENTITIES)
-            assert reader.read_fieldnames() == fieldnames
-            self._test_tsv_content(reader, fieldnames, content_enc, True)
+            assert reader.read_fieldnames() == fieldnames_abc
+            self._test_tsv_content(reader, fieldnames_abc, content_enc, True)
 
-    def test_encode_entities_never(self, open_infile):
+    def test_encode_entities_never(self, open_infile, fieldnames_abc,
+                                   content_abc_entities,
+                                   content_abc_entities_joined):
         """Test `TsvReader` never encoding entities."""
-        fieldnames = [b'a', b'b', b'c']
-        content = [b'a\tb\tc\n',
-                   b'"\tb<\t>c&\n',
-                   b'a&lt;b\te&gt;e\tf&quot;f&amp;\n']
-        content_joined = b''.join(content)
-        with open_infile(content_joined) as inf:
+        with open_infile(content_abc_entities_joined) as inf:
             reader = tsv.TsvReader(inf, entities=tsv.EncodeEntities.NEVER)
-            assert reader.read_fieldnames() == fieldnames
-            self._test_tsv_content(reader, fieldnames, content, True)
+            assert reader.read_fieldnames() == fieldnames_abc
+            self._test_tsv_content(
+                reader, fieldnames_abc, content_abc_entities, True)
 
-    def test_duplicate_fieldnames_arg(self, open_infile):
+    def test_duplicate_fieldnames_arg(self, open_infile, fieldnames_aba,
+                                      content_base):
         """Test handling duplicate fieldnames given as `fieldnames`."""
 
         def asserts(reader, fieldnames):
             # Assertions common to two test cases
-            assert reader.read_fieldnames() == fieldnames
+            assert reader.read_fieldnames() == fieldnames_aba
             fields = next(reader)
             assert fields[b'a'] == b'cc'
             assert fields[b'b'] == b'bb'
 
-        fieldnames = [b'a', b'b', b'a']
-        content = (b'aa\tbb\tcc\n'
-                   b'dd\tee\tff\n')
         # Warn on duplicates
-        with open_infile(content) as inf:
+        with open_infile(content_base) as inf:
             with pytest.warns(UserWarning, match='Duplicate field names: a'):
-                reader = tsv.TsvReader(inf, fieldnames=fieldnames,
+                reader = tsv.TsvReader(inf, fieldnames=fieldnames_aba,
                                        duplicates='warn')
-            asserts(reader, fieldnames)
+            asserts(reader, fieldnames_aba)
         # Ignore duplicates
-        with open_infile(content) as inf:
-            reader = tsv.TsvReader(inf, fieldnames=fieldnames,
+        with open_infile(content_base) as inf:
+            reader = tsv.TsvReader(inf, fieldnames=fieldnames_aba,
                                    duplicates='ignore')
-            asserts(reader, fieldnames)
+            asserts(reader, fieldnames_aba)
         # Raise error on duplicates
-        with open_infile(content) as inf:
+        with open_infile(content_base) as inf:
             with pytest.raises(ValueError, match='Duplicate field names: a'):
-                reader = tsv.TsvReader(inf, fieldnames=fieldnames,
+                reader = tsv.TsvReader(inf, fieldnames=fieldnames_aba,
                                        duplicates='error')
