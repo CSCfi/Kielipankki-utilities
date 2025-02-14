@@ -200,3 +200,33 @@ class TestTsvReader:
             reader = tsv.TsvReader(inf, entities=tsv.EncodeEntities.NEVER)
             assert reader.read_fieldnames() == fieldnames
             self._test_tsv_content(reader, fieldnames, content, True)
+
+    def test_duplicate_fieldnames_arg(self, open_infile):
+        """Test handling duplicate fieldnames given as `fieldnames`."""
+
+        def asserts(reader, fieldnames):
+            # Assertions common to two test cases
+            assert reader.read_fieldnames() == fieldnames
+            fields = next(reader)
+            assert fields[b'a'] == b'cc'
+            assert fields[b'b'] == b'bb'
+
+        fieldnames = [b'a', b'b', b'a']
+        content = (b'aa\tbb\tcc\n'
+                   b'dd\tee\tff\n')
+        # Warn on duplicates
+        with open_infile(content) as inf:
+            with pytest.warns(UserWarning, match='Duplicate field names: a'):
+                reader = tsv.TsvReader(inf, fieldnames=fieldnames,
+                                       duplicates='warn')
+            asserts(reader, fieldnames)
+        # Ignore duplicates
+        with open_infile(content) as inf:
+            reader = tsv.TsvReader(inf, fieldnames=fieldnames,
+                                   duplicates='ignore')
+            asserts(reader, fieldnames)
+        # Raise error on duplicates
+        with open_infile(content) as inf:
+            with pytest.raises(ValueError, match='Duplicate field names: a'):
+                reader = tsv.TsvReader(inf, fieldnames=fieldnames,
+                                       duplicates='error')

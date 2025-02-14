@@ -9,14 +9,15 @@ a class for reading TSV data as binary, each row as an OrderedDict.
 
 # TODO:
 # - Handle lines with fewer or more fields than field names.
-# - Handle duplicate field names (error?).
 
 
 import re
 
 from collections import OrderedDict
 from enum import Enum
+from warnings import warn
 
+from libvrt.iterutils import find_duplicates
 from libvrt.metaline import escape
 
 
@@ -48,7 +49,8 @@ class TsvReader:
     entities = dict((spec[0].encode(), ('&' + spec[1:] + ';').encode())
                     for spec in '<lt >gt &amp "quot'.split())
 
-    def __init__(self, infile, fieldnames=None, entities=None):
+    def __init__(self, infile, fieldnames=None, entities=None,
+                 duplicates='warn'):
         """Initialize for reading from `infile` with field names `fieldnames`.
 
         If `fieldnames` is `None` (default), treat the first line of
@@ -65,9 +67,20 @@ class TsvReader:
            followed by ``lt;``, ``gt;``, ``quot;`` or ``amp;``; always
            encode the ``<>"``.
         - `EncodeEntities.NEVER`: Preserve the characters as they are.
+
+        `duplicates` controls what to do when `fieldnames` contains
+        duplicates. Its value can be one of following:
+        - ``warn``: warn using `warnings.warn` (default);
+        - ``ignore``: do nothing; or
+        - ``error``: raise a `ValueError`.
         """
         self._infile = infile
-        self.fieldnames = fieldnames
+        dupl_values = ('warn', 'ignore', 'error')
+        if duplicates not in dupl_values:
+            raise ValueError('Value for argument \'duplicates\' not one of '
+                             + ', '.join(dupl_values))
+        self._duplicates = duplicates
+        self.fieldnames = self._check_fieldnames(fieldnames)
         # self._encode_entities is a function to convert <>&" in a
         # bytes string to XML predefined entities; None if they are
         # not to be converted
@@ -83,6 +96,24 @@ class TsvReader:
             self._encode_entities = escape
         self.line_num = 0
 
+    def _check_fieldnames(self, fieldnames):
+        """Check if `fieldnames` contains duplicates and return it.
+
+        Take the appropriate action based on `self._duplicates`.
+        If `fieldnames` is `None`, do nothing.
+        """
+        if fieldnames is None or self._duplicates == 'ignore':
+            return fieldnames
+        dupls = find_duplicates(fieldnames)
+        if dupls:
+            msg = ('Duplicate field names: '
+                   + ', '.join(name.decode('utf-8') for name in dupls))
+            if self._duplicates == 'warn':
+                warn(msg)
+            else:
+                raise ValueError(msg)
+        return fieldnames
+
     def __next__(self):
         """Return `OrderedDict` corresponding to the next input line.
 
@@ -91,7 +122,7 @@ class TsvReader:
         `self.fieldnames` accordingly.
         """
         if self.fieldnames is None:
-            self.fieldnames = self._read_fields()
+            self.fieldnames = self._check_fieldnames(self._read_fields())
         fieldvals = self._read_fields()
         return OrderedDict(zip(self.fieldnames, fieldvals))
 
