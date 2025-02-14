@@ -17,58 +17,8 @@ import sys
 from collections import OrderedDict
 
 from libvrt.metaline import mapping, starttag
+from libvrt.tsv import TsvReader, EncodeEntities
 from vrtargsoolib import InputProcessor
-
-
-class TsvReader:
-
-    """Read from a binary tab-separated values file, optionally with a
-    column headers.
-
-    By default, convert the characters <>&" to the corresponding XML
-    predefined entities.
-
-    This tries to be somewhat compatible with csv.DictReader, which does
-    not support reading from a binary file, which is faster.
-    """
-
-    entities = dict((spec[0].encode(), ('&' + spec[1:] + ';').encode())
-                    for spec in '<lt >gt &amp "quot'.split())
-
-    def __init__(self, infile, fieldnames=None, entities=True):
-        self._infile = infile
-        self.fieldnames = fieldnames
-        self._entities = entities
-        self.line_num = 0
-
-    def __next__(self):
-        if self.fieldnames is None:
-            self.fieldnames = self._read_fields()
-        fieldvals = self._read_fields()
-        return OrderedDict(zip(self.fieldnames, fieldvals))
-
-    def _read_fields(self):
-
-        def encode_entities(line):
-            return re.sub(rb'([<>"]|&(?!(?:lt|gt|amp|quot);))',
-                          lambda mo: self.entities[mo.group(1)],
-                          line)
-
-        line = self._infile.readline()
-        if not line:
-            raise StopIteration
-        self.line_num += 1
-        if self._entities:
-            line = encode_entities(line)
-        return line[:-1].split(b'\t')
-
-    def read_fieldnames(self):
-        if self.fieldnames is None:
-            try:
-                self.fieldnames = self._read_fields()
-            except StopIteration:
-                pass
-        return self.fieldnames
 
 
 class StructAttrAdder(InputProcessor):
@@ -265,7 +215,7 @@ class StructAttrAdder(InputProcessor):
             get_add_attrs_keyed if key_attrs else get_add_attrs_ordered)
         with open(args.data_file, 'rb') as attrf:
             tsv_reader = TsvReader(attrf, fieldnames=args.attr_names,
-                                   entities=True)
+                                   entities=EncodeEntities.NON_ENTITIES)
             if not args.attr_names:
                 tsv_reader.read_fieldnames()
             new_attr_names = set(tsv_reader.fieldnames or [])
