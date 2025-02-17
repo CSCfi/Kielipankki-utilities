@@ -272,3 +272,81 @@ class TestAttrRegexListCombinedValue:
         assert (
             f'invalid attribute name regular expression: "{invalid}": {errmsg}'
             in str(excinfo.value))
+
+
+class TestAttrValue:
+
+    """Tests for vrtlib.argtypes function attr_value."""
+
+    # Whether to convert = to :
+    @pytest.mark.parametrize('colon', [False, True])
+    @pytest.mark.parametrize(
+        'input,expected', [
+            # Simple value
+            ('a=b', (b'a', b'b')),
+            # Empty value
+            ('a=', (b'a', b'')),
+            # Value with spaces
+            ('a=b c', (b'a', b'b c')),
+            # Value with leading spaces
+            ('a=  bc', (b'a', b'  bc')),
+            # Value with trailing spaces
+            ('a=bc  ', (b'a', b'bc  ')),
+            # Value containing =
+            ('a=b=c=d', (b'a', b'b=c=d')),
+            # Value containing :
+            ('a=b:c:d', (b'a', b'b:c:d')),
+            # Value containing "
+            ('a=b"c"d', (b'a', b'b"c"d')),
+            # Spaces around attribute name
+            (' a =b', (b'a', b'b')),
+            # Attribute name containing _
+            ('_a_b_=c', (b'_a_b_', b'c')),
+            # Sole _ as attribute name
+            ('_=c', (b'_', b'c')),
+            # Attribute name containing digits
+            ('ab9=c', (b'ab9', b'c')),
+        ]
+    )
+    def test_attr_value(self, colon, input, expected):
+        """Test attr_value() with various inputs."""
+        if colon:
+            input = input.replace('=', ':', 1)
+        result = at.attr_value(input)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        'input', [
+            '',
+            '  ',
+            'abc/def',
+            'abc def',
+        ]
+    )
+    def test_attr_value_no_separator(self, input):
+        """Test attr_value() with invalid values without a separator."""
+        with pytest.raises(ArgumentTypeError,
+                           match=('no ":" nor "=" in attribute-value'
+                                  f' specification: {input}$')):
+            result = at.attr_value(input)
+
+    @pytest.mark.parametrize(
+        'input,invalid', [
+            ('1a=b', '1a'),
+            ('1=2', '1'),
+            ('a-b=c', 'a-b'),
+            ('&=a', '&'),
+            ('&a=b', '&a'),
+            ('=a', ''),
+            (' =a', ''),
+            ('a b=c', 'a b'),
+            (' a b =c', 'a b'),
+            ('a.b=c', 'a.b'),
+        ]
+    )
+    def test_attr_value_invalid_attrname(self, input, invalid):
+        """Test attr_value() with invalid attribute names."""
+        with pytest.raises(ArgumentTypeError,
+                           match=(f'invalid attribute name "{invalid}" in'
+                                  f' attribute-value specification: {input}$')):
+            result = at.attr_value(input)
