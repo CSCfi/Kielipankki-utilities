@@ -16,6 +16,7 @@ import sys
 
 from collections import OrderedDict
 
+from libvrt.argtypes import attrlist
 from libvrt.metaline import mapping, starttag
 from libvrt.tsv import TsvReader, EncodeEntities
 from vrtargsoolib import InputProcessor
@@ -39,21 +40,23 @@ class StructAttrAdder(InputProcessor):
         ('--data-file=FILENAME',
          'Add annotations from the TSV data file FILENAME.',
          dict(required=True)),
-        ('--attributes=ATTRLIST -> attr_names',
-         """Add attributes (annotations) listed in space-separated ATTRLIST,
+        ('--attributes=ATTRLIST:attrlist -> attr_names',
+         """Add attributes (annotations) listed in ATTRLIST (separated by
+         spaces or commas),
          corresponding to the columns (fields) of the TSV data file. If not
          specified, the first row of the TSV file is considered as a heading
          listing the attribute names. If an attribute named in ATTRLIST
          already exists in the VRT, check that its value is the same than in
          the TSV file, unless --overwrite lists the attribute.
          """),
-        ('--overwrite=ATTRLIST -> overwrite_attrs',
+        ('--overwrite=ATTRLIST:attrlist -> overwrite_attrs',
          """Overwrite the possibly existing values of attributes listed in
-         space-separated ATTRLIST, instead of warning if their values differ
-         and keeping the existing value.
+         ATTRLIST (separated by spaces or commas), instead of warning if
+         their values differ and keeping the existing value.
          """),
-        ('--key=ATTRLIST -> key_attrs',
-         """Use the attributes listed in space-separated ATTRLIST as a key:
+        ('--key=ATTRLIST:attrlist -> key_attrs',
+         """Use the attributes listed in ATTRLIST (separated by spaces or
+         commas) as a key:
          when their values in a VRT structure match those of a row in a data
          file, add the remaining attributes in the data file to the VRT.
          If the data file does not contain values for a key in the VRT, empty
@@ -64,19 +67,18 @@ class StructAttrAdder(InputProcessor):
     ]
 
     def __init__(self):
-        super().__init__()
+        # extra_types=... is needed for using module-level functions
+        # as types in ARGSPECS (otherwise, type could be passed via a
+        # dict)
+        super().__init__(extra_types=globals())
 
     def main(self, args, inf, ouf):
 
         LESS_THAN = '<'.encode()[0]
-        overwrite_attrs = set(name.encode()
-                              for name in (args.overwrite_attrs or '').split())
+        overwrite_attrs = set(args.overwrite_attrs or [])
         key_attrs = args.key_attrs
         if key_attrs:
-            key_attrs = tuple(name.encode() for name in key_attrs.split())
-        if args.attr_names:
-            args.attr_names = [name.encode()
-                               for name in args.attr_names.split()]
+            key_attrs = tuple(key_attrs)
         struct_name = args.struct_name.encode()
         struct_begin_alts = tuple(b'<' + struct_name + endchar
                                   for endchar in [b' ', b'>'])
