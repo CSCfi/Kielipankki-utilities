@@ -28,5 +28,7 @@ The PID is important for the agreement since we need to be specific and unambigu
 
 ## Prepare the documents for signing
 
+When the document is ready, see [how to have the agreement signed via UniSign](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_have_agreement_signed.md).
+
 
 
