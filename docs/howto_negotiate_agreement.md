@@ -19,7 +19,7 @@ The PID is important for the agreement since we need to be specific and unambigu
 
 ## Prepare a draft of the agreement
 
-  * create a subfolder for the agreement under the [OneDrive directory | https://helsinkifi-my.sharepoint.com/:f:/r/personal/lennes_ad_helsinki_fi/Documents/Kielipankin%20sopimusasiat/DELA%20-%20Aineistokohtaisten%20sopimusten%20valmistelu?csf=1&web=1&e=9y4CLl]
+  * create a subfolder for the agreement under the [OneDrive directory] (https://helsinkifi-my.sharepoint.com/:f:/r/personal/lennes_ad_helsinki_fi/Documents/Kielipankin%20sopimusasiat/DELA%20-%20Aineistokohtaisten%20sopimusten%20valmistelu?csf=1&web=1&e=9y4CLl)
   * download the most
   * submit to the depositor for review
   * remind the depositor about contacting the legal experts in their home organization, if required
