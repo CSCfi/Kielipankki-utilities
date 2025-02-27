@@ -16,7 +16,8 @@ import sys
 
 from collections import OrderedDict
 
-from libvrt.argtypes import attrlist
+from libvrt.argtypes import attrlist, attr_value
+from libvrt.iterutils import find_duplicates
 from libvrt.metaline import mapping, starttag
 from libvrt.tsv import TsvReader, EncodeEntities
 from vrtargsoolib import InputProcessor
@@ -25,8 +26,10 @@ from vrtargsoolib import InputProcessor
 class StructAttrAdder(InputProcessor):
 
     DESCRIPTION = """
-    Add structural attribute annotations to VRT data from a TSV file.
-    Either (1) the TSV file can have the same number of data rows as the VRT
+    Add structural attribute annotations to VRT data from a TSV file (with
+    --data-file) or with a fixed value (--fixed) or both.
+    When using --data-file, either (1) the TSV file can have the same number
+    of data rows as the VRT
     data has structural attributes of the specified kind, in which case
     values for the nth structural attribute are added from the nth data row of
     the data file, or (2) one or more attributes may be specified as a key,
@@ -38,8 +41,17 @@ class StructAttrAdder(InputProcessor):
         ('--structure|element|e=STRUCT "text" -> struct_name',
          'Add attributes (annotations) to structures STRUCT.'),
         ('--data-file=FILENAME',
-         'Add annotations from the TSV data file FILENAME.',
-         dict(required=True)),
+         'Add attributes (annotations) from the TSV data file FILENAME.'),
+        ('--fixed=ATTR:attr_value',
+         """Add attribute ATTR with the same fixed value VALUE for all
+         structures. If also --data-file is used, ATTR may not be one
+         of the attributes in the TSV file. ATTR and VALUE may be
+         separated by either "=" or ":"; spaces around ATTR are
+         removed but kept around VALUE. This option can be repeated
+         with different ATTRs.
+         """,
+         dict(action='append',
+              metavar='ATTR=VALUE')),
         ('--attributes=ATTRLIST:attrlist -> attr_names',
          """Add attributes (annotations) listed in ATTRLIST (separated by
          spaces or commas),
@@ -72,10 +84,29 @@ class StructAttrAdder(InputProcessor):
         # dict)
         super().__init__(extra_types=globals())
 
+    def check_args(self, args):
+
+        def check_fixed(fixed):
+            fixed = fixed or []
+            dupls = find_duplicates(name.decode('utf-8') for name, val in fixed)
+            if dupls:
+                self.error_exit('Multiple --fixed values for attributes: '
+                                + ', '.join(dupls),
+                                exitcode=2)
+            return OrderedDict(fixed)
+
+        super().check_args(args)
+        if args.data_file is None and args.fixed is None:
+            self.error_exit(
+                'Please specify at least one of --data-file or --fixed.',
+                exitcode=2)
+        args.fixed = check_fixed(args.fixed)
+
     def main(self, args, inf, ouf):
 
         LESS_THAN = '<'.encode()[0]
         overwrite_attrs = set(args.overwrite_attrs or [])
+        fixed_vals = args.fixed
         key_attrs = args.key_attrs
         if key_attrs:
             key_attrs = tuple(key_attrs)
@@ -172,20 +203,23 @@ class StructAttrAdder(InputProcessor):
 
         def add_attributes(line, attrs, add_attrs, linenr, tsv_line_num,
                            check_overlap_attrs):
-            if tsv_line_num != -1:
-                for overlap_attr in check_overlap_attrs:
-                    if (overlap_attr in attrs.keys()
-                            and add_attrs[overlap_attr] != attrs[overlap_attr]):
-                        self.warn(
-                            ('Values for attribute {attr} differ on'
-                             ' line {dataline} of {datafile} and'
-                             ' line {vrtline} of VRT input').format(
-                                 attr=overlap_attr.decode(),
-                                 dataline=tsv_line_num,
-                                 datafile=args.data_file,
-                                 vrtline=linenr))
-                        # In case of conflict, the existing value is kept
-                        add_attrs[overlap_attr] = attrs[overlap_attr]
+            # Check if attributes to be added (and not listed in
+            # --overwrite) already exist in the input
+            for overlap_attr in check_overlap_attrs:
+                if (overlap_attr in attrs.keys()
+                        and add_attrs[overlap_attr] != attrs[overlap_attr]):
+                    attrname = overlap_attr.decode()
+                    if overlap_attr in fixed_attrs:
+                        msg_other = 'specified with --fixed'
+                    else:
+                        msg_other = (
+                            f'on line {tsv_line_num} of {args.data_file}')
+                    self.warn(
+                        f'Value for attribute {overlap_attr.decode()}'
+                        f' on line {linenr} of VRT input differs from'
+                        f' that {msg_other}; keeping the existing one')
+                    # In case of conflict, the existing value is kept
+                    add_attrs[overlap_attr] = attrs[overlap_attr]
             for attrname, attrval in add_attrs.items():
                 # This is redundant for the attributes that are for checking
                 # value equality only, but is this faster anyway?
@@ -205,22 +239,42 @@ class StructAttrAdder(InputProcessor):
                 linenr += 1
                 if line[0] == LESS_THAN and line.startswith(struct_begin_alts):
                     attrs = mapping(line)
-                    add_attrs, tsv_linenr = get_add_attrs(
-                        tsv_reader, line, attrs, linenr)
+                    if get_add_attrs is not None:
+                        add_attrs, tsv_linenr = get_add_attrs(
+                            tsv_reader, line, attrs, linenr)
+                        if fixed_vals:
+                            add_attrs.update(fixed_vals)
+                    else:
+                        # If get_add_attrs is None, no data file, so
+                        # fixed values only
+                        add_attrs = fixed_vals
+                        tsv_linenr = -1
                     if add_attrs:
                         line = add_attributes(
                             line, attrs, add_attrs, linenr, tsv_linenr,
                             check_overlap_attrs)
                 ouf.write(line)
 
-        get_add_attrs = (
-            get_add_attrs_keyed if key_attrs else get_add_attrs_ordered)
-        with open(args.data_file, 'rb') as attrf:
-            tsv_reader = TsvReader(attrf, fieldnames=args.attr_names,
-                                   entities=EncodeEntities.NON_ENTITIES)
-            if not args.attr_names:
-                tsv_reader.read_fieldnames()
-            new_attr_names = set(tsv_reader.fieldnames or [])
-            if key_attrs:
-                read_keyed_data(tsv_reader)
-            process_input(inf, get_add_attrs, tsv_reader, new_attr_names)
+        fixed_attrs = set(fixed_vals.keys())
+        new_attr_names = fixed_attrs.copy()
+        if args.data_file is None:
+            process_input(inf, None, None, new_attr_names)
+        else:
+            get_add_attrs = (
+                get_add_attrs_keyed if key_attrs else get_add_attrs_ordered)
+            with open(args.data_file, 'rb') as attrf:
+                tsv_reader = TsvReader(attrf, fieldnames=args.attr_names,
+                                       entities=EncodeEntities.NON_ENTITIES)
+                if not args.attr_names:
+                    tsv_reader.read_fieldnames()
+                tsv_attr_names = set(tsv_reader.fieldnames or [])
+                if new_attr_names & tsv_attr_names:
+                    self.error_exit(
+                        'Same attributes specified both in a data file and'
+                        ' with a fixed value: '
+                        + ', '.join(attrname.decode('utf-8') for attrname in
+                                    sorted(new_attr_names & tsv_attr_names)))
+                new_attr_names |= tsv_attr_names
+                if key_attrs:
+                    read_keyed_data(tsv_reader)
+                process_input(inf, get_add_attrs, tsv_reader, new_attr_names)

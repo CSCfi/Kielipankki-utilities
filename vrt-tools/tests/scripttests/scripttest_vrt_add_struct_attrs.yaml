@@ -19,8 +19,8 @@
     stdin: ''
   output:
     returncode: 2
-    stderr:
-      regex: ".*the following arguments are required: --data-file.*"
+    stderr: |
+      vrt-add-struct-attrs: Please specify at least one of --data-file or --fixed.
     stdout: ''
 
 
@@ -211,7 +211,7 @@
     file:attrs.tsv: *tsv-1
   output:
     stderr: |
-      vrt-add-struct-attrs: Warning: Values for attribute a1 differ on line 2 of attrs.tsv and line 1 of VRT input
+      vrt-add-struct-attrs: Warning: Value for attribute a1 on line 1 of VRT input differs from that on line 2 of attrs.tsv; keeping the existing one
     stdout: |
       <text a1="ab" a2="bb">
       <sentence>
@@ -317,7 +317,7 @@
     file:attrs.tsv: *tsv-1
   output:
     stderr: |
-      vrt-add-struct-attrs: Warning: Values for attribute a2 differ on line 3 of attrs.tsv and line 6 of VRT input
+      vrt-add-struct-attrs: Warning: Value for attribute a2 on line 6 of VRT input differs from that on line 3 of attrs.tsv; keeping the existing one
     stdout: |
       <text a1="aa" a2="bb">
       <sentence>
@@ -710,7 +710,7 @@
     file:attrs.tsv: *tsv-2
   output:
     stderr: |
-      vrt-add-struct-attrs: Warning: Values for attribute a1 differ on line 2 of attrs.tsv and line 6 of VRT input
+      vrt-add-struct-attrs: Warning: Value for attribute a1 on line 6 of VRT input differs from that on line 2 of attrs.tsv; keeping the existing one
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -722,3 +722,170 @@
       b
       </sentence>
       </text>
+
+
+# --fixed
+
+- name: 'vrt-add-struct-attrs: --fixed only'
+  input:
+    cmdline: vrt-add-struct-attrs --fixed "b=c"
+    stdin: &input-a |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+  output:
+    stdout: &output-a |
+      <text a="1" b="c">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="c">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: Same --fixed attribute twice with same value'
+  input:
+    cmdline: vrt-add-struct-attrs --fixed "b=c" --fixed "b:c"
+    stdin: *input-a
+  output:
+    returncode: 2
+    stdout: ''
+    stderr: |
+      vrt-add-struct-attrs: Multiple --fixed values for attributes: b
+
+- name: 'vrt-add-struct-attrs: Same --fixed attribute twice with different values'
+  input:
+    cmdline: vrt-add-struct-attrs --fixed "b=c" --fixed "b:c" --fixed "c=d" --fixed "c=e"
+    stdin: *input-a
+  output:
+    returncode: 2
+    stdout: ''
+    stderr: |
+      vrt-add-struct-attrs: Multiple --fixed values for attributes: b, c
+
+- name: 'vrt-add-struct-attrs: Two --fixed attributes'
+  input:
+    cmdline: vrt-add-struct-attrs --fixed "b=c" --fixed "c:d e"
+    stdin: *input-a
+  output:
+    stdout: |
+      <text a="1" b="c" c="d e">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="c" c="d e">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --fixed with same attribute as in input'
+  input:
+    cmdline: vrt-add-struct-attrs --fixed "a=b" --fixed "c:d e"
+    stdin: *input-a
+  output:
+    stdout: |
+      <text a="1" c="d e">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" c="d e">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    stderr: |
+      vrt-add-struct-attrs: Warning: Value for attribute a on line 1 of VRT input differs from that specified with --fixed; keeping the existing one
+      vrt-add-struct-attrs: Warning: Value for attribute a on line 6 of VRT input differs from that specified with --fixed; keeping the existing one
+
+- name: 'vrt-add-struct-attrs: --fixed with same attribute as in input, --overwrite'
+  input:
+    cmdline: vrt-add-struct-attrs --fixed "a=b" --fixed "c:d e" --overwrite "a"
+    stdin: *input-a
+  output:
+    stdout: |
+      <text a="b" c="d e">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="b" c="d e">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --fixed and --data-file with heading row, disjoint attributes'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --fixed "b=c" --fixed "c:d e"
+    stdin: *input-a
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <text a="1" a1="cc" a2="dd" b="c" c="d e">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" a1="aa" a2="bb" b="c" c="d e">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    stderr: |
+      vrt-add-struct-attrs: Warning: Value for attribute a on line 1 of VRT input differs from that on line 2 of attrs.tsv; keeping the existing one
+      vrt-add-struct-attrs: Warning: Value for attribute a on line 6 of VRT input differs from that on line 3 of attrs.tsv; keeping the existing one
+
+- name: 'vrt-add-struct-attrs: --fixed and --data-file with --attributes, disjoint attributes'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --attributes "a,a1,a2" --fixed "b=c" --fixed "c:d e"
+    stdin: *input-a
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <text a="1" a1="a1" a2="a2" b="c" c="d e">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" a1="cc" a2="dd" b="c" c="d e">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    stderr: |
+      vrt-add-struct-attrs: Warning: Value for attribute a on line 1 of VRT input differs from that on line 1 of attrs.tsv; keeping the existing one
+
+- name: 'vrt-add-struct-attrs: --fixed and --data-file, common attributes with heading row'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --fixed "a1=c"
+    stdin: *input-a
+    file:attrs.tsv: *tsv-2
+  output:
+    returncode: 1
+    stdout: ''
+    stderr: |
+      vrt-add-struct-attrs: Same attributes specified both in a data file and with a fixed value: a1
+
+- name: 'vrt-add-struct-attrs: --fixed and --data-file, common attributes with --attributes'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --attributes "a,a1,a2" --fixed "a=c"
+    stdin: *input-a
+    file:attrs.tsv: *tsv-2
+  output:
+    returncode: 1
+    stdout: ''
+    stderr: |
+      vrt-add-struct-attrs: Same attributes specified both in a data file and with a fixed value: a
