@@ -157,13 +157,13 @@ def attr_regex_list_combined_value(s):
     return (attr_regex_list_combined(regex_list), encode_utf8(value))
 
 
-def attr_value(s):
+def attr_value_str(s):
     """Argument type function for attribute name and string value.
 
     s is of the form attrname(=|:)str. Whitespace around attrname is
     stripped, whereas that around str is preserved.
 
-    Return a pair (attrname, str), both as bytes.
+    Return a pair (attrname, str), both as str.
     """
     mo = re.match(r'\s*([_a-z][_a-z0-9]*)\s*[:=](.*)', s)
     if not mo:
@@ -173,4 +173,13 @@ def attr_value(s):
             attrname, val = re.split(r'[:=]', s, 1)
             msg = f'invalid attribute name "{attrname.strip()}"'
         raise ArgumentTypeError(f'{msg} in attribute-value specification: {s}')
-    return (encode_utf8(mo.group(1)), encode_utf8(mo.group(2)))
+    return (mo.group(1), mo.group(2))
+
+
+def attr_value(s):
+    """Argument type function for attribute name and string value.
+
+    Similar to attr_value but return a pair (attrname, str), both as
+    bytes.
+    """
+    return tuple(encode_utf8(val) for val in attr_value_str(s))
