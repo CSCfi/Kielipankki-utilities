@@ -40,7 +40,6 @@ In case an already published resource has to be **un-published**, please follow 
 *PRIV conditions (English):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 *PRIV conditions (Finnish):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
-
 *Rightholder:* 
 *Data controller, regarding personal data (if applicable):*
 
