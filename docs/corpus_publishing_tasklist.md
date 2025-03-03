@@ -33,7 +33,7 @@ In case an already published resource has to be **un-published**, please follow 
 *Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 *Access location:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
-*License label:* e.g., CC BY
+*License label:* e.g., CC BY, RES +PRIV, etc.
 *License page (English):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 *License (Finnish):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 *(In case the corpus contains personal data:)*
