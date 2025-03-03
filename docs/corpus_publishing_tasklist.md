@@ -28,12 +28,17 @@ In case an already published resource has to be **un-published**, please follow 
 *Shortname:* shortname-src
 
 *Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
+*Access location:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
 *Resource description:* This resource contains…
 
 *License label:* e.g., CC BY
 *License page (English):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 *License (Finnish):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
+*(In case the corpus contains personal data:)*
+*PRIV conditions (English):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
+*PRIV conditions (Finnish):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
+
 
 *Rightholder:* 
 *Data controller, regarding personal data (if applicable):*
@@ -46,6 +51,7 @@ In case an already published resource has to be **un-published**, please follow 
 *Shortname:* shortname-korp
 
 *Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
+*Access location:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
 (Include the license information if different from the source version)
 
@@ -57,6 +63,7 @@ In case an already published resource has to be **un-published**, please follow 
 *Shortname:* shortname-vrt
 
 *Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
+*Access location:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
 (Include the license information if different from the source/Korp version)
 ```
