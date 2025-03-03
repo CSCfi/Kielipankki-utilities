@@ -19,7 +19,10 @@ In case an already published resource has to be **un-published**, please follow 
 
 ```
 ----
-*Resource group page (English):* 
+*Resource group page (English):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
+
+*Resource description:* [This resource contains…]
+
 ----
 *Source version:*
 
@@ -29,8 +32,6 @@ In case an already published resource has to be **un-published**, please follow 
 
 *Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 *Access location:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
-
-*Resource description:* This resource contains…
 
 *License label:* e.g., CC BY
 *License page (English):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
