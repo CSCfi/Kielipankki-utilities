@@ -297,6 +297,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the COMEDI record also contains a link to the resource group page
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the [COMEDI | https://clarino.uib.no/comedi/records] record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
+# [ ] _*+DB*_ Add the Language Bank Publication Date to the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
 # [ ] _*?SUPPORT*_ Inform the depositor/rightholder about the publication
 \\
 ```
@@ -410,6 +411,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PORTAL*_ Add "beta" status information to the database
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the [COMEDI | https://clarino.uib.no/comedi/records] record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
 # [ ] _*+PORTAL*_ Publish news about this new corpus in the portal
+# [ ] _*+DB*_ Add the Language Bank Publication Date to the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
 # [ ] _*?SUPPORT*_ Inform corpus owner and possibly interested researchers on the corpus in Korp and ask them to test it
 \\
 ```
@@ -477,6 +479,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*?META*_ If the package was published as beta (during the beta stage of the corresponding Korp corpus), remove beta status from the COMEDI record and resource group page
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the COMEDI record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
+# [ ] _*+DB*_ Add the Language Bank Publication Date to the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
 # [ ] _*?SUPPORT*_ Inform the depositor/rightholder and interested researchers about the VRT publication
 \\
 ```
