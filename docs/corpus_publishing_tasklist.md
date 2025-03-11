@@ -323,6 +323,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
 # [ ] _*?LBR*_ Ask CSC to create an LBR record (for a RES corpus! This needs the official corpus name, a persistant identifier for the metadata and a rudimental license page with PID)
 # [ ] _*+META*_ Add citation information to the [COMEDI | https://clarino.uib.no/comedi/records] record
+# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the COMEDI record also contains a link to the resource group page
 \\
 ```
 
@@ -406,7 +407,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?META*_ Update the COMEDI record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*?META*_ Update the COMEDI record: add annotation information and tools used during the corpus processing pipeline
 # [ ] _*+META*_ Add "beta" status information to COMEDI record
-# [ ] _*+PORTAL*_ Add "beta" status information to the resource group page
+# [ ] _*+PORTAL*_ Add "beta" status information to the database
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the [COMEDI | https://clarino.uib.no/comedi/records] record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
 # [ ] _*+PORTAL*_ Publish news about this new corpus in the portal
 # [ ] _*?SUPPORT*_ Inform corpus owner and possibly interested researchers on the corpus in Korp and ask them to test it
@@ -428,7 +429,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ```
 ## [ ] _*+META*_ Remove beta status from the [COMEDI | https://clarino.uib.no/comedi/records] record
-## [ ] _*+PORTAL*_ Remove beta status from the resource group page (and the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1] if needed)
+## [ ] _*+PORTAL*_ Remove beta status from the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
 \\
 ```
 
@@ -446,6 +447,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PORTAL*_ Create/update the license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
 # [ ] _*+DB*_ Link the corpus variant with the correct license row in the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
 # [ ] _*+META*_ Add citation information to the [COMEDI | https://clarino.uib.no/comedi/records] record
+# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the COMEDI record also contains a link to the resource group page
 \\
 ```
 
