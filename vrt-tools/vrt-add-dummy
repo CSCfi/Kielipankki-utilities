@@ -1,0 +1,17 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+"""
+vrt-add-dummy
+
+A VRT tool to add a dummy token to empty structures.
+
+The actual implementation is in libvrt.tools.vrt_add_dummy.
+"""
+
+
+from libvrt.tools.vrt_add_dummy import VrtDummyTokenAdder
+
+
+if __name__ == '__main__':
+    VrtDummyTokenAdder().run()
