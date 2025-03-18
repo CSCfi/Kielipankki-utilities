@@ -113,9 +113,10 @@ class ThreadSortKeyAdder(vrtargsoolib.InputProcessor):
             else:
                 return append_attr(line, sort_key_attr, key)
 
+        LESS_THAN = b'<'[0]
         prev_thread_id = None
         for line in inf:
-            if line.startswith(b'<text '):
+            if line[0] == LESS_THAN and line[:6] == b'<text ':
                 attrvals = get_attr_values(line)
                 if attrvals['thread'] != prev_thread_id:
                     msg_keys = {}
