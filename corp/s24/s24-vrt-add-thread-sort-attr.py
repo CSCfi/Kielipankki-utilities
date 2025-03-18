@@ -77,7 +77,7 @@ class ThreadSortKeyAdder(vrtargsoolib.InputProcessor):
                 # Thread start message: key is the (thread start) timestamp and
                 # thread id (padded)
                 # ouf.write(b'>> branch1\n')
-                key = append_thread_id(key, attrvals['thread'])
+                key = append_id(key, attrvals['thread'])
                 # ouf.write(b'>> key(2) = ' + key + b'\n')
             else:
                 # Comment: if parent key is available (parent in this data file
@@ -89,16 +89,16 @@ class ThreadSortKeyAdder(vrtargsoolib.InputProcessor):
                 # and the timestamp of this message
                 # ouf.write(b'>> branch2\n')
                 key = ((msg_keys.get(attrvals['parent'])
-                        or (append_thread_id(thread_first_datetime or key,
-                                             attrvals['thread'])))
+                        or (append_id(thread_first_datetime or key,
+                                      attrvals['thread'])))
                        + b' ' + key)
                 # ouf.write(b'>> parent_key = ' + msg_keys.get(attrvals['parent'], b'[None]') + b'\n')
                 # ouf.write(b'>> key(3) = ' + key + b'\n')
             # ouf.write(repr((attrvals, key)).encode() + b'\n')
             return key
 
-        def append_thread_id(val, thread_id):
-            return val + b' ' + pad0(thread_id, 10)
+        def append_id(val, id_):
+            return val + b' ' + pad0(id_, 10)
 
         def pad0(val, len_):
             return b'0' * (len_ - len(val)) + val
