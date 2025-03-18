@@ -351,7 +351,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DATA*_ Validate the VRT data
 # [ ] _*+DATA*_ Check the positional attributes
 ## [ ] _*?DATA*_ Re-order to the commonly used order if necessary
-# [ ] _*+META*_ Record annotation information and tools used during the corpus processing pipeline, in order to be added to META_SHARE
+# [ ] _*+META*_ Record annotation information and tools used during the corpus processing pipeline, in order to be added to COMEDI
 \\
 ```
 
