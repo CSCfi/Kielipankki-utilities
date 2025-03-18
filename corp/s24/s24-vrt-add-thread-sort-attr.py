@@ -82,16 +82,18 @@ class ThreadSortKeyAdder(vrtargsoolib.InputProcessor):
             else:
                 # Comment: if parent key is available (parent in this data file
                 # (year)), key is the key of the parent followed by the
-                # timestamp of this message; if parent key is not available,
-                # key is the timestamp of the first message of the thread
-                # (within this year) (or of this message, if that does not
-                # exist; when does that happen?) followed by thread id (padded)
-                # and the timestamp of this message
+                # timestamp and comment id (padded) of this message (comment id
+                # distinguishes between comments to a thread with the same
+                # timestamp); if parent key is not available, key is the
+                # timestamp of the first message of the thread (within this
+                # year) (or of this message, # if that does not exist; when
+                # does that happen?) followed by thread id (padded) and the
+                # timestamp and comment id (padded) of this message
                 # ouf.write(b'>> branch2\n')
                 key = ((msg_keys.get(attrvals['parent'])
                         or (append_id(thread_first_datetime or key,
                                       attrvals['thread'])))
-                       + b' ' + key)
+                       + b' ' + append_id(key, attrvals['comment']))
                 # ouf.write(b'>> parent_key = ' + msg_keys.get(attrvals['parent'], b'[None]') + b'\n')
                 # ouf.write(b'>> key(3) = ' + key + b'\n')
             # ouf.write(repr((attrvals, key)).encode() + b'\n')
