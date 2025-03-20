@@ -408,7 +408,6 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?META*_ Update the COMEDI record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*?META*_ Update the COMEDI record: add annotation information and tools used during the corpus processing pipeline
 # [ ] _*+META*_ Add "beta" status information to COMEDI record
-# [ ] _*+PORTAL*_ Add "beta" status information to the database
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the [COMEDI | https://clarino.uib.no/comedi/records] record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
 # [ ] _*+PORTAL*_ Publish news about this new corpus in the portal
 # [ ] _*+DB*_ Add the Language Bank Publication Date to the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
