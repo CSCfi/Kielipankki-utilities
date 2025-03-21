@@ -449,6 +449,8 @@ corpus_remove_attrs () {
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
 #     the registry file.
+# --touch: Update target file modification dates when copying or
+#     renaming attributes.
 #
 # Note that options follow mode (to make it easier to pass the
 # arguments from specific functions using a fixed mode).
@@ -467,14 +469,15 @@ corpus_remove_attrs () {
 # symbolic ones for alias? Renaming or removing an attribute that
 # another attribute links to makes the symbolic links dangle, whereas
 # that would not be a problem for hard links. On the other hand,
-# hard-linked files are more difficult to recognize as links. Another
-# option might be to try to check for such cases and either disallow
-# them, warn on them or apply the operation also to the linking
-# attribute. We could also have an option for hard links.
+# hard-linked files are more difficult to recognize as links, and the
+# modification date of the hard-linked file is the same as the source.
+# Another option might be to try to check for such cases and either
+# disallow them, warn on them or apply the operation also to the
+# linking attribute. We could also have an option for hard links.
 _corpus_manage_attr () {
     local mode comment comment_verb corpus attrname_src attrname_dst \
 	  attrname_bak cmd attrtype_src attrtype_dst baksuff fnames fname \
-	  fname_dst attrtype_word attr_comment comment_extra
+	  fname_dst attrtype_word attr_comment comment_extra touch
     mode=$1
     comment="__DEFAULT"
     comment_extra=
@@ -495,6 +498,11 @@ _corpus_manage_attr () {
 	    shift
 	elif [ "$2" = "--omit-comment" ]; then
 	    comment=
+	    shift
+	elif [ "$2" = "--touch" ]; then
+            if [ "$mode" = "copy" ] || [ "$mode" = "rename" ]; then
+	        touch=1
+            fi
 	    shift
 	else
 	    lib_error "_corpus_manage_attr: Unrecognized option $2"
@@ -639,6 +647,9 @@ _corpus_manage_attr () {
 		fname_dst=
 	    fi
 	    $cmd $fname $fname_dst
+            if [ "x$touch" != x ]; then
+                touch $fname_dst
+            fi
 	done
     )
     if [ $mode != "remove" ] && [ "x$attr_comment" != x ] &&
@@ -667,6 +678,7 @@ _corpus_manage_attr () {
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
 #     the registry file.
+# --touch: Update target file modification dates.
 corpus_rename_attr () {
     _corpus_manage_attr rename "$@"
 }
@@ -689,6 +701,7 @@ corpus_rename_attr () {
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
 #     the registry file.
+# --touch: Update target file modification dates.
 corpus_copy_attr () {
     _corpus_manage_attr copy "$@"
 }
