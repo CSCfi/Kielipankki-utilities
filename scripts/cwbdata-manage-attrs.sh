@@ -32,6 +32,10 @@ force
     Force overwriting an existing target attribute with copy, rename
     or alias. The existing data files are backed up by default; use
     --backup-suffix="" to omit backups.
+preserve-dates
+    Preserve the original modification dates of copied or renamed data
+    files. By default, the date is not preserved so that the new files
+    are considered when creating a corpus update package.
 backup-suffix|suffix=SUFFIX "__DEFAULT" baksuff
     Use SUFFIX instead of .bak-YYYYMMDDhhmmss as the suffix for the
     backups of the registry file and possible existing destination
@@ -187,6 +191,11 @@ manage_attr () {
 	if [ "$comment" != "__DEFAULT" ]; then
 	    opts="$opts --comment '$comment'"
 	fi
+        if [ "x$preserve_dates" = x ]; then
+            # Update target data file modification dates by default
+            # (no effect when aliasing or removing)
+            opts="$opts --touch"
+        fi
 	# Use eval to be able to preserve spaces in comment
 	# eval echo "corpus_${command}_attr \"$opts\" $corpus $attrname_src $attrname_dst"
 	eval corpus_${command}_attr "$opts" $corpus $attrname_src $attrname_dst
