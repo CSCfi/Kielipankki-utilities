@@ -32,7 +32,7 @@ field-headings
 # cleanup_on_exit=
 
 cwb_s_decode=$cwb_bindir/cwb-s-decode
-decode_special_chars="$progdir/vrt-convert-chars.py --decode"
+decode_special_chars="$progdir/../vrt-tools/vrt-convert-chars --decode"
 
 
 # Process options
