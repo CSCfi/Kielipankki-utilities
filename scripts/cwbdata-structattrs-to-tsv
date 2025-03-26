@@ -51,7 +51,7 @@ extract_attr () {
 
 main () {
     local attrname
-    if [ "x$@" = "x" ]; then
+    if [ "$#" = 0 ]; then
         error "Please specify at least one corpus id as an argument"
     fi
     if [ "x$attrnames" = x ]; then
