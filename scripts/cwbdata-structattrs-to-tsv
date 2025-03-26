@@ -22,8 +22,8 @@ struct-name|structural-attribute-name|element-name=STRUCT "text"
     Add the attributes to structural attribute (element) STRUCT.
 attribute-names=ATTRNAMELIST attrnames
     Output the attributes listed in ATTRNAMELIST, separated by spaces.
-field-headings
-    Output first a field (column) heading row with attribute names.
+heading-row
+    Output first a column heading row with attribute names.
 '
 
 
@@ -60,7 +60,7 @@ main () {
     for attrname in $attrnames; do
         extract_attr $attrname $(list_corpora "$@")
     done
-    if [ "x$column_headings" != x ]; then
+    if [ "x$heading_row" != x ]; then
         echo $attrnames | tr ' ' "$tab"
     fi
     paste $(add_prefix "$tmp_prefix." $attrnames)
