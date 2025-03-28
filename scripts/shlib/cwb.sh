@@ -1178,6 +1178,121 @@ corpus_list_attrs () {
 }
 
 
+# corpus_get_structattr_specs [--sort] corpus [struct_regexp]
+#
+# Output the structural attribute specifications
+# struct:depth+attr1+attr2+... (as used by cwb-encode and cwb-decode)
+# for corpus, each structure on its own line. If struct_regexp is
+# specified, output only specifications for structures fully matching
+# the regular expression struct_regexp.
+#
+# Structures are listed in the order they appear in the registry file.
+# The registry file should be in the format produced by cwb-encode, in
+# particular, the order of attributes for recursively embedded
+# structures should be the same. Comments in the registry file are
+# ignored.
+#
+# Options:
+#   --sort: Sort the attribute names in each structure alphabetically
+#     instead of using the order in the registry file.
+corpus_get_structattr_specs () {
+    local sort corpus structname regfile
+    sort=
+    if [ "x$1" = "x--sort" ]; then
+        sort=1
+        shift
+    fi
+    corpus=$1
+    regfile=$cwb_regdir/$corpus
+    if [ ! -e "$regfile" ]; then
+	return 1
+    fi
+    structname=
+    if [ "x$2" != x ]; then
+        structname=$2
+    fi
+    awk '
+        BEGIN {
+            # Whether to sort attributes alphabetically
+            sort_opt = ARGV[1]
+            # Output only structures matching struct_re
+            struct_re = ARGV[2] ? "^" ARGV[2] "$" : ""
+            delete ARGV[1]
+            delete ARGV[2]
+            structcount = 0
+        }
+
+        $1 == "STRUCTURE" {
+            full_struct = $2
+            sep_pos = index(full_struct, "_")
+            if (sep_pos == 0) {
+                # Structure name without annotations (assumes that
+                # bare structure names do not contain underscores)
+                if (match(full_struct, /^(.+)([1-9])$/, parts)) {
+                    # Structure name ends in a digit: possibly
+                    # recursively embedded structure
+                    struct = parts[1]
+                    depth = parts[2]
+                    if (struct in struct_depths \
+                            && struct_depths[struct] == depth - 1) {
+                        # Assume that recursively embedded structures
+                        # are declared in the registry file in order
+                        # (struct, struct1, struct2, ...)
+                        struct_depths[struct] = depth
+                        next
+                    }
+                }
+                # New structure
+                if (! struct_re || full_struct ~ struct_re) {
+                    structs[structcount] = full_struct
+                    structcount++
+                    struct_depths[full_struct] = 0
+                    attrstr[full_struct] = ""
+                }
+            } else {
+                # Structure and attribute (annotation) name
+                attr = substr(full_struct, sep_pos + 1)
+                struct = substr(full_struct, 1, sep_pos - 1)
+                if (match(full_struct, /^(.+)([1-9])$/, parts)) {
+                    # Attribute name ends in a digit: possibly
+                    # recursively embedded structure
+                    base = parts[1]
+                    digit = parts[2]
+                    if (digit <= struct_depths[struct] && base in attrs) {
+                        # Trailing digit at most struct depth and the
+                        # same attribute exists without the digit:
+                        # attribute for recursively embedded
+                        # structure, so do not add to attributes for
+                        # struct
+                        next
+                    }
+                }
+                if (! struct_re || struct ~ struct_re) {
+                    attrstr[struct] = attrstr[struct] "+" attr
+                    attrs[full_struct] = 1
+                }
+            }
+        }
+
+        END {
+            for (structnum = 0; structnum < structcount; structnum++) {
+                struct = structs[structnum]
+                attrnames = attrstr[struct]
+                if (attrnames && sort_opt) {
+                    split(substr(attrnames, 2), attrname_arr, /\+/)
+                    asort(attrname_arr)
+                    attrnames = ""
+                    for (i in attrname_arr) {
+                        attrnames = attrnames "+" attrname_arr[i]
+                    }
+                }
+                print struct ":" struct_depths[struct] attrnames
+            }
+        }
+    ' "$sort" "$structname" "$regfile"
+}
+
+
 # corpus_has_attr corpus attrtypes attrname
 #
 # Return true if corpus has attribute attrname of any of the types in
