@@ -93,16 +93,16 @@ Publish the resource in Korp
 # [ ] _shortname_: Create a Korp corpus package (korp-make)
 # [ ] _shortname_: Create the Korp corpus configuration
 # [ ] _shortname_: Create a Korp test version
-# [ ] _shortname_: Publish the corpus in Korp as beta
-# [ ] _shortname_: Announce the publication of the new Korp corpus as beta
-# [ ] _shortname_: Remove beta status and clean up after publishing in Korp
-# [ ] _shortname_: Announce the removal of beta status after publishing in Korp
+# [ ] _shortname_: Publish the corpus in Korp as release candidate
+# [ ] _shortname_: Announce the publication of the new Korp corpus as release candidate
+# [ ] _shortname_: Remove release candidate status and clean up after publishing in Korp
+# [ ] _shortname_: Announce the removal of release candidate status after publishing in Korp
 
 Publish the VRT data in Download
 # [ ] _shortname_: Prepare for publishing the VRT data in Download
 # [ ] _shortname_: Package and upload the VRT data
-# [ ] _shortname_: Announce the publication of the VRT data in Download
-# [ ] _shortname_: Clean up after publishing the VRT in Download (remove beta status if needed) 
+# [ ] _shortname_: Announce the publication of the VRT data in Download as release candidate
+# [ ] _shortname_: Clean up after publishing the VRT in Download (remove release candidate status if needed) 
 ```
 
    - Again, replace "_shortname_" with the short name of the resource in question.
@@ -389,10 +389,10 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Publish the corpus in Korp as beta
+### _shortname_: Publish the corpus in Korp as release candidate
 
 ```
-# [ ] _*+KORP*_ Publish the corpus in Korp as a beta test version
+# [ ] _*+KORP*_ Publish the corpus in Korp as a release candidate version
 ## [ ] _*+GITHUB*_ Merge the corpus configuration branch to branch {{master}}
 ## [ ] _*+KORP*_ Install the updated {{master}} branch to production Korp (or ask someone with the rights to do that)
 # [ ] _*+GITHUB*_ Add news about this new corpus to the Korp newsdesk ([https://github.com/CSCfi/Kielipankki-korp-frontend/tree/news/master])
@@ -400,14 +400,14 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Announce the publication of the new Korp corpus as beta
+### _shortname_: Announce the publication of the new Korp corpus as release candidate
 
 ```
-# [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published (add status "beta" to the name!)
+# [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published (add status "release candidate" to the name!)
 # [ ] _*+META*_ Update [COMEDI | https://clarino.uib.no/comedi/records]  record; add location PID and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the COMEDI record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*?META*_ Update the COMEDI record: add annotation information and tools used during the corpus processing pipeline
-# [ ] _*+META*_ Add "beta" status information to COMEDI record
+# [ ] _*+META*_ Add "release candidate" status information to COMEDI record
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the [COMEDI | https://clarino.uib.no/comedi/records] record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
 # [ ] _*+PORTAL*_ Publish news about this new corpus in the portal
 # [ ] _*+DB*_ Add the Language Bank Publication Date to the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
@@ -415,22 +415,22 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Remove beta status and clean up after publishing in Korp 
+### _shortname_: Remove release candidate status and clean up after publishing in Korp 
 ```
 # [ ] _*?DATA*_ Fix corpus data based on feedback and re-publish (if needed)
 # [ ] _*?KORP*_ Fix corpus configuration in Korp and re-publish (if needed)
-# [ ] _*+KORP*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
-## [ ] _*+KORP*_ Remove beta status from Korp configuration ({{{}master{}}}), push and install the updated {{master}}
+# [ ] _*+KORP*_ Remove release candidate status after two weeks, if no requests for corrections or changes appear during this period
+## [ ] _*+KORP*_ Remove release candidate status from Korp configuration ({{{}master{}}}), push and install the updated {{master}}
 # [ ] _*+TEST*_ Remove the corpus from the testing environment of Korp (Korp test version)
 # [ ] _*+PUHTI*_ Remove any corpus data, used or created during the conversion process, from scratch on Puhti (usually the person who ran korp-make should take care of this)
 \\
 ```
 
-### _shortname_: Announce the removal of beta status after publishing in Korp
+### _shortname_: Announce the removal of release candidate status after publishing in Korp
 
 ```
-## [ ] _*+META*_ Remove beta status from the [COMEDI | https://clarino.uib.no/comedi/records] record
-## [ ] _*+PORTAL*_ Remove beta status from the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
+## [ ] _*+META*_ Remove release candidate status from the [COMEDI | https://clarino.uib.no/comedi/records] record
+## [ ] _*+PORTAL*_ Remove release candidate status from the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
 \\
 ```
 
@@ -463,7 +463,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*+PUHTI*_ Compute MD5 checksum for the zip package
 # [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
 # [ ] _*+TEST*_ Have the package tested
-# [ ] _*+CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
+# [ ] _*+CSC*_ Upload the package to the download service as release candidate (or ask someone with the rights to do that)
 # [ ] _*?LBR*_ Create an LBR record (for a RES corpus, if the corpus does not yet have one)
 # [ ] _*+TEST*_ Have it tested again (access rights!)
 \\
@@ -475,7 +475,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record; add location PID and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+PORTAL*_ Create or update the resource group page
-## [ ] _*?META*_ If the package was published as beta (during the beta stage of the corresponding Korp corpus), remove beta status from the COMEDI record and resource group page
+## [ ] _*?META*_ If the package was published as release candidate (during the release candidate stage of the corresponding Korp corpus), remove release candidate status from the COMEDI record and resource group page
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the COMEDI record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
 # [ ] _*+DB*_ Add the Language Bank Publication Date to the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
@@ -483,10 +483,10 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Clean up after publishing the VRT in Download (remove beta status if needed) 
+### _shortname_: Clean up after publishing the VRT in Download (remove release candidate status if needed) 
 ```
-# [ ] _*?PUHTI*_ If the package was published as beta (during the beta stage of the corresponding Korp corpus), remove the beta status after removing the beta status from Korp
-## [ ] _*?PUHTI*_ Create a new download package with the beta status removed from the readme file and file names
+# [ ] _*?PUHTI*_ If the package was published as release candidate (during the release candidate stage of the corresponding Korp corpus), remove the release candidate status after removing the release candidate status from Korp
+## [ ] _*?PUHTI*_ Create a new download package with the release candidate status removed from the readme file and file names
 ## [ ] _*?PUHTI*_ Compute MD5 checksum for the zip package
 ## [ ] _*?CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
 # [ ] _*?CSC*_ Ask Martin to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti (if the corpus is PUB or ACA)
