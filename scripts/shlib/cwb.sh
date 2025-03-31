@@ -1237,8 +1237,10 @@ corpus_get_structattr_specs () {
                             && struct_depths[struct] == depth - 1) {
                         # Assume that recursively embedded structures
                         # are declared in the registry file in order
-                        # (struct, struct1, struct2, ...)
-                        struct_depths[struct] = depth
+                        # (struct, struct1, struct2, ...); this could
+                        # be either such or an independent structN,
+                        # to be inferred later
+                        struct_cand_struct[full_struct] = struct
                         next
                     }
                 }
@@ -1253,7 +1255,17 @@ corpus_get_structattr_specs () {
                 # Structure and attribute (annotation) name
                 attr = substr(full_struct, sep_pos + 1)
                 struct = substr(full_struct, 1, sep_pos - 1)
-                if (match(full_struct, /^(.+)([1-9])$/, parts)) {
+                if (struct in struct_cand_struct) {
+                    # structN_attr, so previously seen structN was a
+                    # new structure, not a nesting of struct
+                    if (! struct_re || full_struct ~ struct_re) {
+                        structs[structcount] = struct
+                        structcount++
+                        struct_depths[struct] = 0
+                        attrstr[struct] = ""
+                    }
+                    delete struct_cand_struct[struct]
+                } else if (match(full_struct, /^(.+)([1-9])$/, parts)) {
                     # Attribute name ends in a digit: possibly
                     # recursively embedded structure
                     base = parts[1]
@@ -1264,6 +1276,14 @@ corpus_get_structattr_specs () {
                         # attribute for recursively embedded
                         # structure, so do not add to attributes for
                         # struct
+                        next
+                    } else if (digit == struct_depths[struct] + 1 \
+                               && (struct digit) in struct_cand_struct) {
+                        # We had seen structN and here struct_attrN,
+                        # so increment embedding depth of struct to
+                        # digit
+                        struct_depths[struct] = digit
+                        delete struct_cand_struct[struct digit]
                         next
                     }
                 }
