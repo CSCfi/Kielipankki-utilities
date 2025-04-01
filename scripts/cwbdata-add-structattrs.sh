@@ -17,7 +17,8 @@ usage_header="Usage: $progname [options] corpus [input.tsv ...]
 
 Add (encode) CWB structural attributes to a corpus already encoded from input
 in TSV format by either using attribute values in the order that they are in
-the input or based on a key (id) in the input."
+the input or based on a key (id) in the input. The input is treated
+literally, so the characters & < > \" should not be XML-encoded."
 
 optspecs='
 struct-name|structural-attribute-name|element-name=STRUCT "text"
@@ -58,7 +59,7 @@ force|overwrite
 
 cwb_s_decode=$cwb_bindir/cwb-s-decode
 cwb_s_encode=$cwb_bindir/cwb-s-encode
-encode_special_chars="$progdir/vrt-convert-chars.py --encode"
+encode_special_chars="$progdir/vrt-convert-chars.py --encode --no-xml"
 structpos_file=$tmp_prefix.struct_pos
 input_file=$tmp_prefix.input
 
