@@ -941,7 +941,7 @@ tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
     --show-transformed-names $corpus_files
 
 chgrp $filegroup $archive_name
-chmod 444 $archive_name
+chmod a-w $archive_name
 
 echo "
 Created corpus package $archive_name"
