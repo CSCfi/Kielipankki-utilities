@@ -101,7 +101,7 @@ Publish the resource in Korp
 Publish the VRT data in Download
 # [ ] _shortname_: Prepare for publishing the VRT data in Download
 # [ ] _shortname_: Package and upload the VRT data
-# [ ] _shortname_: Announce the publication of the VRT data in Download as release candidate
+# [ ] _shortname_: Announce the publication of the VRT data in Download (as release candidate if needed)
 # [ ] _shortname_: Clean up after publishing the VRT in Download (remove release candidate status if needed) 
 ```
 
@@ -462,8 +462,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*+PUHTI*_ Zip the data and the readme and license files
 ## [ ] _*+PUHTI*_ Compute MD5 checksum for the zip package
 # [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
+# [ ] _*+PUHTI*_ If the package is published as release candidate (during the release candidate stage of the corresponding Korp corpus), add the file RELEASE_CANDIDATE.txt to the directory {{/scratch/clarin/download_preview}} on Puhti
 # [ ] _*+TEST*_ Have the package tested
-# [ ] _*+CSC*_ Upload the package to the download service as release candidate (or ask someone with the rights to do that)
+# [ ] _*+CSC*_ Upload the package to the download service or ask someone with the rights to do that
 # [ ] _*?LBR*_ Create an LBR record (for a RES corpus, if the corpus does not yet have one)
 # [ ] _*+TEST*_ Have it tested again (access rights!)
 \\
@@ -475,7 +476,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record; add location PID and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+PORTAL*_ Create or update the resource group page
-## [ ] _*?META*_ If the package was published as release candidate (during the release candidate stage of the corresponding Korp corpus), remove release candidate status from the COMEDI record and resource group page
+# [ ] _*?META*_ If the package is published as release candidate (during the release candidate stage of the corresponding Korp corpus), add release candidate status to the COMEDI record and database
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the COMEDI record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
 # [ ] _*+DB*_ Add the Language Bank Publication Date to the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
@@ -485,10 +486,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ### _shortname_: Clean up after publishing the VRT in Download (remove release candidate status if needed) 
 ```
-# [ ] _*?PUHTI*_ If the package was published as release candidate (during the release candidate stage of the corresponding Korp corpus), remove the release candidate status after removing the release candidate status from Korp
-## [ ] _*?PUHTI*_ Create a new download package with the release candidate status removed from the readme file and file names
-## [ ] _*?PUHTI*_ Compute MD5 checksum for the zip package
-## [ ] _*?CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
+# [ ] _*?META*_ If the package was published as release candidate (during the release candidate stage of the corresponding Korp corpus), remove the release candidate status after removing the release candidate status from Korp
+## [ ] _*+CSC*_ Remove the file RELEASE_CANDIDATE.txt from the respective download directory
+## [ ] _*?META*_ Remove the release candidate status from the COMEDI record and database
 # [ ] _*?CSC*_ Ask Martin to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti (if the corpus is PUB or ACA)
 # [ ] _*+PUHTI*_ Remove the download package, MD5 checksum file and readme and license files from the directory {{/scratch/clarin/download_preview}} on Puhti
 \\
