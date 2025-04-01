@@ -2,6 +2,13 @@
 
 # A simpler and faster alternative to cwbdata2vrt.py
 
+# TODO:
+# - Use the old implementation for --all if the corpus contains
+#   structural attributes that do not exist in all structures and
+#   cwb-decode is older than 3.4.33 or an unmodified version that does
+#   not support them with the -S struct:N+attr1+attr2+...
+#   specifications.
+
 
 progname=`basename $0`
 progdir=`dirname $0`
@@ -61,6 +68,10 @@ v|verbose
     VRT output is written to standard output)
 '
 
+usage_footer="Note that for --all to work for corpus data with structural
+attributes defined only for some structures, you need a slightly
+modified version of cwb-decode of CWB 3.4.33 or later."
+
 . $progdir/korp-lib.sh
 
 # Process options
@@ -73,11 +84,16 @@ fi
 
 corpora=$(list_corpora "$@")
 
+# Always decode special characters in the output
+post_process="vrt_decode_special_chars --xml-entities"
+
 if [ "x$all_attrs" != x ]; then
     struct_attrs=
     pos_attrs=
-    attr_opts=-ALL
-    process_tags=process_tags_multi
+    # attr_opts set later
+    attr_opts=
+    # Convert &apos; to ' and (on token lines only) &quote; to "
+    post_process="$post_process | unentify_apos_quote"
 else
     struct_attrs_lines=$(echo $struct_attrs | tr ' ' '\n')
     struct_attrs_multi=$(
@@ -102,6 +118,10 @@ else
     else
 	process_tags=cat_noargs
     fi
+    # $process_tags needs to precede vrt_decode_special_chars;
+    # otherwise it would encode the & in the &lt; and &gt; produced by
+    # the latter.
+    post_process="$process_tags \$corp | $post_process"
 fi
 
 if [ "x$include_corpus_element" = x ]; then
@@ -136,6 +156,12 @@ cat_noargs () {
     # Ignore possible arguments
     cat
 }
+
+# Convert &apos; to ' and &quote; to ", the latter only on token lines
+unentify_apos_quote () {
+    perl -pe 's/&apos;/'"'"'/g; if (! /^</) { s/&quot;/"/g }'
+}
+
 
 # Check if any positional attribute of any corpus contains both
 # __UNDEF__ and the replacement value; if so, abort unless
@@ -195,6 +221,12 @@ if [ "x$undef_value" != x ]; then
     perl_replace_undef='
         s/(?:\t|^)\K__UNDEF__(?=\t|$)/'"$undef_value"'/g;
 '
+    if [ "x$all_attrs" != x ]; then
+        # With --all, the script does not use the Perl implementations
+        # of process_tags_single and process_tags_multi to which
+        # perl_replace_undef is added, so use a separate Perl step
+        post_process="perl -pe 'if (! /^</) { $perl_replace_undef }' | $post_process"
+    fi
 fi
 
 process_tags_single () {
@@ -351,7 +383,8 @@ make_vrt_comments () {
 }
 
 extract_vrt () {
-    local corp verbose_msg outfile dirname head_comment head_comment2 attr_comment
+    local corp verbose_msg outfile dirname pos_attrs pos_attrs_sl struct_attrs \
+          head_comment head_comment2 attr_comment
     corp=$1
     verbose_msg="Writing VRT output of corpus $corp to"
     if [ "x$outfile_templ" != "x-" ]; then
@@ -384,21 +417,20 @@ extract_vrt () {
     if [ "x$all_attrs" != x ]; then
 	# Use echo to get the attribute names on the same line,
 	# separated by spaces
-	pos_attrs=$(echo $(corpus_list_attrs --feature-set-slash $corp p))
+	pos_attrs_sl=$(echo $(corpus_list_attrs --feature-set-slash $corp p))
+	pos_attrs=$(echo "$pos_attrs_sl" | tr -d "/")
+        struct_attrs=$(echo $(corpus_get_structattr_specs $corp))
+        attr_opts="$(add_prefix '-P ' $pos_attrs) $(add_prefix '-S ' $struct_attrs)"
     fi
     if [ "x$omit_log_comment" = x ]; then
 	head_comment="info: VRT generated from CWB data for corpus \"$corp\" ($(get_isodate))"
 	head_comment2="info: A processing log at the end of file"
     fi
     if [ "x$omit_attribute_comment" = x ]; then
-	attr_comment="positional-attributes: $pos_attrs"
+	attr_comment="positional-attributes: $pos_attrs_sl"
     fi
-    # $process_tags needs to precede vrt_decode_special_chars;
-    # otherwise it would encode the & in the &lt; and &gt; produced by
-    # the latter.
     $cwb_bindir/cwb-decode -Cx $corp $attr_opts |
-    $process_tags $corp |
-    vrt_decode_special_chars --xml-entities |
+    eval "$post_process" |
     eval "$head_filter" |
     $tail_filter |
     $add_vrt_comments "$attr_comment" "$head_comment" "$head_comment2" > $outfile
