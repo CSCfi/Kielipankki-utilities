@@ -30,27 +30,27 @@ After the test version works as expected, you should inform at least *fin-clarin
 
 
 ## Publish on the production Korp
-Once the corpus works as desired in the test version of Korp, it is ready to be installed on the production Korp. Ask someone with the rights to take care of the installation. Usually the corpus will be published as a **beta version** for approximately two weeks. If during this time someone notices problems and changes need to be done to the data, it will not be necessary to change the version of the corpus.
+Once the corpus works as desired in the test version of Korp, it is ready to be installed on the production Korp. Ask someone with the rights to take care of the installation. Usually the corpus will be published as a **release candidate** for approximately two weeks. If during this time someone notices problems and changes need to be done to the data, it will not be necessary to change the version of the corpus.
 
-### Beta version
-In order to publish the corpus as a beta version, you have to add information to the corpus configuration.
+### Release candidate
+In order to publish the corpus as a release candidate, you have to add information to the corpus configuration.
  
-    - add the label 'beta' to the title of the corpus
+    - add the label 'release candidate' to the title of the corpus
     - add a fixed warning text to the description by adding to the corpus configuration:
       labels: [beta],
 
-The METASHARE article for your corpus should be checked and possibly updated. Add the label 'beta' to the name of the corpus (e.g. *The Finnish sub-corpus of the Classics Library of the National Library of Finland - Kielipankki version (beta)*) and add the information '*available in Korp as a beta test version*' to the description. The access location (Korp URN) has to be added to the METASHARE article as well as to the Korp configuration, if not done earlier.
-Add the corpus to the list of published resources (see [instructions](howto_maintain_resources_lists.md)) and add the label 'beta' to the corpus name.
-Add the corpus to the resource group page (see [instructions](howto_resource_group_page.md)) and add the label 'beta' to the corpus name.
+The metadata article for your corpus should be checked and possibly updated. Add the label 'release candidate' to the name of the corpus (e.g. *The Finnish sub-corpus of the Classics Library of the National Library of Finland - Kielipankki version (release candidate)*) and add the information '*available in Korp as a release candidate*' to the description. The access location (Korp URN) has to be added to the metadata article as well as to the Korp configuration, if not done earlier.
+Add the corpus to the list of published resources (see [instructions](howto_maintain_resource_lists_database.md)) and add the label 'release candidate' to the corpus name in the database.
+The resource group page will be updated automatically with the data from the database and show the label 'release candidate' behind the corpus name.
 Create news in Korp, see [docs: how to create Korp news](howto_korp_news.md).
-Create news in the portal, see [docs: how to create news in the portal](howto_portal_news.md) and always remember to add information about the status 'beta'.
+Create news in the portal, see [docs: how to create news in the portal](howto_portal_news.md) and always remember to add information about the status 'release candidate'.
 
-If you haven’t heard of any requests for corrections or changes during a period of about two weeks, you can remove the beta status.
+If you haven’t heard of any requests for corrections or changes during a period of about two weeks, you can remove the release candidate status.
 
-    - remove the beta label from the Korp configuration
-    - remove 'beta' from the corpus name in META-SHARE and update the description to *is available in Korp*
-    - remove 'beta' from the corpus name on the resource group page
-    - remove 'beta' from the corpus name in the list of published resources
+    - remove the label from the Korp configuration
+    - remove the label from the corpus name in the metadata and update the description to *is available in Korp*
+    - remove the label from the corpus name in the database
+    
 
  
 
