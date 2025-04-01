@@ -76,6 +76,8 @@ Remember to copy the re-packed data back from local scratch to either your work 
 ## Publishing the resource
 Have the package on `/scratch/clarin/download_preview/'CORPUS'/` on Puhti tested by someone else of the team.
 
+In case the VRT data is going to be published as **release candidate** (during the release candidate stage of the corresponding Korp corpus), add a file RELEASE_CANDIDATE.txt to `/scratch/clarin/download_preview/'CORPUS'/` on Puhti.
+
 Ask someone with the needed access rights to upload the package to the download service.
 For a RES corpus, ask also to create an LBR record.
 
@@ -87,6 +89,7 @@ Check if:
 - the subdirectory contains the zip file(s) (short-name.zip)
 - the description of the zip file(s) offers the name and type of license and links via URN to the license page in the portal
 - the subdirectory contains the uncompressed README.txt and LICENSE.txt
+- for a release candidate the file RELEASE_CANDIDATE.txt is added
 - for restricted corpora a license and acceptance page opens, that needs to be approved before download
 - for RES corpora, check the functionality of the LBR record
 
@@ -94,9 +97,16 @@ Mark the resource as published in the database. See instructions under [docs: ho
 
 Update the metadata record and add the location PID.
 
+For a release candidate, add the label to the database and the metadata record.
+
 Create or upate the resource group page, see [docs: how to create a resource group page](howto_resource_group_page.md).
 
 Publish news about the new corpus in the portal, see [docs: how to create news in the portal](howto_portal_news.md) .
+
+## Removing the release candidate status
+For a resource published as release candidate, this status will be removed and the version declared as the final version if no requests for corrections or changes are received within a period of around two weeks.
+The file RELEASE_CANDIDATE.txt has to be removed from the folder in download (ask someone with the needed access rights to to that).
+Remove the release candidate status from the metadata record and the database.
 
 
 
