@@ -411,6 +411,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the [COMEDI | https://clarino.uib.no/comedi/records] record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
 # [ ] _*+PORTAL*_ Publish news about this new corpus in the portal
 # [ ] _*+DB*_ Add the Language Bank Publication Date to the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
+## [ ] _*+META*_ Add the date when the release candidate status can be removed (two weeks from now) to the following two stories (about removing the release candidate status)
 # [ ] _*?SUPPORT*_ Inform corpus owner and possibly interested researchers on the corpus in Korp and ask them to test it
 \\
 ```
@@ -480,6 +481,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the COMEDI record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
 # [ ] _*+DB*_ Add the Language Bank Publication Date to the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
+## [ ] _*+META*_ If the package is published as release candidate, add the date when this status can be removed (two weeks from now) to the following story (about removing the release candidate status)
 # [ ] _*?SUPPORT*_ Inform the depositor/rightholder and interested researchers about the VRT publication
 \\
 ```
