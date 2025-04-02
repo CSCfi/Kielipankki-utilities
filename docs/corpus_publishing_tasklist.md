@@ -110,7 +110,7 @@ Publish the VRT data in Download
 
 
 ### 3. In the Epic, create a "Story" for each of the applicable task list sections which were previously copied to the Epic description. 
-  - In case the resource is a completely new one and it has not been decided what should be done with it, just create the first story ("_shortname:_ Enter the new resource to the pipeline", see the first section of tasks below).
+  - In case the resource is a completely new one and it has not been decided what should be done with it, just create the first story ("_shortname:_ Start negotiations with the depositor", see the first section of tasks below).
   - Use the corresponding section title in the task list as the name of the Story.
   - Replace "_shortname_" with the short name of the resource in question (use the "base" name only, excluding "-src" etc.). This makes it easier to see which resource is addressed in each individual Jira ticket.
   - Copy & paste the appropriate task list from below to the description field of the Story.
