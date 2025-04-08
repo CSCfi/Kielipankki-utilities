@@ -3,79 +3,111 @@
 
 NOTE: This page is currently being updated and adapted to the new editor 'COMEDI'!
 
+Every resource to be published in the Language Bank of Finland needs a PID (Persistant Identifier of this resource). Before creating a metadata record, this PID should be requested. Instructions on how to request a PID can be found from [docs: How to request a PID](howto_request_pid.md).
+
 You need the rights to edit in COMEDI (ask for access in the group FIN-CLARIN from CSC, if you do not have the rights yet). Login to [COMEDI](https://clarino.uib.no/comedi/records). 
-In order to create a new article, open the menu under "Manage Resources" and choose "Manage your own resources" or "Manage all resources".
-In the upper left corner, choose "Add Resource +". 
-Select a resource type (corpus, tool or lexical resource).
-You must fill in all the required fields to be able to save the page. Please see here for the [minimum set of details](https://www.kielipankki.fi/development/creating-metadata-records/) that should be included in a metadata record that is published on META-SHARE. It is possible to edit the article and add information anytime, even when it is already published.
+Open the menu under "CMDI Records" and choose "Create a metadata record".
+
+In order to create a new article, you first have to choose a CMDI profile. For the time being (a new profile is being created) choose: 
+
+    profile: clarin.eu:cr1:p_1361876010571 - resourceInfo / 1.1
+
+Add the identifier for this record, which results from the PID, in the form `lb-yyyymmddxx` (lb stands for language bank), e.g. lb-2025013021.
+
+Press 'Go'. A new metadata record will be created. You will get a notification, that it is not valid yet!
+
+Add a self link, which also results from the resource PID, in the form `urn:nbn:fi:lb-yyyymmddxx`, e.g. urn:nbn:fi:lb-2025013021.
+
+Connect this record to user group: FIN-CLARIN.
+
+The entered content will be saved automatically, even if the record is not yet valid. To make the record valid, you must fill in all the required fields. Please see here for the [minimum set of details](https://www.kielipankki.fi/development/creating-metadata-records/) that should be included in a metadata record that is published in COMEDI. It is possible to edit the article and add or correct information anytime.
+
 If unsure about some details, it is possible to fill in a kind of a placeholder (e.g. for 'size' you could put '1') and add the needed information later.
+
+
+## Identification Info
+
 You will have to enter the correct name and short name for the resource. Please follow Kielipankki's [Language resource naming conventions](https://www.kielipankki.fi/development/language-resource-naming-conventions/).
-Also you should check, whether there are (related) resources with this name in META-SHARE already.
-The article needs a PID (Persistant Identifier of this resource). Instructions on how to request a PID can be found from [docs: How to request a PID](howto_request_pid.md).
+Also you should check, whether there are (related) resources with this name in the Language Bank already (e.g. from the database).
+Add the resource name in English and Finnish (and Swedish if needed; add another field to the resource name for this) and add the language information as en, fi, or sv.
 
-After saving, the page will be visible only internally (that is, only the person who has created the page will be able to see it) before it is published.
+Add a resource description. Information for this can be found e.g. from the Jira ticket in question, or from the form (Information about a language resource to Kielipankki).
 
-In order to publish an internal resource, open the menu under "Manage Resources" and choose "Manage your own resources" or "Manage all resources".
-Click the box of your internal resource to select it.
-Select "Action: Ingest selected internal resources".
-If you don't get any errors, click the box of the newly ingested resource, and select "Action: Publish selected ingested resources".
-Your article is now openly visible and searchable in META-SHARE.
+Start the description with the line:
+
+    In English: This resource will be available [via Korp | for download] in Kielipankki – the Language Bank of Finland. 
+    
+    In Finnish: Tämä aineisto on tulossa saataville Kielipankin kautta.
+
+Add the resource short name.
+
+For metashare id, you can put: n/a
+
+The identifier results from the resource PID, in the form `http://urn.fi/urn:nbn:fi:lb-yyyymmddxx`, e.g. http://urn.fi/urn:nbn:fi:lb-2025013021.
+
+## Distribution Info
 
 Agreements and licenses: if unsure, ask Mietta!
 Note: An organization should never be cited as the author, since in the copyright sense only persons can be 'authors' 
 
+
+## Contact person
+The contact person for the resource data. It is possible to add an already existing person, but check the details for correct contact information and affiliation !!
+
+
+## Metadata info
+The person who created the metadata record
+
 When changing an existing META-SHARE article, add your name as a 'metadata creator', if it is not already there.
 Add a short explanation of your change in the field 'revision', this will also change the date in the field 'last updated'.
 For more complex explanations on a change add a **CHANGE LOG** with the current date, formatted like 2017-07-17 (in the order of year, month and day; ISO standard) under 'documentation'. For an example see the metadata of [STT](http://urn.fi/urn:nbn:fi:lb-2020031201)
-  
-Remember to add a link to the resource's group page via its URN under 'documentation', and name it **Resource group page**. If a resource group page is not created yet, you can add it later. See [docs: Instructions on how to create a resource group page](howto_resource_group_page.md).
 
-The link to the attribution details (citing information) should be added with the name **How to cite**. The link is offered in the column 'Cite' of the list of corpora and can be copied from there. You can also create the citation link yourself according to the following model, just exchange the URN of the resource.
+## Resource documentation info
+citation instruction, group page, license page
+
+The documentation in COMEDI offers unstructured and structured fields. Remember to always add a documentation field (+ Button), otherwise your input will not be saved.
+
+The link to the attribution details (citing information) should be added as unstructured documentation item. Add the text **How to cite** before the link to the citation instructions. The link is offered in the column 'Cite' of the [list of corpora](https://www.kielipankki.fi/corpora/) and can be copied from there. You can also create the citation link yourself according to the following model, just exchange the URN of the resource.
 
 Example: The following link shows the citation information for The Swedish sub-corpus of the Classics Library of the National Library of Finland - Kielipankki version
 
         https://www.kielipankki.fi/viittaus/?key=urn:nbn:fi:lb-201804041&lang=en
 
+For info about the resource group page, add a structured documentation item. Add the title: **Resource group page (resource name)** and Editor: FIN-CLARIN. As URL add the PID for the English version of the resource's group page. If a resource group page is not created yet, you can add it later. See [docs: Instructions on how to create a resource group page](howto_resource_group_page.md).
 
-The license's portal page should be referred to via its URN with the name **License**.
+For info about the license, add another structured documentation item. Add the title: **License/Lisenssi (resource name, license)**, e.g. License/Lisenssi (fvcc, CC-BY) and Editor: FIN-CLARIN. As URL add the PID for the English version of the resource's license page.
 
-
-In case you find old kitwiki links, only remove them, when there is a corresponding page with the same information in the portal.
-
-Remember to not create roof pages in META-SHARE any more, but 'resource group pages' in the portal. 
-
-To save your additions while editing an article, press 'save and continue editing', so you do not have to search for the article again 
-in order to continue editing or to preview the article.
-
-## Create a META-SHARE record by copying an existing one
-It is possible to create a META-SHARE record by using an existing page. This is helpful, if another version of the resource already has a record in META-SHARE and all or most of the details are the same. You need the script `clearObjects.sh`, which is stored in JIRA task KP-3693 at the moment.
-
-    - Login to Metashare.
-    - Under "Manage Resources" choose "Manage your own resources" or "Manage all resources".
-    - Click the box of an existing resource to select it.
-    - Select "Action: Export selected resource descriptions to XML" (let's name the file exported.xml).
-    - Run the command ./clearObjects.sh exported.xml exported_objects_removed.xml (you can use a different name).
-    - Under "Manage Resources" choose "Upload resource descriptions" and upload exported_objects_removed.xml. (You might get ProxyError, but the resource should still be uploaded.)
-    - Edit the new resource and add missing objects: Contact person, Metadata creator, Relations etc.
-    - Edit any other fields that need to be changed.
+NOTE: Remember to add (+) a resource documentation info when the number is 0/0
 
 
-## Relations between resources
-Relations between resources should be made explicit under the topic 'Relation' in the META-SHARE record. 
+## Resource creation info
+
+Add the authors of the resource in the required order. Add contact information and affiliation.
+
+
+## Relation info
+Relations between resources should be made explicit under the topic 'Relation' in the metadata record. 
 Related resources are for example the Korp version and the downloadable version of the same resource. 
 Relations between resources are always bilateral and the pairs of relations are fixed (e.g. IsVariantFormOf / IsOriginalFormOf). 
 
 In order to choose the correct type of a relation please see [Kielipankki: Life cycle and Metadata model](https://www.kielipankki.fi/support/life-cycle-and-metadata-model-of-language-resources/).
 Make sure you use the correct spelling of the type and be aware of capital letters. 
 
-When you add a related resource in META-SHARE, you can add the title of the corpus in front of the URN. 
-The link will still be displayed in META-SHARE, and the relation is much more legible when you can see 
-what the target resource is, without clicking on the link. Also, if you need to link to the same resource
-later, META-SHARE will suggest it when you type a part of the corpus title.
+Add the title of the corpus in front of the URN. 
 
-## Corpus Text Info
+## Corpus info
+Media type, size of the resource
+
 In order to specify the languages of the text(s) included in the resource, the following links might help to find the correct **language codes**:
 
 https://kotoistus.fi/suositukset/suositukset-kielet-fi-koodi/
 
 https://iso639-3.sil.org/code_tables/639/data/all
+
+
+
+## Create a COMEDI record by cloning an existing one
+It is possible to create a COMEDI record by closing an existing page. This is helpful, if another version of the resource already has a record in META-SHARE and all or most of the details are the same. 
+TO BE EDITED!
+
+
