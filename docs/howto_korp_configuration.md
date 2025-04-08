@@ -1,6 +1,8 @@
 # Korp configuration
 This part of the pipeline consists of making changes to the existing Korp configuration and translation files on the corpus-specific branch of the Korp frontend repository and committing the changes.
 
+**Note:** This text is partly outdated and update is in progress. Please see a [detailed guideline on Korp corpus configuration](https://github.com/CSCfi/Kielipankki-korp-frontend/blob/config/master/doc/korp-corpus-config.md).
+
 You should have a folder ‘Kielipankki-korp-frontend’ (Git working directory) in your HOME directory in Puhti. 
 
 Change to that directory:
