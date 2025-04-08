@@ -45,6 +45,8 @@ The resource group page will be updated automatically with the data from the dat
 Create news in Korp, see [docs: how to create Korp news](howto_korp_news.md).
 Create news in the portal, see [docs: how to create news in the portal](howto_portal_news.md) and always remember to add information about the status 'release candidate'.
 
+In case the data has to be fixed or changed, a new release candidate will be created and be made available as new release candidate for another two weeks. For this reason the new release candidate, and all further release candidates, should be numbered (release candidate 2 etc.).
+
 If you haven’t heard of any requests for corrections or changes during a period of about two weeks, you can remove the release candidate status.
 
     - remove the label from the Korp configuration
