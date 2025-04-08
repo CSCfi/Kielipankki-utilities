@@ -33,11 +33,11 @@ After the test version works as expected, you should inform at least *fin-clarin
 Once the corpus works as desired in the test version of Korp, it is ready to be installed on the production Korp. Ask someone with the rights to take care of the installation. Usually the corpus will be published as a **release candidate** for approximately two weeks. If during this time someone notices problems and changes need to be done to the data, it will not be necessary to change the version of the corpus.
 
 ### Release candidate
-In order to publish the corpus as a release candidate, you have to add information to the corpus configuration.
- 
-    - add the label 'release candidate' to the title of the corpus
-    - add a fixed warning text to the description by adding to the corpus configuration:
-      labels: [beta],
+When a corpus is a [release candidate](http://urn.fi/urn:nbn:fi:lb-2025033101) (publicly available in the production Korp), you should add the property status with the value "rc" to the corpus configuration or to the info object of the configuration of a corpus folder whose all corpora have the same status:
+
+    status: "rc",
+
+This appends the string “(release candidate)” (appropriately localized) to the corpus title and an appropriate localized disclaimer to the description. (For more information on the corpus configuration, see [here](https://github.com/CSCfi/Kielipankki-korp-frontend/blob/config/master/doc/korp-corpus-config.md#corpus-status))
 
 The metadata article for your corpus should be checked and possibly updated. Add the label 'release candidate' to the name of the corpus (e.g. *The Finnish sub-corpus of the Classics Library of the National Library of Finland - Kielipankki version (release candidate)*) and add the information '*available in Korp as a release candidate*' to the description. The access location (Korp URN) has to be added to the metadata article as well as to the Korp configuration, if not done earlier.
 Add the corpus to the list of published resources (see [instructions](howto_maintain_resource_lists_database.md)) and add the label 'release candidate' to the corpus name in the database.
