@@ -1,7 +1,7 @@
 # Maintaining metadata in COMEDI
 ## How to create a metadata record
 
-NOTE: This page is currently being updated and adapted to the new editor 'COMEDI'!
+NOTE: This page is currently under construction and adapted to the new editor 'COMEDI'!
 
 Every resource to be published in the Language Bank of Finland needs a PID (Persistant Identifier of this resource). Before creating a metadata record, this PID should be requested. Instructions on how to request a PID can be found from [docs: How to request a PID](howto_request_pid.md).
 
@@ -58,20 +58,21 @@ The contact person for the resource data. It is possible to add an already exist
 ## Metadata info
 The person who created the metadata record
 
-When changing an existing META-SHARE article, add your name as a 'metadata creator', if it is not already there.
-Add a short explanation of your change in the field 'revision', this will also change the date in the field 'last updated'.
-For more complex explanations on a change add a **CHANGE LOG** with the current date, formatted like 2017-07-17 (in the order of year, month and day; ISO standard) under 'documentation'. For an example see the metadata of [STT](http://urn.fi/urn:nbn:fi:lb-2020031201)
+When changing an existing metadata article, add your name as a 'metadata creator', if it is not already there.
+Add a short explanation of your change in the field 'revision'. The 'metadata last date updated' field will automatically be updated by the software.
+
+For more complex explanations on a change add a **CHANGE LOG** with the current date under 'documentation' (see below).
 
 ## Resource documentation info
-citation instruction, group page, license page
-
-The documentation in COMEDI offers unstructured and structured fields. Remember to always add a documentation field (+ Button), otherwise your input will not be saved.
+The documentation section in COMEDI offers unstructured and structured fields. This is usually the place to add citation instructions, possibly a CHANGE-LOG, and references to the resource group page and the license page.
 
 The link to the attribution details (citing information) should be added as unstructured documentation item. Add the text **How to cite** before the link to the citation instructions. The link is offered in the column 'Cite' of the [list of corpora](https://www.kielipankki.fi/corpora/) and can be copied from there. You can also create the citation link yourself according to the following model, just exchange the URN of the resource.
 
 Example: The following link shows the citation information for The Swedish sub-corpus of the Classics Library of the National Library of Finland - Kielipankki version
 
         https://www.kielipankki.fi/viittaus/?key=urn:nbn:fi:lb-201804041&lang=en
+
+For more complex explanations on a change (e.g. in the metadata or license) add a **CHANGE LOG** with the current date, formatted like 2017-07-17 (in the order of year, month and day; ISO standard) in an unstructured field under 'documentation'. For an example see the metadata of [STT](http://urn.fi/urn:nbn:fi:lb-2020031201)
 
 For info about the resource group page, add a structured documentation item. Add the title: **Resource group page (resource name)** and Editor: FIN-CLARIN. As URL add the PID for the English version of the resource's group page. If a resource group page is not created yet, you can add it later. See [docs: Instructions on how to create a resource group page](howto_resource_group_page.md).
 
@@ -107,7 +108,7 @@ https://iso639-3.sil.org/code_tables/639/data/all
 
 
 ## Create a COMEDI record by cloning an existing one
-It is possible to create a COMEDI record by closing an existing page. This is helpful, if another version of the resource already has a record in META-SHARE and all or most of the details are the same. 
+It is possible to create a COMEDI record by cloning an existing page. This is helpful, if another version of the resource already has a record in COMEDI and all or most of the details are the same. 
 TO BE EDITED!
 
 
