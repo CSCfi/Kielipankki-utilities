@@ -103,6 +103,13 @@ Create or upate the resource group page, see [docs: how to create a resource gro
 
 Publish news about the new corpus in the portal, see [docs: how to create news in the portal](howto_portal_news.md) .
 
+This should be the general localized text to the description of a release candidate corpus:
+
+    In Finnish: Huomaa, että korpus on julkaisuehdokas, joten siihen voi vielä tulla muutoksia.
+    in Swedish: Observera att korpusen är en releasekandidat, så den kan fortfarande ändras.
+    In English: Please note that the corpus is a release candidate, so it may still change.
+
+
 ## Removing the release candidate status
 For a resource published as release candidate, this status will be removed and the version declared as the final version if no requests for corrections or changes are received within a period of around two weeks.
 The file RELEASE_CANDIDATE.txt has to be removed from the folder in download (ask someone with the needed access rights to to that).
