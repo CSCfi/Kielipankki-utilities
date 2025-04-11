@@ -45,6 +45,12 @@ The resource group page will be updated automatically with the data from the dat
 Create news in Korp, see [docs: how to create Korp news](howto_korp_news.md).
 Create news in the portal, see [docs: how to create news in the portal](howto_portal_news.md) and always remember to add information about the status 'release candidate'.
 
+This should be the general localized text to the description of a release candidate corpus:
+
+    In Finnish: Huomaa, että korpus on julkaisuehdokas, joten siihen voi vielä tulla muutoksia.
+    in Swedish: Observera att korpusen är en releasekandidat, så den kan fortfarande ändras.
+    In English: Please note that the corpus is a release candidate, so it may still change.
+
 In case the data has to be fixed or changed, a new release candidate will be created and be made available as new release candidate for another two weeks. For this reason the new release candidate, and all further release candidates, should be numbered (release candidate 2 etc.).
 
 If you haven’t heard of any requests for corrections or changes during a period of about two weeks, you can remove the release candidate status.
