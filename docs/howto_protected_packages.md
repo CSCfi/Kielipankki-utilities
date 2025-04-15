@@ -4,8 +4,8 @@ THIS IS UNDER CONSTRUCTION
 Source data of a resource as well as its VRT version can be offered in the download service of Kielipankki [http://www.kielipankki.fi/download](http://www.kielipankki.fi/download "http://www.kielipankki.fi/download").
 Add link to howto_download_package.md
 
-## Receive confidential data (RES +PRIV)
-The zip file should be encrypted all the time, until it ends up in the download service with RES protection
+## Receiving confidential data (RES +PRIV)
+The zip file should be encrypted all the time, until it ends up in the download service with RES protection.
 
 The researcher should provide us with a password-protected zip file.
 The un-encrypted zip file should be included within an encrypted zip file.
@@ -18,131 +18,68 @@ The password could be delivered via SMS, to have two different routes.
 
 
 
-## To store the data:
-We decrypt the wrapper zip from the researcher with the help of his or her password.
+## Storing confidential data
+On Puhti, start the process by changing to the user group `project_2013016` with command 
+   
+   $ newgrp project_2013016
+   
+Transfer the data to Puhti, to a folder with access rights restricted to the user group `project_2013016`.
+If uploading data, make sure that the data ends up in your private group or in the user group `project_2013016`.
 
-We encrypt it again with Kielipankki's own password (one password per resource group, should contain the short-name)
+Start an interactive shell on Puhti. Go to LOCAL_SCRATCH and create a folder for this resource.
+There, decrypt the wrapper zip from the researcher with the help of his or her password.
+Create a new password and put it to the password store. In case a password for this resource group exists already, get it from the password store. 
+For instructions on how to create / retrieve a Kielipankki password, see howto_manage_passwords.md.
 
-$ zip -e x_orig.zip origdata_unencrypted.zip		(The encrypted zip file contains the un-encrypted zip file !!)
+
+Encrypt the wrapper package with Kielipankki's own password, the internal password of this particular resource group (one password per resource group, should contain the short-name).
+
+   $ zip -e shortname_date_orig.zip origdata_unencrypted.zip		(The encrypted zip file contains the un-encrypted zip file !!)
 
 For naming conventions see howto_data_storage.md
 
-The x_orig.zip is stored on IDA and HFST
+Move the encrypted wrapper package from the interactive shell to the resource folder on scratch (group protected!)
 
+Create a README to accompany the the original data, for instructions see howto_data_storage.md.
 
-The **source data** is offered as is, meaning that usually it is not changed by us, except for packaging the data (in zip files) in a suitable way. The original data should be available in IDA, so it can be taken from there to create a download package.
+Upload the shortname_date_orig.zip and the README_shortname_date_orig.txt to IDA and HFST for storage.
 
-The **VRT data** can be extracted from Korp in order to create a download package. You have to ask someone with access rights to the Korp server for this.
+For safety reasons, you might want to overwrite the original package before removing:
 
-As for all resources and all their versions, a metadata record has to be created, URNs to be requested, the resource has to be added to the list of upcoming resources, if not there yet. (See the respective [instructions](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/))
+   $ echo "..." > original.zip
+   
+Remove the wrapper package original.zip, received from the researcher, from Puhti.
 
-The name of the **source version** of a resource should contain the additional information 'source', e.g. `Yle Finnish News Archive 2011-2018, source`. The short name should have the suffix '-src', e.g. `ylenews-fi-2011-2018-src`.
-
-Accordingly, the name of the **VRT version** of a resource should contain the information 'VRT', e.g. `Yle Finnish News Archive 2011-2018, VRT`. The short name should have the suffix '-vrt', e.g. `ylenews-fi-2011-2018-vrt`. Please follow Kielipankki's [Language resource naming conventions](https://www.kielipankki.fi/development/language-resource-naming-conventions/).
-
-License pages in the portal have to be created and linked to from the metadata record.
-Citation information also has to be added to the metadata record.
-
-## Creating the download package
-Download the data from IDA or the HFST server to your work directory on CSC's computing environment (Puhti) in a separate folder. 
-
-Create a **README.txt** containing at least the following information:
-long name of the corpus, shortname, metadata PID, license information, short description of the corpus as given in the metadata, link to the resource group page. Add an explanation of the structure of the download package if needed.
-For a model of the README.txt, please see [docs: model of the download package README.txt](model_download-package-README.md)
-
-Create a **LICENSE.txt**. The content of this file should be copied from the respective license page in the portal.
-
-The README and LICENSE files should be offered twice: once included in the download package and once uncompressed included in the download folder on the same level as the download package.
-
-Unzip the data. 
-
-Check if there are empty files, log files or tmp directories, which can be removed.
-
-A download package needs a subdirectory to extract to, usually named based on the shortname of the corpus. 
-There should only be directories in the zip's root directory, no files. Exceptions are the README.txt and LICENSE.txt.
-
-Create a folder named after the shortname of the corpus, e.g. 'ylenews-fi-2011-2018-src'.
-Add the unzipped data to this folder (create a subfolder if needed).
-Add README.txt and LICENSE.txt.
-
-Zip the file and name it after the short name of the corpus, e.g. ylenews-fi-2011-2018-src.zip
-
-Structure of the download package:
-
-- short-name.zip:
-- short-name/README.txt
-- short-name/LICENSE.txt
-- short-name/short-name/data files ... (including possible sub directories)
-
-Copy the package together with the uncompressed LICENSE.txt and README.txt to the folder `/scratch/clarin/download_preview/CORPUS/` on Puhti. CORPUS here is a placeholder for the folder structure that should be shown in the download service.
-
-For example 
-
-`/scratch/clarin/download_preview/YLE/fi/2019-2020-src/`
-
-would be shown in the download service as 
-
-`https://kielipankki/download/YLE/fi/2019-2020-src/`
+   $ rm -rf original.zip
 
 
 
-## Packing huge data (interactive batch job)
-NOTE: If the zip file is huge and/or consists of hundreds of files, it is recommended to unzip and pack the data within an interactive batch job session.
-The command is 'sinteractive', for more information see [CSC: interactive usage](https://docs.csc.fi/computing/running/interactive-usage/).
-For more information on the 'fast local scratch area' ($LOCAL_SCRATCH) see [CSC: local scratch for data processing](https://docs.csc.fi/support/faq/local_scratch_for_data_processing/).
+## Packaging confidential data
 
-Example
+Packaging process: see also howto_download_package.md
 
-    $ sinteractive --account clarin --time 4:00:00 -m 8000 -d 500 (max. is 750)
-    
-    $ cd $LOCAL_SCRATCH
+- The encrypted (protected with Kielipankki's password) zip file is on Puhti, in a folder with rights for our own, limited, user group `project_2013016`.
 
-Under local scratch, create a folder for unzipping the data. 
-Unzip and re-pack the data. Remember to add the README.txt and LICENSE.txt to the package.
-Remember to copy the re-packed data back from local scratch to either your work directory or directly to `/scratch/clarin/download_preview/`, because when you leave the interactive session, all your data on the local scratch area will be deleted.
+- unzip the wrapper package to the interactive shell, LOCAL_SCRATCH
 
+- create a folder named 'shortname-src'
 
-## Publishing the resource
-Have the package on `/scratch/clarin/download_preview/'CORPUS'/` on Puhti tested by someone else of the team.
+- create the wanted folder structure, add README.txt and LICENSE.txt
 
-In case the VRT data is going to be published as **release candidate** (during the release candidate stage of the corresponding Korp corpus), add a file RELEASE_CANDIDATE.txt to `/scratch/clarin/download_preview/'CORPUS'/` on Puhti.
+- zip the data to shortname-src.zip
 
-Ask someone with the needed access rights to upload the package to the download service.
-For a RES corpus, ask also to create an LBR record.
+- Create an encrypted wrapper zip for this download package, using the password of the resource group:
+ 
+     $ zip -e download_encrypted_shortname-src.zip shortname-src.zip   (the shortname-src.zip is un-encrypted inside the encrypted download_e_shortname-src.zip)
 
-Check the uploaded resource, or better, have it checked by someone else of the team.
-Check if:
+- move download_encrypted_shortname-src.zip to the folder `download_preview`.
 
-- the download folder has the correct name (short-name)
-- the description has the correct name (possibly slightly shortened) and links via URN to the metadata record
-- the subdirectory contains the zip file(s) (short-name.zip)
-- the description of the zip file(s) offers the name and type of license and links via URN to the license page in the portal
-- the subdirectory contains the uncompressed README.txt and LICENSE.txt
-- for a release candidate the file RELEASE_CANDIDATE.txt is added
-- for restricted corpora a license and acceptance page opens, that needs to be approved before download
-- for RES corpora, check the functionality of the LBR record
+- Tell CSC about the data in `download_preview`, to be uploaded to the download service.
 
-Mark the resource as published in the database. See instructions under [docs: how to maintain resources lists](howto_maintain_resource_lists_database.md)
-
-Update the metadata record and add the location PID.
-
-For a release candidate, add the label to the database and the metadata record.
-
-Create or upate the resource group page, see [docs: how to create a resource group page](howto_resource_group_page.md).
-
-Publish news about the new corpus in the portal, see [docs: how to create news in the portal](howto_portal_news.md) .
-
-This should be the general localized text to the description of a release candidate corpus:
-
-    In Finnish: Huomaa, että korpus on julkaisuehdokas, joten siihen voi vielä tulla muutoksia.
-    in Swedish: Observera att korpusen är en releasekandidat, så den kan fortfarande ändras.
-    In English: Please note that the corpus is a release candidate, so it may still change.
+- Note: When closing the interactive shell, the data will no longer be available there.
 
 
-## Removing the release candidate status
-For a resource published as release candidate, this status will be removed and the version declared as the final version if no requests for corrections or changes are received within a period of around two weeks.
-The file RELEASE_CANDIDATE.txt has to be removed from the folder in download (ask someone with the needed access rights to to that).
-Remove the release candidate status from the metadata record and the database.
+
 
 
 
