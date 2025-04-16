@@ -29,9 +29,7 @@ DELIVERY OPTION 1: The package can be delivered, e.g., via [Filesender](https://
 
 DELIVERY OPTION 2: The researcher can hand the data over to a Kielipankki staff member on external disk.
 
-- In case the researcher's disk is not password-protected, the disk must not be taken off the premises, i.e., the data must be copied by the Kielipankki staff member into an encrypted archive on site. The encrypted archive should then be stored at a protected location for further processing.
-
-- 
+- In case the researcher's disk is not password-protected, the disk must not be taken off the premises, i.e., the data must be copied by the Kielipankki staff member into an encrypted archive on site. The encrypted archive should then be stored at a trusted location for further processing.
 
 DELIVERY OPTION 3: The researcher can make the encrypted package directly accessible to a Kielipankki staff member on a sufficiently secure service (as recommended by their home university) for sharing data.
 
