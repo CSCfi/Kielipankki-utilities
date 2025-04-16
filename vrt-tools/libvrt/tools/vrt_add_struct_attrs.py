@@ -11,6 +11,11 @@ Please run "vrt-add-struct-attrs -h" for more information.
 """
 
 
+# TODO:
+# - Support specifying attribute-specific default values for the case
+#   when no key is found in the input
+
+
 import re
 import sys
 
@@ -71,8 +76,9 @@ class StructAttrAdder(InputProcessor):
          commas) as a key:
          when their values in a VRT structure match those of a row in a data
          file, add the remaining attributes in the data file to the VRT.
-         If the data file does not contain values for a key in the VRT, empty
-         strings are added as attribute values.
+         If the data file does not contain values for a key in the VRT,
+         existing attribute values are preserved and the values for new
+         attributes are empty strings.
          Note that this option implies reading the entire data file into
          memory, so use with caution for very large data files.
          """),
@@ -192,14 +198,16 @@ class StructAttrAdder(InputProcessor):
             else:
                 self.warn(
                     ('No data for key {key} in {datafile} on VRT line'
-                     ' {vrtline}; using empty values').format(
-                         key=tuple(val.decode() for val in key),
-                         datafile=args.data_file,
-                         vrtline=linenr))
-                return (OrderedDict((attrname, attrs[attrname]
-                                     if attrname in key_attrs else b'')
-                                    for attrname in tsv_reader.fieldnames),
-                        -1)
+                     ' {vrtline}; using empty values for new attributes')
+                    .format(key=tuple(val.decode() for val in key),
+                            datafile=args.data_file,
+                            vrtline=linenr))
+                return (
+                    OrderedDict(
+                        (attrname,
+                         attrs[attrname] if attrname in attrs else b'')
+                        for attrname in tsv_reader.fieldnames),
+                    -1)
 
         def add_attributes(line, attrs, add_attrs, linenr, tsv_line_num,
                            check_overlap_attrs):
