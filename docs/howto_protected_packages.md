@@ -8,7 +8,9 @@ General principles:
 
 - The package containing confidential files should remain encrypted whenever possible, until the package is made available in the download service with the appropriate access restrictions. 
 
-- The time of processing confidential data in unencrypted form should be minimized and the processing must only take place in the environments we have agreed to trust.
+- The time of processing confidential data in unencrypted form should be minimized and the processing must only take place in the environments we have agreed to trust for this purpose.
+
+- We currently trust the HFST server and the interactive shell on Puhti, given that the data are processed according to the instructions. 
 
 
 ## Receiving confidential data (RES +PRIV)
@@ -26,6 +28,10 @@ DELIVERY OPTION 1: The package can be delivered, e.g., via [Filesender](https://
 - The password should be delivered via another communication method, e.g., via SMS, to reduce risks.
 
 DELIVERY OPTION 2: The researcher can hand the data over to a Kielipankki staff member on external disk.
+
+- In case the researcher's disk is not password-protected, the disk must not be taken off the premises, i.e., the data must be copied by the Kielipankki staff member into an encrypted archive on site. The encrypted archive should then be stored at a protected location for further processing.
+
+- 
 
 DELIVERY OPTION 3: The researcher can make the encrypted package directly accessible to a Kielipankki staff member on a sufficiently secure service (as recommended by their home university) for sharing data.
 
