@@ -587,7 +587,7 @@
     file:attrs.tsv: *tsv-2
   output:
     stderr: |
-      vrt-add-struct-attrs: Warning: No data for key ('3',) in attrs.tsv on VRT line 6; using empty values
+      vrt-add-struct-attrs: Warning: No data for key ('3',) in attrs.tsv on VRT line 6; using empty values for new attributes
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -595,6 +595,36 @@
       </sentence>
       </text>
       <text a="3" a1="" a2="">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: No value for key attribute; preserving existing values'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key a --overwrite a1
+    stdin: |
+      <text a="1" a1="a1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="3" a1="a3">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-2
+  output:
+    stderr: |
+      vrt-add-struct-attrs: Warning: No data for key ('3',) in attrs.tsv on VRT line 6; using empty values for new attributes
+    stdout: |
+      <text a="1" a1="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="3" a1="a3" a2="">
       <sentence>
       b
       </sentence>
