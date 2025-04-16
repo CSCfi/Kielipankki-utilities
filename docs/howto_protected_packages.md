@@ -10,7 +10,7 @@ General principles:
 
 - The time of processing confidential data in unencrypted form should be minimized and the processing must only take place in the environments we have agreed to trust for this purpose.
 
-- We currently trust the HFST server and the interactive shell on Puhti, given that the data are processed according to the instructions. 
+- We can currently trust the HFST server, the interactive shell on Puhti, the local home directory on the user's work laptop (no network drives!) or the user's password-protected and encrypted external hard drive, given that the data are processed according to the instructions. 
 
 
 ## Receiving confidential data (RES +PRIV)
