@@ -4,18 +4,30 @@ THIS IS UNDER CONSTRUCTION
 Source data of a resource as well as its VRT version can be offered in the download service of Kielipankki [http://www.kielipankki.fi/download](http://www.kielipankki.fi/download "http://www.kielipankki.fi/download").
 Add link to howto_download_package.md
 
+General principles:
+
+- The package containing confidential files should remain encrypted whenever possible, until the package is made available in the download service with the appropriate access restrictions. 
+
+- The time of processing confidential data in unencrypted form should be minimized and the processing must only take place in the environments we have agreed to trust.
+
+
 ## Receiving confidential data (RES +PRIV)
-The zip file should be encrypted all the time, until it ends up in the download service with RES protection.
 
-The researcher should provide us with a password-protected zip file.
-The un-encrypted zip file should be included within an encrypted zip file.
+The delivery method must be explicitly agreed with the researcher/depositor providing the original data.
+
+Packaging the data for delivery:
+
+If possible, the researcher should provide us with a password-protected zip archive that includes the confidential data set in an unencrypted zip file. It is then easier for us to first decrypt the archive and then to re-encrypt it with another password for our internal use.
+
+- To do: Create instructions in the Portal for the researchers/depositors
    
-e.g. via Filesender, downloadable via Puhti web interface to Puhti
+DELIVERY OPTION 1: The package can be delivered, e.g., via [Filesender](https://filesender.funet.fi/). It can then be downloaded to Puhti (via [Puhti web interface](https://www.puhti.csc.fi/)).
 
-To do: Create instructions for the researchers
+- The password should be delivered via another communication method, e.g., via SMS, to reduce risks.
 
-The password could be delivered via SMS, to have two different routes.
+DELIVERY OPTION 2: The researcher can hand the data over to a Kielipankki staff member on external disk.
 
+DELIVERY OPTION 3: The researcher can make the encrypted package directly accessible to a Kielipankki staff member on a sufficiently secure service (as recommended by their home university) for sharing data.
 
 
 ## Storing confidential data
