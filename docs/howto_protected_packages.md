@@ -1,8 +1,8 @@
 THIS IS UNDER CONSTRUCTION
 
 # How to process password-protected packages
-Source data of a resource as well as its VRT version can be offered in the download service of Kielipankki [http://www.kielipankki.fi/download](http://www.kielipankki.fi/download "http://www.kielipankki.fi/download").
-Add link to howto_download_package.md
+The source data of a resource as well as its VRT version are made available in the download service of Kielipankki [http://www.kielipankki.fi/download](http://www.kielipankki.fi/download "http://www.kielipankki.fi/download").
+For further instructions on how to prepare data for being published in the download service, see [how to create a download package](howto_download_package.md).
 
 General principles:
 
@@ -37,7 +37,7 @@ DELIVERY OPTION 3: The researcher can make the encrypted package directly access
 ## Storing confidential data
 On Puhti, start the process by changing to the user group `project_2013016` with command 
    
-   $ newgrp project_2013016
+      $ newgrp project_2013016
    
 Transfer the data to Puhti, to a folder with access rights restricted to the user group `project_2013016`.
 If uploading data, make sure that the data ends up in your private group or in the user group `project_2013016`.
@@ -50,29 +50,31 @@ For instructions on how to create / retrieve a Kielipankki password, see howto_m
 
 Encrypt the wrapper package with Kielipankki's own password, the internal password of this particular resource group (one password per resource group, should contain the short-name).
 
-   $ zip -e shortname_date_orig.zip origdata_unencrypted.zip		(The encrypted zip file contains the un-encrypted zip file !!)
+      $ zip -e shortname_date_orig.zip origdata_unencrypted.zip		
 
-For naming conventions see howto_data_storage.md
+The encrypted zip file contains the un-encrypted zip file!
+
+For naming conventions for the data packages see [guidelines for data storage](howto_data_storage.md).
 
 Move the encrypted wrapper package from the interactive shell to the resource folder on scratch (group protected!)
 
-Create a README to accompany the the original data, for instructions see howto_data_storage.md.
+Create a README to accompany the the original data, for instructions see [guidelines for data storage](howto_data_storage.md).
 
 Upload the shortname_date_orig.zip and the README_shortname_date_orig.txt to IDA and HFST for storage.
 
 For safety reasons, you might want to overwrite the original package before removing:
 
-   $ echo "..." > original.zip
+      $ echo "..." > original.zip
    
 Remove the wrapper package original.zip, received from the researcher, from Puhti.
 
-   $ rm -rf original.zip
+      $ rm -rf original.zip
 
 
 
 ## Packaging confidential data
 
-Packaging process: see also howto_download_package.md
+Packaging process: see also [how to create a download package](howto_download_package.md)
 
 - The encrypted (protected with Kielipankki's password) zip file is on Puhti, in a folder with rights for our own, limited, user group `project_2013016`.
 
@@ -86,9 +88,11 @@ Packaging process: see also howto_download_package.md
 
 - Create an encrypted wrapper zip for this download package, using the password of the resource group:
  
-     $ zip -e download_encrypted_shortname-src.zip shortname-src.zip   (the shortname-src.zip is un-encrypted inside the encrypted download_e_shortname-src.zip)
+        $ zip -e download_encrypted_shortname-src.zip shortname-src.zip
 
-- move download_encrypted_shortname-src.zip to the folder `download_preview`.
+   The shortname-src.zip is un-encrypted inside the encrypted file download_encrypted_shortname-src.zip.
+
+- move the download_encrypted_shortname-src.zip to the folder `download_preview` on Puhti.
 
 - Tell CSC about the data in `download_preview`, to be uploaded to the download service.
 
