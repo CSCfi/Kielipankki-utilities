@@ -133,6 +133,26 @@ def attr_regex_list_individual(s):
     return [re.compile(regex) for regex in _attr_regex_list_base(s)]
 
 
+def _attr_regex_list_value_base(s):
+    """Base argument type function for attribute regex list and string value.
+
+    s is of the form [[attr_regex_list]:]str, where attr_regex_list is
+    a list of attribute name regular expressions, separated by commas
+    or spaces, and str is a string value. If attr_regex_list is
+    omitted, default to ".+"; the colon can then also be omitted
+    unless str contains a colon.
+
+    Return a pair (attr_regex_list, str), with str encoded as UTF-8.
+    attr_regex_list is str.
+    """
+    if ':' not in s:
+        s = '.+:' + s
+    if s[0] == ':':
+        s = '.+' + s
+    regex_list, _, value = s.partition(':')
+    return (regex_list, encode_utf8(value))
+
+
 def attr_regex_list_combined_value(s):
     """Argument type function for attribute regex list and string value.
 
@@ -149,12 +169,8 @@ def attr_regex_list_combined_value(s):
     Raise ArgumentTypeError if the attribute regex list contains
     duplicates or if a regex is invalid.
     """
-    if ':' not in s:
-        s = '.+:' + s
-    if s[0] == ':':
-        s = '.+' + s
-    regex_list, _, value = s.partition(':')
-    return (attr_regex_list_combined(regex_list), encode_utf8(value))
+    regex_list, value = _attr_regex_list_value_base(s)
+    return (attr_regex_list_combined(regex_list), value)
 
 
 def attr_value_str(s):
