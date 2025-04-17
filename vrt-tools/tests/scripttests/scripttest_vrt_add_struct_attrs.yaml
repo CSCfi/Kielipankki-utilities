@@ -758,7 +758,15 @@
 
 - name: 'vrt-add-struct-attrs: --fixed only'
   input:
-    cmdline: vrt-add-struct-attrs --fixed "b=c"
+    cmdline:
+    # attr=value
+    - vrt-add-struct-attrs --fixed "b=c"
+    # attr:value
+    - vrt-add-struct-attrs --fixed "b:c"
+    # attr=value, spaces around attr
+    - vrt-add-struct-attrs --fixed " b =c"
+    # attr:value, spaces around attr
+    - vrt-add-struct-attrs --fixed " b :c"
     stdin: &input-a |
       <text a="1">
       <sentence>
@@ -778,6 +786,23 @@
       </sentence>
       </text>
       <text a="2" b="c">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --fixed only, leading and trailing spaces'
+  input:
+    cmdline: vrt-add-struct-attrs --fixed "b= c "
+    stdin: *input-a
+  output:
+    stdout: |
+      <text a="1" b=" c ">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b=" c ">
       <sentence>
       b
       </sentence>
