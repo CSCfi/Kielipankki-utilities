@@ -14,6 +14,11 @@ Please run "vrt-add-struct-attrs -h" for more information.
 # TODO:
 # - Support specifying attribute-specific default values for the case
 #   when no key is found in the input
+# - --compute: Make functions transcoding < > & " available to user
+#   code
+# - --compute: Specify multiple attributes to compute with the same
+#   function
+# - --compute: Refer to attributes of enclosing structures
 
 
 import re
@@ -21,9 +26,11 @@ import sys
 
 from collections import OrderedDict
 
-from libvrt.argtypes import attrlist, attr_value
+from libvrt.argtypes import attrlist, attr_value, attr_value_str
+from libvrt.datatypes import StrBytesDict
 from libvrt.iterutils import find_duplicates
-from libvrt.metaline import mapping, starttag
+from libvrt.metaline import pairs, starttag
+from libvrt.funcdefutils import define_transform_func, FuncDefError
 from libvrt.tsv import TsvReader, EncodeEntities
 from vrtargsoolib import InputProcessor
 
@@ -32,7 +39,10 @@ class StructAttrAdder(InputProcessor):
 
     DESCRIPTION = """
     Add structural attribute annotations to VRT data from a TSV file (with
-    --data-file) or with a fixed value (--fixed) or both.
+    --data-file), or with a fixed (--fixed) or computed (--compute) value,
+    or any combination of them.
+    Existing attribute annotations can be modified by specifying the names
+    of the attributes as an argument to --overwrite.
     When using --data-file, either (1) the TSV file can have the same number
     of data rows as the VRT
     data has structural attributes of the specified kind, in which case
@@ -57,6 +67,46 @@ class StructAttrAdder(InputProcessor):
          """,
          dict(action='append',
               metavar='ATTR=VALUE')),
+        ('--compute|transform=ATTR:attr_value_str -> compute',
+         """Compute or transform the value of attribute ATTR with CODE.
+         ATTR and VALUE may be separated by either "=" or ":"; spaces
+         around ATTR are removed but kept around VALUE.
+         CODE may be one of the following:
+         (1) a Perl-style substitution "s/regexp/subst/[flags]", where
+         regexp and subst follow Python regular expression syntax and
+         flags is zero or more of the following letters: a (make \\w,
+         \\W, \\b, \\B, \\d, \\D match ASCII characters only instead
+         of whole Unicode), g (replace all matches and not only the
+         first one), i (match case-insensitively), l (make \\w, \\W,
+         \\b, \\B dependent on the current locale), x (ignore
+         whitespace and comments);
+         (2) a single Python expression; or
+         (3) the body of a Python function.
+         In (2) and (3), the variable "val" refers to the possible
+         existing value of the attribute (str), and they return the
+         result of CODE (converted to str). If ATTR does
+         not exist yet, the value of "val" is the empty string.
+         (--fixed can be used to provide a different initial value;
+         --fixed are processed before --compute.) The values of other
+         attributes of the same structure can be referred to as
+         "attr['ATTRNAME']", where ATTRNAME is the name of the
+         attribute. In the values of these attributes, the characters
+         < > & " are XML-encoded.
+         If (3) has no return statement, the value of "val" is
+         returned. On an error depending on the value of "val", an
+         empty string is returned.
+         The characters < > & " in the return value should be
+         XML-encoded.
+         The Python module "re" is available to the code.
+         The option may be repeated to specify computed values for
+         different attributes and/or to apply multiple transformations
+         to a single attribute. Multiple transformations for an
+         attribute are processed in the order they are specified.
+         Note that you need not specify --overwrite to transform
+         values of existing attributes.
+         """,
+         dict(action='append',
+              metavar='ATTR:CODE')),    # ":" cannot be used in spec above
         ('--attributes=ATTRLIST:attrlist -> attr_names',
          """Add attributes (annotations) listed in ATTRLIST (separated by
          spaces or commas),
@@ -102,11 +152,28 @@ class StructAttrAdder(InputProcessor):
             return OrderedDict(fixed)
 
         super().check_args(args)
-        if args.data_file is None and args.fixed is None:
-            self.error_exit(
-                'Please specify at least one of --data-file or --fixed.',
-                exitcode=2)
+        if (args.data_file is None and args.fixed is None
+                and args.compute is None):
+            self.error_exit('Please specify at least one of --data-file,'
+                            ' --fixed or --compute.',
+                            exitcode=2)
         args.fixed = check_fixed(args.fixed)
+        self._make_compute_funcs(args.compute or [])
+
+    def _make_compute_funcs(self, compute_attrs):
+        """Set self._compute_funcs and ._compute_sources from compute_attrs."""
+        self._compute_funcs = []
+        self._compute_sources = {}
+        for attr, code in compute_attrs:
+            try:
+                func, funcdef = define_transform_func(code, 'attr')
+            except FuncDefError as e:
+                self.error_exit(str(e))
+            self._compute_funcs.append((attr, func))
+            self._compute_sources[func] = {
+                'source': code,
+                'funcdef': funcdef,
+            }
 
     def main(self, args, inf, ouf):
 
@@ -232,6 +299,18 @@ class StructAttrAdder(InputProcessor):
                 # This is redundant for the attributes that are for checking
                 # value equality only, but is this faster anyway?
                 attrs[attrname] = attrval
+            # Apply functions specified with --compute
+            if self._compute_funcs:
+                for attrname, func in self._compute_funcs:
+                    try:
+                        attrs[attrname] = str(func(attrs.get(attrname, ''),
+                                                   attrs))
+                    except Exception as e:
+                        self.warn(f'Exception when computing value for'
+                                  f' attribute "{attrname}":'
+                                  f' {e.__class__.__name__}: {e}')
+                        attrs[attrname] = ''
+                attrs.convert_to_bytes()
             return starttag(struct_name, attrs)
 
         def process_input(inf, get_add_attrs, tsv_reader, new_attr_names):
@@ -246,7 +325,12 @@ class StructAttrAdder(InputProcessor):
             for line in inf:
                 linenr += 1
                 if line[0] == LESS_THAN and line.startswith(struct_begin_alts):
-                    attrs = mapping(line)
+                    # Use StrBytesDict instead of dict (as in
+                    # libvrt.metaline.mapping) so that compute
+                    # functions can access attribute values
+                    # transparently as str and the values can easily
+                    # be converted to bytes
+                    attrs = StrBytesDict(pairs(line))
                     if get_add_attrs is not None:
                         add_attrs, tsv_linenr = get_add_attrs(
                             tsv_reader, line, attrs, linenr)
@@ -254,10 +338,10 @@ class StructAttrAdder(InputProcessor):
                             add_attrs.update(fixed_vals)
                     else:
                         # If get_add_attrs is None, no data file, so
-                        # fixed values only
+                        # fixed and/or computed values only
                         add_attrs = fixed_vals
                         tsv_linenr = -1
-                    if add_attrs:
+                    if add_attrs or self._compute_funcs:
                         line = add_attributes(
                             line, attrs, add_attrs, linenr, tsv_linenr,
                             check_overlap_attrs)
@@ -276,7 +360,7 @@ class StructAttrAdder(InputProcessor):
                 if not args.attr_names:
                     tsv_reader.read_fieldnames()
                 tsv_attr_names = set(tsv_reader.fieldnames or [])
-                if new_attr_names & tsv_attr_names:
+                if fixed_attrs & tsv_attr_names:
                     self.error_exit(
                         'Same attributes specified both in a data file and'
                         ' with a fixed value: '
