@@ -276,45 +276,55 @@ class TestAttrRegexListCombinedValue:
 
 class TestAttrValue:
 
-    """Tests for vrtlib.argtypes function attr_value."""
+    """Tests for vrtlib.argtypes functions attr_value and attr_value_str."""
 
+    # Functions to test (for parametrization)
+    _attr_value_funcs = [
+        at.attr_value_str,
+        at.attr_value,
+    ]
+
+    @pytest.mark.parametrize('attr_value_func', _attr_value_funcs)
     # Whether to convert = to :
     @pytest.mark.parametrize('colon', [False, True])
     @pytest.mark.parametrize(
         'input,expected', [
             # Simple value
-            ('a=b', (b'a', b'b')),
+            ('a=b', ('a', 'b')),
             # Empty value
-            ('a=', (b'a', b'')),
+            ('a=', ('a', '')),
             # Value with spaces
-            ('a=b c', (b'a', b'b c')),
+            ('a=b c', ('a', 'b c')),
             # Value with leading spaces
-            ('a=  bc', (b'a', b'  bc')),
+            ('a=  bc', ('a', '  bc')),
             # Value with trailing spaces
-            ('a=bc  ', (b'a', b'bc  ')),
+            ('a=bc  ', ('a', 'bc  ')),
             # Value containing =
-            ('a=b=c=d', (b'a', b'b=c=d')),
+            ('a=b=c=d', ('a', 'b=c=d')),
             # Value containing :
-            ('a=b:c:d', (b'a', b'b:c:d')),
+            ('a=b:c:d', ('a', 'b:c:d')),
             # Value containing "
-            ('a=b"c"d', (b'a', b'b"c"d')),
+            ('a=b"c"d', ('a', 'b"c"d')),
             # Spaces around attribute name
-            (' a =b', (b'a', b'b')),
+            (' a =b', ('a', 'b')),
             # Attribute name containing _
-            ('_a_b_=c', (b'_a_b_', b'c')),
+            ('_a_b_=c', ('_a_b_', 'c')),
             # Sole _ as attribute name
-            ('_=c', (b'_', b'c')),
+            ('_=c', ('_', 'c')),
             # Attribute name containing digits
-            ('ab9=c', (b'ab9', b'c')),
+            ('ab9=c', ('ab9', 'c')),
         ]
     )
-    def test_attr_value(self, colon, input, expected):
-        """Test attr_value() with various inputs."""
+    def test_attr_value(self, attr_value_func, colon, input, expected):
+        """Test attr_value(_str) with various inputs."""
         if colon:
             input = input.replace('=', ':', 1)
-        result = at.attr_value(input)
+        if attr_value_func == at.attr_value:
+            expected = tuple(val.encode('utf-8') for val in expected)
+        result = attr_value_func(input)
         assert result == expected
 
+    @pytest.mark.parametrize('attr_value_func', _attr_value_funcs)
     @pytest.mark.parametrize(
         'input', [
             '',
@@ -323,13 +333,14 @@ class TestAttrValue:
             'abc def',
         ]
     )
-    def test_attr_value_no_separator(self, input):
-        """Test attr_value() with invalid values without a separator."""
+    def test_attr_value_no_separator(self, attr_value_func, input):
+        """Test attr_value(_str) with invalid values without a separator."""
         with pytest.raises(ArgumentTypeError,
                            match=('no ":" nor "=" in attribute-value'
                                   f' specification: {input}$')):
-            result = at.attr_value(input)
+            result = attr_value_func(input)
 
+    @pytest.mark.parametrize('attr_value_func', _attr_value_funcs)
     @pytest.mark.parametrize(
         'input,invalid', [
             ('1a=b', '1a'),
@@ -344,9 +355,9 @@ class TestAttrValue:
             ('a.b=c', 'a.b'),
         ]
     )
-    def test_attr_value_invalid_attrname(self, input, invalid):
-        """Test attr_value() with invalid attribute names."""
+    def test_attr_value_invalid_attrname(self, attr_value_func, input, invalid):
+        """Test attr_value(_str) with invalid attribute names."""
         with pytest.raises(ArgumentTypeError,
                            match=(f'invalid attribute name "{invalid}" in'
                                   f' attribute-value specification: {input}$')):
-            result = at.attr_value(input)
+            result = attr_value_func(input)
