@@ -20,7 +20,7 @@
   output:
     returncode: 2
     stderr: |
-      vrt-add-struct-attrs: Please specify at least one of --data-file or --fixed.
+      vrt-add-struct-attrs: Please specify at least one of --data-file, --fixed or --compute.
     stdout: ''
 
 
@@ -944,3 +944,260 @@
     stdout: ''
     stderr: |
       vrt-add-struct-attrs: Same attributes specified both in a data file and with a fixed value: a
+
+
+# --compute
+
+- name: 'vrt-add-struct-attrs: --compute with argument without : or ='
+  input:
+    cmdline: vrt-add-struct-attrs --compute "b"
+    stdin: *input-a
+  output:
+    returncode: 2
+    stdout: ''
+    stderr:
+      contains: |
+        vrt-add-struct-attrs: error: argument --compute/--transform: no ":" nor "=" in attribute-value specification: b
+
+- name: 'vrt-add-struct-attrs: --compute with argument with invalid attribute name'
+  input:
+    cmdline: vrt-add-struct-attrs --compute "2=attr['a']"
+    stdin: *input-a
+  output:
+    returncode: 2
+    stdout: ''
+    stderr:
+      contains: |
+        vrt-add-struct-attrs: error: argument --compute/--transform: invalid attribute name "2" in attribute-value specification: 2=attr['a']
+
+- name: 'vrt-add-struct-attrs: --compute with syntax error in code'
+  input:
+    cmdline: vrt-add-struct-attrs --compute "b=if"
+    stdin: *input-a
+  output:
+    returncode: 1
+    stdout: ''
+    stderr: |
+      vrt-add-struct-attrs: Syntax error in transformation: if
+      invalid syntax (<string>, line 2):
+        def transfunc(val, attr):
+          if
+          return val
+
+- name: 'vrt-add-struct-attrs: --compute with code starting with space'
+  input:
+    cmdline: vrt-add-struct-attrs --compute "b= 'x'"
+    stdin: *input-a
+  output:
+    returncode: 1
+    stdout: ''
+    stderr: |
+      vrt-add-struct-attrs: Syntax error in transformation:  'x'
+      unindent does not match any outer indentation level (<string>, line 3):
+        def transfunc(val, attr):
+           'x'
+          return val
+
+- name: 'vrt-add-struct-attrs: --compute producing NameError'
+  input:
+    cmdline: vrt-add-struct-attrs --compute "b=return y"
+    stdin: *input-a
+  output:
+    returncode: 1
+    stdout: ''
+    stderr: |
+      vrt-add-struct-attrs: Invalid transformation: return y
+      NameError: name 'y' is not defined:
+        def transfunc(val, attr):
+          return y
+
+- name: 'vrt-add-struct-attrs: --compute updating existing attribute with Perl-style substitution'
+  input:
+    cmdline:
+    # attr=code
+    - vrt-add-struct-attrs --compute "b=s/([a-z])/\\1\\1/g"
+    # attr:code
+    - vrt-add-struct-attrs --compute "b:s/([a-z])/\\1\\1/g"
+    # attr=code, spaces around attr
+    - vrt-add-struct-attrs --compute " b =s/([a-z])/\\1\\1/g"
+    # attr:code, spaces around attr
+    - vrt-add-struct-attrs --compute " b :s/([a-z])/\\1\\1/g"
+    stdin: &input-abc |
+      <text a="1" b="abc" c="def">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <text a="1" b="aabbcc" c="def">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="gghhii" c="jkl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --compute updating existing attribute with single expression'
+  input:
+    cmdline: vrt-add-struct-attrs --compute "b=f'{val}-{val}'"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc-abc" c="def">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi-ghi" c="jkl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --compute updating existing attribute with function body'
+  input:
+    cmdline:
+    - vrt-add-struct-attrs --compute "b=vallen = len(val); val = vallen * val"
+    - vrt-add-struct-attrs --compute "b:vallen = len(val); return vallen * val"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abcabcabc" c="def">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghighighi" c="jkl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --compute adding new attribute based on existing ones'
+  input:
+    cmdline: vrt-add-struct-attrs --compute "d=attr['b'] + ':' + attr['c']"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" d="abc:def">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="ghi:jkl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --compute adding new attribute with expression returning int'
+  input:
+    cmdline: vrt-add-struct-attrs --compute "d=int(attr['a']) + len(attr['b'])"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" d="4">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="5">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --compute adding new attribute with expression returning bool'
+  input:
+    cmdline: vrt-add-struct-attrs --compute "d=int(attr['a']) % 2 == 0"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" d="False">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="True">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --compute transforming value added with --fixed'
+  input:
+    cmdline: vrt-add-struct-attrs --fixed "d=xyz" --compute "d=val + attr['b'] + ':' + attr['c']"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" d="xyzabc:def">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="xyzghi:jkl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --compute with two transformations of the same attribute'
+  input:
+    cmdline: vrt-add-struct-attrs --compute "d=attr['b']" --compute "d=val + ':' + attr['c']"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" d="abc:def">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="ghi:jkl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --compute with two transformations of the same attribute, referring to another transformed attribute (order-dependent result)'
+  input:
+    cmdline: vrt-add-struct-attrs --compute "d=attr['b']" --compute "c=val + val" --compute "d=val + ':' + attr['c']"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="defdef" d="abc:defdef">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkljkl" d="ghi:jkljkl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --compute modifying values read from file'
+  input:
+    cmdline: vrt-add-struct-attrs --data-file attrs.tsv --key a --compute "a1=f'={val}='"
+    stdin: *input-abc
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" a1="=aa=" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" a1="=cc=" a2="dd">
+      <sentence>
+      b
+      </sentence>
+      </text>
