@@ -194,6 +194,51 @@ def attr_regex_list_individual_value(s):
     return [(regex, value) for regex in attr_regex_list_individual(regex_list)]
 
 
+def attr_value_opts(attrname_regex=None, attrname_prefix=None,
+                    attrname_suffix=None, sepchars=None, strip_value=False,
+                    return_bytes=False):
+    """Return argument type function for attribute name and value, with options.
+
+    Return an argument type function for an attribute name and string
+    value with the specified properties: attribute name matches regexp
+    `attrname_regex` (default `"[_a-z][_a-z0-9]*"`, used if `None`)
+    that can be prefixed with `attrname_prefix` (`""`) and suffxed
+    with `attrname_suffix` (`""`); value is separated from attribute
+    name with one of the characters in `sepchars` (`":="`); if
+    `strip_value` is `True`, whitespace characters are stripped from the value
+    (whitespace is always stripped from the attribute name).
+
+    The returned function takes a string argument and returns a pair
+    `(attrname, str)`, both as `str`, or `bytes` if `return_bytes` is
+    `True`.
+    """
+
+    attrname_regex = attrname_regex or '[_a-z][_a-z0-9]*'
+    attrname_prefix = attrname_prefix or ''
+    attrname_suffix = attrname_suffix or ''
+    sepchars = sepchars or ':='
+    enclose_val = r'\s*' if strip_value else ''
+    convert_result = encode_utf8 if return_bytes else lambda x: x
+
+    def _attr_value(s):
+        """Argument type function for attribute name and string value."""
+        mo = re.fullmatch(
+            fr'\s*({attrname_prefix}{attrname_regex}{attrname_suffix})\s*'
+            fr'[{sepchars}]{enclose_val}(.*?){enclose_val}', s)
+        if not mo:
+            if not any(c in s for c in sepchars):
+                msg = ('no name-value separator ('
+                       + ', '.join(f'"{c}"' for c in sepchars) + ')')
+            else:
+                attrname, val = re.split(fr'[{sepchars}]', s, 1)
+                msg = f'invalid attribute name "{attrname.strip()}"'
+            raise ArgumentTypeError(
+                f'{msg} in attribute-value specification: {s}')
+        return (convert_result(mo.group(1)), convert_result(mo.group(2)))
+
+    return _attr_value
+
+
 def attr_value_str(s):
     """Argument type function for attribute name and string value.
 
@@ -202,15 +247,7 @@ def attr_value_str(s):
 
     Return a pair (attrname, str), both as str.
     """
-    mo = re.match(r'\s*([_a-z][_a-z0-9]*)\s*[:=](.*)', s)
-    if not mo:
-        if ':' not in s and '=' not in s:
-            msg = 'no ":" nor "="'
-        else:
-            attrname, val = re.split(r'[:=]', s, 1)
-            msg = f'invalid attribute name "{attrname.strip()}"'
-        raise ArgumentTypeError(f'{msg} in attribute-value specification: {s}')
-    return (mo.group(1), mo.group(2))
+    return attr_value_opts()(s)
 
 
 def attr_value(s):
@@ -219,4 +256,4 @@ def attr_value(s):
     Similar to attr_value but return a pair (attrname, str), both as
     bytes.
     """
-    return tuple(encode_utf8(val) for val in attr_value_str(s))
+    return attr_value_opts(return_bytes=True)(s)
