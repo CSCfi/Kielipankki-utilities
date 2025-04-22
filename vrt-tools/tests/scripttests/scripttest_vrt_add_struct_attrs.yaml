@@ -957,7 +957,7 @@
     stdout: ''
     stderr:
       contains: |
-        vrt-add-struct-attrs: error: argument --compute/--transform: no ":" nor "=" in attribute-value specification: b
+        vrt-add-struct-attrs: error: argument --compute/--transform: no name-value separator (":", "=") in attribute-value specification: b
 
 - name: 'vrt-add-struct-attrs: --compute with argument with invalid attribute name'
   input:
