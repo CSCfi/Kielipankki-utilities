@@ -26,7 +26,7 @@ import sys
 
 from collections import OrderedDict
 
-from libvrt.argtypes import attrlist, attr_value, attr_value_str
+from libvrt.argtypes import attrlist, attr_value, attr_value_opts
 from libvrt.datatypes import StrBytesDict
 from libvrt.iterutils import find_duplicates
 from libvrt.metaline import pairs, starttag
@@ -67,10 +67,10 @@ class StructAttrAdder(InputProcessor):
          """,
          dict(action='append',
               metavar='ATTR=VALUE')),
-        ('--compute|transform=ATTR:attr_value_str -> compute',
+        ('--compute|transform=ATTR -> compute',
          """Compute or transform the value of attribute ATTR with CODE.
          ATTR and VALUE may be separated by either "=" or ":"; spaces
-         around ATTR are removed but kept around VALUE.
+         around ATTR and VALUE are removed.
          CODE may be one of the following:
          (1) a Perl-style substitution "s/regexp/subst/[flags]", where
          regexp and subst follow Python regular expression syntax and
@@ -106,6 +106,7 @@ class StructAttrAdder(InputProcessor):
          values of existing attributes.
          """,
          dict(action='append',
+              type=attr_value_opts(strip_value=True),
               metavar='ATTR:CODE')),    # ":" cannot be used in spec above
         ('--attributes=ATTRLIST:attrlist -> attr_names',
          """Add attributes (annotations) listed in ATTRLIST (separated by
