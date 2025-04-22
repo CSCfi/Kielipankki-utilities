@@ -358,6 +358,101 @@ class TestAttrRegexListIndividualValue:
             in str(excinfo.value))
 
 
+class TestAttrValueOpts:
+
+    """Tests for `vrtlib.argtypes` function `attr_value_opts`."""
+
+    @pytest.mark.parametrize('encode', [False, True])
+    @pytest.mark.parametrize('strip', [False, True])
+    @pytest.mark.parametrize(
+        'regex,prefix,suffix,seps,input,expected', [
+            # Simple value
+            (None, None, None, None, 'a=b', ('a', 'b')),
+            # Simple value, colon separator
+            (None, None, None, None, 'a:b', ('a', 'b')),
+            # Empty value
+            (None, None, None, None, 'a=', ('a', '')),
+            # Value with spaces only
+            (None, None, None, None, 'a= \t ', ('a', ' \t ')),
+            # Spaces around name and value
+            (None, None, None, None, ' a =  b c  ', ('a', '  b c  ')),
+            # Value containing =, : and "
+            (None, None, None, None, 'a=b:=c="d"e', ('a', 'b:=c="d"e')),
+            # Attribute name containing _ and digits
+            (None, None, None, None, '_a_b_9_=c', ('_a_b_9_', 'c')),
+            # Attribute name regex allowing . and :
+            ('[_a-z][_a-z0-9:.]*', None, None, '=', 'a.b:c=d', ('a.b:c', 'd')),
+            # Allow attribute name prefix !
+            (None, '!', None, None, '!a_b = c ', ('!a_b', ' c ')),
+            # Allow attribute name suffix /
+            (None, None, '/', None, 'a_b/ = c ', ('a_b/', ' c ')),
+            # The above three combined
+            ('[_a-z][_a-z0-9:.]*', '!', '/', '=', '!a.b:c/ = d ',
+             ('!a.b:c/', ' d ')),
+            # Space as name-value separator
+            (None, None, None, ' ', ' a b c ', ('a', 'b c ')),
+        ]
+    )
+    def test_attr_value_opts(self, encode, strip, regex, prefix, suffix, seps,
+                             input, expected):
+        """Test `attr_value_opts` with various options and inputs."""
+        if strip:
+            expected = (expected[0], expected[1].strip())
+        if encode:
+            expected = tuple(val.encode('utf-8') for val in expected)
+        result = at.attr_value_opts(
+            attrname_regex=regex, attrname_prefix=prefix,
+            attrname_suffix=suffix, sepchars=seps, strip_value=strip,
+            return_bytes=encode)(input)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        'seps,input', [
+            (None, ''),
+            (None, '  '),
+            (None, 'abc/def'),
+            (None, 'abc def'),
+            (' ', 'abc=def'),
+            (':=/', 'abcdef'),
+        ]
+    )
+    def test_attr_value_opts_no_separator(self, seps, input):
+        """Test `attr_value_opts` with invalid values without a separator."""
+        seplist = ', '.join(f'"{sep}"' for sep in seps or ':=')
+        with pytest.raises(ArgumentTypeError, match=(
+                fr'no name-value separator \({seplist}\) in attribute-value'
+                f' specification: {input}$')):
+            result = at.attr_value_opts(sepchars=seps)(input)
+
+    @pytest.mark.parametrize(
+        'regex,prefix,suffix,input,invalid', [
+            (None, None, None, '1a=b', '1a'),
+            (None, None, None, '1=2', '1'),
+            (None, None, None, 'a-b=c', 'a-b'),
+            (None, None, None, '&=a', '&'),
+            (None, None, None, '&a=b', '&a'),
+            (None, None, None, '=a', ''),
+            (None, None, None, ' =a', ''),
+            (None, None, None, 'a b=c', 'a b'),
+            (None, None, None, ' a b =c', 'a b'),
+            (None, None, None, 'a.b=c', 'a.b'),
+            ('[a-z]', None, None, 'aa=b', 'aa'),
+            (None, '!', None, '&a=2', '&a'),
+            (None, None, '@', 'a&=c', 'a&'),
+            ('[a-z]', '!', '@', '!aa@=b', '!aa@'),
+        ]
+    )
+    def test_attr_value_opts_invalid_attrname(self, regex, prefix, suffix,
+                                              input, invalid):
+        """Test `attr_value_opts` with invalid attribute names."""
+        with pytest.raises(ArgumentTypeError,
+                           match=(f'invalid attribute name "{invalid}" in'
+                                  f' attribute-value specification: {input}$')):
+            result = at.attr_value_opts(
+                attrname_regex=regex, attrname_prefix=prefix,
+                attrname_suffix=suffix)(input)
+
+
 class TestAttrValue:
 
     """Tests for vrtlib.argtypes functions attr_value and attr_value_str."""
@@ -419,9 +514,9 @@ class TestAttrValue:
     )
     def test_attr_value_no_separator(self, attr_value_func, input):
         """Test attr_value(_str) with invalid values without a separator."""
-        with pytest.raises(ArgumentTypeError,
-                           match=('no ":" nor "=" in attribute-value'
-                                  f' specification: {input}$')):
+        with pytest.raises(ArgumentTypeError, match=(
+                r'no name-value separator \(":", "="\) in attribute-value'
+                f' specification: {input}$')):
             result = attr_value_func(input)
 
     @pytest.mark.parametrize('attr_value_func', _attr_value_funcs)
