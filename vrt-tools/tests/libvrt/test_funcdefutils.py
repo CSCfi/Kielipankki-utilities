@@ -115,16 +115,23 @@ class _TestDefineFuncBase:
     # Invalid code causing other errors, for test parametrizing tests
     # using _test_define_invalid_code
     _invalid_code = [
-        ('x', 'NameError'),
-        ('import _xyz\nreturn val', 'ModuleNotFoundError'),
+        ('x', NameError),
+        ('import _xyz\nreturn val', ModuleNotFoundError),
     ]
 
     def _test_define_invalid_code(self, def_func, functype, code, error):
         """Test def_func, with code raising NameError or ImportError."""
         with pytest.raises(
                 fdu.FuncDefError,
-                match=f'Invalid {functype}:(.|\n)*{error}'):
+                match=f'Invalid {functype}:(.|\n)*{error.__name__}'):
             func, funcdef = def_func(code)
+
+    def _test_define_invalid_code_without_test_call(self, def_func, functype,
+                                                    code, error):
+        """Test def_func, code raising error, not testing call."""
+        func, funcdef = def_func(code, test_call=False)
+        with pytest.raises(error):
+            val = func('')
 
 
 class TestDefineFunc(_TestDefineFuncBase):
@@ -225,6 +232,12 @@ class TestDefineFunc(_TestDefineFuncBase):
         """Test define_func, code raising NameError or ImportError."""
         self._test_define_invalid_code(fdu.define_func, 'function', code, error)
 
+    @pytest.mark.parametrize('code,error', _TestDefineFuncBase._invalid_code)
+    def test_define_func_invalid_code_without_test_call(self, code, error):
+        """Test define_func, code raising error, not testing call."""
+        self._test_define_invalid_code_without_test_call(
+            fdu.define_func, 'function', code, error)
+
 
 # Parameters for define_transform_func tests testing extra arguments
 # CHECK: Would it be possible to define these within the class and
@@ -323,6 +336,13 @@ class TestDefineTransformFunc(_TestDefineFuncBase):
         """Test define_transform_func, code raising NameError or ImportError."""
         self._test_define_invalid_code(
             fdu.define_transform_func, 'transformation', code, error)
+
+    @pytest.mark.parametrize('code,error', _TestDefineFuncBase._invalid_code)
+    def test_define_transform_func_invalid_code_without_test_call(
+            self, code, error):
+        """Test define_transform_func, code raising error, not testing call."""
+        self._test_define_invalid_code_without_test_call(
+            fdu.define_transform_func, 'function', code, error)
 
 
 class TestConvertPerlSubst:
