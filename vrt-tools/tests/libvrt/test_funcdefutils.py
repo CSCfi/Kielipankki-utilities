@@ -115,16 +115,23 @@ class _TestDefineFuncBase:
     # Invalid code causing other errors, for test parametrizing tests
     # using _test_define_invalid_code
     _invalid_code = [
-        ('x', 'NameError'),
-        ('import _xyz\nreturn val', 'ModuleNotFoundError'),
+        ('x', NameError),
+        ('import _xyz\nreturn val', ModuleNotFoundError),
     ]
 
     def _test_define_invalid_code(self, def_func, functype, code, error):
         """Test def_func, with code raising NameError or ImportError."""
         with pytest.raises(
                 fdu.FuncDefError,
-                match=f'Invalid {functype}:(.|\n)*{error}'):
+                match=f'Invalid {functype}:(.|\n)*{error.__name__}'):
             func, funcdef = def_func(code)
+
+    def _test_define_invalid_code_without_test_call(self, def_func, functype,
+                                                    code, error):
+        """Test def_func, code raising error, not testing call."""
+        func, funcdef = def_func(code, test_call=False)
+        with pytest.raises(error):
+            val = func('')
 
 
 class TestDefineFunc(_TestDefineFuncBase):
@@ -200,6 +207,21 @@ class TestDefineFunc(_TestDefineFuncBase):
                            + (f'\n  return {returns}' if not with_return
                               else ''))
 
+    def test_define_func_context(self):
+        """Test define_func with an explicit context."""
+        context = {}
+        # Initialize context
+        exec('import random; random.seed(0); x = 0', context)
+        exec('def f(y): return y * 2', context)
+        f1, funcdef1 = fdu.define_func(
+            'global x; x += val; return f(random.randint(0, val))',
+            context=context)
+        f2, funcdef2 = fdu.define_func(
+            '', args='', returns='x', context=context)
+        assert f1(100) == 98
+        assert f1(100) == 194
+        assert f2() == 200
+
     @pytest.mark.parametrize('code', _TestDefineFuncBase._syntax_error_code)
     def test_define_func_syntax_error(self, code):
         """Test define_func with code raising Python syntax error."""
@@ -209,6 +231,12 @@ class TestDefineFunc(_TestDefineFuncBase):
     def test_define_func_invalid_code(self, code, error):
         """Test define_func, code raising NameError or ImportError."""
         self._test_define_invalid_code(fdu.define_func, 'function', code, error)
+
+    @pytest.mark.parametrize('code,error', _TestDefineFuncBase._invalid_code)
+    def test_define_func_invalid_code_without_test_call(self, code, error):
+        """Test define_func, code raising error, not testing call."""
+        self._test_define_invalid_code_without_test_call(
+            fdu.define_func, 'function', code, error)
 
 
 # Parameters for define_transform_func tests testing extra arguments
@@ -308,6 +336,13 @@ class TestDefineTransformFunc(_TestDefineFuncBase):
         """Test define_transform_func, code raising NameError or ImportError."""
         self._test_define_invalid_code(
             fdu.define_transform_func, 'transformation', code, error)
+
+    @pytest.mark.parametrize('code,error', _TestDefineFuncBase._invalid_code)
+    def test_define_transform_func_invalid_code_without_test_call(
+            self, code, error):
+        """Test define_transform_func, code raising error, not testing call."""
+        self._test_define_invalid_code_without_test_call(
+            fdu.define_transform_func, 'function', code, error)
 
 
 class TestConvertPerlSubst:
