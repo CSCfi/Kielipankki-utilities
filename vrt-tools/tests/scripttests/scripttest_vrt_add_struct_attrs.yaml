@@ -1193,3 +1193,79 @@
       b
       </sentence>
       </text>
+
+
+# --setup-code
+
+- name: 'vrt-add-struct-attrs: --setup-code importing random and initializing random seed'
+  input:
+    cmdline: vrt-add-struct-attrs --setup-code "import random" --setup-code "random.seed(0)" --compute "d = random.randint(0, 100)"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" d="49">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="97">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --setup-code initializing global variable'
+  input:
+    cmdline: vrt-add-struct-attrs --setup-code "x = 1" --compute "d = global x; x *= 2; return x"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" d="2">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="4">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --setup-code defining a function'
+  input:
+    cmdline: |
+      vrt-add-struct-attrs --setup-code "def f(x): return x * x" --compute "d = f(int(attr['a']))"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" d="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="4">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-add-struct-attrs: --setup-code with --compute function causing NameError'
+  input:
+    cmdline: |
+      vrt-add-struct-attrs --setup-code "x = 0" --compute "d = y"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" d="">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    stderr: |
+      vrt-add-struct-attrs: Warning: Exception when computing value for attribute "d": NameError: name 'y' is not defined
+      vrt-add-struct-attrs: Warning: Exception when computing value for attribute "d": NameError: name 'y' is not defined
