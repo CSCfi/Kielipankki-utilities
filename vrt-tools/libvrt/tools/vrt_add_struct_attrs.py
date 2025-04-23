@@ -108,6 +108,14 @@ class StructAttrAdder(InputProcessor):
          dict(action='append',
               type=attr_value_opts(strip_value=True),
               metavar='ATTR:CODE')),    # ":" cannot be used in spec above
+        ('--setup-code=CODE',
+         """Execute CODE once to initialize the execution context in
+         which code specified with --compute is to be defined. CODE
+         can be used, for example, to import Python modules, define
+         functions or initialize global variables used by --compute
+         code. This option can be repeated, in which case the values
+         of CODE are concatenated, separated by a newline.""",
+         dict(action='append')),
         ('--attributes=ATTRLIST:attrlist -> attr_names',
          """Add attributes (annotations) listed in ATTRLIST (separated by
          spaces or commas),
@@ -159,15 +167,29 @@ class StructAttrAdder(InputProcessor):
                             ' --fixed or --compute.',
                             exitcode=2)
         args.fixed = check_fixed(args.fixed)
-        self._make_compute_funcs(args.compute or [])
+        self._make_compute_funcs(args.compute or [], args.setup_code or [])
 
-    def _make_compute_funcs(self, compute_attrs):
-        """Set self._compute_funcs and ._compute_sources from compute_attrs."""
+    def _make_compute_funcs(self, compute_attrs, setup_code):
+        """Set self._compute_funcs and ._compute_sources from compute_attrs.
+
+        If setup_code is non-empty, concatenate its values and execute
+        in the execution context in which compute functions are to be
+        defined.
+        """
+        # Execution context for --compute functions
+        self._compute_context = {}
         self._compute_funcs = []
         self._compute_sources = {}
+        if setup_code:
+            exec('\n'.join(setup_code), self._compute_context)
         for attr, code in compute_attrs:
             try:
-                func, funcdef = define_transform_func(code, 'attr')
+                # Do not test function by calling it if setup_code is
+                # non-empty, as in that case the function can have
+                # side-effects
+                func, funcdef = define_transform_func(
+                    code, 'attr', context=self._compute_context,
+                    test_call=(not setup_code))
             except FuncDefError as e:
                 self.error_exit(str(e))
             self._compute_funcs.append((attr, func))
