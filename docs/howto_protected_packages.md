@@ -1,5 +1,3 @@
-THIS IS UNDER CONSTRUCTION
-
 # How to process password-protected packages
 The source data of a resource as well as its VRT version are made available in the download service of Kielipankki [http://www.kielipankki.fi/download](http://www.kielipankki.fi/download "http://www.kielipankki.fi/download").
 For further instructions on how to prepare data for being published in the download service, see [how to create a download package](howto_download_package.md).
@@ -45,7 +43,8 @@ If uploading data, make sure that the data ends up in your private group or in t
 Start an interactive shell on Puhti. Go to LOCAL_SCRATCH and create a folder for this resource.
 There, decrypt the wrapper zip from the researcher with the help of his or her password.
 Create a new password and put it to the password store. In case a password for this resource group exists already, get it from the password store. 
-For instructions on how to create / retrieve a Kielipankki password, see howto_manage_passwords.md.
+
+For instructions on how to create / retrieve a Kielipankki password, see [guidelines on how to manage Kielipankki passwords](howto_manage_passwords.md).
 
 
 Encrypt the wrapper package with Kielipankki's own password, the internal password of this particular resource group (one password per resource group, should contain the short-name).
@@ -74,7 +73,11 @@ Remove the wrapper package original.zip, received from the researcher, from Puht
 
 ## Packaging confidential data
 
-Packaging process: see also [how to create a download package](howto_download_package.md)
+For detailed instructions on how to prepare data for being published in the Kielipankki download service, see also [how to create a download package](howto_download_package.md)
+
+The process for packaging confidental data is basically the same, only that the data will be enclosed in a password-protected wrapper.
+
+The steps are the following:
 
 - The encrypted (protected with Kielipankki's password) zip file is on Puhti, in a folder with rights for our own, limited, user group `project_2013016`.
 
@@ -94,9 +97,9 @@ Packaging process: see also [how to create a download package](howto_download_pa
 
 - move the download_encrypted_shortname-src.zip to the folder `download_preview` on Puhti.
 
-- Tell CSC about the data in `download_preview`, to be uploaded to the download service.
+- Tell CSC about the data in `download_preview`, to be uploaded to the download service. CSC staff will de-crypt the data (they will be able to detect the correct password by the resource's shortname!) only after transferring it to the download service.
 
-- Note: When closing the interactive shell, the data will no longer be available there.
+- Note: When closing the interactive shell, the data will no longer be available there (so no need to actively delete the data from there).
 
 
 
