@@ -3,6 +3,9 @@ THIS IS UNDER CONSTRUCTION
 # Kielipankki passwords
 Passwords are needed when handling confidential data, e.g. to protect the original data package in the storage (IDA, HFST) and during the process of creating password-protected download packages.
 
+For instructions on how to process confidental data, see [how to process password-protected packages](howto_protected_packages.md).
+
+
 ## First steps to setup 
 https://github.com/CSCfi/Kielipankki-passwords
 
