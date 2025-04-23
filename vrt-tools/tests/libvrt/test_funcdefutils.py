@@ -200,6 +200,21 @@ class TestDefineFunc(_TestDefineFuncBase):
                            + (f'\n  return {returns}' if not with_return
                               else ''))
 
+    def test_define_func_context(self):
+        """Test define_func with an explicit context."""
+        context = {}
+        # Initialize context
+        exec('import random; random.seed(0); x = 0', context)
+        exec('def f(y): return y * 2', context)
+        f1, funcdef1 = fdu.define_func(
+            'global x; x += val; return f(random.randint(0, val))',
+            context=context)
+        f2, funcdef2 = fdu.define_func(
+            '', args='', returns='x', context=context)
+        assert f1(100) == 98
+        assert f1(100) == 194
+        assert f2() == 200
+
     @pytest.mark.parametrize('code', _TestDefineFuncBase._syntax_error_code)
     def test_define_func_syntax_error(self, code):
         """Test define_func with code raising Python syntax error."""
