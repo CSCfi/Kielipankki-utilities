@@ -19,7 +19,7 @@ class FuncDefError(Exception):
 
 
 def define_func(code, name='func', args='val', returns='val',
-                functype='function'):
+                functype='function', context=None):
     """Dynamically define a functions based on `code`.
 
     Return the function (function object) and its definition (`str`).
@@ -33,7 +33,10 @@ def define_func(code, name='func', args='val', returns='val',
     default ``val``) and the value to be returned `returns` if `code`
     has no explicit `return` statement (default ``val``). The value of
     `functype` is used in the messages of raised `FuncDefError`
-    exceptions (default ``function``).
+    exceptions (default ``function``). `context` is a `dict`
+    containing the execution context in which the function is to be
+    defined; if `None` (the default), the context will contain only
+    built-in functions.
 
     Raises `FuncDefError` if `code` raises `SyntaxError` when defining
     the function or `ImportError` or `NameError` when calling it.
@@ -56,6 +59,7 @@ def define_func(code, name='func', args='val', returns='val',
 
     args = make_args(args)
     body = ''
+    context = context or {}
     if is_single_expr(code):
         body = f'return {code}'
     elif re.search(r'(^|;)\s*return', code, re.MULTILINE):
@@ -66,17 +70,15 @@ def define_func(code, name='func', args='val', returns='val',
     funcdef = f'def {name}({args}):\n{indent(body)}'
     # sys.stderr.write(funcdef + '\n')
     try:
-        exec(funcdef, globals())
+        exec(funcdef, context)
     except SyntaxError as e:
         raise FuncDefError(f'Syntax error in {functype}: {code}\n{e}:\n'
                            + indent(funcdef))
-    # Make func refer to the function, regardless of its name
-    exec(f'func = {name}', globals())
-    # Test func with as many empty strings as arguments as given in
-    # args
+    # Test function with as many empty strings as arguments as given
+    # in args
     test_args = (('',) * (args.count(',') + 1)) if args else ()
     try:
-        _ = func(*test_args)
+        _ = context[name](*test_args)
     except (ImportError, NameError) as e:
         raise FuncDefError(f'Invalid {functype}: {code}\n'
                            f'{e.__class__.__name__}: {e}:\n'
@@ -87,10 +89,10 @@ def define_func(code, name='func', args='val', returns='val',
         # argument value, so they are checked when actually
         # transforming values.
         pass
-    return (func, funcdef)
+    return (context[name], funcdef)
 
 
-def define_transform_func(code, extra_args=None):
+def define_transform_func(code, extra_args=None, context=None):
     """Define a function for transforming an input value.
 
     Define function based on `code` and return a pair with the
@@ -102,8 +104,11 @@ def define_transform_func(code, extra_args=None):
     return it as transformed by the expression or body. If
     `extra_args` is not `None`, it should be a tuple or
     comma-separated string containing the names of additional
-    arguments to the function. If the function body contains no
-    explicit `return` statement, `return val` is appended to it.
+    arguments to the function. `context` is a `dict` containing the
+    execution context in which the function is to be defined; if
+    `None`, the context will contain only built-in functions and
+    module `re`. If the function body contains no explicit `return`
+    statement, `return val` is appended to it.
     """
 
     def is_single_expr(code):
@@ -117,6 +122,9 @@ def define_transform_func(code, extra_args=None):
     def indent(lines):
         return '  ' + lines.replace('\n', '\n  ')
 
+    context = context or {}
+    # If exec context contains no "re", add it
+    context.setdefault('re', re)
     if code.startswith('s/'):
         sub_code = convert_perl_subst(code)
         if sub_code is None:
@@ -129,7 +137,7 @@ def define_transform_func(code, extra_args=None):
         args = 'val, ' + (extra_args if isinstance(extra_args, str)
                           else ', '.join(extra_args))
     return define_func(code, name='transfunc', args=args,
-                       functype='transformation')
+                       functype='transformation', context=context)
 
 
 def convert_perl_subst(expr):
