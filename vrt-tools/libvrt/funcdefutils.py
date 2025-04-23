@@ -19,7 +19,7 @@ class FuncDefError(Exception):
 
 
 def define_func(code, name='func', args='val', returns='val',
-                functype='function', context=None):
+                functype='function', context=None, test_call=True):
     """Dynamically define a functions based on `code`.
 
     Return the function (function object) and its definition (`str`).
@@ -38,8 +38,16 @@ def define_func(code, name='func', args='val', returns='val',
     defined; if `None` (the default), the context will contain only
     built-in functions.
 
+    If `test_call` is `True`, the defined function is called with
+    empty string arguments to catch possible `NameError` and
+    `ImportError` exceptions early. `test_call` should perhaps be set
+    to `False` if the function call has side effects, e.g. if it
+    modifies global variables in `context` or calls a random-number
+    generator.
+
     Raises `FuncDefError` if `code` raises `SyntaxError` when defining
-    the function or `ImportError` or `NameError` when calling it.
+    the function or `ImportError` or `NameError` when calling it
+    (unless `test_call` is `False`).
     """
 
     def make_args(args):
@@ -77,22 +85,23 @@ def define_func(code, name='func', args='val', returns='val',
     # Test function with as many empty strings as arguments as given
     # in args
     test_args = (('',) * (args.count(',') + 1)) if args else ()
-    try:
-        _ = context[name](*test_args)
-    except (ImportError, NameError) as e:
-        raise FuncDefError(f'Invalid {functype}: {code}\n'
-                           f'{e.__class__.__name__}: {e}:\n'
-                           + indent(funcdef))
-    except Exception:
-        # Should we also check some other exceptions here? At least
-        # IndexError, KeyError and ValueError may depend on the
-        # argument value, so they are checked when actually
-        # transforming values.
-        pass
+    if test_call:
+        try:
+            _ = context[name](*test_args)
+        except (ImportError, NameError) as e:
+            raise FuncDefError(f'Invalid {functype}: {code}\n'
+                               f'{e.__class__.__name__}: {e}:\n'
+                               + indent(funcdef))
+        except Exception:
+            # Should we also check some other exceptions here? At least
+            # IndexError, KeyError and ValueError may depend on the
+            # argument value, so they are checked when actually
+            # transforming values.
+            pass
     return (context[name], funcdef)
 
 
-def define_transform_func(code, extra_args=None, context=None):
+def define_transform_func(code, extra_args=None, context=None, test_call=True):
     """Define a function for transforming an input value.
 
     Define function based on `code` and return a pair with the
@@ -109,6 +118,13 @@ def define_transform_func(code, extra_args=None, context=None):
     `None`, the context will contain only built-in functions and
     module `re`. If the function body contains no explicit `return`
     statement, `return val` is appended to it.
+
+    If `test_call` is `True`, the defined function is called with
+    empty string arguments to catch possible `NameError` and
+    `ImportError` exceptions early. `test_call` should perhaps be set
+    to `False` if the function call has side effects, e.g. if it
+    modifies global variables in `context` or calls a random-number
+    generator.
     """
 
     def is_single_expr(code):
@@ -137,7 +153,8 @@ def define_transform_func(code, extra_args=None, context=None):
         args = 'val, ' + (extra_args if isinstance(extra_args, str)
                           else ', '.join(extra_args))
     return define_func(code, name='transfunc', args=args,
-                       functype='transformation', context=context)
+                       functype='transformation', context=context,
+                       test_call=test_call)
 
 
 def convert_perl_subst(expr):
