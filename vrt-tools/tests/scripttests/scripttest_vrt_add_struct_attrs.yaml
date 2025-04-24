@@ -978,7 +978,7 @@
     returncode: 1
     stdout: ''
     stderr: |
-      vrt-add-struct-attrs: Syntax error in transformation: if
+      vrt-add-struct-attrs: Invalid --compute code for attribute "b": Syntax error in transformation: if
       invalid syntax (<string>, line 2):
         def transfunc(val, attr):
           if
@@ -992,7 +992,7 @@
     returncode: 1
     stdout: ''
     stderr: |
-      vrt-add-struct-attrs: Invalid transformation: return y
+      vrt-add-struct-attrs: Invalid --compute code for attribute "b": Invalid transformation: return y
       NameError: name 'y' is not defined:
         def transfunc(val, attr):
           return y
