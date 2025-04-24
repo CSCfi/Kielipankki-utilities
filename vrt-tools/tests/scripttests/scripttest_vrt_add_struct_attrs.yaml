@@ -1255,17 +1255,7 @@
       vrt-add-struct-attrs --setup-code "x = 0" --compute "d = y"
     stdin: *input-abc
   output:
-    stdout: |
-      <text a="1" b="abc" c="def" d="">
-      <sentence>
-      a
-      </sentence>
-      </text>
-      <text a="2" b="ghi" c="jkl" d="">
-      <sentence>
-      b
-      </sentence>
-      </text>
+    returncode: 1
+    stdout: ''
     stderr: |
-      vrt-add-struct-attrs: Warning: Exception when computing value for attribute "d": NameError: name 'y' is not defined
-      vrt-add-struct-attrs: Warning: Exception when computing value for attribute "d": NameError: name 'y' is not defined
+      vrt-add-struct-attrs: Error when computing value for attribute "d": NameError: name 'y' is not defined
