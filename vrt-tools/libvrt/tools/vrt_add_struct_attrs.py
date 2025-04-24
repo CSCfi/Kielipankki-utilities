@@ -191,7 +191,8 @@ class StructAttrAdder(InputProcessor):
                     code, 'attr', context=self._compute_context,
                     test_call=(not setup_code))
             except FuncDefError as e:
-                self.error_exit(str(e))
+                self.error_exit(
+                    f'Invalid --compute code for attribute "{attr}": {e}')
             self._compute_funcs.append((attr, func))
             self._compute_sources[func] = {
                 'source': code,
