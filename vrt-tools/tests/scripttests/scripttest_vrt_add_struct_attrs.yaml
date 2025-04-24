@@ -1194,6 +1194,45 @@
       </sentence>
       </text>
 
+- name: 'vrt-add-struct-attrs: --compute causing a warning about TypeError'
+  input:
+    cmdline: vrt-add-struct-attrs --compute "d=attr['a'] + len(attr['b'])"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" d="">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    stderr: |
+      vrt-add-struct-attrs: <stdin>:1: Warning: Error when computing value for attribute "d", so using an empty value: TypeError: can only concatenate str (not "int") to str
+      vrt-add-struct-attrs: <stdin>:6: Warning: Error when computing value for attribute "d", so using an empty value: TypeError: can only concatenate str (not "int") to str
+
+- name: 'vrt-add-struct-attrs: --compute causing a warning about ZeroDivisionError'
+  input:
+    cmdline: vrt-add-struct-attrs --compute "d=10 // (int(attr['a']) - 1)"
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" d="">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="10">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    stderr: |
+      vrt-add-struct-attrs: <stdin>:1: Warning: Error when computing value for attribute "d", so using an empty value: ZeroDivisionError: integer division or modulo by zero
+
 
 # --setup-code
 
