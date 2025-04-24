@@ -301,6 +301,12 @@ class StructAttrAdder(InputProcessor):
 
         def add_attributes(line, attrs, add_attrs, linenr, tsv_line_num,
                            check_overlap_attrs):
+
+            def error_msg(attrname, exc):
+                """Return error message for exception `exc` on `attrname`."""
+                return (f'Error when computing value for attribute'
+                        f' "{attrname}": {exc.__class__.__name__}: {exc}')
+
             # Check if attributes to be added (and not listed in
             # --overwrite) already exist in the input
             for overlap_attr in check_overlap_attrs:
@@ -328,10 +334,12 @@ class StructAttrAdder(InputProcessor):
                     try:
                         attrs[attrname] = str(func(attrs.get(attrname, ''),
                                                    attrs))
+                    except (NameError, ImportError) as e:
+                        # If no --setup-code, this is checked for when
+                        # defining the function
+                        self.error_exit(error_msg(attrname, e))
                     except Exception as e:
-                        self.warn(f'Exception when computing value for'
-                                  f' attribute "{attrname}":'
-                                  f' {e.__class__.__name__}: {e}')
+                        self.warn(error_msg(attrname, e))
                         attrs[attrname] = ''
                 attrs.convert_to_bytes()
             return starttag(struct_name, attrs)
