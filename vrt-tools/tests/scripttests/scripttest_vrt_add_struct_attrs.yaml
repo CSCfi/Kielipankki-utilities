@@ -211,7 +211,7 @@
     file:attrs.tsv: *tsv-1
   output:
     stderr: |
-      vrt-add-struct-attrs: Warning: Value for attribute a1 on line 1 of VRT input differs from that on line 2 of attrs.tsv; keeping the existing one
+      vrt-add-struct-attrs: <stdin>:1: Warning: Value for attribute a1 differs from that on line 2 of attrs.tsv; keeping the existing one
     stdout: |
       <text a1="ab" a2="bb">
       <sentence>
@@ -317,7 +317,7 @@
     file:attrs.tsv: *tsv-1
   output:
     stderr: |
-      vrt-add-struct-attrs: Warning: Value for attribute a2 on line 6 of VRT input differs from that on line 3 of attrs.tsv; keeping the existing one
+      vrt-add-struct-attrs: <stdin>:6: Warning: Value for attribute a2 differs from that on line 3 of attrs.tsv; keeping the existing one
     stdout: |
       <text a1="aa" a2="bb">
       <sentence>
@@ -556,7 +556,7 @@
       2	ee	ff
   output:
     stderr: |
-      vrt-add-struct-attrs: Warning: Duplicate value for key ('2',) on line 4 of attrs.tsv overrides previous value on line 2
+      vrt-add-struct-attrs: attrs.tsv:4: Warning: Duplicate value for key ('2',) overrides previous value on line 2
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -587,7 +587,7 @@
     file:attrs.tsv: *tsv-2
   output:
     stderr: |
-      vrt-add-struct-attrs: Warning: No data for key ('3',) in attrs.tsv on VRT line 6; using empty values for new attributes
+      vrt-add-struct-attrs: <stdin>:6: Warning: No data for key ('3',) in attrs.tsv; using empty values for new attributes
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -617,7 +617,7 @@
     file:attrs.tsv: *tsv-2
   output:
     stderr: |
-      vrt-add-struct-attrs: Warning: No data for key ('3',) in attrs.tsv on VRT line 6; using empty values for new attributes
+      vrt-add-struct-attrs: <stdin>:6: Warning: No data for key ('3',) in attrs.tsv; using empty values for new attributes
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -648,7 +648,7 @@
     file:attrs.tsv: *tsv-2
   output:
     stderr: |
-      vrt-add-struct-attrs: Warning: No key attribute a on line 6 of VRT input
+      vrt-add-struct-attrs: <stdin>:6: Warning: No key attribute a
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -679,7 +679,7 @@
     file:attrs.tsv: *tsv-2
   output:
     stderr: |
-      vrt-add-struct-attrs: Warning: No key attributes a, a1 on line 6 of VRT input
+      vrt-add-struct-attrs: <stdin>:6: Warning: No key attributes a, a1
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -740,7 +740,7 @@
     file:attrs.tsv: *tsv-2
   output:
     stderr: |
-      vrt-add-struct-attrs: Warning: Value for attribute a1 on line 6 of VRT input differs from that on line 2 of attrs.tsv; keeping the existing one
+      vrt-add-struct-attrs: <stdin>:6: Warning: Value for attribute a1 differs from that on line 2 of attrs.tsv; keeping the existing one
     stdout: |
       <text a="1" a1="aa" a2="bb">
       <sentence>
@@ -862,8 +862,8 @@
       </sentence>
       </text>
     stderr: |
-      vrt-add-struct-attrs: Warning: Value for attribute a on line 1 of VRT input differs from that specified with --fixed; keeping the existing one
-      vrt-add-struct-attrs: Warning: Value for attribute a on line 6 of VRT input differs from that specified with --fixed; keeping the existing one
+      vrt-add-struct-attrs: <stdin>:1: Warning: Value for attribute a differs from that specified with --fixed; keeping the existing one
+      vrt-add-struct-attrs: <stdin>:6: Warning: Value for attribute a differs from that specified with --fixed; keeping the existing one
 
 - name: 'vrt-add-struct-attrs: --fixed with same attribute as in input, --overwrite'
   input:
@@ -900,8 +900,8 @@
       </sentence>
       </text>
     stderr: |
-      vrt-add-struct-attrs: Warning: Value for attribute a on line 1 of VRT input differs from that on line 2 of attrs.tsv; keeping the existing one
-      vrt-add-struct-attrs: Warning: Value for attribute a on line 6 of VRT input differs from that on line 3 of attrs.tsv; keeping the existing one
+      vrt-add-struct-attrs: <stdin>:1: Warning: Value for attribute a differs from that on line 2 of attrs.tsv; keeping the existing one
+      vrt-add-struct-attrs: <stdin>:6: Warning: Value for attribute a differs from that on line 3 of attrs.tsv; keeping the existing one
 
 - name: 'vrt-add-struct-attrs: --fixed and --data-file with --attributes, disjoint attributes'
   input:
@@ -921,7 +921,7 @@
       </sentence>
       </text>
     stderr: |
-      vrt-add-struct-attrs: Warning: Value for attribute a on line 1 of VRT input differs from that on line 1 of attrs.tsv; keeping the existing one
+      vrt-add-struct-attrs: <stdin>:1: Warning: Value for attribute a differs from that on line 1 of attrs.tsv; keeping the existing one
 
 - name: 'vrt-add-struct-attrs: --fixed and --data-file, common attributes with heading row'
   input:

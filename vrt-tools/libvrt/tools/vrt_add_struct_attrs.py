@@ -240,13 +240,11 @@ class StructAttrAdder(InputProcessor):
                 key = tuple(attrs[attrname] for attrname in key_attrs)
                 if key in new_attr_values:
                     self.warn(
-                        ('Duplicate value for key {key} on line {dataline} of'
-                         ' {datafile} overrides previous value on line'
-                         ' {dataline_prev}').format(
+                        ('Duplicate value for key {key} overrides previous'
+                         ' value on line {dataline_prev}').format(
                              key=tuple(val.decode() for val in key),
-                             dataline=tsv_reader.line_num,
-                             datafile=args.data_file,
-                             dataline_prev=new_attr_values[key][1]))
+                             dataline_prev=new_attr_values[key][1]),
+                        filename=args.data_file, linenr=tsv_reader.line_num)
                 new_attr_values[key] = (attrs, tsv_reader.line_num)
 
         def get_add_attrs_ordered(tsv_reader, line, attrs, linenr):
@@ -277,22 +275,21 @@ class StructAttrAdder(InputProcessor):
                     key_attr.decode() for key_attr in key_attrs
                     if key_attr not in attrs)
                 self.warn(
-                    ('No key attribute{s} {missing_keys} on line {vrtline} of'
-                     ' VRT input').format(
-                         s=('s' if len(missing_keys) > 1 else ''),
-                         missing_keys=', '.join(missing_keys),
-                         vrtline=linenr))
+                    'No key attribute{s} {missing_keys}'.format(
+                        s=('s' if len(missing_keys) > 1 else ''),
+                        missing_keys=', '.join(missing_keys)),
+                    filename=inf.name, linenr=linenr)
                 return (None, None)
             add_attrs = None
             if key in new_attr_values:
                 return new_attr_values[key]
             else:
                 self.warn(
-                    ('No data for key {key} in {datafile} on VRT line'
-                     ' {vrtline}; using empty values for new attributes')
-                    .format(key=tuple(val.decode() for val in key),
-                            datafile=args.data_file,
-                            vrtline=linenr))
+                    ('No data for key {key} in {datafile}; using empty values'
+                     ' for new attributes').format(
+                         key=tuple(val.decode() for val in key),
+                         datafile=args.data_file),
+                    filename=inf.name, linenr=linenr)
                 return (
                     OrderedDict(
                         (attrname,
@@ -320,9 +317,9 @@ class StructAttrAdder(InputProcessor):
                         msg_other = (
                             f'on line {tsv_line_num} of {args.data_file}')
                     self.warn(
-                        f'Value for attribute {overlap_attr.decode()}'
-                        f' on line {linenr} of VRT input differs from'
-                        f' that {msg_other}; keeping the existing one')
+                        f'Value for attribute {overlap_attr.decode()} differs'
+                        f' from that {msg_other}; keeping the existing one',
+                        filename=inf.name, linenr=linenr)
                     # In case of conflict, the existing value is kept
                     add_attrs[overlap_attr] = attrs[overlap_attr]
             for attrname, attrval in add_attrs.items():
