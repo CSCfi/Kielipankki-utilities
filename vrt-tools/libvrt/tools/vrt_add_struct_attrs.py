@@ -14,8 +14,6 @@ Please run "vrt-add-struct-attrs -h" for more information.
 # TODO:
 # - Support specifying attribute-specific default values for the case
 #   when no key is found in the input
-# - --compute: Make functions transcoding < > & " available to user
-#   code
 # - --compute: Specify multiple attributes to compute with the same
 #   function
 # - --compute: Refer to attributes of enclosing structures
@@ -29,7 +27,7 @@ from collections import OrderedDict
 from libvrt.argtypes import attrlist, attr_value, attr_value_opts
 from libvrt.datatypes import StrBytesDict
 from libvrt.iterutils import find_duplicates
-from libvrt.metaline import pairs, starttag
+from libvrt.metaline import pairs, starttag, strescape, strunescape
 from libvrt.funcdefutils import define_transform_func, FuncDefError
 from libvrt.tsv import TsvReader, EncodeEntities
 from vrtargsoolib import InputProcessor
@@ -91,12 +89,13 @@ class StructAttrAdder(InputProcessor):
          attributes of the same structure can be referred to as
          "attr['ATTRNAME']", where ATTRNAME is the name of the
          attribute. In the values of these attributes, the characters
-         < > & " are XML-encoded.
+         < > & " are XML-encoded; they can be decoded with function
+         "xml_decode".
          If (3) has no return statement, the value of "val" is
          returned. On an error depending on the value of "val", an
          empty string is returned.
          The characters < > & " in the return value should be
-         XML-encoded.
+         XML-encoded, which can be done with function "xml_encode".
          The Python module "re" is available to the code.
          The option may be repeated to specify computed values for
          different attributes and/or to apply multiple transformations
@@ -177,7 +176,12 @@ class StructAttrAdder(InputProcessor):
         defined.
         """
         # Execution context for --compute functions
-        self._compute_context = {}
+        self._compute_context = {
+            # Make available XML entity encoding and decoding
+            # functions
+            'xml_encode': strescape,
+            'xml_decode': strunescape,
+        }
         self._compute_funcs = []
         self._compute_sources = {}
         if setup_code:

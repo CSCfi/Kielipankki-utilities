@@ -1233,6 +1233,33 @@
     stderr: |
       vrt-add-struct-attrs: <stdin>:1: Warning: Error when computing value for attribute "d", so using an empty value: ZeroDivisionError: integer division or modulo by zero
 
+- name: 'vrt-add-struct-attrs: --compute using XML-encoding and -decoding'
+  input:
+    cmdline: vrt-add-struct-attrs --compute "d=len(xml_decode(attr['b']))" --compute "e=xml_encode(xml_decode(attr['c']).replace('(', '<').replace(')', '>'))"
+    stdin: |
+      <text a="1" b="&lt;&gt;" c="(ab&amp;c)">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="&quot;&amp;&quot;&apos;" c="j&apos;kl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <text a="1" b="&lt;&gt;" c="(ab&amp;c)" d="2" e="&lt;ab&amp;c&gt;">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="&quot;&amp;&quot;&apos;" c="j&apos;kl" d="4" e="j'kl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
 
 # --setup-code
 
