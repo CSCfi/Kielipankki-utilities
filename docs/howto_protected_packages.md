@@ -33,6 +33,25 @@ DELIVERY OPTION 3: The researcher can make the encrypted package directly access
 
 
 ## Storing confidential data
+
+On the HFST server, create a new password for this resource group (one password per resource group, should contain the short-name) and put it to the password store. In case a password for this resource group exists already, get it from the password store.
+
+For instructions on how to create / retrieve a Kielipankki password, see [guidelines on how to manage Kielipankki passwords](howto_manage_passwords.md).
+
+The next steps can be completed on your local device (i.e., work-related and well maintained laptop or the like), on the HFST server, or on the interactive shell on Puhti:
+
+If the original dataset was encrypted by the researcher (with their password), unencrypt the data and create a new zip package, without a password.
+
+Using the resource group password, encrypt the data in a new wrapper package:
+
+      $ zip -e shortname_date_orig.zip origdata_unencrypted.zip		
+
+The encrypted zip file contains the un-encrypted zip file!
+
+For naming conventions for the data packages see [guidelines for data storage](howto_data_storage.md).
+
+
+
 On Puhti, start the process by changing to the user group `project_2013016` with command 
    
       $ newgrp project_2013016
@@ -42,18 +61,6 @@ If uploading data, make sure that the data ends up in your private group or in t
 
 Start an interactive shell on Puhti. Go to LOCAL_SCRATCH and create a folder for this resource.
 There, decrypt the wrapper zip from the researcher with the help of his or her password.
-Create a new password and put it to the password store. In case a password for this resource group exists already, get it from the password store. 
-
-For instructions on how to create / retrieve a Kielipankki password, see [guidelines on how to manage Kielipankki passwords](howto_manage_passwords.md).
-
-
-Encrypt the wrapper package with Kielipankki's own password, the internal password of this particular resource group (one password per resource group, should contain the short-name).
-
-      $ zip -e shortname_date_orig.zip origdata_unencrypted.zip		
-
-The encrypted zip file contains the un-encrypted zip file!
-
-For naming conventions for the data packages see [guidelines for data storage](howto_data_storage.md).
 
 Move the encrypted wrapper package from the interactive shell to the resource folder on scratch (group protected!)
 
