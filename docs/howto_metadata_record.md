@@ -1,8 +1,6 @@
 # Maintaining metadata in COMEDI
 ## How to create a metadata record
 
-NOTE: This page is currently under construction and adapted to the new editor 'COMEDI'!
-
 Every resource to be published in the Language Bank of Finland needs a PID (Persistant Identifier of this resource). Before creating a metadata record, this PID should be requested. Instructions on how to request a PID can be found from [docs: How to request a PID](howto_request_pid.md).
 
 You need the rights to edit in COMEDI (ask for access in the group FIN-CLARIN from CSC, if you do not have the rights yet). Login to [COMEDI](https://clarino.uib.no/comedi/records). 
@@ -108,6 +106,28 @@ In order to specify the languages of the text(s) included in the resource, the f
 https://kotoistus.fi/suositukset/suositukset-kielet-fi-koodi/
 
 https://iso639-3.sil.org/code_tables/639/data/all
+
+### Corpus info: Annotation info
+The field 'Annotation info' offers the possibility to add detailed information about the annotation methods and tools used to create this specific language resource.
+
+Add information about the used parser, named entities, polarity, etc. (add links when the exact version of the tool is known and a metadata record exists).
+
+A checklist in order to remember which fields to fill in, what to select in each case, and what to write in the free text fields, is supposed to be added and updated here
+
+TO BE EDITED:
+- parser
+- named entities
+- polarity
+- language indentification
+
+Here is an example of given annotation information regarding the language identification using HeLI-OTS 2.0., see [suomi24-2021-2023-korp](https://urn.fi/urn:nbn:fi:lb-2024030601)
+
+    Annotation info [1/0-∞]
+    Annotation type: other
+    Annotated elements: other
+    Segmentation level: sentence
+    Annotation tool [1/0-∞]
+    Target resource name URI: HeLI-OTS 2.0 language identifier, http://urn.fi/urn:nbn:fi:lb-2024040301 
 
 
 
