@@ -8,9 +8,14 @@ Every resource to be published in the Language Bank of Finland needs a PID (Pers
 You need the rights to edit in COMEDI (ask for access in the group FIN-CLARIN from CSC, if you do not have the rights yet). Login to [COMEDI](https://clarino.uib.no/comedi/records). 
 Open the menu under "CMDI Records" and choose "Create a metadata record".
 
-In order to create a new article, you first have to choose a CMDI profile. For the time being (a new profile is being created) choose: 
+In order to create a new article, you first have to choose a CMDI profile. For the time being (a new profile is being created) for a corpus, choose: 
 
     profile: clarin.eu:cr1:p_1361876010571 - resourceInfo / 1.1
+
+For a tool, choose the following profile:
+
+    profile: clarin.eu:cr1:p_1360931019836  - resourceInfo / 1.1
+    
 
 Add the identifier for this record, which results from the PID, in the form `lb-yyyymmddxx` (lb stands for language bank), e.g. lb-2025013021.
 
@@ -52,11 +57,11 @@ Note: An organization should never be cited as the author, since in the copyrigh
 
 
 ## Contact person
-The contact person for the resource data. It is possible to add an already existing person, but check the details for correct contact information and affiliation !!
+The contact person for the resource data. It is possible to add an already existing person, but check the details for correct contact information and affiliation!
 
 
 ## Metadata info
-The person who created the metadata record
+The person who created the metadata record. It is possible to add an already existing person, but check the details for correct contact information and affiliation!
 
 When changing an existing metadata article, add your name as a 'metadata creator', if it is not already there.
 Add a short explanation of your change in the field 'revision'. The 'metadata last date updated' field will automatically be updated by the software.
@@ -74,16 +79,15 @@ Example: The following link shows the citation information for The Swedish sub-c
 
 For more complex explanations on a change (e.g. in the metadata or license) add a **CHANGE LOG** with the current date, formatted like 2017-07-17 (in the order of year, month and day; ISO standard) in an unstructured field under 'documentation'. For an example see the metadata of [STT](http://urn.fi/urn:nbn:fi:lb-2020031201)
 
-For info about the resource group page, add a structured documentation item. Add the title: **Resource group page (resource name)** and Editor: FIN-CLARIN. As URL add the PID for the English version of the resource's group page. If a resource group page is not created yet, you can add it later. See [docs: Instructions on how to create a resource group page](howto_resource_group_page.md).
+For info about the resource group page, add a structured documentation item. Add the title: **Resource group page (resource short name)** and Editor: FIN-CLARIN. As URL add the PID for the English version of the resource's group page. If a resource group page is not created yet, you can add it later. See [docs: Instructions on how to create a resource group page](howto_resource_group_page.md).
 
-For info about the license, add another structured documentation item. Add the title: **License/Lisenssi (resource name, license)**, e.g. License/Lisenssi (fvcc, CC-BY) and Editor: FIN-CLARIN. As URL add the PID for the English version of the resource's license page.
+For info about the license, add another structured documentation item. Add the title: **License/Lisenssi (resource short name, license)**, e.g. License/Lisenssi (fvcc, CC-BY) and Editor: FIN-CLARIN. As URL add the PID for the English version of the resource's license page.
 
 NOTE: Remember to add (+) a resource documentation info when the number is 0/0
 
 
 ## Resource creation info
-
-Add the authors of the resource in the required order. Add contact information and affiliation.
+Add the authors of the resource in the required order. Add contact information and affiliation. It is possible to add an already existing person, but check the details for correct contact information and affiliation!
 
 
 ## Relation info
@@ -96,8 +100,8 @@ Make sure you use the correct spelling of the type and be aware of capital lette
 
 Add the title of the corpus in front of the URN. 
 
-## Corpus info
-Media type, size of the resource
+## Corpus info / Tool service info
+This is the place to add information about e.g. media type and size of the resource.
 
 In order to specify the languages of the text(s) included in the resource, the following links might help to find the correct **language codes**:
 
