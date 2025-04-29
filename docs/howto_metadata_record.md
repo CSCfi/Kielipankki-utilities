@@ -75,7 +75,7 @@ Example: The following link shows the citation information for The Swedish sub-c
 
         https://www.kielipankki.fi/viittaus/?key=urn:nbn:fi:lb-201804041&lang=en
 
-For more complex explanations on a change (e.g. in the metadata or license) add a **CHANGE LOG** with the current date, formatted like 2017-07-17 (in the order of year, month and day; ISO standard) in an unstructured field under 'documentation'. For an example see the metadata of [STT](http://urn.fi/urn:nbn:fi:lb-2020031201)
+For explanations on a change (e.g. in the metadata or license) add a **CHANGE LOG** with the current date, formatted like 2017-07-17 (in the order of year, month and day; ISO standard) in an unstructured field under 'documentation'. For an example see the metadata of [STT](http://urn.fi/urn:nbn:fi:lb-2020031201). For further instructions on how to create a CHANGE LOG, see [how to create a CHANGE LOG](howto_change-log.md).
 
 For info about the resource group page, add a structured documentation item. Add the title: **Resource group page (resource short name)** and Editor: FIN-CLARIN. As URL add the PID for the English version of the resource's group page. If a resource group page is not created yet, you can add it later. See [docs: Instructions on how to create a resource group page](howto_resource_group_page.md).
 
