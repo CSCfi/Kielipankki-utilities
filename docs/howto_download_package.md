@@ -15,6 +15,9 @@ License pages in the portal have to be created and linked to from the metadata r
 Citation information also has to be added to the metadata record.
 
 ## Creating the download package
+
+For dealing with **confidential data**, see the instructions on [what to consider when confidential data should be made available for download](howto_protected_packages.md).
+
 Download the data from IDA or the HFST server to your work directory on CSC's computing environment (Puhti) in a separate folder. 
 
 Create a **README.txt** containing at least the following information:
