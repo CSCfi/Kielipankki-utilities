@@ -27,6 +27,19 @@ The entered content will be saved automatically, even if the record is not yet v
 
 If unsure about some details, it is possible to fill in a kind of a placeholder (e.g. for 'size' you could put '1') and add the needed information later.
 
+The **status** of your freshly created metadata record is set automatically to 'in-progress'. You should change the status to 'published' as soon as the main information is added and the record is valid. The resource itself does not have to be published yet, but should at least be in the negotiation phase, have a title and a PID for the metadata.
+
+
+## Resources
+This tab offers the **Resource proxy list**. After a resource is published, the access location should be added under the tab 'Resources' to the Resource proxy list. 
+As *Resource type* choose *Resource* for a downloadable corpus and *Search Page* for a resource published in Korp. The resource ID can be set to '_1'. For possible further, alternative access locations for the same resource, use '_2', '_3' etc.
+Only after this information is given, VLO will harvest the metadata of this resource and make it available in the VLO service! 
+
+Example:
+
+      Resource proxy list [1]
+      Resource [id: _1]: http://urn.fi/urn:nbn:fi:lb-2022090201 
+  
 
 ## Identification Info
 
