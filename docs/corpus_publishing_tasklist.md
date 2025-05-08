@@ -291,7 +291,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
-# [ ] _*+META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record: (update and) add the location PID and add the Availability start date (under Distribution)
+# [ ] _*+META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record: (update and) add the location PID (under Resources) and add the Availability start date (under Distribution)
 # [ ] _*?PORTAL*_ If applicable, add the new resource version to the license page of the previous versions [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
 # [ ] _*?META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the COMEDI record also contains a link to the resource group page
@@ -404,7 +404,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published (add status "release candidate" to the name!)
-# [ ] _*+META*_ Update [COMEDI | https://clarino.uib.no/comedi/records]  record; add location PID and Availability start date (under Distribution)
+# [ ] _*+META*_ Update [COMEDI | https://clarino.uib.no/comedi/records]  record; add location PID (under Resources) and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the COMEDI record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*?META*_ Update the COMEDI record: add annotation information and tools used during the corpus processing pipeline
 # [ ] _*+META*_ Add "release candidate" status information to COMEDI record
@@ -474,7 +474,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Announce the publication of the VRT data in Download
 ```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
-# [ ] _*+META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record; add location PID and Availability start date (under Distribution)
+# [ ] _*+META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record; add location PID (under Resources) and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+PORTAL*_ Create or update the resource group page
 # [ ] _*?META*_ If the package is published as release candidate (during the release candidate stage of the corresponding Korp corpus), add release candidate status to the COMEDI record and database
