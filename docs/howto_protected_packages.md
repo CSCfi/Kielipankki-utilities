@@ -78,7 +78,7 @@ Remove the wrapper package original.zip, received from the researcher, from Puht
 
 
 
-## Packaging confidential data
+## Preparing confidential data to be published in Download
 
 For detailed instructions on how to prepare data for being published in the Kielipankki download service, see also [how to create a download package](howto_download_package.md)
 
@@ -110,8 +110,10 @@ The steps are the following:
 
 
 
-
-
-
 More information on how to publish a corpus in the download service:
 [Kielipankki: corpus data publication for download at the language-bank](https://www.kielipankki.fi/development/corpus-data-publication-for-download-at-the-language-bank/)
+
+
+## Preparing confidential data to be published in Korp
+
+TO BE EDITED
