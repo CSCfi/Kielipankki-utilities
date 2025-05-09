@@ -22,11 +22,11 @@ After discovering a new *tool/service/piece of software** that needs to be made 
 # [ ] _shortname_: Plan the publication process with the depositor
 # [ ] _shortname_: Clear the license for the tool
 # [ ] _shortname_: Publish the end-user license
-# [ ] _shortname_: Publish a tool available outside Kielipankki
 # [ ] _shortname_: Acquire and test the original software
 # [ ] _shortname_: Publish the source code and/or installer in Download
 # [ ] _shortname_: Install the tool in the computing environment
 # [ ] _shortname_: Make the tool available via an online interface
+# [ ] _shortname_: Publish a tool available outside Kielipankki
 # [ ] _shortname_: Review the tool, to continue lifecycle
 ```
 
@@ -52,7 +52,7 @@ The task category marker is an italicized (slanted) and bolded character string.
 
 - _*MANAGE*_: general management and coordination of the resource publication process and the related tasks (requires Jira permissions)
 - _*SUPPORT*_: advising and communicating with the data depositor (requires knowledge of data management practices and the applicable instructions)
-- _*META*_: metadata editing & curation (requires META-SHARE permissions)
+- _*META*_: metadata editing & curation (requires COMEDI permissions)
 - _*DISCUSS*_: Decisions about priorities, schedule and distribution of work (often requires a team meeting and/or consultation with leadership)
 - _*AGREEMENTS*_: negotiations and administration regarding deposition agreements, license conditions, data protection practices etc. (requires legal knowledge, may require the opinion of a legal expert at UHEL)
 - _*LEGAL*_: Legal decisions and formal contracts involving the University of Helsinki (requires a meeting with a legal expert)
@@ -77,6 +77,8 @@ The following lists should contain the tasks required for publishing a tool. The
 
 *Recap: For each of the section titles below, create a Story and assign it as "In Epic", providing the name/number of the Epic of the resource in question. Copy & paste the appropriate task lists from below to the description field of the corresponding Jira stories.*
 
+***
+
 ### _shortname_: Start negotiations with the depositor
 
 ```
@@ -92,17 +94,17 @@ The following lists should contain the tasks required for publishing a tool. The
 
 ```
 # [ ] _*+MANAGE*_ Insert relevant parts of this task list in the resource publication Epic (sections under linked Jira 
-# [ ] _*+META*_ Create and publish a preliminary META-SHARE record (skeletal information only) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+GITHUB*_ Request a URN for the META-SHARE record
+# [ ] _*+META*_ Create and publish a preliminary metadata record (skeletal information only) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+GITHUB*_ Request a URN for the metadata record
 # [ ] _*+GITHUB*_ If needed, request URNs for license pages
-# [ ] _*+META*_ Update the META-SHARE record with the metadata URN
+# [ ] _*+META*_ Update the metadata record with the metadata URN
 \\
 ```
 
 ### _shortname_: Plan the publication process with the depositor
 
 ```
-# [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the META-SHARE record (finalize shortname and title)
+# [ ] _*+SUPPORT*_ Ask the rightholder to review the details in the metadata record (finalize shortname and title)
 # [ ] _*?SUPPORT*_ Inform the depositor about citation practices, if relevant
 # [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original tool and any additional material
 # [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the tool
@@ -115,8 +117,8 @@ The following lists should contain the tasks required for publishing a tool. The
 NB: Quite often, especially for tools developed outside Kielipankki, we just offer a link to the license given in the tool's documentation
 
 ```
-# [ ] _*+MANAGE*_ Add the license type and any other related information to the META-SHARE record
-# [ ] _*+MANAGE*_ Add the link of the license page to the META-SHARE record
+# [ ] _*+MANAGE*_ Add the license type and any other related information to the metadata record
+# [ ] _*+MANAGE*_ Add the link of the license page to the metadata record
 \\
 ```
 
@@ -127,25 +129,12 @@ NB: Quite often, especially for tools developed outside Kielipankki, we just off
 # [ ] _*?PORTAL*_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
 # [ ] _*?A*_ If required, request URNs for license pages (and the PRIV condition pages)
 # [ ] _*+PORTAL*_ Update the license PIDs in the resource database
-# [ ] _*+META*_ Create/update the META-SHARE record, including the license information [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+META*_ In case the license requires Attribution (the BY condition), collect the names of the creators/programmers/significant contributors/rightholders that should be cited, or, if this is impossible, find some other (persistent) reference to the original source of the tool. Add the reference instruction to the META-SHARE record.
+# [ ] _*+META*_ Create/update the metadata record, including the license information [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+META*_ In case the license requires Attribution (the BY condition), collect the names of the creators/programmers/significant contributors/rightholders that should be cited, or, if this is impossible, find some other (persistent) reference to the original source of the tool. Add the reference instruction to the metadata record.
 # [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
 \\
 ```
 
-### _shortname_: Publish a tool available outside Kielipankki
-```
-# [ ] _*+TEST*_ Check that the access to the tool and its material is working
-# [ ] _*+META*_ Create or update the META-SHARE record 
-# [ ] _*+GITHUB*_ Request URN for the META-SHARE record and add it to the META-SHARE record
-# [ ] _*+GITHUB*_ Request URN for the access location and add it to the META-SHARE record OR add the external access link to the META-SHARE record
-# [ ] _*+META*_ Add references to documentation and any other material to the META-SHARE record
-# [ ] _*+META*_ Create or update the resource group page and assign it a URN
-# [ ] _*+META*_ Add references to documentation and any other material to the resource group page
-# [ ] _*+META*_ Link to the tool's resource group page from the list of resource families (http://urn.fi/urn:nbn:fi:lb-2021052505)
-# [ ] _*+META*_ Add the new tool to the list of tools in the portal (NOTE: there are separate lists for English, Finnish and Swedish)
-\\
-```
 
 ### _shortname_: Acquire and test the original software
 
@@ -164,9 +153,9 @@ NB: Quite often, especially for tools developed outside Kielipankki, we just off
 ```
 # [ ] _*?DATA*_ Get the source (or original) tool from IDA, GitHub, or from the HFST server.
 # [ ] _*+META*_ Create documentation/user guide for the tool
-# [ ] _*+META*_ Update the META-SHARE record (or create a new record, if missing) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+GITHUB*_ Request access location URN for download version (and check that the URNs for META-SHARE and license pages are available and working)
-# [ ] _*+META*_ Add citation information to the META-SHARE record
+# [ ] _*+META*_ Update the metadata record (or create a new record, if missing) [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+GITHUB*_ Request access location URN for download version (and check that the URNs for metadata and license pages are available and working)
+# [ ] _*+META*_ Add citation information to the metadata record
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained, upload the data as a zip file (named as shortname-src_yyyymmdd.zip) and the separate shortname-src_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
 # [ ] _*+PUHTI*_ Create a download package
 # [ ] _*+DATA*_ Create a publishable README.txt for the source data, to be shown to the end-users. Include: 1) resource title; 2) PID; 3) either the license PID, a plain link to the license, or a statement of the rightholder and the known restrictions of use for the source data, 4) any other relevant information regarding the technical structure of the source data, if applicable.
@@ -178,12 +167,12 @@ NB: Quite often, especially for tools developed outside Kielipankki, we just off
 # [ ] _*?LBR*_ Create an LBR record (for a RES corpus)
 # [ ] _*+CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
 # [ ] _*+TEST*_ Have it tested again (access rights!)
-# [ ] _*+META*_ Update the META-SHARE record: (update and) add the location PID and add the Availability start date (under Distribution)
+# [ ] _*+META*_ Update the metadata record: (update and) add the location PID and add the Availability start date (under Distribution)
 # [ ] _*?PORTAL*_ If applicable, add the new resource version to the license page of the previous versions [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
-# [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
-# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the META-SHARE record also contains a link to the resource group page.
+# [ ] _*?META*_ Update the metadata record: add relations to previous or parallel versions/variants of the corpus
+# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the metadata record also contains a link to the resource group page.
 # [ ] _*+PORTAL*_ Link to the group page from the list of resource families (http://urn.fi/urn:nbn:fi:lb-2021052505)
-# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
+# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the metadata record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the metadata description).
 # [ ] _*+META*_ Add the new tool to the list of tools in the portal (NOTE: there are separate lists for English, Finnish and Swedish)
 # [ ] _*+PORTAL*_ Publish news about the new tool on the Portal
 # [ ] _*?CSC*_ Ask Martin (CSC) to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti if the source data is to be published there
@@ -195,25 +184,25 @@ NB: Quite often, especially for tools developed outside Kielipankki, we just off
 
 ```
 # [ ] _*?DATA*_ Get the source (or original) tool from IDA, GitHub, or from the HFST server.
-# [ ] _*+META*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+GITHUB*_ Request URNs (for META-SHARE and access location)
+# [ ] _*+META*_ Create a metadata record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+GITHUB*_ Request URNs (for metadata and access location)
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
-# [ ] _*+META*_ Add citation information to the META-SHARE record
+# [ ] _*+META*_ Add citation information to the metadata record
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-korp_yyyymmdd.zip) and the separate shortname-korp_yyyymmdd_README.txt file to the HFST server, under data/tools/wip/ (= “work in progress”).
 # [ ] _*+META*_ Install the tool in the computing environment
 # [ ] _*+TEST*_ Test the tool in the computing environment
 # [ ] _*+KORP*_ Publish the tool as a beta test version
-# [ ] _*+META*_ Update META-SHARE record; add location PID and Availability start date (under Distribution)
-# [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the corpus
-# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the META-SHARE record also contains a link to the resource group page.
+# [ ] _*+META*_ Update metadata record; add location PID and Availability start date (under Distribution)
+# [ ] _*?META*_ Update the metadata record: add relations to previous or parallel versions/variants of the corpus
+# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the metadata record also contains a link to the resource group page.
 # [ ] _*+PORTAL*_ Link to the tool's group page from the list of resource families (http://urn.fi/urn:nbn:fi:lb-2021052505)
-# [ ] _*+META*_ Add "beta" status information to META-SHARE record
+# [ ] _*+META*_ Add "beta" status information to metadata record
 # [ ] _*+PORTAL*_ Add "beta" status information to the resource group page
-# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
+# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the metadata record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the metadata description).
 # [ ] _*+META*_ Add the new tool to the list of tools in the portal (NOTE: there are separate lists for English, Finnish and Swedish)
 # [ ] _*+PORTAL*_ Publish news about this new tool in the portal
 # [ ] _*+PUHTI*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
-## [ ] _*+META*_ Remove beta status from the META-SHARE record and resource group page
+## [ ] _*+META*_ Remove beta status from the metadata record and resource group page
 \\
 ```
 
@@ -221,27 +210,45 @@ NB: Quite often, especially for tools developed outside Kielipankki, we just off
 
 ```
 # [ ] _*?DATA*_ Get the source (or original) tool from IDA, GitHub, or from the HFST server.
-# [ ] _*+META*_ Create a META-SHARE record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
-# [ ] _*+GITHUB*_ Request URNs (for META-SHARE and access location)
+# [ ] _*+META*_ Create a metadata record [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/]
+# [ ] _*+GITHUB*_ Request URNs (for metadata and access location)
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
-# [ ] _*+META*_ Add citation information to the META-SHARE record
+# [ ] _*+META*_ Add citation information to the metadata record
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-vrt_yyyymmdd.zip) and the separate shortname-vrt_yyyymmdd_README.txt file to the HFST server, under data/tools/wip/ (= “work in progress”).
 ## [ ] _*+PUHTI*_ Create and add any additional material (documentation, user guide ect.)
 # [ ] _*+PUHTI*_ Upload the tool and any additional material to the online interface, mark it as beta test version
 # [ ] _*+TEST*_ Test the tool on the online interface
-# [ ] _*+META*_ Update the META-SHARE record; add location PID and Availability start date (under Distribution)
-# [ ] _*?META*_ Update the META-SHARE record: add relations to previous or parallel versions/variants of the tool
-# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the META-SHARE record also contains a link to the resource group page.
+# [ ] _*+META*_ Update the metadata record; add location PID and Availability start date (under Distribution)
+# [ ] _*?META*_ Update the metadata record: add relations to previous or parallel versions/variants of the tool
+# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the metadata record also contains a link to the resource group page.
 # [ ] _*+PORTAL*_ Link to the tool's group page from the list of resource families (http://urn.fi/urn:nbn:fi:lb-2021052505)
-# [ ] _*+META*_ Add "beta" status information to META-SHARE record
+# [ ] _*+META*_ Add "beta" status information to metadata record
 # [ ] _*+PORTAL*_ Add "beta" status information to the resource group page
-# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the META-SHARE record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the META-SHARE description).
+# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the metadata record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the metadata description).
 # [ ] _*+META*_ Add the new tool to the list of tools in the portal (NOTE: there are separate lists for English, Finnish and Swedish)
 # [ ] _*+PORTAL*_ Publish news about the new tool on the Portal
 # [ ] _*+PUHTI*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
-## [ ] _*+META*_ Remove beta status from the META-SHARE record and resource group page
+## [ ] _*+META*_ Remove beta status from the metadata record and resource group page
 \\
 ```
+
+***
+
+### _shortname_: Publish a tool available outside Kielipankki
+```
+# [ ] _*+TEST*_ Check that the access to the tool and its material is working
+# [ ] _*+META*_ Create or update the metadata record 
+# [ ] _*+GITHUB*_ Request URN for the metadata record and add it to the metadata record
+# [ ] _*+GITHUB*_ Request URN for the access location and add it to the metadata record OR add the external access link to the metadata record
+# [ ] _*+META*_ Add references to documentation and any other material to the metadata record
+# [ ] _*+META*_ Create or update the resource group page and assign it a URN
+# [ ] _*+META*_ Add references to documentation and any other material to the resource group page
+# [ ] _*+META*_ Link to the tool's resource group page from the list of resource families (http://urn.fi/urn:nbn:fi:lb-2021052505)
+# [ ] _*+META*_ Add the new tool to the list of tools in the portal (NOTE: there are separate lists for English, Finnish and Swedish)
+\\
+```
+
+***
 
 ### _shortname_: Review the software (or resource), to continue lifecycle
 
@@ -249,6 +256,6 @@ NB: Quite often, especially for tools developed outside Kielipankki, we just off
 # [ ] _*+META*_ Check for new versions of the tool
 # [ ] _*+TEST*_ Test the functionality of the tool
 # [ ] _*+TEST*_ Test if links to the tool and its documentation are still working
-# [ ] _*+META*_ Update the META-SHARE record
+# [ ] _*+META*_ Update the metadata record
 \\
 ```
