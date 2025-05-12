@@ -141,7 +141,7 @@ The task category marker is an italicized (slanted) and bolded character string.
 - _*DATA*_: receiving original data, data (pre-)processing and cleanup (tasks that may be completed in different environments)
 - _*KORP*_: Korp configuration (requires Korp server permissions)
 - _*LBR*_: the task requires LBR administrator privileges (at this point, an issue needs to be created and handed over to the CSC team)
-- _*CSC*_: the task requires administrator privileges of other specific services (at this point, an issue needs to be created and handed over to the CSC team)
+- _*CSC*_: the task requires administrator privileges of other specific services (at this point, an issue needs to be created and handed over to the CSC team with label 'lb-csc-task' and rank to top!)
 - _*TEST*_: testing
 - Other platforms can be added in a similar way if required.
 
