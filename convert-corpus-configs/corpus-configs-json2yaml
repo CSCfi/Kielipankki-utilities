@@ -5,7 +5,7 @@
 # Convert Korp corpus configurations from frontend JavaScript
 # (stringified to JSON) to backend YAML.
 #
-# Usage: corpus-configs-json2yaml [--outdir outputdir] input.json
+# Usage: corpus-configs-json2yaml [--outdir outputdir] [--plain] input.json
 #
 # input.json is a JSON file containing the representation of a
 # JavaScript object combining the following objects in the Korp
@@ -55,24 +55,30 @@ class KorpCorpusConfigConverter:
     """Convert Korp corpus configurations from JavaScript/JSON to YAML.
     """
 
-    # Directories for common values of attributes and others
-    common_values_dirs = {
-        "attrlist": "attribute_lists/positional",
-        "sattrlist": "attribute_lists/structural",
+    _plain_dependent_vars = [
+        "common_values_dirs",
+        "corpus_common_value_replace_rules",
+        "common_values_replace_rules",
+    ]
+    _common_values_dirs_plain = {
         "attrs": "attributes/positional",
         "sattrs": "attributes/structural",
+    }
+    # Directories for common values of attributes and others
+    _common_values_dirs = _common_values_dirs_plain.copy()
+    _common_values_dirs.update({
+        "attrlist": "attribute_lists/positional",
+        "sattrlist": "attribute_lists/structural",
         "options": "options",
         "context": "contexts",
         "within": "withins",
         "transl": "translations",
-    }
-    # Keys in input data containing common values objects
-    common_values_keys = list(common_values_dirs.keys())
-    # Subdirectories to be created under output directory
-    subdirs = [
+    })
+    # Subdirectories to be created under output directory always
+    subdirs_base = [
         "modes",
         "corpora",
-    ] + list(common_values_dirs.values())
+    ]
     # Corpus folder properties that are not subfolders
     nonfolder_props = [
         "title",
@@ -114,11 +120,14 @@ class KorpCorpusConfigConverter:
     # property names in settings.corpora.*, where * denotes any key,
     # and values_obj is the key in the in input JSON under which equal
     # values are searched.
-    corpus_common_value_replace_rules = [
-        ("attributes", "attrlist"),
-        ("structAttributes", "sattrlist"),
+    _corpus_common_value_replace_rules_plain = [
         ("attributes.*", "attrs"),
         ("structAttributes.*", "sattrs"),
+    ]
+    _corpus_common_value_replace_rules = [
+        ("attributes", "attrlist"),
+        ("structAttributes", "sattrlist"),
+    ] + _corpus_common_value_replace_rules_plain + [
         ("attributes.*.opts", "options"),
         ("structAttributes.*.opts", "options"),
         ("customAttributes.*.opts", "options"),
@@ -132,12 +141,14 @@ class KorpCorpusConfigConverter:
     # rules), where common_values is a list of keys for common-value
     # objects and rules is a list of pairs as above in
     # corpus_common_value_replace_rules.
-    common_values_replace_rules = [
+    _common_values_replace_rules_plain = [
         (["attrs", "sattrs"],
          [
              ("opts", "options"),
              ("translation", "transl"),
          ]),
+    ]
+    _common_values_replace_rules = _common_values_replace_rules_plain + [
         # After attribute list conversion, attrlist and sattrlist
         # values are lists of single-value dicts, so use "*.*"
         (["attrlist"],
@@ -269,14 +280,6 @@ class KorpCorpusConfigConverter:
         ("ylenews_sv_2011_2018_a", r"ylenews_sv_201[1-8]_a"),
         ("ylenews_sv_2019_2021_a", r"ylenews_sv_20(19|2[01])_a"),
     ]
-    # Corpus subdirectory names and the corresponding regular
-    # expressions, generated from the above two lists
-    corpus_subdirs_re = (
-        [(subdir, re.compile(subdir + "_.*"))
-         for subdir in _corpus_subdirs_prefix]
-        + [(subdir, re.compile(regex))
-           for subdir, regex in _corpus_subdirs_other]
-    )
     # Minimun number of properties in a template for it to be created
     template_min_prop_count = 2
     # Minimum YAML length of a template for it to be created
@@ -299,14 +302,11 @@ class KorpCorpusConfigConverter:
         # Templates for common parts of corpus configurations in
         # subdirectories (subdir -> template)
         self._subdir_template = {}
-        # Attributes actually used (in attrs and sattrs)
-        self._replaced_values = dict(
-            [(name, set())
-             for _, name in self.corpus_common_value_replace_rules])
 
     def main(self):
         """Main method"""
         self._get_args()
+        self._init()
         self._read_json(self._args.jsonfile)
         # Assume that loc_data is the same in all JSON files; maybe it would
         # be cleaner to have a separate option or argument for it
@@ -331,7 +331,34 @@ within, transl, loc_data""")
         argparser.add_argument(
             "--outdir", "--output-directory", default="./yaml",
             help="output directory for the YAML corpus configurations")
+        argparser.add_argument(
+            "--plain", action="store_true",
+            help="do not use extensions specific to the Language Bank of Finland")
         self._args = argparser.parse_args()
+
+    def _init(self):
+        for varname in self._plain_dependent_vars:
+            setattr(self, varname, getattr(
+                self, "_" + varname + ("_plain" if self._args.plain else "")))
+        # Attributes actually used (in attrs and sattrs)
+        self._replaced_values = dict(
+            [(name, set())
+             for _, name in self.corpus_common_value_replace_rules])
+        # Keys in input data containing common values objects
+        self.common_values_keys = list(self.common_values_dirs.keys())
+        # Subdirectories to be created under output directory
+        self.subdirs = (self.subdirs_base
+                        + list(self.common_values_dirs.values()))
+        # Corpus subdirectory names and the corresponding regular
+        # expressions, generated from the above two lists
+        self.corpus_subdirs_re = []
+        if not self._args.plain:
+            self.corpus_subdirs_re = (
+                [(subdir, re.compile(subdir + "_.*"))
+                 for subdir in self._corpus_subdirs_prefix]
+                + [(subdir, re.compile(regex))
+                   for subdir, regex in self._corpus_subdirs_other]
+            )
 
     def _read_json(self, fnames):
         """Read input JSON from files listed in fnames"""
@@ -417,7 +444,8 @@ within, transl, loc_data""")
         for modename, indata in self._indata.items():
             self._convert_mode(indata)
             self._convert_corpora(indata)
-        self._extract_subdir_templates()
+        if not self._args.plain:
+            self._extract_subdir_templates()
         self._convert_common_values()
 
     def _convert_mode(self, indata):
