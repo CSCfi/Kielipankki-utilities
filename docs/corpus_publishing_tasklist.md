@@ -336,6 +336,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?DATA*_ Convert the data to HRT
 # [ ] _*?DATA*_ Convert HRT to VRT (tokenizing)
 # [ ] _*?DATA*_ Convert the data directly to VRT (alternative to HRT->VRT)
+# [ ] _*+META*_ Document the individual steps of data processing and store the scripts you used in GitHub
+# [ ] _*+META*_ Record annotation information and tools used during the corpus processing pipeline, in order to be added to COMEDI
 \\
 ```
 
@@ -351,6 +353,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DATA*_ Validate the VRT data
 # [ ] _*+DATA*_ Check the positional attributes
 ## [ ] _*?DATA*_ Re-order to the commonly used order if necessary
+# [ ] _*+META*_ Document the individual steps of data processing and store the scripts you used in GitHub
 # [ ] _*+META*_ Record annotation information and tools used during the corpus processing pipeline, in order to be added to COMEDI
 \\
 ```
@@ -416,16 +419,45 @@ The following lists should contain the tasks required for publishing a corpus. T
 \\
 ```
 
-### _shortname_: Remove release candidate status and clean up after publishing in Korp 
+### _shortname_: Fix the data and publish a new release candidate (if needed)
 ```
-# [ ] _*?DATA*_ Fix corpus data based on feedback and re-publish (if needed)
-# [ ] _*?KORP*_ Fix corpus configuration in Korp and re-publish (if needed)
-# [ ] _*+KORP*_ Remove release candidate status after two weeks, if no requests for corrections or changes appear during this period
-## [ ] _*+KORP*_ Remove release candidate status from Korp configuration ({{{}master{}}}), push and install the updated {{master}}
-# [ ] _*+TEST*_ Remove the corpus from the testing environment of Korp (Korp test version)
-# [ ] _*+PUHTI*_ Remove any corpus data, used or created during the conversion process, from scratch on Puhti (usually the person who ran korp-make should take care of this)
+# [ ] _*?DATA*_ Fix corpus data based on feedback
+# [ ] _*?KORP*_ Fix corpus configuration in Korp
+# [ ] _*+KORP*_ Publish the corpus in Korp as a new release candidate version
+## [ ] _*+GITHUB*_ Merge the corpus configuration branch to branch {{master}}
+## [ ] _*+KORP*_ Install the updated {{master}} branch to production Korp (or ask someone with the rights to do that)
+# [ ] _*+META*_ Document the changes done to fix the data, in order to be added to COMEDI and the resource group page
 \\
 ```
+
+### _shortname_: Announce the publication of the new Korp corpus as another release candidate (if needed)
+```
+# [ ] _*+META*_ Add "release candidate" version status information to COMEDI record
+# [ ] _*+META*_ Add the documentation of changes done to the data to the CHANGE-LOG in COMEDI (if needed)
+# [ ] _*+META*_ Add the documentation of changes done to the data to the resource group page (if needed)
+# [ ] _*+META*_  Add or update information about tools used in the data processing to COMEDI (if needed)
+# [ ] _*+META*_ Add the date when the new release candidate status can be removed (two weeks from now) to the following two stories (about removing the release candidate status)
+# [ ] _*?SUPPORT*_ Inform corpus owner and possibly interested researchers on the corpus in Korp and ask them to test it
+\\
+```
+
+### _shortname_: Remove release candidate status 
+```
+# [ ] _*+KORP*_ Remove release candidate status after two weeks, if no requests for corrections or changes appear during this period
+## [ ] _*+KORP*_ Remove release candidate status from Korp configuration ({{{}master{}}}), push and install the updated {{master}}
+## [ ] _*+KORP*_ Install the updated {{master}} branch to production Korp (or ask someone with the rights to do that)
+\\
+```
+
+### _shortname_: Clean up and document after publishing in Korp 
+```
+# [ ] _*+TEST*_ Remove the corpus from the testing environment of Korp (Korp test version)
+# [ ] _*+PUHTI*_ Remove any corpus data, used or created during the conversion process, from scratch on Puhti (usually the person who ran korp-make should take care of this)
+# [ ] _*+META*_ Create or update the documentation of the individual steps of data processing and store the scripts you used in GitHub
+# [ ] _*+META*_ Create or update the documentation of the annotation information and tools used during the corpus processing pipeline, in order to be added to COMEDI
+\\
+```
+
 
 ### _shortname_: Announce the removal of release candidate status after publishing in Korp
 
