@@ -97,7 +97,10 @@ Publish the resource in Korp
 # [ ] _shortname_: Create a Korp test version
 # [ ] _shortname_: Publish the corpus in Korp as release candidate
 # [ ] _shortname_: Announce the publication of the new Korp corpus as release candidate
-# [ ] _shortname_: Remove release candidate status and clean up after publishing in Korp
+# [ ] _shortname_: Fix the data and publish a new release candidate (if needed)
+# [ ] _shortname_: Announce the publication of the new Korp corpus as another release candidate (if needed)
+# [ ] _shortname_: Remove release candidate status
+# [ ] _shortname_: Clean up and document after publishing in Korp
 # [ ] _shortname_: Announce the removal of release candidate status after publishing in Korp
 
 Publish the VRT data in Download
@@ -186,7 +189,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+META*_ In [COMEDI | https://clarino.uib.no/comedi/records], create and publish a preliminary metadata record (skeletal information only) for the source version, which is usually the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/ ]
 # [ ] _*+META*_ In [COMEDI | https://clarino.uib.no/comedi/records], update the metadata record with the metadata URN
 # [ ] _*+DB*_ Add the [corpus to the resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1] and make sure the resource is displayed on the list of [upcoming corpora | https://www.kielipankki.fi/aineistot/tulevat/ ]
-# [ ] _*+META*_ Add citation information to the COMEDI record
+# [ ] _*+META*_ Add citation information to the metadata record
 \\
 ```
 
@@ -296,8 +299,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record: (update and) add the location PID (under Resources) and add the Availability start date (under Distribution)
 # [ ] _*?PORTAL*_ If applicable, add the new resource version to the license page of the previous versions [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
 # [ ] _*?META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record: add relations to previous or parallel versions/variants of the corpus
-# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the COMEDI record also contains a link to the resource group page
-# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the [COMEDI | https://clarino.uib.no/comedi/records] record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
+# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the metadata record also contains a link to the resource group page
+# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the [COMEDI | https://clarino.uib.no/comedi/records] record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the metadata description).
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
 # [ ] _*+DB*_ Add the Language Bank Publication Date to the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
 # [ ] _*?SUPPORT*_ Inform the depositor/rightholder about the publication
@@ -326,7 +329,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
 # [ ] _*?LBR*_ Ask CSC to create an LBR record (for a RES corpus! This needs the official corpus name, a persistant identifier for the metadata and a rudimental license page with PID)
 # [ ] _*+META*_ Add citation information to the [COMEDI | https://clarino.uib.no/comedi/records] record
-# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the COMEDI record also contains a link to the resource group page
+# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the metadata record also contains a link to the resource group page
 \\
 ```
 
@@ -338,8 +341,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?DATA*_ Convert the data to HRT
 # [ ] _*?DATA*_ Convert HRT to VRT (tokenizing)
 # [ ] _*?DATA*_ Convert the data directly to VRT (alternative to HRT->VRT)
-# [ ] _*+META*_ Document the individual steps of data processing and store the scripts you used in GitHub
-# [ ] _*+META*_ Record annotation information and tools used during the corpus processing pipeline, in order to be added to COMEDI
+# [ ] _*+META*_ Store the scripts you used in GitHub
+# [ ] _*+META*_ Create a list of annotation information and tools used during the corpus processing pipeline, in order to be added to the metadata record
+# [ ] _*+META*_ If additional documentation is needed, create a separate Jira-ticket
 \\
 ```
 
@@ -355,8 +359,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DATA*_ Validate the VRT data
 # [ ] _*+DATA*_ Check the positional attributes
 ## [ ] _*?DATA*_ Re-order to the commonly used order if necessary
-# [ ] _*+META*_ Document the individual steps of data processing and store the scripts you used in GitHub
-# [ ] _*+META*_ Record annotation information and tools used during the corpus processing pipeline, in order to be added to COMEDI
+# [ ] _*+META*_ Store the scripts you used in GitHub
+# [ ] _*+META*_ Create a list of annotation information and tools used during the corpus processing pipeline, in order to be added to the metadata record
+# [ ] _*+META*_ If additional documentation is needed, create a separate Jira-ticket
 \\
 ```
 
@@ -410,10 +415,10 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published (add status "release candidate" to the name!)
 # [ ] _*+META*_ Update [COMEDI | https://clarino.uib.no/comedi/records]  record; add location PID (under Resources) and Availability start date (under Distribution)
-# [ ] _*?META*_ Update the COMEDI record: add relations to previous or parallel versions/variants of the corpus
-# [ ] _*?META*_ Update the COMEDI record: add annotation information and tools used during the corpus processing pipeline
-# [ ] _*+META*_ Add "release candidate" status information to COMEDI record
-# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the [COMEDI | https://clarino.uib.no/comedi/records] record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
+# [ ] _*?META*_ Update the metadata record: add relations to previous or parallel versions/variants of the corpus
+# [ ] _*?META*_ Update the metadata record: add annotation information and tools used during the corpus processing pipeline
+# [ ] _*+META*_ Add "release candidate" status information to metadata record
+# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the [COMEDI | https://clarino.uib.no/comedi/records] record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the metadata description).
 # [ ] _*+PORTAL*_ Publish news about this new corpus in the portal
 # [ ] _*+DB*_ Add the Language Bank Publication Date to the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
 ## [ ] _*+META*_ Add the date when the release candidate status can be removed (two weeks from now) to the following two stories (about removing the release candidate status)
@@ -428,16 +433,16 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+KORP*_ Publish the corpus in Korp as a new release candidate version
 ## [ ] _*+GITHUB*_ Merge the corpus configuration branch to branch {{master}}
 ## [ ] _*+KORP*_ Install the updated {{master}} branch to production Korp (or ask someone with the rights to do that)
-# [ ] _*+META*_ Document the changes done to fix the data, in order to be added to COMEDI and the resource group page
+# [ ] _*+META*_ Document the changes done to fix the data, in order to be added to metadata record and the resource group page
 \\
 ```
 
 ### _shortname_: Announce the publication of the new Korp corpus as another release candidate (if needed)
 ```
-# [ ] _*+META*_ Add "release candidate" version status information to COMEDI record
-# [ ] _*+META*_ Add the documentation of changes done to the data to the CHANGE-LOG in COMEDI (if needed)
+# [ ] _*+META*_ Add "release candidate" version status information to metadata record record
+# [ ] _*+META*_ Add the documentation of changes done to the data to the CHANGE-LOG in the metadata record (if needed)
 # [ ] _*+META*_ Add the documentation of changes done to the data to the resource group page (if needed)
-# [ ] _*+META*_  Add or update information about tools used in the data processing to COMEDI (if needed)
+# [ ] _*+META*_  Add or update information about tools used in the data processing to the metadata record (if needed)
 # [ ] _*+META*_ Add the date when the new release candidate status can be removed (two weeks from now) to the following two stories (about removing the release candidate status)
 # [ ] _*?SUPPORT*_ Inform corpus owner and possibly interested researchers on the corpus in Korp and ask them to test it
 \\
@@ -455,8 +460,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*+TEST*_ Remove the corpus from the testing environment of Korp (Korp test version)
 # [ ] _*+PUHTI*_ Remove any corpus data, used or created during the conversion process, from scratch on Puhti (usually the person who ran korp-make should take care of this)
-# [ ] _*+META*_ Create or update the documentation of the individual steps of data processing and store the scripts you used in GitHub
-# [ ] _*+META*_ Create or update the documentation of the annotation information and tools used during the corpus processing pipeline, in order to be added to COMEDI
+# [ ] _*+META*_ Store the scripts you used in GitHub
+# [ ] _*+META*_ Create or update a list of annotation information and tools used during the corpus processing pipeline, in order to be added to the metadata record
+# [ ] _*+META*_ If additional documentation is needed, create a separate Jira-ticket
 \\
 ```
 
@@ -464,7 +470,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Announce the removal of release candidate status after publishing in Korp
 
 ```
-## [ ] _*+META*_ Remove release candidate status from the [COMEDI | https://clarino.uib.no/comedi/records] record
+## [ ] _*+META*_ Remove release candidate status from the metadata record
 ## [ ] _*+PORTAL*_ Remove release candidate status from the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
 \\
 ```
@@ -483,7 +489,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PORTAL*_ Create/update the license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
 # [ ] _*+DB*_ Link the corpus variant with the correct license row in the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
 # [ ] _*+META*_ Add citation information to the [COMEDI | https://clarino.uib.no/comedi/records] record
-# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the COMEDI record also contains a link to the resource group page
+# [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the metadata record also contains a link to the resource group page
 \\
 ```
 
@@ -511,8 +517,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record; add location PID (under Resources) and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+PORTAL*_ Create or update the resource group page
-# [ ] _*?META*_ If the package is published as release candidate (during the release candidate stage of the corresponding Korp corpus), add release candidate status to the COMEDI record and database
-# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the COMEDI record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the COMEDI description).
+# [ ] _*?META*_ If the package is published as release candidate (during the release candidate stage of the corresponding Korp corpus), add release candidate status to the metadata record and database
+# [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the metadata record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the metadata description).
 # [ ] _*+PORTAL*_ Publish news about the new corpus on the Portal
 # [ ] _*+DB*_ Add the Language Bank Publication Date to the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1]
 ## [ ] _*+META*_ If the package is published as release candidate, add the date when this status can be removed (two weeks from now) to the following story (about removing the release candidate status)
@@ -524,7 +530,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*?META*_ If the package was published as release candidate (during the release candidate stage of the corresponding Korp corpus), remove the release candidate status after removing the release candidate status from Korp
 ## [ ] _*+CSC*_ Remove the file RELEASE_CANDIDATE.txt from the respective download directory
-## [ ] _*?META*_ Remove the release candidate status from the COMEDI record and database
+## [ ] _*?META*_ Remove the release candidate status from the metadata record and database
 # [ ] _*?CSC*_ Ask Martin to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti (if the corpus is PUB or ACA)
 # [ ] _*+PUHTI*_ Remove the download package, MD5 checksum file and readme and license files from the directory {{/scratch/clarin/download_preview}} on Puhti
 \\
