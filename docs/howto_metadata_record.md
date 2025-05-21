@@ -13,7 +13,10 @@ In order to create a new article, you first have to choose a CMDI profile. For t
 For a tool, choose the following profile:
 
     profile: clarin.eu:cr1:p_1360931019836  - resourceInfo / 1.1
-    
+
+For a lexical conceptual resource, choose the following profile:
+
+    profile: clarin.eu:cr1:p_1355150532312  - resourceInfo / 1.1
 
 Add the identifier for this record, which results from the PID, in the form `lb-yyyymmddxx` (lb stands for language bank), e.g. lb-2025013021.
 
@@ -111,7 +114,7 @@ Make sure you use the correct spelling of the type and be aware of capital lette
 
 Add the title of the corpus in front of the URN. 
 
-## Corpus info / Tool service info
+## Corpus info / Tool service info / Lexical conceptual resource info
 This is the place to add information about e.g. media type and size of the resource.
 
 In order to specify the languages of the text(s) included in the resource, the following links might help to find the correct **language codes**:
@@ -145,7 +148,12 @@ Here is an example of given annotation information regarding the language identi
 
 
 ## Create a COMEDI record by cloning an existing one
-It is possible to create a COMEDI record by cloning an existing page. This is helpful, if another version of the resource already has a record in COMEDI and all or most of the details are the same. 
-TO BE EDITED!
+It is possible to create a COMEDI record by cloning an existing one. This is helpful, if another version of the resource already has a record in COMEDI and all or most of the details are the same. 
+- For this, login to COMEDI. 
+- Open the menu under "CMDI Records" and choose "Clone a metadata record". 
+- Choose the record you want to clone from the list of identifiers. 
+- Add the identifier of the new metadata record to be created.
+- Remove the self link from the original metadata record and add the new self link (based on the identifier of the new metadata record)
+- Edit the new created metadata record: Change at least the resource name(s), description, identifier
 
 
