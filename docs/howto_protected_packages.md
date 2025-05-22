@@ -75,9 +75,9 @@ Default suggestions for rsync [PLEASE COMMENT!]:
 
 The aforementioned rsync options will recursively copy all files from under 'sourcefoldername' to the folder 'shortname' on scratch. Data will be compressed in transit (to skip additional compression attempts, drop the 'z' option). Files that are newer on the target server will not be transferred or replaced. Files that exist at the target but not at the source are not removed. The permissions of the source files and folders are kept on the target.
 
-If, after all your precautions, some files ended up in the wrong group (of which you are also a member) on Puhti, you can recursively change the owner of the directory and the files under it:
+If, after all your precautions, some files ended up in the wrong group (of which you are also a member) on Puhti, you can recursively change the group of the directory and the files under it (provided that you are the owner of the files and a member of the desired project):
 
-      $ chown -R project_2013016 foldername
+      $ chgrp -R project_2013016 foldername
 
 ## Processing the data on Puhti
 
