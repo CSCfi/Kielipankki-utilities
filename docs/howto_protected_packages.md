@@ -64,9 +64,9 @@ For file transfer in the command line, you may use [scp](https://docs.csc.fi/dat
 
 Default suggestions for rsync [PLEASE COMMENT!]:
 
-      $ rsync -auzv sourcefoldername/ targetserver:targetfoldername
+      $ rsync -auzv sourcefoldername/ puhti.csc.fi:/scratch/project_2013016/shortname
 
-The aforementioned rsync options will recursively copy all files from under 'sourcefoldername'. Data will be compressed in transit (to skip compression, drop the 'z' option). Files that are newer on the target server will not be transferred or replaced. Files that exist at the target but not at the source are not removed. The privileges of the source files and folders are kept.
+The aforementioned rsync options will recursively copy all files from under 'sourcefoldername' to the folder 'shortname' on scratch. Data will be compressed in transit (to skip additional compression attempts, drop the 'z' option). Files that are newer on the target server will not be transferred or replaced. Files that exist at the target but not at the source are not removed. The privileges of the source files and folders are kept.
 
 Start an interactive shell on Puhti. Go to LOCAL_SCRATCH and create a folder for this resource.
 There, decrypt the wrapper zip from the researcher with the help of his or her password.
