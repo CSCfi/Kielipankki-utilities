@@ -50,13 +50,19 @@ The encrypted zip file contains the un-encrypted zip file!
 
 For naming conventions for the data packages see [guidelines for data storage](howto_data_storage.md).
 
-If uploading data to Puhti, you must make sure that the data ends up in the user group `project_2013016` or, if required, in your private group.
+If uploading data to Puhti, you must make sure that the data ends up in the user group `project_2013016` or, if required, in your private group/project.
 
 On Puhti, start the process by changing to the user group `project_2013016` with command 
    
       $ newgrp project_2013016
    
-Transfer the data to the folder /scratch/project_2013016/shortname (or where it is needed). Ensure that the target folder on Puhti is only available to your current group/project. For instance, to recursively set read, write and execute permissions to the current user (you) and your currently active group/project (but not for others), use
+If needed, create the target folder for the data on the project-specific scratch folder (or where the data is needed):
+
+      $ mkdir /scratch/project_2013016/shortname
+
+It is good practice to check the file permissions on the source folder before transfer. rsync and other file transfer tools can be set to keep the permissions on the target server, too. Ensure once again that the target folder on Puhti is only available to your current group/project.
+
+For instance, to recursively set *read, write and execute* permissions of a given folder and its contents to the current *user* (you) *and* to your currently active *group*/project, but *not* for *others*, you could use
 
       $ chmod -R ug=rwx foldername
 
@@ -66,7 +72,7 @@ Default suggestions for rsync [PLEASE COMMENT!]:
 
       $ rsync -auzv sourcefoldername/ puhti.csc.fi:/scratch/project_2013016/shortname
 
-The aforementioned rsync options will recursively copy all files from under 'sourcefoldername' to the folder 'shortname' on scratch. Data will be compressed in transit (to skip additional compression attempts, drop the 'z' option). Files that are newer on the target server will not be transferred or replaced. Files that exist at the target but not at the source are not removed. The privileges of the source files and folders are kept.
+The aforementioned rsync options will recursively copy all files from under 'sourcefoldername' to the folder 'shortname' on scratch. Data will be compressed in transit (to skip additional compression attempts, drop the 'z' option). Files that are newer on the target server will not be transferred or replaced. Files that exist at the target but not at the source are not removed. The permissions of the source files and folders are kept on the target.
 
 Start an interactive shell on Puhti. Go to LOCAL_SCRATCH and create a folder for this resource.
 There, decrypt the wrapper zip from the researcher with the help of his or her password.
