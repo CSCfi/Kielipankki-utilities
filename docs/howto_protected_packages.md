@@ -50,18 +50,23 @@ The encrypted zip file contains the un-encrypted zip file!
 
 For naming conventions for the data packages see [guidelines for data storage](howto_data_storage.md).
 
-
+If uploading data to Puhti, you must make sure that the data ends up in the user group `project_2013016` or, if required, in your private group.
 
 On Puhti, start the process by changing to the user group `project_2013016` with command 
    
       $ newgrp project_2013016
    
-Transfer the data to Puhti, to a folder with access rights restricted to the user group `project_2013016`.
-If uploading data, make sure that the data ends up in your private group or in the user group `project_2013016`.
+Transfer the data to the folder /scratch/project_2013016/shortname (or where it is needed). Ensure that the target folder on Puhti is only available to your current group/project. For instance, to recursively set read, write and execute permissions to the current user (you) and your currently active group/project (but not for others), use
 
-To ensure that a given folder and its current contents are only available to your current group/project, use
+      $ chmod -R ug=rwx foldername
 
-      $ chmod -R g-w my_directory
+For file transfer in the command line, you may use [scp](https://docs.csc.fi/data/moving/scp/) or [rsync](https://docs.csc.fi/data/moving/rsync/). Rsync checks the difference between the source and target files and only transfers the parts that have changed, and it can be used to resume transfer after interruptions in the connection. Thus, it is good for transferring large files and for synchronizing folders.
+
+Default suggestions for rsync [PLEASE COMMENT!]:
+
+      $ rsync -auzv sourcefoldername/ targetserver:targetfoldername
+
+The aforementioned rsync options will recursively copy all files from under 'sourcefoldername'. Data will be compressed in transit (to skip compression, drop the 'z' option). Files that are newer on the target server will not be transferred or replaced. Files that exist at the target but not at the source are not removed. The privileges of the source files and folders are kept.
 
 Start an interactive shell on Puhti. Go to LOCAL_SCRATCH and create a folder for this resource.
 There, decrypt the wrapper zip from the researcher with the help of his or her password.
