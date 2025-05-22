@@ -62,7 +62,7 @@ If needed, create the target folder for the data on the project-specific scratch
 
 It is good practice to check the file permissions on the source folder before transfer. rsync and other file transfer tools can be set to keep the permissions on the target server, too. Ensure once again that the target folder on Puhti is only available to your current group/project.
 
-For instance, to recursively set **read, write and execute** permissions of a given folder and its contents to the current **user** (you) **and** to your currently active **group**/project, but **not** for **others**, you could use
+For instance, to recursively set **read, write and execute** permissions of a given folder and its contents to the **user** (you) **and** **group**/project that currently owns the file, and to make sure **no permissions** are given **to** **others**, you could use
 
       $ chmod -R ug=rwx foldername
 
@@ -73,6 +73,10 @@ Default suggestions for rsync [PLEASE COMMENT!]:
       $ rsync -auzv sourcefoldername/ puhti.csc.fi:/scratch/project_2013016/shortname
 
 The aforementioned rsync options will recursively copy all files from under 'sourcefoldername' to the folder 'shortname' on scratch. Data will be compressed in transit (to skip additional compression attempts, drop the 'z' option). Files that are newer on the target server will not be transferred or replaced. Files that exist at the target but not at the source are not removed. The permissions of the source files and folders are kept on the target.
+
+If, after all your precautions, some files ended up in the wrong group (of which you are also a member) on Puhti, you can recursively change the owner of the directory and the files under it:
+
+      $ chown -R project_2013016 foldername
 
 Start an interactive shell on Puhti. Go to LOCAL_SCRATCH and create a folder for this resource.
 There, decrypt the wrapper zip from the researcher with the help of his or her password.
