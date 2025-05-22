@@ -31,8 +31,7 @@ DELIVERY OPTION 2: The researcher can hand the data over to a Kielipankki staff 
 
 DELIVERY OPTION 3: The researcher can make the encrypted package directly accessible to a Kielipankki staff member on a sufficiently secure service (as recommended by their home university) for sharing data.
 
-
-## Storing confidential data
+## Encrypting and (re-)packaging the confidential data
 
 On the HFST server, create a new password for this resource group (one password per resource group, should contain the short-name) and put it to the password store. In case a password for this resource group exists already, get it from the password store.
 
@@ -49,6 +48,8 @@ Using the resource group password, encrypt the data in a new wrapper package:
 The encrypted zip file contains the un-encrypted zip file!
 
 For naming conventions for the data packages see [guidelines for data storage](howto_data_storage.md).
+
+## Transferring the confidential data to Puhti for further processing
 
 If uploading data to Puhti, you must make sure that the data ends up in the user group `project_2013016` or, if required, in your private group/project.
 
@@ -78,7 +79,12 @@ If, after all your precautions, some files ended up in the wrong group (of which
 
       $ chown -R project_2013016 foldername
 
-Start an interactive shell on Puhti. Go to LOCAL_SCRATCH and create a folder for this resource.
+## Processing the data on Puhti
+
+Start an [interactive shell](https://docs.csc.fi/computing/running/interactive-usage/) on Puhti. 
+Again, select the project `project_2013016`.
+
+Go to LOCAL_SCRATCH and create a folder for this resource.
 There, decrypt the wrapper zip from the researcher with the help of his or her password.
 
 Move the encrypted wrapper package from the interactive shell to the resource folder on scratch (group protected!)
@@ -94,7 +100,6 @@ For safety reasons, you might want to overwrite the original package before remo
 Remove the wrapper package original.zip, received from the researcher, from Puhti.
 
       $ rm -rf original.zip
-
 
 
 ## Preparing confidential data to be published in Download
