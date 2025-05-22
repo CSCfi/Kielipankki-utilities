@@ -59,6 +59,10 @@ On Puhti, start the process by changing to the user group `project_2013016` with
 Transfer the data to Puhti, to a folder with access rights restricted to the user group `project_2013016`.
 If uploading data, make sure that the data ends up in your private group or in the user group `project_2013016`.
 
+To ensure that a given folder and its current contents are only available to your current group/project, use
+
+      $ chmod -R g-w my_directory
+
 Start an interactive shell on Puhti. Go to LOCAL_SCRATCH and create a folder for this resource.
 There, decrypt the wrapper zip from the researcher with the help of his or her password.
 
