@@ -62,7 +62,7 @@ If needed, create the target folder for the data on the project-specific scratch
 
 It is good practice to check the file permissions on the source folder before transfer. rsync and other file transfer tools can be set to keep the permissions on the target server, too. Ensure once again that the target folder on Puhti is only available to your current group/project.
 
-For instance, to recursively set *read, write and execute* permissions of a given folder and its contents to the current *user* (you) *and* to your currently active *group*/project, but *not* for *others*, you could use
+For instance, to recursively set **read, write and execute** permissions of a given folder and its contents to the current **user** (you) **and** to your currently active **group**/project, but **not** for **others**, you could use
 
       $ chmod -R ug=rwx foldername
 
