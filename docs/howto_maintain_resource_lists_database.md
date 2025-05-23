@@ -3,6 +3,9 @@
 The database is available in the intranet of Kielipankki: https://www.kielipankki.fi/intra/resource-management/corpora/
 (login with uni account, you need the VPN if working remotely).
 
+It is also possible to access the database through https://www.kielipankki.fi/wp-admin/ (login with uni account, you need the VPN if working remotely). 
+You can find the database at the bottom of the menu on the left side of the WordPress-window under **Resource Management**.
+
 The database opens the **Corpora** collection by default. You can also switch to the collections of **Resource groups** or **Licenses** by following the links on the top of the page.
 
 A new resource is added by clicking the button 'add new'. Existing entries can be viewed, edited or deleted. 
@@ -20,6 +23,8 @@ In order to add a corpus to the **list of upcoming resources**, set the status t
 
 In order to add a corpus to the **list of published resources**, set the status to 'production' and save the change.
 
+
+The resource-specific **Resource group pages** are automatically filled with their corresponding entries from the database.
 
 
 The corpus lists are offered in the Kielipankki portal in English:
@@ -74,7 +79,7 @@ After adding a resource group to the collection of resource groups in the databa
 
 
 ## Add a tool to the list of tools
-The list of tools is offered in English: [tools](https://www.kielipankki.fi/tools/) and in Finnish: [työkalut](https://www.kielipankki.fi/tyokalut/)
+The list of tools is offered in English: [tools](https://www.kielipankki.fi/tools/), in Finnish: [työkalut](https://www.kielipankki.fi/tyokalut/) and in Swedish: [verktyg](https://www.kielipankki.fi/verktyg/).
 
 The list of tools is (not yet) implemented in the database, but maintained manually. That means the tables for both languages, English and Finnish, have to be updated separately,
 but ideally at about the same time. Go to [Kielipankki.fi/wp-admin](https://www.kielipankki.fi/wp-admin/) (login with uni account, you need the VPN if working remotely).
