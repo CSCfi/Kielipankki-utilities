@@ -71,6 +71,8 @@ In case an already published resource has to be **un-published**, please follow 
 ```
 
    - Add to the description field **all tools used to process the data** (applies usually to the Korp and VRT versions), in the following form:
+     
+<a name="jira-epic-tools"></a>
 
 ```
 *Tools used to process the data:*
