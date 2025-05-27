@@ -83,7 +83,7 @@ In case an already published resource has to be **un-published**, please follow 
 # [ ] *TDPP-LBF* as a morpho-syntactic parser, http://urn.fi/urn:nbn:fi:lb-2024021501. Annotation type: morphosyntacticAnnotation-posTagging. Segmentation level: sentence. 
 # [ ] *Finnish Tagtools* version 1.6, http://urn.fi/urn:nbn:fi:lb-2024021401. Annotation type: (_please specify_). Segmentation level: (_please specify_)
 # [ ] *FiNER*, http://urn.fi/urn:nbn:fi:lb-2024021401. Annotation type: semanticAnnotation-namedEntities. Segmentation level: word
-# [ ] *HeLI-OTS* 2.0 language identifier, http://urn.fi/urn:nbn:fi:lb-2024040301. Annotation type: language identification. Segmentation level: sentence.
+# [ ] *HeLI-OTS* version 2.0, http://urn.fi/urn:nbn:fi:lb-2024040301. Annotation type: language identification. Segmentation level: sentence.
 
 (Please add or remove information according to need!)
 
