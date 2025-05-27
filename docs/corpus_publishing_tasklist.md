@@ -15,7 +15,7 @@ In case an already published resource has to be **un-published**, please follow 
    - Replace "XXX" with the common title of the resource group in question, to make the issue easier to find in Jira.
    - In brackets, you may specify the resource variant(s) that is/are to be published during this Epic, according to current plan: just the Download, and/or Korp, etc. 
    - NB: Both the _Epic Name_ and _Summary_ fields of the Jira Epic issue should contain identical text (= the title of the issue, composed as above).
-   - Add to the description field all important metadata (for all versions, as a collection), as soon as they are created resp. PIDs are requested, in the following form:
+   - Add to the description field **all important metadata** (for all versions, as a collection), as soon as they are created resp. PIDs are requested, in the following form:
 
 <a name="jira-epic"></a>
 
@@ -70,7 +70,7 @@ In case an already published resource has to be **un-published**, please follow 
 (Include the license information if different from the source/Korp version)
 ```
 
-   - Add to the description field all tools used to process the data (applies to the Korp and VRT versions), in the following form:
+   - Add to the description field **all tools used to process the data** (applies usually to the Korp and VRT versions), in the following form:
 
 ```
 *Tools used to process the data:*
