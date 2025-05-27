@@ -70,6 +70,24 @@ In case an already published resource has to be **un-published**, please follow 
 (Include the license information if different from the source/Korp version)
 ```
 
+   - Add to the description field all tools used to process the data (applies to the Korp and VRT versions), in the following form:
+
+```
+*Tools used to process the data:*
+
+# [ ] *VRT tools* (_please specify_), http://urn.fi/urn:nbn:fi:lb-2024021502. Annotation type: (_please specify_). Segmentation level: (_please specify_).
+# [ ] *UDPipe-LBF* as a tokenizer, http://urn.fi/urn:nbn:fi:lb-201902131. Annotation type: segmentation. Segmentation level: paragraph. 
+# [ ] *UDPipe-LBF* as a morpho-syntactic parser, http://urn.fi/urn:nbn:fi:lb-201902131. Annotation type: morphosyntacticAnnotation-posTagging. Segmentation level: sentence. 
+# [ ] *TDPP-LBF* as a morpho-syntactic parser, http://urn.fi/urn:nbn:fi:lb-2024021501. Annotation type: morphosyntacticAnnotation-posTagging. Segmentation level: sentence. 
+# [ ] *Finnish Tagtools* version 1.6, http://urn.fi/urn:nbn:fi:lb-2024021401. Annotation type: (_please specify_). Segmentation level: (_please specify_)
+# [ ] *FiNER*, http://urn.fi/urn:nbn:fi:lb-2024021401. Annotation type: semanticAnnotation-namedEntities. Segmentation level: word
+# [ ] *HeLI-OTS* 2.0 language identifier, http://urn.fi/urn:nbn:fi:lb-2024040301. Annotation type: language identification. Segmentation level: sentence.
+
+(Please add or remove information according to need!)
+
+```
+
+     
 
 ### 2. Copy the following list of section titles to the top of the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
 
@@ -185,6 +203,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*+MANAGE*_ Insert relevant parts of this task list in the resource publication Epic (sections under linked Jira Stories)
 # [ ] _*+MANAGE*_ Add to the Epic description field all important metadata (take a copy from the model description on the top of this page)
+# [ ] _*+MANAGE*_ Add to the Epic description field the information about all tools used to process the data (take a copy from the model description on the top of this page)
 # [ ] _*+GITHUB*_ [Request a URN | https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration] for the metadata record [how to request PIDs | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_request_pid.md]
 # [ ] _*+GITHUB*_ [Request the URNs | https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration] for the license pages [how to request PIDs | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_request_pid.md]
 # [ ] _*+META*_ In [COMEDI | https://clarino.uib.no/comedi/records], create and publish a preliminary metadata record (skeletal information only) for the source version, which is usually the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/ ]
@@ -343,7 +362,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?DATA*_ Convert HRT to VRT (tokenizing)
 # [ ] _*?DATA*_ Convert the data directly to VRT (alternative to HRT->VRT)
 # [ ] _*+META*_ Store the scripts you used in GitHub
-# [ ] _*+META*_ Create a list of annotation information and tools used during the corpus processing pipeline, in order to be added to the metadata record
+# [ ] _*+META*_ Add information about annotation and tools used during the corpus processing pipeline to the Epic description field, in order to be added to the metadata record
 # [ ] _*+META*_ If additional documentation is needed, create a separate Jira-ticket
 \\
 ```
@@ -361,7 +380,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DATA*_ Check the positional attributes
 ## [ ] _*?DATA*_ Re-order to the commonly used order if necessary
 # [ ] _*+META*_ Store the scripts you used in GitHub
-# [ ] _*+META*_ Create a list of annotation information and tools used during the corpus processing pipeline, in order to be added to the metadata record
+# [ ] _*+META*_ Add information about annotation and tools used during the corpus processing pipeline to the Epic description field, in order to be added to the metadata record
 # [ ] _*+META*_ If additional documentation is needed, create a separate Jira-ticket
 \\
 ```
