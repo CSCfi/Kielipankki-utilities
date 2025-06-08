@@ -15,7 +15,7 @@ Example for an entry in `lb_pid.txt` (PID and address):
 
 Commit your changes and add a short comment about what you have done.
 
-Run the PID-Generator under 'Registeröinti'. You will get a message created by the script, where you can find the words 'REGISTER OK' and 'update finished'.
+Run the PID-Generator under 'Rekisteröinti'. You will get a message created by the script, where you can find the words 'REGISTER OK' and 'update finished'.
 
 NOTE: Your changes and additions will come into effect only the following day!
 
