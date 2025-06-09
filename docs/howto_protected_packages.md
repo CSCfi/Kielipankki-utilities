@@ -35,7 +35,7 @@ DELIVERY OPTION 3: The researcher can make the encrypted package directly access
 
 On the HFST server, create a new password for this resource group (one password per resource group, should contain the short-name) and put it to the password store. In case a password for this resource group exists already, get it from the password store.
 
-For instructions on how to create / retrieve a Kielipankki password, see [guidelines on how to manage Kielipankki passwords](howto_manage_passwords.md).
+For instructions on how to create / retrieve a Kielipankki password, see [guidelines on how to manage Kielipankki passwords](https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md).
 
 The next steps can be completed on your local device (i.e., work-related and well maintained laptop or the like), on the HFST server, or on the interactive shell on Puhti:
 
@@ -69,7 +69,7 @@ For instance, to recursively set **read, write and execute** permissions of a gi
 
 For file transfer in the command line, you may use [scp](https://docs.csc.fi/data/moving/scp/) or [rsync](https://docs.csc.fi/data/moving/rsync/). Rsync checks the difference between the source and target files and only transfers the parts that have changed, and it can be used to resume transfer after interruptions in the connection. Thus, it is good for transferring large files and for synchronizing folders.
 
-Default suggestions for rsync [PLEASE COMMENT!]:
+Default suggestions for rsync [PLEASE COMMENT OR MODIFY IF THIS DOES NOT WORK!]:
 
       $ rsync -auzv sourcefoldername/ puhti.csc.fi:/scratch/project_2013016/shortname
 
