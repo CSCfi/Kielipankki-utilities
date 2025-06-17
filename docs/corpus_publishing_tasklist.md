@@ -308,11 +308,51 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*+PUHTI*_ Compute an MD5 checksum for the zip package
 # [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
 # [ ] _*+TEST*_ Have the package tested
-# [ ] _*?LBR*_ Create an LBR record (for a RES corpus)
-# [ ] _*+CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
-# [ ] _*+TEST*_ Have it tested again (access rights!)
+# [ ] _*?MANAGE*_ If this is a RES-licensed corpus and an LBR application does not yet exist, fill in an instance of the [Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus" | https://github.com/CSCfi/Kielipankki-utilities/edit/master/docs/corpus_publishing_tasklist.md#csc_lbr ] and assign it forward
+# [ ] _*+MANAGE*_ Have the package uploaded to the download service: fill in an instance of [the Jira issue "_shortname_: Upload to the download service" | https://github.com/CSCfi/Kielipankki-utilities/edit/master/docs/corpus_publishing_tasklist.md#csc_upload ] and assign it forward 
+# [ ] _*+TEST*_ Have the package tested again (access rights!)
 \\
 ```
+
+<a name="csc_upload"></a>
+### _shortname_: Upload to the download service
+
+```
+# [ ] _*+META*_ Fill in the required information regarding the download package
+# [ ] _*+META*_ Assign this issue forward to CSC (add label "lb_csc_task" and prioritize if needed).
+# [ ] _*+CSC*_ Upload the package to the download service
+
+Target directory: https://www.kielipankki.fi/download/shortname…
+Location/list of the corpus packages, README.txt and LICENSE.txt to be uploaded: (Typically, some files under download_preview in Puhti.)
+Description text of the download directory:
+Link from the directory description (e.g., resource group PID):
+Description text/title of individual resource packages:
+Link from the resource package description (e.g., metadata PID):
+Access restrictions: public access / ACA license / RES license (please describe)
+
+```
+
+<a name="csc_lbr"></a>
+### _shortname_: Create an LBR record for a RES-licensed corpus
+
+```
+# [ ] _*+MANAGE*_ Fill in the information required in order to create an LBR record below, in the description of this Jira ticket.
+# [ ] _*+MANAGE*_ Assign this issue forward to a person with LBR manager rights / to CSC (add label: lb_csc_task and prioritize if needed).
+# [ ] _*+LBR*_ Create an LBR record according to the information below.
+
+Title of the resource(s) covered (ENG):
+Title of the resource(s) covered (FIN): 
+The PID of the resource (or resource group) covered by this LBR application (use the PID of the English resource group page if covering several versions): 
+License label (copy from the title in the license page):
+License PID (ENG):
+License PID (FIN):
+Is a privacy notice required? (+PRIV): yes/no
+Is the end date of research required?: yes/no
+Additional details of the application (desription of the requirements and the approval process if needed):
+
+
+```
+
 
 ### _shortname_: Announce the publication of the source data in Download
 
@@ -349,7 +389,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+GITHUB*_ Request URNs (for COMEDI, Korp, license pages)
 # [ ] _*+DB*_ Add the corpus to the resource database and make sure it is on the list of upcoming resources and citable
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
-# [ ] _*?LBR*_ Ask CSC to create an LBR record (for a RES corpus! This needs the official corpus name, a persistant identifier for the metadata and a rudimental license page with PID)
+# [ ] _*?META*_ If this is a RES-licensed corpus and an LBR application does not yet exist, create and fill in another instance of [Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus" | https://github.com/CSCfi/Kielipankki-utilities/edit/master/docs/corpus_publishing_tasklist.md#csc_lbr ]
 # [ ] _*+META*_ Add citation information to the [COMEDI | https://clarino.uib.no/comedi/records] record
 # [ ] _*+PORTAL*_ Create or update the resource group page, and make sure the metadata record also contains a link to the resource group page
 \\
@@ -394,9 +434,26 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DATA*_ Create a Korp corpus package ({{{}korp-make{}}})
 ## [ ] _*?DATA*_ Create a configuration file named korp-make-CORPUS.conf, where CORPUS is an abbreviation of the corpus name (short name).
 ## [ ] _*?DATA*_ Execute the script korp-make and make sure it has run through without error messages (check the log files)
-# [ ] _*+KORP*_ Install the corpus package on the Korp server (or ask someone with the rights to do that)
+# [ ] _*+MANAGE*_ Have the corpus package installed on the Korp server: fill in [the Jira issue "_shortname_: Install the corpus package on the Korp server" | https://github.com/CSCfi/Kielipankki-utilities/edit/master/docs/corpus_publishing_tasklist.md#csc_korp ] and assign it forward 
 \\
 ```
+
+<a name="csc_korp"></a>
+### _shortname_: Install the corpus package on the Korp server
+
+```
+# [ ] _*+KORP*_ Fill in the required information regarding the Korp corpus package
+# [ ] _*+MANAGE*_ Assign this issue forward to CSC (add label "lb_csc_task" and prioritize as needed).
+# [ ] _*+CSC*_ Install the corpus package on the Korp server
+
+Location and instructions for installing the corpus package:
+
+Access restrictions: public access / ACA license / RES license (please describe)
+
+
+```
+
+
 
 ### _shortname_: Create the Korp corpus configuration
 
@@ -411,7 +468,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Create a Korp test version
 
 ```
-# [ ] _*?LBR*_ Create an LBR record (for a RES corpus, if the corpus does not yet have one)
+# [ ] _*?MANAGE*_ For a RES corpus, make sure that there is an LBR application in place (check the Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus")
 # [ ] _*+KORP*_ Create a Korp test instance and install the new configuration branch to it (or ask someone with the rights to do that)
 # [ ] _*?KORP*_ For a non-PUB corpus, add temporary access rights for the people who should test it (with the {{authing/auth}} script on the Korp server)
 # [ ] _*+TEST*_ Test the corpus in Korp (Korp test version) and ask someone else to test it, too
@@ -527,9 +584,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
 # [ ] _*+PUHTI*_ If the package is published as release candidate (during the release candidate stage of the corresponding Korp corpus), add the file RELEASE_CANDIDATE.txt to the directory {{/scratch/clarin/download_preview}} on Puhti
 # [ ] _*+TEST*_ Have the package tested
-# [ ] _*+CSC*_ Upload the package to the download service or ask someone with the rights to do that
-# [ ] _*?LBR*_ Create an LBR record (for a RES corpus, if the corpus does not yet have one)
-# [ ] _*+TEST*_ Have it tested again (access rights!)
+# [ ] _*+MANAGE*_ Have the package uploaded to the download service: fill in an instance of the Jira issue "_shortname_: Upload to the download service" and assign it forward
+# [ ] _*?MANAGE*_ For a RES corpus, have an LBR record created or updated, if the corpus does not yet have one (check the Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus")
+# [ ] _*+TEST*_ Have the package tested again (access rights!)
 \\
 ```
 
