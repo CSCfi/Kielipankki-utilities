@@ -355,9 +355,10 @@ The PID of the resource (or resource group) covered by this LBR application (use
 License label (copy from the title in the license page):
 License PID (ENG):
 License PID (FIN):
-Is a privacy notice required? (+PRIV): yes/no
-Is the end date of research required?: yes/no
-Additional details of the application (desription of the requirements and the approval process if needed):
+Is a privacy notice (and an estimated end date of research) required? (+PRIV): yes/no
+Additional details of the application (desription of the requirements and the approval process if needed): Please see [LBR-katselmointiprosessi | https://www.kielipankki.fi/wp-admin/admin.php?page=tablepress&action=edit&table_id=37], shown on the intranet page [Katselmointiprosessi |https://www.kielipankki.fi/intra/katselmointiprosessi/ ].
+
+
 
 
 ```
