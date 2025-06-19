@@ -99,12 +99,15 @@ Enter a new resource to the pipeline
 # [ ] _shortname_: Enter the new resource to the pipeline
 # [ ] _shortname_: Plan the publication process with the depositor
 # [ ] _shortname_: Clear the license for the resource
+## [ ] _shortname_: Archive the signed deposition agreement for the resource
 # [ ] _shortname_: Publish the end-user license
 # [ ] _shortname_: Acquire the original data
 
 Publish the source data in Download
 # [ ] _shortname_: Prepare for publishing the source data in Download
 # [ ] _shortname_: Package and upload the source data
+## [ ] _shortname_: Upload to the download service
+## [ ] _shortname_: Create an LBR record for a RES-licensed corpus
 # [ ] _shortname_: Announce the publication of the source data in Download
 # [ ] _shortname_: Clean up after publishing the source data in Download
 
@@ -444,25 +447,9 @@ Additional details of the application (desription of the requirements and the ap
 # [ ] _*+DATA*_ Create a Korp corpus package ({{{}korp-make{}}})
 ## [ ] _*?DATA*_ Create a configuration file named korp-make-CORPUS.conf, where CORPUS is an abbreviation of the corpus name (short name).
 ## [ ] _*?DATA*_ Execute the script korp-make and make sure it has run through without error messages (check the log files)
-# [ ] _*+MANAGE*_ Have the corpus package installed on the Korp server: fill in [the Jira issue "_shortname_: Install the corpus package on the Korp server" | https://github.com/CSCfi/Kielipankki-utilities/edit/master/docs/corpus_publishing_tasklist.md#csc_korp ] and assign it forward 
+# [ ] _*+MANAGE*_ Have the corpus package installed on the Korp pre-production server: fill in an instance of [the Jira issue "_shortname_: Install the corpus package on the Korp server" | https://github.com/CSCfi/Kielipankki-utilities/edit/master/docs/corpus_publishing_tasklist.md#csc_korp ] and assign it forward 
 \\
 ```
-
-<a name="csc_korp"></a>
-### _shortname_: Install the corpus package on the Korp server
-
-```
-# [ ] _*+KORP*_ Fill in the required information regarding the Korp corpus package
-# [ ] _*+MANAGE*_ Assign this issue forward to CSC (add label "lb_csc_task" and prioritize as needed).
-# [ ] _*+CSC*_ Install the corpus package on the Korp server
-
-Location and instructions for installing the corpus package:
-
-Access restrictions: public access / ACA license / RES license (please describe)
-
-
-```
-
 
 
 ### _shortname_: Create the Korp corpus configuration
@@ -493,10 +480,26 @@ Access restrictions: public access / ACA license / RES license (please describe)
 ```
 # [ ] _*+KORP*_ Publish the corpus in Korp as a release candidate version
 ## [ ] _*+GITHUB*_ Merge the corpus configuration branch to branch {{master}}
-## [ ] _*+KORP*_ Install the updated {{master}} branch to production Korp (or ask someone with the rights to do that)
+# [ ] _*+MANAGE*_ Have the updated {{master}} branch installed on the production Korp server: fill in an instance of [the Jira issue "_shortname_: Install the corpus package on the Korp server" | https://github.com/CSCfi/Kielipankki-utilities/edit/master/docs/corpus_publishing_tasklist.md#csc_korp ] and assign it forward 
 # [ ] _*+GITHUB*_ Add news about this new corpus to the Korp newsdesk ([https://github.com/CSCfi/Kielipankki-korp-frontend/tree/news/master])
 
 \\
+```
+
+
+<a name="csc_korp"></a>
+### _shortname_: Install the corpus package on the Korp server
+
+```
+# [ ] _*+KORP*_ Fill in the required information regarding the Korp corpus package
+# [ ] _*+MANAGE*_ Assign this issue forward to CSC (add label "lb_csc_task" and prioritize as needed).
+# [ ] _*+CSC*_ Install the corpus package on the Korp server
+
+Location and instructions for installing the corpus package:
+
+Access restrictions: public access / ACA license / RES license (please describe)
+
+
 ```
 
 ### _shortname_: Announce the publication of the new Korp corpus as release candidate
