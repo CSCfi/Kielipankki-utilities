@@ -11,7 +11,7 @@ For the time being, identical copies of the document should be stored in three l
   - in the contract register of the University of Helsinki.
 
 ## IDA
-Upload the document under Administration/agreements/shortname ([Go to IDA](https://ida.fairdata.fi/login))
+Upload the document under FIN-CLARIN Administration/agreements/shortname ([Go to IDA](https://ida.fairdata.fi/login))
   
 After the data is successfully uploaded, you should freeze it. For this, press the 'snowflake' button in the user interface of IDA. Only the frozen data will be backed up!
 
