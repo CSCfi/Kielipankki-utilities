@@ -39,7 +39,7 @@ In case you cannot login to the contract register, update the relevant details t
 
 From the list of folders on the left, open "H402 Digitaalisten ihmistieteiden osasto" under "H40 Humanistinen tiedekunta".
 
-1. On the top left corner, select **Uusi dokumentti** > **Tallenna tiedosto**.
+1. On the top left corner, select **Tee** > **Uusi dokumentti** > **Tallenna tiedosto**.
 
 Add the PDF file including the signed agreement and click on **Lataa tiedosto uuteen dokumenttiin**.
 
