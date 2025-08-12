@@ -320,8 +320,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*+PUHTI*_ Compute an MD5 checksum for the zip package
 # [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
 # [ ] _*+TEST*_ Have the package tested
-# [ ] _*?MANAGE*_ If this is a RES-licensed corpus and an LBR application does not yet exist, fill in an instance of the [Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus" | https://github.com/CSCfi/Kielipankki-utilities/edit/master/docs/corpus_publishing_tasklist.md#csc_lbr ] and assign it forward
-# [ ] _*+MANAGE*_ Have the package uploaded to the download service: fill in an instance of [the Jira issue "_shortname_: Upload to the download service" | https://github.com/CSCfi/Kielipankki-utilities/edit/master/docs/corpus_publishing_tasklist.md#csc_upload ] and assign it forward 
+# [ ] _*?MANAGE*_ If this is a RES-licensed corpus and an LBR application does not yet exist, fill in an instance of the [Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_lbr ] and assign it forward
+# [ ] _*+MANAGE*_ Have the package uploaded to the download service: fill in an instance of [the Jira issue "_shortname_: Upload to the download service" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_upload ] and assign it forward 
 # [ ] _*+TEST*_ Have the package tested again (access rights!)
 \\
 ```
