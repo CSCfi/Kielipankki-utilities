@@ -332,10 +332,12 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*+META*_ Fill in the required information regarding the download package
 # [ ] _*+META*_ Assign this issue forward to CSC (add label "lb_csc_task" and prioritize if needed).
+# [ ] _*?CSC*_ In case the package was encrypted for temporary storage, make sure the package is safely decrypted for the download service.
 # [ ] _*+CSC*_ Upload the package to the download service
 
 Target directory: https://www.kielipankki.fi/download/shortname…
 Location/list of the corpus packages, README.txt and LICENSE.txt to be uploaded: (Typically, some files under download_preview in Puhti.)
+Encryption (None / *Encryption for internal processing* / *Encryption for both internal processing and for distribution*): (If using encryption for internal processing, the packages must be decrypted for the download service.)
 Description text of the download directory:
 Link from the directory description (e.g., resource group PID):
 Description text/title of individual resource packages:
