@@ -347,12 +347,12 @@ Access restrictions: public access / ACA license / RES license (please describe)
 ```
 
 <a name="csc_lbr"></a>
-### _shortname_: Create an LBR record for a RES-licensed corpus
+### _shortname_: Create/update the LBR record for the RES-licensed corpus
 
 ```
 # [ ] _*+MANAGE*_ Fill in the information required in order to create an LBR record below, in the description of this Jira ticket.
 # [ ] _*+MANAGE*_ Assign this issue forward to a person with LBR manager rights / to CSC (add label: lb_csc_task and prioritize if needed).
-# [ ] _*+LBR*_ Create an LBR record according to the information below.
+# [ ] _*+LBR*_ Create the LBR record, or update the existing one, according to the information below.
 
 Title of the resource(s) covered (ENG):
 Title of the resource(s) covered (FIN): 
