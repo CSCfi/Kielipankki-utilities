@@ -337,7 +337,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 Target directory: https://www.kielipankki.fi/download/shortname…
 Location/list of the corpus packages, README.txt and LICENSE.txt to be uploaded: (Typically, some files under download_preview in Puhti.)
-Encryption (None / *Encryption for internal processing* / *Encryption for both internal processing and for distribution*): (If using encryption for internal processing, the packages must be decrypted for the download service.)
+Encrypted (yes/no) (If using encryption for internal processing, CSC must decrypt the packages for the download service.)
 Description text of the download directory:
 Link from the directory description (e.g., resource group PID):
 Description text/title of individual resource packages:
