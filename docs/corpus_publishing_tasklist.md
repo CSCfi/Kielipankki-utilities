@@ -289,9 +289,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+DATA*_ Check the data: format and validity
 ## [ ] _*?DATA*_ Clean up the data
 # [ ] _*+DATA*_ Create a simple shortname-orig_yyyymmdd_README.txt for the original data, see [instructions| https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_archive_original_data.md ].
-# [ ] _*+IDA*_ Upload the original data as a zip file (named as shortname-orig_yyyymmdd.zip) and the separate shortname-orig_yyyymmdd_README.txt file to IDA, under the folder with the resource group shortname, in lowercase characters.
-# [ ] _*+IDA*_ Freeze the new files in the original data folder in IDA
 # [ ] _*+HYSTORE*_ Upload the original data as a zip file (named as shortname-orig_yyyymmdd.zip) and the separate shortname-orig_yyyymmdd_README.txt file to the HFST server, under data/corpora/originals/.
+# [ ] _*?IDA*_ If the source version (to be published in download) is going to be very different from the original, upload the original data to IDA as a zip file (named as shortname-orig_yyyymmdd.zip) and the separate shortname-orig_yyyymmdd_README.txt file, under the folder with the resource group shortname, in lowercase characters. Apply password protection if the license is RES.
+# [ ] _*?IDA*_ If applicable, freeze the new files in the original data folder in IDA.
 \\
 ```
 
