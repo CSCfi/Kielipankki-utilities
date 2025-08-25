@@ -41,9 +41,22 @@ And in Finnish:
 [Tulossa olevat aineistot](https://www.kielipankki.fi/aineistot/tulevat/)
 
 
-NOTE: Attribution details are created automatically to the portal (with information from the fields 'Authors' and 'First publication date'), when a resource is added to one of these lists.
+## Attribution instructions
+Attribution details are created automatically to the portal (with information from the database fields 'Authors' and 'First publication date'), when a resource is added to one of these lists.
 
-NOTE2: Use the attribution details in the format: https://www.kielipankki.fi/viittaus/?key=urn:nbn:fi:lb-2022102101&lang=en (using the URN as identifier!)
+Use the attribution details in the format: https://www.kielipankki.fi/viittaus/?key=urn:nbn:fi:lb-2022102101&lang=en (using the URN as identifier!)
+
+The resource-specific attribution instructions are displayed when clicking the icon in the column 'Cite'.
+
+
+## Support level
+Language resources in Kielipankki have one of three different levels of support assigned to them, visible in column 'Support level'.
+
+    A: The resource is under active development. The Language Bank of Finland fixes any issues as soon as possible.
+    B: The resource is developed only upon user request. The Language Bank of Finland aims to fix issues concerning the resource, but external contributions may be required.
+    C: The resource is available ”as is”. The Language Bank of Finland does not fix nor develop the resource.
+
+Whenever a new resource is entered to the database, a support level should be assigned. For most of the resources this will be support level **B**.
 
 
 ## Licenses
@@ -84,4 +97,5 @@ The list of tools is offered in English: [tools](https://www.kielipankki.fi/tool
 The list of tools is (not yet) implemented in the database, but maintained manually. That means the tables for both languages, English and Finnish, have to be updated separately,
 but ideally at about the same time. Go to [Kielipankki.fi/wp-admin](https://www.kielipankki.fi/wp-admin/) (login with uni account, you need the VPN if working remotely).
 Go to Table Press, select 'all tables' and choose the table 'tools' for the English version and 'työkalut' for the Finnish version. Add your changes manually, preview and publish.
+
 
