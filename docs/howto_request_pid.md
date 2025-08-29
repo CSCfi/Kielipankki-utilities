@@ -28,6 +28,8 @@ A resource usually needs PIDs for the following pages:
 - resource group page in English
 - resource group page in Finnish
 
-NOTE: For a metadata record the PID to COMEDI is usually constructed as `https://clarino.uib.no/comedi/editor/lb-yyyymmddxx`, e.g.
+NOTE: For a metadata record the PID to COMEDI is usually constructed as `https://www.kielipankki.fi/md/lb-yyyymmddxx`, e.g.
 
-	2024071601 https://clarino.uib.no/comedi/editor/lb-2024071601
+	2024071601 https://www.kielipankki.fi/md/lb-2024071601
+
+
