@@ -347,7 +347,7 @@ class StructAttrAdder(InputProcessor):
                                   filename=inf.name, linenr=linenr)
                         attrs[attrname] = ''
                 attrs.convert_to_bytes()
-            return starttag(struct_name, attrs)
+            return attrs
 
         def process_input(inf, get_add_attrs, tsv_reader, new_attr_names):
             """Process VRT input from inf.
@@ -357,16 +357,20 @@ class StructAttrAdder(InputProcessor):
             attribute names new_attr_names.
             """
             linenr = 0
+            process_line = lambda line: (
+                line[0] == LESS_THAN and line.startswith(struct_begin_alts))
+            get_line_attrs = pairs
+            make_line = lambda attrs: starttag(struct_name, attrs)
             check_overlap_attrs = set(new_attr_names) - overwrite_attrs
             for line in inf:
                 linenr += 1
-                if line[0] == LESS_THAN and line.startswith(struct_begin_alts):
+                if process_line(line):
                     # Use StrBytesDict instead of dict (as in
                     # libvrt.metaline.mapping) so that compute
                     # functions can access attribute values
                     # transparently as str and the values can easily
                     # be converted to bytes
-                    attrs = StrBytesDict(pairs(line))
+                    attrs = StrBytesDict(get_line_attrs(line))
                     if get_add_attrs is not None:
                         add_attrs, tsv_linenr = get_add_attrs(
                             tsv_reader, line, attrs, linenr)
@@ -378,9 +382,10 @@ class StructAttrAdder(InputProcessor):
                         add_attrs = fixed_vals
                         tsv_linenr = -1
                     if add_attrs or self._compute_funcs:
-                        line = add_attributes(
+                        attrs = add_attributes(
                             line, attrs, add_attrs, linenr, tsv_linenr,
                             check_overlap_attrs)
+                    line = make_line(attrs)
                 ouf.write(line)
 
         new_attr_names = list(fixed_vals.keys())
