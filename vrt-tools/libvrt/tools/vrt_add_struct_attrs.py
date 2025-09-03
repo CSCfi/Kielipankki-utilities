@@ -26,7 +26,7 @@ from collections import OrderedDict
 
 from libvrt.argtypes import attrlist, attr_value, attr_value_opts
 from libvrt.datatypes import StrBytesDict
-from libvrt.iterutils import find_duplicates
+from libvrt.iterutils import find_duplicates, make_unique
 from libvrt.metaline import pairs, starttag, strescape, strunescape
 from libvrt.funcdefutils import define_transform_func, FuncDefError
 from libvrt.tsv import TsvReader, EncodeEntities
@@ -356,8 +356,8 @@ class StructAttrAdder(InputProcessor):
             added, reading TSV data with tsv_reader, with new
             attribute names new_attr_names.
             """
-            check_overlap_attrs = new_attr_names - overwrite_attrs
             linenr = 0
+            check_overlap_attrs = set(new_attr_names) - overwrite_attrs
             for line in inf:
                 linenr += 1
                 if line[0] == LESS_THAN and line.startswith(struct_begin_alts):
@@ -383,8 +383,8 @@ class StructAttrAdder(InputProcessor):
                             check_overlap_attrs)
                 ouf.write(line)
 
-        fixed_attrs = set(fixed_vals.keys())
-        new_attr_names = fixed_attrs.copy()
+        new_attr_names = list(fixed_vals.keys())
+        fixed_attrs = set(new_attr_names)
         if args.data_file is None:
             process_input(inf, None, None, new_attr_names)
         else:
@@ -395,14 +395,15 @@ class StructAttrAdder(InputProcessor):
                                        entities=EncodeEntities.NON_ENTITIES)
                 if not args.attr_names:
                     tsv_reader.read_fieldnames()
-                tsv_attr_names = set(tsv_reader.fieldnames or [])
-                if fixed_attrs & tsv_attr_names:
+                tsv_attr_names = tsv_reader.fieldnames or []
+                tsv_fixed_attrs = fixed_attrs & set(tsv_attr_names)
+                if tsv_fixed_attrs:
                     self.error_exit(
                         'Same attributes specified both in a data file and'
                         ' with a fixed value: '
                         + ', '.join(attrname.decode('utf-8') for attrname in
-                                    sorted(new_attr_names & tsv_attr_names)))
-                new_attr_names |= tsv_attr_names
+                                    sorted(tsv_fixed_attrs)))
+                new_attr_names = make_unique(new_attr_names, tsv_attr_names)
                 if key_attrs:
                     read_keyed_data(tsv_reader)
                 process_input(inf, get_add_attrs, tsv_reader, new_attr_names)
