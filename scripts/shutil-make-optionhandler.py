@@ -35,7 +35,7 @@
 #   specifying the option name for configuration file.
 
 
-"""
+r"""
 shutil-make-optionhandler.py
 
 Usage: shutil-make-optionhandler.py [options] [script_options]
