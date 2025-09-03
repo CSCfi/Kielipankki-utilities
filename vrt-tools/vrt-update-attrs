@@ -3,16 +3,17 @@
 
 
 """
-vrt-add-struct-attrs
+vrt-update-attrs
 
-Add structural attribute annotations to VRT from a TSV file.
+Update or add structural attribute annotations to VRT from a TSV file
+or with a fixed or computed value.
 
-The actual implementation is in libvrt.tools.vrt_add_struct_attrs.
+The actual implementation is in libvrt.tools.vrt_update_attrs.
 """
 
 
-from libvrt.tools.vrt_add_struct_attrs import StructAttrAdder
+from libvrt.tools.vrt_update_attrs import AttrUpdater
 
 
 if __name__ == '__main__':
-    StructAttrAdder().run()
+    AttrUpdater().run()

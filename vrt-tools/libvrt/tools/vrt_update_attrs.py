@@ -3,11 +3,11 @@
 
 
 """
-vrt_add_struct_attrs.py
+vrt_update_attrs.py
 
-The actual implementation of vrt-add-struct-attrs.
+The actual implementation of vrt-update-attrs
 
-Please run "vrt-add-struct-attrs -h" for more information.
+Please run "vrt-update-attrs -h" for more information.
 """
 
 
@@ -33,7 +33,7 @@ from libvrt.tsv import TsvReader, EncodeEntities
 from vrtargsoolib import InputProcessor
 
 
-class StructAttrAdder(InputProcessor):
+class AttrUpdater(InputProcessor):
 
     DESCRIPTION = """
     Add structural attribute annotations to VRT data from a TSV file (with
