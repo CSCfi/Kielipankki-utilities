@@ -19,11 +19,11 @@ Packaging the data for delivery:
 
 If possible, the researcher should provide us with a password-protected zip archive that includes the confidential data set in an unencrypted zip file. It is then easier for us to first decrypt the archive and then to re-encrypt it with another password for our internal use.
 
-- To do: Create instructions in the Portal for the researchers/depositors
+- [Instructions for the researchers/depositors (draft)](https://www.kielipankki.fi/tuki/aineiston-toimitus-kielipankille/)
    
 DELIVERY OPTION 1: The package can be delivered, e.g., via [Filesender](https://filesender.funet.fi/). It can then be downloaded to Puhti (via [Puhti web interface](https://www.puhti.csc.fi/)).
 
-- The password should be delivered via another communication method, e.g., via SMS, to reduce risks.
+- The password should be delivered via another communication method, e.g., via SMS, to reduce risks. **Delivering the password via regular email is not recommended.**
 
 DELIVERY OPTION 2: The researcher can hand the data over to a Kielipankki staff member on external disk.
 
