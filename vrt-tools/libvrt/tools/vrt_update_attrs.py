@@ -17,6 +17,9 @@ Please run "vrt-update-attrs -h" for more information.
 # - --compute: Specify multiple attributes to compute with the same
 #   function
 # - --compute: Refer to attributes of enclosing structures
+# - --data-file: Allow specifying column names that do not end up in
+#   attributes but that can be used in compute functions (removing the
+#   need to remove them from the output with vrt-drop-attrs)
 
 
 import re
@@ -30,31 +33,38 @@ from libvrt.iterutils import find_duplicates, make_unique
 from libvrt.metaline import pairs, starttag, strescape, strunescape
 from libvrt.funcdefutils import define_transform_func, FuncDefError
 from libvrt.tsv import TsvReader, EncodeEntities
+from vrtnamelib import isbinnames, binnamelist, binmakenames
 from vrtargsoolib import InputProcessor
 
 
 class AttrUpdater(InputProcessor):
 
     DESCRIPTION = """
-    Add structural attribute annotations to VRT data from a TSV file (with
-    --data-file), or with a fixed (--fixed) or computed (--compute) value,
-    or any combination of them.
-    Existing attribute annotations can be modified by specifying the names
+    Update or add structural attribute annotations or positional
+    attributes in VRT data from a TSV file (with
+    --data-file), or with fixed (--fixed) or computed (--compute) values,
+    or any combinations of them.
+    Existing attribute annotations can be updated by specifying the names
     of the attributes as an argument to --overwrite.
     When using --data-file, either (1) the TSV file can have the same number
     of data rows as the VRT
-    data has structural attributes of the specified kind, in which case
-    values for the nth structural attribute are added from the nth data row of
-    the data file, or (2) one or more attributes may be specified as a key,
+    data has structural attributes of the specified kind (or tokens if
+    --positional is specified), in which case values for the nth
+    structural attribute (or token) are added from the nth data row of
+    the data file, or (2) one or more attributes can be specified as a key,
     in which case values are added from the last data row matching the key
-    attribute values in the structural attribute.
+    attribute values in the structural attribute (or token).
     """
 
     ARGSPECS = [
-        ('--structure|element|e=STRUCT "text" -> struct_name',
-         'Add attributes (annotations) to structures STRUCT.'),
+        ('#EXCLUSIVE', (
+            ('--structure|element|e=STRUCT "text" -> struct_name',
+             'Update or add attributes (annotations) to structures STRUCT.'),
+            ('--positional',
+             'Update or add positional attributes of tokens.'),
+        )),
         ('--data-file=FILENAME',
-         'Add attributes (annotations) from the TSV data file FILENAME.'),
+         'Add attributes from the TSV data file FILENAME.'),
         ('--fixed=ATTR:attr_value',
          """Add attribute ATTR with the same fixed value VALUE for all
          structures. If also --data-file is used, ATTR may not be one
@@ -83,7 +93,8 @@ class AttrUpdater(InputProcessor):
          In (2) and (3), the variable "val" refers to the possible
          existing value of the attribute (str), and they return the
          result of CODE (converted to str). If ATTR does
-         not exist yet, the value of "val" is the empty string.
+         not exist yet, the value of "val" is the empty string
+         ("_" for positional attributes).
          (--fixed can be used to provide a different initial value;
          --fixed are processed before --compute.) The values of other
          attributes of the same structure can be referred to as
@@ -93,7 +104,7 @@ class AttrUpdater(InputProcessor):
          "xml_decode".
          If (3) has no return statement, the value of "val" is
          returned. On an error depending on the value of "val", an
-         empty string is returned.
+         empty string ("_" for positional attributes) is returned.
          The characters < > & " in the return value should be
          XML-encoded, which can be done with function "xml_encode".
          The Python module "re" is available to the code.
@@ -116,7 +127,7 @@ class AttrUpdater(InputProcessor):
          of CODE are concatenated, separated by a newline.""",
          dict(action='append')),
         ('--attributes=ATTRLIST:attrlist -> attr_names',
-         """Add attributes (annotations) listed in ATTRLIST (separated by
+         """Add attributes listed in ATTRLIST (separated by
          spaces or commas),
          corresponding to the columns (fields) of the TSV data file. If not
          specified, the first row of the TSV file is considered as a heading
@@ -132,11 +143,13 @@ class AttrUpdater(InputProcessor):
         ('--key=ATTRLIST:attrlist -> key_attrs',
          """Use the attributes listed in ATTRLIST (separated by spaces or
          commas) as a key:
-         when their values in a VRT structure match those of a row in a data
+         when their values in a VRT structure or token match those of a
+         row in a data
          file, add the remaining attributes in the data file to the VRT.
          If the data file does not contain values for a key in the VRT,
          existing attribute values are preserved and the values for new
-         attributes are empty strings.
+         attributes are empty strings (for structural attribute
+         annotations) or "_" (for positional attributes).
          Note that this option implies reading the entire data file into
          memory, so use with caution for very large data files.
          """),
@@ -222,6 +235,8 @@ class AttrUpdater(InputProcessor):
         # Attributes from the TSV file with empty values; set and used
         # when tsv_exhausted = True
         tsv_attrs_empty = None
+        empty_value = b'_' if args.positional else b''
+        empty_value_s = empty_value.decode('utf-8')
 
         def read_keyed_data(tsv_reader):
             missing_key_attrs = [attr for attr in key_attrs
@@ -251,6 +266,9 @@ class AttrUpdater(InputProcessor):
                         filename=args.data_file, linenr=tsv_reader.line_num)
                 new_attr_values[key] = (attrs, tsv_reader.line_num)
 
+        def get_add_attrs_empty(tsv_reader, line, attrs, linenr):
+            return tsv_attrs_empty, -1
+
         def get_add_attrs_ordered(tsv_reader, line, attrs, linenr):
             nonlocal tsv_exhausted, tsv_attrs_empty
             if tsv_exhausted:
@@ -260,14 +278,17 @@ class AttrUpdater(InputProcessor):
                 # If the data file is too short, add empty attribute
                 # values to the rest of the VRT
                 numlines = tsv_reader.line_num - int(args.attr_names is None)
+                if args.positional:
+                    msg_items_long = msg_items = 'tokens'
+                else:
+                    msg_items_long = f'{args.struct_name} structures'
+                    msg_items = 'structures'
                 self.warn(
                     f'Data file {args.data_file} has fewer data lines'
-                    f' ({numlines}) than the input VRT has {args.struct_name}'
-                    ' structures; adding empty attribute values for the rest'
-                    ' of the structures')
+                    f' ({numlines}) than the input VRT has {msg_items_long};'
+                    f' adding attribute values "{empty_value_s}" for the rest'
+                    f' of the {msg_items}')
                 tsv_exhausted = True
-                tsv_attrs_empty = OrderedDict(
-                    (attrname, b'') for attrname in tsv_reader.fieldnames)
                 return tsv_attrs_empty, -1
             return add_attrs, tsv_reader.line_num
 
@@ -289,15 +310,16 @@ class AttrUpdater(InputProcessor):
                 return new_attr_values[key]
             else:
                 self.warn(
-                    ('No data for key {key} in {datafile}; using empty values'
-                     ' for new attributes').format(
+                    ('No data for key {key} in {datafile}; using value'
+                     ' "{empty_value_s}" for new attributes').format(
                          key=tuple(val.decode() for val in key),
-                         datafile=args.data_file),
+                         datafile=args.data_file,
+                         empty_value_s=empty_value_s),
                     filename=inf.name, linenr=linenr)
                 return (
                     OrderedDict(
                         (attrname,
-                         attrs[attrname] if attrname in attrs else b'')
+                         attrs[attrname] if attrname in attrs else empty_value)
                         for attrname in tsv_reader.fieldnames),
                     -1)
 
@@ -342,10 +364,11 @@ class AttrUpdater(InputProcessor):
                         # defining the function
                         self.error_exit(error_msg(attrname, e))
                     except Exception as e:
-                        self.warn(error_msg(attrname, e,
-                                            ', so using an empty value'),
-                                  filename=inf.name, linenr=linenr)
-                        attrs[attrname] = ''
+                        self.warn(
+                            error_msg(attrname, e,
+                                      f', so using value "{empty_value_s}"'),
+                            filename=inf.name, linenr=linenr)
+                        attrs[attrname] = empty_value_s
                 attrs.convert_to_bytes()
             return attrs
 
@@ -356,11 +379,66 @@ class AttrUpdater(InputProcessor):
             added, reading TSV data with tsv_reader, with new
             attribute names new_attr_names.
             """
+
+            def get_pos_attrs():
+                """Get positional attribute names from inf.
+
+                Read inf up to a positional-attributes comment and
+                write to ouf a comment with updated attribute list.
+
+                Return a list of positional attribute names
+                extracted from the positional-attributes comment.
+                """
+                nonlocal linenr, get_add_attrs
+                for line in inf:
+                    linenr += 1
+                    if isbinnames(line):
+                        pos_attr_names = binnamelist(line)
+                        ouf.write(binmakenames(
+                            *(make_unique(
+                                pos_attr_names, new_attr_names,
+                                (attr.encode('utf-8')
+                                 for attr, _ in self._compute_funcs)))))
+                        if key_attrs:
+                            # If some key attributes are missing from
+                            # the positional-attributes comment, add
+                            # all attributes with value "_"
+                            missing_keys = tuple(
+                                key_attr.decode() for key_attr in key_attrs
+                                if key_attr not in set(pos_attr_names))
+                            if missing_keys:
+                                self.warn(
+                                    'No key attribute{s} {missing_keys} in'
+                                    ' positional-attributes comment;'
+                                    ' adding attributes with value'
+                                    f' "{empty_value_s}"'.format(
+                                        s=('s' if len(missing_keys) > 1
+                                           else ''),
+                                        missing_keys=', '.join(missing_keys)),
+                                    filename=inf.name, linenr=linenr)
+                                get_add_attrs = get_add_attrs_empty
+                        return pos_attr_names
+                    elif line[0] != LESS_THAN:
+                        self.error_exit(
+                            'No positional-attributes comment before the'
+                            ' first token line',
+                            filename=inf.name, linenr=linenr)
+                    ouf.write(line)
+
             linenr = 0
-            process_line = lambda line: (
-                line[0] == LESS_THAN and line.startswith(struct_begin_alts))
-            get_line_attrs = pairs
-            make_line = lambda attrs: starttag(struct_name, attrs)
+            if args.positional:
+                process_line = lambda line: line[0] != LESS_THAN
+                get_line_attrs = (
+                    lambda line: zip(pos_attr_names, line[:-1].split(b'\t')))
+                make_line = lambda attrs: b'\t'.join(attrs.values()) + b'\n'
+                pos_attr_names = get_pos_attrs()
+            else:
+                process_line = lambda line: (
+                    line[0] == LESS_THAN
+                    and line.startswith(struct_begin_alts))
+                get_line_attrs = pairs
+                make_line = lambda attrs: starttag(struct_name, attrs)
+                pos_attr_names = []
             check_overlap_attrs = set(new_attr_names) - overwrite_attrs
             for line in inf:
                 linenr += 1
@@ -411,4 +489,6 @@ class AttrUpdater(InputProcessor):
                 new_attr_names = make_unique(new_attr_names, tsv_attr_names)
                 if key_attrs:
                     read_keyed_data(tsv_reader)
+                tsv_attrs_empty = OrderedDict(
+                    (attrname, empty_value) for attrname in tsv_attr_names)
                 process_input(inf, get_add_attrs, tsv_reader, new_attr_names)
