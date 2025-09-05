@@ -31,6 +31,13 @@
   output:
     stdout: ''
 
+- name: 'vrt-update-attrs: Empty VRT and data file, --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file /dev/null
+    stdin: ''
+  output:
+    stdout: ''
+
 
 - name: 'vrt-update-attrs: Empty VRT, non-empty data file'
   input:
@@ -40,6 +47,14 @@
       a1	a2
       aa	bb
       cc	dd
+  output:
+    stdout: ''
+
+- name: 'vrt-update-attrs: Empty VRT, non-empty data file, --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv
+    stdin: ''
+    file:attrs.tsv: *tsv-1
   output:
     stdout: ''
 
@@ -72,6 +87,36 @@
       </sentence>
       </text>
 
+- name: 'vrt-update-attrs: Same-length VRT and data file, --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a1 a2 -->
+      <text a="1">
+      <sentence>
+      a	aa	bb
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b	cc	dd
+      </sentence>
+      </text>
+
 
 - name: 'vrt-update-attrs: Longer data file than VRT'
   input:
@@ -88,6 +133,26 @@
       <text a="1" a1="aa" a2="bb">
       <sentence>
       a
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: Longer data file than VRT, --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a1 a2 -->
+      <text a="1">
+      <sentence>
+      a	aa	bb
       </sentence>
       </text>
 
@@ -132,6 +197,51 @@
       <text a="3" a1="" a2="">
       <sentence>
       c
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: Longer VRT than data file, --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+      <text a="3">
+      <sentence>
+      c
+      </sentence>
+      </text>
+    file:attrs.tsv: |
+      a1	a2
+      aa	bb
+  output:
+    returncode: 0
+    stderr: |
+      vrt-update-attrs: Warning: Data file attrs.tsv has fewer data lines (1) than the input VRT has tokens; adding attribute values "_" for the rest of the tokens
+    stdout: |
+      <!-- #vrt positional-attributes: word a1 a2 -->
+      <text a="1">
+      <sentence>
+      a	aa	bb
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b	_	_
+      </sentence>
+      </text>
+      <text a="3">
+      <sentence>
+      c	_	_
       </sentence>
       </text>
 
@@ -193,6 +303,36 @@
       </sentence>
       </text>
 
+- name: 'vrt-update-attrs: Check existing attribute values (match), --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv
+    stdin: |
+      <!-- #vrt positional-attributes: word a1 -->
+      <text a1="aa">
+      <sentence>
+      a	aa
+      </sentence>
+      </text>
+      <text a1="cc">
+      <sentence>
+      b	cc
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a1 a2 -->
+      <text a1="aa">
+      <sentence>
+      a	aa	bb
+      </sentence>
+      </text>
+      <text a1="cc">
+      <sentence>
+      b	cc	dd
+      </sentence>
+      </text>
+
 
 - name: 'vrt-update-attrs: Check existing attribute values (mismatch)'
   input:
@@ -221,6 +361,38 @@
       <text a1="cc" a2="dd">
       <sentence>
       b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: Check existing attribute values (mismatch), --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv
+    stdin: |
+      <!-- #vrt positional-attributes: word a1 -->
+      <text a1="ab">
+      <sentence>
+      a	ab
+      </sentence>
+      </text>
+      <text a1="cc">
+      <sentence>
+      b	cc
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    stderr: |
+      vrt-update-attrs: <stdin>:4: Warning: Value for attribute a1 differs from that on line 2 of attrs.tsv; keeping the existing one
+    stdout: |
+      <!-- #vrt positional-attributes: word a1 a2 -->
+      <text a1="ab">
+      <sentence>
+      a	ab	bb
+      </sentence>
+      </text>
+      <text a1="cc">
+      <sentence>
+      b	cc	dd
       </sentence>
       </text>
 
@@ -299,6 +471,47 @@
       cmdline:
         replace: '/,/ /'
 
+- name: 'vrt-update-attrs: --attribute names, no column heading row, --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --attributes "b,c"
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+      <text a="3">
+      <sentence>
+      c
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word b c -->
+      <text a="1">
+      <sentence>
+      a	a1	a2
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b	aa	bb
+      </sentence>
+      </text>
+      <text a="3">
+      <sentence>
+      c	cc	dd
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
 
 - name: 'vrt-update-attrs: --overwrite (some)'
   input:
@@ -327,6 +540,38 @@
       <text a1="cc" a2="cd">
       <sentence>
       b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --overwrite (some), --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --overwrite a1
+    stdin: |
+      <!-- #vrt positional-attributes: word a1 a2 -->
+      <text>
+      <sentence>
+      a	ab	bb
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	cc	cd
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    stderr: |
+      vrt-update-attrs: <stdin>:9: Warning: Value for attribute a2 differs from that on line 3 of attrs.tsv; keeping the existing one
+    stdout: |
+      <!-- #vrt positional-attributes: word a1 a2 -->
+      <text>
+      <sentence>
+      a	aa	bb
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	cc	cd
       </sentence>
       </text>
 
@@ -360,6 +605,37 @@
       </text>
   transform: *transform-comma-space
 
+- name: 'vrt-update-attrs: --overwrite (all), --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --overwrite "a1,a2"
+    stdin: |
+      <!-- #vrt positional-attributes: a1 a2 -->
+      <text>
+      <sentence>
+      ab	bb
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      cc	cd
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: a1 a2 -->
+      <text>
+      <sentence>
+      aa	bb
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      cc	dd
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
 
 - name: 'vrt-update-attrs: Convert to entities'
   input:
@@ -375,7 +651,7 @@
       b
       </sentence>
       </text>
-    file:attrs.tsv: |
+    file:attrs.tsv: &tsv-ent |
       a1	a2
       <>	ab&"cd
       &quot;&lt;	ab&gt;cd&amp;ef&amp
@@ -389,6 +665,36 @@
       <text a="2" a1="&quot;&lt;" a2="ab&gt;cd&amp;ef&amp;amp">
       <sentence>
       b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: Convert to entities, --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-ent
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a1 a2 -->
+      <text a="1">
+      <sentence>
+      a	&lt;&gt;	ab&amp;&quot;cd
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b	&quot;&lt;	ab&gt;cd&amp;ef&amp;amp
       </sentence>
       </text>
 
@@ -424,6 +730,36 @@
       </sentence>
       </text>
 
+- name: 'vrt-update-attrs: Key attribute, header row, --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --key a
+    stdin: |
+      <!-- #vrt positional-attributes: a -->
+      <text a="1">
+      <sentence>
+      1
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      2
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: a a1 a2 -->
+      <text a="1">
+      <sentence>
+      1	aa	bb
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      2	cc	dd
+      </sentence>
+      </text>
+
 
 - name: 'vrt-update-attrs: Two key attributes, header row'
   input:
@@ -454,6 +790,37 @@
       </text>
   transform: *transform-comma-space
 
+- name: 'vrt-update-attrs: Two key attributes, header row, --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --key "a,a1"
+    stdin: |
+      <!-- #vrt positional-attributes: a a1 -->
+      <text>
+      <sentence>
+      1	aa
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      2	cc
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: a a1 a2 -->
+      <text>
+      <sentence>
+      1	aa	bb
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      2	cc	dd
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
 
 - name: 'vrt-update-attrs: Two key attributes, no header row'
   input:
@@ -471,7 +838,7 @@
       b
       </sentence>
       </text>
-    file:attrs.tsv: |
+    file:attrs.tsv: &tsv-2b |
       2	cc	dd
       1	aa	bb
   output:
@@ -484,6 +851,39 @@
       <text a="2" a1="cc" a2="dd">
       <sentence>
       b
+      </sentence>
+      </text>
+  transform: *transform-comma-space
+
+- name: 'vrt-update-attrs: Two key attributes, no header row, --positional'
+  input:
+    cmdline: >
+      vrt-update-attrs --positional --data-file attrs.tsv --key "a,a1"
+      --attributes "a a1 a2"
+    stdin: |
+      <!-- #vrt positional-attributes: word a a1 -->
+      <text>
+      <sentence>
+      a	1	aa
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	2	cc
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-2b
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a a1 a2 -->
+      <text>
+      <sentence>
+      a	1	aa	bb
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	2	cc	dd
       </sentence>
       </text>
   transform: *transform-comma-space
@@ -597,6 +997,38 @@
       <text a="3" a1="" a2="">
       <sentence>
       b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: No value for key attribute, --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --key a
+    stdin: |
+      <!-- #vrt positional-attributes: word a -->
+      <text a="1">
+      <sentence>
+      a	1
+      </sentence>
+      </text>
+      <text a="3">
+      <sentence>
+      b	3
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-2
+  output:
+    stderr: |
+      vrt-update-attrs: <stdin>:9: Warning: No data for key ('3',) in attrs.tsv; using value "_" for new attributes
+    stdout: |
+      <!-- #vrt positional-attributes: word a a1 a2 -->
+      <text a="1">
+      <sentence>
+      a	1	aa	bb
+      </sentence>
+      </text>
+      <text a="3">
+      <sentence>
+      b	3	_	_
       </sentence>
       </text>
 
