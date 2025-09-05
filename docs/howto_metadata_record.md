@@ -151,9 +151,12 @@ Here is an example of given annotation information regarding the language identi
 It is possible to create a COMEDI record by cloning an existing one. This is helpful, if another version of the resource already has a record in COMEDI and all or most of the details are the same. 
 - For this, login to COMEDI. 
 - Open the menu under "CMDI Records" and choose "Clone a metadata record". 
-- Choose the record you want to clone from the list of identifiers. 
+- Choose the record you want to clone from the list of identifiers. (This list seems to depend on the selection taken under 'show records', e.g. group, owner)
 - Add the identifier of the new metadata record to be created.
 - Remove the self link from the original metadata record and add the new self link (based on the identifier of the new metadata record)
-- Edit the new created metadata record: Change at least the resource name(s), description, identifier
+- update the access location PID (also under Resource Proxy)
+- note that the availability start date is still there and has to be removed or updated
+- Edit the new created metadata record: Change at least the resource name(s), description, identifier (NOTE that in the freshly cloned record, all content is still there from the original record!)
+
 
 
