@@ -336,12 +336,16 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?CSC*_ In case the package was encrypted for temporary storage, make sure the package is safely decrypted for the download service.
 
 Target directory: https://www.kielipankki.fi/download/shortname…
-Location/list of the corpus packages, README.txt and LICENSE.txt to be uploaded: (Typically, some files under download_preview in Puhti.)
+Location of the files to be uploaded: (Typically, a folder 'shortname' under download_preview in Puhti.)
+List of the files to be uploaded: (corpus package(s), README.txt and LICENSE.txt, maybe RELEASE_CANDIDATE.txt)
 Encrypted (yes/no) (If using encryption for internal processing, CSC must decrypt the packages for the download service.)
-Description text of the download directory:
-Link from the directory description (e.g., resource group PID):
-Description text/title of individual resource packages:
-Link from the resource package description (e.g., metadata PID):
+Description text of the download directory: (resource (group) name in English)
+Link from the directory description: (resource group PID)
+[In case sub folders are created for different versions of the resource, e.g. src and vrt:
+Description text of the sub folder: (name of the resource version in English)
+Link from the sub folder description: (metadata PID)]
+Description text/title of individual resource packages: (license info, e.g. CC-BY-NC)
+Link from the resource package description (PID of the license page in English):
 Access restrictions: public access / ACA license / RES license (please describe)
 
 ```
