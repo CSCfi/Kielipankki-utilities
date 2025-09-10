@@ -16,7 +16,8 @@ import re
 import sys
 
 from argparse import ArgumentParser
-from enum import Enum
+from collections import defaultdict
+from enum import Enum, Flag
 
 import vrtargslib
 
@@ -31,6 +32,18 @@ class CommonArgs(Enum):
     """Only --version"""
     trans = 2
     """Common arguments for text transforming scripts"""
+
+
+class WarningsStyle(Flag):
+    """The style of warnings output"""
+    NONE = 0
+    """No warnings"""
+    FIRST = 1
+    """Only the first warning of each kind"""
+    SUMMARY = 2
+    """Summary of warnings (kinds and counts)"""
+    ALL = 4
+    """All warnings"""
 
 
 def get_argparser(argspecs=None, *, common_args=CommonArgs.trans,
@@ -468,6 +481,12 @@ class BasicProcessor:
         """Program name"""
         self._extra_types = extra_types
         """Dictionary of extra type functions for argument specifications"""
+        self._warnings_style = WarningsStyle.ALL
+        """Warnings style"""
+        self._warning_counts = defaultdict(int)
+        """Number of each kind of warning (for WarningsStyle.SUMMARY)"""
+        self._warning_firsts = {}
+        """(filename, linenr) for the first of each kind of warning"""
 
     def _get_argparser(self, **extra_kwargs):
         """Create a parser for command-line arguments."""
@@ -486,6 +505,10 @@ class BasicProcessor:
         """Check command-line arguments and assign them to self._args."""
         self._args = args
 
+    def set_warnings_style(self, style):
+        """Set warnings style to `style`."""
+        self._warnings_style = style
+
     def print_error(self, *msg, **kwargs):
         """Print message msg to standard error.
 
@@ -494,11 +517,70 @@ class BasicProcessor:
         print_error(*msg, progname=self._progname, **kwargs)
 
     def warn(self, *msg, **kwargs):
-        """Print message msg prepended with "Warning:" to standard error.
+        """Print message `msg` prepended with "Warning:" to standard error.
 
-        Prepend program name and possible filename and linenr from kwargs.
+        Prepend program name and possible `filename` and `linenr` from
+        `kwargs`.
+
+        Obey `self._warnings_style` (see `WarningsStyle` above).
+        `kwargs[kind]` can be used to specify the kind of warning for
+        summarization, to be used instead of `msg`. If
+        `kwargs[omit_summary]` is specified and truthy, omit the
+        warning from the summary.
         """
-        self.print_error('Warning:', *msg, **kwargs)
+        if self._warnings_style == WarningsStyle.NONE:
+            return
+        kind = kwargs.pop('kind', None) or ' '.join(msg)
+        omit_summary = kwargs.pop('omit_summary', False)
+        if (self._warnings_style & WarningsStyle.ALL
+              or (self._warnings_style & WarningsStyle.FIRST
+                  and self._warning_firsts.get(kind) is None)):
+            self.print_error('Warning:', *msg, **kwargs)
+        if self._warnings_style & (WarningsStyle.FIRST | WarningsStyle.SUMMARY):
+            self._warning_firsts.setdefault(
+                kind, (kwargs.get('filename'), kwargs.get('linenr')))
+        if not omit_summary and self._warnings_style & WarningsStyle.SUMMARY:
+            self._warning_counts[kind] += 1
+
+    def summarize_warnings(
+            self, heading='Summary of warnings ({format}):',
+            format='{count}{first_loc}: {kind}',
+            first_loc_format=' ({filename}:{linenr})',
+            heading_placeholders=None,
+            prepend_progname=True):
+        """Print a summary of warnings to standard error.
+
+        Preprend a line with `heading` (`None` or empty to suppress)
+        and format each summary line according to `format` and
+        `first_loc_format`. If `include_progname` is `True` (default),
+        prepend program name to each summary line; `False` to
+        suppress. `heading` may contain `{format}`, which is replaced
+        with the format of a summary line, with format fields replaced
+        by placeholders. The default placeholders can be overridden
+        with `heading_placeholders` (`dict`).
+        """
+        if not self._warning_counts:
+            return
+        print_func = self.print_error if prepend_progname else print_error
+        if heading:
+            heading_placeholders = heading_placeholders or dict(
+                count='<count>',
+                kind='<kind>',
+                filename='<file name of first>',
+                linenr='<line number>'
+            )
+            print_func(heading.replace('{format}', format)
+                       .replace('{first_loc}', first_loc_format)
+                       .format(**heading_placeholders))
+        for kind, count in self._warning_counts.items():
+            filename, linenr = self._warning_firsts[kind]
+            first_loc = ('' if filename is None
+                         else first_loc_format.format(filename=filename,
+                                                      linenr=linenr))
+            s = 's' if count > 1 else ''
+            print_func(format.format(count=count, first_loc=first_loc,
+                                     filename=filename, linenr=linenr,
+                                     s=s, kind=kind))
 
     def error_exit(self, *msg, exitcode=1, **kwargs):
         """Print message msg to standard error and exit with code exitcode.
