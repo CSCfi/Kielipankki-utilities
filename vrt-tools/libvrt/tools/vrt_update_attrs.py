@@ -247,6 +247,9 @@ class AttrUpdater(InputProcessor):
         tsv_attrs_empty = None
         empty_value = b'_' if args.positional else b''
         empty_value_s = empty_value.decode('utf-8')
+        # Values for tsv_linenr when using only fixed or empty values
+        FIXED_VALUES = -1
+        EMPTY_VALUES = -2
 
         def read_keyed_data(tsv_reader):
             missing_key_attrs = [attr for attr in key_attrs
@@ -277,12 +280,12 @@ class AttrUpdater(InputProcessor):
                 new_attr_values[key] = (attrs, tsv_reader.line_num)
 
         def get_add_attrs_empty(tsv_reader, line, attrs, linenr):
-            return tsv_attrs_empty, -1
+            return tsv_attrs_empty, EMPTY_VALUES
 
         def get_add_attrs_ordered(tsv_reader, line, attrs, linenr):
             nonlocal tsv_exhausted, tsv_attrs_empty
             if tsv_exhausted:
-                return tsv_attrs_empty, -1
+                return tsv_attrs_empty, EMPTY_VALUES
             add_attrs = next(tsv_reader, None)
             if add_attrs is None:
                 # If the data file is too short, add empty attribute
@@ -299,7 +302,7 @@ class AttrUpdater(InputProcessor):
                     f' adding attribute values "{empty_value_s}" for the rest'
                     f' of the {msg_items}')
                 tsv_exhausted = True
-                return tsv_attrs_empty, -1
+                return tsv_attrs_empty, EMPTY_VALUES
             return add_attrs, tsv_reader.line_num
 
         def get_add_attrs_keyed(tsv_reader, line, attrs, linenr):
@@ -331,7 +334,7 @@ class AttrUpdater(InputProcessor):
                         (attrname,
                          attrs[attrname] if attrname in attrs else empty_value)
                         for attrname in tsv_reader.fieldnames),
-                    -1)
+                    EMPTY_VALUES)
 
         def add_attributes(line, attrs, add_attrs, linenr, tsv_line_num,
                            check_overlap_attrs):
@@ -347,16 +350,17 @@ class AttrUpdater(InputProcessor):
             for overlap_attr in check_overlap_attrs:
                 if (overlap_attr in attrs.keys()
                         and add_attrs[overlap_attr] != attrs[overlap_attr]):
-                    attrname = overlap_attr.decode()
-                    if overlap_attr in fixed_attrs:
-                        msg_other = 'specified with --fixed'
-                    else:
-                        msg_other = (
-                            f'on line {tsv_line_num} of {args.data_file}')
-                    self.warn(
-                        f'Value for attribute {overlap_attr.decode()} differs'
-                        f' from that {msg_other}; keeping the existing one',
-                        filename=inf.name, linenr=linenr)
+                    if tsv_line_num != EMPTY_VALUES:
+                        if overlap_attr in fixed_attrs:
+                            msg_other = 'specified with --fixed'
+                        else:
+                            msg_other = (
+                                f'on line {tsv_line_num} of {args.data_file}')
+                        self.warn(
+                            f'Value for attribute {overlap_attr.decode()}'
+                            f' differs from that {msg_other}; keeping the'
+                            ' existing one',
+                            filename=inf.name, linenr=linenr)
                     # In case of conflict, the existing value is kept
                     add_attrs[overlap_attr] = attrs[overlap_attr]
             for attrname, attrval in add_attrs.items():
@@ -468,7 +472,7 @@ class AttrUpdater(InputProcessor):
                         # If get_add_attrs is None, no data file, so
                         # fixed and/or computed values only
                         add_attrs = fixed_vals
-                        tsv_linenr = -1
+                        tsv_linenr = FIXED_VALUES
                     if add_attrs or self._compute_funcs:
                         attrs = add_attributes(
                             line, attrs, add_attrs, linenr, tsv_linenr,
