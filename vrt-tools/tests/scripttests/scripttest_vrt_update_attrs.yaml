@@ -179,7 +179,7 @@
 - name: 'vrt-update-attrs: Longer VRT than data file'
   input:
     cmdline: vrt-update-attrs --data-file attrs.tsv
-    stdin: |
+    stdin: &input-a3 |
       <text a="1">
       <sentence>
       a
@@ -195,7 +195,7 @@
       c
       </sentence>
       </text>
-    file:attrs.tsv: |
+    file:attrs.tsv: &tsv-1b |
       a1	a2
       aa	bb
   output:
@@ -239,9 +239,7 @@
       c
       </sentence>
       </text>
-    file:attrs.tsv: |
-      a1	a2
-      aa	bb
+    file:attrs.tsv: *tsv-1b
   output:
     returncode: 0
     stderr: |
@@ -261,6 +259,126 @@
       <text a="3">
       <sentence>
       c	_	_
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: Longer VRT than data file, overlapping attrs'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv
+    stdin: *input-a3
+    file:attrs.tsv: &tsv-1c |
+      a	a1	a2
+      1	aa	bb
+  output:
+    stderr: |
+      vrt-update-attrs: Warning: Data file attrs.tsv has fewer data lines (1) than the input VRT has text structures; adding attribute values "" for the rest of the structures
+    stdout: |
+      <text a="1" a1="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" a1="" a2="">
+      <sentence>
+      b
+      </sentence>
+      </text>
+      <text a="3" a1="" a2="">
+      <sentence>
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: Longer VRT than data file, overlapping attrs, --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv
+    stdin: &input-a3-pos |
+      <!-- #vrt positional-attributes: word a -->
+      <text a="1">
+      <sentence>
+      a	1
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b	2
+      </sentence>
+      </text>
+      <text a="3">
+      <sentence>
+      c	3
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1c
+  output:
+    stderr: |
+      vrt-update-attrs: Warning: Data file attrs.tsv has fewer data lines (1) than the input VRT has tokens; adding attribute values "_" for the rest of the tokens
+    stdout: |
+      <!-- #vrt positional-attributes: word a a1 a2 -->
+      <text a="1">
+      <sentence>
+      a	1	aa	bb
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b	2	_	_
+      </sentence>
+      </text>
+      <text a="3">
+      <sentence>
+      c	3	_	_
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: Longer VRT than data file, overlapping attrs, --overwrite'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --overwrite a
+    stdin: *input-a3
+    file:attrs.tsv: *tsv-1c
+  output:
+    stderr: |
+      vrt-update-attrs: Warning: Data file attrs.tsv has fewer data lines (1) than the input VRT has text structures; adding attribute values "" for the rest of the structures
+    stdout: |
+      <text a="1" a1="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="" a1="" a2="">
+      <sentence>
+      b
+      </sentence>
+      </text>
+      <text a="" a1="" a2="">
+      <sentence>
+      c
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: Longer VRT than data file, overlapping attrs, --overwrite --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --overwrite a
+    stdin: *input-a3-pos
+    file:attrs.tsv: *tsv-1c
+  output:
+    stderr: |
+      vrt-update-attrs: Warning: Data file attrs.tsv has fewer data lines (1) than the input VRT has tokens; adding attribute values "_" for the rest of the tokens
+    stdout: |
+      <!-- #vrt positional-attributes: word a a1 a2 -->
+      <text a="1">
+      <sentence>
+      a	1	aa	bb
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b	_	_	_
+      </sentence>
+      </text>
+      <text a="3">
+      <sentence>
+      c	_	_	_
       </sentence>
       </text>
 
@@ -412,6 +530,75 @@
       <text a1="cc">
       <sentence>
       b	cc	dd
+      </sentence>
+      </text>
+
+
+- name: 'vrt-update-attrs: Check existing attribute values (mismatch), shorter data file'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv
+    stdin: |
+      <text a1="ab">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a1="cc">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: |
+      a1	a2
+      aa	bb
+  output:
+    stderr: |
+      vrt-update-attrs: <stdin>:1: Warning: Value for attribute a1 differs from that on line 2 of attrs.tsv; keeping the existing one
+      vrt-update-attrs: Warning: Data file attrs.tsv has fewer data lines (1) than the input VRT has text structures; adding attribute values "" for the rest of the structures
+    stdout: |
+      <text a1="ab" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a1="cc" a2="">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: Check existing attribute values (mismatch), shorter data file, --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv
+    stdin: |
+      <!-- #vrt positional-attributes: word a1 -->
+      <text a1="ab">
+      <sentence>
+      a	ab
+      </sentence>
+      </text>
+      <text a1="cc">
+      <sentence>
+      b	cc
+      </sentence>
+      </text>
+    file:attrs.tsv: |
+      a1	a2
+      aa	bb
+  output:
+    stderr: |
+      vrt-update-attrs: <stdin>:4: Warning: Value for attribute a1 differs from that on line 2 of attrs.tsv; keeping the existing one
+      vrt-update-attrs: Warning: Data file attrs.tsv has fewer data lines (1) than the input VRT has tokens; adding attribute values "_" for the rest of the tokens
+    stdout: |
+      <!-- #vrt positional-attributes: word a1 a2 -->
+      <text a1="ab">
+      <sentence>
+      a	ab	bb
+      </sentence>
+      </text>
+      <text a1="cc">
+      <sentence>
+      b	cc	_
       </sentence>
       </text>
 
@@ -1084,6 +1271,68 @@
 - name: 'vrt-update-attrs: No value for key attribute; preserving existing values, --positional'
   input:
     cmdline: vrt-update-attrs --positional --data-file attrs.tsv --key a --overwrite a1
+    stdin: |
+      <!-- #vrt positional-attributes: word a a1 -->
+      <text>
+      <sentence>
+      a	1	aa
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	3	a3
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-2
+  output:
+    stderr: |
+      vrt-update-attrs: <stdin>:9: Warning: No data for key ('3',) in attrs.tsv; using value "_" for new attributes
+    stdout: |
+      <!-- #vrt positional-attributes: word a a1 a2 -->
+      <text>
+      <sentence>
+      a	1	aa	bb
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	3	a3	_
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: No value for key attribute; overwriting key'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key a --overwrite a
+    stdin: |
+      <text a="1" a1="aa">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="3" a1="a3">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-2
+  output:
+    stderr: |
+      vrt-update-attrs: <stdin>:6: Warning: No data for key ('3',) in attrs.tsv; using value "" for new attributes
+    stdout: |
+      <text a="1" a1="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="3" a1="a3" a2="">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: No value for key attribute; overwriting key, --positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --key a --overwrite a
     stdin: |
       <!-- #vrt positional-attributes: word a a1 -->
       <text>
