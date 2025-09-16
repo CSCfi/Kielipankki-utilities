@@ -34,7 +34,7 @@ from libvrt.metaline import pairs, starttag, strescape, strunescape
 from libvrt.funcdefutils import define_transform_func, FuncDefError
 from libvrt.tsv import TsvReader, EncodeEntities
 from vrtnamelib import isbinnames, binnamelist, binmakenames
-from vrtargsoolib import InputProcessor
+from vrtargsoolib import InputProcessor, WarningsStyle
 
 
 class AttrUpdater(InputProcessor):
@@ -153,6 +153,12 @@ class AttrUpdater(InputProcessor):
          Note that this option implies reading the entire data file into
          memory, so use with caution for very large data files.
          """),
+        ('--warnings=STYLE (*all|first|summary|none|all+summary|first+summary)',
+         """Control warnings output: "all" (output all warnings, the default),
+         "first" (only the first warning of each kind), "summary" (a summary
+         of warnings at the end), none (no warnings); suffix "+summary" also
+         adds a summary at the end.
+         """),
     ]
 
     def __init__(self):
@@ -180,6 +186,10 @@ class AttrUpdater(InputProcessor):
                             exitcode=2)
         args.fixed = check_fixed(args.fixed)
         self._make_compute_funcs(args.compute or [], args.setup_code or [])
+        warnings_style = WarningsStyle.NONE
+        for style in args.warnings.split('+'):
+            warnings_style |= getattr(WarningsStyle, style.upper())
+        self.set_warnings_style(warnings_style)
 
     def _make_compute_funcs(self, compute_attrs, setup_code):
         """Set self._compute_funcs and ._compute_sources from compute_attrs.
@@ -492,3 +502,4 @@ class AttrUpdater(InputProcessor):
                 tsv_attrs_empty = OrderedDict(
                     (attrname, empty_value) for attrname in tsv_attr_names)
                 process_input(inf, get_add_attrs, tsv_reader, new_attr_names)
+        self.summarize_warnings()

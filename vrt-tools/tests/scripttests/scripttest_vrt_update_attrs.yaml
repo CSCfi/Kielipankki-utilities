@@ -2063,3 +2063,152 @@
     stdout: ''
     stderr: |
       vrt-update-attrs: Error when computing value for attribute "d": NameError: name 'y' is not defined
+
+
+# --warnings
+
+- name: 'vrt-update-attrs: --warnings=all (default)'
+  input:
+    cmdline:
+    - vrt-update-attrs --data-file attrs.tsv --key=a
+    - vrt-update-attrs --data-file attrs.tsv --key=a --warnings=all
+    file:attrs.tsv: *tsv-2
+    stdin: &input-abc2 |
+      <text a="3" b="abc" c="def">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="4" b="ghi" c="jkl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+      <text a="3" b="mno" c="pqr">
+      <sentence>
+      c
+      </sentence>
+      </text>
+  output:
+    stdout: &output-abc2 |
+      <text a="3" b="abc" c="def" a1="" a2="">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="4" b="ghi" c="jkl" a1="" a2="">
+      <sentence>
+      b
+      </sentence>
+      </text>
+      <text a="3" b="mno" c="pqr" a1="" a2="">
+      <sentence>
+      c
+      </sentence>
+      </text>
+    stderr: &warn-abc2 |
+      vrt-update-attrs: <stdin>:1: Warning: No data for key ('3',) in attrs.tsv; using value "" for new attributes
+      vrt-update-attrs: <stdin>:6: Warning: No data for key ('4',) in attrs.tsv; using value "" for new attributes
+      vrt-update-attrs: <stdin>:11: Warning: No data for key ('3',) in attrs.tsv; using value "" for new attributes
+
+- name: 'vrt-update-attrs: --warnings=none'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key=a --warnings=none
+    file:attrs.tsv: *tsv-2
+    stdin: *input-abc2
+  output:
+    stdout: *output-abc2
+
+- name: 'vrt-update-attrs: --warnings=first'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key=a --warnings=first
+    file:attrs.tsv: *tsv-2
+    stdin: *input-abc2
+  output:
+    stdout: *output-abc2
+    stderr: &warn-abc2-first |
+      vrt-update-attrs: <stdin>:1: Warning: No data for key ('3',) in attrs.tsv; using value "" for new attributes
+      vrt-update-attrs: <stdin>:6: Warning: No data for key ('4',) in attrs.tsv; using value "" for new attributes
+
+- name: 'vrt-update-attrs: --warnings=summary'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key=a --warnings=summary
+    file:attrs.tsv: *tsv-2
+    stdin: *input-abc2
+  output:
+    stdout: *output-abc2
+    stderr: &warn-abc2-summary |
+      vrt-update-attrs: Summary of warnings (<count> (<file name of first>:<line number>): <kind>):
+      vrt-update-attrs: 2 (<stdin>:1): No data for key ('3',) in attrs.tsv; using value "" for new attributes
+      vrt-update-attrs: 1 (<stdin>:6): No data for key ('4',) in attrs.tsv; using value "" for new attributes
+
+- name: 'vrt-update-attrs: --warnings=all+summary'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key=a --warnings=all+summary
+    file:attrs.tsv: *tsv-2
+    stdin: *input-abc2
+  output:
+    stdout: *output-abc2
+    stderr:
+      value: ''
+      transform:
+      - prepend: *warn-abc2
+      - append: *warn-abc2-summary
+
+- name: 'vrt-update-attrs: --warnings=first+summary'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key=a --warnings=first+summary
+    file:attrs.tsv: *tsv-2
+    stdin: *input-abc2
+  output:
+    stdout: *output-abc2
+    stderr:
+      value: ''
+      transform:
+      - prepend: *warn-abc2-first
+      - append: *warn-abc2-summary
+
+- name: 'vrt-update-attrs: --warnings=all+summary, warning without location'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --warnings=all+summary
+    stdin: |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+      <text a="3">
+      <sentence>
+      c
+      </sentence>
+      </text>
+    file:attrs.tsv: |
+      a1	a2
+      aa	bb
+  output:
+    returncode: 0
+    stderr: |
+      vrt-update-attrs: Warning: Data file attrs.tsv has fewer data lines (1) than the input VRT has text structures; adding attribute values "" for the rest of the structures
+      vrt-update-attrs: Summary of warnings (<count> (<file name of first>:<line number>): <kind>):
+      vrt-update-attrs: 1: Data file attrs.tsv has fewer data lines (1) than the input VRT has text structures; adding attribute values "" for the rest of the structures
+    stdout: |
+      <text a="1" a1="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" a1="" a2="">
+      <sentence>
+      b
+      </sentence>
+      </text>
+      <text a="3" a1="" a2="">
+      <sentence>
+      c
+      </sentence>
+      </text>
