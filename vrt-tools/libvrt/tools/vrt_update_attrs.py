@@ -23,12 +23,15 @@ Please run "vrt-update-attrs -h" for more information.
 #   need to remove them from the output with vrt-drop-attrs)
 
 
-import re
-import sys
+# re is not used in the code directly but it is imported for use in
+# --compute functions; "noqa: F401" disables a Ruff warning
+import re  # noqa: F401
 
 from collections import OrderedDict
 
-from libvrt.argtypes import attrlist, attr_value, attr_value_opts
+# attrlist and attr_value are used in ARGSPECS argument specification
+# strings
+from libvrt.argtypes import attrlist, attr_value, attr_value_opts  # noqa: F401
 from libvrt.datatypes import StrBytesDict
 from libvrt.iterutils import find_duplicates, make_unique
 from libvrt.metaline import pairs, starttag, strescape, strunescape
@@ -338,7 +341,6 @@ class AttrUpdater(InputProcessor):
                         missing_keys=', '.join(missing_keys)),
                     filename=inf.name, linenr=linenr)
                 return (None, None)
-            add_attrs = None
             if key in new_attr_values:
                 empty_attrs_set = set()
                 return new_attr_values[key]
