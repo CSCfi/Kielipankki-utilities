@@ -481,24 +481,39 @@ class AttrUpdater(InputProcessor):
                             filename=inf.name, linenr=linenr)
                     ouf.write(line)
 
+            def is_line_to_process_struct(line):
+                return (line[0] == LESS_THAN
+                        and line.startswith(struct_begin_alts))
+
+            def is_line_to_process_pos(line):
+                return line[0] != LESS_THAN
+
+            get_line_attrs_struct = pairs
+
+            def get_line_attrs_pos(line):
+                return zip(pos_attr_names, line[:-1].split(b'\t'))
+
+            def make_line_struct(attrs):
+                return starttag(struct_name, attrs)
+
+            def make_line_pos(attrs):
+                return b'\t'.join(attrs.values()) + b'\n'
+
             linenr = 0
             if args.positional:
-                process_line = lambda line: line[0] != LESS_THAN
-                get_line_attrs = (
-                    lambda line: zip(pos_attr_names, line[:-1].split(b'\t')))
-                make_line = lambda attrs: b'\t'.join(attrs.values()) + b'\n'
+                is_line_to_process = is_line_to_process_pos
+                get_line_attrs = get_line_attrs_pos
+                make_line = make_line_pos
                 pos_attr_names = get_pos_attrs()
             else:
-                process_line = lambda line: (
-                    line[0] == LESS_THAN
-                    and line.startswith(struct_begin_alts))
-                get_line_attrs = pairs
-                make_line = lambda attrs: starttag(struct_name, attrs)
+                is_line_to_process = is_line_to_process_struct
+                get_line_attrs = get_line_attrs_struct
+                make_line = make_line_struct
                 pos_attr_names = []
             check_overlap_attrs = set(new_attr_names_orig) - overwrite_attrs
             for line in inf:
                 linenr += 1
-                if process_line(line):
+                if is_line_to_process(line):
                     # Use StrBytesDict instead of dict (as in
                     # libvrt.metaline.mapping) so that compute
                     # functions can access attribute values
