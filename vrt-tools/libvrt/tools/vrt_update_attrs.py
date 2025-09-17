@@ -16,6 +16,7 @@ Please run "vrt-update-attrs -h" for more information.
 #   when no key is found in the input
 # - --compute: Specify multiple attributes to compute with the same
 #   function
+# - --rename: Allow specifying multiple renames with a single option.
 # - --compute: Refer to attributes of enclosing structures
 # - --data-file: Allow specifying column names that do not end up in
 #   attributes but that can be used in compute functions (removing the
@@ -153,6 +154,23 @@ class AttrUpdater(InputProcessor):
          Note that this option implies reading the entire data file into
          memory, so use with caution for very large data files.
          """),
+        ('--rename=ATTR:attr_value -> rename_attrs',
+         """Rename attribute OLD to NEW. OLD must be an attribute from
+         the TSV data file. (Use vrt-rename-attrs or vrt-rename to
+         rename existing attributes not in the TSV file.)
+         NEW need not be specified in --overwrite even if it already
+         existed in the VRT.
+         If attribute NEW already exists in the input, renaming
+         overwrites the existing values except for those without a
+         value in the TSV data file: their existing value is preserved
+         instead of replacing with a "" or "_".
+         Attributes are renamed after all other processing, so e.g.
+         code in --compute should refer to attributes by their
+         original names.
+         This option can be repeated.
+         """,
+         dict(action='append',
+              metavar='OLD:NEW')),
         ('--warnings=STYLE (*all|first|summary|none|all+summary|first+summary)',
          """Control warnings output: "all" (output all warnings, the default),
          "first" (only the first warning of each kind), "summary" (a summary
@@ -247,13 +265,14 @@ class AttrUpdater(InputProcessor):
         tsv_attrs_empty = None
         empty_value = b'_' if args.positional else b''
         empty_value_s = empty_value.decode('utf-8')
+        empty_attrs_set = set()
         # Values for tsv_linenr when using only fixed or empty values
         FIXED_VALUES = -1
         EMPTY_VALUES = -2
 
         def read_keyed_data(tsv_reader):
             missing_key_attrs = [attr for attr in key_attrs
-                                 if attr not in new_attr_names]
+                                 if attr not in new_attr_names_orig]
             if missing_key_attrs:
                 plural = len(missing_key_attrs) > 1
                 self.error_exit(
@@ -306,6 +325,7 @@ class AttrUpdater(InputProcessor):
             return add_attrs, tsv_reader.line_num
 
         def get_add_attrs_keyed(tsv_reader, line, attrs, linenr):
+            nonlocal empty_attrs_set
             try:
                 key = tuple(attrs[key_attr] for key_attr in key_attrs)
             except KeyError:
@@ -320,6 +340,7 @@ class AttrUpdater(InputProcessor):
                 return (None, None)
             add_attrs = None
             if key in new_attr_values:
+                empty_attrs_set = set()
                 return new_attr_values[key]
             else:
                 self.warn(
@@ -329,11 +350,10 @@ class AttrUpdater(InputProcessor):
                          datafile=args.data_file,
                          empty_value_s=empty_value_s),
                     filename=inf.name, linenr=linenr)
+                empty_attrs_set = tsv_attr_names_set - set(attrs.keys())
                 return (
-                    OrderedDict(
-                        (attrname,
-                         attrs[attrname] if attrname in attrs else empty_value)
-                        for attrname in tsv_reader.fieldnames),
+                    OrderedDict((attrname, attrs.get(attrname, empty_value))
+                                 for attrname in tsv_reader.fieldnames),
                     EMPTY_VALUES)
 
         def add_attributes(line, attrs, add_attrs, linenr, tsv_line_num,
@@ -347,6 +367,8 @@ class AttrUpdater(InputProcessor):
 
             # Check if attributes to be added (and not listed in
             # --overwrite) already exist in the input
+            # TODO: Also check attributes renamed to an existing name
+            # (more complicated; would it be needed?)
             for overlap_attr in check_overlap_attrs:
                 if (overlap_attr in attrs.keys()
                         and add_attrs[overlap_attr] != attrs[overlap_attr]):
@@ -384,6 +406,22 @@ class AttrUpdater(InputProcessor):
                             filename=inf.name, linenr=linenr)
                         attrs[attrname] = empty_value_s
                 attrs.convert_to_bytes()
+            if rename_attrs:
+                attrs = OrderedDict(
+                    (rename_attrs_dict.get(name, name),
+                     attrs.get(rename_attrs_dict.get(name), empty_value)
+                     if name in empty_attrs_set else val)
+                    for name, val in attrs.items())
+                # The following code would be somewhat faster but does
+                # not work correctly when renaming an existing
+                # attribute:
+                # rename_attrs_targets = set(rename_attrs_dict.values())
+                # for source, target in rename_attrs:
+                #     if target in attrs:
+                #         if source not in empty_attrs_set:
+                #             attrs[target] = attrs[source]
+                #     if source not in rename_attrs_targets:
+                #         attrs.pop(source)
             return attrs
 
         def process_input(inf, get_add_attrs, tsv_reader, new_attr_names):
@@ -410,7 +448,9 @@ class AttrUpdater(InputProcessor):
                         pos_attr_names = binnamelist(line)
                         ouf.write(binmakenames(
                             *(make_unique(
-                                pos_attr_names, new_attr_names,
+                                (rename_attrs_dict.get(attr, attr)
+                                 for attr in pos_attr_names),
+                                new_attr_names,
                                 (attr.encode('utf-8')
                                  for attr, _ in self._compute_funcs)))))
                         if key_attrs:
@@ -453,7 +493,7 @@ class AttrUpdater(InputProcessor):
                 get_line_attrs = pairs
                 make_line = lambda attrs: starttag(struct_name, attrs)
                 pos_attr_names = []
-            check_overlap_attrs = set(new_attr_names) - overwrite_attrs
+            check_overlap_attrs = set(new_attr_names_orig) - overwrite_attrs
             for line in inf:
                 linenr += 1
                 if process_line(line):
@@ -481,8 +521,14 @@ class AttrUpdater(InputProcessor):
                 ouf.write(line)
 
         new_attr_names = list(fixed_vals.keys())
+        # Original, non-renamed names of new attributes
+        new_attr_names_orig = new_attr_names.copy()
         fixed_attrs = set(new_attr_names)
+        rename_attrs = args.rename_attrs or []
+        rename_attrs_dict = dict(rename_attrs)
         if args.data_file is None:
+            if rename_attrs:
+                self.error_exit('--rename can be used only with --data-file')
             process_input(inf, None, None, new_attr_names)
         else:
             get_add_attrs = (
@@ -493,7 +539,8 @@ class AttrUpdater(InputProcessor):
                 if not args.attr_names:
                     tsv_reader.read_fieldnames()
                 tsv_attr_names = tsv_reader.fieldnames or []
-                tsv_fixed_attrs = fixed_attrs & set(tsv_attr_names)
+                tsv_attr_names_set = set(tsv_attr_names)
+                tsv_fixed_attrs = fixed_attrs & tsv_attr_names_set
                 if tsv_fixed_attrs:
                     self.error_exit(
                         'Same attributes specified both in a data file and'
@@ -501,6 +548,17 @@ class AttrUpdater(InputProcessor):
                         + ', '.join(attrname.decode('utf-8') for attrname in
                                     sorted(tsv_fixed_attrs)))
                 new_attr_names = make_unique(new_attr_names, tsv_attr_names)
+                new_attr_names_orig = new_attr_names.copy()
+                if rename_attrs:
+                    for old, new in rename_attrs:
+                        if old not in tsv_attr_names:
+                            self.error_exit(
+                                'Attribute to be renamed does not exist in TSV'
+                                ' data file: ' + old.decode('utf-8'))
+                    new_attr_names = make_unique(
+                        (rename_attrs_dict.get(attr, attr)
+                         for attr in new_attr_names),
+                        (new for _, new in rename_attrs))
                 if key_attrs:
                     read_keyed_data(tsv_reader)
                 tsv_attrs_empty = OrderedDict(

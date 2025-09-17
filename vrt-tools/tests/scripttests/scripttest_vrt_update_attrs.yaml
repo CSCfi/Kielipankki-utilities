@@ -2461,3 +2461,349 @@
       c
       </sentence>
       </text>
+
+
+# --rename
+
+- name: 'vrt-update-attrs: --rename with no --data-file'
+  input:
+    cmdline:
+    - vrt-update-attrs --fixed b=1 --rename b:x
+    - vrt-update-attrs --compute b='attr["a"] + "1"' --rename b:x
+    stdin: *input-a
+  output:
+    returncode: 1
+    stdout: ''
+    stderr: |
+      vrt-update-attrs: --rename can be used only with --data-file
+
+- name: 'vrt-update-attrs: --rename attribute not in data file'
+  input:
+    cmdline:
+    - vrt-update-attrs --data-file attrs.tsv --rename b:c
+    - vrt-update-attrs --data-file attrs.tsv --rename b:c --rename x:y
+    # Rename chaining also fails
+    - vrt-update-attrs --data-file attrs.tsv --rename a:b --rename b:c
+    - vrt-update-attrs --data-file attrs.tsv --fixed b=x --rename b:c
+    - vrt-update-attrs --data-file attrs.tsv --compute b='1+1' --rename b:c
+    stdin: &input-b |
+      <text b="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text b="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-2
+  output:
+    returncode: 1
+    stdout: ''
+    stderr: |
+      vrt-update-attrs: Attribute to be renamed does not exist in TSV data file: b
+
+- name: 'vrt-update-attrs: --rename attribute from TSV'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key a --rename a1:b
+    stdin: *input-a
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <text a="1" b="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="cc" a2="dd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --rename two attributes from TSV'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key a --rename a1:b --rename a2:c
+    stdin: *input-a
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <text a="1" b="aa" c="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="cc" c="dd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --rename two positional attributes from TSV'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --key a --rename a1:x --rename a2:y
+    stdin: *input-abc-pos
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a b c x y -->
+      <text>
+      <sentence>
+      a	1	abc	def	aa	bb
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	2	ghi	jkl	cc	dd
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --rename attribute in TSV already existing in VRT'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key a --rename a:x
+    stdin: *input-a
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <text x="1" a1="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text x="2" a1="cc" a2="dd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --rename positional attribute in TSV already existing in VRT'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --key a --rename a:x
+    stdin: *input-abc-pos
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word x b c a1 a2 -->
+      <text>
+      <sentence>
+      a	1	abc	def	aa	bb
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	2	ghi	jkl	cc	dd
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --rename attribute in TSV to overwrite attribute in VRT'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key a --rename a1:a
+    stdin: *input-a
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <text a="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="cc" a2="dd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --rename positional attribute in TSV to overwrite attribute in VRT'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --key a --rename a1:a
+    stdin: *input-abc-pos
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a b c a2 -->
+      <text>
+      <sentence>
+      a	aa	abc	def	bb
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	cc	ghi	jkl	dd
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: Multiple --rename attributes in TSV to existing names'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key a --rename a2:a1 --rename a1:a
+    stdin: *input-a
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <text a="aa" a1="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="cc" a1="dd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: Multiple --rename positional attributes in TSV to existing names'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --key a --rename a2:a1 --rename a1:a
+    stdin: *input-abc-pos
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a b c a1 -->
+      <text>
+      <sentence>
+      a	aa	abc	def	bb
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	cc	ghi	jkl	dd
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --rename to existing name, keep existing values if not in data file'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key a --rename a1:a
+    stdin: &input-a1b |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="1b">
+      <sentence>
+      a1
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <text a="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="1b" a2="">
+      <sentence>
+      a1
+      </sentence>
+      </text>
+      <text a="cc" a2="dd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    stderr: |
+      vrt-update-attrs: <stdin>:6: Warning: No data for key ('1b',) in attrs.tsv; using value "" for new attributes
+
+- name: 'vrt-update-attrs: --rename positional attribute to existing name, keep existing values if not in data file'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --key a --rename a1:a
+    stdin: &input-a1b-pos |
+      <!-- #vrt positional-attributes: word a b c -->
+      <text>
+      <sentence>
+      a	1	abc	def
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      c	1b	abc2	def2
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	2	ghi	jkl
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-2
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a b c a2 -->
+      <text>
+      <sentence>
+      a	aa	abc	def	bb
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      c	1b	abc2	def2	_
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	cc	ghi	jkl	dd
+      </sentence>
+      </text>
+    stderr: |
+      vrt-update-attrs: <stdin>:9: Warning: No data for key ('1b',) in attrs.tsv; using value "_" for new attributes
+
+- name: 'vrt-update-attrs: --rename to existing name, keep existing values if not in data file, ordered data'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --rename a1:a
+    stdin: *input-a1b
+    file:attrs.tsv: &tsv-2c |
+      a	a1	a2
+      1	aa	bb
+      2	cc	dd
+  output:
+    stdout: |
+      <text a="aa" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="cc" a2="dd">
+      <sentence>
+      a1
+      </sentence>
+      </text>
+      <text a="" a2="">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    stderr: |
+      vrt-update-attrs: <stdin>:6: Warning: Value for attribute a differs from that on line 3 of attrs.tsv; keeping the existing one
+      vrt-update-attrs: Warning: Data file attrs.tsv has fewer data lines (2) than the input VRT has text structures; adding attribute values "" for the rest of the structures
+
+- name: 'vrt-update-attrs: --rename positional attribute to existing name, keep existing values if not in data file, ordered data'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --rename a1:a
+    stdin: *input-a1b-pos
+    file:attrs.tsv: *tsv-2c
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a b c a2 -->
+      <text>
+      <sentence>
+      a	aa	abc	def	bb
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      c	cc	abc2	def2	dd
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	_	ghi	jkl	_
+      </sentence>
+      </text>
+    stderr: |
+      vrt-update-attrs: <stdin>:9: Warning: Value for attribute a differs from that on line 3 of attrs.tsv; keeping the existing one
+      vrt-update-attrs: Warning: Data file attrs.tsv has fewer data lines (2) than the input VRT has tokens; adding attribute values "_" for the rest of the tokens
