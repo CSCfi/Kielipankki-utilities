@@ -331,7 +331,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ```
 # [ ] _*+META*_ Fill in the required information regarding the download package
-# [ ] _*+META*_ Assign this issue forward to CSC (add label "lb_csc_task" and prioritize if needed).
+# [ ] _*+META*_ Assign this issue forward to CSC (add label "lb-csc-task" and prioritize if needed).
 # [ ] _*+CSC*_ Upload the package to the download service
 # [ ] _*?CSC*_ In case the package was encrypted for temporary storage, make sure the package is safely decrypted for the download service.
 
@@ -355,7 +355,7 @@ Access restrictions: public access / ACA license / RES license (please describe)
 
 ```
 # [ ] _*+MANAGE*_ Fill in the information required in order to create an LBR record below, in the description of this Jira ticket.
-# [ ] _*+MANAGE*_ Assign this issue forward to a person with LBR manager rights / to CSC (add label: lb_csc_task and prioritize if needed).
+# [ ] _*+MANAGE*_ Assign this issue forward to a person with LBR manager rights / to CSC (add label: lb-csc-task and prioritize if needed).
 # [ ] _*+LBR*_ Create the LBR record, or update the existing one, according to the information below.
 
 Title of the resource(s) covered (ENG):
@@ -498,7 +498,7 @@ Additional details of the application (desription of the requirements and the ap
 
 ```
 # [ ] _*+KORP*_ Fill in the required information regarding the Korp corpus package
-# [ ] _*+MANAGE*_ Assign this issue forward to CSC (add label "lb_csc_task" and prioritize as needed).
+# [ ] _*+MANAGE*_ Assign this issue forward to CSC (add label "lb-csc-task" and prioritize as needed).
 # [ ] _*+CSC*_ Install the corpus package on the Korp server
 
 Location and instructions for installing the corpus package:
