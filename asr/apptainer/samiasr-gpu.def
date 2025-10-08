@@ -1,0 +1,35 @@
+Bootstrap: docker
+From: python:3.11-slim
+
+%post
+    apt-get update && apt-get install -y \
+        build-essential \
+        g++ \
+        && pip install --no-cache-dir pip==24.0 \
+        && pip install --no-cache-dir torch transformers datasets librosa \
+        && apt-get purge -y build-essential g++ \
+        && apt-get autoremove -y \
+        && rm -rf /var/lib/apt/lists/*
+    
+    export HF_HOME=/tmp/huggingface
+    mkdir -p "$HF_HOME" /opt/models
+    
+    python - <<'EOF'
+from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
+import torch
+model_name = "GetmanY1/wav2vec2-large-sami-cont-pt-22k-finetuned"
+save_path = "/opt/models/getman-wav2vec-large-sami"
+processor = Wav2Vec2Processor.from_pretrained(model_name)
+model = Wav2Vec2ForCTC.from_pretrained(model_name)
+processor.save_pretrained(save_path)
+model.save_pretrained(save_path)
+EOF
+    
+    pip cache purge
+    rm -rf /tmp/huggingface
+
+%environment
+    export MODELS_PATH="/opt/models"
+
+%runscript
+    exec python "$@"
