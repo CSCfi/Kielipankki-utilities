@@ -1,6 +1,9 @@
 Bootstrap: docker
 From: python:3.11-slim
 
+%files
+    samiasr.py /opt/samiasr/samiasr.py
+
 %post
     apt-get update && apt-get install -y \
         build-essential \
@@ -28,9 +31,23 @@ EOF
     
     pip cache purge
     rm -rf /tmp/huggingface
+    
+    # Create extraction helper script
+    cat > /usr/local/bin/get_runscript <<'EXTRACT_EOF'
+#!/bin/bash
+if [ -z "$1" ]; then
+    echo "Usage: apptainer exec samiasr_cpu.sif get_runscript OUTPUT_PATH"
+    echo "Example: apptainer exec samiasr_cpu.sif get_runscript ./samiasr.py"
+    exit 1
+fi
+cp /opt/samiasr/samiasr.py "$1"
+echo "Copied samiasr.py to $1"
+echo "Run with: apptainer exec samiasr_cpu.sif python $1 [args...]"
+EXTRACT_EOF
+    chmod +x /usr/local/bin/get_runscript
 
 %environment
     export MODELS_PATH="/opt/models"
 
 %runscript
-    exec python "$@"
+    exec python /opt/samiasr/samiasr.py "$@"
