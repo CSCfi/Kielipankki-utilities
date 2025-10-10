@@ -538,6 +538,7 @@ Access restrictions: public access / ACA license / RES license (please describe)
 ### _shortname_: Announce the publication of the new Korp corpus as another release candidate (if needed)
 ```
 # [ ] _*+META*_ Add "release candidate" version status information to metadata record record
+# [ ] _*+DB*_ Add "release candidate" version status information to the database
 # [ ] _*+META*_ Add the documentation of changes done to the data to the CHANGE-LOG in the metadata record (if needed)
 # [ ] _*+META*_ Add the documentation of changes done to the data to the resource group page (if needed)
 # [ ] _*+META*_  Add or update information about tools used in the data processing to the metadata record (if needed)
