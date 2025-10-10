@@ -66,7 +66,7 @@ Examples:
         """,
     )
 
-    parser.add_argument("input_file", help="Path to the audio file to transcribe")
+    parser.add_argument("input_files", nargs="+", help="Path(s) to the audio file(s) to transcribe")
 
     parser.add_argument(
         "--no-segment",
@@ -118,10 +118,11 @@ Examples:
 
     args = parser.parse_args()
 
-    # Validate input file
-    if not os.path.exists(args.input_file):
-        print(f"Error: Input file '{args.input_file}' does not exist.")
-        sys.exit(1)
+    # Validate input files
+    for input_file in args.input_files:
+        if not os.path.exists(input_file):
+            print(f"Error: Input file '{input_file}' does not exist.")
+            sys.exit(1)
 
     # Create configuration
     config = SamiASRConfig()
@@ -139,21 +140,29 @@ Examples:
         global model_loading_duration
         model_loading_duration = time.time() - model_start_time
 
-        # Process the file
+        # Process the files
         start_time = time.time()
-        segments = asr.process_file(args.input_file, args.no_segment)
+        results = []
+        for input_file in args.input_files:
+            segments = asr.process_file(input_file, args.no_segment)
+            results.append({"filename": input_file, "segments": segments})
         processing_time = time.time() - start_time
 
         # Output results
         if args.json:
-            output_json(segments, args.json)
+            output_json(results, args.json)
             if args.verbose:
                 print(f"JSON output written to: {args.json}")
         else:
-            print_whisper_style(segments)
+            for result in results:
+                print(f"ASR result for {result['filename']}:")
+                print_whisper_style(result['segments'])
+                if len(results) > 1:
+                    print()  # Add blank line between files
 
         if args.debug:
-            total_duration = sum(segment.duration() for segment in segments)
+            all_segments = [seg for result in results for seg in result['segments']]
+            total_duration = sum(segment.duration() for segment in all_segments)
             total_profiled_time = (
                 model_loading_duration
                 + audio_loading_duration
@@ -217,14 +226,15 @@ Examples:
             print(f"{'Total processing time':<25}: {processing_time:8.4f}s")
             print(f"{'Audio duration':<25}: {total_duration:8.4f}s")
             print(f"{'Real-time factor':<25}: {processing_time/total_duration:8.4f}x")
-            print(f"{'Segments processed':<25}: {len(segments)}")
+            print(f"{'Segments processed':<25}: {len(all_segments)}")
             print(f"{'='*60}")
 
         if args.verbose:
-            total_duration = sum(segment.duration() for segment in segments)
+            all_segments = [seg for result in results for seg in result['segments']]
+            total_duration = sum(segment.duration() for segment in all_segments)
             print(f"\nProcessing complete:")
             print(f"  Total audio: {total_duration:.2f}s")
-            print(f"  Segments: {len(segments)}")
+            print(f"  Segments: {len(all_segments)}")
             print(f"  Processing time: {processing_time:.2f}s")
             print(f"  Real-time factor: {processing_time/total_duration:.2f}x")
 
@@ -571,19 +581,39 @@ def print_whisper_style(segments: List[AudioSegment]):
         print(f"[{start_str} -> {end_str}] {segment.transcription}")
 
 
-def output_json(segments: List[AudioSegment], file_path: str):
+def output_json(results: List[Dict], file_path: str):
     """Output transcription as JSON."""
-    data = {
-        "segments": [
+    if len(results) == 1:
+        # Single file: output as single object
+        data = {
+            "filename": results[0]["filename"],
+            "segments": [
+                {
+                    "start": segment.start_time,
+                    "end": segment.end_time,
+                    "duration": segment.duration(),
+                    "text": segment.transcription,
+                }
+                for segment in results[0]["segments"]
+            ]
+        }
+    else:
+        # Multiple files: output as list
+        data = [
             {
-                "start": segment.start_time,
-                "end": segment.end_time,
-                "duration": segment.duration(),
-                "text": segment.transcription,
+                "filename": result["filename"],
+                "segments": [
+                    {
+                        "start": segment.start_time,
+                        "end": segment.end_time,
+                        "duration": segment.duration(),
+                        "text": segment.transcription,
+                    }
+                    for segment in result["segments"]
+                ]
             }
-            for segment in segments
+            for result in results
         ]
-    }
 
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)

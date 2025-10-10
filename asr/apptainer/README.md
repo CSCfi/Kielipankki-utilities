@@ -7,11 +7,13 @@ require a lot of memory, and not all build environments are compatible.
 The ones we are now distributing are built on Pouta Ubuntu VMs and have
 been tested to work on SD Desktop.
 
-Non-root building should be possible like this:
+Non-root building (on HPC) should be possible like this:
 
 ```bash
 srun apptainer build --fakeroot samiasr.sif samiasr.def
 ```
+
+On VMs, just run with sudo and no fakeroot.
 
 If `/tmp` is small, and you need another temporary space, like on HPC, you
 can do eg.
@@ -24,12 +26,25 @@ apptainer build --fakeroot --bind="$TMPDIR:/tmp" samiasr.sif samiasr.def
 
 ## Running
 
-These containers have just the libraries, models and Python, not a
-processing script. By default a processing script (eg. `samiasr.py`) is
-given to them as an argument:
+Basic operation with apptainer run:
 
 ```bash
-apptainer run samiasr_cpu.sif samiasr.py input.wav
+apptainer run samiasr.sif input1.wav input2.wav ...
+```
+
+See `--help` to see supported args.
+
+If you do want to modify the runscript, you can extract it like this:
+
+```bash
+apptainer exec samiasr.sif get_runscript samiasr.py
+```
+
+This will write samiasr.py to the present working directory. You can edit
+it, and then run your modified version with eg.
+
+```bash
+apptainer exec samiasr.sif python samiasr-modified.py input.wav
 ```
 
 ## Models
