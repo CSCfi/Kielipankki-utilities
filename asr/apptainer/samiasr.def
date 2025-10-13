@@ -35,13 +35,13 @@ EOF
     cat > /usr/local/bin/get_runscript <<'EXTRACT_EOF'
 #!/bin/bash
 if [ -z "$1" ]; then
-    echo "Usage: apptainer exec samiasr_cpu.sif get_runscript OUTPUT_PATH"
-    echo "Example: apptainer exec samiasr_cpu.sif get_runscript ./samiasr.py"
+    echo "Usage: apptainer exec samiasr.sif get_runscript OUTPUT_PATH"
+    echo "Example: apptainer exec samiasr.sif get_runscript ./samiasr.py"
     exit 1
 fi
 cp /opt/samiasr/samiasr.py "$1"
 echo "Copied samiasr.py to $1"
-echo "Run with: apptainer exec samiasr_cpu.sif python $1 [args...]"
+echo "Run with: apptainer exec samiasr.sif python $1 [args...]"
 EXTRACT_EOF
     chmod +x /usr/local/bin/get_runscript
 

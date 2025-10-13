@@ -18,6 +18,8 @@ On VMs, just run with sudo and no fakeroot.
 If `/tmp` is small, and you need another temporary space, like on HPC, you
 can do eg.
 
+`-cpu` definition files provide support for CPU decoding only, and typically result in much smaller container sizes.
+
 ```
 export APPTAINER_TMPDIR=$TMPDIR
 export APPTAINER_CACHEDIR=$TMPDIR
