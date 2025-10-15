@@ -68,13 +68,11 @@ In case an already published resource has to be **un-published**, please follow 
 *Access location:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
 (Include the license information if different from the source/Korp version)
-```
 
 (If applicable, include information about the processing tools – this applies usually at least to Korp and VRT versions:)
      
 <a name="jira-epic-tools"></a>
 
-```
 *Tools used to process the data:*
 
 # [ ] *VRT tools* (_please specify_), http://urn.fi/urn:nbn:fi:lb-2024021502. Annotation type: (_please specify_). Segmentation level: (_please specify_).
