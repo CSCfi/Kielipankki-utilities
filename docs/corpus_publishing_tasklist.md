@@ -70,7 +70,7 @@ In case an already published resource has to be **un-published**, please follow 
 (Include the license information if different from the source/Korp version)
 ```
 
-   - Add to the description field **all tools used to process the data** (applies usually to the Korp and VRT versions), in the following form:
+(If applicable, include information about the processing tools – this applies usually at least to Korp and VRT versions:)
      
 <a name="jira-epic-tools"></a>
 
@@ -85,7 +85,7 @@ In case an already published resource has to be **un-published**, please follow 
 # [ ] *FiNER*, http://urn.fi/urn:nbn:fi:lb-2024021401. Annotation type: semanticAnnotation-namedEntities. Segmentation level: word
 # [ ] *HeLI-OTS* version 2.0, http://urn.fi/urn:nbn:fi:lb-2024040301. Annotation type: language identification. Segmentation level: sentence.
 
-(Please add or remove information according to need!)
+(Please add or remove information as required!)
 
 ```
 
@@ -97,6 +97,7 @@ In case an already published resource has to be **un-published**, please follow 
 Enter a new resource to the pipeline
 # [ ] _shortname_: Start negotiations with the depositor
 # [ ] _shortname_: Enter the new resource to the pipeline
+# [ ] _shortname_: Prepare the preliminary metadata of the resource
 # [ ] _shortname_: Plan the publication process with the depositor
 # [ ] _shortname_: Clear the license for the resource
 ## [ ] _shortname_: Archive the signed deposition agreement for the resource
@@ -195,24 +196,30 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Start negotiations with the depositor
 
 ```
-# [ ] _*+MANAGE*_ Create a Jira Epic issue called "shortname: Publish XXX in Kielipankki (Korp/Download/…)"
+# [ ] _*+MANAGE*_ Create a Jira Epic issue with the Epic Name "shortname" and the title "shortname: Publish XXX in Kielipankki (Korp/Download/…)".
 # [ ] _*?SUPPORT*_ Contact the potential depositor (by email; arrange a meeting if required) 
 # [ ] _*?SUPPORT*_ Ask the depositor to submit the basic details of the new corpus or resource (e-form: [http://urn.fi/urn:nbn:fi:lb-2021121421](http://urn.fi/urn:nbn:fi:lb-2021121421))
-# [ ] _*+MANAGE*_ Insert the first pipeline Story under the Jira Epic and assign it forward
-# [ ] _*+MANAGE*_ Copy-paste the content of the e-form as a comment under the Story (tag the person to whom it is assigned)
+# [ ] _*+MANAGE*_ Insert the next pipeline Story under the Jira Epic and assign it forward
+# [ ] _*+MANAGE*_ Copy-paste the content of the e-form as a comment under the main Epic.
 \\
 ```
 
 ### _shortname_: Enter the new resource to the pipeline
 
 ```
-# [ ] _*+MANAGE*_ Insert relevant parts of this task list in the resource publication Epic (sections under linked Jira Stories)
-# [ ] _*+MANAGE*_ Add to the Epic description field all important metadata (take a copy from the model description on the top of this page)
-# [ ] _*+MANAGE*_ Add to the Epic description field the information about all tools used to process the data (take a copy from the model description on the top of this page)
+# [ ] _*+MANAGE*_ Insert the relevant parts of the pipeline task list as Jira Stories, each one linked under the main Epic of this resource publication process.
+# [ ] _*+MANAGE*_ Add the placeholders for all relevant metadata to the description of the main Epic (take a copy from the model description on the top of this page). Remove all non-relevant parts in the Epic description.
+# [ ] _*+MANAGE*_ Make sure that the list of tasks in the Epic description matches the Jira Stories linked under the Epic (i.e., that no Stories are missing).
+\\
+```
+
+### _shortname_: Prepare the preliminary metadata of the resource
+
+```
 # [ ] _*+GITHUB*_ [Request a URN | https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration] for the metadata record [how to request PIDs | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_request_pid.md]
 # [ ] _*+GITHUB*_ [Request the URNs | https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration] for the license pages [how to request PIDs | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_request_pid.md]
-# [ ] _*+META*_ In [COMEDI | https://clarino.uib.no/comedi/records], create and publish a preliminary metadata record (skeletal information only) for the source version, which is usually the first version to be published [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/ ]
-# [ ] _*+META*_ In [COMEDI | https://clarino.uib.no/comedi/records], update the metadata record with the metadata URN
+# [ ] _*+META*_ In [COMEDI | https://clarino.uib.no/comedi/records], create and publish a preliminary metadata record for the first resource version. Use the information from the e-form, see comments under the main Epic. [Instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/ ]
+# [ ] _*+META*_ In [COMEDI | https://clarino.uib.no/comedi/records], update the metadata record with the metadata URN.
 # [ ] _*+DB*_ Add the [corpus to the resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1] and make sure the resource is displayed on the list of [upcoming corpora | https://www.kielipankki.fi/aineistot/tulevat/ ]
 # [ ] _*+META*_ Add citation information to the metadata record
 \\
