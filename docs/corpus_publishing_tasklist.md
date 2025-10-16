@@ -6,18 +6,80 @@ we need a list of the relevant tasks that must be completed.
 
 In case an already published resource has to be **un-published**, please follow these instructions [docs: howto unpublish a resource](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_unpublish_corpus.md).
 
-### 1. For each new resource (or a new version of an existing resource), create an "Epic" issue on Jira. 
-   - Name the Epic as:
-   
-    shortname: Publish XXX in Kielipankki (Korp/Download/…)
-   
-   - Replace "_shortname_" with the short name of the resource in question (use the "base" name only, excluding "-src" etc.).
-   - Replace "XXX" with the common title of the resource group in question, to make the issue easier to find in Jira.
-   - In brackets, you may specify the resource variant(s) that is/are to be published during this Epic, according to current plan: just the Download, and/or Korp, etc. 
-   - NB: Both the _Epic Name_ and _Summary_ fields of the Jira Epic issue should contain identical text (= the title of the issue, composed as above).
-   - Add to the description field **all important metadata** (for all versions, as a collection), as soon as they are created resp. PIDs are requested, in the following form:
+## Overview
+
+1. <a href="#jira-epic">Create an Epic about publishing the new resource</a>
+2. <a href="#copy-task-titles">Copy the relevant Jira task titles to the Description of the Epic</a>
+3. <a href="#copy-metadata-fields">Copy the metadata fields of the applicable resource versions to the Description of the Epic</a>
+4. <a href="#use-checkboxes">Using the checkboxes for monitoring the workflow</a>
+5. <a href="#create-stories">Create the Jira Stories of the relevant task lists as issues under the main Epic</a>
+
+----
 
 <a name="jira-epic"></a>
+### 1. For each new resource (or a new version of an existing resource), create an "Epic" issue on Jira. 
+   - The _Epic Name_ of the Jira Epic issue should contain nothing but the shortname(s) of the resource(s) in question.
+   - The _Summary_ of the Epic (the longer title, displayed on top of the Epic's page) should be composed as follows:
+   
+    shortname: Publish "XXX" in Kielipankki (Korp/Download/…)
+   
+   - Replace _shortname_ with the short name of the resource in question (use the "base" name only, excluding "-src" etc.).
+
+   - Replace "XXX" with the common title of the resource group in question, to make the issue easier to find in Jira.
+   - In brackets, you may specify the resource variant(s) that is/are to be published during this Epic, according to current plan: just the Download, and/or Korp, etc. 
+
+
+<a name="copy-task-titles"></a>
+### 2. Copy the following list of section titles to the top of the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
+
+```
+Enter a new resource to the pipeline
+# [ ]  Start negotiations with the depositor
+# [ ]  Enter the new resource to the pipeline
+# [ ]  Prepare the preliminary metadata of the resource
+# [ ]  Plan the publication process with the depositor
+# [ ]  Clear the license for the resource
+## [ ]  Archive the signed deposition agreement for the resource
+# [ ]  Publish the end-user license
+# [ ]  Acquire the original data
+
+Publish the source data in Download
+# [ ]  Prepare for publishing the source data in Download
+# [ ]  Package and upload the source data
+## [ ]  Upload to the download service
+## [ ]  Create an LBR record for a RES-licensed corpus
+# [ ]  Announce the publication of the source data in Download
+# [ ]  Clean up after publishing the source data in Download
+
+Publish the resource in Korp
+# [ ] Prepare for publishing the resource in Korp
+# [ ]  Convert the data for publishing the resource in Korp
+# [ ]  Parse the data for publishing the resource in Korp
+# [ ]  Create a Korp corpus package (korp-make)
+# [ ]  Create the Korp corpus configuration
+# [ ]  Create a Korp test version
+# [ ]  Publish the corpus in Korp as release candidate
+# [ ]  Announce the publication of the new Korp corpus as release candidate
+# [ ]  Fix the data and publish a new release candidate (if needed)
+# [ ]  Announce the publication of the new Korp corpus as another release candidate (if needed)
+# [ ]  Remove release candidate status
+# [ ]  Clean up and document after publishing in Korp
+# [ ]  Announce the removal of release candidate status after publishing in Korp
+
+Publish the VRT data in Download
+# [ ]  Prepare for publishing the VRT data in Download
+# [ ]  Package and upload the VRT data
+# [ ]  Announce the publication of the VRT data in Download (as release candidate if needed)
+# [ ]  Clean up after publishing the VRT in Download (remove release candidate status if needed) 
+```
+
+   - **There is no need to copy-paste the _shortname_ of the resource on all items in this task list!** However, the shortname should be mentioned in the titles of the corresponding Jira issues. 
+   - To make sure that the lists are rendered correctly, the text should be pasted when the Jira description input field is in “Text” mode, not “Visual”.
+
+
+<a name="copy-metadata-fields"></a>
+### 3. Add to the description field **all important metadata** (for all versions, as a collection), as soon as they are created resp. PIDs are requested, in the following form:
+
 
 ```
 ----
@@ -86,64 +148,10 @@ In case an already published resource has to be **un-published**, please follow 
 
 ```
 
-     
+<a name="use-checkboxes"></a>
+### 4. Using the checkboxes for monitoring the workflow
 
-### 2. Copy the following list of section titles to the top of the description of the Epic. Remove the sections that are not applicable to or planned for the current resource.
-
-```
-Enter a new resource to the pipeline
-# [ ] _shortname_: Start negotiations with the depositor
-# [ ] _shortname_: Enter the new resource to the pipeline
-# [ ] _shortname_: Prepare the preliminary metadata of the resource
-# [ ] _shortname_: Plan the publication process with the depositor
-# [ ] _shortname_: Clear the license for the resource
-## [ ] _shortname_: Archive the signed deposition agreement for the resource
-# [ ] _shortname_: Publish the end-user license
-# [ ] _shortname_: Acquire the original data
-
-Publish the source data in Download
-# [ ] _shortname_: Prepare for publishing the source data in Download
-# [ ] _shortname_: Package and upload the source data
-## [ ] _shortname_: Upload to the download service
-## [ ] _shortname_: Create an LBR record for a RES-licensed corpus
-# [ ] _shortname_: Announce the publication of the source data in Download
-# [ ] _shortname_: Clean up after publishing the source data in Download
-
-Publish the resource in Korp
-# [ ] _shortname_: Prepare for publishing the resource in Korp
-# [ ] _shortname_: Convert the data for publishing the resource in Korp
-# [ ] _shortname_: Parse the data for publishing the resource in Korp
-# [ ] _shortname_: Create a Korp corpus package (korp-make)
-# [ ] _shortname_: Create the Korp corpus configuration
-# [ ] _shortname_: Create a Korp test version
-# [ ] _shortname_: Publish the corpus in Korp as release candidate
-# [ ] _shortname_: Announce the publication of the new Korp corpus as release candidate
-# [ ] _shortname_: Fix the data and publish a new release candidate (if needed)
-# [ ] _shortname_: Announce the publication of the new Korp corpus as another release candidate (if needed)
-# [ ] _shortname_: Remove release candidate status
-# [ ] _shortname_: Clean up and document after publishing in Korp
-# [ ] _shortname_: Announce the removal of release candidate status after publishing in Korp
-
-Publish the VRT data in Download
-# [ ] _shortname_: Prepare for publishing the VRT data in Download
-# [ ] _shortname_: Package and upload the VRT data
-# [ ] _shortname_: Announce the publication of the VRT data in Download (as release candidate if needed)
-# [ ] _shortname_: Clean up after publishing the VRT in Download (remove release candidate status if needed) 
-```
-
-   - Again, replace "_shortname_" with the short name of the resource in question.
-   - NB: To make sure that the lists are rendered correctly, the text should be pasted when the Jira description input field is in “Text” mode, not “Visual”.
-
-
-### 3. In the Epic, create a "Story" for each of the applicable task list sections which were previously copied to the Epic description. 
-  - In case the resource is a completely new one and it has not been decided what should be done with it, just create the first story ("_shortname:_ Start negotiations with the depositor", see the first section of tasks below).
-  - Use the corresponding section title in the task list as the name of the Story.
-  - Replace "_shortname_" with the short name of the resource in question (use the "base" name only, excluding "-src" etc.). This makes it easier to see which resource is addressed in each individual Jira ticket.
-  - Copy & paste the appropriate task list from below to the description field of the Story.
-  - In each Story, you may adjust the list items and their order as appropriate for the resource in question. 
-  For example, LBR records are only needed for RES licensed corpora. Thus, if you already know the corpus license will not be RES, you may remove or overstrike the LBR-related tasks.
-
-### 4. Each task description is preceded by “[ ]”, representing a checkbox, and a tag representing the task type. 
+Each task description is preceded by “[ ]”, representing a checkbox, and a tag representing the task type. 
 
   - When you start working on an individual task item, write your name between the square brackets (“[Name]”). 
   - When a task is completed, replace "[YourName]" with an “[X]”.
@@ -177,7 +185,17 @@ NB: In previous versions of the task lists (a lot of which still exist on Jira),
 - _*D*_: data processing
 - _*K*_: Korp configuration
 - _*T*_: testing
-	
+
+
+<a name="create-stories"></a>
+### 5. In the Epic, create a "Story" for each of the applicable task list sections which were previously copied to the Epic description. 
+  - In case the resource is a completely new one and it has not been decided what should be done with it, just create the first story ("_shortname:_ Start negotiations with the depositor", see the first section of tasks below).
+  - Use the corresponding section title in the task list as the name of the Story.
+  - Replace "_shortname_" with the short name of the resource in question (use the "base" name only, excluding "-src" etc.). This makes it easier to see which resource is addressed in each individual Jira ticket.
+  - Copy & paste the appropriate task list from below to the description field of the Story.
+  - In each Story, you may adjust the list items and their order as appropriate for the resource in question. 
+  For example, LBR records are only needed for RES licensed corpora. Thus, if you already know the corpus license will not be RES, you may remove or overstrike the LBR-related tasks.
+
 
 ## The task lists for the Stories in Epic
 
