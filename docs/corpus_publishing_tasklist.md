@@ -13,6 +13,10 @@ In case an already published resource has to be **un-published**, please follow 
 3. <a href="#copy-metadata-fields">Copy the metadata fields of the applicable resource versions to the Description of the Epic</a>
 4. <a href="#use-checkboxes">Using the checkboxes for monitoring the workflow</a>
 5. <a href="#create-stories">Create the Jira Stories of the relevant task lists as issues under the main Epic</a>
+   - <a href="#start-the-pipeline">Enter to the pipeline
+   - <a href="#publish-source">Publish the source version in Download
+   - <a href="#korp">Publish in Korp
+   - <a href="#publish-vrt">Publish the VRT version in Download
 
 ----
 
@@ -206,6 +210,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 
 ***
 
+<a name="start-the-pipeline"></a>
+
 ***Enter a new resource to the pipeline***
 
 ### _shortname_: Start negotiations with the depositor
@@ -318,6 +324,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 
 ***
+<a name="publish-source"></a>
 
 ***Publish the source data in Download***
 
@@ -417,10 +424,10 @@ Additional details of the application (desription of the requirements and the ap
 \\
 ```
 
-<a name="korp"></a>
 
 ***
 
+<a name="korp"></a>
 ***Publish the resource in Korp***
 
 ### _shortname_: Prepare for publishing the resource in Korp
@@ -599,6 +606,7 @@ Access restrictions: public access / ACA license / RES license (please describe)
 
 ***
 
+<a name="publish-vrt"></a>
 ***Publish the VRT data in Download***
 
 ### _shortname_: Prepare for publishing the VRT data in Download
