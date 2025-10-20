@@ -30,17 +30,19 @@ The PID is important for the agreement since we need to be specific and unambigu
   * use yellow background (temporarily) for any information that needs to be checked and/or noticed especially
   * and/or add specific comments in the document margin for the depositor (if necessary)
 
-## Submit for review
+## Submit for the first review and comments
 
-  * submit the document(s) to the depositor (in order to be read and completed)
+  * email a copy of the document(s) to the depositor (in order to be read and completed)
   * remind the depositor about contacting the legal experts in their home organization, if required
+  * after receiving the next version, store the version on OneDrive (add date to the file name) and repeat the comment round if needed.
     
 ## Prepare the documents for signing
 
   * discuss the agreement as a separate point in the legal meeting, if anything is unclear or non-routine
-  * fill in the remaining suggestions and clean up the document
-  * submit to the depositor for review
+  * save the documents with a new date, fill in the remaining suggestions and clean up the document
+  * submit to the depositor for review (use the current date)
   * when approved by the depositor (and their home organization)
+    * again, save the documents with a new date
     * approve all changes and switch off the change tracking,
     * remove all remaining <instruction text> and background colour,
     * remove all comments and annotations,
