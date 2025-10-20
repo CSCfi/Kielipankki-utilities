@@ -21,7 +21,7 @@ The PID is important for the agreement since we need to be specific and unambigu
 ## Prepare a draft of the agreement
 
   * create a subfolder for the agreement under the [OneDrive directory](https://helsinkifi-my.sharepoint.com/:f:/r/personal/lennes_ad_helsinki_fi/Documents/Kielipankin%20sopimusasiat/DELA%20-%20Aineistokohtaisten%20sopimusten%20valmistelu?csf=1&web=1&e=9y4CLl)
-  * download the most recent version of the signature part and all the required appendices
+  * download the [most recent version of the agreement template](https://helsinkifi-my.sharepoint.com/:f:/r/personal/lennes_ad_helsinki_fi/Documents/Kielipankin%20sopimusasiat/DELA%20-%20Sopimuspohjat?csf=1&web=1&e=DjCf3x) (the signature part and all the required appendices):
     * if the resource is not +PRIV (i.e., there is no personal data), the signature part and the appendices 1–4 are needed
     * if the resource is +PRIV (it includes personal data) and the depositor (more specifically, the original Data Controller) wishes to let the Language Bank take care of all decisions regarding the distribution of the data in the Language Bank, the signature part and the appendices 1–5 are needed
     * else, if the resource is +PRIV (it includes personal data) and the depositor (the original Data Controller organization) will also be responsible for all decisions regarding the data in the Language Bank, the signature part and the appendices 1–6 are needed
@@ -29,6 +29,7 @@ The PID is important for the agreement since we need to be specific and unambigu
   * if appropriate, grey out any parts of the text that will definitely be excluded from the final agreement (e.g., the license versions that are clearly non-applicable)
   * use yellow background (temporarily) for any information that needs to be checked and/or noticed especially
   * and/or add specific comments in the document margin for the depositor (if necessary)
+  * save the documents under the subfolder of the resource on [OneDrive](https://helsinkifi-my.sharepoint.com/:f:/r/personal/lennes_ad_helsinki_fi/Documents/Kielipankin%20sopimusasiat/DELA%20-%20Aineistokohtaisten%20sopimusten%20valmistelu?csf=1&web=1&e=9y4CLl), adding the shortname of the resource and current date at the end of the filename(s).
 
 ## Submit for the first review and comments
 
