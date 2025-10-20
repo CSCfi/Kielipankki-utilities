@@ -22,8 +22,11 @@ The PID is important for the agreement since we need to be specific and unambigu
 
   * create a subfolder for the agreement under the [OneDrive directory](https://helsinkifi-my.sharepoint.com/:f:/r/personal/lennes_ad_helsinki_fi/Documents/Kielipankin%20sopimusasiat/DELA%20-%20Aineistokohtaisten%20sopimusten%20valmistelu?csf=1&web=1&e=9y4CLl)
   * download the most recent version of the signature part and all the required appendices
+    * if the resource is not +PRIV (i.e., there is no personal data), the signature part and the appendices 1–4 are needed
+    * if the resource is +PRIV (it includes personal data) and the depositor (more specifically, the original Data Controller) wishes to let the Language Bank take care of all decisions regarding the distribution of the data in the Language Bank, the signature part and the appendices 1–5 are needed
+    * else, if the resource is +PRIV (it includes personal data) and the depositor (the original Data Controller organization) will also be responsible for all decisions regarding the data in the Language Bank, the signature part and the appendices 1–6 are needed
   * fill in the preliminary information regarding the resource (add the resource title and short name in the header)
-  * if appropriate, grey out non-recommended text (e.g., the license versions that clearly are non-applicable)
+  * if appropriate, grey out any parts of the text that will definitely be excluded from the final agreement (e.g., the license versions that are clearly non-applicable)
   * use yellow background (temporarily) for any information that needs to be checked and/or noticed especially
   * and/or add specific comments in the document margin for the depositor (if necessary)
 
@@ -37,7 +40,12 @@ The PID is important for the agreement since we need to be specific and unambigu
   * discuss the agreement as a separate point in the legal meeting, if anything is unclear or non-routine
   * fill in the remaining suggestions and clean up the document
   * submit to the depositor for review
-  * when approved by the depositor (and their home organization), remove all remaining <instruction text> and background colour, check page numbering for each annex and create a final pdf
+  * when approved by the depositor (and their home organization)
+    * approve all changes and switch off the change tracking,
+    * remove all remaining <instruction text> and background colour,
+    * remove all comments and annotations,
+    * check page numbering for each annex and
+    * create the final pdf document, to be signed.
   * When the document is ready, see [how to have the agreement signed via UniSign](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_have_agreement_signed.md).
 
 
