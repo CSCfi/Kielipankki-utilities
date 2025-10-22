@@ -63,6 +63,7 @@ Publish the resource in Korp
 # [ ]  Create the Korp corpus configuration
 # [ ]  Create a Korp test version
 # [ ]  Publish the corpus in Korp as release candidate
+# [ ]  Install the corpus package on the Korp server
 # [ ]  Announce the publication of the new Korp corpus as release candidate
 # [ ]  Fix the data and publish a new release candidate (if needed)
 # [ ]  Announce the publication of the new Korp corpus as another release candidate (if needed)
