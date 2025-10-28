@@ -83,7 +83,7 @@ Publish the VRT data in Download
 
 
 <a name="copy-metadata-fields"></a>
-### 3. Add to the description field **all important metadata** (for all versions, as a collection), as soon as they are created resp. PIDs are requested, in the following form:
+### 3. Add to the description field **all important metadata** (for all versions, as a collection), as soon as they are created (e.g., PIDs are requested, ...), in the following form:
 
 
 ```
