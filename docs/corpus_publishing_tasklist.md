@@ -22,7 +22,7 @@ In case an already published resource has to be **un-published**, please follow 
 
 <a name="jira-epic"></a>
 ### 1. For each new resource (or a new version of an existing resource), create an "Epic" issue on Jira. 
-   - The _Epic Name_ of the Jira Epic issue should contain nothing but the shortname(s) of the resource(s) in question. For choosing the shortname see [language resource naming conventions | https://www.kielipankki.fi/development/language-resource-naming-conventions/].
+   - The _Epic Name_ of the Jira Epic issue should contain nothing but the shortname(s) of the resource(s) in question. For choosing the shortname see [language resource naming conventions](https://www.kielipankki.fi/development/language-resource-naming-conventions/).
    - The _Summary_ of the Epic (the longer title, displayed on top of the Epic's page) should be composed as follows:
    
     shortname: Publish "XXX" in Kielipankki (Korp/Download/…)
