@@ -306,7 +306,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?A*_ If required, [request the URNs] (https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration) for the PRIV condition pages 
 # [ ] _*+PORTAL*_ Update the license PIDs in the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ]and make sure the resource in question is linked with the correct license instance in the resource database
 # [ ] _*+META*_ Create/update the [COMEDI | https://clarino.uib.no/comedi/records] record, including the license information and the people to be cited, according to the agreement [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/ ]
-# [ ] _*+PORTAL*_ In case the resource has a RES license, add the relevant details to the table [LBR-katselmointiprosessi | https://www.kielipankki.fi/wp-admin/admin.php?page=tablepress&action=edit&table_id=37 ], shown on the intranet page [Katselmointiprosessi |https://www.kielipankki.fi/intra/katselmointiprosessi/ ]
+# [ ] _*+PORTAL*_ In case the resource has a RES license, add the relevant details to the table LBR-katselmointiprosessi ([https://www.kielipankki.fi/wp-admin/admin.php?page=tablepress&action=edit&table_id=37 ]), shown on the intranet page [Katselmointiprosessi |https://www.kielipankki.fi/intra/katselmointiprosessi/ ]
 # [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
 \\
 ```
