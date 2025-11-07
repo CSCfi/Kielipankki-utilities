@@ -301,7 +301,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Publish the end-user license
 
 ```
-# [ ] _*+PORTAL*_ [Create the license pages | https://www.kielipankki.fi/wp-admin/edit.php?post_type=page&page=cms-tpv-page-page) if required [how to create license pages)|https://www.kielipankki.fi/intra/creating-license-pages/ ]  
+# [ ] _*+PORTAL*_ [Create the license pages | https://www.kielipankki.fi/wp-admin/edit.php?post_type=page&page=cms-tpv-page-page ] if required [(how to create license pages) | https://www.kielipankki.fi/intra/creating-license-pages/ ]  
 # [ ] _*?PORTAL*_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
 # [ ] _*?A*_ If required, [request the URNs] (https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration) for the PRIV condition pages 
 # [ ] _*+PORTAL*_ Update the license PIDs in the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ]and make sure the resource in question is linked with the correct license instance in the resource database
