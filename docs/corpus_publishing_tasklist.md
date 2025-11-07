@@ -242,7 +242,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+GITHUB*_ [Request the URNs | https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration] for the license pages [how to request PIDs | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_request_pid.md]
 # [ ] _*+META*_ In [COMEDI | https://clarino.uib.no/comedi/records], create and publish a preliminary metadata record for the first resource version. Use the information from the e-form, see comments under the main Epic. [Instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/ ]
 # [ ] _*+META*_ In [COMEDI | https://clarino.uib.no/comedi/records], update the metadata record with the metadata URN.
-# [ ] _*+DB*_ Add the [corpus to the resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1] and make sure the resource is displayed on the list of [upcoming corpora | https://www.kielipankki.fi/aineistot/tulevat/ ]
+# [ ] _*+DB*_ Add the [corpus to the resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_1 ] and make sure the resource is displayed on the list of [upcoming corpora | https://www.kielipankki.fi/aineistot/tulevat/ ]
 # [ ] _*+META*_ Add citation information to the metadata record
 \\
 ```
@@ -264,7 +264,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Clear the license for the resource
 
 ```
-# [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2], create a new (preliminary) license instance for the resource, or link an existing license instance to the resource, if available
+# [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ], create a new (preliminary) license instance for the resource, or link an existing license instance to the resource, if available
 # [ ] _*?AGREEMENT*_ Clear the license terms and conditions regarding copyrighted material
 ## [ ] _*?AGREEMENT*_ In case the corpus contains third-party copyrighted material, find out if the depositor has the rights to distribute it via the Language Bank (e.g., explicit license or permission from copyright holders)
 ## [ ] _*?LEGAL*_ When in doubt, bring the case up in a legal meeting
@@ -275,15 +275,15 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*?AGREEMENT*_ Obtain (or create) a description of the personal data categories that are included in the corpus
 ## [ ] _*?AGREEMENT*_ Help the depositor to find out if [a DPIA or some further risk assessment is required | https://www.kielipankki.fi/support/pre-dpia/ ], especially regarding the potential distribution via Kielipankki, and discuss further actions with the depositor if necessary
 ## [ ] _*?SUPPORT*_ Provide the depositor with further references regarding personal data [minimization and safeguards | https://www.kielipankki.fi/support/protective-measures/ ] that may be applied prior to submitting the corpus for distribution
-# [ ] _*+AGREEMENT*_ Make a copy of the [deposition agreement template | https://helsinkifi-my.sharepoint.com/:f:/r/personal/lennes_ad_helsinki_fi/Documents/Kielipankin%20sopimusasiat/DELA%20-%20Sopimuspohjat?csf=1&web=1&e=zRNnQQ] into a new folder (labeled as _shortname_) and prepare a preliminary version of the documents for discussion
+# [ ] _*+AGREEMENT*_ Make a copy of the [deposition agreement template | https://helsinkifi-my.sharepoint.com/:f:/r/personal/lennes_ad_helsinki_fi/Documents/Kielipankin%20sopimusasiat/DELA%20-%20Sopimuspohjat?csf=1&web=1&e=zRNnQQ ]into a new folder (labeled as _shortname_) and prepare a preliminary version of the documents for discussion
 ## [ ] _*?AGREEMENT*_ Make arrangements to meet the depositor about the details of the deposition agreement
 ## [ ] _*?SUPPORT*_ Meet with the depositor/rightholder and take note of the action points
 ## [ ] _*+LEGAL*_ Make the final decision as to whether the resource can be distributed via the Language Bank of Finland (bring the case up in legal meeting, if necessary)
 ## [ ] _*+AGREEMENT*_ Prepare the final draft of the deposition license agreement and send it to corpus owner who should fill in the remaining gaps (ask for legal advice if needed)
-## [ ] _*+AGREEMENT*_ Check the final deposition agreement, combine all parts into a single pdf file and upload the document to the [UniSign | https://unisign.helsinki.fi/] system for electronic signing by the rightholder (+ the data controller) and finally by the head of department at the University of Helsinki ([How to use UniSign](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_have_agreement_signed.md))
+## [ ] _*+AGREEMENT*_ Check the final deposition agreement, combine all parts into a single pdf file and upload the document to the [UniSign | https://unisign.helsinki.fi/] system for electronic signing by the rightholder (+ the data controller) and finally by the head of department at the University of Helsinki ([How to use UniSign | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_have_agreement_signed.md ])
 # [ ] _*+AGREEMENT*_ Download a copy of the signed deposition agreement from the digital signature system (UniSign) to the shared OneDrive folder.
 # [ ] _*+AGREEMENT*_ In this Jira issue, add a comment stating the final license conditions, the rightholder(s), and the final list of the persons to be cited, according to the signed agreement. Update the license label to the description of the main Epic.
-# [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2], update the license conditions of the resource.
+# [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ], update the license conditions of the resource.
 # [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ], update the license status to 'available'.
 \\
 ```
@@ -304,9 +304,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PORTAL*_ [Create the license pages | https://www.kielipankki.fi/wp-admin/edit.php?post_type=page&page=cms-tpv-page-page) if required [how to create license pages)|https://www.kielipankki.fi/intra/creating-license-pages/ ]  
 # [ ] _*?PORTAL*_ For a PRIV license, create and translate the pages for data protection terms and conditions and inform the depositor
 # [ ] _*?A*_ If required, [request the URNs] (https://github.com/CSCfi/Kielipankki/tree/master/FIN-CLARIN-Administration) for the PRIV condition pages 
-# [ ] _*+PORTAL*_ Update the license PIDs in the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2] and make sure the resource in question is linked with the correct license instance in the resource database
+# [ ] _*+PORTAL*_ Update the license PIDs in the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ]and make sure the resource in question is linked with the correct license instance in the resource database
 # [ ] _*+META*_ Create/update the [COMEDI | https://clarino.uib.no/comedi/records] record, including the license information and the people to be cited, according to the agreement [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/ ]
-# [ ] _*+PORTAL*_ In case the resource has a RES license, add the relevant details to the table [LBR-katselmointiprosessi | https://www.kielipankki.fi/wp-admin/admin.php?page=tablepress&action=edit&table_id=37], shown on the intranet page [Katselmointiprosessi |https://www.kielipankki.fi/intra/katselmointiprosessi/ ]
+# [ ] _*+PORTAL*_ In case the resource has a RES license, add the relevant details to the table [LBR-katselmointiprosessi | https://www.kielipankki.fi/wp-admin/admin.php?page=tablepress&action=edit&table_id=37 ], shown on the intranet page [Katselmointiprosessi |https://www.kielipankki.fi/intra/katselmointiprosessi/ ]
 # [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
 \\
 ```
