@@ -283,6 +283,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*+AGREEMENT*_ Check the final deposition agreement, combine all parts into a single pdf file and upload the document to the [UniSign | https://unisign.helsinki.fi/] system for electronic signing by the rightholder (+ the data controller) and finally by the head of department at the University of Helsinki ([How to use UniSign | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_have_agreement_signed.md ])
 # [ ] _*+AGREEMENT*_ Download a copy of the signed deposition agreement from the digital signature system (UniSign) to the shared OneDrive folder.
 # [ ] _*+AGREEMENT*_ In this Jira issue, add a comment stating the final license conditions, the rightholder(s), and the final list of the persons to be cited, according to the signed agreement. Update the license label to the description of the main Epic.
+# [ ] _*?AGREEMENT*_ Notify the colleagues who are responsible for publishing the license pages and the resource content that the license was confirmed.
 # [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ], update the license conditions of the resource.
 # [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ], update the license status to 'available'.
 \\
@@ -307,7 +308,8 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PORTAL*_ Update the license PIDs in the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ]and make sure the resource in question is linked with the correct license instance in the resource database
 # [ ] _*+META*_ Create/update the [COMEDI | https://clarino.uib.no/comedi/records] record, including the license information and the people to be cited, according to the agreement [instructions for creating metadata records | https://www.kielipankki.fi/development/creating-metadata-records/ ]
 # [ ] _*+PORTAL*_ In case the resource has a RES license, add the relevant details to the table LBR-katselmointiprosessi ([https://www.kielipankki.fi/wp-admin/admin.php?page=tablepress&action=edit&table_id=37 ]), shown on the intranet page [Katselmointiprosessi |https://www.kielipankki.fi/intra/katselmointiprosessi/ ]
-# [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting
+# [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting.
+# [ ] _*?PORTAL*_ After the deposition license agreement has been signed, publish the license page and the data protection terms and conditions.
 \\
 ```
 
