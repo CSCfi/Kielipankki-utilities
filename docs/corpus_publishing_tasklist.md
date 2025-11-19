@@ -352,7 +352,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ## [ ] _*+PUHTI*_ Create and add the readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
 ## [ ] _*+PUHTI*_ Zip the data and the readme and license files into a package named as shortname-src.zip.
 ## [ ] _*+PUHTI*_ Compute an MD5 checksum for the zip package
-# [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [ include the original zip file(s) in a new, password-protected zip package | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] for internal storage and transfer. Use the [ appropriate password | https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
+# [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [include the original zip file(s) in a new, password-protected zip package| https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] for internal storage and transfer. Use the [appropriate password| https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
 # [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
 # [ ] _*+TEST*_ Have the package tested
 # [ ] _*?MANAGE*_ If this is a RES-licensed corpus and an LBR application does not yet exist, fill in an instance of the [Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_lbr ] and assign it forward
@@ -454,7 +454,7 @@ Additional details of the application (desription of the requirements and the ap
 ```
 # [ ] _*?DATA*_ Get the source (or original) data from IDA, from the download service, or from the HFST server.
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-korp_yyyymmdd.zip) and the separate shortname-korp_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
-# [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [ apply the appropriate safeguards | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] when processing the data. [(How to use passwords) | https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
+# [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [apply the appropriate safeguards| https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] when processing the data. [(How to use passwords)| https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
 # [ ] _*?DATA*_ Convert the data to HRT
 # [ ] _*?DATA*_ Convert HRT to VRT (tokenizing)
 # [ ] _*?DATA*_ Convert the data directly to VRT (alternative to HRT->VRT)
@@ -639,7 +639,7 @@ Access restrictions: public access / ACA license / RES license (please describe)
 ## [ ] _*+PUHTI*_ Create and add the downloadable readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
 ## [ ] _*+PUHTI*_ Zip the data and the readme and license files
 ## [ ] _*+PUHTI*_ Compute MD5 checksum for the zip package
-# [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [ include the original zip file(s) in a new, password-protected zip package | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] for internal storage and transfer. Use the [ appropriate password | https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
+# [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [include the original zip file(s) in a new, password-protected zip package| https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] for internal storage and transfer. Use the [appropriate password| https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
 # [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
 # [ ] _*+PUHTI*_ If the package is published as release candidate (during the release candidate stage of the corresponding Korp corpus), add the file RELEASE_CANDIDATE.txt to the directory {{/scratch/clarin/download_preview}} on Puhti
 # [ ] _*+TEST*_ Have the package tested
