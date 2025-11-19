@@ -37,19 +37,13 @@ On the HFST server, create a new password for this resource group (one password 
 
 For instructions on how to create / retrieve a Kielipankki password, see [guidelines on how to manage Kielipankki passwords](https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md).
 
-The next steps can be completed on your local device (i.e., work-related and well maintained laptop or the like), on the HFST server, or on the interactive shell on Puhti:
+The next steps can be completed on your local device (i.e., work-related and well maintained laptop or the like), on the HFST server, or on the interactive shell on Puhti.
 
-If the original dataset was encrypted by the researcher (with their password), unencrypt the data and create a new zip package, without a password.
-
-Using the resource group password, encrypt the data in a new wrapper package:
-
-      $ zip -e shortname_date_orig.zip origdata_unencrypted.zip		
-
-The encrypted zip file contains the un-encrypted zip file!
+If the original dataset was encrypted by the researcher (with their password), unencrypt the data and create a new zip package, without a password. Then, using the resource group password, encrypt the data in a new wrapper package. The encrypted zip file then contains the un-encrypted zip file.
 
 For naming conventions for the data packages see [guidelines for data storage](howto_data_storage.md).
 
-## Transferring the confidential data to Puhti for further processing
+## Transferring the confidential data to Puhti
 
 If uploading data to Puhti, you must make sure that the data ends up in the user group `project_2013016` or, if required, in your private group/project.
 
@@ -106,29 +100,30 @@ Remove the wrapper package original.zip, received from the researcher, from Puht
 
 For detailed instructions on how to prepare data for being published in the Kielipankki download service, see also [how to create a download package](howto_download_package.md)
 
-The process for packaging confidental data is basically the same, only that the data will be enclosed in a password-protected wrapper.
+The process for packaging confidential data is basically the same, only that the data will be enclosed in a password-protected wrapper.
+
+**Before decrypting, the encrypted zip file (protected with Kielipankki's password) should be on a sufficiently secure server (preferably not Puhti). If you must use Puhti, use the interactive shell and maintain permissions for the restricted user group `project_2013016`.**
 
 The steps are the following:
 
-- The encrypted (protected with Kielipankki's password) zip file is on Puhti, in a folder with rights for our own, limited, user group `project_2013016`.
-
-- unzip the wrapper package to the interactive shell, LOCAL_SCRATCH
-
+- unzip the wrapper package
 - create a folder named 'shortname-src'
-
-- create the wanted folder structure, add README.txt and LICENSE.txt
-
+- create and arrange the desired folder structure, add README.txt and LICENSE.txt
 - zip the data to shortname-src.zip
+- Create an encrypted wrapper zip for this download package, using the password of the resource group.  
+- **For password protection, you should select an appropriate cipher, probably e.g. AES-256.** (The default cipher in zip is said to be very weak.)
+  
+    You should use:
+  - **7-Zip** on Windows,
+  - e.g., **Keka** on Mac (or 7z in the command line),
+  - **7z** (?) on unix/linux:
+  
+    7z a -p ???-mem=aes256??? -tzip "/shortname/shortname-src_encrypted.zip" "/shortname/shortname-src.zip"
+    (UNTESTED! Please confirm the recommended "spell" from Martin! This should add files to archive, use a password, select cipher AES-256 and select zip as the archive type. – ML 20251119)
+    
+- You can then move the file shortname-src_encrypted.zip to the folder `download_preview` on Puhti.
 
-- Create an encrypted wrapper zip for this download package, using the password of the resource group:
- 
-        $ zip -e download_encrypted_shortname-src.zip shortname-src.zip
-
-   The shortname-src.zip is un-encrypted inside the encrypted file download_encrypted_shortname-src.zip.
-
-- move the download_encrypted_shortname-src.zip to the folder `download_preview` on Puhti.
-
-- Tell CSC about the data in `download_preview`, to be uploaded to the download service. CSC staff will de-crypt the data (they will be able to detect the correct password by the resource's shortname!) only after transferring it to the download service.
+- Tell CSC about the data in `download_preview`, to be uploaded to the download service. CSC staff will decrypt the data only after transferring it to the download service. (They will be able to locate the correct password by the resource's shortname.)
 
 - Note: When closing the interactive shell, the data will no longer be available there (so no need to actively delete the data from there).
 
@@ -140,4 +135,4 @@ More information on how to publish a corpus in the download service:
 
 ## Preparing confidential data to be published in Korp
 
-TO BE EDITED
+(INSTRUCTIONS TO BE ADDED)
