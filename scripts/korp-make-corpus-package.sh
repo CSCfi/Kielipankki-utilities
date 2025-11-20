@@ -68,8 +68,6 @@ s|sql-dir=DIRTEMPL "CORPUS_ROOT/$sqlsubdir/{corpid}" sqldir
 t|tsv-dir=DIRTEMPL "CORPUS_ROOT/$tsvsubdir/{corpid}" tsvdir
     use DIRTEMPL as the source directory template for Korp MySQL TSV
     data files
-korp-frontend-dir=DIR "$korp_frontend_dir" { set_korp_frontend_dir "$1" }
-    read Korp configuration files from DIR
 
 @ Options for VRT files
 
@@ -171,8 +169,7 @@ z|compress=PROG "gzip" { set_compress "$1" }
 usage_footer="Environment variables:
   Default values for the various directories can also be specified via
   the following environment variables: CORPUS_ROOT, TARGET_CORPUS_ROOT,
-  CORPUS_PKGDIR, CORPUS_REGISTRY, CORPUS_SQLDIR, CORPUS_TSVDIR, CORPUS_VRTDIR,
-  KORP_FRONTEND_DIR."
+  CORPUS_PKGDIR, CORPUS_REGISTRY, CORPUS_SQLDIR, CORPUS_TSVDIR, CORPUS_VRTDIR."
 
 
 . $progdir/korp-lib.sh
@@ -225,8 +222,6 @@ sql_file_types="lemgrams rels timespans timedata timedata_date"
 sql_file_types_multicorpus="lemgrams timespans timedata timedata_date"
 sql_table_name_lemgrams=lemgram_index
 rels_tables_basenames="@ rel head_rel dep_rel strings sentences"
-
-frontend_config_files="config.js $(echo modes/{other_languages,parallel,swedish}_mode.js) translations/corpora-*.json"
 
 extra_info_file=$tmp_prefix.info
 touch $extra_info_file
@@ -329,14 +324,6 @@ has_wildcards () {
 wildcards_to_regex () {
     echo "$1" |
     sed -e 's,\.,\\.,g; s,?,[^/],g; s,\*,[^/]*,g;'
-}
-
-set_korp_frontend_dir () {
-    if test_file -r $1/config.js warn \
-	"config.js not found or not accessible in directory $1; using the default Korp frontend directory $korp_frontend_dir"
-    then
-	korp_frontend_dir=$1
-    fi
 }
 
 set_db_format () {
@@ -517,16 +504,6 @@ fi
 retval=$?
 if [ $retval != 0 ]; then
     exit $retval
-fi
-
-if [ "x$korp_frontend_dir" = "x" ]; then
-    warn "Korp frontend directory not found"
-elif test_file -r $korp_frontend_dir/config.js warn \
-    "$korp_frontend_dir/config.js not found or not accessible; not including Korp configuration files";
-then
-    for fname_patt in $frontend_config_files; do
-	add_corpus_files $(echo $korp_frontend_dir/$fname_patt)
-    done
 fi
 
 if [ "x$has_readme" = x ]; then
@@ -924,10 +901,6 @@ $target_regdir/ registry/
 $sqldir/\\\\([^/]*\\\\.sql[^/]*\\\\) sql/{corpid}/\\\\1
 $tsvdir/\\\\([^/]*\\\\.tsv[^/]*\\\\) sql/{corpid}/\\\\1
 $vrtdir/\\\\([^/]*\\\\.vrt[^/]*\\\\) vrt/{corpid}/\\\\1"
-if [ "x$korp_frontend_dir" != "x" ]; then
-    dir_transforms="$dir_transforms
-$korp_frontend_dir/ korp_config/"
-fi
 if [ "x$extra_dir_and_file_transforms" != x ]; then
     dir_transforms="$dir_transforms$extra_dir_and_file_transforms"
 fi
