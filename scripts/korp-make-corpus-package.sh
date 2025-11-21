@@ -451,85 +451,91 @@ add_auth_opts () {
 eval "$optinfo_opt_handler"
 
 
-if [ "x$1" = "x" ]; then
-    error "No corpus name specified"
-fi
-
-target_corpus_root=${target_corpus_root:-$corpus_root}
-pkgdir=${pkgdir:-$corpus_root/$pkgsubdir}
-regdir=$(remove_trailing_slash $cwb_regdir)
-datadir=$(remove_trailing_slash ${datadir:-$corpus_root/$datasubdir})
-sqldir=$(remove_trailing_slash ${sqldir:-"$corpus_root/$sqlsubdir/{corpid}"})
-tsvdir=$(remove_trailing_slash ${tsvdir:-"$corpus_root/$tsvsubdir/{corpid}"})
-vrtdir=$(remove_trailing_slash ${vrtdir:-"$corpus_root/$vrtsubdir/{corpid}"})
-
-if [ "x$include_vrtdir$generate_vrt" != "x" ]; then
-    include_vrt=1
-fi
-
-corpus_name=$1
-shift
-
-if [ ! -d "$regdir" ]; then
-    error "Cannot access registry directory $regdir"
-fi
-
-if [ "x$omit_cwb_data" != x ]; then
-    if [ "x$include_vrt" = x ]; then
-        error "You need to include VRT data when omitting CWB data."
+# Set directory variables, partly based on options
+set_dirs () {
+    target_corpus_root=${target_corpus_root:-$corpus_root}
+    pkgdir=${pkgdir:-$corpus_root/$pkgsubdir}
+    regdir=$(remove_trailing_slash $cwb_regdir)
+    datadir=$(remove_trailing_slash ${datadir:-$corpus_root/$datasubdir})
+    sqldir=$(remove_trailing_slash ${sqldir:-"$corpus_root/$sqlsubdir/{corpid}"})
+    tsvdir=$(remove_trailing_slash ${tsvdir:-"$corpus_root/$tsvsubdir/{corpid}"})
+    vrtdir=$(remove_trailing_slash ${vrtdir:-"$corpus_root/$vrtsubdir/{corpid}"})
+    if [ ! -d "$regdir" ]; then
+        error "Cannot access registry directory $regdir"
     fi
-    archive_type_name=vrt
-fi
+}
 
-if [ "x$generate_vrt" != x ] && [ "x$update_vrt" != x ]; then
-    warn "Both --generate-vrt and --update-vrt specified; assuming --update-vrt"
-    generate_vrt=
-fi
+# Get CWB ids of corpora ($@) to be included and assign to $corpus_ids.
+get_corpus_ids () {
+    local retval
+    if [ "x$1" = "x" ]; then
+        # list_corpora detects non-existent corpora
+        corpus_ids=$(list_corpora $corpus_name)
+    else
+        corpus_ids="$(list_corpora "$@")"
+    fi
+    # list_corpora calls function error on error but as it is run in a
+    # subshell, it does not exit this script, so check the return value
+    # and exit on errors
+    retval=$?
+    if [ $retval != 0 ]; then
+        exit $retval
+    fi
+}
 
-eval archive_ext=\$archive_ext_$compress
-if [ "x$archive_ext" = x ]; then
-    archive_ext=tar.$compress
-    warn "Unrecognized compression program $compress: using package file name extension .$archive_ext"
-fi
+# Check some options and set values or warn based on them.
+check_options () {
+    if [ "x$include_vrtdir$generate_vrt" != "x" ]; then
+        include_vrt=1
+    fi
+    if [ "x$omit_cwb_data" != x ]; then
+        if [ "x$include_vrt" = x ]; then
+            error "You need to include VRT data when omitting CWB data."
+        fi
+        archive_type_name=vrt
+    fi
+    if [ "x$generate_vrt" != x ] && [ "x$update_vrt" != x ]; then
+        warn "Both --generate-vrt and --update-vrt specified; assuming --update-vrt"
+        generate_vrt=
+    fi
+    eval archive_ext=\$archive_ext_$compress
+    if [ "x$archive_ext" = x ]; then
+        archive_ext=tar.$compress
+        warn "Unrecognized compression program $compress: using package file name extension .$archive_ext"
+    fi
+    tar_compress_opt=
+    if [ "x$compress" != "xnone" ]; then
+        tar_compress_opt=--use-compress-program=$compress
+    fi
+    if [ "x$has_readme" = x ]; then
+        warn "No readme file included"
+    fi
+    if [ "x$has_docs" = x ]; then
+        warn "No documentation included"
+    fi
+    if [ "x$has_scripts" = x ]; then
+        warn "No conversion scripts included"
+    fi
+}
 
-if [ "x$1" = "x" ]; then
-    # list_corpora detects non-existent corpora
-    corpus_ids=$(list_corpora $corpus_name)
-else
-    corpus_ids="$(list_corpora "$@")"
-fi
-# list_corpora calls function error on error but as it is run in a
-# subshell, it does not exit this script, so check the return value
-# and exit on errors
-retval=$?
-if [ $retval != 0 ]; then
-    exit $retval
-fi
-
-if [ "x$has_readme" = x ]; then
-    warn "No readme file included"
-fi
-if [ "x$has_docs" = x ]; then
-    warn "No documentation included"
-fi
-if [ "x$has_scripts" = x ]; then
-    warn "No conversion scripts included"
-fi
+# Check command-line arguments and set values based on options.
+# Command-line arguments left after processing options are passed as
+# function arguments.
+check_args () {
+    if [ "x$1" = "x" ]; then
+        error "No corpus name specified"
+    fi
+    corpus_name=$1
+    shift
+    set_dirs
+    get_corpus_ids "$@"
+    check_options
+}
 
 generate_vrt () {
     local corpus_id=$1
     $cwbdata2vrt --all-attributes --output-file=- $corpus_id
 }
-
-if [ "x$generate_vrt" != x ]; then
-    mkdir_perms $tmp_prefix.vrt
-    for corpus_id in $corpus_ids; do
-        vrt_file=$tmp_prefix.vrt/$corpus_id.vrt
-        generate_vrt $corpus_id > "$vrt_file"
-        add_corpus_files "$vrt_file"
-        add_transform "$vrt_file" vrt/$corpus_id/$corpus_id.vrt
-    done
-fi
 
 fill_dirtempl () {
     dirtempl=$1
@@ -551,21 +557,34 @@ vrt_file_is_uptodate () {
     [ "x$newer_corpus_files" = x ]
 }
 
-if [ "x$update_vrt" != x ]; then
-    for corpus_id in $corpus_ids; do
-        corpus_vrtdir=$(fill_dirtempl "$vrtdir" $corpus_id)
-        vrt_file=$corpus_vrtdir/$corpus_id.vrt
-        mkdir_perms "$corpus_vrtdir"
-        if ! vrt_file_is_uptodate $corpus_id "$vrt_file"; then
-            # Would the following be safe?
-            # rm -f "$vrt_file" "vrt_file".*
+# Generate or update VRT files for all corpus ids.
+generate_or_update_vrt () {
+    local corpus_id vrt_file corpus_vrtdir
+    if [ "x$generate_vrt" != x ]; then
+        mkdir_perms $tmp_prefix.vrt
+        for corpus_id in $corpus_ids; do
+            vrt_file=$tmp_prefix.vrt/$corpus_id.vrt
             generate_vrt $corpus_id > "$vrt_file"
-            if [ "x$compress" != "xnone" ]; then
-                $compress -f "$vrt_file"
+            add_corpus_files "$vrt_file"
+            add_transform "$vrt_file" vrt/$corpus_id/$corpus_id.vrt
+        done
+    fi
+    if [ "x$update_vrt" != x ]; then
+        for corpus_id in $corpus_ids; do
+            corpus_vrtdir=$(fill_dirtempl "$vrtdir" $corpus_id)
+            vrt_file=$corpus_vrtdir/$corpus_id.vrt
+            mkdir_perms "$corpus_vrtdir"
+            if ! vrt_file_is_uptodate $corpus_id "$vrt_file"; then
+                # Would the following be safe?
+                # rm -f "$vrt_file" "vrt_file".*
+                generate_vrt $corpus_id > "$vrt_file"
+                if [ "x$compress" != "xnone" ]; then
+                    $compress -f "$vrt_file"
+                fi
             fi
-        fi
-    done
-fi
+        done
+    fi
+}
 
 make_rels_table_names () {
     corp_id_upper=`echo $1 | sed -e 's/\(.*\)/\U\1\E/'`
@@ -723,29 +742,43 @@ list_db_files () {
     fi
 }
 
+# Adjust data directory in the registry file for $target_corpus_root.
+process_registry () {
+    local corpus_id
+    if [ "$corpus_root" = "$target_corpus_root" ]; then
+        target_regdir=$regdir
+    else
+        target_regdir=$tmp_prefix/$regsubdir
+        mkdir_perms $target_regdir
+        for corpus_id in $corpus_ids; do
+            sed -e "s,^\(HOME\|INFO\) .*\($corpus_id\),\1 $target_corpus_root/$datasubdir/\2," $regdir/$corpus_id > $target_regdir/$corpus_id
+            touch --reference=$regdir/$corpus_id $target_regdir/$corpus_id
+        done
+    fi
+}
 
-if [ "$corpus_root" = "$target_corpus_root" ]; then
-    target_regdir=$regdir
-else
-    target_regdir=$tmp_prefix/$regsubdir
-    mkdir_perms $target_regdir
+# Make auth info for corpora if auth options are specified.
+make_auth_info () {
+    if [ "x$auth_opts" != "x" ]; then
+        $korp_make_auth_info --tsv-dir "$tsvdir" $auth_opts $corpus_ids
+    fi
+}
+
+# Update the .info file for corpus whose id is $1.
+update_info () {
+    local corpus_id
     for corpus_id in $corpus_ids; do
-        sed -e "s,^\(HOME\|INFO\) .*\($corpus_id\),\1 $target_corpus_root/$datasubdir/\2," $regdir/$corpus_id > $target_regdir/$corpus_id
-        touch --reference=$regdir/$corpus_id $target_regdir/$corpus_id
+        $cwbdata_extract_info --update --registry "$regdir" \
+            --data-root-dir "$datadir" \
+            --tsv-dir $(fill_dirtempl "$tsvdir" $corpus_id) \
+            --info-from-file "$extra_info_file" $corpus_id
     done
-fi
+}
 
-
-if [ "x$auth_opts" != "x" ]; then
-    $korp_make_auth_info --tsv-dir "$tsvdir" $auth_opts $corpus_ids
-fi
-
-echo_dbg extra_files "$corpus_files"
-# Add the extra files to the end, except for those to be prepended
-extra_corpus_files=$corpus_files
-corpus_files=
-add_corpus_files_expand $corpus_files_prepend
-for corpus_id in $corpus_ids; do
+# Add to $corpus_files the files for corpus whose id is $1.
+add_single_corpus_files () {
+    local corpus_id
+    corpus_id=$1
     # Include the CWB registry file as documentation of the VRT fields
     # even if omitting CWB data
     add_corpus_files "$target_regdir/$corpus_id"
@@ -765,16 +798,25 @@ for corpus_id in $corpus_ids; do
         add_corpus_files --any $(remove_trailing_slash \
             "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")
     fi
-done
-add_corpus_files_expand $extra_corpus_files
-echo_dbg corpus_files "$corpus_files"
+}
 
-for corpus_id in $corpus_ids; do
-    $cwbdata_extract_info --update --registry "$regdir" \
-        --data-root-dir "$datadir" \
-        --tsv-dir $(fill_dirtempl "$tsvdir" $corpus_id) \
-        --info-from-file "$extra_info_file" $corpus_id
-done
+# Add files to be included in the package to $corpus_files.
+add_files () {
+    local extra_corpus_files corpus_id
+    generate_or_update_vrt
+    process_registry
+    make_auth_info
+    echo_dbg extra_files "$corpus_files"
+    # Add the extra files to the end, except for those to be prepended
+    extra_corpus_files=$corpus_files
+    corpus_files=
+    add_corpus_files_expand $corpus_files_prepend
+    for corpus_id in $corpus_ids; do
+        add_single_corpus_files $corpus_id
+    done
+    add_corpus_files_expand $extra_corpus_files
+    echo_dbg corpus_files "$corpus_files"
+}
 
 # Output the ISO date and time (at seconds precision) for the date
 # passed as an argument, as returned by "date". As with tar --newer,
@@ -795,40 +837,6 @@ get_newer_date () {
     echo "$outdate"
     return $retval
 }
-
-# tar option to create a package with files newer than specified
-tar_newer_opt=
-# File base name suffix for a package with files newer than specified
-newer_suff=
-
-# --newer specified, so set tar_newer_opt and newer_suff based on its
-# argument
-if [ "x$newer" != x ]; then
-    date=$(get_newer_date "$newer")
-    if [ $? != 0 ]; then
-        error "Invalid value for --newer: ${date#date: }"
-    fi
-    safe_echo "Packaging only files modified after $date"
-    date=${date//[:-]/}
-    date=${date/ /_}
-    newer_suff="_${newer_marker}_$date"
-    tar_newer_opt=--newer-mtime="$newer"
-fi
-
-corpus_date=$(get_corpus_date $corpus_files)
-mkdir_perms $pkgdir/$corpus_name
-archive_basename=${corpus_name}_${archive_type_name}_$corpus_date$newer_suff
-archive_name=$pkgdir/$corpus_name/$archive_basename.$archive_ext
-archive_num=0
-while [ -e $archive_name ]; do
-    archive_num=$(($archive_num + 1))
-    archive_name=$pkgdir/$corpus_name/$archive_basename-`printf %02d $archive_num`.$archive_ext
-done
-
-tar_compress_opt=
-if [ "x$compress" != "xnone" ]; then
-    tar_compress_opt=--use-compress-program=$compress
-fi
 
 transform_dirtempl () {
     # Multiple backslashes are needed in the sed expression because of
@@ -895,26 +903,78 @@ make_tar_excludes () {
     done
 }
 
-dir_transforms=\
-"$datadir/ data/
-$target_regdir/ registry/
-$sqldir/\\\\([^/]*\\\\.sql[^/]*\\\\) sql/{corpid}/\\\\1
-$tsvdir/\\\\([^/]*\\\\.tsv[^/]*\\\\) sql/{corpid}/\\\\1
-$vrtdir/\\\\([^/]*\\\\.vrt[^/]*\\\\) vrt/{corpid}/\\\\1"
-if [ "x$extra_dir_and_file_transforms" != x ]; then
-    dir_transforms="$dir_transforms$extra_dir_and_file_transforms"
-fi
+# Check if --newer had been specified and set the values of global
+# variables tar_newer_opt and newer_suff accordingly.
+check_newer () {
+    local date
+    # tar option to create a package with files newer than specified
+    tar_newer_opt=
+    # File base name suffix for a package with files newer than specified
+    newer_suff=
+    # --newer specified, so set tar_newer_opt and newer_suff based on its
+    # argument
+    if [ "x$newer" != x ]; then
+        date=$(get_newer_date "$newer")
+        if [ $? != 0 ]; then
+            error "Invalid value for --newer: ${date#date: }"
+        fi
+        safe_echo "Packaging only files modified after $date"
+        date=${date//[:-]/}
+        date=${date/ /_}
+        newer_suff="_${newer_marker}_$date"
+        tar_newer_opt=--newer-mtime="$newer"
+    fi
+}
 
-echo_dbg "$dir_transforms"
-tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
-    -f $archive_name --exclude-backups $(make_tar_excludes $exclude_files) \
-    $(make_tar_transforms "$dir_transforms") \
-    --ignore-failed-read --sort=name \
-    "$tar_newer_opt" \
-    --show-transformed-names $corpus_files
+# Set archive name: $archive_name and $archive_basename.
+set_archive_name () {
+    local corpus_date archive_num
+    corpus_date=$(get_corpus_date $corpus_files)
+    mkdir_perms $pkgdir/$corpus_name
+    archive_basename=${corpus_name}_${archive_type_name}_$corpus_date$newer_suff
+    archive_name=$pkgdir/$corpus_name/$archive_basename.$archive_ext
+    archive_num=0
+    while [ -e $archive_name ]; do
+        archive_num=$(($archive_num + 1))
+        archive_name=$pkgdir/$corpus_name/$archive_basename-`printf %02d $archive_num`.$archive_ext
+    done
+}
 
-chgrp $filegroup $archive_name
-chmod a-w $archive_name
+# Output directory name transformations for tar.
+make_dir_transforms () {
+    local dir_transforms
+    dir_transforms="$datadir/ data/
+    $target_regdir/ registry/
+    $sqldir/\\\\([^/]*\\\\.sql[^/]*\\\\) sql/{corpid}/\\\\1
+    $tsvdir/\\\\([^/]*\\\\.tsv[^/]*\\\\) sql/{corpid}/\\\\1
+    $vrtdir/\\\\([^/]*\\\\.vrt[^/]*\\\\) vrt/{corpid}/\\\\1"
+    if [ "x$extra_dir_and_file_transforms" != x ]; then
+        dir_transforms="$dir_transforms$extra_dir_and_file_transforms"
+    fi
+    echo_dbg "$dir_transforms"
+    safe_echo "$dir_transforms"
+}
 
-echo "
-Created corpus package $archive_name"
+# Create Korp corpus package.
+create_package () {
+    local dir_transforms
+    check_newer
+    set_archive_name
+    dir_transforms="$(make_dir_transforms)"
+    tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
+        -f $archive_name --exclude-backups $(make_tar_excludes $exclude_files) \
+        $(make_tar_transforms "$dir_transforms") \
+        --ignore-failed-read --sort=name \
+        "$tar_newer_opt" \
+        --show-transformed-names $corpus_files
+    # Set group and permissions
+    chgrp $filegroup $archive_name
+    chmod a-w $archive_name
+    echo "
+    Created corpus package $archive_name"
+}
+
+
+check_args "$@"
+add_files
+create_package
