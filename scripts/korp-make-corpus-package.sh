@@ -250,9 +250,9 @@ dirname_slash () {
 
 is_dirname () {
     case "$1" in
-	*/ )
-	    return 0
-	    ;;
+        */ )
+            return 0
+            ;;
     esac
     return 1
 }
@@ -275,23 +275,23 @@ add_corpus_files () {
     # If --any is specified, warn on non-existent files only if none
     # of the files specified as arguments is found.
     if [ "x$1" = "x--any" ]; then
-	any=1
-	shift
+        any=1
+        shift
     fi
     for _fname in "$@"; do
-	if ls $_fname > /dev/null 2>&1; then
+        if ls $_fname > /dev/null 2>&1; then
             if [ "x$prepend" != x ]; then
                 corpus_files_prepend="$corpus_files_prepend $_fname"
             else
-	        corpus_files="$corpus_files $_fname"
+                corpus_files="$corpus_files $_fname"
             fi
-	    any_added=1
-	elif [ "x$any" = x ]; then
-	    warn "File or directory not found: $_fname"
-	fi
+            any_added=1
+        elif [ "x$any" = x ]; then
+            warn "File or directory not found: $_fname"
+        fi
     done
     if [ "x$any" != x ] &&  [ "x$any_added" = x ]; then
-	warn "None of the files or directories found: $*"
+        warn "None of the files or directories found: $*"
     fi
 }
 
@@ -314,9 +314,9 @@ has_wildcards () {
     # FIXME: This does not take into account backslash-protected
     # wildcards, which should not be counted as wildcards.
     case "$1" in
-	*\** | *\?* | *\[* )
-	    return 0
-	    ;;
+        *\** | *\?* | *\[* )
+            return 0
+            ;;
     esac
     return 1
 }
@@ -328,33 +328,33 @@ wildcards_to_regex () {
 
 set_db_format () {
     case "$1" in
-	sql | SQL )
-	    dbformat=sql
-	    ;;
-	tsv | TSV )
-	    dbformat=tsv
-	    ;;
-	auto | automatic )
-	    dbformat=auto
-	    ;;
-	none )
-	    dbformat=none
-	    ;;
-	* )
-	    warn "Invalid database format '$1'; using $dbformat"
-	    ;;
+        sql | SQL )
+            dbformat=sql
+            ;;
+        tsv | TSV )
+            dbformat=tsv
+            ;;
+        auto | automatic )
+            dbformat=auto
+            ;;
+        none )
+            dbformat=none
+            ;;
+        * )
+            warn "Invalid database format '$1'; using $dbformat"
+            ;;
     esac
 }
 
 set_compress () {
     if [ "x$1" = "xnone" ] || which $1 &> /dev/null; then
-	if [ "x$1" = "xcat" ]; then
-	    compress=none
-	else
-	    compress=$1
-	fi
+        if [ "x$1" = "xcat" ]; then
+            compress=none
+        else
+            compress=$1
+        fi
     else
-	warn "Compression program $1 not found; using $compress"
+        warn "Compression program $1 not found; using $compress"
     fi
 }
 
@@ -370,24 +370,24 @@ add_extra_dir_or_file () {
     local target=$2
     echo_dbg "** add_extra:param" "$source" "$target"
     if [ "x$target" = x ]; then
-	case "$source" in
-	    *:* )
-		target=$(echo "$source" | sed -e 's/^.*://')
-		source=$(echo "$source" | sed -e 's/:[^:]*$//')
-		# If the source contains wildcards, then the target
-		# should always be a directory.
-		if has_wildcards "$source"; then
-		    target=$target/
-		fi
-		;;
-	    * )
-		if has_wildcards "$source"; then
-		    target=$(dirname_slash "$source")/
-		else
-		    target=$source
-		fi
-		;;
-	esac
+        case "$source" in
+            *:* )
+                target=$(echo "$source" | sed -e 's/^.*://')
+                source=$(echo "$source" | sed -e 's/:[^:]*$//')
+                # If the source contains wildcards, then the target
+                # should always be a directory.
+                if has_wildcards "$source"; then
+                    target=$target/
+                fi
+                ;;
+            * )
+                if has_wildcards "$source"; then
+                    target=$(dirname_slash "$source")/
+                else
+                    target=$source
+                fi
+                ;;
+        esac
     fi
     local sourcedir=$(remove_leading_slash $(dirname_slash "$source"))
     local targetdir=$(remove_leading_slash $(dirname_slash "$target"))
@@ -397,25 +397,25 @@ add_extra_dir_or_file () {
     target=$(remove_leading_slash "$target")
     echo_dbg add_extra:mods "$source" "$target"
     if is_dirname "$target" || [ "x$targetdir" = x ]; then
-	local targetdir_slash=
-	if [ "x$targetdir" != x ]; then
-	    targetdir_slash="$targetdir/"
-	fi
-	# Originally $targetdir = /
-	if [ "x$sourcedir" = x. ]; then
-	    # Extra backslashes to protect them through echos
-	    add_transform "\\\\($source\\\\)" "$targetdir_slash\\\\1"
-	elif is_dirname "$source"; then
-	    add_transform "$sourcedir/" "$targetdir_slash"
-	    # The following is now added in make_tar_transforms:
-	    # add_transform "$sourcedir\$" "$targetdir"
-	else
-	    local sourcefile=$(wildcards_to_regex $(basename "$source"))
-	    add_transform \
-		"$sourcedir/\\\\($sourcefile\\\\)" "$targetdir_slash\\\\1"
-	fi
+        local targetdir_slash=
+        if [ "x$targetdir" != x ]; then
+            targetdir_slash="$targetdir/"
+        fi
+        # Originally $targetdir = /
+        if [ "x$sourcedir" = x. ]; then
+            # Extra backslashes to protect them through echos
+            add_transform "\\\\($source\\\\)" "$targetdir_slash\\\\1"
+        elif is_dirname "$source"; then
+            add_transform "$sourcedir/" "$targetdir_slash"
+            # The following is now added in make_tar_transforms:
+            # add_transform "$sourcedir\$" "$targetdir"
+        else
+            local sourcefile=$(wildcards_to_regex $(basename "$source"))
+            add_transform \
+                "$sourcedir/\\\\($sourcefile\\\\)" "$targetdir_slash\\\\1"
+        fi
     else
-	add_transform "$source" "$target"
+        add_transform "$source" "$target"
     fi
 }
 
@@ -431,7 +431,7 @@ add_extra_dir () {
     fi
     local target=$2
     if [ "x$target" != x ]; then
-	target="$target/"
+        target="$target/"
     fi
     add_extra_dir_or_file \
         $prepend "$(echo "$1" | sed -e 's,:,/:,; s,$,/,')" "$target"
@@ -476,7 +476,7 @@ fi
 
 if [ "x$omit_cwb_data" != x ]; then
     if [ "x$include_vrt" = x ]; then
-	error "You need to include VRT data when omitting CWB data."
+        error "You need to include VRT data when omitting CWB data."
     fi
     archive_type_name=vrt
 fi
@@ -524,10 +524,10 @@ generate_vrt () {
 if [ "x$generate_vrt" != x ]; then
     mkdir_perms $tmp_prefix.vrt
     for corpus_id in $corpus_ids; do
-	vrt_file=$tmp_prefix.vrt/$corpus_id.vrt
-	generate_vrt $corpus_id > "$vrt_file"
-	add_corpus_files "$vrt_file"
-	add_transform "$vrt_file" vrt/$corpus_id/$corpus_id.vrt
+        vrt_file=$tmp_prefix.vrt/$corpus_id.vrt
+        generate_vrt $corpus_id > "$vrt_file"
+        add_corpus_files "$vrt_file"
+        add_transform "$vrt_file" vrt/$corpus_id/$corpus_id.vrt
     done
 fi
 
@@ -544,49 +544,49 @@ vrt_file_is_uptodate () {
     local newer_corpus_files
     vrt_file=$(ls -t "$vrt_file" "$vrt_file".* 2> /dev/null | head -1)
     if [ "x$vrt_file" = x ]; then
-	return 1
+        return 1
     fi
     newer_corpus_files=$(
-	find "$datadir"/$corpus_id -newer "$vrt_file" -name '[a-z]*')
+        find "$datadir"/$corpus_id -newer "$vrt_file" -name '[a-z]*')
     [ "x$newer_corpus_files" = x ]
 }
 
 if [ "x$update_vrt" != x ]; then
     for corpus_id in $corpus_ids; do
-	corpus_vrtdir=$(fill_dirtempl "$vrtdir" $corpus_id)
-	vrt_file=$corpus_vrtdir/$corpus_id.vrt
-	mkdir_perms "$corpus_vrtdir"
-	if ! vrt_file_is_uptodate $corpus_id "$vrt_file"; then
-	    # Would the following be safe?
-	    # rm -f "$vrt_file" "vrt_file".*
-	    generate_vrt $corpus_id > "$vrt_file"
-	    if [ "x$compress" != "xnone" ]; then
-		$compress -f "$vrt_file"
-	    fi
-	fi
+        corpus_vrtdir=$(fill_dirtempl "$vrtdir" $corpus_id)
+        vrt_file=$corpus_vrtdir/$corpus_id.vrt
+        mkdir_perms "$corpus_vrtdir"
+        if ! vrt_file_is_uptodate $corpus_id "$vrt_file"; then
+            # Would the following be safe?
+            # rm -f "$vrt_file" "vrt_file".*
+            generate_vrt $corpus_id > "$vrt_file"
+            if [ "x$compress" != "xnone" ]; then
+                $compress -f "$vrt_file"
+            fi
+        fi
     done
 fi
 
 make_rels_table_names () {
     corp_id_upper=`echo $1 | sed -e 's/\(.*\)/\U\1\E/'`
     for base in $rels_tables_basenames; do
-	echo relations_${corp_id_upper}_$base |
-	sed -e 's/_@//'
+        echo relations_${corp_id_upper}_$base |
+        sed -e 's/_@//'
     done
 }
 
 run_mysqldump () {
     extra_opts=
     while true; do
-	case "$1" in
-	    -* )
-		extra_opts="$extra_opts $1"
-		shift
-		;;
-	    * )
-		break
-		;;
-	esac
+        case "$1" in
+            -* )
+                extra_opts="$extra_opts $1"
+                shift
+                ;;
+            * )
+                break
+                ;;
+        esac
     done
     mysqldump --no-autocommit $mysql_opts $extra_opts $korpdb "$@" 2> /dev/null
 }
@@ -594,11 +594,11 @@ run_mysqldump () {
 compress_or_rm_sqlfile () {
     sqlfile=$1
     if grep -q 'INSERT INTO' $sqlfile; then
-	if [ "x$compress" != "xnone" ]; then
-	    $compress $sqlfile
-	fi
+        if [ "x$compress" != "xnone" ]; then
+            $compress $sqlfile
+        fi
     else
-	rm $sqlfile
+        rm $sqlfile
     fi
 }
 
@@ -608,25 +608,25 @@ make_sql_table_part () {
     filetype=$2
     eval tablename=\$sql_table_name_$filetype
     if [ "x$tablename" = "x" ]; then
-	tablename=$filetype
+        tablename=$filetype
     fi
     sqlfile=`fill_dirtempl $sqldir $corp_id`/${corp_id}_$filetype.sql
     # 
     {
-	# Add a CREATE TABLE IF NOT EXISTS statement for the table, so
+        # Add a CREATE TABLE IF NOT EXISTS statement for the table, so
         # that the package can be installed even on an empty database.
         # By default, mysqldump (without --no-create-info) would first
         # drop the database and then recreate it, but we need to
         # retain the data for the other corpora.
-	run_mysqldump --no-data --compact $tablename |
-	sed -e 's/CREATE TABLE/& IF NOT EXISTS/'
-	echo
-	# Instruct to delete existing data for the corpus first
-	echo "DELETE FROM $tablename WHERE corpus='$corp_id_upper';"
-	echo
-	# The actual data dump
-	run_mysqldump --no-create-info --where="corpus='$corp_id_upper'" \
-	    $tablename
+        run_mysqldump --no-data --compact $tablename |
+        sed -e 's/CREATE TABLE/& IF NOT EXISTS/'
+        echo
+        # Instruct to delete existing data for the corpus first
+        echo "DELETE FROM $tablename WHERE corpus='$corp_id_upper';"
+        echo
+        # The actual data dump
+        run_mysqldump --no-create-info --where="corpus='$corp_id_upper'" \
+            $tablename
     } > $sqlfile
     compress_or_rm_sqlfile $sqlfile
 }
@@ -638,7 +638,7 @@ dump_database () {
     run_mysqldump $rels_tables > $sqldir_real/${corp_id}_rels.sql
     compress_or_rm_sqlfile $sqldir_real/${corp_id}_rels.sql
     for filetype in $sql_file_types_multicorpus; do
-	make_sql_table_part $corp_id $filetype
+        make_sql_table_part $corp_id $filetype
     done
 }
 
@@ -668,11 +668,11 @@ list_existing_db_files_by_type () {
     type=$2
     db_filetype=$3
     if [ "x$type" = "xtsv" ]; then
-	dir=$tsvdir
-	ext=.tsv
+        dir=$tsvdir
+        ext=.tsv
     else
-	dir=$sqldir
-	ext=.sql
+        dir=$sqldir
+        ext=.sql
     fi
     dir=`fill_dirtempl $dir $corp_id`
     # FIXME: Should the line below have $db_filetype instead of
@@ -693,33 +693,33 @@ list_existing_db_files () {
     filenames_sql=`list_existing_db_files_by_type $corp_id $type sql`
     filenames_tsv=`list_existing_db_files_by_type $corp_id $type tsv`
     if [ "x$filenames_sql" != x ]; then
-	if [ "x$filenames_tsv" != x ]; then
-	    firstfile_sql=`get_first_word $filenames_sql`
-	    firstfile_tsv=`get_first_word $filenames_tsv`
-	    if [ "$firstfile_sql" -nt "$firstfile_tsv" ]; then
-		echo "$filenames_sql"
-	    else
-		echo "$filenames_tsv"
-	    fi
-	else
-	    echo "$filenames_sql"
-	fi
+        if [ "x$filenames_tsv" != x ]; then
+            firstfile_sql=`get_first_word $filenames_sql`
+            firstfile_tsv=`get_first_word $filenames_tsv`
+            if [ "$firstfile_sql" -nt "$firstfile_tsv" ]; then
+                echo "$filenames_sql"
+            else
+                echo "$filenames_tsv"
+            fi
+        else
+            echo "$filenames_sql"
+        fi
     else
-	echo "$filenames_tsv"
+        echo "$filenames_tsv"
     fi
 }
 
 list_db_files () {
     if [ "$dbformat" != auto ]; then
-	list_existing_db_files_by_type $corpus_id $dbformat
+        list_existing_db_files_by_type $corpus_id $dbformat
     else
-	dbfiles=`list_existing_db_files $corpus_id`
-	if [ "x$dbfiles" = "x" ]; then
-	    dump_database $corpus_id
-	    list_existing_db_files $corpus_id
-	else
-	    echo "$dbfiles"
-	fi
+        dbfiles=`list_existing_db_files $corpus_id`
+        if [ "x$dbfiles" = "x" ]; then
+            dump_database $corpus_id
+            list_existing_db_files $corpus_id
+        else
+            echo "$dbfiles"
+        fi
     fi
 }
 
@@ -730,8 +730,8 @@ else
     target_regdir=$tmp_prefix/$regsubdir
     mkdir_perms $target_regdir
     for corpus_id in $corpus_ids; do
-	sed -e "s,^\(HOME\|INFO\) .*\($corpus_id\),\1 $target_corpus_root/$datasubdir/\2," $regdir/$corpus_id > $target_regdir/$corpus_id
-	touch --reference=$regdir/$corpus_id $target_regdir/$corpus_id
+        sed -e "s,^\(HOME\|INFO\) .*\($corpus_id\),\1 $target_corpus_root/$datasubdir/\2," $regdir/$corpus_id > $target_regdir/$corpus_id
+        touch --reference=$regdir/$corpus_id $target_regdir/$corpus_id
     done
 fi
 
@@ -750,20 +750,20 @@ for corpus_id in $corpus_ids; do
     # even if omitting CWB data
     add_corpus_files "$target_regdir/$corpus_id"
     if [ "x$omit_cwb_data" = x ]; then
-	add_corpus_files "$datadir/$corpus_id/"
+        add_corpus_files "$datadir/$corpus_id/"
     fi
     if [ "x$export_db" != x ]; then
-	$korp_mysql_export --corpus-root "$corpus_root" \
-	    --output-dir "$tsvdir" --compress "$compress" $corpus_id
+        $korp_mysql_export --corpus-root "$corpus_root" \
+            --output-dir "$tsvdir" --compress "$compress" $corpus_id
     fi
     if [ "x$dbformat" != xnone ]; then
-	add_corpus_files $(list_db_files $corpus_id)
+        add_corpus_files $(list_db_files $corpus_id)
     fi
     if [ "x$include_vrtdir" != x ]; then
-	filepatt=$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)
-	# --any to warn only if neither *.vrt nor *.vrt.* is found
-	add_corpus_files --any $(remove_trailing_slash \
-	    "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")
+        filepatt=$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)
+        # --any to warn only if neither *.vrt nor *.vrt.* is found
+        add_corpus_files --any $(remove_trailing_slash \
+            "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")
     fi
 done
 add_corpus_files_expand $extra_corpus_files
@@ -771,9 +771,9 @@ echo_dbg corpus_files "$corpus_files"
 
 for corpus_id in $corpus_ids; do
     $cwbdata_extract_info --update --registry "$regdir" \
-	--data-root-dir "$datadir" \
-	--tsv-dir $(fill_dirtempl "$tsvdir" $corpus_id) \
-	--info-from-file "$extra_info_file" $corpus_id
+        --data-root-dir "$datadir" \
+        --tsv-dir $(fill_dirtempl "$tsvdir" $corpus_id) \
+        --info-from-file "$extra_info_file" $corpus_id
 done
 
 # Output the ISO date and time (at seconds precision) for the date
@@ -842,21 +842,21 @@ transform_dirtempl_pair () {
     local dstdir=$2
     local repl=
     case $dstdir in
-	*{corp*}* )
-	    dstdir=${dstdir/"{corpname}"/$corpus_name}
-	    case $srcdir in
-		*{corpid}* )
-		    # This assumes that \1 is in the filename part,
-		    # thus later than {corpid}
-		    dstdir=${dstdir/'\1'/'\2'}
-		    repl='\1'
-		    ;;
-		* )
-		    repl=$corpus_name
-		    ;;
-	    esac
-	    dstdir=${dstdir/"{corpid}"/$repl}
-	    ;;
+        *{corp*}* )
+            dstdir=${dstdir/"{corpname}"/$corpus_name}
+            case $srcdir in
+                *{corpid}* )
+                    # This assumes that \1 is in the filename part,
+                    # thus later than {corpid}
+                    dstdir=${dstdir/'\1'/'\2'}
+                    repl='\1'
+                    ;;
+                * )
+                    repl=$corpus_name
+                    ;;
+            esac
+            dstdir=${dstdir/"{corpid}"/$repl}
+            ;;
     esac
     srcdir=$(transform_dirtempl "$srcdir")
     echo "$srcdir $dstdir"
@@ -874,24 +874,24 @@ make_tar_transforms () {
     echo "$1" |
     sort -u |
     while read source target; do
-	echo_dbg tar_transform:from "$source" "$target"
-	local pair=$(transform_dirtempl_pair $source $target)
-	source=${pair% *}
-	target=${pair#* }
+        echo_dbg tar_transform:from "$source" "$target"
+        local pair=$(transform_dirtempl_pair $source $target)
+        source=${pair% *}
+        target=${pair#* }
         # Tar removes leading "../" before transformations, so remove
         # it to make the transformation work
         source=${source#../}
-	make_tar_transform "$source" "$target"
-	if [[ "$source" = */ && "$target" = */ ]]; then
-	    make_tar_transform "$(remove_trailing_slash $source)\$" \
-		"$(remove_trailing_slash $target)"
-	fi
+        make_tar_transform "$source" "$target"
+        if [[ "$source" = */ && "$target" = */ ]]; then
+            make_tar_transform "$(remove_trailing_slash $source)\$" \
+                "$(remove_trailing_slash $target)"
+        fi
     done
 }
 
 make_tar_excludes () {
     for patt in "$@"; do
-	printf '%s\n' --exclude "$patt"
+        printf '%s\n' --exclude "$patt"
     done
 }
 
