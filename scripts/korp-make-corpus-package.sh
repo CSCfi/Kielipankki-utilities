@@ -483,8 +483,52 @@ get_corpus_ids () {
     fi
 }
 
+# Output the ISO date and time (at seconds precision) for the date
+# passed as an argument, as returned by "date". As with tar --newer,
+# if the argument begins with a "." or "/", treat it as the name of a
+# file, whose last modification is output. On error, return 1 and
+# output the error message from "date".
+get_newer_date () {
+    local indate outdate dateopt retval
+    indate=$1
+    # File name if begins with "." or "/"
+    if [ "${indate#[./]}" != "$indate" ]; then
+        dateopt=reference
+    else
+        dateopt=date
+    fi
+    outdate=$(date --$dateopt="$indate" +"%Y-%m-%d %H:%M:%S" 2>&1)
+    retval=$?
+    echo "$outdate"
+    return $retval
+}
+
+# Check if --newer had been specified and set the values of global
+# variables tar_newer_opt and newer_suff accordingly.
+check_newer () {
+    local date
+    # tar option to create a package with files newer than specified
+    tar_newer_opt=
+    # File base name suffix for a package with files newer than specified
+    newer_suff=
+    # --newer specified, so set tar_newer_opt and newer_suff based on its
+    # argument
+    if [ "x$newer" != x ]; then
+        date=$(get_newer_date "$newer")
+        if [ $? != 0 ]; then
+            error "Invalid value for --newer: ${date#date: }"
+        fi
+        safe_echo "Packaging only files modified after $date"
+        date=${date//[:-]/}
+        date=${date/ /_}
+        newer_suff="_${newer_marker}_$date"
+        tar_newer_opt=--newer-mtime="$newer"
+    fi
+}
+
 # Check some options and set values or warn based on them.
 check_options () {
+    check_newer
     if [ "x$include_vrtdir$generate_vrt" != "x" ]; then
         include_vrt=1
     fi
@@ -818,26 +862,6 @@ add_files () {
     echo_dbg corpus_files "$corpus_files"
 }
 
-# Output the ISO date and time (at seconds precision) for the date
-# passed as an argument, as returned by "date". As with tar --newer,
-# if the argument begins with a "." or "/", treat it as the name of a
-# file, whose last modification is output. On error, return 1 and
-# output the error message from "date".
-get_newer_date () {
-    local indate outdate dateopt retval
-    indate=$1
-    # File name if begins with "." or "/"
-    if [ "${indate#[./]}" != "$indate" ]; then
-        dateopt=reference
-    else
-        dateopt=date
-    fi
-    outdate=$(date --$dateopt="$indate" +"%Y-%m-%d %H:%M:%S" 2>&1)
-    retval=$?
-    echo "$outdate"
-    return $retval
-}
-
 transform_dirtempl () {
     # Multiple backslashes are needed in the sed expression because of
     # multiple echos, through which the output goes. (?)
@@ -903,29 +927,6 @@ make_tar_excludes () {
     done
 }
 
-# Check if --newer had been specified and set the values of global
-# variables tar_newer_opt and newer_suff accordingly.
-check_newer () {
-    local date
-    # tar option to create a package with files newer than specified
-    tar_newer_opt=
-    # File base name suffix for a package with files newer than specified
-    newer_suff=
-    # --newer specified, so set tar_newer_opt and newer_suff based on its
-    # argument
-    if [ "x$newer" != x ]; then
-        date=$(get_newer_date "$newer")
-        if [ $? != 0 ]; then
-            error "Invalid value for --newer: ${date#date: }"
-        fi
-        safe_echo "Packaging only files modified after $date"
-        date=${date//[:-]/}
-        date=${date/ /_}
-        newer_suff="_${newer_marker}_$date"
-        tar_newer_opt=--newer-mtime="$newer"
-    fi
-}
-
 # Set archive name: $archive_name and $archive_basename.
 set_archive_name () {
     local corpus_date archive_num
@@ -958,7 +959,6 @@ make_dir_transforms () {
 # Create Korp corpus package.
 create_package () {
     local dir_transforms
-    check_newer
     set_archive_name
     dir_transforms="$(make_dir_transforms)"
     tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
