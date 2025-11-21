@@ -218,8 +218,8 @@ archive_type_name=korp
 # than the specified given date
 newer_marker=a
 
-sql_file_types="lemgrams rels timespans timedata timedata_date"
-sql_file_types_multicorpus="lemgrams timespans timedata timedata_date"
+sql_file_types="lemgrams rels timedata timedata_date"
+sql_file_types_multicorpus="lemgrams timedata timedata_date"
 sql_table_name_lemgrams=lemgram_index
 rels_tables_basenames="@ rel head_rel dep_rel strings sentences"
 
