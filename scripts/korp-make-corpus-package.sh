@@ -522,7 +522,7 @@ generate_vrt () {
 }
 
 if [ "x$generate_vrt" != x ]; then
-    mkdir -p $tmp_prefix.vrt
+    mkdir_perms $tmp_prefix.vrt
     for corpus_id in $corpus_ids; do
 	vrt_file=$tmp_prefix.vrt/$corpus_id.vrt
 	generate_vrt $corpus_id > "$vrt_file"
@@ -555,7 +555,7 @@ if [ "x$update_vrt" != x ]; then
     for corpus_id in $corpus_ids; do
 	corpus_vrtdir=$(fill_dirtempl "$vrtdir" $corpus_id)
 	vrt_file=$corpus_vrtdir/$corpus_id.vrt
-	mkdir -p "$corpus_vrtdir"
+	mkdir_perms "$corpus_vrtdir"
 	if ! vrt_file_is_uptodate $corpus_id "$vrt_file"; then
 	    # Would the following be safe?
 	    # rm -f "$vrt_file" "vrt_file".*
@@ -728,7 +728,7 @@ if [ "$corpus_root" = "$target_corpus_root" ]; then
     target_regdir=$regdir
 else
     target_regdir=$tmp_prefix/$regsubdir
-    mkdir -p $target_regdir
+    mkdir_perms $target_regdir
     for corpus_id in $corpus_ids; do
 	sed -e "s,^\(HOME\|INFO\) .*\($corpus_id\),\1 $target_corpus_root/$datasubdir/\2," $regdir/$corpus_id > $target_regdir/$corpus_id
 	touch --reference=$regdir/$corpus_id $target_regdir/$corpus_id
