@@ -30,8 +30,8 @@
 #   of only the newest ones.
 
 
-progname=`basename $0`
-progdir=`dirname $0`
+progname=$(basename $0)
+progdir=$(dirname $0)
 
 usage_header="Usage: $progname [options] corpus_name [corpus_id ...]
 
@@ -631,7 +631,7 @@ generate_or_update_vrt () {
 }
 
 make_rels_table_names () {
-    corp_id_upper=`echo $1 | sed -e 's/\(.*\)/\U\1\E/'`
+    corp_id_upper=$(echo $1 | sed -e 's/\(.*\)/\U\1\E/')
     for base in $rels_tables_basenames; do
         echo relations_${corp_id_upper}_$base |
         sed -e 's/_@//'
@@ -667,13 +667,13 @@ compress_or_rm_sqlfile () {
 
 make_sql_table_part () {
     corp_id=$1
-    corp_id_upper=`echo $corp_id | sed -e 's/\(.*\)/\U\1\E/'`
+    corp_id_upper=$(echo $corp_id | sed -e 's/\(.*\)/\U\1\E/')
     filetype=$2
     eval tablename=\$sql_table_name_$filetype
     if [ "x$tablename" = "x" ]; then
         tablename=$filetype
     fi
-    sqlfile=`fill_dirtempl $sqldir $corp_id`/${corp_id}_$filetype.sql
+    sqlfile=$(fill_dirtempl $sqldir $corp_id)/${corp_id}_$filetype.sql
     # 
     {
         # Add a CREATE TABLE IF NOT EXISTS statement for the table, so
@@ -696,8 +696,8 @@ make_sql_table_part () {
 
 dump_database () {
     corp_id=$1
-    rels_tables=`make_rels_table_names $corp_id`
-    sqldir_real=`fill_dirtempl $sqldir $corp_id`
+    rels_tables=$(make_rels_table_names $corp_id)
+    sqldir_real=$(fill_dirtempl $sqldir $corp_id)
     run_mysqldump $rels_tables > $sqldir_real/${corp_id}_rels.sql
     compress_or_rm_sqlfile $sqldir_real/${corp_id}_rels.sql
     for filetype in $sql_file_types_multicorpus; do
@@ -727,7 +727,7 @@ list_existing_db_files_by_type () {
     local type=$2
     local dir basename
     eval "dir=\$${type}dir"
-    dir=`fill_dirtempl $dir $corp_id`
+    dir=$(fill_dirtempl $dir $corp_id)
     basename="$dir/${corp_id}_*.$type"
     ls -t $basename $basename.gz $basename.bz2 $basename.xz 2> /dev/null
 }
@@ -741,13 +741,13 @@ get_first_word () {
 # recently modified.
 list_existing_db_files () {
     local corp_id=$1
-    local filenames_sql=`list_existing_db_files_by_type $corp_id sql`
-    local filenames_tsv=`list_existing_db_files_by_type $corp_id tsv`
+    local filenames_sql=$(list_existing_db_files_by_type $corp_id sql)
+    local filenames_tsv=$(list_existing_db_files_by_type $corp_id tsv)
     local firstfile_sql firstfile_tsv
     if [ "x$filenames_sql" != x ]; then
         if [ "x$filenames_tsv" != x ]; then
-            firstfile_sql=`get_first_word $filenames_sql`
-            firstfile_tsv=`get_first_word $filenames_tsv`
+            firstfile_sql=$(get_first_word $filenames_sql)
+            firstfile_tsv=$(get_first_word $filenames_tsv)
             if [ "$firstfile_sql" -nt "$firstfile_tsv" ]; then
                 echo "$filenames_sql"
             else
@@ -769,7 +769,7 @@ list_db_files () {
     if [ "$dbformat" != auto ]; then
         list_existing_db_files_by_type $corpus_id $dbformat
     else
-        dbfiles=`list_existing_db_files $corpus_id`
+        dbfiles=$(list_existing_db_files $corpus_id)
         if [ "x$dbfiles" = "x" ]; then
             dump_database $corpus_id
             list_existing_db_files $corpus_id
@@ -930,7 +930,7 @@ set_archive_name () {
     archive_num=0
     while [ -e $archive_name ]; do
         archive_num=$(($archive_num + 1))
-        archive_name=$pkgdir/$corpus_name/$archive_basename-`printf %02d $archive_num`.$archive_ext
+        archive_name=$pkgdir/$corpus_name/$archive_basename-$(printf %02d $archive_num).$archive_ext
     done
 }
 
