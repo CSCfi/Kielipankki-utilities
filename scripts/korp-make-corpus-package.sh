@@ -631,9 +631,9 @@ generate_or_update_vrt () {
 }
 
 make_rels_table_names () {
-    corp_id_upper=$(echo $1 | sed -e 's/\(.*\)/\U\1\E/')
+    corpus_id_upper=$(echo $1 | sed -e 's/\(.*\)/\U\1\E/')
     for base in $rels_tables_basenames; do
-        echo relations_${corp_id_upper}_$base |
+        echo relations_${corpus_id_upper}_$base |
         sed -e 's/_@//'
     done
 }
@@ -666,14 +666,14 @@ compress_or_rm_sqlfile () {
 }
 
 make_sql_table_part () {
-    corp_id=$1
-    corp_id_upper=$(echo $corp_id | sed -e 's/\(.*\)/\U\1\E/')
+    corpus_id=$1
+    corpus_id_upper=$(echo $corpus_id | sed -e 's/\(.*\)/\U\1\E/')
     filetype=$2
     eval tablename=\$sql_table_name_$filetype
     if [ "x$tablename" = "x" ]; then
         tablename=$filetype
     fi
-    sqlfile=$(fill_dirtempl $sqldir $corp_id)/${corp_id}_$filetype.sql
+    sqlfile=$(fill_dirtempl $sqldir $corpus_id)/${corpus_id}_$filetype.sql
     # 
     {
         # Add a CREATE TABLE IF NOT EXISTS statement for the table, so
@@ -685,23 +685,23 @@ make_sql_table_part () {
         sed -e 's/CREATE TABLE/& IF NOT EXISTS/'
         echo
         # Instruct to delete existing data for the corpus first
-        echo "DELETE FROM $tablename WHERE corpus='$corp_id_upper';"
+        echo "DELETE FROM $tablename WHERE corpus='$corpus_id_upper';"
         echo
         # The actual data dump
-        run_mysqldump --no-create-info --where="corpus='$corp_id_upper'" \
+        run_mysqldump --no-create-info --where="corpus='$corpus_id_upper'" \
             $tablename
     } > $sqlfile
     compress_or_rm_sqlfile $sqlfile
 }
 
 dump_database () {
-    corp_id=$1
-    rels_tables=$(make_rels_table_names $corp_id)
-    sqldir_real=$(fill_dirtempl $sqldir $corp_id)
-    run_mysqldump $rels_tables > $sqldir_real/${corp_id}_rels.sql
-    compress_or_rm_sqlfile $sqldir_real/${corp_id}_rels.sql
+    corpus_id=$1
+    rels_tables=$(make_rels_table_names $corpus_id)
+    sqldir_real=$(fill_dirtempl $sqldir $corpus_id)
+    run_mysqldump $rels_tables > $sqldir_real/${corpus_id}_rels.sql
+    compress_or_rm_sqlfile $sqldir_real/${corpus_id}_rels.sql
     for filetype in $sql_file_types_multicorpus; do
-        make_sql_table_part $corp_id $filetype
+        make_sql_table_part $corpus_id $filetype
     done
 }
 
@@ -723,12 +723,12 @@ get_corpus_date () {
 # Output a list of existing database files for corpus with id $1 and
 # type $2 ("tsv" or "sql"), most recently modified first.
 list_existing_db_files_by_type () {
-    local corp_id=$1
+    local corpus_id=$1
     local type=$2
     local dir basename
     eval "dir=\$${type}dir"
-    dir=$(fill_dirtempl $dir $corp_id)
-    basename="$dir/${corp_id}_*.$type"
+    dir=$(fill_dirtempl $dir $corpus_id)
+    basename="$dir/${corpus_id}_*.$type"
     ls -t $basename $basename.gz $basename.bz2 $basename.xz 2> /dev/null
 }
 
@@ -740,9 +740,9 @@ get_first_word () {
 # both TSV and SQL files exist, list those whose newest file is more
 # recently modified.
 list_existing_db_files () {
-    local corp_id=$1
-    local filenames_sql=$(list_existing_db_files_by_type $corp_id sql)
-    local filenames_tsv=$(list_existing_db_files_by_type $corp_id tsv)
+    local corpus_id=$1
+    local filenames_sql=$(list_existing_db_files_by_type $corpus_id sql)
+    local filenames_tsv=$(list_existing_db_files_by_type $corpus_id tsv)
     local firstfile_sql firstfile_tsv
     if [ "x$filenames_sql" != x ]; then
         if [ "x$filenames_tsv" != x ]; then
