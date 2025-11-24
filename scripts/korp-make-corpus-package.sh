@@ -720,28 +720,15 @@ get_corpus_date () {
     date --reference="$newest_file" "+%Y%m%d_%H%M%S"
 }
 
-# FIXME: list_existing_db_files_by_type, list_existing_db_files and
-# list_db_files probably do not work as they were intended to. There
-# should probably be a loop somewhere iterating over the different
-# types of tables.
-
+# Output a list of existing database files for corpus with id $1 and
+# type $2 ("tsv" or "sql"), most recently modified first.
 list_existing_db_files_by_type () {
-    # FIXME: Check the arguments and their use!
-    corp_id=$1
-    type=$2
-    db_filetype=$3
-    if [ "x$type" = "xtsv" ]; then
-        dir=$tsvdir
-        ext=.tsv
-    else
-        dir=$sqldir
-        ext=.sql
-    fi
+    local corp_id=$1
+    local type=$2
+    local dir basename
+    eval "dir=\$${type}dir"
     dir=`fill_dirtempl $dir $corp_id`
-    # FIXME: Should the line below have $db_filetype instead of
-    # $filetype? Now this lists all files beginning with $corp_id and
-    # ending in $ext, which is probably why all this seems to work.
-    basename="$dir/${corp_id}_$filetype*$ext"
+    basename="$dir/${corp_id}_*.$type"
     ls -t $basename $basename.gz $basename.bz2 $basename.xz 2> /dev/null
 }
 
@@ -749,12 +736,14 @@ get_first_word () {
     echo "$1"
 }
 
+# Output a list of existing database files for corpus with id $1. If
+# both TSV and SQL files exist, list those whose newest file is more
+# recently modified.
 list_existing_db_files () {
-    # FIXME: Check the arguments and their use!
-    corp_id=$1
-    type=$2
-    filenames_sql=`list_existing_db_files_by_type $corp_id $type sql`
-    filenames_tsv=`list_existing_db_files_by_type $corp_id $type tsv`
+    local corp_id=$1
+    local filenames_sql=`list_existing_db_files_by_type $corp_id sql`
+    local filenames_tsv=`list_existing_db_files_by_type $corp_id tsv`
+    local firstfile_sql firstfile_tsv
     if [ "x$filenames_sql" != x ]; then
         if [ "x$filenames_tsv" != x ]; then
             firstfile_sql=`get_first_word $filenames_sql`
@@ -772,7 +761,11 @@ list_existing_db_files () {
     fi
 }
 
+# Output a list of database files for corpus with id $1. If no
+# database files already exist, dump the database for the corpus.
 list_db_files () {
+    local corpus_id=$1
+    local dbfiles
     if [ "$dbformat" != auto ]; then
         list_existing_db_files_by_type $corpus_id $dbformat
     else
