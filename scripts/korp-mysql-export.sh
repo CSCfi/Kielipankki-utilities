@@ -21,10 +21,9 @@ verbose=1
 
 dbname=korp
 
-tables_common="lemgram_index timespans timedata timedata_date corpus_info auth_license auth_lbr_map"
-tables_by_corpus="relations names"
+tables_common="lemgram_index timedata timedata_date auth_license auth_lbr_map"
+tables_by_corpus="relations"
 table_suffixes_relations="@ dep_rel head_rel rel sentences strings"
-table_suffixes_names="@ sentences strings"
 filename_lemgram_index=lemgrams
 filename_corpus_info=corpinfo
 filename_relations=rels
