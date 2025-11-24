@@ -149,7 +149,7 @@ run_mysql_export () {
     if [ $rowcnt = 0 ]; then
 	if [ -s $tmp_prefix.err ] &&
 	       # Silently ignore "Table doesn't exist" errors
-	       grep -vq '^ERROR 1146' $tmp_prefix.err;
+	       ! grep -lq '^ERROR 1146' $tmp_prefix.err;
 	then
 	    warn "Table $tablename not exported due to a MySQL error:"
 	    cat $tmp_prefix.err | sed -e 's/^/  /'
