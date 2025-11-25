@@ -9,10 +9,37 @@
 progname=`basename $0`
 progdir=`dirname $0`
 
-shortopts="hc:o:qvz:"
-longopts="help,corpus-root:,output-dir:,quiet,verbose,compress:"
+usage_header="Usage: $progname [options] corpus_id ...
+
+Export data from Korp MySQL database tables into TSV files for corpora with
+ids corpus_id ... corpus_id may contain shell wildcards, in which case all
+matching corpora in the corpus registry are processed."
+
+optspecs='
+c|corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
+    use DIR as the root directory of corpus files for the source files
+    (CORPUS_ROOT) (default: $corpus_root)
+o|output-dir=DIRTEMPL "CORPUS_ROOT/$tsvsubdir" outputdir
+    use DIRTEMPL as the output directory template for TSV files;
+    DIRTEMPL is a directory name possibly containing placeholder
+    {corpid} for corpus id
+q|quiet { verbose= }
+    suppress all output
+v|verbose { verbose=2 }
+    verbose output: show the TSV files produced and the number of rows
+    in them
+z|compress=PROG "$compress" { set_compress "$1" }
+    compress files with PROG; "none" for no compression
+'
+
+usage_footer="Environment variables:
+  Default values for the various directories can also be specified via
+  the following environment variables: CORPUS_ROOT, CORPUS_REGISTRY,
+  CORPUS_TSVDIR."
+
 
 . $progdir/korp-lib.sh
+
 
 tsvsubdir=vrt/{corpid}
 compress=gzip
@@ -34,82 +61,21 @@ compr_suffix_xz=.xz
 compr_suffix_cat=
 
 
-usage () {
-    cat <<EOF
-Usage: $progname [options] corpus_id ...
-
-Export data from Korp MySQL database tables into TSV files for corpora with
-ids corpus_id ... corpus_id may contain shell wildcards, in which case all
-matching corpora in the corpus registry are processed.
-
-Options:
-  -h, --help      show this help
-  -c, --corpus-root DIR
-                  use DIR as the root directory of corpus files for the
-                  source files (CORPUS_ROOT) (default: $corpus_root)
-  -o, --output-dir DIRTEMPL
-                  use DIRTEMPL as the output directory template for TSV files;
-                  DIRTEMPL is a directory name possibly containing placeholder
-                  {corpid} for corpus id (default: CORPUS_ROOT/$tsvsubdir)
-  -q, --quiet     suppress all output
-  -v, --verbose   verbose output: show the TSV files produced and the number
-                  of rows in them
-  -z, --compress PROG
-                  compress files with PROG; "none" for no compression
-                  (default: $compress)
-
-Environment variables:
-  Default values for the various directories can also be specified via
-  the following environment variables: CORPUS_ROOT, CORPUS_REGISTRY,
-  CORPUS_TSVDIR.
-EOF
-    exit 0
+# Set $compress to $1, "cat" if "none"; warn if program $1 not found.
+set_compress () {
+    if [ "x$1" = "xnone" ]; then
+	compress=cat
+    elif which $1 > /dev/null; then
+	compress=$1
+    else
+	warn "Compression program $1 not found; using $compress"
+    fi
 }
 
 
 # Process options
-while [ "x$1" != "x" ] ; do
-    case "$1" in
-	-h | --help )
-	    usage
-	    ;;
-	-c | --corpus-root )
-	    shift
-	    set_corpus_root "$1"
-	    ;;
-	-o | --output-dir )
-	    shift
-	    outputdir=$1
-	    ;;
-	-q | --quiet )
-	    verbose=
-	    ;;
-	-v | --verbose )
-	    verbose=2
-	    ;;
-	-z | --compress )
-	    shift
-	    if [ "x$1" = "xnone" ]; then
-		compress=cat
-	    elif which $1 > /dev/null; then
-		compress=$1
-	    else
-		warn "Compression program $1 not found; using $compress"
-	    fi
-	    ;;
-	-- )
-	    shift
-	    break
-	    ;;
-	--* )
-	    warn "Unrecognized option: $1"
-	    ;;
-	* )
-	    break
-	    ;;
-    esac
-    shift
-done
+eval "$optinfo_opt_handler"
+
 
 if [ "x$1" = x ]; then
     error "Please specify the names (ids) of corpora whose data to export.
