@@ -90,10 +90,6 @@ corpora=$(list_corpora "$@")
 
 fname_suffix=.tsv$(eval echo \$compr_suffix_$compress)
 
-if [ "x$MYSQL_USER" != "x" ]; then
-    mysql_opt_user="--user $MYSQL_USER"
-fi
-
 
 run_mysql_export () {
     local tablename outfname sql_cmd pid rowcnt
