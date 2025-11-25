@@ -169,7 +169,10 @@ z|compress=PROG "gzip" { set_compress "$1" }
 usage_footer="Environment variables:
   Default values for the various directories can also be specified via
   the following environment variables: CORPUS_ROOT, TARGET_CORPUS_ROOT,
-  CORPUS_PKGDIR, CORPUS_REGISTRY, CORPUS_SQLDIR, CORPUS_TSVDIR, CORPUS_VRTDIR."
+  CORPUS_PKGDIR, CORPUS_REGISTRY, CORPUS_SQLDIR, CORPUS_TSVDIR,
+  CORPUS_VRTDIR. MySQL host, username and password can be specified
+  via KORP_MYSQL_HOST, KORP_MYSQL_USER and KORP_MYSQL_PASSWORD,
+  respectively."
 
 
 . $progdir/korp-lib.sh
