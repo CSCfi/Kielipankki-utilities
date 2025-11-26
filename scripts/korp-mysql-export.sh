@@ -9,6 +9,11 @@
 progname=`basename $0`
 progdir=`dirname $0`
 
+# A dummy variable used only in $optspecs to adjust slightly for the
+# length difference of "$compress_prog" and its value, since $optspecs
+# texts are wrapped based on the unexpanded value
+filler=
+
 usage_header="Usage: $progname [options] corpus_id ...
 
 Export data from Korp MySQL database tables into TSV files for corpora with
@@ -28,8 +33,9 @@ q|quiet { verbose= }
 v|verbose { verbose=2 }
     verbose output: show the TSV files produced and the number of rows
     in them
-z|compress=PROG "$compress" { set_compress "$1" }
-    compress files with PROG; "none" for no compression
+z|compress=PROG "$compress" { compress=$(get_compress "$1" "$compress" cat) }
+    compress files with PROG (one of: $compress_progs$filler);
+    "none" for no compression
 '
 
 usage_footer="Environment variables:
@@ -57,23 +63,6 @@ filename_lemgram_index=lemgrams
 filename_corpus_info=corpinfo
 filename_relations=rels
 
-compr_suffix_gzip=.gz
-compr_suffix_bzip2=.bz2
-compr_suffix_xz=.xz
-compr_suffix_cat=
-
-
-# Set $compress to $1, "cat" if "none"; warn if program $1 not found.
-set_compress () {
-    if [ "x$1" = "xnone" ]; then
-	compress=cat
-    elif which $1 > /dev/null; then
-	compress=$1
-    else
-	warn "Compression program $1 not found; using $compress"
-    fi
-}
-
 
 # Process options
 eval "$optinfo_opt_handler"
@@ -88,7 +77,9 @@ outputdir=${outputdir:-$corpus_root/$tsvsubdir}
 
 corpora=$(list_corpora "$@")
 
-fname_suffix=.tsv$(eval echo \$compr_suffix_$compress)
+fname_suffix=.tsv.$(get_compress_ext "$compress")
+# If no compression, remove trailing dot
+fname_suffix=${fname_suffix%.}
 
 
 run_mysql_export () {
