@@ -693,10 +693,13 @@ make_sql_table_part () {
     compress_or_rm_sqlfile $sqlfile
 }
 
+# Dump database data for corpus id $1 by using mysqldump.
 dump_database () {
-    corpus_id=$1
-    rels_tables=$(make_rels_table_names $corpus_id)
-    sqldir_real=$(fill_dirtempl $sqldir $corpus_id)
+    local corpus_id=$1
+    local rels_tables=$(make_rels_table_names $corpus_id)
+    local sqldir_real=$(fill_dirtempl $sqldir $corpus_id)
+    local filetype
+    mkdir_perms "$sqldir_real"
     run_mysqldump $rels_tables > $sqldir_real/${corpus_id}_rels.sql
     compress_or_rm_sqlfile $sqldir_real/${corpus_id}_rels.sql
     for filetype in $sql_file_types_multicorpus; do
