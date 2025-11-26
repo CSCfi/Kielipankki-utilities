@@ -957,7 +957,7 @@ create_package () {
         -f $archive_name --exclude-backups $(make_tar_excludes $exclude_files) \
         $(make_tar_transforms "$dir_transforms") \
         --ignore-failed-read --sort=name \
-        "$tar_newer_opt" \
+        $tar_newer_opt \
         --show-transformed-names $corpus_files
     # Set group and permissions
     chgrp $filegroup $archive_name
