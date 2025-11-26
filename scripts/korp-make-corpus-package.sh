@@ -151,13 +151,15 @@ extra-file=SRCFILE[:DSTFILE] * { add_extra_file "$1" }
 
 @ Options controlling the output
 
-f|database-format=FMT "auto" dbformat { set_db_format "$1" }
-    include database files in format FMT: either sql (SQL), tsv (TSV),
-    auto (SQL or TSV, whichever files are newer) or none (do not
-    include database files)
-export-database export_db { export_db=1; set_db_format "tsv" }
-    export database data into TSV files to be packaged; implies
-   --database-format=tsv
+f|database-format=FMT "tsv" dbformat { set_db_format "$1" }
+    include database files in format FMT: either "tsv" (TSV), "sql"
+    (SQL) or "none" (omit database files)
+export-database=MODE "auto" export_db { set_export_db "$1" }
+    control exporting database data into TSV files or dumping into SQL
+    file (depending on --database-format) to be packaged; MODE can be
+    "yes" or "always" (always export), "no" or "never" (never export),
+    or "auto" (export only if no database files of the chosen database
+    format exist)
 newer|after=DATE
     include only files whose modification date is later than DATE;
     DATE can be specified as an ISO date and time (or in any other
@@ -346,14 +348,30 @@ set_db_format () {
         tsv | TSV )
             dbformat=tsv
             ;;
-        auto | automatic )
-            dbformat=auto
-            ;;
         none )
             dbformat=none
+            warn "Omitting database data because of --database-format=none"
             ;;
         * )
             warn "Invalid database format '$1'; using $dbformat"
+            ;;
+    esac
+}
+
+# Set $export_db based on $1; warn on an invalid value
+set_export_db () {
+    case "$1" in
+        yes | always )
+            export_db=yes
+            ;;
+        no | never )
+            export_db=no
+            ;;
+        auto | automatic )
+            export_db=auto
+            ;;
+        * )
+            warn "Invalid value for --export-database: \"$1\"; \"using $export_db\""
             ;;
     esac
 }
@@ -710,6 +728,19 @@ dump_database () {
     done
 }
 
+# Export database for corpus $1 to TSV or dump to SQL files, depending
+# on the database format used.
+export_or_dump_database () {
+    local corpus_id=$1
+    if [ "$dbformat" = "tsv" ]; then
+        $korp_mysql_export \
+            --corpus-root "$corpus_root" --output-dir "$tsvdir" \
+            --compress "$compress" $corpus_id
+    else
+        dump_database $corpus_id
+    fi
+}
+
 # Output the date (timestamp as YYYYMMMDD_hhmmss) of the most recently
 # modified file of the arguments. Note that this also includes
 # possibly excluded files. Directory names should end in a slash for
@@ -741,45 +772,24 @@ get_first_word () {
     echo "$1"
 }
 
-# Output a list of existing database files for corpus with id $1. If
-# both TSV and SQL files exist, list those whose newest file is more
-# recently modified.
-list_existing_db_files () {
-    local corpus_id=$1
-    local filenames_sql=$(list_existing_db_files_by_type $corpus_id sql)
-    local filenames_tsv=$(list_existing_db_files_by_type $corpus_id tsv)
-    local firstfile_sql firstfile_tsv
-    if [ "x$filenames_sql" != x ]; then
-        if [ "x$filenames_tsv" != x ]; then
-            firstfile_sql=$(get_first_word $filenames_sql)
-            firstfile_tsv=$(get_first_word $filenames_tsv)
-            if [ "$firstfile_sql" -nt "$firstfile_tsv" ]; then
-                echo "$filenames_sql"
-            else
-                echo "$filenames_tsv"
-            fi
-        else
-            echo "$filenames_sql"
-        fi
-    else
-        echo "$filenames_tsv"
-    fi
-}
-
-# Output a list of database files for corpus with id $1. If no
-# database files already exist, dump the database for the corpus.
+# Set $dbfiles to a list of database files for corpus with id $1. If
+# no database files already exist, dump the database for the corpus.
+# Note that the function does not output the value of $dbfiles, as the
+# function export_or_dump_database may write to stdout.
 list_db_files () {
     local corpus_id=$1
-    local dbfiles
-    if [ "$dbformat" != auto ]; then
-        list_existing_db_files_by_type $corpus_id $dbformat
-    else
-        dbfiles=$(list_existing_db_files $corpus_id)
-        if [ "x$dbfiles" = "x" ]; then
-            dump_database $corpus_id
-            list_existing_db_files $corpus_id
-        else
-            echo "$dbfiles"
+    dbfiles=
+    if [ "$export_db" = "yes" ]; then
+        export_or_dump_database $corpus_id
+    fi
+    dbfiles=$(list_existing_db_files_by_type $corpus_id $dbformat)
+    if [ "x$dbfiles" = "x" ]; then
+        # No database files found; export them if "auto"
+        if [ "$export_db" = "auto" ]; then
+            export_or_dump_database $corpus_id
+            dbfiles=$(list_existing_db_files_by_type $corpus_id $dbformat)
+        elif [ "$export_db" = "no" ]; then
+            warn "Database files not found but not exporting them because of --export-database=no"
         fi
     fi
 }
@@ -827,12 +837,9 @@ add_single_corpus_files () {
     if [ "x$omit_cwb_data" = x ]; then
         add_corpus_files "$datadir/$corpus_id/"
     fi
-    if [ "x$export_db" != x ]; then
-        $korp_mysql_export --corpus-root "$corpus_root" \
-            --output-dir "$tsvdir" --compress "$compress" $corpus_id
-    fi
     if [ "x$dbformat" != xnone ]; then
-        add_corpus_files $(list_db_files $corpus_id)
+        list_db_files $corpus_id
+        add_corpus_files $dbfiles
     fi
     if [ "x$include_vrtdir" != x ]; then
         filepatt=$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)
