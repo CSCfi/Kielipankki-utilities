@@ -653,11 +653,14 @@ run_mysqldump () {
     mysqldump --no-autocommit $mysql_opts $extra_opts $korpdb "$@" 2> /dev/null
 }
 
+# Compress SQL file $1 with $compress, or remove it if it does not
+# contain "INSERT INTO" (no data was dumped from the table).
 compress_or_rm_sqlfile () {
-    sqlfile=$1
+    local sqlfile=$1
     if grep -q 'INSERT INTO' $sqlfile; then
         if [ "x$compress" != "xnone" ]; then
-            $compress $sqlfile
+            # -f to overwrite possibly existing compressed file
+            $compress -f $sqlfile
         fi
     else
         rm $sqlfile
