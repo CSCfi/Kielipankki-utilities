@@ -1,11 +1,11 @@
 #! /usr/bin/env python3
 
-# corpus-configs-json2yaml
+# korp-corpus-configs-json2yaml
 #
 # Convert Korp corpus configurations from frontend JavaScript
 # (stringified to JSON) to backend YAML.
 #
-# Usage: corpus-configs-json2yaml [--outdir outputdir] input.json
+# Usage: korp-corpus-configs-json2yaml [--outdir outputdir] input.json
 #
 # input.json is a JSON file containing the representation of a
 # JavaScript object combining the following objects in the Korp
