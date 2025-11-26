@@ -146,14 +146,22 @@ _init_compress_info () {
 }
 
 
+# comprcat [--tar-args tar_args] [--files filespec] [file ...]
+#
+# Output file(s) given as arguments, decompressing compressed files or
+# tar or zip archives. If no file is specified, output standard input.
+# If --tar-args is specified pass tar_args to tar. If --files is
+# specified, extract only files matching filespec (possibly with
+# wildcards) from a tar or zip archive.
 comprcat () {
+    local tar_args unzip_args fname ext
     if [ "x$1" = "x--tar-args" ]; then
-	_comprcat_tar_args=$2
+	tar_args=$2
 	shift 2
     fi
     if [ "x$1" = "x--files" ]; then
-	_comprcat_tar_args="$_comprcat_tar_args --wildcards $2"
-	_comprcat_unzip_args="$2"
+	tar_args="$tar_args --wildcards $2"
+	unzip_args="$2"
 	shift 2
     fi
     if [ "x$1" = x ]; then
@@ -164,23 +172,21 @@ comprcat () {
 		error "Unable to read input file: $fname"
 	    fi
 	    case "$fname" in
-		*.bz2 )
-		    bzcat "$fname"
-		    ;;
-		*.gz )
-		    zcat "$fname"
-		    ;;
-		*.xz )
-		    xzcat "$fname"
-		    ;;
-		*.tar | *.tar.[bgx]z | *.tar.bz2 | *.t[bgx]z | *.tbz2 )
-		    tar -xaOf "$fname" $_comprcat_tar_args
+		*.tar | *.tar.?z* | *.tar.z?* | *.t?z* | *.tz?* )
+		    tar -xaOf "$fname" $tar_args
 		    ;;
 		*.zip )
-		    unzip -p "$fname" $_comprcat_unzip_args
+		    unzip -p "$fname" $unzip_args
 		    ;;
 		* )
-		    cat "$fname"
+                    ext=${fname##*.}
+                    if word_in $ext "$compress_exts"; then
+                        # Assume that the compression programs support
+                        # options -d -c to decompress to stdout
+                        eval "\$compress_prog_$ext -d -c \"$fname\""
+                    else
+		        cat "$fname"
+                    fi
 		    ;;
 	    esac
 	done
