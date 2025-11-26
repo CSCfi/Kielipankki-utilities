@@ -1,0 +1,875 @@
+#! /usr/bin/env python3
+
+# korp-corpus-configs-json2yaml
+#
+# Convert Korp corpus configurations from frontend JavaScript
+# (stringified to JSON) to backend YAML.
+#
+# Usage: corpus-configs-json2yaml [--outdir outputdir] input.json
+#
+# input.json is a JSON file containing the representation of a
+# JavaScript object combining the following objects in the Korp
+# frontend: settings, attrs, sattrs, attrlist, sattrlist, options,
+# within, transl, loc_data. They can be converted to JSON in the
+# browser's JavaScript console as follows, for example:
+#
+#   data = {}
+#   for (let prop of "settings attrs sattrs attrlist sattrlist options context within transl loc_data".split(" ")) {
+#       data[prop] = window[prop]
+#   }
+#   s = JSON.stringify(data)
+#
+# Multiple input JSON files can be specified, one for each different
+# Korp frontend mode.
+#
+# Default outputdir is "./yaml".
+
+
+# TODO:
+# - Extract common values of attributes etc. without an explicit value in
+#   attrs etc.
+# - Use the order property in attributes to order them in attribute lists
+#   and remove it, so that attributes otherwise same except for order can
+#   use a common definition
+# - Extract common parts of corpus titles and descriptions to templates
+# - Move low-level folder info to corpus subdirectories
+# - When converting camelCase to snake_case, instead of going to a certain
+#   depth in objects, cut off at certain property names (at least dataset
+#   and translation)
+
+
+import argparse
+import json
+import os
+import os.path
+import re
+import sys
+
+from collections import defaultdict
+
+import yaml
+
+
+class KorpCorpusConfigConverter:
+
+    """Convert Korp corpus configurations from JavaScript/JSON to YAML.
+    """
+
+    # Directories for common values of attributes and others
+    common_values_dirs = {
+        "attrlist": "attribute_lists/positional",
+        "sattrlist": "attribute_lists/structural",
+        "attrs": "attributes/positional",
+        "sattrs": "attributes/structural",
+        "options": "options",
+        "context": "contexts",
+        "within": "withins",
+        "transl": "translations",
+    }
+    # Keys in input data containing common values objects
+    common_values_keys = list(common_values_dirs.keys())
+    # Subdirectories to be created under output directory
+    subdirs = [
+        "modes",
+        "corpora",
+    ] + list(common_values_dirs.values())
+    # Corpus folder properties that are not subfolders
+    nonfolder_props = [
+        "title",
+        "description",
+        "contents",
+        "info",
+    ]
+    # Language code mapping from two-letter to three-letter ones
+    lang_map = {
+        "en": "eng",
+        "fi": "fin",
+        "sv": "swe",
+    }
+    # Property name mapping
+    prop_map = {
+        "attributes": "pos_attributes",
+    }
+    # Properties to be removed (from the top level)
+    remove_props = [
+        "common_attributes",
+        "corpusType",
+        "features",
+        "linkAttributes",
+        "logicalCorpus",
+        "non_time",
+        "private_struct_attributes",
+        "time",
+    ]
+    # Attribute list properties
+    attrlist_props = [
+        "pos_attributes",
+        "struct_attributes",
+        "custom_attributes",
+    ]
+    # Corpus object properties whose values are to be replaced with
+    # the key in the common values of the property with an equal
+    # value. Values in the list are pairs (property_path, values_obj),
+    # where property_path is a dot-separated path of unconverted
+    # property names in settings.corpora.*, where * denotes any key,
+    # and values_obj is the key in the in input JSON under which equal
+    # values are searched.
+    corpus_common_value_replace_rules = [
+        ("attributes", "attrlist"),
+        ("structAttributes", "sattrlist"),
+        ("attributes.*", "attrs"),
+        ("structAttributes.*", "sattrs"),
+        ("attributes.*.opts", "options"),
+        ("structAttributes.*.opts", "options"),
+        ("customAttributes.*.opts", "options"),
+        ("context", "context"),
+        ("within", "within"),
+        ("attributes.*.translation", "transl"),
+        ("structAttributes.*.translation", "transl"),
+        ("customAttributes.*.translation", "transl"),
+    ]
+    # Replace rules for common values: a list of pairs (common_values,
+    # rules), where common_values is a list of keys for common-value
+    # objects and rules is a list of pairs as above in
+    # corpus_common_value_replace_rules.
+    common_values_replace_rules = [
+        (["attrs", "sattrs"],
+         [
+             ("opts", "options"),
+             ("translation", "transl"),
+         ]),
+        # After attribute list conversion, attrlist and sattrlist
+        # values are lists of single-value dicts, so use "*.*"
+        (["attrlist"],
+         [
+             ("*.*.opts", "options"),
+             ("*.*.translation", "transl"),
+             ("*.*", "attrs"),
+         ]),
+        (["sattrlist"],
+         [
+             ("*.*.opts", "options"),
+             ("*.*.translation", "transl"),
+             ("*.*", "sattrs"),
+         ]),
+    ]
+    # Output property order (in various kinds of mapping objects);
+    # non-listed keys come after the listed ones
+    prop_order = [
+        "id",
+        "label",
+        "title",
+        # Licence subtype
+        "subtype",
+        "name",
+        "description",
+        "alias",
+        "subfolders",
+        "lang",
+        "linked_to",
+        "shortname",
+        "metadata_urn",
+        "urn",
+        "licence",
+        "licence_type",
+        "limited_access",
+        "cite_id",
+        "homepage",
+        "homepage_url",
+        "iprholder",
+        "mode",
+        "folder",
+        "changes",
+        "context",
+        "within",
+        "pos_attributes",
+        "struct_attributes",
+        "custom_attributes",
+        # Attribute properties (below "label")
+        "type",
+        "display_type",
+        "is_struct_attr",
+        "opts",
+        "pattern",
+        "extended_component",
+        "escape",
+        "localize",
+        "dataset",
+        "translation",
+    ]
+    # Split corpora into subdirectories if their id match one of the
+    # following prefixes (followed by an underscore)
+    _corpus_subdirs_prefix = [
+        "agricola",
+        "ceal",
+        "coca",
+        "coha",
+        "erme",
+        "ethesis_en",
+        "ethesis_sv",
+        "europarl",
+        "fennougrica",
+        "fstc",
+        "ftc",
+        "glowbe",
+        "hcs2",
+        "jrc_acquis",
+        "kal",
+        "klk_fi",
+        "klk_sv",
+        "las2",
+        "opus_books",
+        "opus_dgt",
+        "opus_ecb",
+        "opus_emea",
+        "opus_eubookshop",
+        "opus_euconst",
+        "opus_gnome",
+        "opus_kde4",
+        "opus_php",
+        "opus_tatoeba",
+        "opus_ubuntu",
+        "oracc",
+        "oracc2021",
+        "pabivus",
+        "sus_fieldwork",
+        "sust",
+        "uralic_ud",
+        "vks",
+        "wanca",
+    ]
+    # Split corpora into subdirectories according to regular
+    # expressions: if the corpus id matches regex in pair (subdir,
+    # regex), place it in subdir
+    _corpus_subdirs_other = [
+        ("ethesis_fi", r"ethesis_((ma|diss)abs|ma_.*|phd_.*)"),
+        ("ftb3", r"ftb3.*"),
+        ("kaannossuomi", r"alkusuomi|kaannossuomi"),
+        ("la_murre", r"lam_.*"),
+        ("lehdet", r"(tiede)?lehdet_.*"),
+        ("opus_opensubtitles", r"opus_opensub.*"),
+        ("parfin", r"parfin(_.*)?"),
+        ("parrus", r"parrus(_.*)?"),
+        ("presidentti", r"kotus_ns_presidentti_.*"),
+        ("scotscorr", r"scots_.*"),
+        ("semfinlex_fi", r"semfinlex_..._fi.*"),
+        ("semfinlex_par", r"semfinlex_..._par.*"),
+        ("semfinlex_sv", r"semfinlex_..._sv.*"),
+        ("s24_2016h2", r"s24_0.*"),
+        ("s24_2001_2017", r"s24_20(0[1-9]|1[0-7])"),
+        ("s24_2018_2020", r"s24_20(1[89]|20)"),
+        ("skk", r"skk_.*"),
+        ("vnsk", r"vnsk?_.*"),
+        ("ylenews_fi_2011_2018_s", r"ylenews_fi_201[1-8]_s"),
+        ("ylenews_fi_2019_2021_s", r"ylenews_fi_20(19|2[01])_s"),
+        ("ylenews_fi_2011_2018_a", r"ylenews_fi_201[1-8]_a"),
+        ("ylenews_fi_2019_2021_a", r"ylenews_fi_20(19|2[01])_a"),
+        ("ylenews_sv_2011_2018_s", r"ylenews_sv_201[1-8]_s"),
+        ("ylenews_sv_2019_2021_s", r"ylenews_sv_20(19|2[01])_s"),
+        ("ylenews_sv_2011_2018_a", r"ylenews_sv_201[1-8]_a"),
+        ("ylenews_sv_2019_2021_a", r"ylenews_sv_20(19|2[01])_a"),
+    ]
+    # Corpus subdirectory names and the corresponding regular
+    # expressions, generated from the above two lists
+    corpus_subdirs_re = (
+        [(subdir, re.compile(subdir + "_.*"))
+         for subdir in _corpus_subdirs_prefix]
+        + [(subdir, re.compile(regex))
+           for subdir, regex in _corpus_subdirs_other]
+    )
+    # Minimun number of properties in a template for it to be created
+    template_min_prop_count = 2
+    # Minimum YAML length of a template for it to be created
+    template_min_yaml_len = 50
+
+    def __init__(self):
+        """Initialize instance attributes"""
+        # Input data read from JSON
+        self._indata = {}
+        # Data to be output as YAML
+        self._outdata = defaultdict(dict)
+        # Output directory
+        self._outdir = None
+        # The folder for each corpus
+        self._corpus_folder = {}
+        # The subdirectory for corpora in subdirectories (corpus -> subdir)
+        self._corpus_subdir = {}
+        # The corpora in each subdirectory (subdir -> [corpora])
+        self._subdir_corpora = defaultdict(list)
+        # Templates for common parts of corpus configurations in
+        # subdirectories (subdir -> template)
+        self._subdir_template = {}
+        # Attributes actually used (in attrs and sattrs)
+        self._replaced_values = dict(
+            [(name, set())
+             for _, name in self.corpus_common_value_replace_rules])
+
+    def main(self):
+        """Main method"""
+        self._get_args()
+        self._read_json(self._args.jsonfile)
+        # Assume that loc_data is the same in all JSON files; maybe it would
+        # be cleaner to have a separate option or argument for it
+        self._loc_data = self._indata[self._default_name]["loc_data"]
+        self._merge_common_values()
+        self._remove_empty_common_values()
+        self._convert_config()
+        self._write_config()
+
+    def _get_args(self):
+        """Process command-line arguments"""
+        argparser = argparse.ArgumentParser(
+            description="""Convert Korp corpus configurations from frontend JavaScript
+(stringified to JSON) to backend YAML.""",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        argparser.add_argument(
+            "jsonfile", nargs="+",
+            help="""a JSON file containing the representation of a
+JavaScript object combining the following objects in the Korp
+frontend: settings, attrs, sattrs, attrlist, sattrlist, options,
+within, transl, loc_data""")
+        argparser.add_argument(
+            "--outdir", "--output-directory", default="./yaml",
+            help="output directory for the YAML corpus configurations")
+        self._args = argparser.parse_args()
+
+    def _read_json(self, fnames):
+        """Read input JSON from files listed in fnames"""
+
+        def basebasename(fname):
+            """Return base filename of fname without extension and "_mode"."""
+            return (os.path.splitext(os.path.basename(fname))[0]
+                    .replace("_mode", ""))
+
+        for fname in fnames:
+            with open(fname, "r") as f:
+                self._indata[basebasename(fname)] = json.load(f)
+        if "default" in self._indata:
+            self._default_name = "default"
+        else:
+            self._default_name = basebasename(fnames[0])
+
+    def _merge_common_values(self):
+        """Copy common values to separate object, rename clashing ones"""
+        # Remove isStructAttr from attribute definitions in sattrs and
+        # sattrlist, as for some reason it sometimes exists and
+        # sometimes not; however, do not remove from attrs and
+        # attrlist, as there it has a meaning
+        self._remove_prop(self._indata,
+                          ["*", "sattrs", "*", "isStructAttr"])
+        self._remove_prop(self._indata,
+                          ["*", "sattrlist", "*", "*", "isStructAttr"])
+        # Remove _linkAttr added by a frontend plugin
+        self._remove_prop(self._indata,
+                          ["*", ("attrs", "sattrs"), "*", "_linkAttr"])
+        self._remove_prop(self._indata,
+                          ["*", ("attrlist", "sattrlist"), "*", "*",
+                           "_linkAttr"])
+        self._common_vals = dict(
+            [(key, self._indata[self._default_name].get(key, {}))
+             for key in self.common_values_keys])
+        for indata_name, indata in self._indata.items():
+            if indata_name != self._default_name:
+                for valtype in self.common_values_keys:
+                    defaults = self._common_vals[valtype]
+                    for key, val in indata.get(valtype, {}).items():
+                        if key in defaults:
+                            if val != defaults[key]:
+                                # If the a value with the same key but
+                                # different value already exists in
+                                # defaults, preprend file base name
+                                # (mode name)
+                                print(f"Renaming {valtype}.{key} as"
+                                      f" {valtype}.{indata_name}_{key}")
+                                # print("def:", defaults[key], "\nval:", val)
+                                defaults[f"{indata_name}_{key}"] = val
+                        else:
+                            defaults[key] = val
+
+    def _remove_prop(self, obj, path):
+        """Remove property from obj, following key path path (list)"""
+        if path[0] == "*":
+            # * == any key
+            for key in obj:
+                self._remove_prop(obj, [key, *path[1:]])
+        elif isinstance(path[0], tuple):
+            # Any of the keys listed in the tuple
+            for key in path[0]:
+                self._remove_prop(obj, [key, *path[1:]])
+        elif path[0] in obj:
+            if len(path) == 1:
+                del obj[path[0]]
+            else:
+                self._remove_prop(obj[path[0]], path[1:])
+
+    def _remove_empty_common_values(self):
+        """Remove empty values (dicts, lists) from common values"""
+        for value_type in self.common_values_keys:
+            remove_keys = []
+            for key, val in self._common_vals.get(value_type, {}).items():
+                if not val:
+                    remove_keys.append(key)
+            for key in remove_keys:
+                del self._common_vals[value_type][key]
+
+    def _convert_config(self):
+        """Convert the configuration in self._indata to self._outdata"""
+        for modename, indata in self._indata.items():
+            self._convert_mode(indata)
+            self._convert_corpora(indata)
+        self._extract_subdir_templates()
+        self._convert_common_values()
+
+    def _convert_mode(self, indata):
+        """Generate mode configuration to self._outdata"""
+        settings = indata["settings"]
+        modename = settings["mode"]["mode"]
+        self._outdata["mode"][modename] = {
+            "label": self._get_localized_obj(settings["mode"]["localekey"]),
+            "folders": self._make_folder(settings["corporafolders"]),
+        }
+
+    def _get_localized_obj(self, key):
+        """Return a localized object for localization key key.
+
+        The returned object has the structure
+            {
+              "lang1": "translation in lang1",
+              "lang2": "translation in lang2",
+              ...
+            }
+        """
+        result = {}
+        for in_lang, out_lang in self.lang_map.items():
+            val = self._loc_data[in_lang].get(key)
+            if val is None:
+                val = key
+            result[out_lang] = val
+        return result
+
+    def _make_folder(self, folder, parents=None):
+        """Make a output corpus folder object from folder.
+
+        folder may be either the top-level folder object
+        (settings.corporafolders) or a subfolder. parents contains the
+        names of parent folders, separated by dots (and with a leading
+        dot).
+        """
+        parents = parents or ""
+        subfolders = {}
+        for prop in folder:
+            if prop not in self.nonfolder_props:
+                subfolders[prop] = self._make_folder(
+                    folder[prop], f"{parents}.{prop}")
+        for corpus_id in folder.get("contents", []):
+            # Drop leading dot from parents
+            self._corpus_folder[corpus_id] = parents[1:]
+        if "title" in folder:
+            # Lower-level folder
+            result = {
+                "title": folder["title"],
+                "description": folder.get("description", ""),
+            }
+            if subfolders:
+                result["subfolders"] = subfolders
+            return result
+        else:
+            # Top-level folder
+            return subfolders
+
+    def _convert_corpora(self, indata):
+        """Convert settings.corpora"""
+        settings = indata["settings"]
+        corpus_aliases = self._make_corpus_aliases(settings["corpusAliases"],
+                                                   settings["corpora"].keys())
+        for corpus in settings["corpora"]:
+            corpus_data = self._make_corpus(
+                corpus, settings["corpora"][corpus], corpus_aliases,
+                settings["mode"]["mode"])
+            if corpus in self._outdata["corpora"]:
+                print(f"Configuration for corpus {corpus} already exists")
+                self._add_to_corpus_data(
+                    self._outdata["corpora"][corpus], corpus_data, corpus)
+            else:
+                self._outdata["corpora"][corpus] = corpus_data
+                subdir = self._get_corpus_subdir(corpus)
+                if subdir:
+                    self._corpus_subdir[corpus] = subdir
+                    self._subdir_corpora[subdir].append(corpus)
+
+    def _make_corpus_aliases(self, alias_corpora, corpus_ids):
+        """Convert aliases "a" -> "c1,c2" to "c1" -> "a", "c2" -> "a"."""
+        remove_aliases = set()
+        add_aliases = {}
+        # Normalize aliases to using underscores instead of hyphens
+        for alias, corpus_res in alias_corpora.items():
+            if "-" in alias:
+                alias_uscore = alias.replace("-", "_")
+                if alias_uscore not in alias_corpora:
+                    add_aliases[alias_uscore] = corpus_res
+                elif alias_corpora.get(alias_uscore) != corpus_res:
+                    print(f"Aliases {alias} and {alias_uscore} differ:"
+                          f" \"{alias_corpora[alias]}\" !="
+                          f" \"{alias_corpora[alias_uscore]}\"")
+                remove_aliases.add(alias)
+        alias_corpora.update(add_aliases)
+        for alias, corpus_res in alias_corpora.items():
+            if alias not in remove_aliases:
+                alias_remove = None
+                if alias.endswith("_korp"):
+                    # Keep only alias with "_korp" suffix if also one
+                    # without exists
+                    alias_remove = alias[:-5]
+                elif "_korp_" in alias:
+                    # Keep only alias with "_korp_" infix if also one
+                    # without exists
+                    alias_remove = alias.replace("_korp_", "_")
+                if (alias_remove
+                    and (alias_corpora.get(alias_remove)
+                         == alias_corpora.get(alias))):
+                    remove_aliases.add(alias_remove)
+        for alias in remove_aliases:
+            del alias_corpora[alias]
+        result = defaultdict(set)
+        for alias, corpus_res in alias_corpora.items():
+            for corpus_re in corpus_res.split(","):
+                if corpus_re.replace("-", "").isalnum():
+                    # Single corpus id
+                    result[corpus_re].add(alias)
+                else:
+                    # Regular expression
+                    for corpus_id in corpus_ids:
+                        if re.fullmatch(corpus_re, corpus_id):
+                            result[corpus_id].add(alias)
+        return result
+
+    def _make_corpus(self, corpus_id, corpus_obj, corpus_aliases, modename):
+        """Make output corpus object for corpus_obj with id corpus_id"""
+        result = corpus_obj
+        # Remove info from corpora as redundant (in folders, info is needed)
+        del result["info"]
+        # Remove isStructAttr from structural attributes as redundant
+        self._remove_prop(result, ["structAttributes", "*", "isStructAttr"])
+        # Remove _linkAttr added by a frontend plugin
+        self._remove_prop(
+            result, [("attributes", "structAttributes", "customAttributes"),
+                     "*", "_linkAttr"])
+        # Remove licence type label from corpus title (added by a Korp
+        # frontend plugin); this assumes that title is a plain string
+        result["title"] = re.sub(r"\s\[\S+?\]$", "", result["title"])
+        result = self._replace_common_values(
+            result, self.corpus_common_value_replace_rules)
+        result = self._convert_keys(result, 3)
+        result = self._convert_lang_codes(result)
+        result = self._convert_attrs(result)
+        for key in ["context", "within"]:
+            result[key] = self._convert_context_within(result[key],
+                                                       as_list=True)
+        if corpus_id in corpus_aliases:
+            result["alias"] = sorted(list(corpus_aliases[corpus_id]))
+        result["mode"] = self._make_corpus_mode(corpus_id, modename)
+        return result
+
+    def _convert_keys(self, obj, levels):
+        """Convert dict keys (property names) in obj, up to depth levels"""
+
+        def snake_case(key):
+            """Convert key from camelCase to snake_case"""
+            return re.sub(r"[A-Z]", lambda mo: "_" + mo.group().lower(), key)
+
+        def convert_key(key):
+            """Map key with self.prop_map and convert to snake_case"""
+            return self.prop_map.get(key, snake_case(key))
+
+        if isinstance(obj, dict):
+            return dict((convert_key(key),
+                         val if levels <= 1 else self._convert_keys(val,
+                                                                    levels - 1))
+                        for key, val in obj.items()
+                        if key not in self.remove_props)
+        else:
+            return obj
+
+    def _convert_lang_codes(self, obj, depth=None):
+        """Convert language codes in obj.
+
+        If depth is None, convert language codes in subobjects with
+        key "translation" in obj. If depth == 0, treat obj as a
+        translation object and convert keys directly in it. If depth >
+        0, convert translation keys at depth, even if there is no key
+        "translation".
+        """
+        if not isinstance(obj, dict):
+            return obj
+        elif depth == 0:
+            result = {}
+            for key, transls in obj.items():
+                if isinstance(key, dict):
+                    result[key] = dict((self.lang_map.get(lang, lang), transl)
+                                       for lang, transl in transls.items())
+                else:
+                    # This covers objects that are not actual
+                    # translation objects and should be kept as they
+                    # are, such as an attribute named "translation"
+                    result[key] = transls
+            return result
+        elif depth is not None and depth > 0:
+            return dict((key, self._convert_lang_codes(obj[key], depth - 1))
+                        for key in obj)
+        else:
+            if "translation" in obj and isinstance(obj["translation"], dict):
+                obj["translation"] = self._convert_lang_codes(
+                    obj["translation"], 0)
+            return dict((key, self._convert_lang_codes(obj[key]))
+                        for key in obj)
+
+    def _convert_attrs(self, obj):
+        """Convert attributes objects in obj from dict to list of dicts"""
+        for attrlist_name in self.attrlist_props:
+            if attrlist_name in obj:
+                self._convert_attr_labels(obj[attrlist_name])
+                obj[attrlist_name] = self._convert_attrlist(obj[attrlist_name])
+        return obj
+
+    def _convert_attrlist(self, obj):
+        """Convert attribute dict obj to a list"""
+        if isinstance(obj, dict):
+            return [dict([(key, val)]) for key, val in obj.items()]
+        else:
+            return obj
+
+    def _convert_attr_labels(self, attrdict):
+        """Add translations to attribute labels in attrdict"""
+        if isinstance(attrdict, dict):
+            for attrname in attrdict:
+                self._convert_attr_label(attrdict[attrname])
+        return attrdict
+
+    def _convert_attr_label(self, attrobj):
+        """Add translations to attribute label in attrobj"""
+        if "label" in attrobj and isinstance(attrobj["label"], str):
+            attrobj["label"] = self._get_localized_obj(attrobj["label"])
+        return attrobj
+
+    def _convert_context_within(self, obj, as_list=False):
+        """Convert a context or within value to a dict with label, value.
+
+        If as_list is True, return the result as a list of values
+        instead of a dict.
+        """
+        if isinstance(obj, str):
+            return obj
+        for key in obj:
+            obj[key] = {
+                "label": self._get_localized_obj(key),
+                "value": key,
+            }
+        return list(obj.values()) if as_list else obj
+
+    def _replace_common_values(self, obj, replace_rules):
+        """Replace common values in obj according to replace_rules"""
+
+        def indices(obj):
+            """Return obj indices: keys for dict, indices for list, or None"""
+            if isinstance(obj, list):
+                return range(len(obj))
+            elif isinstance(obj, dict):
+                return obj.keys()
+            else:
+                return None
+
+        def replace_values(obj, prop_path, values):
+            """Replace values in prop_path in obj if found in values"""
+            if not isinstance(obj, dict) and not isinstance(obj, list):
+                return
+            # print("replace_values", prop_path)
+            if len(prop_path) == 1:
+                if prop_path[0] == "*":
+                    for key in indices(obj):
+                        replace_value(obj, key, values)
+                elif prop_path[0] in obj:
+                    replace_value(obj, prop_path[0], values)
+            else:
+                if prop_path[0] == "*":
+                    prop_path_rest = prop_path[1:]
+                    for key in indices(obj):
+                        replace_values(obj[key], prop_path_rest, values)
+                elif prop_path[0] in obj:
+                    replace_values(obj[prop_path[0]], prop_path[1:], values)
+
+        def replace_value(obj, prop_key, values):
+            """If obj[prop_key] == values[x] for any x, replace it with x"""
+            # print("replace_value", prop_key)
+            for key, val in values.items():
+                if obj[prop_key] == val:
+                    obj[prop_key] = key
+                    self._replaced_values[values_name].add(key)
+                    return
+
+        for prop_path, values_name in replace_rules:
+            values = self._common_vals.get(values_name)
+            if values:
+                replace_values(obj, prop_path.split("."), values)
+        return obj
+
+    def _make_corpus_mode(self, corpus_id, modename):
+        """Make the value of the "mode" object for corpus corpus_id"""
+        result = {
+            "name": modename,
+        }
+        if corpus_id in self._corpus_folder:
+            result["folder"] = self._corpus_folder[corpus_id]
+        # Mode value is a list
+        return [result]
+
+    def _add_to_corpus_data(self, target, source, corpus):
+        """Add to target values in source with no keys in target
+
+        Add possible differences from the target corpus data to a
+        "changes" property in the "mode" property of the source,
+        appended to the modes of the target.
+        """
+        changes = {}
+        for key, val in source.items():
+            if key != "mode":
+                if key in target and target[key] != val:
+                    print(f"Different values for {key} in corpus {corpus}")
+                    #      f": \"{target[key]}\" != \"{val}\""
+                    changes[key] = val
+                else:
+                    target[key] = val
+        if changes:
+            source["mode"][0]["changes"] = changes
+        target["mode"].append(source["mode"][0])
+
+    def _get_corpus_subdir(self, corpus_id):
+        """Get the subdirectory for corpus_id, None if none"""
+        for subdir, regex in self.corpus_subdirs_re:
+            if regex.fullmatch(corpus_id):
+                return subdir
+        return None
+
+    def _extract_subdir_templates(self):
+        """Extract common parts of corpus configs in subdirs to templates"""
+        out_corpora = self._outdata["corpora"]
+        for subdir, corpora in self._subdir_corpora.items():
+            template = {}
+            corpus1 = out_corpora[corpora[0]]
+            for key in corpus1.keys():
+                if all(out_corpora[corpus].get(key) == corpus1[key]
+                       for corpus in corpora):
+                    template[key] = corpus1[key]
+            # Add a template only if it is large enough
+            if template and (len(template) >= self.template_min_prop_count
+                             or (len(yaml.dump(template))
+                                 >= self.template_min_yaml_len)):
+                self._subdir_template[subdir] = template
+                # Remove common properties from corpus configurations
+                for corpus in corpora:
+                    for key in template:
+                        del out_corpora[corpus][key]
+
+    def _convert_common_values(self):
+        """Convert the common values elsewhere than in settings"""
+        convert_funcs = [
+            (lambda val: self._convert_keys(val, 3),
+             ["attrlist", "sattrlist"]),
+            (lambda val: self._convert_keys(val, 2),
+             ["attrs", "sattrs"]),
+            (self._convert_lang_codes,
+             ["attrs", "sattrs", "attrlist", "sattrlist"]),
+            (lambda val: self._convert_lang_codes(val, 1),
+             ["transl"]),
+            (lambda attrdict: dict([(key, self._convert_attr_labels(val))
+                                    for key, val in attrdict.items()]),
+             ["attrlist", "sattrlist"]),
+            (self._convert_attr_labels,
+             ["attrs", "sattrs"]),
+            (lambda obj: dict([(key, self._convert_attrlist(obj[key]))
+                               for key in obj]),
+             ["attrlist", "sattrlist"]),
+            (self._convert_context_within,
+             ["context", "within"]),
+        ]
+        # First convert the common values similarly to the values in
+        # corpus configurations, according to convert_funcs above
+        for convert_func, valtypes in convert_funcs:
+            for valtype in valtypes:
+                self._common_vals[valtype] = convert_func(
+                    self._common_vals.get(valtype, {}))
+        # Then replace common values with the name of value, according
+        # to self.common_values_replace_rules
+        for targets, rules in self.common_values_replace_rules:
+            for target in targets:
+                for key, val in self._common_vals[target].items():
+                    # print(target, key, rules)
+                    self._common_vals[target][key] = (
+                        self._replace_common_values(val, rules))
+
+    def _write_config(self):
+        """Output the YAML configuration files"""
+        self._make_outdirs(self._args.outdir)
+        for mode_name, mode_data in self._outdata["mode"].items():
+            self._write_yaml(mode_data, "modes", mode_name)
+        for corpus_id, corpus_data in self._outdata["corpora"].items():
+            subdir = self._corpus_subdir.get(corpus_id)
+            corpusdir = os.path.join("corpora", subdir) if subdir else "corpora"
+            self._write_yaml(corpus_data, corpusdir, corpus_id)
+        for subdir, template in self._subdir_template.items():
+            self._write_yaml(
+                template, os.path.join("corpora", subdir), "_template")
+        self._write_common_values()
+
+    def _make_outdirs(self, outdir):
+        """Create YAML output directories"""
+        os.makedirs(outdir, exist_ok=True)
+        for subdir in self.subdirs:
+            os.makedirs(os.path.join(outdir, subdir), exist_ok=True)
+        for subdir in self._subdir_corpora:
+            os.makedirs(os.path.join(outdir, "corpora", subdir))
+
+    def _write_yaml(self, obj, dirname, fname):
+        """Write obj as YAML to dirname/fname.yaml"""
+        # This is used in the nested class below
+        prop_order = self.prop_order
+
+        class ReorderMappingYAMLDumper(yaml.Dumper):
+
+            """yaml.Dumper subclass reordering mappings
+
+            The subclass reorders mapping keys, so that keys listed in
+            prop_order come first, in that order.
+            """
+
+            # Ordering dict mapping key values to sort keys based on
+            # list prop_order; assumes at most 99 items in prop_order
+            _key_order = dict([(key, "{:02d}".format(i) + key)
+                               for i, key in enumerate(prop_order)])
+
+            def represent_mapping(self, tag, mapping, flow_style=None):
+                """Return yaml.MappingNode with mapping keys reordered"""
+
+                def sortkey(val):
+                    return self._key_order.get(val[0].value, f"99{val}")
+
+                node = super().represent_mapping(tag, mapping, flow_style)
+                node = yaml.MappingNode(
+                    node.tag, sorted(node.value, key=sortkey),
+                    node.flow_style, node.start_mark, node.end_mark)
+                return node
+
+        with open(os.path.join(self._args.outdir, dirname, fname + ".yaml"),
+                  "wb") as f:
+            yaml.dump(obj, f, default_flow_style=False, encoding="utf-8",
+                      allow_unicode=True, Dumper=ReorderMappingYAMLDumper)
+
+    def _write_common_values(self):
+        """Write the common values used somewhere to files"""
+        for values_key, values_dir in self.common_values_dirs.items():
+            for key in self._replaced_values[values_key]:
+                self._write_yaml(
+                    self._common_vals[values_key][key], values_dir, key)
+
+
+if __name__ == "__main__":
+    KorpCorpusConfigConverter().main()
