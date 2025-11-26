@@ -33,6 +33,11 @@
 progname=$(basename $0)
 progdir=$(dirname $0)
 
+# A dummy variable used only in $optspecs to adjust slightly for the
+# length difference of "$compress_prog" and its value, since $optspecs
+# texts are wrapped based on the unexpanded value
+filler=
+
 usage_header="Usage: $progname [options] corpus_name [corpus_id ...]
 
 Make an archive package for corpus corpus_name, containing the Korp
@@ -162,8 +167,9 @@ newer|after=DATE
     is corpus_name_yyyymmdd_hhmmss_a_yyyymmdd_hhmmss[-xx]: the package
     contains files whose modification date is newer than ("after") the
     yyyymmdd_hhmmss following "_a_" (the other parts are as usual)
-z|compress=PROG "gzip" { set_compress "$1" }
-    compress files with PROG; "none" for no compression
+z|compress=PROG "$compress" { compress=$(get_compress "$1" "$compress") }
+    compress files with PROG (one of: $compress_progs$filler);
+    "none" for no compression
 '
 
 usage_footer="Environment variables:
@@ -204,6 +210,9 @@ pkgsubdir=pkgs
 vrtsubdir=vrt
 
 include_vrt=
+
+# Compression program
+compress=gzip
 
 exclude_files="backup *~ *.bak *.bak[0-9] *.old *.old[0-9] *.prev *.prev[0-9]"
 
@@ -347,18 +356,6 @@ set_db_format () {
             warn "Invalid database format '$1'; using $dbformat"
             ;;
     esac
-}
-
-set_compress () {
-    if [ "x$1" = "xnone" ] || which $1 &> /dev/null; then
-        if [ "x$1" = "xcat" ]; then
-            compress=none
-        else
-            compress=$1
-        fi
-    else
-        warn "Compression program $1 not found; using $compress"
-    fi
 }
 
 add_extra_dir_or_file () {
@@ -547,8 +544,7 @@ check_options () {
     fi
     eval archive_ext=\$archive_ext_$compress
     if [ "x$archive_ext" = x ]; then
-        archive_ext=tar.$compress
-        warn "Unrecognized compression program $compress: using package file name extension .$archive_ext"
+        archive_ext=tar.$(get_compress_ext "$compress")
     fi
     tar_compress_opt=
     if [ "x$compress" != "xnone" ]; then
