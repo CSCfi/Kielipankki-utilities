@@ -232,9 +232,19 @@ archive_type_name=korp
 # than the specified given date
 newer_marker=a
 
-sql_file_types="lemgrams rels timedata timedata_date"
-sql_file_types_multicorpus="lemgrams timedata timedata_date"
-sql_table_name_lemgrams=lemgram_index
+# SQL file types (included in the SQL file name) for tables with data
+# for multiple corpora
+sql_file_types_multicorpus="auth lemgrams timedata timedata_date"
+# All SQL file types
+sql_file_types="$sql_file_types_multicorpus rels"
+# sql_table_names_$type lists the names of (multi-corpus) tables from
+# which data is to be included in an SQL file of $type; not required
+# if $type is the same as the table name
+sql_table_names_lemgrams=lemgram_index
+sql_table_names_auth="auth_license auth_lbr_map"
+# Base names of relations tables, where the full name is
+# relations_$CORPUS_$basename ("@" denotes empty basename, with also
+# the preceding underscore omitted)
 rels_tables_basenames="@ rel head_rel dep_rel strings sentences"
 
 extra_info_file=$tmp_prefix.info
@@ -669,32 +679,41 @@ compress_or_rm_sqlfile () {
     fi
 }
 
+# Dump the data for corpus with id $1 to file of type $2 where file
+# type is one listed in $sql_file_types_multicorpus. If
+# $sql_table_names_$2 exists, dump the tables listed in its value,
+# otherwise table name is the same as file type. The output file name
+# is $sqldir/$corpusid_$filetype.sql[.$compress].
 make_sql_table_part () {
-    corpus_id=$1
-    corpus_id_upper=$(echo $corpus_id | sed -e 's/\(.*\)/\U\1\E/')
-    filetype=$2
-    eval tablename=\$sql_table_name_$filetype
-    if [ "x$tablename" = "x" ]; then
-        tablename=$filetype
+    local corpus_id=$1
+    local corpus_id_upper=$(echo $corpus_id | sed -e 's/\(.*\)/\U\1\E/')
+    local filetype=$2
+    local sqlfile=$(fill_dirtempl $sqldir $corpus_id)/${corpus_id}_$filetype.sql
+    local tablenames tablename
+    eval tablenames=\$sql_table_names_$filetype
+    if [ "x$tablenames" = "x" ]; then
+        tablenames=$filetype
     fi
-    sqlfile=$(fill_dirtempl $sqldir $corpus_id)/${corpus_id}_$filetype.sql
-    # 
     {
         # Add a CREATE TABLE IF NOT EXISTS statement for the table, so
         # that the package can be installed even on an empty database.
         # By default, mysqldump (without --no-create-info) would first
         # drop the database and then recreate it, but we need to
         # retain the data for the other corpora.
-        run_mysqldump --no-data --compact $tablename |
+        run_mysqldump --no-data --compact $tablenames |
         sed -e 's/CREATE TABLE/& IF NOT EXISTS/'
         echo
         # Instruct to delete existing data for the corpus first
-        echo "DELETE FROM $tablename WHERE corpus='$corpus_id_upper';"
+        for tablename in $tablenames; do
+            echo "DELETE FROM $tablename WHERE corpus='$corpus_id_upper';"
+        done
         echo
         # The actual data dump
         run_mysqldump --no-create-info --where="corpus='$corpus_id_upper'" \
-            $tablename
+            $tablenames
     } > $sqlfile
+    # Compress the SQL file if requested, or remove if it contains no
+    # data
     compress_or_rm_sqlfile $sqlfile
 }
 
