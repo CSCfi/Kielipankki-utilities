@@ -10,7 +10,7 @@
 
 
 # Load shlib components for the functions used
-shlib_required_libs="msgs file"
+shlib_required_libs="msgs file str"
 . $_shlibdir/loadlibs.sh
 
 
@@ -73,12 +73,15 @@ run_mysql () {
     $mysql_bin $mysql_opts --batch --raw --execute "$sql_cmd" "$@" $_db
 }
 
-# run_mysqldump [mysqldump options] table ...
+# run_mysqldump [--auth] [mysqldump options] table ...
 #
 # Run mysqldump, dumping the listed tables in Korp database, with
-# possible mysqldump options.
+# possible mysqldump options. If --auth is specified or if the name of
+# the first table begins with "auth_", dump tables from the
+# authorization database.
 run_mysqldump () {
-    local extra_opts
+    local db extra_opts
+    db=$korpdb
     extra_opts=
     if [ "x$mysqldump_error" != x ]; then
         warn "$mysqldump_error"
@@ -86,6 +89,10 @@ run_mysqldump () {
     fi
     while true; do
         case "$1" in
+            --auth )
+                db=$korpdb_auth
+                shift
+                ;;
             -* )
                 extra_opts="$extra_opts $1"
                 shift
@@ -95,7 +102,10 @@ run_mysqldump () {
                 ;;
         esac
     done
-    $mysqldump_bin --no-autocommit $mysql_opts $extra_opts $korpdb "$@" 2> /dev/null
+    if str_hasprefix "$1" "auth_"; then
+        db=$korpdb_auth
+    fi
+    $mysqldump_bin --no-autocommit $mysql_opts $extra_opts $db "$@" 2> /dev/null
 }
 
 # mysql_table_exists table_name
