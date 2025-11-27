@@ -105,7 +105,7 @@ run_mysqldump () {
     if str_hasprefix "$1" "auth_"; then
         db=$korpdb_auth
     fi
-    $mysqldump_bin --no-autocommit $mysql_opts $extra_opts $db "$@" 2> /dev/null
+    $mysqldump_bin --no-autocommit $mysql_opts $extra_opts $db "$@"
 }
 
 # mysql_table_exists table_name
