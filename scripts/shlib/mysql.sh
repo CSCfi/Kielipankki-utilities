@@ -73,6 +73,26 @@ run_mysql () {
     $mysql_bin $mysql_opts --batch --raw --execute "$sql_cmd" "$@" $_db
 }
 
+# run_mysqldump [mysqldump options] table ...
+#
+# Run mysqldump, dumping the listed tables in Korp database, with
+# possible mysqldump options.
+run_mysqldump () {
+    extra_opts=
+    while true; do
+        case "$1" in
+            -* )
+                extra_opts="$extra_opts $1"
+                shift
+                ;;
+            * )
+                break
+                ;;
+        esac
+    done
+    mysqldump --no-autocommit $mysql_opts $extra_opts $korpdb "$@" 2> /dev/null
+}
+
 # mysql_table_exists table_name
 #
 # Return true if table table_name exists in the Korp MySQL database.

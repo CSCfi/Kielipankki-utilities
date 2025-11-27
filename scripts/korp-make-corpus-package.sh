@@ -655,22 +655,6 @@ make_rels_table_names () {
     done
 }
 
-run_mysqldump () {
-    extra_opts=
-    while true; do
-        case "$1" in
-            -* )
-                extra_opts="$extra_opts $1"
-                shift
-                ;;
-            * )
-                break
-                ;;
-        esac
-    done
-    mysqldump --no-autocommit $mysql_opts $extra_opts $korpdb "$@" 2> /dev/null
-}
-
 # Compress SQL file $1 with $compress, or remove it if it does not
 # contain "INSERT INTO" (no data was dumped from the table).
 compress_or_rm_sqlfile () {
