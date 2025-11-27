@@ -852,6 +852,7 @@ add_files () {
     generate_or_update_vrt
     process_registry
     make_auth_info
+    update_info
     echo_dbg extra_files "$corpus_files"
     # Add the extra files to the end, except for those to be prepended
     extra_corpus_files=$corpus_files
