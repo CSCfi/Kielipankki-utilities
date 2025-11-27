@@ -923,10 +923,12 @@ make_tar_transforms () {
     done
 }
 
+# Make tar --exclude options for each space-separated item in each
+# argument. (The exclusion patterns cannot contain spaces.)
 make_tar_excludes () {
-    for patt in "$@"; do
-        printf '%s\n' --exclude "$patt"
-    done
+    # Use = instead of space as argument separator to avoid expanding
+    # the resulting pattern in the current directory
+    printf " --exclude=%s" $@
 }
 
 # Set archive name: $archive_name and $archive_basename.
@@ -964,7 +966,8 @@ create_package () {
     set_archive_name
     dir_transforms="$(make_dir_transforms)"
     tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
-        -f $archive_name --exclude-backups $(make_tar_excludes $exclude_files) \
+        -f $archive_name \
+        --exclude-backups $(make_tar_excludes "$exclude_files") \
         $(make_tar_transforms "$dir_transforms") \
         --ignore-failed-read --sort=name \
         $tar_newer_opt \
