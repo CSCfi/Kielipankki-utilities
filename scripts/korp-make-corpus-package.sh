@@ -11,18 +11,12 @@
 #   produced by cwb-make. Possibly also other sanity checks for the
 #   corpus.
 # - Working --verbose (or --quiet).
-# - Update MySQL dumps if older than the database files (or if an
-#   option is specified).
-# - An option to generate MySQL dumps from the database, complementary
-#   to the --export-database.
-# - --export-database: Generate TSV files only if they do not exist or
-#   if they are older than corpus data files.
+# - --export-database=auto: Export or dump files if they exist but are
+#   older than corpus data files.
 # - An option to generate both a CWB data package and a VRT package
 #   with a single command.
 #
 # FIXME:
-# - Finding the most recent database files from either SQL or TSV
-#   files does not work correctly; see FIXME comments in the code.
 # - {corpid} does not work in the filename part of an extra VRT file.
 # - Directory name transformation does not seem to work for ../dir.
 # - If the TSV or SQL directory contains files for the same table
