@@ -111,7 +111,7 @@ The steps are the following:
 - create and arrange the desired folder structure, add README.txt and LICENSE.txt
 - zip the data to shortname-src.zip
 - Create an encrypted wrapper zip for this download package, using the password of the resource group.  
-- **For password protection, you should select an appropriate cipher, probably e.g. AES-256.** (The default cipher in zip is said to be very weak.)
+- **For password protection, you should select AES-256 as the cipher.** (The default cipher in zip is ZipCrypto, which is very weak.)
   
     You should use:
   - **7-Zip** on Windows,
