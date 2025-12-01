@@ -117,7 +117,7 @@ The steps are the following:
   - e.g., **Keka** on Mac (or 7z in the command line),
   - **7z/7za** on unix/linux (they are slightly different [versions](https://en.wikipedia.org/wiki/7-Zip#Versions), but in our case both will work interchangeably:
   
-    `7z a "shortname-src_encrypted.7z" "shortname-src.zip"` Note that `7z` files cannot be unzipped with `unzip`.
+    `7z a -p "shortname-src_encrypted.7z" "shortname-src.zip"` Note that `7z` files cannot be unzipped with `unzip`.
     
 - You can then move the file `shortname-src_encrypted.7z` to the folder `download_preview` on Puhti.
 
