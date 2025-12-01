@@ -32,6 +32,8 @@ After the test version works as expected, you should inform at least *fin-clarin
 ## Publish on the production Korp
 Once the corpus works as desired in the test version of Korp, it is ready to be installed on the production Korp. Ask someone with the rights to take care of the installation. Usually the corpus will be published as a **release candidate** for approximately two weeks. If during this time someone notices problems and changes need to be done to the data, it will not be necessary to change the version of the corpus.
 
+In case a corpus is extended by **adding similar new material but without changing the previously published material**, the release candidate status should only be marked to the new material in Korp. (This was done for example in the case of ylenews-2022-2024-korp.)
+
 ### Release candidate
 When a corpus is a [release candidate](http://urn.fi/urn:nbn:fi:lb-2025033101) (publicly available in the production Korp), you should add the property status with the value "rc" to the corpus configuration or to the info object of the configuration of a corpus folder whose all corpora have the same status:
 
@@ -61,6 +63,7 @@ If you haven’t heard of any requests for corrections or changes during a perio
     
 
  
+
 
 
 
