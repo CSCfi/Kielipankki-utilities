@@ -284,7 +284,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+AGREEMENT*_ Download a copy of the signed deposition agreement from the digital signature system (UniSign) to the shared OneDrive folder.
 # [ ] _*+AGREEMENT*_ In this Jira issue, add a comment stating the final license conditions, the rightholder(s), and the final list of the persons to be cited, according to the signed agreement. Update the license label to the description of the main Epic.
 # [ ] _*?AGREEMENT*_ Notify the colleagues who are responsible for publishing the license pages and the resource content that the license was confirmed.
-# [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ], update the license conditions of the resource.
+# [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ], update the signature date and the license conditions of the resource.
 \\
 ```
 
