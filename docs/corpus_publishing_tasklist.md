@@ -285,7 +285,6 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+AGREEMENT*_ In this Jira issue, add a comment stating the final license conditions, the rightholder(s), and the final list of the persons to be cited, according to the signed agreement. Update the license label to the description of the main Epic.
 # [ ] _*?AGREEMENT*_ Notify the colleagues who are responsible for publishing the license pages and the resource content that the license was confirmed.
 # [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ], update the license conditions of the resource.
-# [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ], update the license status to 'available'.
 \\
 ```
 
@@ -310,6 +309,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+PORTAL*_ In case the resource has a RES license, add the relevant details to the table LBR-katselmointiprosessi ([https://www.kielipankki.fi/wp-admin/admin.php?page=tablepress&action=edit&table_id=37 ]), shown on the intranet page [Katselmointiprosessi |https://www.kielipankki.fi/intra/katselmointiprosessi/ ]
 # [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting.
 # [ ] _*?PORTAL*_ After the deposition license agreement has been signed, publish the license page and the data protection terms and conditions.
+# [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ], update the license status to 'available'.
 \\
 ```
 
