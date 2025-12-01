@@ -110,18 +110,16 @@ The steps are the following:
 - create a folder named 'shortname-src'
 - create and arrange the desired folder structure, add README.txt and LICENSE.txt
 - zip the data to shortname-src.zip
-- Create an encrypted wrapper zip for this download package, using the password of the resource group.  
-- **For password protection, you should select AES-256 as the cipher.** (The default cipher in zip is ZipCrypto, which is very weak.)
+- Create an encrypted wrapper file (ending in 7z) for this download package, using the password of the resource group and the 7-zip/7z/7za command (see below). 7-zip uses stronger encryption than standard zip.
   
     You should use:
   - **7-Zip** on Windows,
   - e.g., **Keka** on Mac (or 7z in the command line),
-  - **7z** (?) on unix/linux:
+  - **7z/7za** on unix/linux (they are slightly different [versions](https://en.wikipedia.org/wiki/7-Zip#Versions), but in our case both will work interchangeably:
   
-    7z a -p ???-mem=aes256??? -tzip "/shortname/shortname-src_encrypted.zip" "/shortname/shortname-src.zip"
-    (UNTESTED! Please confirm the recommended "spell" from Martin! This should add files to archive, use a password, select cipher AES-256 and select zip as the archive type. – ML 20251119)
+    `7z a "shortname-src_encrypted.7z" "shortname-src.zip"` Note that `7z` files cannot be unzipped with `unzip`.
     
-- You can then move the file shortname-src_encrypted.zip to the folder `download_preview` on Puhti.
+- You can then move the file `shortname-src_encrypted.7z` to the folder `download_preview` on Puhti.
 
 - Tell CSC about the data in `download_preview`, to be uploaded to the download service. CSC staff will decrypt the data only after transferring it to the download service. (They will be able to locate the correct password by the resource's shortname.)
 
