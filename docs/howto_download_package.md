@@ -79,7 +79,7 @@ Remember to copy the re-packed data back from local scratch to either your work 
 ## Publishing the resource
 Have the package on `/scratch/clarin/download_preview/'CORPUS'/` on Puhti tested by someone else of the team.
 
-In case the VRT data is going to be published as **release candidate** (during the release candidate stage of the corresponding Korp corpus), add a file RELEASE_CANDIDATE.txt to `/scratch/clarin/download_preview/'CORPUS'/` on Puhti.
+In case the VRT data is going to be published as **release candidate** (during the release candidate stage of the corresponding Korp corpus), add a file RELEASE_CANDIDATE.txt to `/scratch/clarin/download_preview/'CORPUS'/` on Puhti. However, in case the users are not expecting the VRT version to appear immediately, it may make more sense to wait until the Korp corpus is approved as an official release and only then to publish the VRT version. (This needs to be discussed and decided on a case-to-case basis.)
 
 Ask someone with the needed access rights to upload the package to the download service.
 For a RES corpus, ask also to create an LBR record.
@@ -122,4 +122,5 @@ Remove the release candidate status from the metadata record and the database.
 
 More information on how to publish a corpus in the download service:
 [Kielipankki: corpus data publication for download at the language-bank](https://www.kielipankki.fi/development/corpus-data-publication-for-download-at-the-language-bank/)
+
 
