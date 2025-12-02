@@ -35,7 +35,7 @@ class VrtStructAttrUnifier(InputProcessor):
     Unify the structural attributes (annotations) in the input VRT:
     add attributes possibly missing from some structures (elements)
     and sort the attributes to the same order in all structures
-    (alphabetically be default).
+    (alphabetically by default).
     """
     EPILOG = """
     The tool reads the input twice unless --single-pass is specified.
