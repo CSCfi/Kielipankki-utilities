@@ -221,14 +221,16 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*+MANAGE*_ Create a Jira Epic issue with the Epic Name "shortname" and the title "shortname: Publish XXX in Kielipankki (Korp/Download/…)".
 # [ ] _*?SUPPORT*_ Contact the potential depositor (by email; arrange a meeting if required) 
 # [ ] _*?SUPPORT*_ Ask the depositor to submit the basic details of the new corpus or resource (e-form: [http://urn.fi/urn:nbn:fi:lb-2021121421](http://urn.fi/urn:nbn:fi:lb-2021121421))
-# [ ] _*+MANAGE*_ Insert the next pipeline Story under the Jira Epic and assign it forward
 # [ ] _*+MANAGE*_ Copy-paste the content of the e-form as a comment under the main Epic.
+# [ ] _*+SUPPORT*_ Send a brief feedback email to the depositor, to let them know that we received the information and will get back to them in the near future, regarding the metadata record and the next steps.
+# [ ] _*+MANAGE*_ Insert the next pipeline Story under the Jira Epic and assign it forward. If there is something noteworthy in the e-form, add a comment under the new Story, so that it can be discussed, and prioritize accordingly.
 \\
 ```
 
 ### _shortname_: Enter the new resource to the pipeline
 
 ```
+# [ ] _*?DISCUSS*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
 # [ ] _*+MANAGE*_ Insert the relevant parts of the pipeline task list as Jira Stories, each one linked under the main Epic of this resource publication process.
 # [ ] _*+MANAGE*_ Add the placeholders for all relevant metadata to the description of the main Epic (take a copy from the model description on the top of this page). Remove all non-relevant parts in the Epic description.
 # [ ] _*+MANAGE*_ Make sure that the list of tasks in the Epic description matches the Jira Stories linked under the Epic (i.e., that no Stories are missing).
@@ -255,7 +257,6 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?SUPPORT*_ Inform the depositor about citation practices, if relevant
 # [ ] _*?SUPPORT*_ Provide the depositor with references/advice regarding the technical format and structure of the original data
 # [ ] _*?SUPPORT*_ Ask the depositor/rightholder about their schedule for submitting the data
-# [ ] _*?DISCUSS*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
 \\
 ```
 
