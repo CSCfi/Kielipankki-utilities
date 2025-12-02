@@ -8,16 +8,16 @@ Please run "vrt-unify-attrs -h" for more information.
 """
 
 
-import sys
 import re
 
-from argparse import ArgumentTypeError
 from collections import defaultdict, OrderedDict
-from tempfile import NamedTemporaryFile
 
 from libvrt import metaline as ml
 from libvrt.iterutils import find_duplicates
-from libvrt.argtypes import (
+# Use "noqa: F401" to ignore "imported but unused" errors from Ruff:
+# the functions imported from libvrt.argtypes are referred to in
+# argument specification strings and used in argument-processing code
+from libvrt.argtypes import (  # noqa: F401
     encode_utf8,
     attrlist,
     attr_regex_list_combined,
