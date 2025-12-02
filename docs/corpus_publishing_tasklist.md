@@ -396,7 +396,7 @@ Access restrictions: public access / ACA license / RES license (please describe)
 
 Title of the resource(s) covered (ENG):
 Title of the resource(s) covered (FIN): 
-The PID of the resource (or resource group) covered by this LBR application (use the PID of the English resource group page if covering several versions): 
+The PID of the resource group covered by this LBR application (use the PID of the English resource group page): 
 License label (copy from the title in the license page):
 License PID (ENG):
 License PID (FIN):
