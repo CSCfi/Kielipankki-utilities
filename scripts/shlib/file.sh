@@ -329,6 +329,16 @@ file_newer () {
 }
 
 
+# newest_file file [...]
+#
+# Output the argument filename that has the most recent modification
+# time; nothing if the arguments do not match any files.
+newest_file () {
+    ls -t "$@" 2> /dev/null |
+        head -1
+}
+
+
 # Initialize variables
 
 # Compression programs and the associated filename extensions
