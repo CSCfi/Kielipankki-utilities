@@ -10,7 +10,7 @@
 
 
 # Load shlib components for the functions used
-shlib_required_libs="msgs file str"
+shlib_required_libs="msgs file str mysql"
 . $_shlibdir/loadlibs.sh
 
 
@@ -63,6 +63,72 @@ make_lbr_id () {
 	id="$id@LBR"
     fi
     echo $id
+}
+
+
+# _get_auth_info [--tsv-dir tsv_dir] corpus_id table_name value_column_name
+#                value_column_num
+#
+# Get the value of an authorization info item for corpus corpus_id
+# from the Korp auth database, either from data exported to TSV or
+# directly using the mysql client. table_name is the SQL table name
+# (and part of the TSV filename, without the "auth_" prefix) with the
+# information, value_column_name the name of the column containing the
+# information and value_column_num its number. If --tsv-dir is
+# specified, get the information from the TSV files in tsv_dir,
+# otherwise in the default TSV directory. If the TSV file does not
+# exist, try to get the information from the korp_auth MySQL database
+# if accessible.
+_get_auth_info () {
+    local tsv_dir tsv_file corpus_id table_name value_colname value_colnum \
+          corpus_u
+    if [ "$1" = "--tsv-dir" ]; then
+        # Explicit TSV dir
+        tsv_dir=$1
+        shift 2
+        corpus_id=$1
+    else
+        # Default TSV dir
+        corpus_id=$1
+        tsv_dir=$corpus_root/vrt/$corpus_id
+        if [ ! -d "$tsv_dir" ]; then
+            tsv_dir=$corpus_root/sql/$corpus_id
+        fi
+    fi
+    table_name=$2
+    value_colname=$3
+    value_colnum=$4
+    corpus_u=$(toupper $corpus_id)
+    tsv_file=$(
+        ls -t "$tsv_dir/${corpus_id}_auth_$table_name".tsv* 2> /dev/null |
+            head -1)
+    if [ "x$tsv_file" != x ]; then
+        comprcat "$tsv_file" | head -1 | cut -f$value_colnum
+    elif [ "x$mysql_bin" != x ]; then
+        run_mysql --auth "SELECT $value_colname FROM auth_$table_name WHERE corpus='$corpus_u';" --skip-column-names
+    fi
+}
+
+# get_licence_type [--tsv-dir tsv_dir] corpus_id
+#
+# Get the licence type of corpus corpus_id from the Korp auth
+# database. If --tsv-dir is specified, get the information from the
+# TSV files in tsv_dir, otherwise in the default TSV directory. If the
+# TSV file does not exist, try to get the information from the
+# korp_auth MySQL database if accessible.
+get_licence_type () {
+    _get_auth_info "$@" license license 2
+}
+
+# get_lbr_id [--tsv-dir tsv_dir] corpus_id
+#
+# Get the LBR id of corpus corpus_id from the Korp auth database. If
+# --tsv-dir is specified, get the information from the TSV files in
+# tsv_dir, otherwise in the default TSV directory. If the TSV file
+# does not exist, try to get the information from the korp_auth MySQL
+# database if accessible.
+get_lbr_id () {
+    _get_auth_info "$@" lbr_map lbr_id 1
 }
 
 
