@@ -169,6 +169,3 @@ get_lbr_id () {
 
 # Kielipankki URN prefix
 urn_prefix=urn:nbn:fi:lb-
-
-# The (main) Korp frontend directory
-korp_frontend_dir=${KORP_FRONTEND_DIR:-$(find_existing_dir -e config.js $default_korp_frontend_dirs)}
