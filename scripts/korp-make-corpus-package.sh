@@ -467,6 +467,8 @@ add_auth_opts () {
     val=$(eval "make_$type \$val")
     exit_if_error $?
     auth_opts="$auth_opts $opt $val"
+    # Set variable value for make_auth_info
+    eval "auth_$type='$val'"
 }
 
 # Process options
@@ -806,10 +808,39 @@ process_registry () {
     fi
 }
 
-# Make auth info for corpora if auth options are specified.
+# Make auth info (TSV files) for corpora if auth options are
+# specified. Also add auth info to the .info files via the extra info
+# file if auth options are specified, if the auth TSV files already
+# exist or if the MySQL auth database contains the relevant info for
+# the corpus.
 make_auth_info () {
+    local corpus_id tsvdir_real
     if [ "x$auth_opts" != "x" ]; then
         $korp_make_auth_info --tsv-dir "$tsvdir" $auth_opts $corpus_ids
+    fi
+    # All corpora to be packaged should have the same auth
+    # information, so get the info for the first corpus
+    corpus_id=$(nth_arg 1 $corpus_ids)
+    tsvdir_real=$(fill_dirtempl "$tsvdir" $corpus_id)
+    # $auth_licence_type and $auth_lbr_id may be set in add_auth_opts;
+    # if they have not been set, check if the TSV files or database
+    # contains the auth info
+    if [ "x$auth_licence_type" = x ]; then
+        auth_licence_type=$(
+            get_licence_type --tsv-dir "$tsvdir_real" $corpus_id)
+    fi
+    if [ "x$auth_lbr_id" = x ]; then
+        auth_lbr_id=$(get_lbr_id --tsv-dir "$tsvdir_real" $corpus_id)
+    fi
+    # Add info to the extra info file
+    if [ "x$auth_licence_type" != x ]; then
+        echo "License:$auth_licence_type" >> $extra_info_file
+        if [ "$auth_licence_type" != "PUB" ]; then
+            echo "Protected:true" >> $extra_info_file
+        fi
+    fi
+    if [ "x$auth_lbr_id" != x ]; then
+        echo "LbrId:$auth_lbr_id" >> $extra_info_file
     fi
 }
 
