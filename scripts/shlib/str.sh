@@ -217,6 +217,24 @@ delimit () {
 }
 
 
+# strsplit delimiter str
+#
+# Output str split at delimiter, each item on a separate line.
+strsplit () {
+    local sep first rest
+    sep=$1
+    rest=$2
+    while true; do
+        first=${rest%%$sep*}
+        printf "%s\n" "$first"
+        rest=${rest#*$sep}
+        if [ "$rest" = "$first" ]; then
+            break
+        fi
+    done
+}
+
+
 # integer number
 #
 # Output the integer part of number.
