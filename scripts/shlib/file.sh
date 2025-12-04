@@ -265,6 +265,26 @@ get_compress_ext () {
 }
 
 
+# get_tar_compress_opt filename
+#
+# Output a GNU tar compression option for working with tar file named
+# filename; nothing if the file is not compressed (or the compression
+# extension is not recognized).
+get_tar_compress_opt () {
+    local fname ext compress
+    fname=$1
+    ext=${fname##*.}
+    compress=$(eval "echo \$compress_prog_$ext")
+    if [ "x$compress" = x ]; then
+        ext=${ext#t}
+        compress=$(eval "echo \$compress_prog_$ext")
+    fi
+    if [ "x$compress" != x ]; then
+        safe_echo "--$compress"
+    fi
+}
+
+
 calc_gib () {
     awk 'BEGIN { printf "%0.3f", '$1' / 1024 / 1024 / 1024 }'
 }
