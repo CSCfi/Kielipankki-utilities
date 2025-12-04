@@ -116,7 +116,7 @@ extract_dbfiles="*"
 # With --database-import=no, extract only authorization files
 if [ "$db_import" = no ]; then
     # "CORPUS" will be replaced with the actual corpus id
-    extract_dbfiles="*/CORPUS_auth_*"
+    extract_dbfiles="*/CORPUS_auth[_.]*"
 fi
 
 # Set the default for --load-limit if empty
@@ -135,9 +135,11 @@ pkglistfile=$tmp_prefix.pkgs
 
 timestamp_format="+%Y-%m-%dT%H:%M:%S"
 
-# The order in which database tables should be imported
+# The order in which database tables should be imported (extended
+# regular expressions to match database file names between the corpus
+# id and the dot preceding the extension)
 # Always installed immediately after extracting package
-dbtable_install_order_immediate="auth_.*"
+dbtable_install_order_immediate="auth(_.*)?"
 # Installed only after extracting all packages unless
 # --immediate-database-import
 dbtable_install_order="timedata(_date)? lemgrams .*"
@@ -639,7 +641,7 @@ install_file_sql () {
     sqlfile=$1
     db=$korpdb
     case $sqlfile in
-	*_auth_* )
+	*_auth[_.]* )
 	    db=$korpdb_auth
 	    ;;
     esac
