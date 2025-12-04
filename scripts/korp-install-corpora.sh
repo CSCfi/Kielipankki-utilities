@@ -159,6 +159,10 @@ if [ "x$pkgdir" = "xCORPUS_ROOT/$pkgsubdir" ]; then
     pkgdir=${CORPUS_PKGDIR:-$corpus_root/$pkgsubdir}
 fi
 
+# Extended regular expression matching a compressed file extension
+# (for a single file, including the leading dot)
+compress_exts_re="\\.($(delimit '|' $compress_exts))"
+
 localhost=LOCALHOST
 default_pkghost=$localhost
 case $pkgdir in
@@ -560,20 +564,6 @@ filter_corpora () {
     fi
 }
 
-get_tar_compress_opt () {
-    case "$1" in
-	*.gz | *.tgz )
-	    echo --gzip
-	    ;;
-	*.tbz | *.bz | *.bz2 )
-	    echo --bzip2
-	    ;;
-	*.xz | *.txz )
-	    echo --xz
-	    ;;
-    esac
-}
-
 backup_corpus () {
     local pkgname pkghost tar_cmd backup_msg_shown
     pkgname=$1
@@ -670,7 +660,7 @@ install_dbfiles () {
     if [ ! -e $listfile ]; then
         return
     fi
-    files=$(grep -E '_'"$tables_re"'\.'$type'(\.(bz2|gz|xz))?$' $listfile)
+    files=$(grep -E "_$tables_re\\.$type($compress_exts_re)?\$" $listfile)
     if [ "x$files" != "x" ]; then
 	echo "  $msg data into MySQL database$dry_run_msg"
 	for file in $files; do
@@ -774,7 +764,8 @@ install_corpus () {
     )
     adjust_registry $filelistfile
     dbfile_list_file=$(make_dbfile_list_filename $corp)
-    grep -E '\.(sql|tsv)(\.(bz2|gz|xz))?$' $filelistfile > "$dbfile_list_file"
+    grep -E "\\.(sql|tsv)($compress_exts_re)?\$" $filelistfile \
+         > "$dbfile_list_file"
     install_corpora_dbtables install_db $corp "$dbtable_install_order_immediate"
     # Log to the list of installed corpora: current time, corpus name,
     # package file name, package file modification time, installing
