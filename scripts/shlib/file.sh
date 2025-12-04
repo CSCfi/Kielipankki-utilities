@@ -117,27 +117,33 @@ mkdir_perms () {
 #
 # Initialize global variables compress_progs, compress_exts,
 # compress_prog_$ext and compress_ext_$prog based on compress_ext_map.
-# compress_ext_map is a space-separated list of pairs prog:ext where
-# prog is compression program name and ext the associated filename
-# extension (without the leading "."). (Alternatively, each pair can
-# be a separate argument.)
+# compress_ext_map is a space-separated list of pairs prog:exts where
+# prog is compression program name and exts the associated filename
+# extensions (without the leading "."), separated by commas.
+# (Alternatively, each pair can be a separate argument.)
 #
-# For each prog:ext, if prog can be run, it is appended to
-# compress_progs and ext to compress_exts, compress_ext_$prog is set
-# to ext and compress_prog_$ext to prog.
+# For each prog:exts, if prog can be run, it is appended to
+# compress_progs, each ext in exts is appended to compress_exts,
+# compress_ext_$prog is set to the first ext in exts and
+# compress_prog_$ext to prog.
 _init_compress_info () {
-    local compress_ext_map item prog ext
+    local compress_ext_map item prog exts ext isfirst
     compress_ext_map=$*
     compress_progs=
     compress_exts=
     for item in $compress_ext_map; do
         prog=${item%:*}
-        ext=${item#*:}
         if which $prog > /dev/null; then
             compress_progs="$compress_progs $prog"
-            compress_exts="$compress_exts $ext"
-            eval "compress_prog_$ext=\$prog"
-            eval "compress_ext_$prog=\$ext"
+            isfirst=1
+            for ext in $(strsplit "," "${item#*:}"); do
+                compress_exts="$compress_exts $ext"
+                eval "compress_prog_$ext=\$prog"
+                if [ "$isfirst" = "1" ]; then
+                    eval "compress_ext_$prog=\$ext"
+                    isfirst=
+                fi
+            done
         fi
     done
     # Use echo to remove the leading space
@@ -342,7 +348,8 @@ newest_file () {
 # Initialize variables
 
 # Compression programs and the associated filename extensions
-_init_compress_info gzip:gz bzip2:bz2 xz:xz lzip:lz lzma:lzma lzop:lzop zstd:zst
+_init_compress_info \
+    gzip:gz bzip2:bz2,bz xz:xz lzip:lz lzma:lzma lzop:lzop zstd:zst
 
 # File permissions used by ensure_perms
 fileperms=ug+rwX,o+rX
