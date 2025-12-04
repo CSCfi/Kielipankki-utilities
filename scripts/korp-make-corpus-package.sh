@@ -764,7 +764,7 @@ list_existing_db_files_by_type () {
     eval "dir=\$${type}dir"
     dir=$(fill_dirtempl $dir $corpus_id)
     basename="$dir/${corpus_id}_*.$type"
-    ls -t $basename $basename.gz $basename.bz2 $basename.xz 2> /dev/null
+    ls -t $basename $(add_prefix $basename. $compress_exts) 2> /dev/null
 }
 
 get_first_word () {
