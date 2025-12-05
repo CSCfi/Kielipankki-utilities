@@ -213,12 +213,9 @@ wait_for_low_load () {
     while [ "$load_int" -ge "$load_limit" ] &&
               [ "$load" != "$load_limit.00" ];
     do
-        # Heuristic for how long to wait based on the load and limit
-        # TODO: Take into account whether the load is increasing or
-        # decreasing
-        wait_min=$(($load_int / $load_limit * 2))
-        echo "CPU load $load exceeds the limit $load_limit; waiting $wait_min minutes for the load to decrease"
-        sleep $(($wait_min * 60))
+        timestamp
+        echo "CPU load $load exceeds the limit $load_limit; waiting for the load to decrease"
+        sleep 60
         load=$(get_cpu_load)
         load_int=$(integer $load)
     done
