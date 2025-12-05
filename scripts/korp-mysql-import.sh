@@ -384,7 +384,7 @@ init_table_column_counts () {
 	for suffix in "" new_; do
 	    colcnt=$(
 		eval echo '"'"\$table_columns_relations_$suffix$tabletype"'"' |
-		grep -c '^[ 	]*`'
+		grep -c "^[ $tab]*\`"
 	    )
 	    eval "col_count_relations_$suffix$tabletype=$colcnt"
 	done
@@ -483,7 +483,7 @@ infer_relations_format () {
 	non_int_cnt=$(
 	    comprcat $_file |
 	    head -20 |
-	    cut -d'	' -f$int_column_num |
+	    cut -d"$tab" -f$int_column_num |
 	    grep -E -cv '^[0-9]+$'
 	)
 	int_format=$(
