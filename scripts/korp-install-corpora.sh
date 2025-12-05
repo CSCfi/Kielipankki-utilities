@@ -119,9 +119,11 @@ if [ "$db_import" = no ]; then
     extract_dbfiles="*/CORPUS_auth_*"
 fi
 
-# Set the default for --load-limit if empty
+# Check the validity of --load-limit and set default if empty
 if [ "x$load_limit" = x ]; then
     load_limit=$num_cpus
+elif { ! is_int "$load_limit"; } || [ "$load_limit" -lt 1 ]; then
+    error "--load-limit argument \"$load_limit\" is not a positive integer"
 fi
 
 # This is only for compatibility with older corpus packages
