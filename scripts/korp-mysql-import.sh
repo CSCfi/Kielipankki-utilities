@@ -760,7 +760,7 @@ has_column_name_header () {
 
 mysql_import_main () {
     local file corpname tablename colspec fifo pipe_skip_header mysql_cmds \
-          total_rows progress_pid
+          total_rows progress_pid comprcat_pid
     file=$1
     corpname=$2
     tablename=$3
@@ -774,9 +774,8 @@ mysql_import_main () {
 	pipe_skip_header="| tail -n+2"
     fi
     mkfifo $fifo
-    (
-	eval "comprcat $file $pipe_skip_header" > $fifo &
-    )
+    eval "comprcat $file $pipe_skip_header" > $fifo &
+    comprcat_pid=$!
     # Import optimization ideas (for InnoDB tables) taken from
     # http://derwiki.tumblr.com/post/24490758395/loading-half-a-billion-rows-into-mysql
     # Disabling foregin key checks probably does not matter, as
@@ -804,6 +803,9 @@ mysql_import_main () {
 	kill $progress_pid
 	echo "  "$(date +"%F %T")" rows: $total_rows (100.00%)"
     fi
+    # Kill the FIFO writer (comprcat) if it has not exited, hoping
+    # that this would avoid leaving hanging processes behind
+    kill $comprcat_pid 2> /dev/null
     /bin/rm -f $fifo
 }
 
