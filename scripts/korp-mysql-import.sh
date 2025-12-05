@@ -692,10 +692,10 @@ show_mysql_datafile_size () {
 
 get_mysql_table_rowcount () {
     # The row count is only an approximation for InnoDB tables.
-    run_mysql_report_errors $1 $progress_errorfile "SELECT table_rows FROM information_schema.tables WHERE table_name='$1' AND table_schema='$korpdb' \G ; " |
-    grep rows |
-    cut -d':' -f2 |
-    tr -d ' '
+    run_mysql_report_errors \
+        $1 $progress_errorfile \
+        "SELECT table_rows FROM information_schema.tables WHERE table_name='$1' AND table_schema='$korpdb';" \
+        --skip-column-names
 }
 
 report_progress () {
