@@ -443,6 +443,7 @@ sleep_until () {
 }
 
 init_table_column_counts () {
+    local tabletype suffix
     for tabletype in $relations_table_types; do
 	for suffix in "" new_; do
 	    colcnt=$(
@@ -484,6 +485,7 @@ get_file_tablename_base () {
 }
 
 make_tablename () {
+    local table_basename tablename_base
     case "$1" in
 	*_rels.* | *_rels_*.* )
 	    table_basename=$(fill_tablename_template relations)
@@ -505,6 +507,8 @@ make_corpname () {
 }
 
 infer_relations_format () {
+    local _file reltable columns_old columns_new col_count_old col_count_new \
+          col_count_file int_col_num non_int_cnt int_format
     _file=$1
     reltable=$(echo "$1" | sed -e 's/\(.\+\)_rels\([^.]*\).*/CORPNAME\2/')
     columns_old=$(eval "echo \$table_columns_relations_$reltable")
@@ -568,6 +572,7 @@ infer_relations_format () {
 }
 
 get_colspec_name () {
+    local base colspec_name
     case "$1" in
 	*_rels.* | *_rels_*.* )
 	    if [ "$relations_format" = "old" ]; then
@@ -594,7 +599,7 @@ get_colspec () {
 }
 
 run_mysql_report_errors () {
-    local tablename _errorfile
+    local tablename _errorfile teefile
     tablename=$1
     # Return the error information via a file, since setting the value
     # of a variable does not seem to propagate to the caller.
@@ -613,6 +618,7 @@ run_mysql_report_errors () {
 }
 
 create_table() {
+    local _tablename _colspec
     _tablename=$1
     _colspec=$2
     run_mysql --table $_tablename "
@@ -624,6 +630,7 @@ CREATE TABLE IF NOT EXISTS \`$_tablename\` (
 }
 
 delete_table_corpus_info() {
+    local _tablename _corpname
     _tablename=$1
     _corpname=$2
     run_mysql --table $_tablename \
@@ -631,6 +638,7 @@ delete_table_corpus_info() {
 }
 
 create_new_table() {
+    local _tablename _colspec
     _tablename=$1
     _colspec=$2
     run_mysql --table $_tablename "DROP TABLE IF EXISTS \`$_tablename\`;"
@@ -638,13 +646,14 @@ create_new_table() {
 }
 
 get_multicorpus_tablenames () {
-    local tablename
+    local fname_base
     for fname_base in $filename_bases; do
 	echo $(get_tablename_for_filename_base $fname_base)
     done
 }
 
 prepare_tables () {
+    local _tablename _corpname _colspec tblname
     _tablename=$1
     _corpname=$2
     _colspec=$3
@@ -668,6 +677,7 @@ get_mysql_datafile_size () {
 }
 
 show_mysql_datafile_size () {
+    local datasize datasize_prev datasize_diff
     datasize=$1
     datasize_prev=$2
     if [ "x$datasize" != "x" ] && [ "x$mysql_datafile" != "x" ]; then
@@ -692,6 +702,8 @@ report_progress () {
     # This function should be run on the background, since it contains
     # a non-terminating loop. Adapted from
     # http://derwiki.tumblr.com/post/24490758395/loading-half-a-billion-rows-into-mysql
+    local tablename total_rows init_rows prev_rows imported_rows \
+          new_imported_rows row_percentage secs secs_remaining
     tablename=$1
     total_rows=$2
     init_rows=$(get_mysql_table_rowcount $tablename)
@@ -734,6 +746,7 @@ report_progress () {
 }
 
 has_column_name_header () {
+    local file colspec file_firstval first_colname
     file=$1
     colspec=$2
     # The header row is detected if the first word on the first row of
@@ -746,6 +759,8 @@ has_column_name_header () {
 }
 
 mysql_import_main () {
+    local file corpname tablename colspec fifo pipe_skip_header mysql_cmds \
+          total_rows progress_pid
     file=$1
     corpname=$2
     tablename=$3
@@ -793,6 +808,7 @@ mysql_import_main () {
 }
 
 mysql_import_retry_loop () {
+    local file connection_retries reconnect_delay mysql_error
     file=$1
     connection_retries=0
     reconnect_delay=$reconnect_delay_base
@@ -825,6 +841,8 @@ mysql_import_retry_loop () {
 }
 
 mysql_import () {
+    local file file_base tablename corpname colspec_name colspec filesize \
+          secs_0 datasize_0 secs_1 datasize_1
     file=$1
     if [ ! -e "$file" ]; then
 	warn "No such file: $file"
