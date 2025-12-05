@@ -6,7 +6,12 @@
 # For more information, run korp-mysql-import.sh --help
 
 # TODO:
-# - Support importing to table corpus_info
+# - Move some MySQL functions to shlib/mysql.sh.
+# - Make --prepare-tables the default.
+# - Maybe remove support for long-obsolete "old" relations table
+#   format.
+# - Add function comments.
+# - Modernize code in places.
 
 
 progname=`basename $0`
