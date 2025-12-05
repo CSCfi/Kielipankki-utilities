@@ -82,73 +82,73 @@ if [ ! -r $mysql_datadir ] || [ ! -e $mysql_datafile ]; then
 fi
 
 table_columns_lemgram_index='
-	`lemgram` varchar(64) NOT NULL,
-	`freq` int(11) DEFAULT NULL,
-	`freq_prefix` int(11) DEFAULT NULL,
-	`freq_suffix` int(11) DEFAULT NULL,
-	`corpus` varchar(64) NOT NULL,
-	PRIMARY KEY `lemgram_corpus` (`lemgram`, `corpus`, `freq`,
-				      `freq_prefix`, `freq_suffix`)
+        `lemgram` varchar(64) NOT NULL,
+        `freq` int(11) DEFAULT NULL,
+        `freq_prefix` int(11) DEFAULT NULL,
+        `freq_suffix` int(11) DEFAULT NULL,
+        `corpus` varchar(64) NOT NULL,
+        PRIMARY KEY `lemgram_corpus` (`lemgram`, `corpus`, `freq`,
+                                      `freq_prefix`, `freq_suffix`)
 '
 table_columns_timespans='
-	`corpus` varchar(64) NOT NULL,
-	`datefrom` varchar(14) DEFAULT '"''"',
-	`dateto` varchar(14) DEFAULT '"''"',
-	`tokens` int(11) DEFAULT 0,
-	KEY `corpus` (`corpus`)
+        `corpus` varchar(64) NOT NULL,
+        `datefrom` varchar(14) DEFAULT '"''"',
+        `dateto` varchar(14) DEFAULT '"''"',
+        `tokens` int(11) DEFAULT 0,
+        KEY `corpus` (`corpus`)
 '
 table_columns_timedata='
-	`corpus` varchar(64) NOT NULL DEFAULT '"''"',
-	`datefrom` datetime NOT NULL DEFAULT '"'"'0000-00-00 00:00:00'"'"',
-	`dateto` datetime NOT NULL DEFAULT '"'"'0000-00-00 00:00:00'"'"',
-	`tokens` int(11) NOT NULL DEFAULT 0,
-	PRIMARY KEY (`corpus`, `datefrom`, `dateto`)
+        `corpus` varchar(64) NOT NULL DEFAULT '"''"',
+        `datefrom` datetime NOT NULL DEFAULT '"'"'0000-00-00 00:00:00'"'"',
+        `dateto` datetime NOT NULL DEFAULT '"'"'0000-00-00 00:00:00'"'"',
+        `tokens` int(11) NOT NULL DEFAULT 0,
+        PRIMARY KEY (`corpus`, `datefrom`, `dateto`)
 '
 table_columns_timedata_date='
-	`corpus` varchar(64) NOT NULL DEFAULT '"''"',
-	`datefrom` date NOT NULL DEFAULT '"'"'0000-00-00'"'"',
-	`dateto` date NOT NULL DEFAULT '"'"'0000-00-00'"'"',
-	`tokens` int(11) NOT NULL DEFAULT 0,
-	PRIMARY KEY (`corpus`, `datefrom`, `dateto`)
+        `corpus` varchar(64) NOT NULL DEFAULT '"''"',
+        `datefrom` date NOT NULL DEFAULT '"'"'0000-00-00'"'"',
+        `dateto` date NOT NULL DEFAULT '"'"'0000-00-00'"'"',
+        `tokens` int(11) NOT NULL DEFAULT 0,
+        PRIMARY KEY (`corpus`, `datefrom`, `dateto`)
 '
 table_columns_relations_CORPNAME='
-	`id` int(11) UNIQUE NOT NULL,
-	`head` varchar(100) NOT NULL,
-	`rel` char(3) NOT NULL,
-	`dep` varchar(100) NOT NULL,
-	`depextra` varchar(32) DEFAULT NULL,
-	`freq` int(11) NOT NULL,
-	`wf` tinyint(4) NOT NULL,
-	PRIMARY KEY (`id`),
-	KEY `head` (`head`),
-	KEY `dep` (`dep`)
+        `id` int(11) UNIQUE NOT NULL,
+        `head` varchar(100) NOT NULL,
+        `rel` char(3) NOT NULL,
+        `dep` varchar(100) NOT NULL,
+        `depextra` varchar(32) DEFAULT NULL,
+        `freq` int(11) NOT NULL,
+        `wf` tinyint(4) NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `head` (`head`),
+        KEY `dep` (`dep`)
 '
 table_columns_relations_CORPNAME_rel='
-	`rel` char(3) NOT NULL,
-	`freq` int(11) NOT NULL,
-	KEY `rel` (`rel`)
+        `rel` char(3) NOT NULL,
+        `freq` int(11) NOT NULL,
+        KEY `rel` (`rel`)
 '
 table_columns_relations_CORPNAME_head_rel='
-	`head` varchar(100) NOT NULL,
-	`rel` char(3) NOT NULL,
-	`freq` int(11) NOT NULL,
-	KEY `head` (`head`),
-	KEY `rel` (`rel`)
+        `head` varchar(100) NOT NULL,
+        `rel` char(3) NOT NULL,
+        `freq` int(11) NOT NULL,
+        KEY `head` (`head`),
+        KEY `rel` (`rel`)
 '
 table_columns_relations_CORPNAME_dep_rel='
-	`dep` varchar(100) NOT NULL,
-	`depextra` varchar(32) DEFAULT NULL,
-	`rel` char(3) NOT NULL,
-	`freq` int(11) NOT NULL,
-	KEY `dep` (`dep`),
-	KEY `rel` (`rel`)
+        `dep` varchar(100) NOT NULL,
+        `depextra` varchar(32) DEFAULT NULL,
+        `rel` char(3) NOT NULL,
+        `freq` int(11) NOT NULL,
+        KEY `dep` (`dep`),
+        KEY `rel` (`rel`)
 '
 table_columns_relations_CORPNAME_sentences='
-	`id` int(11) NOT NULL,
-	`sentence` varchar(64) NOT NULL,
-	`start` int(11) NOT NULL,
-	`end` int(11) NOT NULL,
-	KEY `id` (`id`)
+        `id` int(11) NOT NULL,
+        `sentence` varchar(64) NOT NULL,
+        `start` int(11) NOT NULL,
+        `end` int(11) NOT NULL,
+        KEY `id` (`id`)
 '
 # relations_new_rels_enum="ENUM('++','ADV','AN','AT','DT','ET','FV','head','IG','KA','NA','OBJ','PA','PL','SS','XX','YY')"
 # TODO: Add an option for specifying the relation type type
@@ -156,60 +156,60 @@ rel_type="enum('SS','OBJ','ADV','AT','ET','PA','APP','AUX','CPL','CPR','CRD','MO
 # # Alternatively:
 # rel_type="char(4) NOT NULL"
 table_columns_relations_new_CORPNAME='
-	`id` int UNIQUE NOT NULL,
-	`head` int NOT NULL,
-	`rel` '"$rel_type"',
-	`dep` int NOT NULL,
-	`freq` int NOT NULL,
-	`bfhead` bool NOT NULL,
-	`bfdep` bool NOT NULL,
-	`wfhead` bool NOT NULL,
-	`wfdep` bool NOT NULL,
-	PRIMARY KEY (`head`,`wfhead`,`dep`,`rel`,`freq`,`id`),
-	KEY `dep-wfdep-head-rel-freq-id` (`dep`,`wfdep`,`head`,`rel`,`freq`,`id`),
-	KEY `head-dep-bfhead-bfdep-rel-freq-id` (`head`,`dep`,`bfhead`,`bfdep`,`rel`,`freq`,`id`),
-	KEY `dep-head-bfhead-bfdep-rel-freq-id` (`dep`,`head`,`bfhead`,`bfdep`,`rel`,`freq`,`id`)
+        `id` int UNIQUE NOT NULL,
+        `head` int NOT NULL,
+        `rel` '"$rel_type"',
+        `dep` int NOT NULL,
+        `freq` int NOT NULL,
+        `bfhead` bool NOT NULL,
+        `bfdep` bool NOT NULL,
+        `wfhead` bool NOT NULL,
+        `wfdep` bool NOT NULL,
+        PRIMARY KEY (`head`,`wfhead`,`dep`,`rel`,`freq`,`id`),
+        KEY `dep-wfdep-head-rel-freq-id` (`dep`,`wfdep`,`head`,`rel`,`freq`,`id`),
+        KEY `head-dep-bfhead-bfdep-rel-freq-id` (`head`,`dep`,`bfhead`,`bfdep`,`rel`,`freq`,`id`),
+        KEY `dep-head-bfhead-bfdep-rel-freq-id` (`dep`,`head`,`bfhead`,`bfdep`,`rel`,`freq`,`id`)
 '
 table_columns_relations_new_CORPNAME_strings='
-	`id` int UNIQUE NOT NULL,
-	`string` varchar(100) NOT NULL,
-	`stringextra` varchar(32) DEFAULT NULL,
-	`pos` varchar(5) DEFAULT NULL,
-	PRIMARY KEY (`string`,`id`,`pos`,`stringextra`),
-	KEY `id-string-pos-stringextra` (`id`,`string`,`pos`,`stringextra`)
+        `id` int UNIQUE NOT NULL,
+        `string` varchar(100) NOT NULL,
+        `stringextra` varchar(32) DEFAULT NULL,
+        `pos` varchar(5) DEFAULT NULL,
+        PRIMARY KEY (`string`,`id`,`pos`,`stringextra`),
+        KEY `id-string-pos-stringextra` (`id`,`string`,`pos`,`stringextra`)
 '
 table_columns_relations_new_CORPNAME_rel='
-	`rel` '"$rel_type"',
-	`freq` int NOT NULL,
-	PRIMARY KEY (`rel`,`freq`)
+        `rel` '"$rel_type"',
+        `freq` int NOT NULL,
+        PRIMARY KEY (`rel`,`freq`)
 '
 table_columns_relations_new_CORPNAME_head_rel='
-	`head` int NOT NULL,
-	`rel` '"$rel_type"',
-	`freq` int NOT NULL,
-	PRIMARY KEY (`head`,`rel`,`freq`)
+        `head` int NOT NULL,
+        `rel` '"$rel_type"',
+        `freq` int NOT NULL,
+        PRIMARY KEY (`head`,`rel`,`freq`)
 '
 table_columns_relations_new_CORPNAME_dep_rel='
-	`dep` int NOT NULL,
-	`rel` '"$rel_type"',
-	`freq` int NOT NULL,
-	PRIMARY KEY (`dep`,`rel`,`freq`)
+        `dep` int NOT NULL,
+        `rel` '"$rel_type"',
+        `freq` int NOT NULL,
+        PRIMARY KEY (`dep`,`rel`,`freq`)
 '
 table_columns_relations_new_CORPNAME_sentences='
-	`id` int NOT NULL,
-	`sentence` varchar(64) NOT NULL,
-	`start` int NOT NULL,
-	`end` int NOT NULL,
-	KEY `id` (`id`)
+        `id` int NOT NULL,
+        `sentence` varchar(64) NOT NULL,
+        `start` int NOT NULL,
+        `end` int NOT NULL,
+        KEY `id` (`id`)
 '
 table_columns_auth_license='
-	`corpus` varchar(80) NOT NULL,
+        `corpus` varchar(80) NOT NULL,
         `license` varchar(6) NOT NULL,
         PRIMARY KEY (`corpus`)
 '
 table_columns_auth_lbr_map='
-	`lbr_id` varchar(255) DEFAULT NULL,
-	`corpus` varchar(255) DEFAULT NULL
+        `lbr_id` varchar(255) DEFAULT NULL,
+        `corpus` varchar(255) DEFAULT NULL
 '
 
 # The number of columns in the old and new formats for the head_rel
@@ -381,13 +381,13 @@ sleep_until () {
 init_table_column_counts () {
     local tabletype suffix
     for tabletype in $relations_table_types; do
-	for suffix in "" new_; do
-	    colcnt=$(
-		eval echo '"'"\$table_columns_relations_$suffix$tabletype"'"' |
-		grep -c "^[ $tab]*\`"
-	    )
-	    eval "col_count_relations_$suffix$tabletype=$colcnt"
-	done
+        for suffix in "" new_; do
+            colcnt=$(
+                eval echo '"'"\$table_columns_relations_$suffix$tabletype"'"' |
+                grep -c "^[ $tab]*\`"
+            )
+            eval "col_count_relations_$suffix$tabletype=$colcnt"
+        done
     done
 }
 
@@ -401,7 +401,7 @@ get_tablename_for_filename_base () {
     fname_base=$1
     tablename_base=$(eval echo "\$tablename_$fname_base")
     if [ "x$tablename_base" = "x" ]; then
-	tablename_base=$fname_base
+        tablename_base=$fname_base
     fi
     echo $tablename_base
 }
@@ -411,29 +411,29 @@ get_file_tablename_base () {
     local _fname fname_base
     _fname=$1
     for fname_base in $filename_bases; do
-	case "$_fname" in
-	    *_$fname_base.* )
-		echo $(get_tablename_for_filename_base $fname_base)
-		break
-		;;
-	esac
+        case "$_fname" in
+            *_$fname_base.* )
+                echo $(get_tablename_for_filename_base $fname_base)
+                break
+                ;;
+        esac
     done
 }
 
 make_tablename () {
     local table_basename tablename_base
     case "$1" in
-	*_rels.* | *_rels_*.* )
-	    table_basename=$(fill_tablename_template relations)
-	    echo `basename "$1"` |
-	    sed -e 's/\(.\+\)_rels\([^.]*\).*/'"$table_basename"'_\U\1\E\2/'
-	    ;;
-	* )
-	    tablename_base=$(get_file_tablename_base "$1")
-	    if [ "x$tablename_base" != x ]; then
-		fill_tablename_template $tablename_base
-	    fi
-	    ;;
+        *_rels.* | *_rels_*.* )
+            table_basename=$(fill_tablename_template relations)
+            echo `basename "$1"` |
+            sed -e 's/\(.\+\)_rels\([^.]*\).*/'"$table_basename"'_\U\1\E\2/'
+            ;;
+        * )
+            tablename_base=$(get_file_tablename_base "$1")
+            if [ "x$tablename_base" != x ]; then
+                fill_tablename_template $tablename_base
+            fi
+            ;;
     esac
 }
 
@@ -452,56 +452,56 @@ infer_relations_format () {
     # If the table type is "strings" or the old and new table
     # definitions are equal, use the new format.
     if [ "x$columns_new" != x ] && [ "x$reltable" = xstrings ] ||
-	[ x"$columns_new" = x"$columns_old" ]
+        [ x"$columns_new" = x"$columns_old" ]
     then
-	echo relations_new
-	return
+        echo relations_new
+        return
     fi
     # If the number of columns in the formats differs, use the format
     # with the same number of columns as in the input file.
     col_count_old=$(eval "echo \$col_count_relations_$reltable")
     col_count_new=$(eval "echo \$col_count_relations_new_$reltable")
     if [ $col_count_old != $col_count_new ]; then
-	col_count_file=$(
-	    comprcat $_file |
-	    head -1 |
-	    tr '\t' '\n' |
-	    wc -l
-	)
-	if [ $col_count_file = $col_count_old ]; then
-	    echo relations
-	elif [ $col_count_file = $col_count_new ]; then
-	    echo relations_new
-	fi
-	return
+        col_count_file=$(
+            comprcat $_file |
+            head -1 |
+            tr '\t' '\n' |
+            wc -l
+        )
+        if [ $col_count_file = $col_count_old ]; then
+            echo relations
+        elif [ $col_count_file = $col_count_new ]; then
+            echo relations_new
+        fi
+        return
     fi
     # If a column type differs (int vs. varchar), check that for the
     # first 20 rows in the input file.
     int_column_num=$(
-	eval "echo \$relations_format_diff_int_column_num_$reltable")
+        eval "echo \$relations_format_diff_int_column_num_$reltable")
     if [ "x$int_column_num" != x ]; then
-	non_int_cnt=$(
-	    comprcat $_file |
-	    head -20 |
-	    cut -d"$tab" -f$int_column_num |
-	    grep -E -cv '^[0-9]+$'
-	)
-	int_format=$(
-	    eval "echo \$relations_format_diff_int_column_format_$reltable")
-	if [ $non_int_cnt != 0 ]; then
-	    if [ "x$int_format" = xnew ]; then
-		echo relations
-	    else
-		echo relations_new
-	    fi
-	else
-	    if [ "x$int_format" = xnew ]; then
-		echo relations_new
-	    else
-		echo relations
-	    fi
-	fi
-	return
+        non_int_cnt=$(
+            comprcat $_file |
+            head -20 |
+            cut -d"$tab" -f$int_column_num |
+            grep -E -cv '^[0-9]+$'
+        )
+        int_format=$(
+            eval "echo \$relations_format_diff_int_column_format_$reltable")
+        if [ $non_int_cnt != 0 ]; then
+            if [ "x$int_format" = xnew ]; then
+                echo relations
+            else
+                echo relations_new
+            fi
+        else
+            if [ "x$int_format" = xnew ]; then
+                echo relations_new
+            else
+                echo relations
+            fi
+        fi
+        return
     fi
     warn "Could not infer relations format for file $_file; assuming 'new'"
     echo relations_new
@@ -510,22 +510,22 @@ infer_relations_format () {
 get_colspec_name () {
     local base colspec_name
     case "$1" in
-	*_rels.* | *_rels_*.* )
-	    if [ "$relations_format" = "old" ]; then
-		base=relations
-	    elif [ "$relations_format" = "new" ]; then
-		base=relations_new
-	    else
-		base=$(infer_relations_format "$1")
-	    fi
-	    colspec_name=$(
-		echo "$1" |
-		sed -e 's/.\+_rels\([^.]*\).*/'$base'_CORPNAME\1/'
-	    )
-	    ;;
-	* )
-	    colspec_name=$(get_file_tablename_base "$1")
-	    ;;
+        *_rels.* | *_rels_*.* )
+            if [ "$relations_format" = "old" ]; then
+                base=relations
+            elif [ "$relations_format" = "new" ]; then
+                base=relations_new
+            else
+                base=$(infer_relations_format "$1")
+            fi
+            colspec_name=$(
+                echo "$1" |
+                sed -e 's/.\+_rels\([^.]*\).*/'$base'_CORPNAME\1/'
+            )
+            ;;
+        * )
+            colspec_name=$(get_file_tablename_base "$1")
+            ;;
     esac
     echo $colspec_name
 }
@@ -570,7 +570,7 @@ delete_table_corpus_info() {
     _tablename=$1
     _corpname=$2
     run_mysql --table $_tablename \
-	"DELETE FROM \`$_tablename\` WHERE corpus='$_corpname';"
+        "DELETE FROM \`$_tablename\` WHERE corpus='$_corpname';"
 }
 
 create_new_table() {
@@ -584,7 +584,7 @@ create_new_table() {
 get_multicorpus_tablenames () {
     local fname_base
     for fname_base in $filename_bases; do
-	echo $(get_tablename_for_filename_base $fname_base)
+        echo $(get_tablename_for_filename_base $fname_base)
     done
 }
 
@@ -594,13 +594,13 @@ prepare_tables () {
     _corpname=$2
     _colspec=$3
     for tblname in $(get_multicorpus_tablenames); do
-	if [ $tblname = $_tablename ]; then
-	    create_table $_tablename "$_colspec"
-	    # if ! word_in $_tablename "$tables_no_delete_rows"; then
-	    delete_table_corpus_info $_tablename $_corpname
-	    # fi
-	    return
-	fi
+        if [ $tblname = $_tablename ]; then
+            create_table $_tablename "$_colspec"
+            # if ! word_in $_tablename "$tables_no_delete_rows"; then
+            delete_table_corpus_info $_tablename $_corpname
+            # fi
+            return
+        fi
     done
     # Otherwise $_tablename not in $multicorpus_tablenames
     create_new_table $tablename "$_colspec"
@@ -608,7 +608,7 @@ prepare_tables () {
 
 get_mysql_datafile_size () {
     if [ "x$mysql_datafile" != "x" ]; then
-	get_filesize "$mysql_datafile"
+        get_filesize "$mysql_datafile"
     fi
 }
 
@@ -617,12 +617,12 @@ show_mysql_datafile_size () {
     datasize=$1
     datasize_prev=$2
     if [ "x$datasize" != "x" ] && [ "x$mysql_datafile" != "x" ]; then
-	echo \
-	    "  MySQL data file size: $datasize = "`calc_gib $datasize`" GiB"
-	if [ "x$datasize_prev" != "x" ]; then
-	    datasize_diff=`expr $datasize - $datasize_prev`
-	    echo "  MySQL data file size increase: $datasize_diff = "`calc_gib $datasize_diff`" GiB"
-	fi
+        echo \
+            "  MySQL data file size: $datasize = "`calc_gib $datasize`" GiB"
+        if [ "x$datasize_prev" != "x" ]; then
+            datasize_diff=`expr $datasize - $datasize_prev`
+            echo "  MySQL data file size increase: $datasize_diff = "`calc_gib $datasize_diff`" GiB"
+        fi
     fi
 }
 
@@ -646,38 +646,38 @@ report_progress () {
     prev_rows=0
     sleep $progress_interval
     while :; do
-	while :; do
-	    imported_rows=$(($(get_mysql_table_rowcount $tablename) - $init_rows))
-	    new_imported_rows=$(($imported_rows - $prev_rows))
-	    # If the number of imported rows is negative or the number
-	    # of rows imported since the previous round is negative or
-	    # zero (due to the fluctuating approximate row count), try
-	    # again.
-	    if [ $imported_rows -lt 0 ] || [ $new_imported_rows -le 0 ]; then
-		continue
-	    fi
-	    if [ ! -s $progress_errorfile ] && [ "x$imported_rows" != x ]; then
-		row_percentage=$(
-		    awk 'BEGIN {printf "%.2f", '"$imported_rows"' / '"$total_rows"' * 100}'
-		)
-		secs=$(date +%s)
-		secs_remaining=$(
-		    awk 'BEGIN {printf "%d", ('"$total_rows"' - '"$imported_rows"') / (('"$imported_rows"' - '"$prev_rows"') / '"$progress_interval"')}'
-		)
-		# echo $init_rows $prev_rows $imported_rows $row_percentage $secs $secs_remaining
-		# The imprecision of fast InnoDB row counts may result
-		# in negative progress. Instead of showing such
-		# information, try again after waiting a second.
-		if awk "BEGIN {exit ($secs_remaining < 0 || $imported_rows < $prev_rows || $row_percentage < 0 || $row_percentage > 100)}"; then
-		    echo "  "$(date +"%F %T")" rows: $imported_rows ($row_percentage%); est. time remaining: $secs_remaining s"
-		    prev_rows=$imported_rows
-		    break
-		else
-		    sleep 1
-		fi
-	    fi
-	done
-	sleep $progress_interval
+        while :; do
+            imported_rows=$(($(get_mysql_table_rowcount $tablename) - $init_rows))
+            new_imported_rows=$(($imported_rows - $prev_rows))
+            # If the number of imported rows is negative or the number
+            # of rows imported since the previous round is negative or
+            # zero (due to the fluctuating approximate row count), try
+            # again.
+            if [ $imported_rows -lt 0 ] || [ $new_imported_rows -le 0 ]; then
+                continue
+            fi
+            if [ ! -s $progress_errorfile ] && [ "x$imported_rows" != x ]; then
+                row_percentage=$(
+                    awk 'BEGIN {printf "%.2f", '"$imported_rows"' / '"$total_rows"' * 100}'
+                )
+                secs=$(date +%s)
+                secs_remaining=$(
+                    awk 'BEGIN {printf "%d", ('"$total_rows"' - '"$imported_rows"') / (('"$imported_rows"' - '"$prev_rows"') / '"$progress_interval"')}'
+                )
+                # echo $init_rows $prev_rows $imported_rows $row_percentage $secs $secs_remaining
+                # The imprecision of fast InnoDB row counts may result
+                # in negative progress. Instead of showing such
+                # information, try again after waiting a second.
+                if awk "BEGIN {exit ($secs_remaining < 0 || $imported_rows < $prev_rows || $row_percentage < 0 || $row_percentage > 100)}"; then
+                    echo "  "$(date +"%F %T")" rows: $imported_rows ($row_percentage%); est. time remaining: $secs_remaining s"
+                    prev_rows=$imported_rows
+                    break
+                else
+                    sleep 1
+                fi
+            fi
+        done
+        sleep $progress_interval
     done
 }
 
@@ -702,12 +702,12 @@ mysql_import_main () {
     tablename=$3
     colspec=$4
     if [ "x$prepare_tables" != x ]; then
-	prepare_tables $tablename $corpname "$colspec"
+        prepare_tables $tablename $corpname "$colspec"
     fi
     fifo=$tmpfname_base.$tablename.fifo
     pipe_skip_header=
     if has_column_name_header "$file" "$colspec"; then
-	pipe_skip_header="| tail -n+2"
+        pipe_skip_header="| tail -n+2"
     fi
     mkfifo $fifo
     eval "comprcat $file $pipe_skip_header" > $fifo &
@@ -718,26 +718,26 @@ mysql_import_main () {
     # foreign keys are not currently used. sql_log_bin cannot be
     # disabled by a non-super user.
     mysql_cmds="
-	    set unique_checks = 0;
+            set unique_checks = 0;
             set foreign_key_checks = 0;
             set session tx_isolation = 'READ-UNCOMMITTED';
-	    load data local infile '$fifo' into table \`$tablename\` fields escaped by '';"
+            load data local infile '$fifo' into table \`$tablename\` fields escaped by '';"
     if [ "x$show_warnings" != x ]; then
-	echo '  MySQL output:'
-	mysql_cmds="$mysql_cmds
-	    show count(*) warnings;
-	    show warnings;"
+        echo '  MySQL output:'
+        mysql_cmds="$mysql_cmds
+            show count(*) warnings;
+            show warnings;"
     fi
     if [ "x$show_progress" != x ]; then
-	total_rows=$(eval "comprcat $file $pipe_skip_header | wc -l")
-	report_progress $tablename $total_rows &
-	progress_pid=$!
+        total_rows=$(eval "comprcat $file $pipe_skip_header | wc -l")
+        report_progress $tablename $total_rows &
+        progress_pid=$!
     fi
     run_mysql_report_errors $tablename $import_errorfile "$mysql_cmds" |
     awk '{print "    " $0}'
     if [ "x$show_progress" != x ]; then
-	kill $progress_pid
-	echo "  "$(date +"%F %T")" rows: $total_rows (100.00%)"
+        kill $progress_pid
+        echo "  "$(date +"%F %T")" rows: $total_rows (100.00%)"
     fi
     # Kill the FIFO writer (comprcat) if it has not exited, hoping
     # that this would avoid leaving hanging processes behind
@@ -752,28 +752,28 @@ mysql_import_retry_loop () {
     reconnect_delay=$reconnect_delay_base
     # set -vx
     while true; do
-	mysql_import_main "$@"
-	mysql_error=$(cat $import_errorfile)
-	case "$mysql_error" in
-	    "" )
-		break
-		;;
-	    2013 | 2002 )
-		# Lost connection or can't connect to server
-		if [ $connection_retries -lt $max_connection_retries ]; then
-		    connection_retries=$(($connection_retries + 1))
-		    echo "Waiting $reconnect_delay s before trying to reconnect to the MySQL server"
-		    sleep $reconnect_delay
-		    reconnect_delay=$(($reconnect_delay * 2))
-		    verbose echo "Trying to reconnect (attempt $connection_retries/$max_connection_retries)"
-		else
-		    error "Giving up importing $1 after $max_connection_retries attempts; aborting"
-		fi
-		;;
-	    * )
-		error "Aborting because of MySQL errors"
-		;;
-	esac
+        mysql_import_main "$@"
+        mysql_error=$(cat $import_errorfile)
+        case "$mysql_error" in
+            "" )
+                break
+                ;;
+            2013 | 2002 )
+                # Lost connection or can't connect to server
+                if [ $connection_retries -lt $max_connection_retries ]; then
+                    connection_retries=$(($connection_retries + 1))
+                    echo "Waiting $reconnect_delay s before trying to reconnect to the MySQL server"
+                    sleep $reconnect_delay
+                    reconnect_delay=$(($reconnect_delay * 2))
+                    verbose echo "Trying to reconnect (attempt $connection_retries/$max_connection_retries)"
+                else
+                    error "Giving up importing $1 after $max_connection_retries attempts; aborting"
+                fi
+                ;;
+            * )
+                error "Aborting because of MySQL errors"
+                ;;
+        esac
     done
     # set +vx
 }
@@ -783,58 +783,58 @@ mysql_import () {
           secs_0 datasize_0 secs_1 datasize_1
     file=$1
     if [ ! -e "$file" ]; then
-	warn "No such file: $file"
-	return
+        warn "No such file: $file"
+        return
     elif [ ! -r "$file" ]; then
-	warn "Cannot read file $file"
-	return
+        warn "Cannot read file $file"
+        return
     fi
     file_base=`basename $file`
     if [ "x$imported_file_list" != x ] &&
-	grep -Fq "$file_base" "$imported_file_list"; then
-	echo "$file already imported"
-	return
+        grep -Fq "$file_base" "$imported_file_list"; then
+        echo "$file already imported"
+        return
     fi
     tablename=`make_tablename "$file"`
     if [ "x$tablename" = x ]; then
-	warn "Unrecognized file name: $file"
-	return
+        warn "Unrecognized file name: $file"
+        return
     fi
     corpname=`make_corpname "$file"`
     colspec_name=$(get_colspec_name $file)
     colspec=$(get_colspec $colspec_name)
     if [ x"$colspec" = x ] && [ "x$prepare_tables" != x ]; then
-	warn "Could not find columns specification for file $file; skipping"
-	return
+        warn "Could not find columns specification for file $file; skipping"
+        return
     fi
     check_pause_import
     echo Importing $fname into table $tablename
     if [ "x$verbose" != x ]; then
-	case $colspec_name in
-	    relations_new* )
-		echo "  Using relations format 'new'"
-		;;
-	    relations* )
-		echo "  Using relations format 'old'"
-		;;
-	esac
-	filesize=`get_filesize "$1"`
-	echo '  File size: '$filesize' = '`calc_gib $filesize`' GiB'
-	secs_0=`date +%s`
-	datasize_0=`get_mysql_datafile_size`
-	show_mysql_datafile_size $datasize_0
-	date +'  Start: %F %T'
+        case $colspec_name in
+            relations_new* )
+                echo "  Using relations format 'new'"
+                ;;
+            relations* )
+                echo "  Using relations format 'old'"
+                ;;
+        esac
+        filesize=`get_filesize "$1"`
+        echo '  File size: '$filesize' = '`calc_gib $filesize`' GiB'
+        secs_0=`date +%s`
+        datasize_0=`get_mysql_datafile_size`
+        show_mysql_datafile_size $datasize_0
+        date +'  Start: %F %T'
     fi
     mysql_import_retry_loop $file $corpname $tablename "$colspec"
     if [ "x$verbose" != x ]; then
-	date +'  End: %F %T'
-	secs_1=`date +%s`
-	echo "  Elapsed: "`expr $secs_1 - $secs_0`" s"
-	datasize_1=`get_mysql_datafile_size`
-	show_mysql_datafile_size $datasize_1 $datasize_0
+        date +'  End: %F %T'
+        secs_1=`date +%s`
+        echo "  Elapsed: "`expr $secs_1 - $secs_0`" s"
+        datasize_1=`get_mysql_datafile_size`
+        show_mysql_datafile_size $datasize_1 $datasize_0
     fi
     if [ "x$imported_file_list" != x ]; then
-	echo "$file_base" >> "$imported_file_list"
+        echo "$file_base" >> "$imported_file_list"
     fi
 }
 
