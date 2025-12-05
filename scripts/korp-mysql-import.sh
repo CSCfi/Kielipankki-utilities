@@ -12,6 +12,52 @@
 progname=`basename $0`
 progdir=`dirname $0`
 
+usage_header="Usage: $progname [options] filename ...
+
+Import into Korp MySQL database data from files in TSV format. The data files
+may be compressed with gzip, bzip2 or xz.
+
+Each filename is assumed to be of the format CORPUS_TYPE.EXT, where CORPUS is
+the name (id) of the corpus (in lower case), TYPE is the type of the table and
+EXT is .tsv, possibly followed by the compression extension. TYPE is one of
+the following: lemgrams, timedata, timedata_date, timespans, rels, rels_rel,
+rels_head_rel, rels_dep_rel, rels_sentences, rels_strings."
+
+optspecs='
+t|prepare-tables
+    create the necessary tables before importing the data; for
+    single-corpus tables, drop the table first; for multi-corpus
+    tables (lemgrams, timedata, timedata_date and timespans), remove
+    the rows for CORPUS
+I|imported-file-list=FILE
+    do not import files listed in FILE, and write the names of
+    imported files to FILE
+relations-format=TYPE "new"
+    the format for word picture relation tables: TYPE is one of "new"
+    (for Korp backend 2.5 and later), "old" (for Korp backend versions
+    2 to 2.3) or "auto" (infer automatically)
+table-name-template=TEMPLATE "$table_name_template"
+    use TEMPLATE for naming tables; TEMPLATE should contain @ for the
+    default table (base) name (lemgram_index, timedata, timedata_date,
+    timespans, relations)
+hide-warnings !show_warnings
+    do not show possible MySQL warnings
+mysql-program=PROG "$mysql_bin" mysql_bin
+    run PROG as the MySQL client program (mysql); the program name in
+    PROG may also be followed by a space and mysql options to be
+    specified before other options, in particular --defaults-file;
+    useful with multiple instances of MySQL
+mysql-options=OPTS mysql_extra_opts
+    pass OPTS as additional options to the MySQL client
+v|verbose
+    show input file sizes, import times and MySQL data file size
+    increase
+show-progress
+    show import progress as the percentage of rows imported
+progress-interval=SECS "$progress_interval"
+    show import progress information every SECS seconds
+'
+
 dbname=korp
 
 prepare_tables=
@@ -191,9 +237,6 @@ tablename_lemgrams=lemgram_index
 # it results in a violation of the primary key constraint.
 # tables_no_delete_rows="auth_license"
 
-shortopts="htI:v"
-longopts="help,prepare-tables,imported-file-list:,relations-format:,table-name-template:,hide-warnings,mysql-program:,mysql-binary:mysql-options:,verbose,show-progress,progress-interval:"
-
 . $progdir/korp-lib.sh
 
 tmpfname_base=$tmp_prefix.tmp
@@ -208,123 +251,16 @@ progress_errorfile=$tmpfname_base.progress_error
 pause_period_fname=$corpus_root/mysql-import-pause.txt
 
 
-usage () {
-    cat <<EOF
-Usage: $progname [options] filename ...
-
-Import into Korp MySQL database data from files in TSV format. The data files
-may be compressed with gzip, bzip2 or xz.
-
-Each filename is assumed to be of the format CORPUS_TYPE.EXT, where CORPUS is
-the name (id) of the corpus (in lower case), TYPE is the type of the table and
-EXT is .tsv, possibly followed by the compression extension. TYPE is one of
-the following: lemgrams, timedata, timedata_date, timespans, rels, rels_rel,
-rels_head_rel, rels_dep_rel, rels_sentences, rels_strings.
-
-Options:
-  -h, --help      show this help
-  -t, --prepare-tables
-                  create the necessary tables before importing the data; for
-                  single-corpus tables, drop the table first; for multi-corpus
-                  tables (lemgrams, timedata, timedata_date and timespans),
-                  remove the rows for CORPUS
-  -I, --imported-file-list FILE
-                  do not import files listed in FILE, and write the names of
-                  imported files to FILE
-  --relations-format new|old|auto
-                  the format for word picture relation tables: "new" for Korp
-                  backend 2.5 and later, "old" for Korp backend versions 2 to
-                  2.3, or "auto" for inferring automatically (default:
-                  "$relations_format")
-  --table-name-template TEMPLATE
-                  use TEMPLATE for naming tables; TEMPLATE should contain @
-                  for the default table (base) name (lemgram_index, timedata,
-                  timedata_date, timespans, relations) (default: $table_name_template)
-  --hide-warnings
-                  do not show possible MySQL warnings
-  --mysql-program PROG
-                  run PROG as the MySQL client program (mysql); the program
-                  name in PROG may also be followed by a space and mysql
-                  options to be specified before other options, in particular
-                  --defaults-file; useful with multiple instances of MySQL
-  --mysql-options OPTS
-                  pass OPTS as additional options to the MySQL client
-  -v, --verbose   show input file sizes, import times and MySQL data file size
-                  increase
-  --show-progress
-                  show import progress as the percentage of rows imported
-  --progress-interval SECS
-                  show import progress information every SECS seconds
-                  (default: $progress_interval)
-EOF
-    exit 0
-}
-
 # Process options
-while [ "x$1" != "x" ] ; do
-    case "$1" in
-	-h | --help )
-	    usage
-	    ;;
-	-t | --prepare-tables )
-	    prepare_tables=1
-	    ;;
-	-I | --imported-file-list )
-	    shift
-	    imported_file_list=$1
-	    if [ ! -e "$imported_file_list" ]; then
-		touch "$imported_file_list"
-	    fi
-	    ;;
-	--relations-format )
-	    shift
-	    case "$1" in
-		auto | new | old )
-		    relations_format=$1
-		    ;;
-		* )
-		    warn 'Valid arguments for --relations-format are "auto", "new" and "old"'
-		    ;;
-	    esac
-	    ;;
-	--table-name-template )
-	    shift
-	    table_name_template=$1
-	    ;;
-	--hide-warnings )
-	    show_warnings=
-	    ;;
-	--mysql-program | --mysql-binary )
-	    shift
-	    mysql_bin=$1
-	    ;;
-	--mysql-options )
-	    shift
-	    mysql_extra_opts=$1
-	    ;;
-	-v | --verbose )
-	    verbose=1
-	    ;;
-	--show-progress )
-	    show_progress=1
-	    ;;
-	--progress-interval )
-	    shift
-	    progress_interval=$1
-	    ;;
-	-- )
-	    shift
-	    break
-	    ;;
-	--* )
-	    warn "Unrecognized option: $1"
-	    ;;
-	* )
-	    break
-	    ;;
-    esac
-    shift
-done
+eval "$optinfo_opt_handler"
+
+# Check option values
+if ! word_in $relations_format "auto new old"; then
+    error 'Valid arguments for --relations-format are "auto", "new" and "old"'
+fi
+if [ "x$imported_file_list" != x ] && [ ! -e "$imported_file_list" ]; then
+    touch "$imported_file_list"
+fi
 
 
 mysql_opts="$mysql_opts --local-infile --skip-reconnect $mysql_extra_opts"
