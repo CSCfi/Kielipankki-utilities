@@ -58,8 +58,6 @@ progress-interval=SECS "$progress_interval"
     show import progress information every SECS seconds
 '
 
-dbname=korp
-
 prepare_tables=
 imported_file_list=
 relations_format=new
