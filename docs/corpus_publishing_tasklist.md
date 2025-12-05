@@ -356,9 +356,9 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [include the original zip file(s) in a new, password-protected zip package| https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] for internal storage and transfer. Use the [appropriate password| https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
 # [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
 # [ ] _*+TEST*_ Have the package tested
-# [ ] _*?MANAGE*_ If this is a RES-licensed corpus and an LBR application does not yet exist, fill in an instance of the [Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_lbr ] and assign it forward
-# [ ] _*+MANAGE*_ Have the package uploaded to the download service: fill in an instance of [the Jira issue "_shortname_: Upload to the download service" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_upload ] and assign it forward 
-# [ ] _*+TEST*_ Have the package tested again (access rights!)
+# [ ] _*?MANAGE*_ If this is a RES-licensed corpus and an LBR application does not yet exist, fill in an instance of the [Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_lbr ] and assign it forward to CSC (add label: lb-csc-task and prioritize if needed).
+# [ ] _*+MANAGE*_ Have the package uploaded to the download service: fill in an instance of [the Jira issue "_shortname_: Upload to the download service" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_upload ] and assign it forward to CSC (add label "lb-csc-task" and prioritize if needed).
+# [ ] _*+TEST*_ When uploaded, have the package tested again and check access rights.
 \\
 ```
 
@@ -366,42 +366,40 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Upload to the download service
 
 ```
-# [ ] _*+META*_ Fill in the required information regarding the download package
-# [ ] _*+META*_ Assign this issue forward to CSC (add label "lb-csc-task" and prioritize if needed).
-# [ ] _*+CSC*_ Upload the package to the download service
-# [ ] _*?CSC*_ In case the package was encrypted for temporary storage, make sure the package is safely decrypted for the download service.
+Upload the package to the download service. In case the package was encrypted for temporary storage, make sure the package is safely decrypted for the download service.
 
-Target directory: https://www.kielipankki.fi/download/shortname…
-Location of the files to be uploaded: (Typically, a folder 'shortname' under download_preview in Puhti.)
-List of the files to be uploaded: (corpus package(s), README.txt and LICENSE.txt, maybe RELEASE_CANDIDATE.txt)
-Encrypted (yes/no) (If using encryption for internal processing, CSC must decrypt the packages for the download service.)
-Description text of the download directory: (resource (group) name in English)
-Link from the directory description: (resource group PID)
-[In case sub folders are created for different versions of the resource, e.g. src and vrt:
-Description text of the sub folder: (name of the resource version in English)
-Link from the sub folder description: (metadata PID)]
-Description text/title of individual resource packages: (license info, e.g. CC-BY-NC)
-Link from the resource package description (PID of the license page in English):
-Access restrictions: public access / ACA license / RES license (please describe)
+*Target directory:* https://www.kielipankki.fi/download/shortname…
+*Location of the files to be uploaded:* (Typically, a folder 'shortname' under download_preview in Puhti.)
+*List of the files to be uploaded:* (corpus package(s), README.txt and LICENSE.txt, maybe RELEASE_CANDIDATE.txt)
+*Encrypted* (yes/no) (If using encryption for internal processing, CSC must decrypt the packages for the download service.)
+*Description text of the download directory:* (resource (group) name in English)
+*Link from the directory description:* (resource group PID)
+
+In case there are subfolders for different versions of the resource, e.g. src and vrt:
+*Description text of the subfolder:* (name of the resource version in English)
+*Link from the subfolder description:* (metadata PID)
+
+*Description text/title of individual resource packages:* (license label, e.g. CC-BY-NC)
+*Link from the resource package description* (PID of the license page in English):
+*Access restrictions:* public access / ACA license / RES license (please describe)
 
 ```
 
 <a name="csc_lbr"></a>
 ### _shortname_: Create/update the LBR record for the RES-licensed corpus
 
+(NB: This issue is only required for RES-licensed resources.)
 ```
-# [ ] _*+MANAGE*_ Fill in the information required in order to create an LBR record below, in the description of this Jira ticket.
-# [ ] _*+MANAGE*_ Assign this issue forward to a person with LBR manager rights / to CSC (add label: lb-csc-task and prioritize if needed).
-# [ ] _*+LBR*_ Create the LBR record, or update the existing one, according to the information below.
+Create the LBR record, or update the existing one, according to the information below.
 
-Title of the resource(s) covered (ENG):
-Title of the resource(s) covered (FIN): 
-The PID of the resource group covered by this LBR application (use the PID of the English resource group page): 
-License label (copy from the title in the license page):
-License PID (ENG):
-License PID (FIN):
-Is a privacy notice (and an estimated end date of research) required? (+PRIV): yes/no
-Additional details of the application (desription of the requirements and the approval process if needed): Please see [LBR-katselmointiprosessi | https://www.kielipankki.fi/wp-admin/admin.php?page=tablepress&action=edit&table_id=37], shown on the intranet page [Katselmointiprosessi |https://www.kielipankki.fi/intra/katselmointiprosessi/ ].
+*Title of the resource(s) covered (ENG):*
+*Title of the resource(s) covered (FIN):* 
+*The PID of the resource group covered by this LBR application:* (the PID of the English resource group page) 
+*License label:* (copy of the title of the license page)
+*License PID (ENG):*
+*License PID (FIN):*
+*Is a privacy notice and an estimated end date of research required? (+PRIV):* yes/no
+*Additional details of the application (description of the requirements and the approval process if needed):* Please see [LBR-katselmointiprosessi | https://www.kielipankki.fi/wp-admin/admin.php?page=tablepress&action=edit&table_id=37], shown on the intranet page [Katselmointiprosessi |https://www.kielipankki.fi/intra/katselmointiprosessi/ ].
 
 
 
@@ -644,9 +642,9 @@ Access restrictions: public access / ACA license / RES license (please describe)
 # [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
 # [ ] _*+PUHTI*_ If the package is published as release candidate (during the release candidate stage of the corresponding Korp corpus), add the file RELEASE_CANDIDATE.txt to the directory {{/scratch/clarin/download_preview}} on Puhti
 # [ ] _*+TEST*_ Have the package tested
-# [ ] _*+MANAGE*_ Have the package uploaded to the download service: fill in an instance of the Jira issue "_shortname_: Upload to the download service" and assign it forward
-# [ ] _*?MANAGE*_ For a RES corpus, have an LBR record created or updated, if the corpus does not yet have one (check the Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus")
-# [ ] _*+TEST*_ Have the package tested again (access rights!)
+# [ ] _*?MANAGE*_ If this is a RES-licensed corpus and an LBR application does not yet exist, fill in an instance of the [Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_lbr ] and assign it forward to CSC (add label "lb-csc-task" and prioritize if needed).
+# [ ] _*+MANAGE*_ Have the package uploaded to the download service: fill in an instance of [the Jira issue "_shortname_: Upload to the download service" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_upload ] and assign it forward to CSC (add label "lb-csc-task" and prioritize if needed).
+# [ ] _*+TEST*_ When uploaded, have the package tested again and check access rights.
 \\
 ```
 
