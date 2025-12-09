@@ -61,7 +61,7 @@ import-all-pending import_all
     database data from the corpus packages to be installed on this run
 immediate-database-import immediate_import
     DEPRECATED: use --database-import=immediate instead
-load-limit=LIMIT "$num_cpus"
+load-limit=LIMIT "$load_limit"
     install corpus data only if the CPU load is below LIMIT (a
     positive integer); otherwise wait for the load to decrease;
     checked before each corpus package and database table file
@@ -83,9 +83,8 @@ pkgsubdir=pkgs
 . $progdir/korp-lib.sh
 
 
-# The number of CPUs (cores) for the --load-limit default to be shown
-# in the usage message, even if it does not seem to be set the default
-num_cpus=$(get_num_cpus)
+# Set --load-limit default to the number of CPUs
+load_limit=$(get_num_cpus)
 
 # Process options
 eval "$optinfo_opt_handler"
@@ -119,10 +118,8 @@ if [ "$db_import" = no ]; then
     extract_dbfiles="*/CORPUS_auth_*"
 fi
 
-# Check the validity of --load-limit and set default if empty
-if [ "x$load_limit" = x ]; then
-    load_limit=$num_cpus
-elif { ! is_int "$load_limit"; } || [ "$load_limit" -lt 1 ]; then
+# Check the validity of --load-limit
+if { ! is_int "$load_limit"; } || [ "$load_limit" -lt 1 ]; then
     error "--load-limit argument \"$load_limit\" is not a positive integer"
 fi
 
