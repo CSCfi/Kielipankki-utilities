@@ -83,8 +83,8 @@ pkgsubdir=pkgs
 . $progdir/korp-lib.sh
 
 
-# Set --load-limit default to the number of CPUs
-load_limit=$(get_num_cpus)
+# Set --load-limit default to 1.5 times the number of CPUs
+load_limit=$(($(get_num_cpus) * 3 / 2))
 
 # Process options
 eval "$optinfo_opt_handler"
