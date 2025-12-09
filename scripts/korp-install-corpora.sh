@@ -65,6 +65,7 @@ load-limit=LIMIT "$load_limit"
     install corpus data only if the CPU load is below LIMIT (a
     positive integer); otherwise wait for the load to decrease;
     checked before each corpus package and database table file
+    (default: $load_limit)
 n|dry-run
     only report corpus packages that would be installed, but do not
     actually install them
