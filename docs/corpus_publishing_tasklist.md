@@ -62,6 +62,7 @@ Publish the resource in Korp
 # [ ]  Create a Korp corpus package (korp-make)
 # [ ]  Create the Korp corpus configuration
 # [ ]  Create a Korp test version
+## [ ]  Create an LBR record for a RES-licensed corpus
 # [ ]  Publish the corpus in Korp as release candidate
 # [ ]  Install the corpus package on the Korp server
 # [ ]  Announce the publication of the new Korp corpus as release candidate
@@ -74,6 +75,8 @@ Publish the resource in Korp
 Publish the VRT data in Download
 # [ ]  Prepare for publishing the VRT data in Download
 # [ ]  Package and upload the VRT data
+## [ ]  Upload to the download service
+## [ ]  Create an LBR record for a RES-licensed corpus
 # [ ]  Announce the publication of the VRT data in Download (as release candidate if needed)
 # [ ]  Clean up after publishing the VRT in Download (remove release candidate status if needed) 
 ```
