@@ -61,10 +61,11 @@ import-all-pending import_all
     database data from the corpus packages to be installed on this run
 immediate-database-import immediate_import
     DEPRECATED: use --database-import=immediate instead
-load-limit=LIMIT "$num_cpus"
+load-limit=LIMIT "$load_limit"
     install corpus data only if the CPU load is below LIMIT (a
     positive integer); otherwise wait for the load to decrease;
     checked before each corpus package and database table file
+    (default: $load_limit)
 n|dry-run
     only report corpus packages that would be installed, but do not
     actually install them
@@ -83,9 +84,8 @@ pkgsubdir=pkgs
 . $progdir/korp-lib.sh
 
 
-# The number of CPUs (cores) for the --load-limit default to be shown
-# in the usage message, even if it does not seem to be set the default
-num_cpus=$(get_num_cpus)
+# Set --load-limit default to 1.5 times the number of CPUs
+load_limit=$(($(get_num_cpus) * 3 / 2))
 
 # Process options
 eval "$optinfo_opt_handler"
@@ -119,9 +119,9 @@ if [ "$db_import" = no ]; then
     extract_dbfiles="*/CORPUS_auth_*"
 fi
 
-# Set the default for --load-limit if empty
-if [ "x$load_limit" = x ]; then
-    load_limit=$num_cpus
+# Check the validity of --load-limit
+if { ! is_int "$load_limit"; } || [ "$load_limit" -lt 1 ]; then
+    error "--load-limit argument \"$load_limit\" is not a positive integer"
 fi
 
 # This is only for compatibility with older corpus packages
@@ -213,12 +213,9 @@ wait_for_low_load () {
     while [ "$load_int" -ge "$load_limit" ] &&
               [ "$load" != "$load_limit.00" ];
     do
-        # Heuristic for how long to wait based on the load and limit
-        # TODO: Take into account whether the load is increasing or
-        # decreasing
-        wait_min=$(($load_int / $load_limit * 2))
-        echo "CPU load $load exceeds the limit $load_limit; waiting $wait_min minutes for the load to decrease"
-        sleep $(($wait_min * 60))
+        timestamp
+        echo "CPU load $load exceeds the limit $load_limit; waiting for the load to decrease"
+        sleep 60
         load=$(get_cpu_load)
         load_int=$(integer $load)
     done
