@@ -17,5 +17,16 @@ def nametype(arg):
     if isname(name): return name
     raise ArgumentTypeError('not a field name: {}'.format(repr(name)))
 
+def nametype_txt(arg):
+    '''Type-check a command line argument as a single attribute/field
+    name.
+
+    Intended as a type specification in an ArgumentParser.
+
+    '''
+
+    if isname(arg.encode()): return arg
+    raise ArgumentTypeError('not a field name: {}'.format(repr(name)))
+
 def isname(name):
     return re.fullmatch(br'[A-Za-z_][A-Za-z0-9._]*', name)
