@@ -6,6 +6,8 @@ Every resource to be published in the Language Bank of Finland needs a PID (Pers
 You need the rights to edit in COMEDI (ask for access in the group FIN-CLARIN from CSC, if you do not have the rights yet). Login to [COMEDI](https://clarino.uib.no/comedi/records). 
 Open the menu under "CMDI Records" and choose "Create a metadata record".
 
+Please note the [specification](https://github.com/CSCfi/Kielipankki-Metax-bridge/blob/38d8f361d466cf15717e417929383d9a3b913ae1/doc/mandatory-fields.md) for mandatory fields in COMEDI to achieve Metax compatibility. 
+
 In order to create a new article, you first have to choose a CMDI profile. For the time being (a new profile is being created) for a corpus, choose: 
 
     profile: clarin.eu:cr1:p_1361876010571 - resourceInfo / 1.1
@@ -157,6 +159,7 @@ It is possible to create a COMEDI record by cloning an existing one. This is hel
 - update the access location PID (also under Resource Proxy)
 - note that the availability start date is still there and has to be removed or updated
 - Edit the new created metadata record: Change at least the resource name(s), description, identifier (NOTE that in the freshly cloned record, all content is still there from the original record!)
+
 
 
 
