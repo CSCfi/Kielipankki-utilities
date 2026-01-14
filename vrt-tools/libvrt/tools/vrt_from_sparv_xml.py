@@ -121,7 +121,7 @@ def process(args, ins, ous, *, names):
     # expected in each LINE: element name, attributes, possibly
     # followed by a token; in end tags, "/name" counts as "name" and
     # the optional parts are hopefully not there (not checked?)
-    LINE = fr'<([\w\-.]+)((?: [\w\-.]+?=".*?")*)>(.+?</{args.token}>)?'
+    LINE = fr'<(/?[\w\-.]+)((?: [\w\-.]+?=".*?")*)>(.+?</{args.token}>)?'
     TOKEN = fr'(.+?)</{args.token}>'
     # self-closing element, which should not exist but somehow
     # sometimes do; log in stderr, expand for post-processing
