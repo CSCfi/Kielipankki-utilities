@@ -121,8 +121,11 @@ def process(args, ins, ous, *, names):
     # expected in each LINE: element name, attributes, possibly
     # followed by a token; in end tags, "/name" counts as "name" and
     # the optional parts are hopefully not there (not checked?)
-    LINE = fr'<(\S+)((?: \S+?=".*?")*)>(.+?</{args.token}>)?'
+    LINE = fr'<([\w\-.]+)((?: [\w\-.]+?=".*?")*)>(.+?</{args.token}>)?'
     TOKEN = fr'(.+?)</{args.token}>'
+    # self-closing element, which should not exist but somehow
+    # sometimes do; log in stderr, expand for post-processing
+    EMPTY = r'<(([\w\-.]+)(?: [\w\-.]+?=".*?")*) ?/>'
     def unescape(mo):
         entity = mo.group(0)
         if entity == '&apos;': return "'"
@@ -134,11 +137,21 @@ def process(args, ins, ous, *, names):
             continue
         mo = re.fullmatch(LINE, line.strip())
         if mo is None:
-            # technically "token" might be something else, depending
-            # on options, but let "token" stand in for args.token in
-            # the error message
-            raise(ValueError('expected <NAME[ ATTR="VAL"]*>[TEXT</token>],'
-                             + ' observed ' + line.strip()))
+            emo = re.fullmatch(EMPTY, line.strip())
+            if emo is None:
+                # technically "token" might be something else, depending
+                # on options, but let "token" stand in for args.token in
+                # the error message
+                raise(ValueError('expected <NAME[ ATTR="VAL"]*>[TEXT</token>],'
+                                 + ' observed ' + line.strip()))
+            # expand self-closing element to start tag, end tag
+            print('expanding:', line.strip(),
+                  file = sys.stderr)
+            print(f'<{emo.group(1)}>',
+                  f'</{emo.group(2)}>',
+                  sep = '\n',
+                  file = ous)
+            continue
         name, attrs, tail = mo.groups()
         if name in DOC:
             # ignore document element tags
