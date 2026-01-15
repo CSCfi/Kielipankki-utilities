@@ -33,8 +33,30 @@ After discovering a new *tool/service/piece of software** that needs to be made 
    - Again, replace "_shortname_" with the short name of the resource in question.
    - NB: To make sure that the lists are rendered correctly, the text should be pasted when the Jira description input field is in “Text” mode, not “Visual”.
 
+### 3. Add to the description field all important metadata (for all versions, as a collection), as soon as they are created (e.g., PIDs are requested, ...), in the following form:
+```
+----
+*Tool info page (English):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
-### 3. In the Epic, create a "Story" for each of the applicable task list sections which were previously copied to the Epic description. 
+*Tool description:* [This tool can / is made for …]
+
+----
+
+*Tool name in English:* …
+*Tool name in Finnish:* …
+
+*Shortname:* shortname
+
+*Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
+*Access location:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
+
+*License label:* e.g., GPL
+
+*Rightholder:* 
+-----
+```
+
+### 4. In the Epic, create a "Story" for each of the applicable task list sections which were previously copied to the Epic description. 
   - In case the resource is a completely new one and it has not been decided what should be done with it, just create the first story ("_shortname:_ Enter the new tool to the pipeline", see the first section of tasks below).
   - Use the corresponding section title in the task list as the name of the Story.
   - Replace "_shortname_" with the short name of the resource in question (use the "base" name only, excluding "-src" etc.). This makes it easier to see which resource is addressed in each individual Jira ticket.
@@ -42,7 +64,7 @@ After discovering a new *tool/service/piece of software** that needs to be made 
   - In each Story, you may adjust the list items and their order as appropriate for the resource in question. 
 
 
-### 4. Each task description is preceded by “[ ]”, representing a checkbox, and a tag representing the task type. 
+### 5. Each task description is preceded by “[ ]”, representing a checkbox, and a tag representing the task type. 
 
   - When you start working on an individual task item, write your name between the square brackets (“[Name]”). 
   - When a task is completed, replace "[YourName]" with an “[X]”.
