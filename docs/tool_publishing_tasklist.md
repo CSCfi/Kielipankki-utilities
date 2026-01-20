@@ -36,7 +36,7 @@ After discovering a new *tool/service/piece of software** that needs to be made 
 ### 3. Add to the description field all important metadata (for all versions, as a collection), as soon as they are created (e.g., PIDs are requested, ...), in the following form:
 ```
 ----
-*Tool info page (English):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
+*Resource group page (English):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
 *Tool description:* [This tool can / is made for …]
 
