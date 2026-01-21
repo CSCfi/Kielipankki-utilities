@@ -299,7 +299,7 @@ Heidi Jauhiainen as follows:
     latest (fixed) VRT files for all subcorpora (or symlinks to them).
 
 
-# Create Korp corpus packages with `korp-make`
+## Create Korp corpus packages with `korp-make`
 
 The following assumes that the directory
 `09-fix-autolemma-autopos-amps` contains the final VRT files of each
