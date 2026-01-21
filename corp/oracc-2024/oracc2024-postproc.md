@@ -321,3 +321,56 @@ lemgram-posmap = oracc2024_lemgram_posmap.tsv
 This uses the [`game`](../../vrt-tools/game) tool for starting a SLURM
 batch job. The time and memory requirements specified with `game`
 options should be large enough for the largest subcorpus.
+
+
+## Create a list of the lemmatization status of each text
+
+This was done after the corpora had been installed on the production
+Korp server.
+
+1. Use Korp API to find texts in which at least one token has `lemma`
+   that is not `_`:
+
+    ```bash
+    curl 'https://www.kielipankki.fi/staging/korp/api8/count?group_by_struct=text_cdlinumber&cqp=%5Blemma!="_"%5D&corpus=ORACC2024_ADSD,ORACC2024_AEMW,ORACC2024_AKKLOVE,ORACC2024_ARIO,ORACC2024_ASBP,ORACC2024_ATAE,ORACC2024_BABCITY,ORACC2024_BLMS,ORACC2024_BORSIPPA,ORACC2024_BTTO,ORACC2024_CAMS,ORACC2024_CASPO,ORACC2024_CCPO,ORACC2024_CKST,ORACC2024_CMAWRO,ORACC2024_DCCLT,ORACC2024_DCCMT,ORACC2024_DSST,ORACC2024_ECUT,ORACC2024_EDLEX,ORACC2024_EISL,ORACC2024_EPSD2,ORACC2024_ETCSRI,ORACC2024_GLASS,ORACC2024_HBTIN,ORACC2024_IRAQ,ORACC2024_NERE,ORACC2024_OBEL,ORACC2024_OBMC,ORACC2024_OBTA,ORACC2024_RIBO,ORACC2024_RIMANUM,ORACC2024_RINAP,ORACC2024_SAAO,ORACC2024_SUHU,ORACC2024_URAP&default_within=text' > oracc2024-lemmatized-texts.json
+    ```
+
+2. Extract `cdlinum` values for the texts and add value `yes` as the
+   second field for these texts:
+
+    ```bash
+    grep cdlinumber oracc2024-lemmatized-texts.json |
+        cut -d"$tab" -f2 |
+        tr -d '"' |
+        LC_ALL=C sort -u |
+        awk '{print $0 "\tyes"}' > oracc2024-cdlinum-lemmatized.tsv
+    ```
+
+3. Find `cdlinum` values for all texts from local CWB corpus data:
+
+    ```bash
+    korp-lib-call list-corpora 'oracc2024_*' |
+        while read c; do
+            cwb-s-decode -n $c -S text_cdlinumber |
+            vrt-convert-chars --decode;
+        done |
+        LC_ALL=C sort -u > oracc2024-cdlinum-all.txt
+    ```
+
+    (An alternative would be to extract the information from the VRT
+    files but this is probably faster.)
+
+4. Combine the files to `korp-oracc2024-texts-lemmainfo.txt`, a TSV
+   file with the first field containing the `cdlinum` of a text and
+   the second with value `yes` for lemmatized texts (texts with at
+   least one token with a `lemma` value that is not `_`) and `no` for
+   non-lemmatized ones, and with a heading row:
+
+    ```bash
+    LC_ALL=C join -t"$tab" -j1 -a1 oracc2024-cdlinum-all.txt oracc2024-cdlinum-lemmatized.tsv |
+        awk -F"$tab" 'NF == 1 {print $1 "\tno"; next} {print}' > oracc2024-cdlinum-lemmastatus.tsv
+    {
+        printf "text_cdlinumber\tbaseform\n";
+        cat oracc2024-cdlinum-lemmastatus.tsv;
+    } > korp-oracc2024-texts-lemmainfo.txt
+    ```
