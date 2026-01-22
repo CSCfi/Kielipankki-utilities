@@ -32,6 +32,8 @@ Unzip the data.
 
 Check if there are empty files, log files or tmp directories, which can be removed.
 
+For instructions on how to clean up the original data, see [docs: how to clean up orig data](howto_cleanup_orig_data.md).
+
 A download package needs a subdirectory to extract to, usually named based on the shortname of the corpus. 
 There should only be directories in the zip's root directory, no files. Exceptions are the README.txt and LICENSE.txt.
 
@@ -122,5 +124,6 @@ Remove the release candidate status from the metadata record and the database.
 
 More information on how to publish a corpus in the download service:
 [Kielipankki: corpus data publication for download at the language-bank](https://www.kielipankki.fi/development/corpus-data-publication-for-download-at-the-language-bank/)
+
 
 
