@@ -7,8 +7,6 @@ The actual implementation of vrt-select.
 
 
 # TODO:
-# - Add a VRT comment to the end of output with the number of kept and
-#   dropped structures
 # - Warn if dropping leaves an outer structure empty: e.g., if
 #   dropping sentences leaves a paragraph or text empty
 # - Keep tags of overlapping structures within dropped structures
