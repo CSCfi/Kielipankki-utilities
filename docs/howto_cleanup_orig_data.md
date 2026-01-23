@@ -17,7 +17,7 @@ Typical options for the format:
 
 File names and folder names should be machine readable, which means to use only alphanumeric characters (a-z, A-Z, 0-9) and consistent delimiters like underscores (_) or hyphens (-), avoiding spaces and special symbols (#, %, &, *, ?, /) that confuse operating systems and software, ensuring files are easily searchable, sortable, and processable by scripts and other programs.
 
-Preferably the file and folder names should be in English.
+File and folder names should preferably be written in English.
 
 The data should not include empty files, log files or tmp directories. 
 
@@ -25,12 +25,12 @@ Also, the data should not include any additionaly folders created by MAC (__MACO
 
 Preferably, the resource provider takes care of transferring the data in the required form (*see instructions in the portal, to be created!*)
 
-If this is not the case, we can either ask the resource provider to make the required changes to the data himself and transfer new data, or we can offer to change the data with his/her permission.
+If this is not the case, we can either ask the resource provider to make the required changes to the data him/herself and transfer new data, or we can offer to change the data with his/her permission.
 
 ## Cleaning up the data for download
 After savely storing the original data received from the resource provider, a copy of the data can be prepared for being offered in the download service.
 1. Check that all data is received, as announced by the data provider
-2. Check the data format (if the same data is offered in different format, e.g. a spreadsheed in xlsx, csv and sav, leave out the file in not-supported format, here sav)
+2. Check the data format (if the same data is offered in different formats, e.g. a spreadsheed in xlsx, csv and sav, leave out the file in not-supported format, here sav)
 3. Remove empty files, log files ect.
 4. Clean up file and folder names to a machine readable form, if necessary (For this the agreement of the resource provider is needed)
 
