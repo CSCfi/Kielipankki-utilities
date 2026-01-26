@@ -221,3 +221,42 @@ integer () {
     num=$1
     echo ${num%.*}
 }
+
+
+# semver_ge version_str major [minor [patch]]
+#
+# Return true if the version specified by the semantic version string
+# version_str ("major.minor.patch") is greater than or equal to the
+# version specified by major, minor and patch; false otherwise. If
+# patch or minor is omitted, it is assumed to be 0.
+semver_ge () {
+    local version major minor patch comp
+    version=$1
+    major=$2
+    minor=$3
+    patch=$4
+    [ "$minor" = "" ] &&
+        minor=0
+    [ "$patch" = "" ] &&
+        patch=0
+    # Major
+    comp=${version%%.*}
+    [ $comp -gt $major ] &&
+        return 0
+    [ $comp -lt $major ] &&
+        return 1
+    # Minor
+    version=${version#*.}
+    comp=${version%%.*}
+    { [ "$comp" = "" ] || [ $comp -gt $minor ]; } &&
+        return 0
+    [ $comp -lt $minor ] &&
+        return 1
+    # Patch
+    comp=${version#*.}
+    { [ "$comp" = "" ] || [ $comp -gt $patch ]; } &&
+        return 0
+    [ $comp -lt $patch ] &&
+        return 1
+    return 0
+}
