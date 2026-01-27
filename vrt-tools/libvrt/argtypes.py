@@ -133,6 +133,26 @@ def attr_regex_list_individual(s):
     return [re.compile(regex) for regex in _attr_regex_list_base(s)]
 
 
+def _attr_regex_list_value_base(s):
+    """Base argument type function for attribute regex list and string value.
+
+    s is of the form [[attr_regex_list]:]str, where attr_regex_list is
+    a list of attribute name regular expressions, separated by commas
+    or spaces, and str is a string value. If attr_regex_list is
+    omitted, default to ".+"; the colon can then also be omitted
+    unless str contains a colon.
+
+    Return a pair (attr_regex_list, str), with str encoded as UTF-8.
+    attr_regex_list is str.
+    """
+    if ':' not in s:
+        s = '.+:' + s
+    if s[0] == ':':
+        s = '.+' + s
+    regex_list, _, value = s.partition(':')
+    return (regex_list, encode_utf8(value))
+
+
 def attr_regex_list_combined_value(s):
     """Argument type function for attribute regex list and string value.
 
@@ -149,9 +169,91 @@ def attr_regex_list_combined_value(s):
     Raise ArgumentTypeError if the attribute regex list contains
     duplicates or if a regex is invalid.
     """
-    if ':' not in s:
-        s = '.+:' + s
-    if s[0] == ':':
-        s = '.+' + s
-    regex_list, _, value = s.partition(':')
-    return (attr_regex_list_combined(regex_list), encode_utf8(value))
+    regex_list, value = _attr_regex_list_value_base(s)
+    return (attr_regex_list_combined(regex_list), value)
+
+
+def attr_regex_list_individual_value(s):
+    """Argument type function for attribute regex list and string value.
+
+    s is of the form [[attr_regex_list]:]str, where attr_regex_list is
+    a list of attribute name regular expressions, separated by commas
+    or spaces, and str is a string value. If attr_regex_list is
+    omitted, default to ".+"; the colon can then also be omitted
+    unless str contains a colon.
+
+    Return a list of pairs [(compiled_regex, str)], where each
+    compiled_regex is a compiled regular expression (bytes) of one of
+    the items in attr_regex_list and str is the input str encoded as
+    UTF-8 bytes (the same for all pairs).
+
+    Raise ArgumentTypeError if the attribute regex list contains
+    duplicates or if a regex is invalid.
+    """
+    regex_list, value = _attr_regex_list_value_base(s)
+    return [(regex, value) for regex in attr_regex_list_individual(regex_list)]
+
+
+def attr_value_opts(attrname_regex=None, attrname_prefix=None,
+                    attrname_suffix=None, sepchars=None, strip_value=False,
+                    return_bytes=False):
+    """Return argument type function for attribute name and value, with options.
+
+    Return an argument type function for an attribute name and string
+    value with the specified properties: attribute name matches regexp
+    `attrname_regex` (default `"[_a-z][_a-z0-9]*"`, used if `None`)
+    that can be prefixed with `attrname_prefix` (`""`) and suffxed
+    with `attrname_suffix` (`""`); value is separated from attribute
+    name with one of the characters in `sepchars` (`":="`); if
+    `strip_value` is `True`, whitespace characters are stripped from the value
+    (whitespace is always stripped from the attribute name).
+
+    The returned function takes a string argument and returns a pair
+    `(attrname, str)`, both as `str`, or `bytes` if `return_bytes` is
+    `True`.
+    """
+
+    attrname_regex = attrname_regex or '[_a-z][_a-z0-9]*'
+    attrname_prefix = attrname_prefix or ''
+    attrname_suffix = attrname_suffix or ''
+    sepchars = sepchars or ':='
+    enclose_val = r'\s*' if strip_value else ''
+    convert_result = encode_utf8 if return_bytes else lambda x: x
+
+    def _attr_value(s):
+        """Argument type function for attribute name and string value."""
+        mo = re.fullmatch(
+            fr'\s*({attrname_prefix}{attrname_regex}{attrname_suffix})\s*'
+            fr'[{sepchars}]{enclose_val}(.*?){enclose_val}', s)
+        if not mo:
+            if not any(c in s for c in sepchars):
+                msg = ('no name-value separator ('
+                       + ', '.join(f'"{c}"' for c in sepchars) + ')')
+            else:
+                attrname, val = re.split(fr'[{sepchars}]', s, 1)
+                msg = f'invalid attribute name "{attrname.strip()}"'
+            raise ArgumentTypeError(
+                f'{msg} in attribute-value specification: {s}')
+        return (convert_result(mo.group(1)), convert_result(mo.group(2)))
+
+    return _attr_value
+
+
+def attr_value_str(s):
+    """Argument type function for attribute name and string value.
+
+    s is of the form attrname(=|:)str. Whitespace around attrname is
+    stripped, whereas that around str is preserved.
+
+    Return a pair (attrname, str), both as str.
+    """
+    return attr_value_opts()(s)
+
+
+def attr_value(s):
+    """Argument type function for attribute name and string value.
+
+    Similar to attr_value but return a pair (attrname, str), both as
+    bytes.
+    """
+    return attr_value_opts(return_bytes=True)(s)
