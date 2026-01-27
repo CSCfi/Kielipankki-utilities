@@ -11,9 +11,10 @@ The original resource data, as to be offered in the Kielipankki's download servi
 
 Typical options for the format:
 
-   - WAV,EAF (from Elan)
-   - TXT,PDF (raw formats)
-   - *(to be edited)*
+   - WAV, EAF (from Elan)
+   - TXT, PDF (raw formats)
+  
+For detailed format recommendations, please see [FIN-CLARIN format recommendations](https://clarin.ids-mannheim.de/standards/views/view-centre.xq?id=FIN-CLARIN)
 
 File names and folder names should be machine readable, which means to use only alphanumeric characters (a-z, A-Z, 0-9) and consistent delimiters like underscores (_) or hyphens (-), avoiding spaces and special symbols (#, %, &, *, ?, /) that confuse operating systems and software, ensuring files are easily searchable, sortable, and processable by scripts and other programs.
 
