@@ -37,7 +37,7 @@ The **status** of your freshly created metadata record is set automatically to '
 
 ## Resources
 This tab offers the **Resource proxy list**. After a resource is published, the access location should be added under the tab 'Resources' to the Resource proxy list. 
-As *Resource type* choose *Resource* for a downloadable corpus and *Search Page* for a resource published in Korp. The resource ID can be set to '_1'. For possible further, alternative access locations for the same resource, use '_2', '_3' etc.
+As *Resource type* choose *Landing Page* for a downloadable corpus and *Search Page* for a resource published in Korp. The resource ID can be set to '_1'. For possible further, alternative access locations for the same resource, use '_2', '_3' etc.
 Only after this information is given, VLO will harvest the metadata of this resource and make it available in the VLO service! 
 
 Example:
@@ -159,6 +159,7 @@ It is possible to create a COMEDI record by cloning an existing one. This is hel
 - update the access location PID (also under Resource Proxy)
 - note that the availability start date is still there and has to be removed or updated
 - Edit the new created metadata record: Change at least the resource name(s), description, identifier (NOTE that in the freshly cloned record, all content is still there from the original record!)
+
 
 
 
