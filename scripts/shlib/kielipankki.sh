@@ -135,7 +135,7 @@ _get_auth_info () {
                 sed -e "s/','/\t/g; s/['();]//g" |
                 cut -f$value_colnum
         elif [ "x$mysql_bin" != x ]; then
-            run_mysql --auth "SELECT $value_colname FROM auth_$table_name WHERE corpus='$corpus_u';" --skip-column-names
+            run_mysql --auth "SELECT $value_colname FROM \`auth_$table_name\` WHERE corpus='$corpus_u';" --skip-column-names
         fi
     fi
 }
