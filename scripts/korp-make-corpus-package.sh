@@ -701,7 +701,7 @@ make_sql_table_part () {
         echo
         # Instruct to delete existing data for the corpus first
         for tablename in $tablenames; do
-            echo "DELETE FROM $tablename WHERE corpus='$corpus_id_upper';"
+            echo "DELETE FROM \`$tablename\` WHERE corpus='$corpus_id_upper';"
         done
         echo
         # The actual data dump
