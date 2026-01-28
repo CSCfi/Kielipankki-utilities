@@ -74,6 +74,7 @@ Publish the resource in Korp
 
 Publish the VRT data in Download
 # [ ]  Prepare for publishing the VRT data in Download
+# [ ]  Acquire the VRT data
 # [ ]  Package and upload the VRT data
 ## [ ]  Upload to the download service
 ## [ ]  Create an LBR record for a RES-licensed corpus
@@ -633,10 +634,16 @@ Access restrictions: public access / ACA license / RES license (please describe)
 \\
 ```
 
+### _shortname_: Acquire the VRT data
+```
+# [ ] _*+KORP*_ Extract the data from Korp (unless more recent content can be acquired in VRT format from outside Korp)
+# [ ] _*?MANAGE*_ Add the location of the extracted VRT data to the next ticket ('package the data'), assign that ticket and rank it to top (or ask the epic owner to do that)
+\\
+```
+
 ### _shortname_: Package and upload the VRT data
 
 ```
-# [ ] _*+KORP*_ Extract the data from Korp (unless more recent content can be acquired in VRT format from outside Korp)
 # [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [ apply the appropriate safeguards | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] when processing the data. [(How to use passwords) | https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-vrt_yyyymmdd.zip) and the separate shortname-vrt_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
 # [ ] _*+PUHTI*_ Create a download package
