@@ -126,7 +126,7 @@ export_common_table () {
     fname_table=$(eval echo \$filename_$table)
     outfname=${corpid}_${fname_table:-$table}$fname_suffix
     run_mysql_export $table $outdir/$outfname \
-	"SELECT * FROM $table WHERE corpus='$corpid_u';"
+	"SELECT * FROM \`$table\` WHERE corpus='$corpid_u';"
 }
 
 export_by_corpus_tables () {
@@ -143,7 +143,7 @@ export_by_corpus_tables () {
 	table=${tablegroup}_$corpid_u$table_suff
 	fname_table=$(eval echo \$filename_$tablegroup)
 	outfname=${corpid}_${fname_table:-$tablegroup}$table_suff$fname_suffix
-	run_mysql_export $table $outdir/$outfname "SELECT * FROM $table;"
+	run_mysql_export $table $outdir/$outfname "SELECT * FROM \`$table\`;"
     done
 }
 
