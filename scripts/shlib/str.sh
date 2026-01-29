@@ -31,6 +31,20 @@ add_prefix () {
     fi
 }
 
+# add_suffix suffix [args] ...
+#
+# Output all args with suffix added to each, separated by a space. If
+# no args, do not output anything.
+add_suffix () {
+    local suffix result
+    suffix=$1
+    shift
+    if [ "$#" != 0 ]; then
+        result=$(printf -- "%s$suffix " "$@")
+        safe_echo "${result% }"
+    fi
+}
+
 # in_str substring string
 #
 # Return true if string contains substring, false otherwise.
@@ -116,6 +130,28 @@ suffix_word () {
     wordlist=${wordlist% }
     wordlist=${wordlist# }
     safe_echo "$wordlist"
+}
+
+
+# filter filter_expr args ...
+#
+# Output those of args for which the shell expression filter_expr
+# returns true. filter_expr can (and usually should) refer to the
+# value to be tested as $val (within single quotes) or \$val (within
+# double quotes). Output args are separated by spaces.
+filter () {
+    local filter_expr result val
+    filter_expr=$1
+    shift
+    result=
+    for val in "$@"; do
+        if eval "$filter_expr"; then
+            result="$result $val"
+        fi
+    done
+    # Remove leading space
+    result=${result# }
+    safe_echo "$result"
 }
 
 
