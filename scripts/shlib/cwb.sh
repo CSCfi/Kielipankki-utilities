@@ -1241,6 +1241,7 @@ corpus_get_structattr_specs () {
                         # be either such or an independent structN,
                         # to be inferred later
                         struct_cand_struct[full_struct] = struct
+                        struct_depths[struct] = depth
                         next
                     }
                 }
@@ -1248,6 +1249,8 @@ corpus_get_structattr_specs () {
                 if (! struct_re || full_struct ~ struct_re) {
                     structs[structcount] = full_struct
                     structcount++
+                    # Structure depths (tentative as long as
+                    # struct_cand_struct[struct depth] exists)
                     struct_depths[full_struct] = 0
                     attrstr[full_struct] = ""
                 }
@@ -1263,6 +1266,8 @@ corpus_get_structattr_specs () {
                         structcount++
                         struct_depths[struct] = 0
                         attrstr[struct] = ""
+                        # Decrement the depth of struct
+                        struct_depths[substr(struct, 1, length(struct) - 1)]--
                     }
                     delete struct_cand_struct[struct]
                 } else if (match(full_struct, /^(.+)([1-9])$/, parts)) {
@@ -1277,7 +1282,7 @@ corpus_get_structattr_specs () {
                         # structure, so do not add to attributes for
                         # struct
                         next
-                    } else if (digit == struct_depths[struct] + 1 \
+                    } else if (digit <= struct_depths[struct] + 1 \
                                && (struct digit) in struct_cand_struct) {
                         # We had seen structN and here struct_attrN,
                         # so increment embedding depth of struct to
