@@ -1479,6 +1479,113 @@ get_corpus_struct_count () {
     awk "/^s-ATT $2"' / {print $3}'
 }
 
+# get_corpus_structattr_counts [--sep sep] corpus [struct_regex]
+#
+# Output the name and number of each structural attribute (matching
+# struct_regex if specified) in corpus. Each attribute is on its own
+# line with the name and number separated by a space or sep if --sep
+# is specified. Annotations of a structure are represented as
+# struct_attr.
+get_corpus_structattr_counts () {
+    local sep corpus regex
+    sep=" "
+    if [ "$1" = "--sep" ]; then
+        sep=$2
+        shift 2
+    fi
+    corpus=$1
+    regex=$2
+    if [ "x$regex" = x ]; then
+        regex="\w+"
+    fi
+    $cwb_bindir/cwb-describe-corpus -s $corpus |
+        awk "/^s-ATT ($regex) "' / {print $2 "'"$sep"'" $3}'
+}
+
+# corpus_has_uniform_structattrs corpus
+#
+# Return true if corpus has uniform structural attributes, that is,
+# all structures of a certain type have the same annotations, false
+# otherwise.
+corpus_has_uniform_structattrs () {
+    local corpus specs structattr_counts_all struct spec depth attrs \
+          structattr_counts
+    corpus=$1
+    specs=$(corpus_get_structattr_specs $corpus)
+    structattr_counts_all=$(get_corpus_structattr_counts --sep ":" $corpus)
+    for spec in $specs; do
+        # Split structural attribute specification (declaration)
+        # struct:depth+attr+attr+... to components
+        struct=${spec%%:*}
+        spec=${spec#*:}
+        depth=${spec%%+*}
+        spec=${spec#*+}
+        attrs=$(echo $(strsplit "+" "$spec"))
+        # Filter counts of attrs of struct in structattr_counts_all
+        structattr_counts=$(
+            filter 'str_hasprefix "$val" "'$struct'[_1-9:]"' \
+                   $structattr_counts_all)
+        # Return false if not all the counts are the same (for each
+        # depth)
+        if ! _structattr_is_uniform $struct $depth "$attrs" \
+             "$structattr_counts";
+        then
+            return 1
+        fi
+    done
+    return 0
+}
+
+# _structattr_is_uniform struct depth attrs structattr_counts
+#
+# Return true if all the attributes attrs in structure struct with
+# nesting depth depth have the same count in structattr_counts (within
+# each depth), false otherwise. structattr_counts has one line for
+# each structural attribute, of the form "structname_attrname:count";
+# it may also contain information for attributes of other structures.
+_structattr_is_uniform () {
+    local struct depth attrs structattr_counts struct_name d struct_attrs \
+          base_count structattr_counts_new structattr count
+    struct=$1
+    depth=$2
+    attrs=$3
+    structattr_counts=$4
+    struct_name=$struct
+    d=0
+    # Loop through all nesting depths
+    while [ $d -le $depth ]; do
+        # Attributes prefixed with struct_
+        struct_attrs="$struct $(add_prefix "${struct}_" $attrs)"
+        # Suffix with depth if depth > 0
+        if [ $d -gt 0 ]; then
+            struct_attrs=$(add_suffix $d $struct_attrs)
+        fi
+        # The number of instances of the first attribute, to which the
+        # others are compared
+        base_count=
+        # Counts not checked on this round
+        structattr_counts_new=
+        for struct_count in $structattr_counts; do
+            structattr=${struct_count%:*}
+            count=${struct_count#*:}
+            if word_in $structattr "$struct_attrs"; then
+                if [ "$base_count" = "" ]; then
+                    base_count=$count
+                elif [ $count != $base_count ]; then
+                    # If the count differs from the number of
+                    # instances of the first attribute, return false
+                    return 1
+                fi
+            else
+                structattr_counts_new="$structattr_counts_new $struct_count"
+            fi
+        done
+        d=$(($d + 1))
+        structattr_counts=$structattr_counts_new
+    done
+    return 0
+}
+
 
 # get_corpus_posattr_type_count corpus attrname
 #
