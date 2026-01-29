@@ -18,12 +18,16 @@ toupper () {
 
 # add_prefix prefix [args] ...
 #
-# Prepend prefix to all args. If no args, do not output anything.
+# Output all args with prefix prepended to each, separated by a space.
+# If no args, do not output anything.
 add_prefix () {
-    _add_prefix_prefix=$1
+    local prefix result
+    prefix=$1
     shift
     if [ "$#" != 0 ]; then
-	printf -- "$_add_prefix_prefix%s " "$@"
+        result=$(printf -- "$prefix%s " "$@")
+        # Remove trailing space
+        safe_echo "${result% }"
     fi
 }
 
