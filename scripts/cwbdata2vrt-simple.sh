@@ -2,13 +2,6 @@
 
 # A simpler and faster alternative to cwbdata2vrt.py
 
-# TODO:
-# - Use the old implementation for --all if the corpus contains
-#   structural attributes that do not exist in all structures and
-#   cwb-decode is older than 3.4.33 or an unmodified version that does
-#   not support them with the -S struct:N+attr1+attr2+...
-#   specifications.
-
 
 progname=`basename $0`
 progdir=`dirname $0`
@@ -68,10 +61,6 @@ v|verbose
     VRT output is written to standard output)
 '
 
-usage_footer="Note that for --all to work for corpus data with structural
-attributes defined only for some structures, you need a slightly
-modified version of cwb-decode of CWB 3.4.33 or later."
-
 . $progdir/korp-lib.sh
 
 # Process options
@@ -84,6 +73,13 @@ fi
 
 corpora=$(list_corpora "$@")
 
+# cwb-decode older than 3.4.33 does not support cwb-encode-like
+# attribute declarations, so -ALL is used
+cwb_decode_is_old=
+if ! semver_ge $($cwb_bindir/cwb-config -v) 3 4 33; then
+    cwb_decode_is_old=1
+fi
+
 # Always decode special characters in the output
 post_process="vrt_decode_special_chars --xml-entities"
 
@@ -94,6 +90,10 @@ if [ "x$all_attrs" != x ]; then
     attr_opts=
     # Convert &apos; to ' and (on token lines only) &quote; to "
     post_process="$post_process | unentify_apos_quote"
+    # Fallback if some attributes are defined only for some structures
+    # (would require a modified cwb-decode) or if CWB is old
+    attr_opts_fallback=-ALL
+    post_process_fallback=process_tags_multi
 else
     struct_attrs_lines=$(echo $struct_attrs | tr ' ' '\n')
     struct_attrs_multi=$(
@@ -384,7 +384,7 @@ make_vrt_comments () {
 
 extract_vrt () {
     local corp verbose_msg outfile dirname pos_attrs pos_attrs_sl struct_attrs \
-          head_comment head_comment2 attr_comment
+          head_comment head_comment2 attr_comment post_process_active
     corp=$1
     verbose_msg="Writing VRT output of corpus $corp to"
     if [ "x$outfile_templ" != "x-" ]; then
@@ -414,13 +414,23 @@ extract_vrt () {
 	outfile=/dev/stdout
 	echo_verb "$verbose_msg standard output" >&2
     fi
+    post_process_active=$post_process
     if [ "x$all_attrs" != x ]; then
 	# Use echo to get the attribute names on the same line,
 	# separated by spaces
 	pos_attrs_sl=$(echo $(corpus_list_attrs --feature-set-slash $corp p))
 	pos_attrs=$(echo "$pos_attrs_sl" | tr -d "/")
-        struct_attrs=$(echo $(corpus_get_structattr_specs $corp))
-        attr_opts="$(add_prefix '-P ' $pos_attrs) $(add_prefix '-S ' $struct_attrs)"
+        if [ "x$cwb_decode_is_old" != x ] ||
+               ! corpus_has_uniform_structattrs $corp;
+        then
+            # Old CWB or a structural attribute not in all structures
+            # of some type -> fall back to older implementation
+            attr_opts=$attr_opts_fallback
+            post_process_active=$post_process_fallback
+        else
+            struct_attrs=$(echo $(corpus_get_structattr_specs $corp))
+            attr_opts="$(add_prefix '-P ' $pos_attrs) $(add_prefix '-S ' $struct_attrs)"
+        fi
     else
         pos_attrs_sl=$(corpus_attrs_mark_featset_valued $corp "pos" $pos_attrs)
     fi
@@ -431,8 +441,9 @@ extract_vrt () {
     if [ "x$omit_attribute_comment" = x ]; then
 	attr_comment="positional-attributes: $pos_attrs_sl"
     fi
+    echo_dbg "$cwb_bindir/cwb-decode -Cx $corp $attr_opts"
     $cwb_bindir/cwb-decode -Cx $corp $attr_opts |
-    eval "$post_process" |
+    eval "$post_process_active" |
     eval "$head_filter" |
     $tail_filter |
     $add_vrt_comments "$attr_comment" "$head_comment" "$head_comment2" > $outfile
