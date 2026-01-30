@@ -97,26 +97,26 @@ if [ "x$all_attrs" != x ]; then
 else
     struct_attrs_lines=$(echo $struct_attrs | tr ' ' '\n')
     struct_attrs_multi=$(
-	echo "$struct_attrs_lines" | sort | sed -e 's/_.*//' | uniq -d)
+        echo "$struct_attrs_lines" | sort | sed -e 's/_.*//' | uniq -d)
     # Filter out structural attributes without values (corresponding to
     # XML tags without attributes) if they also occur with a value (XML
     # tags with attributes), since the tag will be output anyway and so
     # that process_tags_multi needs not take into account attributes
     # without values.
     struct_attrs=$(
-	echo "$struct_attrs_lines" |
-	perl -e '$r = "^(" . join("|", qw('"$struct_attrs_multi"')) . ")\$";
-		 while (<>) { print if ($_ !~ $r); }'
+        echo "$struct_attrs_lines" |
+        perl -e '$r = "^(" . join("|", qw('"$struct_attrs_multi"')) . ")\$";
+                 while (<>) { print if ($_ !~ $r); }'
     )
     attr_opts="$(add_prefix '-P ' $pos_attrs) $(add_prefix '-S ' $struct_attrs)"
     if [ "${struct_attrs#*_}" != "$struct_attrs" ]; then
-	if [ "x$struct_attrs_multi" != x ]; then
-	    process_tags=process_tags_multi
-	else
-	    process_tags=process_tags_single
-	fi
+        if [ "x$struct_attrs_multi" != x ]; then
+            process_tags=process_tags_multi
+        else
+            process_tags=process_tags_single
+        fi
     else
-	process_tags=cat_noargs
+        process_tags=cat_noargs
     fi
     # $process_tags needs to precede vrt_decode_special_chars;
     # otherwise it would encode the & in the &lt; and &gt; produced by
@@ -126,22 +126,22 @@ fi
 
 if [ "x$include_corpus_element" = x ]; then
     if [ "x$include_xml_declaration" = x ]; then
-	# No <corpus>...</corpus>, no <?xml...>
-	head_filter="tail -n +3"
-	tail_filter="head -n -1"
+        # No <corpus>...</corpus>, no <?xml...>
+        head_filter="tail -n +3"
+        tail_filter="head -n -1"
     else
-	# No <corpus>...</corpus>, but <?xml...>
-	# This needs to be eval'ed because of the space in the regex
-	head_filter="grep -Ev '^<(corpus |/corpus>)'"
-	tail_filter=cat
+        # No <corpus>...</corpus>, but <?xml...>
+        # This needs to be eval'ed because of the space in the regex
+        head_filter="grep -Ev '^<(corpus |/corpus>)'"
+        tail_filter=cat
     fi
 else
     if [ "x$include_xml_declaration" = x ]; then
-	# <corpus>...</corpus>, no <?xml...>
-	head_filter="tail -n +2"
+        # <corpus>...</corpus>, no <?xml...>
+        head_filter="tail -n +2"
     else
-	# <corpus>...</corpus> and <?xml...>
-	head_filter=cat
+        # <corpus>...</corpus> and <?xml...>
+        head_filter=cat
     fi
     tail_filter=cat
 fi
@@ -234,19 +234,19 @@ process_tags_single () {
     # faster than process_tags_multi below
     perl -ne '
         if (/^(<[^\/_\s]*)_([^ ]*) ([^>]*)>/) {
-	    # Structure start tag with annotation value
-	    ($tag, $attrname, $attrval) = ($1, $2, $3);
-	    '"$perl_encode_entities_attrval"'
-	    print "$tag $attrname=\"$attrval\">\n";
-	} else {
-	    # Anything else
-	    s/^(<\/[^_]*)_.*>/$1>/;
-	    if (! /^</) {
-		'"$perl_decode_entities_token"'
+            # Structure start tag with annotation value
+            ($tag, $attrname, $attrval) = ($1, $2, $3);
+            '"$perl_encode_entities_attrval"'
+            print "$tag $attrname=\"$attrval\">\n";
+        } else {
+            # Anything else
+            s/^(<\/[^_]*)_.*>/$1>/;
+            if (! /^</) {
+                '"$perl_decode_entities_token"'
                 '"$perl_replace_undef"'
-	    }
-	    print;
-	}
+            }
+            print;
+        }
     '
 }
 
@@ -272,12 +272,12 @@ process_tags_multi () {
     perl -ne '
         BEGIN {
             $prevtag = $tag = "";
-	    '"$perl_attrs_clear"';
-	    $cpos = 0;
+            '"$perl_attrs_clear"';
+            $cpos = 0;
             $prevtag_printed = 0;
         }
         if (/^(<[^\/_\s]*)(?:_([^ ]*)( )?(.*))?>$/) {
-	    # Structure start tag, possibly with an annotation value
+            # Structure start tag, possibly with an annotation value
             $tag = $1;
             if ($prevtag && $tag ne $prevtag && ! $prevtag_printed) {
                 print "$prevtag" . '"$perl_attrs_get"' . ">\n";
@@ -285,28 +285,28 @@ process_tags_multi () {
             }
             $prevtag = $tag;
             $prevtag_printed = 0;
-	    if ($2) {
-		$attrname = $2;
-		# If the annotation is defined but has no value, not
-		# even an empty string (a line of the form
-		# <struct_attr>), it is treated as an empty string.
-		# Alternatively, we could have special value for such
-		# undefined values, but they probably should not occur
-		# anyway. One option might be to add (optionally) a
-		# special VRT comment indicating the issue.
-		if (! $3) {
-		    $struct = substr($prevtag, 1);
-		    print STDERR ("'"$progname"': Warning: corpus '"$corp"',"
-		                  . " position $cpos: structure \"$struct\":"
-				  . " undefined value for attribute"
-				  . " \"$attrname\" treated as empty string\n");
-		}
-		$attrval = $4;
-		'"$perl_encode_entities_attrval"'
-		'"$perl_attrs_append"';
-	    }
+            if ($2) {
+                $attrname = $2;
+                # If the annotation is defined but has no value, not
+                # even an empty string (a line of the form
+                # <struct_attr>), it is treated as an empty string.
+                # Alternatively, we could have special value for such
+                # undefined values, but they probably should not occur
+                # anyway. One option might be to add (optionally) a
+                # special VRT comment indicating the issue.
+                if (! $3) {
+                    $struct = substr($prevtag, 1);
+                    print STDERR ("'"$progname"': Warning: corpus '"$corp"',"
+                                  . " position $cpos: structure \"$struct\":"
+                                  . " undefined value for attribute"
+                                  . " \"$attrname\" treated as empty string\n");
+                }
+                $attrval = $4;
+                '"$perl_encode_entities_attrval"'
+                '"$perl_attrs_append"';
+            }
         } elsif (/^(<\/[^_]*)(_.*)?>/) {
-	    # Structure end tag
+            # Structure end tag
             $tag = $1;
             if ($tag ne $prevtag) {
                 print "$tag>\n";
@@ -314,19 +314,19 @@ process_tags_multi () {
             }
             $prevtag = $tag;
         } else {
-	    # Token, XML declaration or <corpus> start tag
+            # Token, XML declaration or <corpus> start tag
             if ($prevtag && ! $prevtag_printed) {
                 print "$prevtag" . '"$perl_attrs_get"' . ">\n";
             }
             $tag = $prevtag = "";
             $prevtag_printed = 0;
-	    '"$perl_attrs_clear"';
-	    if (! /^</) {
-	       	# Token
-	        '"$perl_decode_entities_token"'
+            '"$perl_attrs_clear"';
+            if (! /^</) {
+                # Token
+                '"$perl_decode_entities_token"'
                 '"$perl_replace_undef"'
-		$cpos++;
-	    }
+                $cpos++;
+            }
             print;
         }
     '
@@ -337,21 +337,21 @@ prepend_vrt_comments () {
     # excluded
     awk '
         BEGIN {
-	    for (i = 1; i < ARGC; i++) {
-	        if (ARGV[i]) {
-	            comments[i] = ARGV[i]
-		}
+            for (i = 1; i < ARGC; i++) {
+                if (ARGV[i]) {
+                    comments[i] = ARGV[i]
+                }
             }
             ARGC = 0
         }
-	NR == 1 {
-	    if (/^<\?xml/) { print }
+        NR == 1 {
+            if (/^<\?xml/) { print }
             for (i in comments) {
-	        print "<!-- #vrt " comments[i] " -->"
-	    }
-	    if (/^<\?xml/) { next }
-	}
-	{ print }
+                print "<!-- #vrt " comments[i] " -->"
+            }
+            if (/^<\?xml/) { next }
+        }
+        { print }
     ' "$@"
 }
 
@@ -388,38 +388,38 @@ extract_vrt () {
     corp=$1
     verbose_msg="Writing VRT output of corpus $corp to"
     if [ "x$outfile_templ" != "x-" ]; then
-	outfile=$(echo "$outfile_templ" | sed -e "s/{corpid}/$corp/g")
-	if [ -e "$outfile" ] && [ "x$overwrite" = x ]; then
-	    warn "Skipping corpus $corp: output file $outfile already exists"
-	    return
-	fi
-	if [ ! -e "$outfile" ]; then
-	    dirname=$(dirname "$outfile")
-	    mkdir -p "$dirname" 2> $tmp_prefix.err
-	    if [ $? != 0 ]; then
-		warn "Skipping corpus $corp: $(sed -e 's/^mkdir: //' $tmp_prefix.err)"
-		return
-	    fi
-	fi
-	touch "$outfile" 2> $tmp_prefix.err
-	if [ $? != 0 ]; then
-	    warn "Skipping corpus $corp: cannot write to output file $outfile"
-	    return
-	fi
-	echo_verb "$verbose_msg file $outfile"
-	if [ "x$overwrite" != x ] && [ -e "$outfile" ]; then
-	    verbose warn "Overwriting existing file $outfile as requested"
-	fi
+        outfile=$(echo "$outfile_templ" | sed -e "s/{corpid}/$corp/g")
+        if [ -e "$outfile" ] && [ "x$overwrite" = x ]; then
+            warn "Skipping corpus $corp: output file $outfile already exists"
+            return
+        fi
+        if [ ! -e "$outfile" ]; then
+            dirname=$(dirname "$outfile")
+            mkdir -p "$dirname" 2> $tmp_prefix.err
+            if [ $? != 0 ]; then
+                warn "Skipping corpus $corp: $(sed -e 's/^mkdir: //' $tmp_prefix.err)"
+                return
+            fi
+        fi
+        touch "$outfile" 2> $tmp_prefix.err
+        if [ $? != 0 ]; then
+            warn "Skipping corpus $corp: cannot write to output file $outfile"
+            return
+        fi
+        echo_verb "$verbose_msg file $outfile"
+        if [ "x$overwrite" != x ] && [ -e "$outfile" ]; then
+            verbose warn "Overwriting existing file $outfile as requested"
+        fi
     else
-	outfile=/dev/stdout
-	echo_verb "$verbose_msg standard output" >&2
+        outfile=/dev/stdout
+        echo_verb "$verbose_msg standard output" >&2
     fi
     post_process_active=$post_process
     if [ "x$all_attrs" != x ]; then
-	# Use echo to get the attribute names on the same line,
-	# separated by spaces
-	pos_attrs_sl=$(echo $(corpus_list_attrs --feature-set-slash $corp p))
-	pos_attrs=$(echo "$pos_attrs_sl" | tr -d "/")
+        # Use echo to get the attribute names on the same line,
+        # separated by spaces
+        pos_attrs_sl=$(echo $(corpus_list_attrs --feature-set-slash $corp p))
+        pos_attrs=$(echo "$pos_attrs_sl" | tr -d "/")
         if [ "x$cwb_decode_is_old" != x ] ||
                ! corpus_has_uniform_structattrs $corp;
         then
@@ -435,11 +435,11 @@ extract_vrt () {
         pos_attrs_sl=$(corpus_attrs_mark_featset_valued $corp "pos" $pos_attrs)
     fi
     if [ "x$omit_log_comment" = x ]; then
-	head_comment="info: VRT generated from CWB data for corpus \"$corp\" ($(get_isodate))"
-	head_comment2="info: A processing log at the end of file"
+        head_comment="info: VRT generated from CWB data for corpus \"$corp\" ($(get_isodate))"
+        head_comment2="info: A processing log at the end of file"
     fi
     if [ "x$omit_attribute_comment" = x ]; then
-	attr_comment="positional-attributes: $pos_attrs_sl"
+        attr_comment="positional-attributes: $pos_attrs_sl"
     fi
     echo_dbg "$cwb_bindir/cwb-decode -Cx $corp $attr_opts"
     $cwb_bindir/cwb-decode -Cx $corp $attr_opts |
@@ -448,7 +448,7 @@ extract_vrt () {
     $tail_filter |
     $add_vrt_comments "$attr_comment" "$head_comment" "$head_comment2" > $outfile
     if [ "x$omit_log_comment" = x ]; then
-	make_log_info $corp | make_vrt_comments >> $outfile
+        make_log_info $corp | make_vrt_comments >> $outfile
     fi
 }
 
