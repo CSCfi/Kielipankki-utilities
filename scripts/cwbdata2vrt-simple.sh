@@ -421,6 +421,8 @@ extract_vrt () {
 	pos_attrs=$(echo "$pos_attrs_sl" | tr -d "/")
         struct_attrs=$(echo $(corpus_get_structattr_specs $corp))
         attr_opts="$(add_prefix '-P ' $pos_attrs) $(add_prefix '-S ' $struct_attrs)"
+    else
+        pos_attrs_sl=$(corpus_attrs_mark_featset_valued $corp "pos" $pos_attrs)
     fi
     if [ "x$omit_log_comment" = x ]; then
 	head_comment="info: VRT generated from CWB data for corpus \"$corp\" ($(get_isodate))"
