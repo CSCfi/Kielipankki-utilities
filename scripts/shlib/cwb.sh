@@ -1417,6 +1417,31 @@ corpus_attr_is_featset_valued () {
     esac
 }
 
+# corpus_attrs_mark_featset_valued corpus attrtype attrnames ...
+#
+# Output attribute names attrnames of type attrtype in corpus, with a
+# slash appended to the feature-set valued ones. attrtype should begin
+# with either "p" or "s" (lower- or upper-case) for positional or
+# structural attributes, respectively. Output attribute names
+# separated by a single space.
+corpus_attrs_mark_featset_valued () {
+    local corpus attrtype attrname result
+    corpus=$1
+    attrtype=$2
+    shift 2
+    result=
+    for attrname in "$@"; do
+        if corpus_attr_is_featset_valued $corpus $attrtype $attrname; then
+            result="$result $attrname/"
+        else
+            result="$result $attrname"
+        fi
+    done
+    # Remove leading space
+    result=${result# }
+    safe_echo "$result"
+}
+
 
 # corpus_get_posattr_values corpus attr [pattern]
 #
