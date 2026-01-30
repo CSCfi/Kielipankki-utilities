@@ -3,6 +3,24 @@
 # A simpler and faster alternative to cwbdata2vrt.py
 
 
+# TODO:
+# - Fix to output correctly recursively embedded structural attributes
+#   if the corpus data also contains structural attributes
+#   (annotations) that do not exist in all structures of a certain
+#   type or if the CWB version is older than 3.4.33. This could be
+#   done by fixing process_tags_multi to handle recursively embedded
+#   structures correctly, by having cwb-decode patches passed to and
+#   accepted by the CWB developers, and/or by having an option to
+#   specify whether to use the old (process_tags_multi) or new
+#   (cwb-decode only) approach.
+# - When structural attributes are specified explicitly, use
+#   cwb-decode attribute declarations of the type "-S -
+#   struct:depth+attr" with CWB 3.4.33 or newer, avoiding the need to
+#   use process_tags_multi.
+# - Allow specifying structural attributes as "struct:attr1,attr2,..."
+#   in addition to "struct_attr1 struct_attr2".
+
+
 progname=`basename $0`
 progdir=`dirname $0`
 
@@ -60,6 +78,13 @@ v|verbose
     output progress information to standard output (standard error if the
     VRT output is written to standard output)
 '
+
+usage_footer="Note that recursively embedded structural attributes (nested same
+structures) are not output correctly if the corpus data also contains
+structural attributes (annotations) that do not exist in all
+structures of a certain type or if the CWB version is older than
+3.4.33."
+
 
 . $progdir/korp-lib.sh
 
@@ -269,6 +294,9 @@ fi
 process_tags_multi () {
     local corp
     corp=$1
+    # FIXME: The following does not work correctly with nested
+    # structural attributes represented by attributes structN
+    # struct_attrN ...
     perl -ne '
         BEGIN {
             $prevtag = $tag = "";
