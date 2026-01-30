@@ -57,8 +57,3 @@ default_cwb_bindirs="$(
 )"
 
 default_filegroups="korp clarin"
-
-default_korp_frontend_dirs=${default_korp_frontend_dirs:-"
-    /var/www/html/korp
-    /var/www/html
-"}

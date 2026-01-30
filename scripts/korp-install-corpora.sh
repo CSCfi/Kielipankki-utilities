@@ -116,7 +116,7 @@ extract_dbfiles="*"
 # With --database-import=no, extract only authorization files
 if [ "$db_import" = no ]; then
     # "CORPUS" will be replaced with the actual corpus id
-    extract_dbfiles="*/CORPUS_auth_*"
+    extract_dbfiles="*/CORPUS_auth[_.]*"
 fi
 
 # Check the validity of --load-limit
@@ -135,9 +135,11 @@ pkglistfile=$tmp_prefix.pkgs
 
 timestamp_format="+%Y-%m-%dT%H:%M:%S"
 
-# The order in which database tables should be imported
+# The order in which database tables should be imported (extended
+# regular expressions to match database file names between the corpus
+# id and the dot preceding the extension)
 # Always installed immediately after extracting package
-dbtable_install_order_immediate="auth_.*"
+dbtable_install_order_immediate="auth(_.*)?"
 # Installed only after extracting all packages unless
 # --immediate-database-import
 dbtable_install_order="timedata(_date)? lemgrams .*"
@@ -156,6 +158,10 @@ fi
 if [ "x$pkgdir" = "xCORPUS_ROOT/$pkgsubdir" ]; then
     pkgdir=${CORPUS_PKGDIR:-$corpus_root/$pkgsubdir}
 fi
+
+# Extended regular expression matching a compressed file extension
+# (for a single file, including the leading dot)
+compress_exts_re="\\.($(delimit '|' $compress_exts))"
 
 localhost=LOCALHOST
 default_pkghost=$localhost
@@ -555,20 +561,6 @@ filter_corpora () {
     fi
 }
 
-get_tar_compress_opt () {
-    case "$1" in
-	*.gz | *.tgz )
-	    echo --gzip
-	    ;;
-	*.tbz | *.bz | *.bz2 )
-	    echo --bzip2
-	    ;;
-	*.xz | *.txz )
-	    echo --xz
-	    ;;
-    esac
-}
-
 backup_corpus () {
     local pkgname pkghost tar_cmd backup_msg_shown
     pkgname=$1
@@ -636,7 +628,7 @@ install_file_sql () {
     sqlfile=$1
     db=$korpdb
     case $sqlfile in
-	*_auth_* )
+	*_auth[_.]* )
 	    db=$korpdb_auth
 	    ;;
     esac
@@ -665,7 +657,7 @@ install_dbfiles () {
     if [ ! -e $listfile ]; then
         return
     fi
-    files=$(grep -E '_'"$tables_re"'\.'$type'(\.(bz2|gz|xz))?$' $listfile)
+    files=$(grep -E "_$tables_re\\.$type($compress_exts_re)?\$" $listfile)
     if [ "x$files" != "x" ]; then
 	echo "  $msg data into MySQL database$dry_run_msg"
 	for file in $files; do
@@ -769,7 +761,8 @@ install_corpus () {
     )
     adjust_registry $filelistfile
     dbfile_list_file=$(make_dbfile_list_filename $corp)
-    grep -E '\.(sql|tsv)(\.(bz2|gz|xz))?$' $filelistfile > "$dbfile_list_file"
+    grep -E "\\.(sql|tsv)($compress_exts_re)?\$" $filelistfile \
+         > "$dbfile_list_file"
     install_corpora_dbtables install_db $corp "$dbtable_install_order_immediate"
     # Log to the list of installed corpora: current time, corpus name,
     # package file name, package file modification time, installing

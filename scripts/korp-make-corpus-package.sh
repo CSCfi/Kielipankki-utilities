@@ -11,18 +11,12 @@
 #   produced by cwb-make. Possibly also other sanity checks for the
 #   corpus.
 # - Working --verbose (or --quiet).
-# - Update MySQL dumps if older than the database files (or if an
-#   option is specified).
-# - An option to generate MySQL dumps from the database, complementary
-#   to the --export-database.
-# - --export-database: Generate TSV files only if they do not exist or
-#   if they are older than corpus data files.
+# - --export-database=auto: Export or dump files if they exist but are
+#   older than corpus data files.
 # - An option to generate both a CWB data package and a VRT package
 #   with a single command.
 #
 # FIXME:
-# - Finding the most recent database files from either SQL or TSV
-#   files does not work correctly; see FIXME comments in the code.
 # - {corpid} does not work in the filename part of an extra VRT file.
 # - Directory name transformation does not seem to work for ../dir.
 # - If the TSV or SQL directory contains files for the same table
@@ -30,8 +24,13 @@
 #   of only the newest ones.
 
 
-progname=`basename $0`
-progdir=`dirname $0`
+progname=$(basename $0)
+progdir=$(dirname $0)
+
+# A dummy variable used only in $optspecs to adjust slightly for the
+# length difference of "$compress_prog" and its value, since $optspecs
+# texts are wrapped based on the unexpanded value
+filler=
 
 usage_header="Usage: $progname [options] corpus_name [corpus_id ...]
 
@@ -68,8 +67,6 @@ s|sql-dir=DIRTEMPL "CORPUS_ROOT/$sqlsubdir/{corpid}" sqldir
 t|tsv-dir=DIRTEMPL "CORPUS_ROOT/$tsvsubdir/{corpid}" tsvdir
     use DIRTEMPL as the source directory template for Korp MySQL TSV
     data files
-korp-frontend-dir=DIR "$korp_frontend_dir" { set_korp_frontend_dir "$1" }
-    read Korp configuration files from DIR
 
 @ Options for VRT files
 
@@ -148,13 +145,15 @@ extra-file=SRCFILE[:DSTFILE] * { add_extra_file "$1" }
 
 @ Options controlling the output
 
-f|database-format=FMT "auto" dbformat { set_db_format "$1" }
-    include database files in format FMT: either sql (SQL), tsv (TSV),
-    auto (SQL or TSV, whichever files are newer) or none (do not
-    include database files)
-export-database export_db { export_db=1; set_db_format "tsv" }
-    export database data into TSV files to be packaged; implies
-   --database-format=tsv
+f|database-format=FMT "tsv" dbformat { set_db_format "$1" }
+    include database files in format FMT: either "tsv" (TSV), "sql"
+    (SQL) or "none" (omit database files)
+export-database=MODE "auto" export_db { set_export_db "$1" }
+    control exporting database data into TSV files or dumping into SQL
+    file (depending on --database-format) to be packaged; MODE can be
+    "yes" or "always" (always export), "no" or "never" (never export),
+    or "auto" (export only if no database files of the chosen database
+    format exist)
 newer|after=DATE
     include only files whose modification date is later than DATE;
     DATE can be specified as an ISO date and time (or in any other
@@ -164,15 +163,18 @@ newer|after=DATE
     is corpus_name_yyyymmdd_hhmmss_a_yyyymmdd_hhmmss[-xx]: the package
     contains files whose modification date is newer than ("after") the
     yyyymmdd_hhmmss following "_a_" (the other parts are as usual)
-z|compress=PROG "gzip" { set_compress "$1" }
-    compress files with PROG; "none" for no compression
+z|compress=PROG "$compress" { compress=$(get_compress "$1" "$compress") }
+    compress files with PROG (one of: $compress_progs$filler);
+    "none" for no compression
 '
 
 usage_footer="Environment variables:
   Default values for the various directories can also be specified via
   the following environment variables: CORPUS_ROOT, TARGET_CORPUS_ROOT,
-  CORPUS_PKGDIR, CORPUS_REGISTRY, CORPUS_SQLDIR, CORPUS_TSVDIR, CORPUS_VRTDIR,
-  KORP_FRONTEND_DIR."
+  CORPUS_PKGDIR, CORPUS_REGISTRY, CORPUS_SQLDIR, CORPUS_TSVDIR,
+  CORPUS_VRTDIR. MySQL host, username and password can be specified
+  via KORP_MYSQL_HOST, KORP_MYSQL_USER and KORP_MYSQL_PASSWORD,
+  respectively."
 
 
 . $progdir/korp-lib.sh
@@ -205,6 +207,9 @@ vrtsubdir=vrt
 
 include_vrt=
 
+# Compression program
+compress=gzip
+
 exclude_files="backup *~ *.bak *.bak[0-9] *.old *.old[0-9] *.prev *.prev[0-9]"
 
 has_readme=
@@ -221,12 +226,20 @@ archive_type_name=korp
 # than the specified given date
 newer_marker=a
 
-sql_file_types="lemgrams rels timespans timedata timedata_date"
-sql_file_types_multicorpus="lemgrams timespans timedata timedata_date"
-sql_table_name_lemgrams=lemgram_index
+# SQL file types (included in the SQL file name) for tables with data
+# for multiple corpora
+sql_file_types_multicorpus="auth lemgrams timedata timedata_date"
+# All SQL file types
+sql_file_types="$sql_file_types_multicorpus rels"
+# sql_table_names_$type lists the names of (multi-corpus) tables from
+# which data is to be included in an SQL file of $type; not required
+# if $type is the same as the table name
+sql_table_names_lemgrams=lemgram_index
+sql_table_names_auth="auth_license auth_lbr_map"
+# Base names of relations tables, where the full name is
+# relations_$CORPUS_$basename ("@" denotes empty basename, with also
+# the preceding underscore omitted)
 rels_tables_basenames="@ rel head_rel dep_rel strings sentences"
-
-frontend_config_files="config.js $(echo modes/{other_languages,parallel,swedish}_mode.js) translations/corpora-*.json"
 
 extra_info_file=$tmp_prefix.info
 touch $extra_info_file
@@ -255,9 +268,9 @@ dirname_slash () {
 
 is_dirname () {
     case "$1" in
-	*/ )
-	    return 0
-	    ;;
+        */ )
+            return 0
+            ;;
     esac
     return 1
 }
@@ -280,23 +293,23 @@ add_corpus_files () {
     # If --any is specified, warn on non-existent files only if none
     # of the files specified as arguments is found.
     if [ "x$1" = "x--any" ]; then
-	any=1
-	shift
+        any=1
+        shift
     fi
     for _fname in "$@"; do
-	if ls $_fname > /dev/null 2>&1; then
+        if ls $_fname > /dev/null 2>&1; then
             if [ "x$prepend" != x ]; then
                 corpus_files_prepend="$corpus_files_prepend $_fname"
             else
-	        corpus_files="$corpus_files $_fname"
+                corpus_files="$corpus_files $_fname"
             fi
-	    any_added=1
-	elif [ "x$any" = x ]; then
-	    warn "File or directory not found: $_fname"
-	fi
+            any_added=1
+        elif [ "x$any" = x ]; then
+            warn "File or directory not found: $_fname"
+        fi
     done
     if [ "x$any" != x ] &&  [ "x$any_added" = x ]; then
-	warn "None of the files or directories found: $*"
+        warn "None of the files or directories found: $*"
     fi
 }
 
@@ -319,9 +332,9 @@ has_wildcards () {
     # FIXME: This does not take into account backslash-protected
     # wildcards, which should not be counted as wildcards.
     case "$1" in
-	*\** | *\?* | *\[* )
-	    return 0
-	    ;;
+        *\** | *\?* | *\[* )
+            return 0
+            ;;
     esac
     return 1
 }
@@ -331,44 +344,40 @@ wildcards_to_regex () {
     sed -e 's,\.,\\.,g; s,?,[^/],g; s,\*,[^/]*,g;'
 }
 
-set_korp_frontend_dir () {
-    if test_file -r $1/config.js warn \
-	"config.js not found or not accessible in directory $1; using the default Korp frontend directory $korp_frontend_dir"
-    then
-	korp_frontend_dir=$1
-    fi
-}
-
 set_db_format () {
     case "$1" in
-	sql | SQL )
-	    dbformat=sql
-	    ;;
-	tsv | TSV )
-	    dbformat=tsv
-	    ;;
-	auto | automatic )
-	    dbformat=auto
-	    ;;
-	none )
-	    dbformat=none
-	    ;;
-	* )
-	    warn "Invalid database format '$1'; using $dbformat"
-	    ;;
+        sql | SQL )
+            dbformat=sql
+            ;;
+        tsv | TSV )
+            dbformat=tsv
+            ;;
+        none )
+            dbformat=none
+            warn "Omitting database data because of --database-format=none"
+            ;;
+        * )
+            warn "Invalid database format '$1'; using $dbformat"
+            ;;
     esac
 }
 
-set_compress () {
-    if [ "x$1" = "xnone" ] || which $1 &> /dev/null; then
-	if [ "x$1" = "xcat" ]; then
-	    compress=none
-	else
-	    compress=$1
-	fi
-    else
-	warn "Compression program $1 not found; using $compress"
-    fi
+# Set $export_db based on $1; warn on an invalid value
+set_export_db () {
+    case "$1" in
+        yes | always )
+            export_db=yes
+            ;;
+        no | never )
+            export_db=no
+            ;;
+        auto | automatic )
+            export_db=auto
+            ;;
+        * )
+            warn "Invalid value for --export-database: \"$1\"; \"using $export_db\""
+            ;;
+    esac
 }
 
 add_extra_dir_or_file () {
@@ -383,24 +392,24 @@ add_extra_dir_or_file () {
     local target=$2
     echo_dbg "** add_extra:param" "$source" "$target"
     if [ "x$target" = x ]; then
-	case "$source" in
-	    *:* )
-		target=$(echo "$source" | sed -e 's/^.*://')
-		source=$(echo "$source" | sed -e 's/:[^:]*$//')
-		# If the source contains wildcards, then the target
-		# should always be a directory.
-		if has_wildcards "$source"; then
-		    target=$target/
-		fi
-		;;
-	    * )
-		if has_wildcards "$source"; then
-		    target=$(dirname_slash "$source")/
-		else
-		    target=$source
-		fi
-		;;
-	esac
+        case "$source" in
+            *:* )
+                target=$(echo "$source" | sed -e 's/^.*://')
+                source=$(echo "$source" | sed -e 's/:[^:]*$//')
+                # If the source contains wildcards, then the target
+                # should always be a directory.
+                if has_wildcards "$source"; then
+                    target=$target/
+                fi
+                ;;
+            * )
+                if has_wildcards "$source"; then
+                    target=$(dirname_slash "$source")/
+                else
+                    target=$source
+                fi
+                ;;
+        esac
     fi
     local sourcedir=$(remove_leading_slash $(dirname_slash "$source"))
     local targetdir=$(remove_leading_slash $(dirname_slash "$target"))
@@ -410,25 +419,25 @@ add_extra_dir_or_file () {
     target=$(remove_leading_slash "$target")
     echo_dbg add_extra:mods "$source" "$target"
     if is_dirname "$target" || [ "x$targetdir" = x ]; then
-	local targetdir_slash=
-	if [ "x$targetdir" != x ]; then
-	    targetdir_slash="$targetdir/"
-	fi
-	# Originally $targetdir = /
-	if [ "x$sourcedir" = x. ]; then
-	    # Extra backslashes to protect them through echos
-	    add_transform "\\\\($source\\\\)" "$targetdir_slash\\\\1"
-	elif is_dirname "$source"; then
-	    add_transform "$sourcedir/" "$targetdir_slash"
-	    # The following is now added in make_tar_transforms:
-	    # add_transform "$sourcedir\$" "$targetdir"
-	else
-	    local sourcefile=$(wildcards_to_regex $(basename "$source"))
-	    add_transform \
-		"$sourcedir/\\\\($sourcefile\\\\)" "$targetdir_slash\\\\1"
-	fi
+        local targetdir_slash=
+        if [ "x$targetdir" != x ]; then
+            targetdir_slash="$targetdir/"
+        fi
+        # Originally $targetdir = /
+        if [ "x$sourcedir" = x. ]; then
+            # Extra backslashes to protect them through echos
+            add_transform "\\\\($source\\\\)" "$targetdir_slash\\\\1"
+        elif is_dirname "$source"; then
+            add_transform "$sourcedir/" "$targetdir_slash"
+            # The following is now added in make_tar_transforms:
+            # add_transform "$sourcedir\$" "$targetdir"
+        else
+            local sourcefile=$(wildcards_to_regex $(basename "$source"))
+            add_transform \
+                "$sourcedir/\\\\($sourcefile\\\\)" "$targetdir_slash\\\\1"
+        fi
     else
-	add_transform "$source" "$target"
+        add_transform "$source" "$target"
     fi
 }
 
@@ -444,7 +453,7 @@ add_extra_dir () {
     fi
     local target=$2
     if [ "x$target" != x ]; then
-	target="$target/"
+        target="$target/"
     fi
     add_extra_dir_or_file \
         $prepend "$(echo "$1" | sed -e 's,:,/:,; s,$,/,')" "$target"
@@ -458,346 +467,45 @@ add_auth_opts () {
     val=$(eval "make_$type \$val")
     exit_if_error $?
     auth_opts="$auth_opts $opt $val"
+    # Set variable value for make_auth_info
+    eval "auth_$type='$val'"
 }
 
 # Process options
 eval "$optinfo_opt_handler"
 
 
-if [ "x$1" = "x" ]; then
-    error "No corpus name specified"
-fi
-
-target_corpus_root=${target_corpus_root:-$corpus_root}
-pkgdir=${pkgdir:-$corpus_root/$pkgsubdir}
-regdir=$(remove_trailing_slash $cwb_regdir)
-datadir=$(remove_trailing_slash ${datadir:-$corpus_root/$datasubdir})
-sqldir=$(remove_trailing_slash ${sqldir:-"$corpus_root/$sqlsubdir/{corpid}"})
-tsvdir=$(remove_trailing_slash ${tsvdir:-"$corpus_root/$tsvsubdir/{corpid}"})
-vrtdir=$(remove_trailing_slash ${vrtdir:-"$corpus_root/$vrtsubdir/{corpid}"})
-
-if [ "x$include_vrtdir$generate_vrt" != "x" ]; then
-    include_vrt=1
-fi
-
-corpus_name=$1
-shift
-
-if [ ! -d "$regdir" ]; then
-    error "Cannot access registry directory $regdir"
-fi
-
-if [ "x$omit_cwb_data" != x ]; then
-    if [ "x$include_vrt" = x ]; then
-	error "You need to include VRT data when omitting CWB data."
+# Set directory variables, partly based on options
+set_dirs () {
+    target_corpus_root=${target_corpus_root:-$corpus_root}
+    pkgdir=${pkgdir:-$corpus_root/$pkgsubdir}
+    regdir=$(remove_trailing_slash $cwb_regdir)
+    datadir=$(remove_trailing_slash ${datadir:-$corpus_root/$datasubdir})
+    sqldir=$(remove_trailing_slash ${sqldir:-"$corpus_root/$sqlsubdir/{corpid}"})
+    tsvdir=$(remove_trailing_slash ${tsvdir:-"$corpus_root/$tsvsubdir/{corpid}"})
+    vrtdir=$(remove_trailing_slash ${vrtdir:-"$corpus_root/$vrtsubdir/{corpid}"})
+    if [ ! -d "$regdir" ]; then
+        error "Cannot access registry directory $regdir"
     fi
-    archive_type_name=vrt
-fi
-
-if [ "x$generate_vrt" != x ] && [ "x$update_vrt" != x ]; then
-    warn "Both --generate-vrt and --update-vrt specified; assuming --update-vrt"
-    generate_vrt=
-fi
-
-eval archive_ext=\$archive_ext_$compress
-if [ "x$archive_ext" = x ]; then
-    archive_ext=tar.$compress
-    warn "Unrecognized compression program $compress: using package file name extension .$archive_ext"
-fi
-
-if [ "x$1" = "x" ]; then
-    # list_corpora detects non-existent corpora
-    corpus_ids=$(list_corpora $corpus_name)
-else
-    corpus_ids="$(list_corpora "$@")"
-fi
-# list_corpora calls function error on error but as it is run in a
-# subshell, it does not exit this script, so check the return value
-# and exit on errors
-retval=$?
-if [ $retval != 0 ]; then
-    exit $retval
-fi
-
-if [ "x$korp_frontend_dir" = "x" ]; then
-    warn "Korp frontend directory not found"
-elif test_file -r $korp_frontend_dir/config.js warn \
-    "$korp_frontend_dir/config.js not found or not accessible; not including Korp configuration files";
-then
-    for fname_patt in $frontend_config_files; do
-	add_corpus_files $(echo $korp_frontend_dir/$fname_patt)
-    done
-fi
-
-if [ "x$has_readme" = x ]; then
-    warn "No readme file included"
-fi
-if [ "x$has_docs" = x ]; then
-    warn "No documentation included"
-fi
-if [ "x$has_scripts" = x ]; then
-    warn "No conversion scripts included"
-fi
-
-generate_vrt () {
-    local corpus_id=$1
-    $cwbdata2vrt --all-attributes --output-file=- $corpus_id
 }
 
-if [ "x$generate_vrt" != x ]; then
-    mkdir -p $tmp_prefix.vrt
-    for corpus_id in $corpus_ids; do
-	vrt_file=$tmp_prefix.vrt/$corpus_id.vrt
-	generate_vrt $corpus_id > "$vrt_file"
-	add_corpus_files "$vrt_file"
-	add_transform "$vrt_file" vrt/$corpus_id/$corpus_id.vrt
-    done
-fi
-
-fill_dirtempl () {
-    dirtempl=$1
-    corpus_id=$2
-    echo "$dirtempl" |
-    sed -e "s,{corpname},$corpus_name,g; s,{corpid},$corpus_id,g"
-}
-
-vrt_file_is_uptodate () {
-    local corpus_id=$1
-    local vrt_file=$2
-    local newer_corpus_files
-    vrt_file=$(ls -t "$vrt_file" "$vrt_file".* 2> /dev/null | head -1)
-    if [ "x$vrt_file" = x ]; then
-	return 1
-    fi
-    newer_corpus_files=$(
-	find "$datadir"/$corpus_id -newer "$vrt_file" -name '[a-z]*')
-    [ "x$newer_corpus_files" = x ]
-}
-
-if [ "x$update_vrt" != x ]; then
-    for corpus_id in $corpus_ids; do
-	corpus_vrtdir=$(fill_dirtempl "$vrtdir" $corpus_id)
-	vrt_file=$corpus_vrtdir/$corpus_id.vrt
-	mkdir -p "$corpus_vrtdir"
-	if ! vrt_file_is_uptodate $corpus_id "$vrt_file"; then
-	    # Would the following be safe?
-	    # rm -f "$vrt_file" "vrt_file".*
-	    generate_vrt $corpus_id > "$vrt_file"
-	    if [ "x$compress" != "xnone" ]; then
-		$compress -f "$vrt_file"
-	    fi
-	fi
-    done
-fi
-
-make_rels_table_names () {
-    corp_id_upper=`echo $1 | sed -e 's/\(.*\)/\U\1\E/'`
-    for base in $rels_tables_basenames; do
-	echo relations_${corp_id_upper}_$base |
-	sed -e 's/_@//'
-    done
-}
-
-run_mysqldump () {
-    extra_opts=
-    while true; do
-	case "$1" in
-	    -* )
-		extra_opts="$extra_opts $1"
-		shift
-		;;
-	    * )
-		break
-		;;
-	esac
-    done
-    mysqldump --no-autocommit $mysql_opts $extra_opts $korpdb "$@" 2> /dev/null
-}
-
-compress_or_rm_sqlfile () {
-    sqlfile=$1
-    if grep -q 'INSERT INTO' $sqlfile; then
-	if [ "x$compress" != "xnone" ]; then
-	    $compress $sqlfile
-	fi
+# Get CWB ids of corpora ($@) to be included and assign to $corpus_ids.
+get_corpus_ids () {
+    local retval
+    if [ "x$1" = "x" ]; then
+        # list_corpora detects non-existent corpora
+        corpus_ids=$(list_corpora $corpus_name)
     else
-	rm $sqlfile
+        corpus_ids="$(list_corpora "$@")"
+    fi
+    # list_corpora calls function error on error but as it is run in a
+    # subshell, it does not exit this script, so check the return value
+    # and exit on errors
+    retval=$?
+    if [ $retval != 0 ]; then
+        exit $retval
     fi
 }
-
-make_sql_table_part () {
-    corp_id=$1
-    corp_id_upper=`echo $corp_id | sed -e 's/\(.*\)/\U\1\E/'`
-    filetype=$2
-    eval tablename=\$sql_table_name_$filetype
-    if [ "x$tablename" = "x" ]; then
-	tablename=$filetype
-    fi
-    sqlfile=`fill_dirtempl $sqldir $corp_id`/${corp_id}_$filetype.sql
-    # 
-    {
-	# Add a CREATE TABLE IF NOT EXISTS statement for the table, so
-        # that the package can be installed even on an empty database.
-        # By default, mysqldump (without --no-create-info) would first
-        # drop the database and then recreate it, but we need to
-        # retain the data for the other corpora.
-	run_mysqldump --no-data --compact $tablename |
-	sed -e 's/CREATE TABLE/& IF NOT EXISTS/'
-	echo
-	# Instruct to delete existing data for the corpus first
-	echo "DELETE FROM $tablename WHERE corpus='$corp_id_upper';"
-	echo
-	# The actual data dump
-	run_mysqldump --no-create-info --where="corpus='$corp_id_upper'" \
-	    $tablename
-    } > $sqlfile
-    compress_or_rm_sqlfile $sqlfile
-}
-
-dump_database () {
-    corp_id=$1
-    rels_tables=`make_rels_table_names $corp_id`
-    sqldir_real=`fill_dirtempl $sqldir $corp_id`
-    run_mysqldump $rels_tables > $sqldir_real/${corp_id}_rels.sql
-    compress_or_rm_sqlfile $sqldir_real/${corp_id}_rels.sql
-    for filetype in $sql_file_types_multicorpus; do
-	make_sql_table_part $corp_id $filetype
-    done
-}
-
-# Output the date (timestamp as YYYYMMMDD_hhmmss) of the most recently
-# modified file of the arguments. Note that this also includes
-# possibly excluded files. Directory names should end in a slash for
-# the dates of the included files to be considered.
-# FIXME: Make work with file names containing spaces
-get_corpus_date () {
-    local files newest_file
-    files="$@ "
-    # Append "*" after trailing slashes to get all the files in
-    # directories
-    files=${files/// //* }
-    newest_file=$(ls -td $files | head -1)
-    date --reference="$newest_file" "+%Y%m%d_%H%M%S"
-}
-
-# FIXME: list_existing_db_files_by_type, list_existing_db_files and
-# list_db_files probably do not work as they were intended to. There
-# should probably be a loop somewhere iterating over the different
-# types of tables.
-
-list_existing_db_files_by_type () {
-    # FIXME: Check the arguments and their use!
-    corp_id=$1
-    type=$2
-    db_filetype=$3
-    if [ "x$type" = "xtsv" ]; then
-	dir=$tsvdir
-	ext=.tsv
-    else
-	dir=$sqldir
-	ext=.sql
-    fi
-    dir=`fill_dirtempl $dir $corp_id`
-    # FIXME: Should the line below have $db_filetype instead of
-    # $filetype? Now this lists all files beginning with $corp_id and
-    # ending in $ext, which is probably why all this seems to work.
-    basename="$dir/${corp_id}_$filetype*$ext"
-    ls -t $basename $basename.gz $basename.bz2 $basename.xz 2> /dev/null
-}
-
-get_first_word () {
-    echo "$1"
-}
-
-list_existing_db_files () {
-    # FIXME: Check the arguments and their use!
-    corp_id=$1
-    type=$2
-    filenames_sql=`list_existing_db_files_by_type $corp_id $type sql`
-    filenames_tsv=`list_existing_db_files_by_type $corp_id $type tsv`
-    if [ "x$filenames_sql" != x ]; then
-	if [ "x$filenames_tsv" != x ]; then
-	    firstfile_sql=`get_first_word $filenames_sql`
-	    firstfile_tsv=`get_first_word $filenames_tsv`
-	    if [ "$firstfile_sql" -nt "$firstfile_tsv" ]; then
-		echo "$filenames_sql"
-	    else
-		echo "$filenames_tsv"
-	    fi
-	else
-	    echo "$filenames_sql"
-	fi
-    else
-	echo "$filenames_tsv"
-    fi
-}
-
-list_db_files () {
-    if [ "$dbformat" != auto ]; then
-	list_existing_db_files_by_type $corpus_id $dbformat
-    else
-	dbfiles=`list_existing_db_files $corpus_id`
-	if [ "x$dbfiles" = "x" ]; then
-	    dump_database $corpus_id
-	    list_existing_db_files $corpus_id
-	else
-	    echo "$dbfiles"
-	fi
-    fi
-}
-
-
-if [ "$corpus_root" = "$target_corpus_root" ]; then
-    target_regdir=$regdir
-else
-    target_regdir=$tmp_prefix/$regsubdir
-    mkdir -p $target_regdir
-    for corpus_id in $corpus_ids; do
-	sed -e "s,^\(HOME\|INFO\) .*\($corpus_id\),\1 $target_corpus_root/$datasubdir/\2," $regdir/$corpus_id > $target_regdir/$corpus_id
-	touch --reference=$regdir/$corpus_id $target_regdir/$corpus_id
-    done
-fi
-
-
-if [ "x$auth_opts" != "x" ]; then
-    $korp_make_auth_info --tsv-dir "$tsvdir" $auth_opts $corpus_ids
-fi
-
-echo_dbg extra_files "$corpus_files"
-# Add the extra files to the end, except for those to be prepended
-extra_corpus_files=$corpus_files
-corpus_files=
-add_corpus_files_expand $corpus_files_prepend
-for corpus_id in $corpus_ids; do
-    # Include the CWB registry file as documentation of the VRT fields
-    # even if omitting CWB data
-    add_corpus_files "$target_regdir/$corpus_id"
-    if [ "x$omit_cwb_data" = x ]; then
-	add_corpus_files "$datadir/$corpus_id/"
-    fi
-    if [ "x$export_db" != x ]; then
-	$korp_mysql_export --corpus-root "$corpus_root" \
-	    --output-dir "$tsvdir" --compress "$compress" $corpus_id
-    fi
-    if [ "x$dbformat" != xnone ]; then
-	add_corpus_files $(list_db_files $corpus_id)
-    fi
-    if [ "x$include_vrtdir" != x ]; then
-	filepatt=$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)
-	# --any to warn only if neither *.vrt nor *.vrt.* is found
-	add_corpus_files --any $(remove_trailing_slash \
-	    "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")
-    fi
-done
-add_corpus_files_expand $extra_corpus_files
-echo_dbg corpus_files "$corpus_files"
-
-for corpus_id in $corpus_ids; do
-    $cwbdata_extract_info --update --registry "$regdir" \
-	--data-root-dir "$datadir" \
-	--tsv-dir $(fill_dirtempl "$tsvdir" $corpus_id) \
-	--info-from-file "$extra_info_file" $corpus_id
-done
 
 # Output the ISO date and time (at seconds precision) for the date
 # passed as an argument, as returned by "date". As with tar --newer,
@@ -819,39 +527,374 @@ get_newer_date () {
     return $retval
 }
 
-# tar option to create a package with files newer than specified
-tar_newer_opt=
-# File base name suffix for a package with files newer than specified
-newer_suff=
-
-# --newer specified, so set tar_newer_opt and newer_suff based on its
-# argument
-if [ "x$newer" != x ]; then
-    date=$(get_newer_date "$newer")
-    if [ $? != 0 ]; then
-        error "Invalid value for --newer: ${date#date: }"
+# Check if --newer had been specified and set the values of global
+# variables tar_newer_opt and newer_suff accordingly.
+check_newer () {
+    local date
+    # tar option to create a package with files newer than specified
+    tar_newer_opt=
+    # File base name suffix for a package with files newer than specified
+    newer_suff=
+    # --newer specified, so set tar_newer_opt and newer_suff based on its
+    # argument
+    if [ "x$newer" != x ]; then
+        date=$(get_newer_date "$newer")
+        if [ $? != 0 ]; then
+            error "Invalid value for --newer: ${date#date: }"
+        fi
+        safe_echo "Packaging only files modified after $date"
+        date=${date//[:-]/}
+        date=${date/ /_}
+        newer_suff="_${newer_marker}_$date"
+        tar_newer_opt=--newer-mtime="$newer"
     fi
-    safe_echo "Packaging only files modified after $date"
-    date=${date//[:-]/}
-    date=${date/ /_}
-    newer_suff="_${newer_marker}_$date"
-    tar_newer_opt=--newer-mtime="$newer"
-fi
+}
 
-corpus_date=$(get_corpus_date $corpus_files)
-mkdir_perms $pkgdir/$corpus_name
-archive_basename=${corpus_name}_${archive_type_name}_$corpus_date$newer_suff
-archive_name=$pkgdir/$corpus_name/$archive_basename.$archive_ext
-archive_num=0
-while [ -e $archive_name ]; do
-    archive_num=$(($archive_num + 1))
-    archive_name=$pkgdir/$corpus_name/$archive_basename-`printf %02d $archive_num`.$archive_ext
-done
+# Check some options and set values or warn based on them.
+check_options () {
+    check_newer
+    if [ "x$include_vrtdir$generate_vrt" != "x" ]; then
+        include_vrt=1
+    fi
+    if [ "x$omit_cwb_data" != x ]; then
+        if [ "x$include_vrt" = x ]; then
+            error "You need to include VRT data when omitting CWB data."
+        fi
+        archive_type_name=vrt
+    fi
+    if [ "x$generate_vrt" != x ] && [ "x$update_vrt" != x ]; then
+        warn "Both --generate-vrt and --update-vrt specified; assuming --update-vrt"
+        generate_vrt=
+    fi
+    eval archive_ext=\$archive_ext_$compress
+    if [ "x$archive_ext" = x ]; then
+        archive_ext=tar.$(get_compress_ext "$compress")
+    fi
+    tar_compress_opt=
+    if [ "x$compress" != "xnone" ]; then
+        tar_compress_opt=--use-compress-program=$compress
+    fi
+    if [ "x$has_readme" = x ]; then
+        warn "No readme file included"
+    fi
+    if [ "x$has_docs" = x ]; then
+        warn "No documentation included"
+    fi
+    if [ "x$has_scripts" = x ]; then
+        warn "No conversion scripts included"
+    fi
+}
 
-tar_compress_opt=
-if [ "x$compress" != "xnone" ]; then
-    tar_compress_opt=--use-compress-program=$compress
-fi
+# Check command-line arguments and set values based on options.
+# Command-line arguments left after processing options are passed as
+# function arguments.
+check_args () {
+    if [ "x$1" = "x" ]; then
+        error "No corpus name specified"
+    fi
+    corpus_name=$1
+    shift
+    set_dirs
+    get_corpus_ids "$@"
+    check_options
+}
+
+generate_vrt () {
+    local corpus_id=$1
+    $cwbdata2vrt --all-attributes --output-file=- $corpus_id
+}
+
+fill_dirtempl () {
+    dirtempl=$1
+    corpus_id=$2
+    echo "$dirtempl" |
+    sed -e "s,{corpname},$corpus_name,g; s,{corpid},$corpus_id,g"
+}
+
+vrt_file_is_uptodate () {
+    local corpus_id=$1
+    local vrt_file=$2
+    local newer_corpus_files
+    vrt_file=$(ls -t "$vrt_file" "$vrt_file".* 2> /dev/null | head -1)
+    if [ "x$vrt_file" = x ]; then
+        return 1
+    fi
+    newer_corpus_files=$(
+        find "$datadir"/$corpus_id -newer "$vrt_file" -name '[a-z]*')
+    [ "x$newer_corpus_files" = x ]
+}
+
+# Generate or update VRT files for all corpus ids.
+generate_or_update_vrt () {
+    local corpus_id vrt_file corpus_vrtdir
+    if [ "x$generate_vrt" != x ]; then
+        mkdir_perms $tmp_prefix.vrt
+        for corpus_id in $corpus_ids; do
+            vrt_file=$tmp_prefix.vrt/$corpus_id.vrt
+            generate_vrt $corpus_id > "$vrt_file"
+            add_corpus_files "$vrt_file"
+            add_transform "$vrt_file" vrt/$corpus_id/$corpus_id.vrt
+        done
+    fi
+    if [ "x$update_vrt" != x ]; then
+        for corpus_id in $corpus_ids; do
+            corpus_vrtdir=$(fill_dirtempl "$vrtdir" $corpus_id)
+            vrt_file=$corpus_vrtdir/$corpus_id.vrt
+            mkdir_perms "$corpus_vrtdir"
+            if ! vrt_file_is_uptodate $corpus_id "$vrt_file"; then
+                # Would the following be safe?
+                # rm -f "$vrt_file" "vrt_file".*
+                generate_vrt $corpus_id > "$vrt_file"
+                if [ "x$compress" != "xnone" ]; then
+                    $compress -f "$vrt_file"
+                fi
+            fi
+        done
+    fi
+}
+
+make_rels_table_names () {
+    corpus_id_upper=$(echo $1 | sed -e 's/\(.*\)/\U\1\E/')
+    for base in $rels_tables_basenames; do
+        echo relations_${corpus_id_upper}_$base |
+        sed -e 's/_@//'
+    done
+}
+
+# Compress SQL file $1 with $compress, or remove it if it does not
+# contain "INSERT INTO" (no data was dumped from the table).
+compress_or_rm_sqlfile () {
+    local sqlfile=$1
+    if grep -q 'INSERT INTO' $sqlfile; then
+        if [ "x$compress" != "xnone" ]; then
+            # -f to overwrite possibly existing compressed file
+            $compress -f $sqlfile
+        fi
+    else
+        rm $sqlfile
+    fi
+}
+
+# Dump the data for corpus with id $1 to file of type $2 where file
+# type is one listed in $sql_file_types_multicorpus. If
+# $sql_table_names_$2 exists, dump the tables listed in its value,
+# otherwise table name is the same as file type. The output file name
+# is $sqldir/$corpusid_$filetype.sql[.$compress].
+make_sql_table_part () {
+    local corpus_id=$1
+    local corpus_id_upper=$(echo $corpus_id | sed -e 's/\(.*\)/\U\1\E/')
+    local filetype=$2
+    local sqlfile=$(fill_dirtempl $sqldir $corpus_id)/${corpus_id}_$filetype.sql
+    local tablenames tablename
+    eval tablenames=\$sql_table_names_$filetype
+    if [ "x$tablenames" = "x" ]; then
+        tablenames=$filetype
+    fi
+    {
+        # Add a CREATE TABLE IF NOT EXISTS statement for the table, so
+        # that the package can be installed even on an empty database.
+        # By default, mysqldump (without --no-create-info) would first
+        # drop the database and then recreate it, but we need to
+        # retain the data for the other corpora.
+        run_mysqldump --no-data --compact $tablenames |
+        sed -e 's/CREATE TABLE/& IF NOT EXISTS/'
+        echo
+        # Instruct to delete existing data for the corpus first
+        for tablename in $tablenames; do
+            echo "DELETE FROM \`$tablename\` WHERE corpus='$corpus_id_upper';"
+        done
+        echo
+        # The actual data dump
+        run_mysqldump --no-create-info --where="corpus='$corpus_id_upper'" \
+            $tablenames
+    } > $sqlfile
+    # Compress the SQL file if requested, or remove if it contains no
+    # data
+    compress_or_rm_sqlfile $sqlfile
+}
+
+# Dump database data for corpus id $1 by using mysqldump.
+dump_database () {
+    local corpus_id=$1
+    local rels_tables=$(make_rels_table_names $corpus_id)
+    local sqldir_real=$(fill_dirtempl $sqldir $corpus_id)
+    local filetype
+    mkdir_perms "$sqldir_real"
+    run_mysqldump $rels_tables > $sqldir_real/${corpus_id}_rels.sql
+    compress_or_rm_sqlfile $sqldir_real/${corpus_id}_rels.sql
+    for filetype in $sql_file_types_multicorpus; do
+        make_sql_table_part $corpus_id $filetype
+    done
+}
+
+# Export database for corpus $1 to TSV or dump to SQL files, depending
+# on the database format used.
+export_or_dump_database () {
+    local corpus_id=$1
+    if [ "$dbformat" = "tsv" ]; then
+        $korp_mysql_export \
+            --corpus-root "$corpus_root" --output-dir "$tsvdir" \
+            --compress "$compress" $corpus_id
+    else
+        dump_database $corpus_id
+    fi
+}
+
+# Output the date (timestamp as YYYYMMMDD_hhmmss) of the most recently
+# modified file of the arguments. Note that this also includes
+# possibly excluded files. Directory names should end in a slash for
+# the dates of the included files to be considered.
+# FIXME: Make work with file names containing spaces
+get_corpus_date () {
+    local files newest_file
+    files="$@ "
+    # Append "*" after trailing slashes to get all the files in
+    # directories
+    files=${files/// //* }
+    newest_file=$(ls -td $files | head -1)
+    date --reference="$newest_file" "+%Y%m%d_%H%M%S"
+}
+
+# Output a list of existing database files for corpus with id $1 and
+# type $2 ("tsv" or "sql"), most recently modified first.
+list_existing_db_files_by_type () {
+    local corpus_id=$1
+    local type=$2
+    local dir basename
+    eval "dir=\$${type}dir"
+    dir=$(fill_dirtempl $dir $corpus_id)
+    basename="$dir/${corpus_id}_*.$type"
+    ls -t $basename $(add_prefix $basename. $compress_exts) 2> /dev/null
+}
+
+get_first_word () {
+    echo "$1"
+}
+
+# Set $dbfiles to a list of database files for corpus with id $1. If
+# no database files already exist, dump the database for the corpus.
+# Note that the function does not output the value of $dbfiles, as the
+# function export_or_dump_database may write to stdout.
+list_db_files () {
+    local corpus_id=$1
+    dbfiles=
+    if [ "$export_db" = "yes" ]; then
+        export_or_dump_database $corpus_id
+    fi
+    dbfiles=$(list_existing_db_files_by_type $corpus_id $dbformat)
+    if [ "x$dbfiles" = "x" ]; then
+        # No database files found; export them if "auto"
+        if [ "$export_db" = "auto" ]; then
+            export_or_dump_database $corpus_id
+            dbfiles=$(list_existing_db_files_by_type $corpus_id $dbformat)
+        elif [ "$export_db" = "no" ]; then
+            warn "Database files not found but not exporting them because of --export-database=no"
+        fi
+    fi
+}
+
+# Adjust data directory in the registry file for $target_corpus_root.
+process_registry () {
+    local corpus_id
+    if [ "$corpus_root" = "$target_corpus_root" ]; then
+        target_regdir=$regdir
+    else
+        target_regdir=$tmp_prefix/$regsubdir
+        mkdir_perms $target_regdir
+        for corpus_id in $corpus_ids; do
+            sed -e "s,^\(HOME\|INFO\) .*\($corpus_id\),\1 $target_corpus_root/$datasubdir/\2," $regdir/$corpus_id > $target_regdir/$corpus_id
+            touch --reference=$regdir/$corpus_id $target_regdir/$corpus_id
+        done
+    fi
+}
+
+# Make auth info (TSV files) for corpora if auth options are
+# specified. Also add auth info to the .info files via the extra info
+# file if auth options are specified, if the auth TSV files already
+# exist or if the MySQL auth database contains the relevant info for
+# the corpus.
+make_auth_info () {
+    local corpus_id tsvdir_real
+    if [ "x$auth_opts" != "x" ]; then
+        $korp_make_auth_info --tsv-dir "$tsvdir" $auth_opts $corpus_ids
+    fi
+    # All corpora to be packaged should have the same auth
+    # information, so get the info for the first corpus
+    corpus_id=$(nth_arg 1 $corpus_ids)
+    tsvdir_real=$(fill_dirtempl "$tsvdir" $corpus_id)
+    # $auth_licence_type and $auth_lbr_id may be set in add_auth_opts;
+    # if they have not been set, check if the TSV files or database
+    # contains the auth info
+    if [ "x$auth_licence_type" = x ]; then
+        auth_licence_type=$(
+            get_licence_type --tsv-dir "$tsvdir_real" $corpus_id)
+    fi
+    if [ "x$auth_lbr_id" = x ]; then
+        auth_lbr_id=$(get_lbr_id --tsv-dir "$tsvdir_real" $corpus_id)
+    fi
+    # Add info to the extra info file
+    if [ "x$auth_licence_type" != x ]; then
+        echo "License:$auth_licence_type" >> $extra_info_file
+        if [ "$auth_licence_type" != "PUB" ]; then
+            echo "Protected:true" >> $extra_info_file
+        fi
+    fi
+    if [ "x$auth_lbr_id" != x ]; then
+        echo "LbrId:$auth_lbr_id" >> $extra_info_file
+    fi
+}
+
+# Update the .info file for corpus whose id is $1.
+update_info () {
+    local corpus_id
+    for corpus_id in $corpus_ids; do
+        $cwbdata_extract_info --update --registry "$regdir" \
+            --data-root-dir "$datadir" \
+            --tsv-dir $(fill_dirtempl "$tsvdir" $corpus_id) \
+            --info-from-file "$extra_info_file" $corpus_id
+    done
+}
+
+# Add to $corpus_files the files for corpus whose id is $1.
+add_single_corpus_files () {
+    local corpus_id
+    corpus_id=$1
+    # Include the CWB registry file as documentation of the VRT fields
+    # even if omitting CWB data
+    add_corpus_files "$target_regdir/$corpus_id"
+    if [ "x$omit_cwb_data" = x ]; then
+        add_corpus_files "$datadir/$corpus_id/"
+    fi
+    if [ "x$dbformat" != xnone ]; then
+        list_db_files $corpus_id
+        add_corpus_files $dbfiles
+    fi
+    if [ "x$include_vrtdir" != x ]; then
+        filepatt=$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)
+        # --any to warn only if neither *.vrt nor *.vrt.* is found
+        add_corpus_files --any $(remove_trailing_slash \
+            "$(fill_dirtempl "$vrtdir/*.vrt $vrtdir/*.vrt.*" $corpus_id)")
+    fi
+}
+
+# Add files to be included in the package to $corpus_files.
+add_files () {
+    local extra_corpus_files corpus_id
+    generate_or_update_vrt
+    process_registry
+    make_auth_info
+    update_info
+    echo_dbg extra_files "$corpus_files"
+    # Add the extra files to the end, except for those to be prepended
+    extra_corpus_files=$corpus_files
+    corpus_files=
+    add_corpus_files_expand $corpus_files_prepend
+    for corpus_id in $corpus_ids; do
+        add_single_corpus_files $corpus_id
+    done
+    add_corpus_files_expand $extra_corpus_files
+    echo_dbg corpus_files "$corpus_files"
+}
 
 transform_dirtempl () {
     # Multiple backslashes are needed in the sed expression because of
@@ -865,21 +908,21 @@ transform_dirtempl_pair () {
     local dstdir=$2
     local repl=
     case $dstdir in
-	*{corp*}* )
-	    dstdir=${dstdir/"{corpname}"/$corpus_name}
-	    case $srcdir in
-		*{corpid}* )
-		    # This assumes that \1 is in the filename part,
-		    # thus later than {corpid}
-		    dstdir=${dstdir/'\1'/'\2'}
-		    repl='\1'
-		    ;;
-		* )
-		    repl=$corpus_name
-		    ;;
-	    esac
-	    dstdir=${dstdir/"{corpid}"/$repl}
-	    ;;
+        *{corp*}* )
+            dstdir=${dstdir/"{corpname}"/$corpus_name}
+            case $srcdir in
+                *{corpid}* )
+                    # This assumes that \1 is in the filename part,
+                    # thus later than {corpid}
+                    dstdir=${dstdir/'\1'/'\2'}
+                    repl='\1'
+                    ;;
+                * )
+                    repl=$corpus_name
+                    ;;
+            esac
+            dstdir=${dstdir/"{corpid}"/$repl}
+            ;;
     esac
     srcdir=$(transform_dirtempl "$srcdir")
     echo "$srcdir $dstdir"
@@ -897,51 +940,78 @@ make_tar_transforms () {
     echo "$1" |
     sort -u |
     while read source target; do
-	echo_dbg tar_transform:from "$source" "$target"
-	local pair=$(transform_dirtempl_pair $source $target)
-	source=${pair% *}
-	target=${pair#* }
+        echo_dbg tar_transform:from "$source" "$target"
+        local pair=$(transform_dirtempl_pair $source $target)
+        source=${pair% *}
+        target=${pair#* }
         # Tar removes leading "../" before transformations, so remove
         # it to make the transformation work
         source=${source#../}
-	make_tar_transform "$source" "$target"
-	if [[ "$source" = */ && "$target" = */ ]]; then
-	    make_tar_transform "$(remove_trailing_slash $source)\$" \
-		"$(remove_trailing_slash $target)"
-	fi
+        make_tar_transform "$source" "$target"
+        if [[ "$source" = */ && "$target" = */ ]]; then
+            make_tar_transform "$(remove_trailing_slash $source)\$" \
+                "$(remove_trailing_slash $target)"
+        fi
     done
 }
 
+# Make tar --exclude options for each space-separated item in each
+# argument. (The exclusion patterns cannot contain spaces.)
 make_tar_excludes () {
-    for patt in "$@"; do
-	printf '%s\n' --exclude "$patt"
+    # Use = instead of space as argument separator to avoid expanding
+    # the resulting pattern in the current directory
+    printf " --exclude=%s" $@
+}
+
+# Set archive name: $archive_name and $archive_basename.
+set_archive_name () {
+    local corpus_date archive_num
+    corpus_date=$(get_corpus_date $corpus_files)
+    mkdir_perms $pkgdir/$corpus_name
+    archive_basename=${corpus_name}_${archive_type_name}_$corpus_date$newer_suff
+    archive_name=$pkgdir/$corpus_name/$archive_basename.$archive_ext
+    archive_num=0
+    while [ -e $archive_name ]; do
+        archive_num=$(($archive_num + 1))
+        archive_name=$pkgdir/$corpus_name/$archive_basename-$(printf %02d $archive_num).$archive_ext
     done
 }
 
-dir_transforms=\
-"$datadir/ data/
-$target_regdir/ registry/
-$sqldir/\\\\([^/]*\\\\.sql[^/]*\\\\) sql/{corpid}/\\\\1
-$tsvdir/\\\\([^/]*\\\\.tsv[^/]*\\\\) sql/{corpid}/\\\\1
-$vrtdir/\\\\([^/]*\\\\.vrt[^/]*\\\\) vrt/{corpid}/\\\\1"
-if [ "x$korp_frontend_dir" != "x" ]; then
-    dir_transforms="$dir_transforms
-$korp_frontend_dir/ korp_config/"
-fi
-if [ "x$extra_dir_and_file_transforms" != x ]; then
-    dir_transforms="$dir_transforms$extra_dir_and_file_transforms"
-fi
+# Output directory name transformations for tar.
+make_dir_transforms () {
+    local dir_transforms
+    dir_transforms="$datadir/ data/
+    $target_regdir/ registry/
+    $sqldir/\\\\([^/]*\\\\.sql[^/]*\\\\) sql/{corpid}/\\\\1
+    $tsvdir/\\\\([^/]*\\\\.tsv[^/]*\\\\) sql/{corpid}/\\\\1
+    $vrtdir/\\\\([^/]*\\\\.vrt[^/]*\\\\) vrt/{corpid}/\\\\1"
+    if [ "x$extra_dir_and_file_transforms" != x ]; then
+        dir_transforms="$dir_transforms$extra_dir_and_file_transforms"
+    fi
+    echo_dbg "$dir_transforms"
+    safe_echo "$dir_transforms"
+}
 
-echo_dbg "$dir_transforms"
-tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
-    -f $archive_name --exclude-backups $(make_tar_excludes $exclude_files) \
-    $(make_tar_transforms "$dir_transforms") \
-    --ignore-failed-read --sort=name \
-    "$tar_newer_opt" \
-    --show-transformed-names $corpus_files
+# Create Korp corpus package.
+create_package () {
+    local dir_transforms
+    set_archive_name
+    dir_transforms="$(make_dir_transforms)"
+    tar cvp --group=$filegroup --mode=g+rwX,o+rX $tar_compress_opt \
+        -f $archive_name \
+        --exclude-backups $(make_tar_excludes "$exclude_files") \
+        $(make_tar_transforms "$dir_transforms") \
+        --ignore-failed-read --sort=name \
+        $tar_newer_opt \
+        --show-transformed-names $corpus_files
+    # Set group and permissions
+    chgrp $filegroup $archive_name
+    chmod a-w $archive_name
+    echo "
+    Created corpus package $archive_name"
+}
 
-chgrp $filegroup $archive_name
-chmod 444 $archive_name
 
-echo "
-Created corpus package $archive_name"
+check_args "$@"
+add_files
+create_package
