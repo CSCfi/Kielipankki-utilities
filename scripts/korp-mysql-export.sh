@@ -9,10 +9,45 @@
 progname=`basename $0`
 progdir=`dirname $0`
 
-shortopts="hc:o:qvz:"
-longopts="help,corpus-root:,output-dir:,quiet,verbose,compress:"
+# A dummy variable used only in $optspecs to adjust slightly for the
+# length difference of "$compress_prog" and its value, since $optspecs
+# texts are wrapped based on the unexpanded value
+filler=
+
+usage_header="Usage: $progname [options] corpus_id ...
+
+Export data from Korp MySQL database tables into TSV files for corpora with
+ids corpus_id ... corpus_id may contain shell wildcards, in which case all
+matching corpora in the corpus registry are processed."
+
+optspecs='
+c|corpus-root=DIR "$corpus_root" { set_corpus_root "$1" }
+    use DIR as the root directory of corpus files for the source files
+    (CORPUS_ROOT) (default: $corpus_root)
+o|output-dir=DIRTEMPL "CORPUS_ROOT/$tsvsubdir" outputdir
+    use DIRTEMPL as the output directory template for TSV files;
+    DIRTEMPL is a directory name possibly containing placeholder
+    {corpid} for corpus id
+q|quiet { verbose= }
+    suppress all output
+v|verbose { verbose=2 }
+    verbose output: show the TSV files produced and the number of rows
+    in them
+z|compress=PROG "$compress" { compress=$(get_compress "$1" "$compress" cat) }
+    compress files with PROG (one of: $compress_progs$filler);
+    "none" for no compression
+'
+
+usage_footer="Environment variables:
+  Default values for the various directories can also be specified via
+  the following environment variables: CORPUS_ROOT, CORPUS_REGISTRY,
+  CORPUS_TSVDIR. MySQL host, username and password can be specified
+  via KORP_MYSQL_HOST, KORP_MYSQL_USER and KORP_MYSQL_PASSWORD,
+  respectively."
+
 
 . $progdir/korp-lib.sh
+
 
 tsvsubdir=vrt/{corpid}
 compress=gzip
@@ -21,96 +56,17 @@ verbose=1
 
 dbname=korp
 
-tables_common="lemgram_index timespans timedata timedata_date corpus_info auth_license auth_lbr_map"
-tables_by_corpus="relations names"
+tables_common="lemgram_index timedata timedata_date auth_license auth_lbr_map"
+tables_by_corpus="relations"
 table_suffixes_relations="@ dep_rel head_rel rel sentences strings"
-table_suffixes_names="@ sentences strings"
 filename_lemgram_index=lemgrams
 filename_corpus_info=corpinfo
 filename_relations=rels
 
-compr_suffix_gzip=.gz
-compr_suffix_bzip2=.bz2
-compr_suffix_xz=.xz
-compr_suffix_cat=
-
-
-usage () {
-    cat <<EOF
-Usage: $progname [options] corpus_id ...
-
-Export data from Korp MySQL database tables into TSV files for corpora with
-ids corpus_id ... corpus_id may contain shell wildcards, in which case all
-matching corpora in the corpus registry are processed.
-
-Options:
-  -h, --help      show this help
-  -c, --corpus-root DIR
-                  use DIR as the root directory of corpus files for the
-                  source files (CORPUS_ROOT) (default: $corpus_root)
-  -o, --output-dir DIRTEMPL
-                  use DIRTEMPL as the output directory template for TSV files;
-                  DIRTEMPL is a directory name possibly containing placeholder
-                  {corpid} for corpus id (default: CORPUS_ROOT/$tsvsubdir)
-  -q, --quiet     suppress all output
-  -v, --verbose   verbose output: show the TSV files produced and the number
-                  of rows in them
-  -z, --compress PROG
-                  compress files with PROG; "none" for no compression
-                  (default: $compress)
-
-Environment variables:
-  Default values for the various directories can also be specified via
-  the following environment variables: CORPUS_ROOT, CORPUS_REGISTRY,
-  CORPUS_TSVDIR.
-EOF
-    exit 0
-}
-
 
 # Process options
-while [ "x$1" != "x" ] ; do
-    case "$1" in
-	-h | --help )
-	    usage
-	    ;;
-	-c | --corpus-root )
-	    shift
-	    set_corpus_root "$1"
-	    ;;
-	-o | --output-dir )
-	    shift
-	    outputdir=$1
-	    ;;
-	-q | --quiet )
-	    verbose=
-	    ;;
-	-v | --verbose )
-	    verbose=2
-	    ;;
-	-z | --compress )
-	    shift
-	    if [ "x$1" = "xnone" ]; then
-		compress=cat
-	    elif which $1 > /dev/null; then
-		compress=$1
-	    else
-		warn "Compression program $1 not found; using $compress"
-	    fi
-	    ;;
-	-- )
-	    shift
-	    break
-	    ;;
-	--* )
-	    warn "Unrecognized option: $1"
-	    ;;
-	* )
-	    break
-	    ;;
-    esac
-    shift
-done
+eval "$optinfo_opt_handler"
+
 
 if [ "x$1" = x ]; then
     error "Please specify the names (ids) of corpora whose data to export.
@@ -121,11 +77,9 @@ outputdir=${outputdir:-$corpus_root/$tsvsubdir}
 
 corpora=$(list_corpora "$@")
 
-fname_suffix=.tsv$(eval echo \$compr_suffix_$compress)
-
-if [ "x$MYSQL_USER" != "x" ]; then
-    mysql_opt_user="--user $MYSQL_USER"
-fi
+fname_suffix=.tsv.$(get_compress_ext "$compress")
+# If no compression, remove trailing dot
+fname_suffix=${fname_suffix%.}
 
 
 run_mysql_export () {
@@ -150,7 +104,7 @@ run_mysql_export () {
     if [ $rowcnt = 0 ]; then
 	if [ -s $tmp_prefix.err ] &&
 	       # Silently ignore "Table doesn't exist" errors
-	       grep -vq '^ERROR 1146' $tmp_prefix.err;
+	       ! grep -lq '^ERROR 1146' $tmp_prefix.err;
 	then
 	    warn "Table $tablename not exported due to a MySQL error:"
 	    cat $tmp_prefix.err | sed -e 's/^/  /'
@@ -172,7 +126,7 @@ export_common_table () {
     fname_table=$(eval echo \$filename_$table)
     outfname=${corpid}_${fname_table:-$table}$fname_suffix
     run_mysql_export $table $outdir/$outfname \
-	"SELECT * FROM $table WHERE corpus='$corpid_u';"
+	"SELECT * FROM \`$table\` WHERE corpus='$corpid_u';"
 }
 
 export_by_corpus_tables () {
@@ -189,7 +143,7 @@ export_by_corpus_tables () {
 	table=${tablegroup}_$corpid_u$table_suff
 	fname_table=$(eval echo \$filename_$tablegroup)
 	outfname=${corpid}_${fname_table:-$tablegroup}$table_suff$fname_suffix
-	run_mysql_export $table $outdir/$outfname "SELECT * FROM $table;"
+	run_mysql_export $table $outdir/$outfname "SELECT * FROM \`$table\`;"
     done
 }
 

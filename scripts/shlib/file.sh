@@ -113,14 +113,61 @@ mkdir_perms () {
 }
 
 
+# _init_compress_info compress_ext_map [...]
+#
+# Initialize global variables compress_progs, compress_exts,
+# compress_prog_$ext and compress_ext_$prog based on compress_ext_map.
+# compress_ext_map is a space-separated list of pairs prog:exts where
+# prog is compression program name and exts the associated filename
+# extensions (without the leading "."), separated by commas.
+# (Alternatively, each pair can be a separate argument.)
+#
+# For each prog:exts, if prog can be run, it is appended to
+# compress_progs, each ext in exts is appended to compress_exts,
+# compress_ext_$prog is set to the first ext in exts and
+# compress_prog_$ext to prog.
+_init_compress_info () {
+    local compress_ext_map item prog exts ext isfirst
+    compress_ext_map=$*
+    compress_progs=
+    compress_exts=
+    for item in $compress_ext_map; do
+        prog=${item%:*}
+        if which $prog > /dev/null; then
+            compress_progs="$compress_progs $prog"
+            isfirst=1
+            for ext in $(strsplit "," "${item#*:}"); do
+                compress_exts="$compress_exts $ext"
+                eval "compress_prog_$ext=\$prog"
+                if [ "$isfirst" = "1" ]; then
+                    eval "compress_ext_$prog=\$ext"
+                    isfirst=
+                fi
+            done
+        fi
+    done
+    # Use echo to remove the leading space
+    compress_progs=$(echo $compress_progs)
+    compress_exts=$(echo $compress_exts)
+}
+
+
+# comprcat [--tar-args tar_args] [--files filespec] [file ...]
+#
+# Output file(s) given as arguments, decompressing compressed files or
+# tar or zip archives. If no file is specified, output standard input.
+# If --tar-args is specified pass tar_args to tar. If --files is
+# specified, extract only files matching filespec (possibly with
+# wildcards) from a tar or zip archive.
 comprcat () {
+    local tar_args unzip_args fname ext
     if [ "x$1" = "x--tar-args" ]; then
-	_comprcat_tar_args=$2
+	tar_args=$2
 	shift 2
     fi
     if [ "x$1" = "x--files" ]; then
-	_comprcat_tar_args="$_comprcat_tar_args --wildcards $2"
-	_comprcat_unzip_args="$2"
+	tar_args="$tar_args --wildcards $2"
+	unzip_args="$2"
 	shift 2
     fi
     if [ "x$1" = x ]; then
@@ -131,23 +178,21 @@ comprcat () {
 		error "Unable to read input file: $fname"
 	    fi
 	    case "$fname" in
-		*.bz2 )
-		    bzcat "$fname"
-		    ;;
-		*.gz )
-		    zcat "$fname"
-		    ;;
-		*.xz )
-		    xzcat "$fname"
-		    ;;
-		*.tar | *.tar.[bgx]z | *.tar.bz2 | *.t[bgx]z | *.tbz2 )
-		    tar -xaOf "$fname" $_comprcat_tar_args
+		*.tar | *.tar.?z* | *.tar.z?* | *.t?z* | *.tz?* )
+		    tar -xaOf "$fname" $tar_args
 		    ;;
 		*.zip )
-		    unzip -p "$fname" $_comprcat_unzip_args
+		    unzip -p "$fname" $unzip_args
 		    ;;
 		* )
-		    cat "$fname"
+                    ext=${fname##*.}
+                    if word_in $ext "$compress_exts"; then
+                        # Assume that the compression programs support
+                        # options -d -c to decompress to stdout
+                        eval "\$compress_prog_$ext -d -c \"$fname\""
+                    else
+		        cat "$fname"
+                    fi
 		    ;;
 	    esac
 	done
@@ -158,11 +203,11 @@ comprcat () {
 # test_compr_file [-test] file_basename
 #
 # Return the result of [ -test file ] for the file_basename, or if
-# that is false, try file_basename suffixed with .gz, .bz2 and .xz. If
-# they all return false, return false. The default test is -e.
+# that is false, try file_basename suffixed with a compressed filename
+# extension in $compress_exts. If they all return false, return false.
+# The default test is -e.
 test_compr_file () {
     local test basename compr_exts ext
-    compr_exts='.gz .bz2 .xz'
     test=-e
     if [ "x$2" != x ]; then
 	test=$1
@@ -170,10 +215,73 @@ test_compr_file () {
     fi
     basename=$1
     [ $test "$basename" ] && return 0
-    for ext in $compr_exts; do
-	[ $test "$basename$ext" ] && return 0
+    for ext in $compress_exts; do
+	[ $test "$basename.$ext" ] && return 0
     done
     return 1
+}
+
+
+# get_compress compress default [none]
+#
+# Output the compression program for compress. If compress is "none",
+# output the value of none if specified, otherwise "none". If compress
+# is unknown or unavailable, output default. compress may include
+# options, in which case its first word is tested as the compression
+# program but whole compress is output if the program is recognized.
+#
+# The recognized compression programs are listed in $compress_progs,
+# initialized in _init_compress_info.
+get_compress () {
+    local compress prog default none retval
+    compress=$1
+    prog=$(nth_arg 1 $compress)
+    default=$2
+    none=none
+    if [ "x$3" != x ]; then
+        none=$3
+    fi
+    retval=0
+    if [ "x$compress" = "xnone" ]; then
+        compress=$none
+    elif ! word_in $prog "$compress_progs"; then
+        warn "Unknown or unavailable compression program $prog; using $default"
+        compress=$default
+        retval=1
+    fi
+    echo "$compress"
+    return $retval
+}
+
+
+# get_compress_ext compress
+#
+# Output the extension for compression program compress. compress may
+# contain options. Errors are not checked.
+get_compress_ext () {
+    local compress
+    compress=$(nth_arg 1 $1)
+    echo $(eval "echo \$compress_ext_$compress")
+}
+
+
+# get_tar_compress_opt filename
+#
+# Output a GNU tar compression option for working with tar file named
+# filename; nothing if the file is not compressed (or the compression
+# extension is not recognized).
+get_tar_compress_opt () {
+    local fname ext compress
+    fname=$1
+    ext=${fname##*.}
+    compress=$(eval "echo \$compress_prog_$ext")
+    if [ "x$compress" = x ]; then
+        ext=${ext#t}
+        compress=$(eval "echo \$compress_prog_$ext")
+    fi
+    if [ "x$compress" != x ]; then
+        safe_echo "--$compress"
+    fi
 }
 
 
@@ -247,7 +355,21 @@ file_newer () {
 }
 
 
+# newest_file file [...]
+#
+# Output the argument filename that has the most recent modification
+# time; nothing if the arguments do not match any files.
+newest_file () {
+    ls -t "$@" 2> /dev/null |
+        head -1
+}
+
+
 # Initialize variables
+
+# Compression programs and the associated filename extensions
+_init_compress_info \
+    gzip:gz bzip2:bz2,bz xz:xz lzip:lz lzma:lzma lzop:lzop zstd:zst
 
 # File permissions used by ensure_perms
 fileperms=ug+rwX,o+rX

@@ -10,7 +10,7 @@
 
 
 # Load shlib components for the functions used
-shlib_required_libs="msgs file"
+shlib_required_libs="msgs file str"
 . $_shlibdir/loadlibs.sh
 
 
@@ -71,6 +71,41 @@ run_mysql () {
     # for using it.
     sql_cmd="SET SQL_BIG_SELECTS=1; $sql_cmd"
     $mysql_bin $mysql_opts --batch --raw --execute "$sql_cmd" "$@" $_db
+}
+
+# run_mysqldump [--auth] [mysqldump options] table ...
+#
+# Run mysqldump, dumping the listed tables in Korp database, with
+# possible mysqldump options. If --auth is specified or if the name of
+# the first table begins with "auth_", dump tables from the
+# authorization database.
+run_mysqldump () {
+    local db extra_opts
+    db=$korpdb
+    extra_opts=
+    if [ "x$mysqldump_error" != x ]; then
+        warn "$mysqldump_error"
+        return 1
+    fi
+    while true; do
+        case "$1" in
+            --auth )
+                db=$korpdb_auth
+                shift
+                ;;
+            -* )
+                extra_opts="$extra_opts $1"
+                shift
+                ;;
+            * )
+                break
+                ;;
+        esac
+    done
+    if str_hasprefix "$1" "auth_"; then
+        db=$korpdb_auth
+    fi
+    $mysqldump_bin --no-autocommit $mysql_opts $extra_opts $db "$@"
 }
 
 # mysql_table_exists table_name
@@ -156,4 +191,18 @@ mysql_error="$(run_mysql ";" 2>&1)"
 if [ "x$mysql_error" != x ]; then
     mysql_error="Cannot access Korp MySQL database: $mysql_error"
     mysql_bin=
+fi
+
+# Find the mysqldump binary
+if [ "x$KORP_MYSQLDUMP_BIN" != "x" ] && [ -x "$KORP_MYSQLDUMP_BIN" ]; then
+    mysqldump_bin=$KORP_MYSQLDUMP_BIN
+elif [ -x /opt/mariadb/bin/mysqldump ]; then
+    # MariaDB on the Korp server; is this still needed?
+    mysqldump_bin="/opt/mariadb/bin/mysqldump --defaults-extra-file=/var/lib/mariadb/my.cnf"
+else
+    mysqldump_bin=$(find_prog mysqldump)
+    if [ $? != 0 ]; then
+	mysqldump_error="mysqldump not found"
+        mysqldump_bin=
+    fi
 fi
