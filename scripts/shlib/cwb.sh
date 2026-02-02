@@ -449,6 +449,8 @@ corpus_remove_attrs () {
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
 #     the registry file.
+# --touch: Update target file modification dates when copying or
+#     renaming attributes.
 #
 # Note that options follow mode (to make it easier to pass the
 # arguments from specific functions using a fixed mode).
@@ -467,14 +469,15 @@ corpus_remove_attrs () {
 # symbolic ones for alias? Renaming or removing an attribute that
 # another attribute links to makes the symbolic links dangle, whereas
 # that would not be a problem for hard links. On the other hand,
-# hard-linked files are more difficult to recognize as links. Another
-# option might be to try to check for such cases and either disallow
-# them, warn on them or apply the operation also to the linking
-# attribute. We could also have an option for hard links.
+# hard-linked files are more difficult to recognize as links, and the
+# modification date of the hard-linked file is the same as the source.
+# Another option might be to try to check for such cases and either
+# disallow them, warn on them or apply the operation also to the
+# linking attribute. We could also have an option for hard links.
 _corpus_manage_attr () {
     local mode comment comment_verb corpus attrname_src attrname_dst \
 	  attrname_bak cmd attrtype_src attrtype_dst baksuff fnames fname \
-	  fname_dst attrtype_word attr_comment comment_extra
+	  fname_dst attrtype_word attr_comment comment_extra touch
     mode=$1
     comment="__DEFAULT"
     comment_extra=
@@ -495,6 +498,11 @@ _corpus_manage_attr () {
 	    shift
 	elif [ "$2" = "--omit-comment" ]; then
 	    comment=
+	    shift
+	elif [ "$2" = "--touch" ]; then
+            if [ "$mode" = "copy" ] || [ "$mode" = "rename" ]; then
+	        touch=1
+            fi
 	    shift
 	else
 	    lib_error "_corpus_manage_attr: Unrecognized option $2"
@@ -639,6 +647,9 @@ _corpus_manage_attr () {
 		fname_dst=
 	    fi
 	    $cmd $fname $fname_dst
+            if [ "x$touch" != x ]; then
+                touch $fname_dst
+            fi
 	done
     )
     if [ $mode != "remove" ] && [ "x$attr_comment" != x ] &&
@@ -667,6 +678,7 @@ _corpus_manage_attr () {
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
 #     the registry file.
+# --touch: Update target file modification dates.
 corpus_rename_attr () {
     _corpus_manage_attr rename "$@"
 }
@@ -689,6 +701,7 @@ corpus_rename_attr () {
 # --attribute-comment: Add comment immediately after the attribute
 #     declaration, instead of to the changelog section at the end of
 #     the registry file.
+# --touch: Update target file modification dates.
 corpus_copy_attr () {
     _corpus_manage_attr copy "$@"
 }
@@ -1165,6 +1178,146 @@ corpus_list_attrs () {
 }
 
 
+# corpus_get_structattr_specs [--sort] corpus [struct_regexp]
+#
+# Output the structural attribute specifications
+# struct:depth+attr1+attr2+... (as used by cwb-encode and cwb-decode)
+# for corpus, each structure on its own line. If struct_regexp is
+# specified, output only specifications for structures fully matching
+# the regular expression struct_regexp.
+#
+# Structures are listed in the order they appear in the registry file.
+# The registry file should be in the format produced by cwb-encode, in
+# particular, the order of attributes for recursively embedded
+# structures should be the same. Comments in the registry file are
+# ignored.
+#
+# Options:
+#   --sort: Sort the attribute names in each structure alphabetically
+#     instead of using the order in the registry file.
+corpus_get_structattr_specs () {
+    local sort corpus structname regfile
+    sort=
+    if [ "x$1" = "x--sort" ]; then
+        sort=1
+        shift
+    fi
+    corpus=$1
+    regfile=$cwb_regdir/$corpus
+    if [ ! -e "$regfile" ]; then
+	return 1
+    fi
+    structname=
+    if [ "x$2" != x ]; then
+        structname=$2
+    fi
+    awk '
+        BEGIN {
+            # Whether to sort attributes alphabetically
+            sort_opt = ARGV[1]
+            # Output only structures matching struct_re
+            struct_re = ARGV[2] ? "^" ARGV[2] "$" : ""
+            delete ARGV[1]
+            delete ARGV[2]
+            structcount = 0
+        }
+
+        $1 == "STRUCTURE" {
+            full_struct = $2
+            sep_pos = index(full_struct, "_")
+            if (sep_pos == 0) {
+                # Structure name without annotations (assumes that
+                # bare structure names do not contain underscores)
+                if (match(full_struct, /^(.+)([1-9])$/, parts)) {
+                    # Structure name ends in a digit: possibly
+                    # recursively embedded structure
+                    struct = parts[1]
+                    depth = parts[2]
+                    if (struct in struct_depths \
+                            && struct_depths[struct] == depth - 1) {
+                        # Assume that recursively embedded structures
+                        # are declared in the registry file in order
+                        # (struct, struct1, struct2, ...); this could
+                        # be either such or an independent structN,
+                        # to be inferred later
+                        struct_cand_struct[full_struct] = struct
+                        struct_depths[struct] = depth
+                        next
+                    }
+                }
+                # New structure
+                if (! struct_re || full_struct ~ struct_re) {
+                    structs[structcount] = full_struct
+                    structcount++
+                    # Structure depths (tentative as long as
+                    # struct_cand_struct[struct depth] exists)
+                    struct_depths[full_struct] = 0
+                    attrstr[full_struct] = ""
+                }
+            } else {
+                # Structure and attribute (annotation) name
+                attr = substr(full_struct, sep_pos + 1)
+                struct = substr(full_struct, 1, sep_pos - 1)
+                if (struct in struct_cand_struct) {
+                    # structN_attr, so previously seen structN was a
+                    # new structure, not a nesting of struct
+                    if (! struct_re || full_struct ~ struct_re) {
+                        structs[structcount] = struct
+                        structcount++
+                        struct_depths[struct] = 0
+                        attrstr[struct] = ""
+                        # Decrement the depth of struct
+                        struct_depths[substr(struct, 1, length(struct) - 1)]--
+                    }
+                    delete struct_cand_struct[struct]
+                } else if (match(full_struct, /^(.+)([1-9])$/, parts)) {
+                    # Attribute name ends in a digit: possibly
+                    # recursively embedded structure
+                    base = parts[1]
+                    digit = parts[2]
+                    if (digit <= struct_depths[struct] && base in attrs) {
+                        # Trailing digit at most struct depth and the
+                        # same attribute exists without the digit:
+                        # attribute for recursively embedded
+                        # structure, so do not add to attributes for
+                        # struct
+                        next
+                    } else if (digit <= struct_depths[struct] + 1 \
+                               && (struct digit) in struct_cand_struct) {
+                        # We had seen structN and here struct_attrN,
+                        # so increment embedding depth of struct to
+                        # digit
+                        struct_depths[struct] = digit
+                        delete struct_cand_struct[struct digit]
+                        next
+                    }
+                }
+                if (! struct_re || struct ~ struct_re) {
+                    attrstr[struct] = attrstr[struct] "+" attr
+                    attrs[full_struct] = 1
+                }
+            }
+        }
+
+        END {
+            for (structnum = 0; structnum < structcount; structnum++) {
+                struct = structs[structnum]
+                attrnames = attrstr[struct]
+                if (attrnames && sort_opt) {
+                    split(substr(attrnames, 2), attrname_arr, /\+/)
+                    asort(attrname_arr)
+                    attrnames = ""
+                    for (i in attrname_arr) {
+                        attrnames = attrnames "+" attrname_arr[i]
+                    }
+                }
+                print struct ":" struct_depths[struct] attrnames
+            }
+        }
+    ' "$sort" "$structname" "$regfile"
+}
+
+
 # corpus_has_attr corpus attrtypes attrname
 #
 # Return true if corpus has attribute attrname of any of the types in
@@ -1264,6 +1417,31 @@ corpus_attr_is_featset_valued () {
     esac
 }
 
+# corpus_attrs_mark_featset_valued corpus attrtype attrnames ...
+#
+# Output attribute names attrnames of type attrtype in corpus, with a
+# slash appended to the feature-set valued ones. attrtype should begin
+# with either "p" or "s" (lower- or upper-case) for positional or
+# structural attributes, respectively. Output attribute names
+# separated by a single space.
+corpus_attrs_mark_featset_valued () {
+    local corpus attrtype attrname result
+    corpus=$1
+    attrtype=$2
+    shift 2
+    result=
+    for attrname in "$@"; do
+        if corpus_attr_is_featset_valued $corpus $attrtype $attrname; then
+            result="$result $attrname/"
+        else
+            result="$result $attrname"
+        fi
+    done
+    # Remove leading space
+    result=${result# }
+    safe_echo "$result"
+}
+
 
 # corpus_get_posattr_values corpus attr [pattern]
 #
@@ -1324,6 +1502,113 @@ get_corpus_token_count () {
 get_corpus_struct_count () {
     $cwb_bindir/cwb-describe-corpus -s $1 |
     awk "/^s-ATT $2"' / {print $3}'
+}
+
+# get_corpus_structattr_counts [--sep sep] corpus [struct_regex]
+#
+# Output the name and number of each structural attribute (matching
+# struct_regex if specified) in corpus. Each attribute is on its own
+# line with the name and number separated by a space or sep if --sep
+# is specified. Annotations of a structure are represented as
+# struct_attr.
+get_corpus_structattr_counts () {
+    local sep corpus regex
+    sep=" "
+    if [ "$1" = "--sep" ]; then
+        sep=$2
+        shift 2
+    fi
+    corpus=$1
+    regex=$2
+    if [ "x$regex" = x ]; then
+        regex="\w+"
+    fi
+    $cwb_bindir/cwb-describe-corpus -s $corpus |
+        awk "/^s-ATT ($regex) "' / {print $2 "'"$sep"'" $3}'
+}
+
+# corpus_has_uniform_structattrs corpus
+#
+# Return true if corpus has uniform structural attributes, that is,
+# all structures of a certain type have the same annotations, false
+# otherwise.
+corpus_has_uniform_structattrs () {
+    local corpus specs structattr_counts_all struct spec depth attrs \
+          structattr_counts
+    corpus=$1
+    specs=$(corpus_get_structattr_specs $corpus)
+    structattr_counts_all=$(get_corpus_structattr_counts --sep ":" $corpus)
+    for spec in $specs; do
+        # Split structural attribute specification (declaration)
+        # struct:depth+attr+attr+... to components
+        struct=${spec%%:*}
+        spec=${spec#*:}
+        depth=${spec%%+*}
+        spec=${spec#*+}
+        attrs=$(echo $(strsplit "+" "$spec"))
+        # Filter counts of attrs of struct in structattr_counts_all
+        structattr_counts=$(
+            filter 'str_hasprefix "$val" "'$struct'[_1-9:]"' \
+                   $structattr_counts_all)
+        # Return false if not all the counts are the same (for each
+        # depth)
+        if ! _structattr_is_uniform $struct $depth "$attrs" \
+             "$structattr_counts";
+        then
+            return 1
+        fi
+    done
+    return 0
+}
+
+# _structattr_is_uniform struct depth attrs structattr_counts
+#
+# Return true if all the attributes attrs in structure struct with
+# nesting depth depth have the same count in structattr_counts (within
+# each depth), false otherwise. structattr_counts has one line for
+# each structural attribute, of the form "structname_attrname:count";
+# it may also contain information for attributes of other structures.
+_structattr_is_uniform () {
+    local struct depth attrs structattr_counts struct_name d struct_attrs \
+          base_count structattr_counts_new structattr count
+    struct=$1
+    depth=$2
+    attrs=$3
+    structattr_counts=$4
+    struct_name=$struct
+    d=0
+    # Loop through all nesting depths
+    while [ $d -le $depth ]; do
+        # Attributes prefixed with struct_
+        struct_attrs="$struct $(add_prefix "${struct}_" $attrs)"
+        # Suffix with depth if depth > 0
+        if [ $d -gt 0 ]; then
+            struct_attrs=$(add_suffix $d $struct_attrs)
+        fi
+        # The number of instances of the first attribute, to which the
+        # others are compared
+        base_count=
+        # Counts not checked on this round
+        structattr_counts_new=
+        for struct_count in $structattr_counts; do
+            structattr=${struct_count%:*}
+            count=${struct_count#*:}
+            if word_in $structattr "$struct_attrs"; then
+                if [ "$base_count" = "" ]; then
+                    base_count=$count
+                elif [ $count != $base_count ]; then
+                    # If the count differs from the number of
+                    # instances of the first attribute, return false
+                    return 1
+                fi
+            else
+                structattr_counts_new="$structattr_counts_new $struct_count"
+            fi
+        done
+        d=$(($d + 1))
+        structattr_counts=$structattr_counts_new
+    done
+    return 0
 }
 
 

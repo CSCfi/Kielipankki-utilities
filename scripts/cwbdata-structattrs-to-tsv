@@ -22,8 +22,8 @@ struct-name|structural-attribute-name|element-name=STRUCT "text"
     Add the attributes to structural attribute (element) STRUCT.
 attribute-names=ATTRNAMELIST attrnames
     Output the attributes listed in ATTRNAMELIST, separated by spaces.
-field-headings
-    Output first a field (column) heading row with attribute names.
+heading-row
+    Output first a column heading row with attribute names.
 '
 
 
@@ -32,7 +32,7 @@ field-headings
 # cleanup_on_exit=
 
 cwb_s_decode=$cwb_bindir/cwb-s-decode
-decode_special_chars="$progdir/vrt-convert-chars.py --decode"
+decode_special_chars="$progdir/../vrt-tools/vrt-convert-chars --decode"
 
 
 # Process options
@@ -51,7 +51,7 @@ extract_attr () {
 
 main () {
     local attrname
-    if [ "x$@" = "x" ]; then
+    if [ "$#" = 0 ]; then
         error "Please specify at least one corpus id as an argument"
     fi
     if [ "x$attrnames" = x ]; then
@@ -60,7 +60,7 @@ main () {
     for attrname in $attrnames; do
         extract_attr $attrname $(list_corpora "$@")
     done
-    if [ "x$column_headings" != x ]; then
+    if [ "x$heading_row" != x ]; then
         echo $attrnames | tr ' ' "$tab"
     fi
     paste $(add_prefix "$tmp_prefix." $attrnames)

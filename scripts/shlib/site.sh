@@ -42,8 +42,8 @@ default_corpus_roots=${default_corpus_roots:-"
 
 # Possible CWB binary directories
 default_cwb_bindirs=${default_cwb_bindirs:-"
-    /usr/local/cwb/bin
     /usr/local/bin
+    /usr/local/cwb/bin
     /projappl/clarin/cwb/bin
     /proj/clarin/korp/cwb/bin
     $USERAPPL/bin

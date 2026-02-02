@@ -63,6 +63,8 @@ class CharConverter(InputProcessor):
          '''the code point offset for the encoded characters: the first
             character in CHARS is encoded as OFFSET, the second as
             OFFSET+1 and so on'''),
+        ('--no-xml -> !xml',
+         '''do not recognize or produce XML character entity references'''),
         ('--feature-set-struct-attributes|set-struct-attrs = attrspec',
          '''Treat the structural attributes specified in the attribute
             specification ATTRSPEC as feature-set attributes and do
@@ -131,7 +133,8 @@ class CharConverter(InputProcessor):
         args.offset = int(args.offset, base=0)
         self._convert_map = [(c, chr(i + args.offset))
                              for (i, c) in enumerate(args.chars)]
-        self._add_xml_char_refs_to_convert_map(args.mode)
+        if args.xml:
+            self._add_xml_char_refs_to_convert_map(args.mode)
         self._feat_set_struct_attrs = self._make_feat_set_struct_attrs(
             args.feature_set_struct_attributes)
         # print repr(self._feat_set_struct_attrs)

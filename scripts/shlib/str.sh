@@ -18,12 +18,30 @@ toupper () {
 
 # add_prefix prefix [args] ...
 #
-# Prepend prefix to all args. If no args, do not output anything.
+# Output all args with prefix prepended to each, separated by a space.
+# If no args, do not output anything.
 add_prefix () {
-    _add_prefix_prefix=$1
+    local prefix result
+    prefix=$1
     shift
     if [ "$#" != 0 ]; then
-	printf -- "$_add_prefix_prefix%s " "$@"
+        result=$(printf -- "$prefix%s " "$@")
+        # Remove trailing space
+        safe_echo "${result% }"
+    fi
+}
+
+# add_suffix suffix [args] ...
+#
+# Output all args with suffix added to each, separated by a space. If
+# no args, do not output anything.
+add_suffix () {
+    local suffix result
+    suffix=$1
+    shift
+    if [ "$#" != 0 ]; then
+        result=$(printf -- "%s$suffix " "$@")
+        safe_echo "${result% }"
     fi
 }
 
@@ -112,6 +130,28 @@ suffix_word () {
     wordlist=${wordlist% }
     wordlist=${wordlist# }
     safe_echo "$wordlist"
+}
+
+
+# filter filter_expr args ...
+#
+# Output those of args for which the shell expression filter_expr
+# returns true. filter_expr can (and usually should) refer to the
+# value to be tested as $val (within single quotes) or \$val (within
+# double quotes). Output args are separated by spaces.
+filter () {
+    local filter_expr result val
+    filter_expr=$1
+    shift
+    result=
+    for val in "$@"; do
+        if eval "$filter_expr"; then
+            result="$result $val"
+        fi
+    done
+    # Remove leading space
+    result=${result# }
+    safe_echo "$result"
 }
 
 
@@ -238,4 +278,43 @@ integer () {
     local num
     num=$1
     echo ${num%.*}
+}
+
+
+# semver_ge version_str major [minor [patch]]
+#
+# Return true if the version specified by the semantic version string
+# version_str ("major.minor.patch") is greater than or equal to the
+# version specified by major, minor and patch; false otherwise. If
+# patch or minor is omitted, it is assumed to be 0.
+semver_ge () {
+    local version major minor patch comp
+    version=$1
+    major=$2
+    minor=$3
+    patch=$4
+    [ "$minor" = "" ] &&
+        minor=0
+    [ "$patch" = "" ] &&
+        patch=0
+    # Major
+    comp=${version%%.*}
+    [ $comp -gt $major ] &&
+        return 0
+    [ $comp -lt $major ] &&
+        return 1
+    # Minor
+    version=${version#*.}
+    comp=${version%%.*}
+    { [ "$comp" = "" ] || [ $comp -gt $minor ]; } &&
+        return 0
+    [ $comp -lt $minor ] &&
+        return 1
+    # Patch
+    comp=${version#*.}
+    { [ "$comp" = "" ] || [ $comp -gt $patch ]; } &&
+        return 0
+    [ $comp -lt $patch ] &&
+        return 1
+    return 0
 }
