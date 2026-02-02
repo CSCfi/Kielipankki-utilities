@@ -1,0 +1,95 @@
+# Map Oracc 2024 POS tags to the POS tags used in Korp lemgrams
+
+# not pos-tagged [AS: treenidatan epäsäännöllisyydestä johtuva juttu, saa jäädä, tämä on yleenä "u"]
+_	xx
+# adjective
+AJ	jj
+adjective	jj
+# adposition
+Adp	pp
+adposition	pp
+AN	xx
+# adverb
+AV	ab
+adverb	ab
+# conjunction
+CNJ	kn
+conjunction	kn
+# proper name
+CN	pm
+commonnoun	nn
+# determiner
+DET	dt
+#
+DET&&N	xx
+# proper name
+DN	pm
+# proper name
+DP	pn
+# proper name
+EN	pm
+FN	xx
+# proper name
+GN	pm
+# pronoun
+IP	pn
+# interjection?
+interjection	in
+J	in
+# proper name
+LN	pm
+MA	xx
+miscunknown	xx
+# proper name
+MN	pm
+# number written in cuneiform
+n	rg
+# noun
+N	nn
+N&&AJ	nn
+N&&N	nn
+noun	nn
+NP	xx
+# number
+NU	rg
+number	rg
+O	pp
+# proper name
+ON	pm
+particle	xx
+# proper name
+PN	pm
+# preposition
+PP	pp
+pronoun	pp
+propernoun	pm
+PRP	pp
+# proper name
+QN	pm
+# pronoun
+QP	pn
+# relative pronoun
+REL	pn
+# proper name
+RN	pm
+RP	pn
+# subjunction?
+SBJ	sn
+# proper name
+SN	pm
+# proper name
+TN	pm
+# unknown due to damage in text
+u	xx
+unknown	xx
+# verb
+V	vb
+verb	vb
+V/i	vb
+V/t	vb
+# proper name
+WN	pm
+X	xx
+# pronoun
+XP	pn
+yearname	nn
