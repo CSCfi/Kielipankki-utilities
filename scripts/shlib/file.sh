@@ -133,7 +133,7 @@ _init_compress_info () {
     compress_exts=
     for item in $compress_ext_map; do
         prog=${item%:*}
-        if which $prog > /dev/null; then
+        if which $prog > /dev/null 2>&1; then
             compress_progs="$compress_progs $prog"
             isfirst=1
             for ext in $(strsplit "," "${item#*:}"); do
