@@ -73,6 +73,14 @@ def parsearguments(argv, *, prog = None):
                         (ignores --attr option)
 
                         ''')
+    method.add_argument('--yle-month', action = 'store_true',
+                        help = '''
+
+                        tag by year_month, extracted from the datetime
+                        attribute specified with the --attr option
+                        (content modified, json modified, published)
+
+                        ''')
 
     args = parser.parse_args(argv)
     args.prog = prog or parser.prog
@@ -127,6 +135,7 @@ def main(args, ins, outdir):
     method = (
         klk_main_lang if args.klk_main_lang else
         klk_year if args.klk_year else
+        yle_month if args.yle_month else
         None # this cannot happen: method group is required in args
     )
 
@@ -249,6 +258,27 @@ def klk_year(line, args):
 
     ).group(1)
     return year.decode()
+
+def yle_month(line, args):
+    '''Return the YYYY-MM prefix from the specified datetime attribute in
+    the text start tag, assumed to be there and to be in the ISO
+    datetime format. (There appear to be some temporal anomalies at
+    the beginning of a new year. Some candidates are publication time,
+    content modification time, JSON modification time.)
+
+    '''
+    if args.attr is None:
+        raise BadData('partitioning by YLE month method requires --attr (some ISO datetime)')
+
+    meta = mapping(line)
+    yyyy_mm = (
+        fullmatch(br"(\d{4}-\d{2})-\d{2}T.*?", meta[args.attr])
+        .group(1)
+    )
+    # that will raise an exception if the attribute is not there or
+    # the datetime pattern does not match
+
+    return yyyy_mm.decode()
 
 def opener(streams, tag, head, tmpname, outname):
     '''Return the output stream that points to an output file with "tag"
