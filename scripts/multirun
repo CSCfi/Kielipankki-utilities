@@ -1,0 +1,233 @@
+#! /bin/bash
+
+# multirun [options] indir outdir "command"
+#
+# Run a processing command for multiple input files in an input
+# directory, producing output to outdir, possibly in parallel with the
+# help of GNU Parallel or SLURM via game.
+
+
+progname=`basename $0`
+progdir=`dirname $0`
+
+usage_header="Usage: $progname [options] indir outdir \"command\"
+
+Run a processing command for multiple input files in input directory
+indir, producing output to output directory outdir, typically one
+output file corresponding to one input file, possibly in parallel with
+the help of GNU Parallel or SLURM via game.
+
+command may be either a single string containing a complete command
+line with a command and arguments, or multiple arguments, which are
+then concatenated, separated by spaces. command is evaluated by the
+shell, so it can be composed of multiple commands, use I/O redirection
+and pipes.
+
+In the command line, the following strings are replaced with input or
+output file names: {<} -> input file name, {>} -> output file name,
+{<.} -> input file name without extensions, {>.} -> output file name
+without extensions. When using Parallel, its replacement strings are
+also replaced (including the additional ones added by the --plus
+option)."
+
+optspecs='
+m|mode=MODE "default"
+    Run command using MODE: one of "parallel" (use GNU Parallel, the
+    default if available), "game" (use SLURM via game) or "sequential"
+    (run sequentially).
+options=OPTS opts
+    Pass OPTS as options to Parallel or game.
+f|force
+    Run the command even if the output file exists.
+v|verbose
+    Output the commands to be run.
+n|dry-run
+    Do not actually run commands; only show what is to be run.
+'
+
+. $progdir/korp-lib.sh
+
+
+# Process options
+eval "$optinfo_opt_handler"
+
+game=$progdir/../vrt-tools/game
+
+
+infile_patts="*"
+
+if [ $# -lt 3 ]; then
+    error "Input directory, output directory and command required"
+fi
+
+indir=$1
+outdir=$2
+shift 2
+cmd_base=$(delimit " " "$@")
+
+
+check_indir_candidate () {
+    local patt indir_cand
+    patt=$1
+    indir_cand=$(ls -d $patt 2> /dev/null)
+    if [ "$indir_cand" != "" ] && [ -d "$indir_cand" ] &&
+           [ $(count_words $indir_cand) = 1 ]; then
+        safe_echo "$indir_cand"
+    fi
+}
+
+if [ ! -d "$indir" ]; then
+    if [ "${indir#[0-9]*-}" = "$indir" ]; then
+        # No numeric prefix, so try to find one
+        indir=$(check_indir_candidate "[0-9]*-$indir")
+    else
+        indir=$(check_indir_candidate "$indir-*")
+    fi
+    if [ "$indir_" = "" ]; then
+        error "Input directory $indir not found"
+    fi
+fi
+
+
+if [ "${outdir#[0-9]}" = "$outdir" ]; then
+    # If $outdir does not begin with a digit, prepend the number
+    # following the numeric prefix in $indir
+    indir_num=${indir%%-*}
+    indir_num=${indir_num%%[a-z]}
+    outdir=$(printf "%02d" $(($indir_num + 1)))-$outdir
+fi
+
+if [ ! -d "$outdir" ]; then
+    if [ -e "$outdir" ]; then
+        error "$outdir exists and is not a directory"
+    fi
+    if [ "$dry_run" = "" ]; then
+        mkdir "$outdir"
+    fi
+fi
+
+
+case "${mode,,}" in
+    par* | default )
+        if prog_available parallel; then
+            mode="parallel"
+        elif [ "$mode" = "default" ]; then
+            # If mode not set explicitly, fall back to sequential
+            warn "parallel not available; falling back to sequential mode"
+            mode="sequential"
+        else
+            # If mode set explicitly, error
+            error "parallel not available"
+        fi
+        ;;
+    game )
+        if prog_available sbatch || [ "$dry_run" != "" ]; then
+            mode="game"
+        else
+            error "SLURM (sbatch) not available"
+        fi
+        ;;
+    seq* )
+        mode="sequential"
+        ;;
+    * )
+        error "Unknown mode \"$mode\"; use one of \"parallel\", \"game\" or \"sequential\""
+esac
+
+
+run () {
+    if [ "$dry_run" != "" ] || [ "$verbose" != "" ]; then
+        echo_quoted "$@"
+    fi
+    if [ "$dry_run" = "" ] || [ "$mode" != "sequential" ]; then
+        "$@"
+    fi
+}
+
+list_infiles () {
+    local infiles_base infiles infile
+    set -o noglob
+    infiles_base=$(add_prefix "$indir/" "$infile_patts")
+    set +o noglob
+    infiles_base=$(ls $infiles_base)
+    if [ "$force" = "" ]; then
+        for infile in $infiles_base; do
+            if [ ! -e $outdir/$(basename $infile) ]; then
+                safe_echo "$infile"
+            fi
+        done
+    else
+        safe_echo "$infiles_base"
+    fi
+}
+
+run_parallel () {
+    local infiles cmd
+    infiles=$1
+    cmd=$cmd_base
+    cmd=${cmd//\{<\}/\{\}}
+    cmd=${cmd//\{>\}/$outdir/\{/\}}
+    cmd=${cmd//\{<.\}/\{%%\\..*\}}
+    cmd=${cmd//\{>.\}/$outdir/\{%%\\..*\}}
+    # if [ "${cmd#*\{<.\}}" != "$cmd" ]; then
+    #     cmd=${cmd//\{<.\}/$\{in_noext\}}
+    #     cmd="in_noext='{}'; in_noext=\${in_noext%%.*}; $cmd"
+    # fi
+    # if [ "${cmd#*\{>.\}}" != "$cmd" ]; then
+    #     cmd=${cmd//\{>.\}/$\{out_noext\}}
+    #     cmd="out_noext='$outdir/{/}'; out_noext=\${out_noext%%.*}; $cmd"
+    # fi
+    [ "$dry_run" != "" ] &&
+        opts="--dry-run $opts"
+    # {%%} requires --plus
+    run parallel --plus $opts "$cmd" ::: $infiles
+}
+
+replace_placeholders () {
+    local cmd infile infile_noext outfile outfile_noext
+    cmd=$1
+    infile=$2
+    infile_noext=${infile%%.*}
+    outfile=$outdir/$(basename $infile)
+    outfile_noext=${outfile%%.*}
+    cmd=${cmd//\{<\}/$infile}
+    cmd=${cmd//\{>\}/$outfile}
+    cmd=${cmd//\{<.\}/$infile_noext}
+    cmd=${cmd//\{>.\}/$outfile_noext}
+    safe_echo "$cmd"
+}
+
+run_game () {
+    local infiles infile job_opt cmd
+    infiles=$1
+    [ "$dry_run" != "" ] &&
+        opts="--cat $opts"
+    for infile in $infiles; do
+        cmd=$(replace_placeholders "$cmd_base" $infile)
+        job_opt="--job $outdir-${infile%%.*}"
+        run $game $opts $job_opt bash -c "$cmd"
+    done
+}
+
+run_for () {
+    infiles=$1
+    for infile in $infiles; do
+        cmd=$(replace_placeholders "$cmd_base" $infile)
+        run bash -c "$cmd"
+    done
+}
+
+main () {
+    local infiles
+    infiles=$(list_infiles)
+    if [ "$mode" = "game" ]; then
+        run_game "$infiles"
+    elif [ "$mode" = "parallel" ]; then
+        run_parallel "$infiles"
+    else
+        run_for "$infiles"
+    fi
+}
+
+
+main
