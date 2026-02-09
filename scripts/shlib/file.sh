@@ -80,6 +80,14 @@ find_prog () {
     return 1
 }
 
+# prog_available program
+#
+# Return true if program is available (found by find_prog), false
+# otherwise.
+prog_available () {
+    find_prog $1 > /dev/null
+}
+
 test_file () {
     _test=$1
     _file=$2
