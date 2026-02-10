@@ -30,8 +30,9 @@ option)."
 optspecs='
 m|mode=MODE "default"
     Run command using MODE: one of "parallel" (use GNU Parallel),
-    "game" (use SLURM via game) or "serial" (run serially)
-    (default: "parallel" if available, otherwise "serial").
+    "game" (use SLURM via game) or "serial" (run serially); any prefix
+    of the mode name is also recognized (default: "parallel" if
+    Parallel is available, otherwise "serial").
 options=OPTS opts
     Pass OPTS as options to Parallel or game.
 f|force
@@ -63,32 +64,29 @@ check_outdir () {
 }
 
 check_mode () {
-    case "${mode,,}" in
-        par* | default )
-            if prog_available parallel; then
-                mode="parallel"
-            elif [ "$mode" = "default" ]; then
-                # If mode not set explicitly, fall back to serial
-                warn "parallel not available; falling back to serial mode"
-                mode="serial"
-            else
-                # If mode set explicitly, error
-                error "parallel not available"
-            fi
-            ;;
-        game )
-            if prog_available sbatch || [ "$dry_run" != "" ]; then
-                mode="game"
-            else
-                error "SLURM (sbatch) not available"
-            fi
-            ;;
-        ser* )
+    mode=${mode,,}
+    if str_hasprefix "parallel" "$mode" || [ "$mode" = "default" ]; then
+        if prog_available parallel; then
+            mode="parallel"
+        elif [ "$mode" = "default" ]; then
+            # If mode not set explicitly, fall back to serial
+            warn "parallel not available; falling back to serial mode"
             mode="serial"
-            ;;
-        * )
-            error 'Unknown mode '"$mode"'; use one of "parallel", "game" or "serial"'
-    esac
+        else
+            # If mode set explicitly, error
+            error "parallel not available"
+        fi
+    elif str_hasprefix "game" "$mode"; then
+        if prog_available sbatch || [ "$dry_run" != "" ]; then
+            mode="game"
+        else
+            error "SLURM (sbatch) not available"
+        fi
+    elif str_hasprefix "serial" "$mode"; then
+        mode="serial"
+    else
+        error 'Unknown mode "'"$mode"'"; use one of "parallel", "game" or "serial"'
+    fi
 }
 
 run () {
