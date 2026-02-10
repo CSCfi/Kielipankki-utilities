@@ -5,6 +5,10 @@
 # Run a processing command for multiple input files, possibly in
 # parallel with the help of GNU Parallel or SLURM via game.
 
+# TODO:
+# - Handle subdirectories in the input: at least make
+#   --output-file-pattern work with them.
+
 
 progname=`basename $0`
 progdir=`dirname $0`
@@ -33,6 +37,17 @@ m|mode=MODE "default"
     "game" (use SLURM via game) or "serial" (run serially); any prefix
     of the mode name is also recognized (default: "parallel" if
     Parallel is available, otherwise "serial").
+output-file-pattern=PATTERN "{}" outfile_pattern
+    If PATTERN matches any files in the output directory for an input
+    file, do not run command for the input file. "{}" in PATTERN
+    refers to the base name of the input file (without directories).
+    Bash string operations can also be used to modify the base name of
+    the input file: for example, "{%.*}" is the file name with the
+    (last) extension removed and "{##*.}" is the last extension.
+    Shell wildcards in PATTERN are expanded. NOTE that this option
+    only specifies the files whose existence is to be checked for each
+    input file; the names of the actual output files are determined by
+    command. (Default: %(default)s.)
 options=OPTS opts
     Pass OPTS as options to Parallel or game.
 f|force
@@ -99,10 +114,15 @@ run () {
 }
 
 list_infiles () {
-    local infile
+    local infile patt infile_base
+    # The following replaces {} -> ${foo}, {%.*} -> ${foo%.*} and so on
+    # TODO: Support escaping { by prepending a backslash
+    patt=${outfile_pattern//\{/\$\{infile_base}
+    echo_dbg "$patt"
     if [ "$force" = "" ]; then
         for infile in "$@"; do
-            if [ ! -e $outdir/$(basename $infile) ]; then
+            infile_base=$(basename $infile)
+            if [ "$(eval "ls $outdir/$patt 2> /dev/null")" = "" ]; then
                 safe_echo "$infile"
             fi
         done
