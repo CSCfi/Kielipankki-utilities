@@ -30,8 +30,8 @@ option)."
 optspecs='
 m|mode=MODE "default"
     Run command using MODE: one of "parallel" (use GNU Parallel),
-    "game" (use SLURM via game) or "sequential" (run sequentially)
-    (default: "parallel" if available, otherwise "sequential").
+    "game" (use SLURM via game) or "serial" (run serially)
+    (default: "parallel" if available, otherwise "serial").
 options=OPTS opts
     Pass OPTS as options to Parallel or game.
 f|force
@@ -68,9 +68,9 @@ check_mode () {
             if prog_available parallel; then
                 mode="parallel"
             elif [ "$mode" = "default" ]; then
-                # If mode not set explicitly, fall back to sequential
-                warn "parallel not available; falling back to sequential mode"
-                mode="sequential"
+                # If mode not set explicitly, fall back to serial
+                warn "parallel not available; falling back to serial mode"
+                mode="serial"
             else
                 # If mode set explicitly, error
                 error "parallel not available"
@@ -83,11 +83,11 @@ check_mode () {
                 error "SLURM (sbatch) not available"
             fi
             ;;
-        seq* )
-            mode="sequential"
+        ser* )
+            mode="serial"
             ;;
         * )
-            error 'Unknown mode '"$mode"'; use one of "parallel", "game" or "sequential"'
+            error 'Unknown mode '"$mode"'; use one of "parallel", "game" or "serial"'
     esac
 }
 
@@ -95,7 +95,7 @@ run () {
     if [ "$dry_run" != "" ] || [ "$verbose" != "" ]; then
         echo_quoted "$@"
     fi
-    if [ "$dry_run" = "" ] || [ "$mode" != "sequential" ]; then
+    if [ "$dry_run" = "" ] || [ "$mode" != "serial" ]; then
         "$@"
     fi
 }
@@ -156,7 +156,7 @@ run_game () {
     done
 }
 
-run_sequential () {
+run_serial () {
     infiles=$1
     for infile in $infiles; do
         cmd=$(replace_placeholders "$cmd_base" $infile)
