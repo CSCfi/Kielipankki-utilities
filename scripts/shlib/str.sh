@@ -249,7 +249,7 @@ delimit () {
         printf "%s" "$1$sep"
         shift
     done
-    printf "$1"
+    printf "%s" "$1"
 }
 
 
