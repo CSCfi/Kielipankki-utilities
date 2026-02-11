@@ -211,6 +211,8 @@ list_infiles () {
             infile_base=$(basename $infile)
             if [ "$(eval "ls $outdir/$patt 2> /dev/null")" = "" ]; then
                 safe_echo "$infile"
+            elif [ "$verbose" != "" ]; then
+                warn "Skipping input file \"$infile\": output file \"$outdir/$(eval echo "$patt")\" already exists"
             fi
         done
     else
