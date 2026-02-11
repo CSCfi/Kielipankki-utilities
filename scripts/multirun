@@ -8,6 +8,7 @@
 # TODO:
 # - Handle subdirectories in the input: at least make
 #   --output-file-pattern work with them.
+# - Support protecting "{" in command (and --output-file-pattern).
 
 
 progname=`basename $0`
@@ -37,11 +38,12 @@ command and arguments. command is evaluated by the shell, so it can be
 composed of multiple commands, use I/O redirection and pipes.
 
 In the command line, the following strings are replaced with input or
-output file names: {<} -> input file name, {>} -> output file name,
-{<.} -> input file name without extensions, {>.} -> output file name
-without extensions. When using Parallel, its replacement strings are
-also replaced (including the additional ones added by the --plus
-option)."
+output file names (including the directory): {<} -> input file name,
+{<.} -> input file name without (the last) extension, {<.*} -> input
+file name without any extensions; {>}, {>.}, {>.*} -> the same for
+output file name. When using Parallel, its replacement strings are
+also replaced, including the additional ones added by the --plus
+option."
 
 optspecs='
 m|mode=MODE "default"
@@ -225,9 +227,11 @@ run_parallel () {
     infiles=$1
     cmd=$cmd_base
     cmd=${cmd//\{<\}/\{\}}
+    cmd=${cmd//\{<.\}/\{.\}}
+    cmd=${cmd//\{<.\*\}/\{%%\\.[^/]*\}}
     cmd=${cmd//\{>\}/$outdir/\{/\}}
-    cmd=${cmd//\{<.\}/\{%%\\..*\}}
-    cmd=${cmd//\{>.\}/$outdir/\{%%\\..*\}}
+    cmd=${cmd//\{>.\}/$outdir/\{/.\}}
+    cmd=${cmd//\{>.\*\}/$outdir/\{= s:.*/(.*?)\\..*:\$1: =\}}
     opts="--jobs $jobs --load $load $opts"
     [ "$dry_run" != "" ] &&
         opts="--dry-run $opts"
@@ -239,16 +243,18 @@ run_parallel () {
 }
 
 replace_placeholders () {
-    local cmd infile infile_noext outfile outfile_noext
+    local cmd infile outfile
     cmd=$1
     infile=$2
-    infile_noext=${infile%%.*}
-    outfile=$outdir/$(basename $infile)
-    outfile_noext=${outfile%%.*}
+    indir=$(dirname $infile)
+    inbase=$(basename $infile)
+    outfile=$outdir/$inbase
     cmd=${cmd//\{<\}/$infile}
+    cmd=${cmd//\{<.\}/${infile%.*}}
+    cmd=${cmd//\{<.\*\}/$indir/${inbase%%.*}}
     cmd=${cmd//\{>\}/$outfile}
-    cmd=${cmd//\{<.\}/$infile_noext}
-    cmd=${cmd//\{>.\}/$outfile_noext}
+    cmd=${cmd//\{>.\}/${outfile%.*}}
+    cmd=${cmd//\{>.\*\}/$outdir/${inbase%%.*}}
     safe_echo "$cmd"
 }
 
