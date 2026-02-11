@@ -13,6 +13,18 @@
 progname=`basename $0`
 progdir=`dirname $0`
 
+
+# Default values for mode-specific options; the defaults for these in
+# optspecs are "default" to be able to recognize if the option has
+# been specified explicitly (setting the mode) or not
+jobs_default="25%"
+load_default="100%"
+time_default="30"
+memory_default="1024M"
+scratch_default="0"
+cores_default="1"
+
+
 usage_header="Usage: $progname [options] outdir \"command\" infiles ...
 
 Run a processing command for multiple input files infiles, producing
@@ -35,8 +47,9 @@ optspecs='
 m|mode=MODE "default"
     Run command using MODE: one of "parallel" (use GNU Parallel),
     "game" (use SLURM via game) or "serial" (run serially); any prefix
-    of the mode name is also recognized (default: "parallel" if
-    Parallel is available, otherwise "serial").
+    of the mode name is also recognized. Options specific to Parallel
+    or game implicitly set the mode correspondingly. (Default:
+    "parallel" if Parallel is available, otherwise "serial".)
 output-file-pattern=PATTERN "{}" outfile_pattern
     If PATTERN matches any files in the output directory for an input
     file, do not run command for the input file. "{}" in PATTERN
@@ -49,14 +62,45 @@ output-file-pattern=PATTERN "{}" outfile_pattern
     input file; the names of the actual output files are determined by
     command. (Default: %(default)s.)
 options=OPTS opts
-    Pass OPTS as options to Parallel or game.
+    Pass OPTS as (additional) options to Parallel or game.
 f|force
     Run the command even if the output file exists.
 v|verbose
     Output the commands to be run.
 n|dry-run
     Do not actually run commands; only show what is to be run.
+
+@ Options specific to Parallel
+
+j|jobs=NUM "default"
+    Run up to NUM jobs in parallel. NUM can be a positive integer, a
+    percentage (NUM%) of CPU threads, +NUM to add to the number of CPU
+    threads or -NUM to subtract. (For other supported forms, please
+    see the Parallel documentation.) (Default: '$jobs_default'.)
+load=MAX-LOAD "default"
+    Do not start jobs unless CPU load is below MAX-LOAD. The form of
+    MAX-LOAD is the same as for NUM in --jobs. (Default:
+    '$load_default'.)
+
+@ Options specific to game (SLURM)
+
+T|time=TIME "default"
+    Reserve TIME time for each job, in minutes or hours:minutes
+    (default: '$time_default').
+M|memory=SIZE "default"
+    Reserve SIZE memory (RAM) for each job; suffix SIZE with M
+    (default) or G for mebi- and gibibytes (default:
+    '$memory_default').
+S|scratch=SIZE "default"
+    Reserve SIZE gigabytes of fast local storage (default:
+    '$scratch_default').
+C|cores=NUM "default"
+    Reserve NUM CPU cores for each job (default: '$cores_default').
 '
+
+usage_footer="Note that the default values for game-specific options differ from
+the defaults in game."
+
 
 . $progdir/korp-lib.sh
 
@@ -65,6 +109,9 @@ n|dry-run
 eval "$optinfo_opt_handler"
 
 game=$progdir/../vrt-tools/game
+
+opts_parallel="jobs load"
+opts_game="time memory scratch cores"
 
 
 check_outdir () {
@@ -78,29 +125,69 @@ check_outdir () {
     fi
 }
 
-check_mode () {
-    mode=${mode,,}
-    if str_hasprefix "parallel" "$mode" || [ "$mode" = "default" ]; then
-        if prog_available parallel; then
-            mode="parallel"
-        elif [ "$mode" = "default" ]; then
-            # If mode not set explicitly, fall back to serial
-            warn "parallel not available; falling back to serial mode"
-            mode="serial"
-        else
-            # If mode set explicitly, error
-            error "parallel not available"
+check_mode_specific_opts () {
+    local implicit_mode check_mode opt parallel_specific game_specific
+    implicit_mode=
+    for check_mode in parallel game; do
+        for opt in $(eval echo \$opts_$check_mode); do
+            if [ "$(eval echo \$$opt)" != "default" ]; then
+                eval "${check_mode}_specific=\"\$${check_mode}_specific --$opt\""
+                implicit_mode=$check_mode
+            else
+                eval "$opt=\$${opt}_default"
+            fi
+        done
+    done
+    if [ "$parallel_specific" != "" ] && [ "$game_specific" != "" ]; then
+        error "Do not specify both Parallel-specific ($(delimit ', ' $parallel_specific)) and game-specific ($(delimit ', ' $game_specific)) options"
+    fi
+    if [ "$implicit_mode" != "" ]; then
+        if [ "$mode" = "default" ]; then
+            mode=$implicit_mode
+        elif [ "$implicit_mode" != "$mode" ]; then
+            error "Option(s) conflict with mode \"$mode\": $(delimit ', ' $parallel_specific $game_specific)"
         fi
-    elif str_hasprefix "game" "$mode"; then
-        if prog_available sbatch || [ "$dry_run" != "" ]; then
-            mode="game"
+    fi
+}
+
+check_mode () {
+    local orig_mode exp_mode parallel_specific
+    mode=${mode,,}
+    if [ "$mode" = "" ]; then
+        error 'Mode must be one of "parallel", "game" or "serial"'
+    elif [ "$mode" != "default" ]; then
+        exp_mode=$(match_prefix "$mode" parallel game serial)
+        if [ "$exp_mode" = "" ]; then
+            error 'Unknown mode "'"$mode"'"; use one of "parallel", "game" or "serial"'
         else
+            mode=$exp_mode
+        fi
+    fi
+    orig_mode=$mode
+    check_mode_specific_opts
+    if [ "$mode" = "game" ]; then
+        if ! prog_available sbatch && [ "$dry_run" = "" ]; then
             error "SLURM (sbatch) not available"
         fi
-    elif str_hasprefix "serial" "$mode"; then
-        mode="serial"
-    else
-        error 'Unknown mode "'"$mode"'"; use one of "parallel", "game" or "serial"'
+    elif [ "$mode" = "parallel" ]; then
+        if ! prog_available parallel; then
+            if [ "$orig_mode" = "parallel" ]; then
+                # If mode set explicitly, error
+                error "Parallel not available"
+            else
+                # Mode inferred from options
+                parallel_specific=$(delimit ', ' $(add_prefix '--' $opts_parallel))
+                error "Parallel-specific options ($parallel_specific) used but Parallel not available"
+            fi
+        fi
+    elif [ "$mode" = "default" ]; then
+        if prog_available parallel; then
+            mode="parallel"
+        else
+            # Fall back to serial
+            warn "Parallel not available; falling back to serial mode"
+            mode="serial"
+        fi
     fi
 }
 
@@ -139,6 +226,7 @@ run_parallel () {
     cmd=${cmd//\{>\}/$outdir/\{/\}}
     cmd=${cmd//\{<.\}/\{%%\\..*\}}
     cmd=${cmd//\{>.\}/$outdir/\{%%\\..*\}}
+    opts="--jobs $jobs --load $load $opts"
     [ "$dry_run" != "" ] &&
         opts="--dry-run $opts"
     [ "$verbose" != "" ] &&
@@ -162,9 +250,56 @@ replace_placeholders () {
     safe_echo "$cmd"
 }
 
+# Output argument converted to mebibytes. The argument is a positive
+# integer, optionally followed by M or m (mebibytes, the default if no
+# suffix) or G or g (gibibytes). If the argument is invalid, output
+# nothing.
+convert_to_mib () {
+    local val
+    val=${1^^}
+    if [ "${val%M}" != "$val" ]; then
+        val=${val%M}
+    elif [ "${val%G}" != "$val" ]; then
+        val=$((${val%G} * 1024))
+    fi
+    if is_int "$val" && [ "$val" -gt 0 ]; then
+        echo $val
+    fi
+}
+
+# Output argument converted to minutes. The argument can be either
+# minutes (a positive integer) or of the form hh:mm. If the argument
+# is invalid, output nothing.
+convert_to_min () {
+    local val
+    val=$1
+    if [ "${val%:*}" != "$val" ] && is_int "${val%:*}" &&
+           is_int "${val#*:}";
+    then
+        # hh:mm
+        val=$((${val%:*} * 60 + ${val#*:}))
+    fi
+    if is_int "$val" && [ "$val" -gt 0 ]; then
+        echo $val
+    fi
+}
+
+process_game_opts () {
+    memory=$(convert_to_mib $memory)
+    if [ "$memory" = "" ]; then
+        error '--memory argument must be a positive integer, optionally followed by "M" or "G"'
+    fi
+    time=$(convert_to_min $time)
+    if [ "$time" = "" ]; then
+        error '--time argument must be a positive integer (minutes) or of the form "hh:mm"'
+    fi
+}
+
 run_game () {
     local infiles infile job_opt cmd
     infiles=$1
+    process_game_opts
+    opts="--minutes $time --MiB $memory --scratch $scratch --cores $cores $opts"
     [ "$dry_run" != "" ] &&
         opts="--cat $opts"
     for infile in $infiles; do
