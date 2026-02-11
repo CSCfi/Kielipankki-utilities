@@ -77,6 +77,20 @@ str_hassuffix () {
     [ -z "${str%%*$suffix}" ] && [ -z "$suffix" -o -n "$str" ]
 }
 
+# match_prefix prefix string ...
+#
+# Output on its own line each string that has prefix as a prefix.
+match_prefix () {
+    local prefix str
+    prefix=$1
+    shift
+    for str in "$@"; do
+        if str_hasprefix "$str" "$prefix"; then
+            safe_echo "$str"
+        fi
+    done
+}
+
 # word_in word text
 #
 # Return true if text contains word, text words separated by spaces.
@@ -249,7 +263,7 @@ delimit () {
         printf "%s" "$1$sep"
         shift
     done
-    printf "$1"
+    printf "%s" "$1"
 }
 
 
