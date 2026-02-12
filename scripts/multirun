@@ -311,6 +311,10 @@ run_game () {
     [ "$dry_run" != "" ] &&
         opts="--cat $opts"
     for infile in $infiles; do
+        if [ ! -r "$infile" ]; then
+            warn "Input file not found or inaccessible: $infile"
+            continue
+        fi
         cmd=$(replace_placeholders "$cmd_base" $infile)
         job_opt="--job $outdir-${infile%%.*}"
         run $game $opts $job_opt bash -c "$cmd"
@@ -320,6 +324,10 @@ run_game () {
 run_serial () {
     infiles=$1
     for infile in $infiles; do
+        if [ ! -r "$infile" ]; then
+            warn "Input file not found or inaccessible: $infile"
+            continue
+        fi
         cmd=$(replace_placeholders "$cmd_base" $infile)
         run bash -c "$cmd"
     done
