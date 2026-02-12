@@ -25,6 +25,11 @@ memory_default="1024M"
 scratch_default="0"
 cores_default="1"
 
+# Minimum values for game-specific options that support dynamic values
+time_min=5
+memory_min=1
+scratch_min=0
+
 
 usage_header="Usage: $progname [options] outdir \"command\" infiles ...
 
@@ -87,21 +92,30 @@ load=MAX-LOAD "default"
 @ Options specific to game (SLURM)
 
 T|time=TIME "default"
-    Reserve TIME time for each job, in minutes or hours:minutes
+    Reserve TIME time for each job, in minutes or hours:minutes,
+    possibly relative to input file size (see the note below)
     (default: '$time_default').
 M|memory=SIZE "default"
     Reserve SIZE memory (RAM) for each job; suffix SIZE with M
-    (default) or G for mebi- and gibibytes (default:
-    '$memory_default').
+    (default) or G for mebi- and gibibytes, possibly relative to input
+    file size (see the note below) (default: '$memory_default').
 S|scratch=SIZE "default"
-    Reserve SIZE gigabytes of fast local storage (default:
+    Reserve SIZE gigabytes of fast local storage, possibly relative to
+    input file size (see the note below) (default:
     '$scratch_default').
 C|cores=NUM "default"
     Reserve NUM CPU cores for each job (default: '$cores_default').
 '
 
-usage_footer="Note that the default values for game-specific options differ from
-the defaults in game."
+usage_footer="The game-specific options --time, --memory and --scratch may specify
+values relative to the size of the input file by appending a slash
+followed by a positive integer, optionally suffixed by K, M (default)
+or G for kibi-, mebi- or gibibytes, respectively. (k, m, g are also
+recognized.) For example, --time=5/1G specifies reserving 5 minutes of
+time for each 1 GiB of input file.
+
+Note that the default values for game-specific options differ from the
+defaults in game."
 
 
 . $progdir/korp-lib.sh
@@ -258,6 +272,115 @@ replace_placeholders () {
     safe_echo "$cmd"
 }
 
+# Output a value relative to the size of file fname ($1): the size (in
+# bytes) divided by divisor ($2) but at least min ($3).
+calc_rel_value () {
+    local fname divisor min filesize result
+    fname=$1
+    divisor=$2
+    min=$3
+    filesize=$(get_filesize "$fname")
+    # Calculate ceiling($filesize / $divisor)
+    result=$((($filesize + $divisor - 1) / $divisor))
+    if [ $result -lt $min ]; then
+        result=$min
+    fi
+    echo $result
+}
+
+# Output the value of the divisor for an option argument that may
+# specify a value relative to input file size in the form
+# "value/divisor". full_val ($1) is the full argument value, base_val
+# ($2) is the numeric value of the argument value base (quantity
+# without divisor). If val has no slash and divisor, output 0. The
+# divisor may have a suffix K, M or G for kibi-, mebi- or gibibytes;
+# without a suffix, mebibytes are assumed. (Lower-case letters are
+# also recognized.) Output the divisor in bytes divided by base_val,
+# so that a value relative to the size of a file can be obtained by
+# dividing the size (in bytes) by the divisor. If the divisor is
+# invalid, output nothing and return 1.
+get_divisor () {
+    local full_val base_val
+    # Convert to upper case for K, M, G
+    full_val=${1^^}
+    base_val=$2
+    if [ "$full_val" = "${full_val#*/}" ]; then
+        # No slash -> no divisor
+        echo 0
+        return 0
+    else
+        # val is the divisor part
+        full_val=${full_val#*/}
+    fi
+    if ! is_int "${full_val%[KMG]}" || [ "${full_val%[KMG]}" -lt 1 ]; then
+        # Invalid divisor
+        return 1
+    fi
+    if [ "${full_val%K}" != "$full_val" ]; then
+        full_val=$((${full_val%K} * 1024))
+    elif [ "${full_val%G}" != "$full_val" ]; then
+        full_val=$((${full_val%G} * 1024 * 1024 * 1024))
+    else
+        # Default to MiB
+        full_val=$((${full_val%M} * 1024 * 1024))
+    fi
+    echo $(($full_val / $base_val))
+    return 0
+}
+
+# Set the value of an option variable based on option argument value
+# that can be either a single absolute value or of the form
+# "value/divisor", making the value relative to input file size. value
+# is numeric or can be converted to a numeric value, and divisor is a
+# numeric value with an optional suffix K, M or G for kibi-, mebi- or
+# gibibytes (without a suffix, M is assumed; lower-case letters are
+# also recognized). If the value is an absolute value, it is assigned
+# to option variable as is. If the value is relative, the option
+# variable is assigned a command substitution calling function
+# calc_rel_value (needs to be eval'ed).
+#
+# Arguments:
+# - optname: option name (also option variable name)
+# - val: option argument value
+# - convert_func: function to convert the base value (without divisor)
+#   to integer
+set_opt_rel_value () {
+    local optname val convert_func error_msg val_base divisor
+    optname=$1
+    val=$2
+    convert_func=$3
+    error_msg="Invalid argument for --$optname: \"$val\""
+    val_base=$($convert_func ${val%/*})
+    if [ "$val_base" = "" ]; then
+        error "$error_msg"
+    fi
+    divisor=$(get_divisor "$val" $val_base)
+    if [ "$divisor" = "" ]; then
+        error "$error_msg"
+    fi
+    if [ "$divisor" != 0 ]; then
+        eval "$optname='\$(calc_rel_value \$infile $divisor \$${optname}_min)'"
+    else
+        eval "$optname=$val_base"
+    fi
+}
+
+# Ensure that the argument is a positive integer. If two arguments are
+# given, the first one is a comparison operator for comparing the
+# argument to 0.
+ensure_pos_int () {
+    local cmp val
+    cmp=-gt
+    if [ $# = 2 ]; then
+        cmp=$1
+        shift
+    fi
+    val=$1
+    if is_int "$val" && [ "$val" $cmp 0 ]; then
+        echo $val
+    fi
+}
+
 # Output argument converted to mebibytes. The argument is a positive
 # integer, optionally followed by M or m (mebibytes, the default if no
 # suffix) or G or g (gibibytes). If the argument is invalid, output
@@ -270,9 +393,7 @@ convert_to_mib () {
     elif [ "${val%G}" != "$val" ]; then
         val=$((${val%G} * 1024))
     fi
-    if is_int "$val" && [ "$val" -gt 0 ]; then
-        echo $val
-    fi
+    ensure_pos_int "$val"
 }
 
 # Output argument converted to minutes. The argument can be either
@@ -287,20 +408,14 @@ convert_to_min () {
         # hh:mm
         val=$((${val%:*} * 60 + ${val#*:}))
     fi
-    if is_int "$val" && [ "$val" -gt 0 ]; then
-        echo $val
-    fi
+    ensure_pos_int "$val"
 }
 
 process_game_opts () {
-    memory=$(convert_to_mib $memory)
-    if [ "$memory" = "" ]; then
-        error '--memory argument must be a positive integer, optionally followed by "M" or "G"'
-    fi
-    time=$(convert_to_min $time)
-    if [ "$time" = "" ]; then
-        error '--time argument must be a positive integer (minutes) or of the form "hh:mm"'
-    fi
+    set_opt_rel_value "memory" "$memory" convert_to_mib
+    set_opt_rel_value "time" "$time" convert_to_min
+    # --scratch argument may be 0, so test with "ensure_pos_int -ge"
+    set_opt_rel_value "scratch" "$scratch" "ensure_pos_int -ge"
 }
 
 run_game () {
@@ -317,7 +432,9 @@ run_game () {
         fi
         cmd=$(replace_placeholders "$cmd_base" $infile)
         job_opt="--job $outdir-${infile%%.*}"
-        run $game $opts $job_opt bash -c "$cmd"
+        # Use eval to expand the possible command substitutions in
+        # $opts ($time, $memory and $scratch)
+        eval "run $game $opts $job_opt bash -c \"$cmd\""
     done
 }
 
