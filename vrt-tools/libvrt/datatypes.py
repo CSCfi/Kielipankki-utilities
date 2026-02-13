@@ -94,6 +94,16 @@ class StrBytesDict(OrderPreservingDict):
             self._decoded_keys[key] = key.encode('utf-8')
         return super().__setitem__(key, value)
 
+    def __contains__(self, key):
+        """Return `True` if `self` contains `key`, `False` otherwise.
+
+        If `key` is `str`, also return `True` if `self` contains a key
+        that is `key` encoded as UTF-8.
+        """
+        return (super().__contains__(key)
+                or (isinstance(key, str)
+                    and super().__contains__(key.encode('utf-8'))))
+
     def convert_to_bytes(self):
         """Convert values of `str` keys to `bytes` keys and remove the former.
 

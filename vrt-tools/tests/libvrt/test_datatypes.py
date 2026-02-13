@@ -49,6 +49,22 @@ class TestStrBytesDict:
         assert sbd.get('c') == None
         assert 'c' not in sbd
 
+    def test_contains_bytes(self, sbd):
+        """Test `key in d` with a `bytes` key."""
+        assert b'a' in sbd
+
+    def test_contains_bytes_nonexistent(self, sbd):
+        """Test `key in d` with a non-existent `bytes` key."""
+        assert b'x' not in sbd
+
+    def test_contains_str(self, sbd):
+        """Test `key in d` with a `str` key."""
+        assert 'a' in sbd
+
+    def test_contains_str_nonexistent(self, sbd):
+        """Test `key in d` with a non-existent `str` key."""
+        assert 'x' not in sbd
+
     def test_convert_to_bytes_getitem(self, sbd):
         """Test `.convert_to_bytes` with `str` key added by accessing it."""
         x = sbd['a']
@@ -58,8 +74,8 @@ class TestStrBytesDict:
         assert sbd[b'a'] == b'c'
         sbd.convert_to_bytes()
         # Key 'a' has been removed, but the value of b'a' has been
-        # updated
-        assert 'a' not in sbd
+        # updated ('a' in sbd returns True also for b'a')
+        assert 'a' in sbd
         assert b'a' in sbd
         assert sbd[b'a'] == b'c1'
 
@@ -71,7 +87,7 @@ class TestStrBytesDict:
         assert sbd['x'] == 'y'
         sbd.convert_to_bytes()
         # Key 'x' has been removed, but the value of b'x' has been
-        # added
-        assert 'x' not in sbd
+        # added ('x' in sbd returns True also for b'x')
+        assert 'x' in sbd
         assert b'x' in sbd
         assert sbd[b'x'] == b'y'
