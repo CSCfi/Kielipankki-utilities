@@ -46,9 +46,9 @@ In the command line, the following strings are replaced with input or
 output file names (including the directory): {<} -> input file name,
 {<.} -> input file name without (the last) extension, {<.*} -> input
 file name without any extensions; {>}, {>.}, {>.*} -> the same for
-output file name. When using Parallel, its replacement strings are
-also replaced, including the additional ones added by the --plus
-option."
+output file name. When using Parallel (or game with Parallel
+available), its replacement strings are also replaced, including the
+additional ones added by the --plus option."
 
 optspecs='
 m|mode=MODE "default"
@@ -129,6 +129,8 @@ game=$progdir/../vrt-tools/game
 opts_parallel="jobs load"
 opts_game="time memory scratch cores"
 
+has_parallel=$(prog_available parallel && echo 1)
+
 
 check_outdir () {
     if [ ! -d "$outdir" ]; then
@@ -186,7 +188,7 @@ check_mode () {
             error "SLURM (sbatch) not available"
         fi
     elif [ "$mode" = "parallel" ]; then
-        if ! prog_available parallel; then
+        if [ "$has_parallel" = "" ]; then
             if [ "$orig_mode" = "parallel" ]; then
                 # If mode set explicitly, error
                 error "Parallel not available"
@@ -197,7 +199,7 @@ check_mode () {
             fi
         fi
     elif [ "$mode" = "default" ]; then
-        if prog_available parallel; then
+        if [ "$has_parallel" != "" ]; then
             mode="parallel"
         else
             # Fall back to serial
@@ -418,13 +420,31 @@ process_game_opts () {
     set_opt_rel_value "scratch" "$scratch" "ensure_pos_int -ge"
 }
 
+# Return true if $1 contains Parallel replacement strings. Note that
+# this recognizes the replacement strings by the first character
+# following the "{", so it does not work correctly if $1 contains such
+# strings that are nevertheless not Parallel replacement strings.
+contains_parallel_rpl () {
+    [ "$1" != "${1#*\{[\}./#%0-9=+:#%^,]}" ]
+}
+
 run_game () {
-    local infiles infile job_opt cmd
+    local infiles infile job_opt cmd_runner cmdline_suffix cmd
     infiles=$1
     process_game_opts
     opts="--minutes $time --MiB $memory --scratch $scratch --cores $cores $opts"
     [ "$dry_run" != "" ] &&
         opts="--cat $opts"
+    if [ "$has_parallel" != "" ] &&
+           contains_parallel_rpl "$(replace_placeholders "$cmd_base" @)";
+    then
+        cmd_runner="parallel --plus"
+        # Actual value set below separately for each input file
+        cmdline_suffix=":::"
+    else
+        cmd_runner="bash -c"
+        cmdline_suffix=
+    fi
     for infile in $infiles; do
         if [ ! -r "$infile" ]; then
             warn "Input file not found or inaccessible: $infile"
@@ -432,9 +452,12 @@ run_game () {
         fi
         cmd=$(replace_placeholders "$cmd_base" $infile)
         job_opt="--job $outdir-${infile%%.*}"
+        if [ "$cmdline_suffix" != "" ]; then
+            cmdline_suffix="::: '$infile'"
+        fi
         # Use eval to expand the possible command substitutions in
         # $opts ($time, $memory and $scratch)
-        eval "run $game $opts $job_opt bash -c \"$cmd\""
+        eval "run $game $opts $job_opt $cmd_runner \"$cmd\" $cmdline_suffix"
     done
 }
 
