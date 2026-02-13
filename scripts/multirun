@@ -246,7 +246,7 @@ run_parallel () {
     cmd=${cmd//\{.\*\}/\{%%\\.[^/]*\}}
     cmd=${cmd//\{>\}/$outdir/\{/\}}
     cmd=${cmd//\{>.\}/$outdir/\{/.\}}
-    cmd=${cmd//\{>.\*\}/$outdir/\{= s:.*/(.*?)\\..*:\$1: =\}}
+    cmd=${cmd//\{>.\*\}/$outdir/\{= s:.*/([^./]+).*:\$1: =\}}
     opts="--jobs $jobs --load $load $opts"
     [ "$dry_run" != "" ] &&
         opts="--dry-run $opts"
@@ -266,10 +266,10 @@ replace_placeholders () {
     outfile=$outdir/$inbase
     cmd=${cmd//\{</\{}
     cmd=${cmd//\{\}/$infile}
-    cmd=${cmd//\{.\}/${infile%.*}}
+    cmd=${cmd//\{.\}/$indir/${inbase%.*}}
     cmd=${cmd//\{.\*\}/$indir/${inbase%%.*}}
     cmd=${cmd//\{>\}/$outfile}
-    cmd=${cmd//\{>.\}/${outfile%.*}}
+    cmd=${cmd//\{>.\}/$outdir/${inbase%.*}}
     cmd=${cmd//\{>.\*\}/$outdir/${inbase%%.*}}
     safe_echo "$cmd"
 }
