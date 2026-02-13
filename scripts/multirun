@@ -45,10 +45,10 @@ composed of multiple commands, use I/O redirection and pipes.
 In the command line, the following strings are replaced with input or
 output file names (including the directory): {<} -> input file name,
 {<.} -> input file name without (the last) extension, {<.*} -> input
-file name without any extensions; {>}, {>.}, {>.*} -> the same for
-output file name. When using Parallel (or game with Parallel
-available), its replacement strings are also replaced, including the
-additional ones added by the --plus option."
+file name without any extensions (the \"<\" in these can be omitted);
+{>}, {>.}, {>.*} -> the same for output file name. When using Parallel
+(or game with Parallel available), its replacement strings are also
+replaced, including the additional ones added by the --plus option."
 
 optspecs='
 m|mode=MODE "default"
@@ -242,9 +242,8 @@ run_parallel () {
     local infiles cmd
     infiles=$1
     cmd=$cmd_base
-    cmd=${cmd//\{<\}/\{\}}
-    cmd=${cmd//\{<.\}/\{.\}}
-    cmd=${cmd//\{<.\*\}/\{%%\\.[^/]*\}}
+    cmd=${cmd//\{</\{}
+    cmd=${cmd//\{.\*\}/\{%%\\.[^/]*\}}
     cmd=${cmd//\{>\}/$outdir/\{/\}}
     cmd=${cmd//\{>.\}/$outdir/\{/.\}}
     cmd=${cmd//\{>.\*\}/$outdir/\{= s:.*/(.*?)\\..*:\$1: =\}}
@@ -265,9 +264,10 @@ replace_placeholders () {
     indir=$(dirname $infile)
     inbase=$(basename $infile)
     outfile=$outdir/$inbase
-    cmd=${cmd//\{<\}/$infile}
-    cmd=${cmd//\{<.\}/${infile%.*}}
-    cmd=${cmd//\{<.\*\}/$indir/${inbase%%.*}}
+    cmd=${cmd//\{</\{}
+    cmd=${cmd//\{\}/$infile}
+    cmd=${cmd//\{.\}/${infile%.*}}
+    cmd=${cmd//\{.\*\}/$indir/${inbase%%.*}}
     cmd=${cmd//\{>\}/$outfile}
     cmd=${cmd//\{>.\}/${outfile%.*}}
     cmd=${cmd//\{>.\*\}/$outdir/${inbase%%.*}}
