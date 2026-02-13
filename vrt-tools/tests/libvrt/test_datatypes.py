@@ -29,8 +29,8 @@ class TestStrBytesDict:
     def test_getitem_bytes_nonexistent(self, sbd):
         """Test `d[key]` with a non-existent `bytes` key."""
         with pytest.raises(KeyError, match='^b\'c\'$'):
-            x = sbd[b'c']
-        assert sbd.get(b'c') == None
+            _ = sbd[b'c']
+        assert sbd.get(b'c') is None
 
     def test_getitem_str_bytes(self, sbd):
         """Test `d[key]` with a `str` key with corresponding `bytes` key."""
@@ -45,8 +45,8 @@ class TestStrBytesDict:
     def test_getitem_str_nonexistent(self, sbd):
         """Test `d[key]` with a `str` key without corresponding `bytes` key."""
         with pytest.raises(KeyError, match='^\'c\'$'):
-            x = sbd['c']
-        assert sbd.get('c') == None
+            _ = sbd['c']
+        assert sbd.get('c') is None
         assert 'c' not in sbd
 
     def test_contains_bytes(self, sbd):
@@ -67,7 +67,7 @@ class TestStrBytesDict:
 
     def test_convert_to_bytes_getitem(self, sbd):
         """Test `.convert_to_bytes` with `str` key added by accessing it."""
-        x = sbd['a']
+        _ = sbd['a']
         sbd['a'] += '1'
         assert 'a' in sbd
         assert sbd['a'] == 'c1'
