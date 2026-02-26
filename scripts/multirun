@@ -468,7 +468,7 @@ run_game () {
         fi
         # Use eval to expand the possible command substitutions in
         # $opts ($time, $memory and $scratch)
-        eval "run $game $opts $job_opt $cmd_runner \"$cmd\" $cmdline_suffix"
+        eval "run $game $opts $job_opt $cmd_runner '$cmd' $cmdline_suffix"
     done
 }
 
