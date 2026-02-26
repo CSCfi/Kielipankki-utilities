@@ -230,7 +230,9 @@ list_infiles () {
     if [ "$force" = "" ]; then
         for infile in "$@"; do
             infile_base=$(basename $infile)
-            if [ "$(eval "ls $outdir/$patt 2> /dev/null")" = "" ]; then
+            if [ ! -r "$infile" ]; then
+                warn "Input file not found or inaccessible: $infile"
+            elif [ "$(eval "ls $outdir/$patt 2> /dev/null")" = "" ]; then
                 safe_echo "$infile"
             elif [ "$verbose" != "" ]; then
                 warn "Skipping input file \"$infile\": output file \"$outdir/$(eval echo "$patt")\" already exists"
@@ -457,10 +459,6 @@ run_game () {
         cmdline_suffix=
     fi
     for infile in $infiles; do
-        if [ ! -r "$infile" ]; then
-            warn "Input file not found or inaccessible: $infile"
-            continue
-        fi
         cmd=$(replace_placeholders "$cmd_base" $infile)
         job_opt="--job $outdir-${infile%%.*}"
         if [ "$cmdline_suffix" != "" ]; then
@@ -475,10 +473,6 @@ run_game () {
 run_serial () {
     infiles=$1
     for infile in $infiles; do
-        if [ ! -r "$infile" ]; then
-            warn "Input file not found or inaccessible: $infile"
-            continue
-        fi
         cmd=$(replace_placeholders "$cmd_base" $infile)
         run bash -c "$cmd"
     done
