@@ -449,7 +449,9 @@ class ShellOptionHandlerGenerator(korpimport3.util.BasicInputProcessor):
                             self._make_cmdline_opt(optspec, '\n'.join(optval)))
                 else:
                     opts.extend(self._make_cmdline_opt(optspec, optval))
-        return ' '.join(opts + [self._shell_quote(arg) for arg in self._args])
+        # Single-quote non-option arguments
+        return ' '.join(opts + [self._shell_quote(arg, 'single')
+                                for arg in self._args])
 
     def _make_cmdline_opt(self, optspec, optval):
         opts = []
