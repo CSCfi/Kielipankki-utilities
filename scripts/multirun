@@ -114,8 +114,11 @@ usage_footer="The game-specific options --time, --memory and --scratch may speci
 values relative to the size of the input file by appending a slash
 followed by a positive integer, optionally suffixed by K, M (default)
 or G for kibi-, mebi- or gibibytes, respectively. (k, m, g are also
-recognized.) For example, --time=5/1G specifies reserving 5 minutes of
-time for each 1 GiB of input file.
+recognized.) The value may also be prefixed with a fixed overhead that
+is always added to the relative value. For example, --time=5/1G
+specifies reserving 5 minutes of time for each 1 GiB of input file,
+and --memory=1G+100M/1G specifies reserving 1 GiB plus 100 MiB for
+each 1 GiB of input.
 
 Note that the default values for game-specific options differ from the
 defaults in game."
@@ -286,15 +289,17 @@ replace_placeholders () {
 }
 
 # Output a value relative to the size of file fname ($1): the size (in
-# bytes) divided by divisor ($2) but at least min ($3).
+# bytes) divided by divisor ($2), with addend ($3) added and at least
+# min ($4).
 calc_rel_value () {
-    local fname divisor min filesize result
+    local fname divisor addend min filesize result
     fname=$1
     divisor=$2
-    min=$3
+    addend=$3
+    min=$4
     filesize=$(get_filesize "$fname")
     # Calculate ceiling($filesize / $divisor)
-    result=$((($filesize + $divisor - 1) / $divisor))
+    result=$((($filesize + $divisor - 1) / $divisor + $addend))
     if [ $result -lt $min ]; then
         result=$min
     fi
@@ -343,14 +348,15 @@ get_divisor () {
 
 # Set the value of an option variable based on option argument value
 # that can be either a single absolute value or of the form
-# "value/divisor", making the value relative to input file size. value
-# is numeric or can be converted to a numeric value, and divisor is a
-# numeric value with an optional suffix K, M or G for kibi-, mebi- or
-# gibibytes (without a suffix, M is assumed; lower-case letters are
-# also recognized). If the value is an absolute value, it is assigned
-# to option variable as is. If the value is relative, the option
-# variable is assigned a command substitution calling function
-# calc_rel_value (needs to be eval'ed).
+# "[addend+]value/divisor", making the value relative to input file
+# size, with the optional addend always added to the relative value
+# (default 0). value and addend are numeric or can be converted to
+# numeric values, and divisor is a numeric value with an optional
+# suffix K, M or G for kibi-, mebi- or gibibytes (without a suffix, M
+# is assumed; lower-case letters are also recognized). If the value is
+# an absolute value, it is assigned to option variable as is. If the
+# value is relative, the option variable is assigned a command
+# substitution calling function calc_rel_value (needs to be eval'ed).
 #
 # Arguments:
 # - optname: option name (also option variable name)
@@ -358,11 +364,19 @@ get_divisor () {
 # - convert_func: function to convert the base value (without divisor)
 #   to integer
 set_opt_rel_value () {
-    local optname val convert_func error_msg val_base divisor
+    local optname val convert_func error_msg addend val_base divisor
     optname=$1
     val=$2
     convert_func=$3
     error_msg="Invalid argument for --$optname: \"$val\""
+    addend=0
+    if [ "${val#*+}" != "$val" ]; then
+        addend=$($convert_func ${val%+*})
+        if [ "$addend" = "" ]; then
+            error "$error_msg"
+        fi
+        val=${val#*+}
+    fi
     val_base=$($convert_func ${val%/*})
     if [ "$val_base" = "" ]; then
         error "$error_msg"
@@ -372,9 +386,11 @@ set_opt_rel_value () {
         error "$error_msg"
     fi
     if [ "$divisor" != 0 ]; then
-        eval "$optname='\$(calc_rel_value \$infile $divisor \$${optname}_min)'"
+        eval "$optname='\$(calc_rel_value \$infile $divisor $addend \$${optname}_min)'"
     else
-        eval "$optname=$val_base"
+        # Also support the addend without the divisor here even if it
+        # does not add any new functionality
+        eval "$optname=$(($val_base + $addend))"
     fi
 }
 
