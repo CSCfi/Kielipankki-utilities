@@ -244,10 +244,11 @@ list_infiles () {
     done
 }
 
-run_parallel () {
-    local infiles cmd
-    infiles=$1
-    cmd=$cmd_base
+# Replace the additional placeholders (not directly supported by
+# Parallel) in command $1 when running Parallel.
+replace_placeholders_parallel () {
+    local cmd
+    cmd=$1
     cmd=${cmd//\{</\{}
     cmd=${cmd//\{.\*\}/\{%%\\.[^/]*\}}
     cmd=${cmd//\{\/.\*\}/\{= s:.*/([^./]+).*:\$1: =\}}
@@ -255,6 +256,13 @@ run_parallel () {
     cmd=${cmd//\{>.\}/$outdir/\{/.\}}
     cmd=${cmd//\{>..\}/$outdir/\{/..\}}
     cmd=${cmd//\{>.\*\}/$outdir/\{= s:.*/([^./]+).*:\$1: =\}}
+    safe_echo "$cmd"
+}
+
+run_parallel () {
+    local infiles cmd
+    infiles=$1
+    cmd=$(replace_placeholders_parallel "$cmd_base")
     opts="--jobs $jobs --load $load $opts"
     [ "$dry_run" != "" ] &&
         opts="--dry-run $opts"
