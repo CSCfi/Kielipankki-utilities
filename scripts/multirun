@@ -288,18 +288,16 @@ replace_placeholders () {
     safe_echo "$cmd"
 }
 
-# Output a value relative to the size of file fname ($1): the size (in
-# bytes) divided by divisor ($2), with addend ($3) added and at least
-# min ($4).
+# Output a value relative to (file) size ($1): size divided by divisor
+# ($2), with addend ($3) added and at least min ($4).
 calc_rel_value () {
-    local fname divisor addend min filesize result
-    fname=$1
+    local size divisor addend min size result
+    size=$1
     divisor=$2
     addend=$3
     min=$4
-    filesize=$(get_filesize "$fname")
-    # Calculate ceiling($filesize / $divisor)
-    result=$((($filesize + $divisor - 1) / $divisor + $addend))
+    # Calculate ceiling($size / $divisor)
+    result=$((($size + $divisor - 1) / $divisor + $addend))
     if [ $result -lt $min ]; then
         result=$min
     fi
@@ -386,7 +384,7 @@ set_opt_rel_value () {
         error "$error_msg"
     fi
     if [ "$divisor" != 0 ]; then
-        eval "$optname='\$(calc_rel_value \$infile $divisor $addend \$${optname}_min)'"
+        eval "$optname='\$(calc_rel_value \$size $divisor $addend \$${optname}_min)'"
     else
         # Also support the addend without the divisor here even if it
         # does not add any new functionality
@@ -456,7 +454,7 @@ contains_parallel_rpl () {
 }
 
 run_game () {
-    local infiles infile job_opt cmd_runner cmdline_suffix cmd
+    local infiles infile job_opt cmd_runner cmdline_suffix size cmd infile_base
     infiles=$1
     process_game_opts
     opts="--minutes $time --MiB $memory --scratch $scratch --cores $cores $opts"
@@ -472,16 +470,20 @@ run_game () {
         cmd_runner="bash -c"
         cmdline_suffix=
     fi
-    for infile in $infiles; do
-        cmd=$(replace_placeholders "$cmd_base" $infile)
-        job_opt="--job $outdir-${infile%%.*}"
-        if [ "$cmdline_suffix" != "" ]; then
-            cmdline_suffix="::: '$infile'"
-        fi
-        # Use eval to expand the possible command substitutions in
-        # $opts ($time, $memory and $scratch)
-        eval "run $game $opts $job_opt $cmd_runner '$cmd' $cmdline_suffix"
-    done
+    # Get file sizes and names
+    ls -l $infiles |
+        awk '{print $5, $NF}' |
+        while read size infile; do
+            cmd=$(replace_placeholders "$cmd_base" $infile)
+            infile_base=$(basename $infile)
+            job_opt="--job $outdir-${infile_base%%.*}"
+            if [ "$cmdline_suffix" != "" ]; then
+                cmdline_suffix="::: '$infile'"
+            fi
+            # Use eval to expand the possible command substitutions in
+            # $opts ($time, $memory and $scratch)
+            eval "run $game $opts $job_opt $cmd_runner '$cmd' $cmdline_suffix"
+        done
 }
 
 run_serial () {
