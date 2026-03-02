@@ -7,8 +7,32 @@
 
 # TODO:
 # - Handle subdirectories in the input: at least make
-#   --output-file-pattern work with them.
+#   --output-file-pattern work with them. What to do if input contains
+#   files with the same name in different directories? Should we
+#   require that the files are under the same top directory?
 # - Support protecting "{" in command (and --output-file-pattern).
+# - Option to pack only consecutive files if smaller than the pack
+#   size.
+# - Option to divide input files into a specified number of batches of
+#   a relatively even size.
+# - Option to copy input files to $LOCAL_SCRATCH, process there and
+#   copy output files to outdir.
+# - Use a file to indicate the status of a job for an input file:
+#   running or completed (or failed?).
+# - Possibly an option to test if a previous run has been successful
+#   by some other means than checking the existence of an output file
+#   (shell code to be evaluated).
+# - Possibly create a script file to run a single command, taking the
+#   input file as an argument. This would make it possible to run
+#   array jobs with game, as the it simply appends the array argument
+#   to the command line. The script file could perhaps be placed in
+#   outdir which should be writable. Or should we assume that the
+#   directory in which multirun is run is writable? Or should we use a
+#   sibling directory of outdir (perhaps override with an option)?
+#   However, what would be a good way to make the Parallel string
+#   replacements in this case?
+# - Possibly support running commands via HyperQueue (e.g. by using
+#   sbatch-hq).
 
 
 progname=`basename $0`
