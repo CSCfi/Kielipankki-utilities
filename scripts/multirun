@@ -11,8 +11,6 @@
 #   files with the same name in different directories? Should we
 #   require that the files are under the same top directory?
 # - Support protecting "{" in command (and --output-file-pattern).
-# - Option to pack only consecutive files if smaller than the pack
-#   size.
 # - Option to divide input files into a specified number of batches of
 #   a relatively even size.
 # - Option to copy input files to $LOCAL_SCRATCH, process there and
@@ -137,6 +135,9 @@ pack-size=SIZE ""
     files with a total size of up to SIZE; suffix SIZE with M
     (default) or G for mebi- and gibibytes. This requires Parallel to
     be available. (Default: run a separate job for each input file.)
+consecutive
+    Pack only consecutive input files into SLURM batch jobs; the
+    default with --pack-size is to pack any files that fit.
 '
 
 usage_footer="The game-specific options --time, --memory and --scratch may specify
@@ -162,7 +163,7 @@ eval "$optinfo_opt_handler"
 game=$progdir/../vrt-tools/game
 
 opts_parallel="jobs load"
-opts_game="time memory scratch cores pack_size"
+opts_game="time memory scratch cores pack_size consecutive"
 
 has_parallel=$(prog_available parallel && echo 1)
 
@@ -227,6 +228,9 @@ check_mode () {
     if [ "$mode" = "game" ]; then
         if ! prog_available sbatch && [ "$dry_run" = "" ]; then
             error "SLURM (sbatch) not available"
+        fi
+        if [ "$consecutive" != "" ] && [ "$pack_size" = "" ]; then
+            error "--consecutive requires --pack-size"
         fi
         if [ "$pack_size" != "" ] && [ "$has_parallel" = "" ]; then
             error "--pack-size requires Parallel but Parallel not available"
@@ -502,6 +506,41 @@ contains_parallel_rpl () {
     [ "$1" != "${1#*\{[\}./#%0-9=+:#%^,]}" ]
 }
 
+# Group consecutive files to groups of at most group_size ($1) bytes;
+# the rest of the arguments are file names. Output each group on a
+# separate line, beginning with the total size of the files in the
+# group, separated by a space from the file names, separated by a
+# space from each other.
+group_infiles_consecutive () {
+    local group_size infiles
+    group_size=$1
+    shift
+    infiles="$@"
+    ls -l $infiles |
+        awk '
+            BEGIN {
+                bin_size = '$group_size'
+                bin_used = 0
+                names = ""
+            }
+            {
+                name = $NF
+                size = $5
+                if (bin_used && size + bin_used > bin_size) {
+                    # Strip leading space
+                    print bin_used " " substr(names, 2)
+                    bin_used = 0
+                    names = ""
+                }
+                names = names " " name
+                bin_used = bin_used + size
+            }
+            END {
+                print bin_used " " substr(names, 2)
+            }
+            '
+}
+
 # Group files to groups of at most group_size ($1) bytes; the rest of
 # the arguments are file names. Output each group on a separate line,
 # beginning with the total size of the files in the group, separated
@@ -575,8 +614,11 @@ run_game () {
     if [ "$pack_size" = "" ]; then
         # Get file sizes and names
         ls -l $infiles | awk '{print $5, $NF}'
+    elif [ "$consecutive" != "" ]; then
+        # Group consecutive files
+        group_infiles_consecutive $pack_size $infiles
     else
-        # Group files
+        # Group files (possibly non-consecutive)
         group_infiles $pack_size $infiles
     fi |
         # If --pack-size is specified, $infile may actually be a
