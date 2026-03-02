@@ -108,6 +108,11 @@ S|scratch=SIZE "default"
     '$scratch_default').
 C|cores=NUM "default"
     Reserve NUM CPU cores for each job (default: '$cores_default').
+pack-size=SIZE ""
+    Allow processing in each SLURM batch job (serially) multiple input
+    files with a total size of up to SIZE; suffix SIZE with M
+    (default) or G for mebi- and gibibytes. This requires Parallel to
+    be available. (Default: run a separate job for each input file.)
 '
 
 usage_footer="The game-specific options --time, --memory and --scratch may specify
@@ -133,7 +138,7 @@ eval "$optinfo_opt_handler"
 game=$progdir/../vrt-tools/game
 
 opts_parallel="jobs load"
-opts_game="time memory scratch cores"
+opts_game="time memory scratch cores pack_size"
 
 has_parallel=$(prog_available parallel && echo 1)
 
@@ -150,11 +155,13 @@ check_outdir () {
 }
 
 check_mode_specific_opts () {
-    local implicit_mode check_mode opt parallel_specific game_specific
+    local implicit_mode check_mode opt optval parallel_specific game_specific \
+          conflicting
     implicit_mode=
     for check_mode in parallel game; do
         for opt in $(eval echo \$opts_$check_mode); do
-            if [ "$(eval echo \$$opt)" != "default" ]; then
+            optval=$(eval echo \$$opt)
+            if [ "$optval" != "default" ] && [ "$optval" != "" ]; then
                 eval "${check_mode}_specific=\"\$${check_mode}_specific --$opt\""
                 implicit_mode=$check_mode
             else
@@ -169,7 +176,11 @@ check_mode_specific_opts () {
         if [ "$mode" = "default" ]; then
             mode=$implicit_mode
         elif [ "$implicit_mode" != "$mode" ]; then
-            error "Option(s) conflict with mode \"$mode\": $(delimit ', ' $parallel_specific $game_specific)"
+            conflicting=$(delimit ', ' $parallel_specific $game_specific)
+            # Replace the "_" in option variable names listed in
+            # $parallel_specific and $game_specific with "-" as in the
+            # command-line option
+            error "Option(s) conflict with mode \"$mode\": ${conflicting//_/-}"
         fi
     fi
 }
@@ -192,6 +203,9 @@ check_mode () {
     if [ "$mode" = "game" ]; then
         if ! prog_available sbatch && [ "$dry_run" = "" ]; then
             error "SLURM (sbatch) not available"
+        fi
+        if [ "$pack_size" != "" ] && [ "$has_parallel" = "" ]; then
+            error "--pack-size requires Parallel but Parallel not available"
         fi
     elif [ "$mode" = "parallel" ]; then
         if [ "$has_parallel" = "" ]; then
@@ -451,6 +465,9 @@ process_game_opts () {
     set_opt_rel_value "time" "$time" convert_to_min
     # --scratch argument may be 0, so test with "ensure_pos_int -ge"
     set_opt_rel_value "scratch" "$scratch" "ensure_pos_int -ge"
+    if [ "$pack_size" != "" ]; then
+        pack_size=$(($(convert_to_mib $pack_size) * 1024 * 1024))
+    fi
 }
 
 # Return true if $1 contains Parallel replacement strings. Note that
@@ -461,32 +478,93 @@ contains_parallel_rpl () {
     [ "$1" != "${1#*\{[\}./#%0-9=+:#%^,]}" ]
 }
 
+# Group files to groups of at most group_size ($1) bytes; the rest of
+# the arguments are file names. Output each group on a separate line,
+# beginning with the total size of the files in the group, separated
+# by a space from the file names, separated by a space from each
+# other.
+group_infiles () {
+    local group_size infiles
+    group_size=$1
+    shift
+    infiles="$@"
+    # The following first-fit-decreasing bin-packing algorithm is
+    # slightly modified from the code produced by GitHub Copilot using
+    # Claude Haiku 4.5 (2026-02-27).
+    ls -lS $infiles |
+        awk '
+            BEGIN {
+                bin_size = '$group_size'
+                bin_count = 0
+            }
+            {
+                name = $NF
+                size = $5
+                # Try to fit item into existing bins (First Fit Decreasing)
+                placed = 0
+                for (i = 1; i <= bin_count; i++) {
+                    if (bin_used[i] + size <= bin_size) {
+                        bin_used[i] += size
+                        bin_items[i] = bin_items[i] " " name
+                        placed = 1
+                        break
+                    }
+                }
+                # If item does not fit in any existing bin, create a new one
+                if (! placed) {
+                    bin_count++
+                    bin_used[bin_count] = size
+                    bin_items[bin_count] = name
+                }
+            }
+            END {
+                # Output all bins
+                for (i = 1; i <= bin_count; i++) {
+                    print bin_used[i], bin_items[i]
+                }
+            }
+            '
+}
+
 run_game () {
-    local infiles infile job_opt cmd_runner cmdline_suffix size cmd infile_base
+    local infiles infile job_opt cmd_runner cmdline_suffix replacer size cmd \
+          infile_base
     infiles=$1
     process_game_opts
     opts="--minutes $time --MiB $memory --scratch $scratch --cores $cores $opts"
     [ "$dry_run" != "" ] &&
         opts="--cat $opts"
     if [ "$has_parallel" != "" ] &&
-           contains_parallel_rpl "$(replace_placeholders "$cmd_base" @)";
+           { [ "$pack_size" != "" ] ||
+             contains_parallel_rpl "$(replace_placeholders "$cmd_base" @)"; };
     then
         cmd_runner="parallel --plus"
         # Actual value set below separately for each input file
         cmdline_suffix=":::"
+        # Let Parallel replace the placeholders it supports
+        replacer=replace_placeholders_parallel
     else
         cmd_runner="bash -c"
         cmdline_suffix=
+        replacer=replace_placeholders
     fi
-    # Get file sizes and names
-    ls -l $infiles |
-        awk '{print $5, $NF}' |
+    if [ "$pack_size" = "" ]; then
+        # Get file sizes and names
+        ls -l $infiles | awk '{print $5, $NF}'
+    else
+        # Group files
+        group_infiles $pack_size $infiles
+    fi |
+        # If --pack-size is specified, $infile may actually be a
+        # space-separated list of files
         while read size infile; do
-            cmd=$(replace_placeholders "$cmd_base" $infile)
-            infile_base=$(basename $infile)
+            cmd=$($replacer "$cmd_base" $infile)
+            infile_base=$(basename ${infile%% *})
+            # If infile contains multiple file names, job name is based
+            # only on the first of them
             job_opt="--job $outdir-${infile_base%%.*}"
             if [ "$cmdline_suffix" != "" ]; then
-                cmdline_suffix="::: '$infile'"
+                cmdline_suffix="::: $infile"
             fi
             # Use eval to expand the possible command substitutions in
             # $opts ($time, $memory and $scratch)
