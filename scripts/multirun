@@ -635,9 +635,10 @@ run_game () {
             if [ "$cmdline_suffix" != "" ]; then
                 cmdline_suffix="::: $infile"
             fi
-            # Use eval to expand the possible command substitutions in
-            # $opts ($time, $memory and $scratch)
-            eval "run $game $opts $job_opt $cmd_runner '$cmd' $cmdline_suffix"
+            # Use $(eval echo $opts) to expand the possible command
+            # substitutions in $opts ($time, $memory and $scratch)
+            run $game $(eval echo $opts) $job_opt $cmd_runner "$cmd" \
+                $cmdline_suffix
         done
 }
 
