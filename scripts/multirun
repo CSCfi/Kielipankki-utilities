@@ -611,7 +611,9 @@ run_game () {
     else
         ls_opts_extra=
     fi
-    ls -l $ls_opts_extra $infiles |
+    # Dereference symlinks (-L) to get actual file sizes and to make
+    # the symlink name the last item on the line
+    ls -lL $ls_opts_extra $infiles |
         if [ "$pack_size" = "" ]; then
             # Get file sizes and names, one file per line
             awk '{print $5, $NF}'
