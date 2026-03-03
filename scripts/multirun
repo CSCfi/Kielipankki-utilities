@@ -506,92 +506,86 @@ contains_parallel_rpl () {
     [ "$1" != "${1#*\{[\}./#%0-9=+:#%^,]}" ]
 }
 
-# Group consecutive files to groups of at most group_size ($1) bytes;
-# the rest of the arguments are file names. Output each group on a
+# Group consecutive files listed in stdin (output of "ls -l") to
+# groups of at most group_size ($1) bytes. Output each group on a
 # separate line, beginning with the total size of the files in the
 # group, separated by a space from the file names, separated by a
 # space from each other.
 group_infiles_consecutive () {
-    local group_size infiles
+    local group_size
     group_size=$1
-    shift
-    infiles="$@"
-    ls -l $infiles |
-        awk '
-            BEGIN {
-                bin_size = '$group_size'
+    awk '
+        BEGIN {
+            bin_size = '$group_size'
+            bin_used = 0
+            names = ""
+        }
+        {
+            name = $NF
+            size = $5
+            if (bin_used && size + bin_used > bin_size) {
+                # Strip leading space
+                print bin_used " " substr(names, 2)
                 bin_used = 0
                 names = ""
             }
-            {
-                name = $NF
-                size = $5
-                if (bin_used && size + bin_used > bin_size) {
-                    # Strip leading space
-                    print bin_used " " substr(names, 2)
-                    bin_used = 0
-                    names = ""
-                }
-                names = names " " name
-                bin_used = bin_used + size
-            }
-            END {
-                print bin_used " " substr(names, 2)
-            }
-            '
+            names = names " " name
+            bin_used = bin_used + size
+        }
+        END {
+            print bin_used " " substr(names, 2)
+        }
+        '
 }
 
-# Group files to groups of at most group_size ($1) bytes; the rest of
-# the arguments are file names. Output each group on a separate line,
+# Group files listed in stdin (output of "ls -lS") to groups of at
+# most group_size ($1) bytes. Output each group on a separate line,
 # beginning with the total size of the files in the group, separated
 # by a space from the file names, separated by a space from each
 # other.
 group_infiles () {
-    local group_size infiles
+    local group_size
     group_size=$1
-    shift
-    infiles="$@"
     # The following first-fit-decreasing bin-packing algorithm is
     # slightly modified from the code produced by GitHub Copilot using
     # Claude Haiku 4.5 (2026-02-27).
-    ls -lS $infiles |
-        awk '
-            BEGIN {
-                bin_size = '$group_size'
-                bin_count = 0
-            }
-            {
-                name = $NF
-                size = $5
-                # Try to fit item into existing bins (First Fit Decreasing)
-                placed = 0
-                for (i = 1; i <= bin_count; i++) {
-                    if (bin_used[i] + size <= bin_size) {
-                        bin_used[i] += size
-                        bin_items[i] = bin_items[i] " " name
-                        placed = 1
-                        break
-                    }
-                }
-                # If item does not fit in any existing bin, create a new one
-                if (! placed) {
-                    bin_count++
-                    bin_used[bin_count] = size
-                    bin_items[bin_count] = name
+    awk '
+        BEGIN {
+            bin_size = '$group_size'
+            bin_count = 0
+        }
+        {
+            name = $NF
+            size = $5
+            # Try to fit item into existing bins (First Fit Decreasing)
+            placed = 0
+            for (i = 1; i <= bin_count; i++) {
+                if (bin_used[i] + size <= bin_size) {
+                    bin_used[i] += size
+                    bin_items[i] = bin_items[i] " " name
+                    placed = 1
+                    break
                 }
             }
-            END {
-                # Output all bins
-                for (i = 1; i <= bin_count; i++) {
-                    print bin_used[i], bin_items[i]
-                }
+            # If item does not fit in any existing bin, create a new one
+            if (! placed) {
+                bin_count++
+                bin_used[bin_count] = size
+                bin_items[bin_count] = name
             }
-            '
+        }
+        END {
+            # Output all bins
+            for (i = 1; i <= bin_count; i++) {
+                print bin_used[i], bin_items[i]
+            }
+        }
+        '
 }
 
 run_game () {
     local infiles infile job_opt cmd_runner cmdline_suffix replacer size cmd \
-          infile_base
+          infile_base ls_opts_extra
     infiles=$1
     process_game_opts
     opts="--minutes $time --MiB $memory --scratch $scratch --cores $cores $opts"
@@ -611,16 +605,23 @@ run_game () {
         cmdline_suffix=
         replacer=replace_placeholders
     fi
-    if [ "$pack_size" = "" ]; then
-        # Get file sizes and names
-        ls -l $infiles | awk '{print $5, $NF}'
-    elif [ "$consecutive" != "" ]; then
-        # Group consecutive files
-        group_infiles_consecutive $pack_size $infiles
+    if [ "$pack_size" != "" ] && [ "$consecutive" = "" ]; then
+        # For group_infiles, sort input files by decreasing size
+        ls_opts_extra=-S
     else
-        # Group files (possibly non-consecutive)
-        group_infiles $pack_size $infiles
-    fi |
+        ls_opts_extra=
+    fi
+    ls -l $ls_opts_extra $infiles |
+        if [ "$pack_size" = "" ]; then
+            # Get file sizes and names, one file per line
+            awk '{print $5, $NF}'
+        elif [ "$consecutive" != "" ]; then
+            # Group consecutive files
+            group_infiles_consecutive $pack_size $infiles
+        else
+            # Group files (possibly non-consecutive)
+            group_infiles $pack_size $infiles
+        fi |
         # If --pack-size is specified, $infile may actually be a
         # space-separated list of files
         while read size infile; do
