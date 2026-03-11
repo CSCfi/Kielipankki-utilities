@@ -23,9 +23,15 @@ from libvrt.metaline import strunescape as unescapemeta
 
 from vrtargslib import VERSION
 
-import signal
+# this signal incantation is not ideal after all, but since, instead
+# of replacing it with something better, the whole validator should be
+# rewritten (mainly to be more modular and so more maintainable), keep
+# it for now; just don't expose SIGPIPE to someone who was made to run
+# this in a system where there apparently is no SIGPIPE
+import platform, signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
-signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+if platform.system() != 'Windows':
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 # CWB (or cwb-encode) limits
 VRT_LINE_MAX_BYTES = 65534
