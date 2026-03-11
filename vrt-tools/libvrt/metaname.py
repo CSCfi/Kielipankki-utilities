@@ -26,7 +26,7 @@ def nametype_txt(arg):
     '''
 
     if isname(arg.encode()): return arg
-    raise ArgumentTypeError('not a field name: {}'.format(repr(name)))
+    raise ArgumentTypeError('not a field name: {}'.format(repr(arg)))
 
 def isname(name):
     return re.fullmatch(br'[A-Za-z_][A-Za-z0-9._]*', name)
