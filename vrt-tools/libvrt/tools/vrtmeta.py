@@ -11,6 +11,7 @@ from libvrt.args import transput_args
 # TODO here AND rel-tools to RAISE not EXIT on failure
 from libvrt.bins import SORT
 
+from libvrt.nameargs import bagtype, parsenames
 from libvrt.metaline import attributes, valuegetter
 from libvrt.metaname import nametype, isname
 from libvrt.metamark import marktype
@@ -47,6 +48,18 @@ def parsearguments(argv, *, prog = None):
 
                         name of the VRT element to use (defaults to
                         text)
+
+                        ''')
+
+    parser.add_argument('--attr', '-a', metavar = 'name,*',
+                        type = bagtype, action = 'append',
+                        dest = 'attrs',
+                        default = [],
+                        help = '''
+
+                        names of attributes to output (repeat, or
+                        separate with commas or spaces) (defaults
+                        to the attributes in the first element)
 
                         ''')
 
@@ -97,7 +110,7 @@ def main(args, ins, ous):
 
     # attribute names and values in head order,
     # missing attributes default to args.mark
-    head = attributes(line)
+    head = parsenames(args.attrs) or attributes(line)
 
     if (not all(isname(name) for name in head) or
         len(set(head)) < len(head)):
@@ -106,7 +119,10 @@ def main(args, ins, ous):
     values = valuegetter(head, missing = args.mark,
                          warn = not args.quiet,
                          many = 4,
-                         prog = args.prog)
+                         prog = args.prog,
+                         # omit "not in head" warnings if attributes
+                         # specified explicitly
+                         superset = bool(args.attrs))
 
     if args.tag:
         if args.tag in head:
