@@ -20,8 +20,14 @@ from vrtargsoolib import InputProcessor  # noqa: E402
 
 
 class TsvHierarchicalAggregator(InputProcessor):
+    """Hierarchically aggregates sorted TSV data with subtotals at each level.
 
-    """Class implementing tsv-hieragg functionality."""
+    This class processes tab-separated values (TSV) input that contains key
+    columns followed by numeric value columns. The input must be sorted
+    lexicographically by the key columns. The output includes aggregated
+    subtotals at each hierarchical level using marker symbols to indicate
+    hierarchy depth.
+    """
 
     DESCRIPTION = """
     Hierarchically aggregate sorted TSV (tab-separated values) data.
@@ -54,18 +60,61 @@ class TsvHierarchicalAggregator(InputProcessor):
     ]
 
     def __init__(self) -> None:
+        """Initialize the TsvHierarchicalAggregator.
+
+        Calls the parent InputProcessor constructor with a globals() dict
+        to enable module-level functions as types in ARGSPECS.
+        """
         # extra_types=... is needed for using module-level functions
-        # as types in ARGSPECS (otherwise, type could be passed via a
-        # dict)
+        # as types in ARGSPECS (otherwise, type could be passed via a dict)
         super().__init__(extra_types=globals())
 
     def main(self, args: Namespace, inf: BinaryIO, ouf: BinaryIO) -> None:
-        """Read `inf`, write to `ouf`, using options `args`."""
+        """Process TSV input and output hierarchical aggregation with subtotals.
+
+        Reads sorted TSV data from the input stream, processes it level by
+        level based on key field changes, accumulates counts and sums at each
+        level, and writes the hierarchical aggregation output to the output
+        stream.
+
+        Args:
+            args: Parsed command-line arguments containing options for
+                last-key (field name or 1-based number) and header.
+            inf: Input binary stream containing TSV data.
+            ouf: Output binary stream for writing aggregated TSV data.
+
+        Raises:
+            SystemExit: If the last-key argument is invalid or field not found.
+        """
 
         def split_line(line: bytes) -> list[bytes]:
+            """Split a line by tab character, removing trailing newline.
+
+            Args:
+                line: A bytes line from the input.
+
+            Returns:
+                List of bytes fields split by tab.
+            """
             return line[:-1].split(b'\t')
 
         def get_last_key(field_names: Sequence[bytes], field_count: int) -> int:
+            """Determine the index of the last key field.
+
+            Parses the --last-key argument as either a 1-based field number
+            or a field name (from the header line if present).
+
+            Args:
+                field_names: Sequence of field names from the header line
+                    (or empty if no header).
+                field_count: Total number of fields in the data.
+
+            Returns:
+                0-based index of the last key field.
+
+            Raises:
+                SystemExit: If the argument is invalid or field not found.
+            """
             try:
                 last_key = int(args.last_key) - 1
                 if last_key >= field_count:
@@ -85,39 +134,72 @@ class TsvHierarchicalAggregator(InputProcessor):
                         f'last key field not found: {args.last_key}')
             return last_key
 
+        # Parse header (if present) and first data line
         field_names: list[bytes] = (split_line(inf.readline()) if args.header
                                     else [])
         first_line: bytes = inf.readline()
         fields: list[bytes] = split_line(first_line)
         field_count: int = len(fields)
         last_key: int = get_last_key(field_names, field_count)
+
+        # Calculate dimensions: keys and value fields
         num_keys: int = last_key + 1
         num_counts: int = field_count - num_keys
+
+        # Initialize data structures for hierarchical tracking
+        # key_values: current key values at each level
         key_values: list[bytes] = [fields[fieldnum]
                                    for fieldnum in range(num_keys)]
+        # counts: row count at each hierarchy level
         counts: list[int] = [0] * num_keys
+        # sums: accumulated value sums at each hierarchy level
         sums: list[list[int]] = [[0] * num_counts for _ in range(num_keys)]
+        # markers_all: marker rows showing "any" values (deeper levels)
         markers_all: list[list[bytes]] = [[b'*'] * (num_keys - num - 1)
                                           for num in range(num_keys)]
+        # markers_same: marker rows showing "same as" (same level)
         markers_same: list[list[bytes]] = [[b'_'] * num
                                            for num in range(num_keys)]
+        # output_queue: buffers for outputs at each level (to maintain order)
         output_queue: list[list[bytes]] = [[] for _ in range(num_keys)]
 
         def make_tsv_line(*iters: bytes | Iterable[bytes]) -> bytes:
+            """Construct a TSV line from mixed bytes and iterables.
+
+            Args:
+                *iters: Variable arguments that can be individual bytes
+                    or iterables of bytes.
+
+            Returns:
+                A bytes line with fields joined by tabs and terminated by
+                newline.
+            """
             return (
                 b'\t'.join(s for it in iters
                            for s in ((it,) if isinstance(it, bytes) else it))
                 + b'\n')
 
         def output_header() -> None:
+            """Write the output header line based on input field names."""
             ouf.write(make_tsv_line(
                 field_names[:num_keys],
                 b'count',
                 (b'sum_' + name for name in field_names[num_keys:])))
 
         def add_subtotals(keynum: int) -> None:
+            """Recursively add subtotal rows for all levels from keynum to 0.
+
+            When a key value changes at level keynum, this aggregates counts
+            and sums from level `last_key` up to level `keynum`, outputting
+            subtotal rows at each intermediate level.
+
+            Args:
+                keynum: The hierarchy level (0-based) where the key change
+                   occurred.
+            """
             for fieldnum in range(last_key, keynum - 1, -1):
                 if fieldnum > 0:
+                    # Accumulate subtotals from lower level to current level
                     counts[fieldnum - 1] += counts[fieldnum]
                     sums[fieldnum - 1] = list(
                         sums[fieldnum - 1][i] + sums[fieldnum][i]
@@ -125,17 +207,35 @@ class TsvHierarchicalAggregator(InputProcessor):
                 output(fieldnum)
 
         def output(keynum: int) -> None:
+            """Queue or write a subtotal row for a given hierarchy level.
+
+            At level 0, writes all accumulated output; at higher levels,
+            queues rows in the parent level's queue.
+
+            Args:
+                keynum: The hierarchy level (0-based) of the subtotal row.
+            """
             sum_line = make_sum_line(keynum)
             if keynum == 0:
+                # Top level: write immediately and flush all queued outputs
                 ouf.write(sum_line)
                 for line in output_queue[0]:
                     ouf.write(line)
             else:
+                # Queue in parent level
                 output_queue[keynum - 1].append(sum_line)
                 output_queue[keynum - 1].extend(output_queue[keynum])
             output_queue[keynum] = []
 
         def make_sum_line(keynum: int) -> bytes:
+            """Construct a TSV subtotal line for a given hierarchy level.
+
+            Args:
+                keynum: The hierarchy level (0-based).
+
+            Returns:
+                A bytes line with markers, key value, count, and sums.
+            """
             return make_tsv_line(
                 markers_same[keynum],
                 key_values[keynum],
@@ -145,6 +245,14 @@ class TsvHierarchicalAggregator(InputProcessor):
                  for i in range(num_counts)))
 
         def force_int(val: bytes) -> int:
+            """Convert bytes to int, warning on invalid input.
+
+            Args:
+                val: A bytes value to convert.
+
+            Returns:
+                The integer value, or 0 if conversion fails.
+            """
             try:
                 return int(val)
             except ValueError:
@@ -152,25 +260,32 @@ class TsvHierarchicalAggregator(InputProcessor):
                           + val.decode('utf-8'))
                 return 0
 
+        # Write header if present in input
         if args.header:
             output_header()
+
+        # Process all data lines, including the first line already read
         for line in (first_line, *inf):
             fields = split_line(line)
+            # Find the first key level where the value changed
             changed_key_num: int = -1
             for fieldnum in range(num_keys):
                 if fields[fieldnum] != key_values[fieldnum]:
                     changed_key_num = fieldnum
                     break
+            # If any key changed, output subtotals and reset affected levels
             if changed_key_num != -1:
                 add_subtotals(changed_key_num)
                 for fieldnum in range(changed_key_num, num_keys):
                     counts[fieldnum] = 0
                     sums[fieldnum] = [0] * num_counts
                     key_values[fieldnum] = fields[fieldnum]
+            # Accumulate current row's values
             counts[last_key] += 1
             sums[last_key] = list(sums[last_key][i]
                                   + force_int(fields[num_keys + i])
                                   for i in range(num_counts))
+        # Output final subtotals
         add_subtotals(0)
 
 
