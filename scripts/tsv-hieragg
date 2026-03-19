@@ -6,9 +6,11 @@ tsv-hieragg
 Add hierarchical aggregation (totals, subtotals) to input TSV data.
 """
 
+
+# Imports for type annotations
 from argparse import Namespace
-from collections.abc import Callable, Sequence
-from typing import Any, BinaryIO
+from collections.abc import Iterable, Sequence
+from typing import BinaryIO
 
 import libpaths
 # Add VRT tools libraries (vrtargsoolib) to sys.path
@@ -97,7 +99,7 @@ class TsvHierarchicalAggregator(InputProcessor):
         markers_same: list[list[bytes]] = [[b'_'] * num for num in range(num_keys)]
         output_queue: list[list[bytes]] = [[] for _ in range(num_keys)]
 
-        def make_tsv_line(*iters: Any) -> bytes:
+        def make_tsv_line(*iters: bytes | Iterable[bytes]) -> bytes:
             return (
                 b'\t'.join(s for it in iters
                            for s in ((it,) if isinstance(it, bytes) else it))
