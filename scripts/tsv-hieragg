@@ -19,19 +19,24 @@ class TsvHierarchicalAggregator(InputProcessor):
 
     DESCRIPTION = """
     Hierarchically aggregate sorted TSV (tab-separated values) data.
-    The input TSV must contain one or more key fields (columns) first,
-    followed by fields with numeric values (counts). The input must be
-    sorted lexicographically by the key fields, first by the first
-    one, then by the second one and so on. The output TSV will contain
-    the key field values, the number of rows with the values and the
-    sums of the count fields for those rows. The values are calculated
-    and presented hierarchically. For example, if the input has three
-    key fields, A, B and C, the output will have a row with values "a1
-    * *" for the count and sums of all rows with A = a1 (a1 as the
-    value of A). It is followed by "- b1 *" for those with A = a1 and
-    B = b1, followed by "- - cN" for those with A = a1, B = b1 and C =
-    cN for each cN occurring with a1 and b1. ("-" means "the same
-    value as above", "*" means "any value".)
+    The input must contain of one or more key fields (columns),
+    followed by numeric value fields (counts), and be sorted
+    lexicographically by the key fields. The output summarizes the
+    data hierarchically, showing aggregated counts and sums for each
+    level of the key hierarchy.
+    """
+    EPILOG = """
+    For example, for sorted input with three key fields (A, B, C), the
+    output includes: (1) a row for each unique value of a_i of A,
+    showing the total number of rows and sums of the numeric fields
+    for all rows with A = a_i (e.g., "a_1→*→*" for A = a_1; "→"
+    denoting the tab character); (2) a row for each (A, B) pair (a_i,
+    b_j), showing totals for rows with A = a_i and B = b_j (e.g.
+    "-→b_1→*" following "a_1→*→*" for (a_1, b_1)); and (3) a row for
+    each (A, B, C) combination (a_i, b_j, c_k), showing totals for
+    rows with A = a_i, B = b_i and C = c_k (e.g. "-→-→c_1" following
+    "a_1→*→*" and "-→b_1→*" for (a_1, b_1, c1)). "-" on a key column
+    indicates "same as above," and "*" represents "any value."
     """
     ARGSPECS = [
         ('--last-key = name-or-num "1"',
