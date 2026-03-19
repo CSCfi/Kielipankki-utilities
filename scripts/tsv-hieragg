@@ -1,0 +1,163 @@
+#! /usr/bin/env python3
+
+"""
+tsv-hieragg
+
+Add hierarchical aggregation (totals, subtotals) to input TSV data.
+"""
+
+import libpaths
+# Add VRT tools libraries (vrtargsoolib) to sys.path
+libpaths.append_libdirs('../vrt-tools')
+
+from vrtargsoolib import InputProcessor
+
+
+class TsvHierarchicalAggregator(InputProcessor):
+
+    """Class implementing tsv-hieragg functionality."""
+
+    DESCRIPTION = """
+    Hierarchically aggregate sorted TSV (tab-separated values) data.
+    The input TSV must contain one or more key fields (columns) first,
+    followed by fields with numeric values (counts). The input must be
+    sorted lexicographically by the key fields, first by the first
+    one, then by the second one and so on. The output TSV will contain
+    the key field values, the number of rows with the values and the
+    sums of the count fields for those rows. The values are calculated
+    and presented hierarchically. For example, if the input has three
+    key fields, A, B and C, the output will have a row with values "a1
+    * *" for the count and sums of all rows with A = a1 (a1 as the
+    value of A). It is followed by "- b1 *" for those with A = a1 and
+    B = b1, followed by "- - cN" for those with A = a1, B = b1 and C =
+    cN for each cN occurring with a1 and b1. ("-" means "the same
+    value as above", "*" means "any value".)
+    """
+    ARGSPECS = [
+        ('--last-key = name-or-num "1"',
+         """name-or-num is the name or number of the last key field;
+            an integer value is considered a number (1-based), otherwise
+            a name in the header line"""),
+        ('--no-header -> !header',
+         """the input has no header line, nor will the output have"""),
+    ]
+
+    def __init__(self):
+        # extra_types=... is needed for using module-level functions
+        # as types in ARGSPECS (otherwise, type could be passed via a
+        # dict)
+        super().__init__(extra_types=globals())
+
+    def main(self, args, inf, ouf):
+        """Read `inf`, write to `ouf`, using options `args`."""
+
+        def split_line(line):
+            return line[:-1].split(b'\t')
+
+        def get_last_key(field_names, field_count):
+            try:
+                last_key = int(args.last_key) - 1
+                if last_key >= field_count:
+                    self.error_exit('last key field larger than field count:'
+                                    f' {last_key + 1} > {field_count}')
+                elif last_key < 0:
+                    self.error_exit('last key field value less than 1:'
+                                    f' {last_key + 1}')
+            except ValueError:
+                if not args.header:
+                    self.error_exit('--no-header requires an integer argument'
+                                    f' to --last-key, not "{args.last_key}"')
+                try:
+                    last_key = field_names.index(args.last_key.encode('utf-8'))
+                except ValueError:
+                    self.error_exit(
+                        f'last key field not found: {args.last_key}')
+            return last_key
+
+        field_names = split_line(inf.readline()) if args.header else []
+        first_line = inf.readline()
+        fields = split_line(first_line)
+        field_count = len(fields)
+        last_key = get_last_key(field_names, field_count)
+        num_keys = last_key + 1
+        num_counts = field_count - num_keys
+        key_values = [fields[fieldnum] for fieldnum in range(num_keys)]
+        counts = [0] * num_keys
+        sums = [[0] * num_counts] * num_keys
+        markers_all = [[b'*'] * (num_keys - num - 1) for num in range(num_keys)]
+        markers_same = [[b'_'] * num for num in range(num_keys)]
+        output_queue = [[] for _ in range(num_keys)]
+
+        def make_tsv_line(*iters):
+            return (
+                b'\t'.join(s for it in iters
+                           for s in ((it,) if isinstance(it, bytes) else it))
+                + b'\n')
+
+        def output_header():
+            ouf.write(make_tsv_line(
+                field_names[:num_keys],
+                b'count',
+                (b'sum_' + name for name in field_names[num_keys:])))
+
+        def add_subtotals(keynum):
+            for fieldnum in range(last_key, keynum - 1, -1):
+                if fieldnum > 0:
+                    counts[fieldnum - 1] += counts[fieldnum]
+                    sums[fieldnum - 1] = list(
+                        sums[fieldnum - 1][i] + sums[fieldnum][i]
+                        for i in range(num_counts))
+                output(fieldnum)
+
+        def output(keynum):
+            sum_line = make_sum_line(keynum)
+            if keynum == 0:
+                ouf.write(sum_line)
+                for line in output_queue[0]:
+                    ouf.write(line)
+            else:
+                output_queue[keynum - 1].append(sum_line)
+                output_queue[keynum - 1].extend(output_queue[keynum])
+            output_queue[keynum] = []
+
+        def make_sum_line(keynum):
+            return make_tsv_line(
+                markers_same[keynum],
+                key_values[keynum],
+                markers_all[keynum],
+                str(counts[keynum]).encode('utf-8'),
+                (str(sums[keynum][i]).encode('utf-8')
+                 for i in range(num_counts)))
+
+        def force_int(val):
+            try:
+                return int(val)
+            except ValueError:
+                self.warn('Invalid integer value, treating as 0: '
+                          + val.decode('utf-8'))
+                return 0
+
+        if args.header:
+            output_header()
+        for line in (first_line, *inf):
+            fields = split_line(line)
+            changed_key_num = -1
+            for fieldnum in range(num_keys):
+                if fields[fieldnum] != key_values[fieldnum]:
+                    changed_key_num = fieldnum
+                    break
+            if changed_key_num != -1:
+                add_subtotals(changed_key_num)
+                for fieldnum in range(changed_key_num, num_keys):
+                    counts[fieldnum] = 0
+                    sums[fieldnum] = [0] * num_counts
+                    key_values[fieldnum] = fields[fieldnum]
+            counts[last_key] += 1
+            sums[last_key] = list(sums[last_key][i]
+                                  + force_int(fields[num_keys + i])
+                                  for i in range(num_counts))
+        add_subtotals(0)
+
+
+if __name__ == '__main__':
+    TsvHierarchicalAggregator().run()
