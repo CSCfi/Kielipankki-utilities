@@ -60,11 +60,7 @@ class TsvHierarchicalAggregator(InputProcessor):
     ]
 
     def __init__(self) -> None:
-        """Initialize the TsvHierarchicalAggregator.
-
-        Calls the parent InputProcessor constructor with a globals() dict
-        to enable module-level functions as types in ARGSPECS.
-        """
+        """Initialize the TsvHierarchicalAggregator."""
         # extra_types=... is needed for using module-level functions
         # as types in ARGSPECS (otherwise, type could be passed via a dict)
         super().__init__(extra_types=globals())
@@ -78,8 +74,7 @@ class TsvHierarchicalAggregator(InputProcessor):
         stream.
 
         Args:
-            args: Parsed command-line arguments containing options for
-                last-key (field name or 1-based number) and header.
+            args: Parsed command-line arguments.
             inf: Input binary stream containing TSV data.
             ouf: Output binary stream for writing aggregated TSV data.
 
@@ -184,6 +179,7 @@ class TsvHierarchicalAggregator(InputProcessor):
             ouf.write(make_tsv_line(
                 field_names[:num_keys],
                 b'count',
+                # Prefix input count field names with "sum_"
                 (b'sum_' + name for name in field_names[num_keys:])))
 
         def add_subtotals(keynum: int) -> None:
@@ -234,7 +230,7 @@ class TsvHierarchicalAggregator(InputProcessor):
                 keynum: The hierarchy level (0-based).
 
             Returns:
-                A bytes line with markers, key value, count, and sums.
+                A bytes line with markers, key value, count and sums.
             """
             return make_tsv_line(
                 markers_same[keynum],
