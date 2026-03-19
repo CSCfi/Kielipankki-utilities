@@ -85,18 +85,22 @@ class TsvHierarchicalAggregator(InputProcessor):
                         f'last key field not found: {args.last_key}')
             return last_key
 
-        field_names: list[bytes] = split_line(inf.readline()) if args.header else []
+        field_names: list[bytes] = (split_line(inf.readline()) if args.header
+                                    else [])
         first_line: bytes = inf.readline()
         fields: list[bytes] = split_line(first_line)
         field_count: int = len(fields)
         last_key: int = get_last_key(field_names, field_count)
         num_keys: int = last_key + 1
         num_counts: int = field_count - num_keys
-        key_values: list[bytes] = [fields[fieldnum] for fieldnum in range(num_keys)]
+        key_values: list[bytes] = [fields[fieldnum]
+                                   for fieldnum in range(num_keys)]
         counts: list[int] = [0] * num_keys
         sums: list[list[int]] = [[0] * num_counts for _ in range(num_keys)]
-        markers_all: list[list[bytes]] = [[b'*'] * (num_keys - num - 1) for num in range(num_keys)]
-        markers_same: list[list[bytes]] = [[b'_'] * num for num in range(num_keys)]
+        markers_all: list[list[bytes]] = [[b'*'] * (num_keys - num - 1)
+                                          for num in range(num_keys)]
+        markers_same: list[list[bytes]] = [[b'_'] * num
+                                           for num in range(num_keys)]
         output_queue: list[list[bytes]] = [[] for _ in range(num_keys)]
 
         def make_tsv_line(*iters: bytes | Iterable[bytes]) -> bytes:
