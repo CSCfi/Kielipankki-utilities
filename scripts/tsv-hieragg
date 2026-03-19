@@ -16,7 +16,7 @@ import libpaths
 # Add VRT tools libraries (vrtargsoolib) to sys.path
 libpaths.append_libdirs('../vrt-tools')
 
-from vrtargsoolib import InputProcessor
+from vrtargsoolib import InputProcessor  # noqa: E402
 
 
 class TsvHierarchicalAggregator(InputProcessor):
