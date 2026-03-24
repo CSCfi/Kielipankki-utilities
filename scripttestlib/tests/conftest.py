@@ -1,14 +1,27 @@
 # -*- mode: Python; -*-
 
+"""
+conftest.py
 
-import pytest
+pytest conftest.py for the scripttestlib library.
 
-# Make pytest rewrite assertions in scripttestlib; this needs to be before
-# importing scripttestlib:
-# https://docs.pytest.org/en/latest/writing_plugins.html#assertion-rewriting
-pytest.register_assert_rewrite('tests.scripttestlib')
+This conftest.py can also be symlinked to the tests/ subdirectory of
+other top-level script collections if they only use scripttestlib and
+pytest tests.
+"""
 
-import tests.scripttestlib as scripttestlib
+
+import os.path
+import sys
+
+# Make tests find scripttestlib and local library modules under
+# _parent_dir, assuming that this file is copied or symlinked under
+# _parent_dir/tests and that _parent_dir is at the same level as
+# scripttestlib (top-level directory of the repository).
+_parent_dir = os.path.abspath(os.path.dirname(__file__) + '/..')
+sys.path.extend([_parent_dir + '/../scripttestlib', _parent_dir])
+
+import scripttestlib
 
 
 def pytest_addoption(parser):
@@ -20,11 +33,3 @@ def pytest_configure(config):
     """Pass the value of --scripttest-granularity to scripttestlib."""
     scripttestlib.set_scripttest_granularity(
         config.option.scripttest_granularity)
-
-
-# Make tests find libraries in ../libvrt/ (and here in ../tests/).
-
-import os.path
-import sys
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__) + '/..'))

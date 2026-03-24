@@ -5,9 +5,9 @@
 test_scripts.py
 
 A pytest test that collects and runs all the testcases specified in
-scripttest_*.py and scripttest_*.yaml files in this directory and *.py
-and *.yaml in the scripttests subdirectory, using the scripttestlib
-module.
+scripttest_*.py and scripttest_*.yaml files in this directory (or the
+directory symlinking to this file) and *.py and *.yaml in the
+scripttests subdirectory, using the scripttestlib module.
 """
 
 
@@ -15,7 +15,7 @@ import os.path
 
 import pytest
 
-from tests.scripttestlib import (
+from scripttestlib import (
     collect_testcases, check_program_run, make_param_id)
 
 

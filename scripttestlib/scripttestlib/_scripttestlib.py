@@ -2,12 +2,13 @@
 
 
 """
-scripttestlib.py
+Module scripttestlib._scripttestlib
 
-A module for processing tests of complete scripts, for running with
-pytest.
+The actual implementation of the scripttestlib library, a module
+(Python package) for processing tests of complete scripts, for running
+with pytest.
 
-Please see README.md and the docstrings of functions for more
+Please see ../../README.md and the docstrings of functions for more
 information.
 """
 

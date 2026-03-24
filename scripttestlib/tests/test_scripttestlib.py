@@ -16,7 +16,7 @@ from copy import deepcopy
 import pytest
 import yaml
 
-from tests.scripttestlib import (
+from scripttestlib import (
     collect_testcases, check_program_run, expand_testcases,
     dict_deep_update, make_param_id)
 
