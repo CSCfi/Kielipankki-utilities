@@ -1,56 +1,82 @@
 
-# Tests for VRT Tools
-
-This directory contains various tests for the FIN-CLARIN VRT Tools.
+# `scripttestlib` and `scripttestlib` tests
 
 
-## Types of tests
-
-The tests may take several different forms:
-
-1.  Simple (shell) scripts that exit with code 0 if the test passes
-    (or all the tests in the script pass) and with a non-zero exit
-    code if the test fails (or some of the tests in the script fail).
-    These are typically used for testing complete scripts.
-
-2.  [pytest](https://docs.pytest.org/en/latest/) (or
-    [unittest](https://docs.python.org/3/library/unittest.html) or
-    [nose2](https://docs.nose2.io/en/latest/)) tests in Python files
-    (modules) with names matching `test_*.py` or `*_test.py`. Please
-    see the [pytest documentation](https://docs.pytest.org/en/latest/)
-    for more information. pytest can be used for testing library
-    functions (unit testing) as well as complete scripts.
-
-3.  `scripttestlib` tests for complete scripts as either Python
-    modules or [YAML](https://yaml.org/) files with the file name
-    prefix `scripttest_`. This facility is based on pytest, using the
-    Python module `scripttestlib` and the pytest test case
-    `test_scripts.py` in this directory. Please see below for more
-    information.
-
-
-## `scripttestlib` tests
-
-*(**Please note** that `scripttestlib` is not related to the
+_(**Please note** that `scripttestlib` is not related to the
 [scripttest library](https://github.com/pypa/scripttest), even though
-they both help in testing command-line scripts.)*
-
-`scripttestlib` allows specifying the input and expected output of a
-script (shell command) as either (1) a Python data structure (a list
-of dictionaries) named `testcases` in a Python module, or (2) a YAML
-file with the same structure (a sequence of mappings), converted to
-the Python data structure. You can also generate such a YAML file with
-the `make-scripttest` script.
+they both help in testing command-line scripts.)_
 
 
-### The structure of a `scripttestlib` test
+## Introduction
 
-#### Test cases
+`scripttestlib` is a Python module that allows writing tests for a
+script (shell command) and running them with
+[pytest](https://docs.pytest.org). Tests are written by specifying the
+input and expected output of a shell command in one of two formats:
+
+1. a Python data structure (a list of dictionaries) named `testcases`
+   in a Python module, or
+2. a YAML file with the same structure (a sequence of mappings),
+   converted to the Python data structure.
+
+You can also generate a YAML file with the
+[`make-scripttest`](make-scripttest) script (see
+[below](#generating-a-test-case-with-make-scripttest) for some more
+information).
+
+### Setting up tests
+
+The tests for a collection of scripts should be placed in a
+subdirectory `tests` of the collection. The actual scripttest tests
+should be in the subdirectory `tests/scripttests` (preferred) or named
+with prefix `scripttest_` in `tests` (secondary). Files with the
+extension `.py`, `.yaml` or `.yml` are considered in these locations.
+
+The directory `tests` should contain the file `conftest.py` for
+configuring pytest for `scripttestlib` and a
+[pytest](https://docs.pytest.org) test module for running
+`scripttestlib` tests, for example `test_scripts.py`. If a collection
+is at the top level of this repository and if it only uses
+`scripttestlib` tests and basic pytest tests that do not require any
+special configuration, you can use the
+[`conftest.py`](tests/conftest.py) and
+[`test_scripts.py`](tests/test_scripts.py) here in
+[`scripttestlib/tests`](tests) by creating symbolic links to them. If
+additional configuration is needed, you can use these files as the
+basis for custom files.
+
+### Running tests
+
+`scripttestlib` tests are run with pytest:
+
+1.  Run all `scripttestlib` tests for a collection of scripts
+    (assuming that the default name of `test_scripts.py` is used for
+    the test module running the tests):
+
+    ```
+    pytest -k test_scripts
+    ```
+
+2.  Run the tests only for a script `script-x`:
+
+    ```
+    pytest -k script-x
+    ```
+
+    This requires that the `scripttestlib` tests for `x` also have
+    names containing `x` (see below).
+
+
+## The structure of a `scripttestlib` test
+
+### Test cases
 
 A `scripttestlib` test contains the following information for a single
 test case:
 
--   `name`: A name or description of the test (`str`)
+-   `name`: A name or description of the test (`str`). This should
+    contain the name of the script to make it easy to run tests for
+    only a certain script.
 
 -   `input`: A dict or a list of dicts containing input information
     for the test. If the value is a list of dicts, a separate test is
@@ -62,9 +88,10 @@ test case:
         if `input` is a list of dicts, generating multiple tests
         (`str`)
     -   `prog`: program (script) name (`str`). The program is searched
-        in `$PATH` as usual, but for tests under this directory, the
-        `vrt-tools` directory is added to `$PATH`, so the bare name of
-        the script can be used when testing VRT Tools scripts.
+        in `$PATH` as usual, but the default
+        [`test_scripts.py`](tests/test_scripts.py) module adds its
+        directory and parent directory to `$PATH`, so typically the
+        bare name of the script can be used.
     -   `args`: a list of command-line arguments, either a single
         string with arguments quoted as in shell, or as a list of
         unquoted strings (`str`)
@@ -379,7 +406,7 @@ test case:
 	The values `skip` and `xfail` may optionally be followed by a
     colon and a reason (text) for the expected failure.
 
-#### Default values
+### Default values
 
 The sequence of test cases may also contain items specifying default
 values for the tests that follow. Default value items contain the
@@ -413,7 +440,7 @@ previous default values. To clear the default values completely, use
 
     - defaults: {}
 
-#### Reusable definitions
+### Reusable definitions
 
 In a test specified in YAML, the sequence of test cases may contain
 items defining reusable values with YAML anchors (`&`*anchor*) that
@@ -475,7 +502,7 @@ places in the actual test cases. For example:
     ]
 
 
-### Test granularity
+## Test granularity
 
 By default, each single output value generates a pytest test of its
 own, with a single value assertion. Alternatively, you can group in
@@ -486,7 +513,7 @@ pytest command-line option `--scripttest-granularity`, whose value can
 be `value` (default), `inputitem` or `programrun`.
 
 
-### Generating a test case with `make-scripttest`
+## Generating a test case with `make-scripttest`
 
 You can use the script `make-scripttest` in this directory to generate
 a YAML representation of a test case based on a program run. The
