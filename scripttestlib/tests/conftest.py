@@ -25,11 +25,10 @@ import scripttestlib
 
 
 def pytest_addoption(parser):
-    """Add custom option --scripttest-granularity to pytest."""
-    scripttestlib.add_pytest_option_scripttest_granularity(parser)
+    """Add scripttestlib custom option(s)."""
+    scripttestlib.pytest_addoption_scripttestlib(parser)
 
 
 def pytest_configure(config):
-    """Pass the value of --scripttest-granularity to scripttestlib."""
-    scripttestlib.set_scripttest_granularity(
-        config.option.scripttest_granularity)
+    """Pass the value of scripttestlib custom option(s)."""
+    scripttestlib.pytest_configure_scripttestlib(config)

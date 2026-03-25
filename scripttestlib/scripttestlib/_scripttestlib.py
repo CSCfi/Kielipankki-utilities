@@ -40,6 +40,18 @@ import yaml
 _option_scripttest_granularity = 'value'
 
 
+def pytest_addoption_scripttestlib(parser):
+    """Add scripttestlib custom options, currently --scripttest-granularity."""
+    # If more custom options are added for scripttestlib, handle them
+    # here
+    add_pytest_option_scripttest_granularity(parser)
+
+
+def pytest_configure_scripttestlib(config):
+    """Configure scripttestlib based on custom command-line option(s)."""
+    set_scripttest_granularity(config.option.scripttest_granularity)
+
+
 def add_pytest_option_scripttest_granularity(parser):
     """Add custom option --scripttest-granularity to pytest option parser."""
     parser.addoption(
