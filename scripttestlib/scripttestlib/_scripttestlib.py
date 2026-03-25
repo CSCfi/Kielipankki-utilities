@@ -1026,16 +1026,13 @@ def check_program_run(name, input_, outputitem, expected, tmpdir,
     # TODO: Possible enhancements:
     # - Allow specifying input and output encodings.
 
-    def is_list_or_tuple(value):
-        return isinstance(value, list) or isinstance(value, tuple)
-
     def getfirst(value):
-        return value[0] if is_list_or_tuple(value) else value
+        return value[0] if isinstance(value, (list, tuple)) else value
 
     # print("run", input_, outputitem, expected)
     output = ProgramRunner.run(
         getfirst(name), getfirst(input_), tmpdir, progpath)
-    if not is_list_or_tuple(outputitem):
+    if not isinstance(outputitem, (list, tuple)):
         outputitem = [outputitem]
         expected = [expected]
     for itemnum, outputitem_item in enumerate(outputitem):
