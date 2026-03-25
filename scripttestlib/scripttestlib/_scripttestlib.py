@@ -39,6 +39,11 @@ import yaml
 # help text in add_pytest_option_scripttest_granularity for more information.
 _option_scripttest_granularity = 'value'
 
+# Default patterns for test case file names: scripttest{_,s/}*.{py,yaml,yml}
+_testcase_filespecs_default = [
+    f'scripttest{suff}*.{ext}' for suff in ('_', 's/')
+    for ext in ('py', 'yaml', 'yml')]
+
 
 def pytest_addoption_scripttestlib(parser):
     """Add scripttestlib custom options, currently --scripttest-granularity."""
@@ -110,7 +115,8 @@ def collect_testcases(*filespecs, basedir=None, granularity=None):
     Collect the test cases found in the files matching one of
     `filespecs` in the directory `basedir`. The test cases are either
     in Python modules in a variable named `testcases` or in YAML
-    files.
+    files. If no `filespecs` are specified, use those listed in
+    `_testcase_filespecs_default`.
 
     The output tuples have the items (name, input, outputitem,
     expected), and they can be used as parameters to
@@ -126,6 +132,8 @@ def collect_testcases(*filespecs, basedir=None, granularity=None):
     values for name or input are the same in a tuple, the single value
     is used instead of the tuple.
     """
+    if not filespecs:
+        filespecs = _testcase_filespecs_default
     if granularity is None:
         granularity = _get_granularity()
     testcases = []

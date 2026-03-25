@@ -23,14 +23,7 @@ _filedir = os.path.dirname(os.path.abspath(__file__))
 
 # Collect testcases to a list of triples (descr, input, expected) to be used
 # with @pytest.mark.parametrize below.
-testcases = collect_testcases(
-    'scripttest_*.py',
-    'scripttest_*.yaml',
-    'scripttest_*.yml',
-    'scripttests/*.py',
-    'scripttests/*.yaml',
-    'scripttests/*.yml',
-    basedir=_filedir)
+testcases = collect_testcases(basedir=_filedir)
 
 
 # Run all the test cases
