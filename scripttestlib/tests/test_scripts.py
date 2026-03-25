@@ -21,9 +21,9 @@ from scripttestlib import (
 
 _filedir = os.path.dirname(os.path.abspath(__file__))
 
-# Collect testcases to a list of triples (descr, input, expected) to be used
-# with @pytest.mark.parametrize below.
-testcases = collect_testcases(basedir=_filedir)
+# Collect testcases to a list of tuples (name, input, outputitem,
+# expected) to be used with @pytest.mark.parametrize below.
+testcases = collect_testcases()
 
 
 # Run all the test cases

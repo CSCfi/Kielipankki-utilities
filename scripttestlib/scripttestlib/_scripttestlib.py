@@ -20,6 +20,7 @@ information.
 
 import glob
 import importlib
+import inspect
 import os
 import os.path
 import re
@@ -43,6 +44,10 @@ _option_scripttest_granularity = 'value'
 _testcase_filespecs_default = [
     f'scripttest{suff}*.{ext}' for suff in ('_', 's/')
     for ext in ('py', 'yaml', 'yml')]
+
+# The directory of the pytest test module running scripttestlib tests
+# (typically test_scripts.py), to be initialized later
+_test_dir = None
 
 
 def pytest_addoption_scripttestlib(parser):
@@ -84,6 +89,38 @@ def _get_granularity():
     return _option_scripttest_granularity
 
 
+def _get_test_dir(cache=True):
+    """Get the directory of the pytest test file (test runner).
+
+    Args:
+        cache: If `True` (default), return the value in `_test_dir` if
+            not `None`, or set it if `None`.
+
+    Returns:
+        Absolute path to the directory of the closest ancestor in the
+        call chain whose file name begins with ``test_``; if no such
+        caller is found, the absolute path of the current directory.
+    """
+    global _test_dir
+    if cache and _test_dir is not None:
+        return _test_dir
+    frame = inspect.currentframe()
+    # Iterate stack frames until the filename in one begins with
+    # "test_"
+    while frame:
+        frame_file = frame.f_globals.get('__file__', '.')
+        print(frame_file)
+        frame_base = os.path.basename(frame_file)
+        if frame_base.startswith('test_'):
+            break
+        frame = frame.f_back
+    test_dir = (os.path.dirname(os.path.abspath(frame_file)) if frame
+                else os.path.abspath('.'))
+    if cache:
+        _test_dir = test_dir
+    return test_dir
+
+
 def make_param_id(val):
     """Return a parameter id string for value `val`
 
@@ -116,7 +153,10 @@ def collect_testcases(*filespecs, basedir=None, granularity=None):
     `filespecs` in the directory `basedir`. The test cases are either
     in Python modules in a variable named `testcases` or in YAML
     files. If no `filespecs` are specified, use those listed in
-    `_testcase_filespecs_default`.
+    `_testcase_filespecs_default`. If `basedir` is `None` (the
+    default), use the directory of the pytest test module running the
+    scripttestlib tests as detected by `_get_test_dir`, typically
+    `test_scripts.py`.
 
     The output tuples have the items (name, input, outputitem,
     expected), and they can be used as parameters to
@@ -134,17 +174,17 @@ def collect_testcases(*filespecs, basedir=None, granularity=None):
     """
     if not filespecs:
         filespecs = _testcase_filespecs_default
+    if basedir is None:
+        basedir = _get_test_dir()
     if granularity is None:
         granularity = _get_granularity()
     testcases = []
-    if basedir is not None:
-        sys.path[0:0] = [basedir]
+    sys.path[0:0] = [basedir]
     # Invalidate import caches just in case, as the Python modules might have
     # been constructed on-the-fly
     importlib.invalidate_caches()
     for filespec in filespecs:
-        if basedir is not None:
-            filespec = os.path.join(basedir, filespec)
+        filespec = os.path.join(basedir, filespec)
         for fname in glob.iglob(filespec):
             fname_rel = os.path.relpath(fname, basedir)
             # print(basedir, filespec, fname, fname_rel)
