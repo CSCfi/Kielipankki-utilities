@@ -66,6 +66,71 @@ basis for custom files.
     This requires that the `scripttestlib` tests for `x` also have
     names containing `x` (see below).
 
+### Grouped test output
+
+By default, `scripttestlib` tests are organized by their source files
+(YAML or Python files), and the pytest output displays tests grouped by
+file. This provides better organization when there are many test files,
+making it easier to see which test group is running.
+
+**Example output (default short format):**
+
+```
+test_scripts.py
+test_scripts.py::hrt_encode_tags ............................ [ 12%]
+.................................................................
+test_scripts.py::vrt_drop_attrs ............................. [ 45%]
+.................................................................
+```
+
+#### Output format options
+
+The appearance of grouped test headers can be controlled with the
+`--grouped-output-format` option:
+
+- **`short` (default)**: Simplified test names with common prefixes and
+  suffixes removed (e.g., `vrt_drop_attrs` instead of
+  `test_scripttest_vrt_drop_attrs_yaml`).
+
+  ```
+  pytest --grouped-output-format=short
+  ```
+
+- **`full`**: Complete function names without any simplification.
+
+  ```
+  pytest --grouped-output-format=full
+  ```
+
+- **`none`**: Disable grouping and use standard pytest output.
+
+  ```
+  pytest --grouped-output-format=none
+  ```
+
+#### Configurable module patterns
+
+By default, grouping is applied only to `test_scripts*` modules. You can
+customize this with the `--grouped-output-modules` option using glob
+patterns:
+
+```
+# Apply grouping to multiple module patterns
+pytest --grouped-output-modules=test_scripts*,test_custom*
+
+# Apply grouping to all test_* modules
+pytest --grouped-output-modules=test_*
+```
+
+#### Configuration via pytest.ini
+
+These options can be set in `pytest.ini` to apply by default:
+
+```ini
+[pytest]
+addopts = --grouped-output-format=short --grouped-output-modules=test_scripts*
+```
+
 
 ## The structure of a `scripttestlib` test
 

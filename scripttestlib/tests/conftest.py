@@ -22,13 +22,18 @@ _parent_dir = os.path.abspath(os.path.dirname(__file__) + '/..')
 sys.path.extend([_parent_dir + '/../scripttestlib', _parent_dir])
 
 import scripttestlib
+import scripttestlib.pytest_grouped_output
 
 
 def pytest_addoption(parser):
     """Add scripttestlib custom option(s)."""
     scripttestlib.pytest_addoption_scripttestlib(parser)
+    # Add grouped output plugin options
+    scripttestlib.pytest_grouped_output.pytest_addoption(parser)
 
 
 def pytest_configure(config):
-    """Pass the value of scripttestlib custom option(s)."""
+    """Pass the value of scripttestlib custom option(s) and configure plugins."""
     scripttestlib.pytest_configure_scripttestlib(config)
+    # Register the grouped output plugin for test_scripts_grouped.py
+    scripttestlib.pytest_grouped_output.pytest_configure(config)
