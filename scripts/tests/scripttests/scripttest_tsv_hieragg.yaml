@@ -170,6 +170,26 @@
       _	2	1	40
 
 
+- name: 'tsv-hieragg: Second key same after first key change'
+  input:
+    cmdline: tsv-hieragg --last-key 2
+    stdin: |
+      group	subgroup	count
+      A	1	10
+      A	2	20
+      B	2	30
+      B	3	40
+  output:
+    stdout: |
+      group	subgroup	count	sum_count
+      A	*	2	30
+      _	1	1	10
+      _	2	1	20
+      B	*	2	70
+      _	2	1	30
+      _	3	1	40
+
+
 # Tests: Error cases
 
 - name: 'tsv-hieragg: Error - key field too large'
