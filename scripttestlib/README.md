@@ -86,27 +86,14 @@ test_scripts.py::vrt_drop_attrs ............................. [ 45%]
 #### Output format options
 
 The appearance of grouped test headers can be controlled with the
-`--grouped-output-format` option:
+`--grouped-output-format` option, which takes one of the following
+values:
 
-- **`short` (default)**: Simplified test names with common prefixes and
+- `short` (default): Simplified test names with common prefixes and
   suffixes removed (e.g., `vrt_drop_attrs` instead of
   `test_scripttest_vrt_drop_attrs_yaml`).
-
-  ```
-  pytest --grouped-output-format=short
-  ```
-
-- **`full`**: Complete function names without any simplification.
-
-  ```
-  pytest --grouped-output-format=full
-  ```
-
-- **`none`**: Disable grouping and use standard pytest output.
-
-  ```
-  pytest --grouped-output-format=none
-  ```
+- `full`: Complete function names without any simplification.
+- `none`: Disable grouping and use standard pytest output.
 
 #### Configurable module patterns
 
