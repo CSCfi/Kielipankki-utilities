@@ -150,7 +150,7 @@ def pytest_addoption(parser):
         '--grouped-output-modules',
         default='test_scripts*',
         help=('Glob pattern(s) of test modules to apply grouping to'
-              ' (default: test_scripts*). Use comma-separated values for'
+              ' (default: %(default)s). Use comma-separated values for'
               ' multiple patterns.')
     )
     group.addoption(
@@ -158,9 +158,11 @@ def pytest_addoption(parser):
         default='short',
         choices=['none', 'full', 'short'],
         help=('Format for test output when using grouped organization.'
-              ' "short" (default) shows simplified names like "vrt_drop_attrs",'
-              ' "full" shows complete names like'
-              ' "test_scripttest_vrt_drop_attrs_yaml",'
+              ' "short" (default) omits typical prefixes and suffixes'
+              ' generated from scripttestlib test file names and shows'
+              ' simplified names like "basename";'
+              ' "full" shows complete test function names like'
+              ' "test_scripttest_basename_yaml";'
               ' "none" disables grouping and uses standard pytest output.')
     )
 
