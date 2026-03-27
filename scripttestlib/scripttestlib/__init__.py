@@ -28,6 +28,8 @@ from ._scripttestlib import (
     set_scripttest_granularity,
     make_param_id,
     collect_testcases,
+    collect_testcases_by_file,
+    make_parametrized_test_functions,
     expand_testcases,
     dict_deep_update,
     check_program_run,
