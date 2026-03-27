@@ -1,10 +1,13 @@
+
 # scripttestlib tests for tsv-hieragg
+
 
 # Default input and output
 - defaults:
     output:
       # Successful runs with no errors
       stderr: ''
+      returncode: 0
 
 
 # Basic tests: Single key level
