@@ -3226,7 +3226,7 @@ def test_duplicate_filename(tmpdir):
                           tmpdir=str(tmpdir))
 
 
-@pytest.mark.parametrize("name, input, outputitem, expected",
+@pytest.mark.parametrize('name, input, outputitem, expected',
                          _testcases, ids=make_param_id)
 def test_check_program_run(name, input, outputitem, expected, tmpdir):
     """Test scripttestlib.check_program_run with the testcases."""
@@ -3333,4 +3333,5 @@ def test_make_parametrized_test_functions_filename_sanitization():
         testcases_by_file = {filename: [('T1', 'i1', 'o1', 'e1')]}
         test_funcs = make_parametrized_test_functions(testcases_by_file)
         assert expected_func_name in test_funcs, \
-            f"Expected {expected_func_name} for filename {filename}, got {list(test_funcs.keys())}"
+            (f'Expected {expected_func_name} for filename {filename},'
+             f' got {list(test_funcs.keys())}')

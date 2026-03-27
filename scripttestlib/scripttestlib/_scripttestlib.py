@@ -147,7 +147,7 @@ def make_param_id(val):
 
 
 def _load_testcases_from_files(filespecs, basedir, granularity):
-    """Load test cases from files, returning list of (filename, testcases) tuples.
+    """Load test cases from files, return list of (filename, testcases) tuples.
 
     This is a helper function that discovers and loads test cases from files
     matching the given filespecs in basedir, handling both Python modules
@@ -242,7 +242,8 @@ def collect_testcases_by_file(*filespecs, basedir=None, granularity=None):
         Same as collect_testcases()
 
     Returns:
-        Dict mapping filename to list of (name, input, outputitem, expected) tuples
+        Dict mapping filename to list of (name, input, outputitem,
+            expected) tuples
     """
     fname_testcases_list, granularity = _load_testcases_from_files(
         filespecs, basedir, granularity)
@@ -273,7 +274,8 @@ def make_parametrized_test_functions(testcases_by_file):
 
     Example:
         ```python
-        from scripttestlib import collect_testcases_by_file, make_parametrized_test_functions
+        from scripttestlib import (
+            collect_testcases_by_file, make_parametrized_test_functions)
 
         testcases_by_file = collect_testcases_by_file()
         test_funcs = make_parametrized_test_functions(testcases_by_file)
@@ -291,22 +293,23 @@ def make_parametrized_test_functions(testcases_by_file):
         test_func_name = f'test_{safe_fname}'
 
         # Create a parametrized test function for this file
-        # Use a closure to capture testcases and helper functions at definition time
+        # Use a closure to capture testcases and helper functions at
+        # definition time
         def make_test_func(testcases, fname, param_id_func, check_func):
-            @pytest.mark.parametrize("name, input, outputitem, expected",
+            @pytest.mark.parametrize('name, input, outputitem, expected',
                                      testcases, ids=param_id_func)
             def test_file(name, input, outputitem, expected, tmpdir):
                 check_func(name, input, outputitem, expected, str(tmpdir))
             return test_file
 
-        test_func = make_test_func(testcases, fname, make_param_id, check_program_run)
+        test_func = make_test_func(testcases, fname, make_param_id,
+                                   check_program_run)
         test_func.__name__ = test_func_name
         test_func.__qualname__ = test_func_name
 
         test_functions[test_func_name] = test_func
 
     return test_functions
-
 
 
 # values as sets of strings (regular expressions)
