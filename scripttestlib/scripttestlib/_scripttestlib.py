@@ -146,6 +146,59 @@ def make_param_id(val):
     return val if isinstance(val, str) else None
 
 
+def _load_testcases_from_files(filespecs, basedir, granularity):
+    """Load test cases from files, returning list of (filename, testcases) tuples.
+
+    This is a helper function that discovers and loads test cases from files
+    matching the given filespecs in basedir, handling both Python modules
+    and YAML files. Normalizes arguments, applying defaults for filespecs,
+    basedir, and granularity if needed. The returned list is used by both
+    collect_testcases() and collect_testcases_by_file().
+
+    Args:
+        filespecs: File patterns (empty tuple means use defaults)
+        basedir: Directory to search in (None means auto-detect)
+        granularity: Granularity level (None means use configured default)
+
+    Returns:
+        Tuple of (testcases_list, granularity_used) where testcases_list is a
+        list of (filename_relative, testcases_list) tuples and granularity_used
+        is the normalized granularity value
+    """
+    if not filespecs:
+        filespecs = _testcase_filespecs_default
+    if basedir is None:
+        basedir = _get_test_dir()
+    if granularity is None:
+        granularity = _get_granularity()
+
+    testcases_list = []
+    sys.path[0:0] = [basedir]
+    # Invalidate import caches just in case, as the Python modules might have
+    # been constructed on-the-fly
+    importlib.invalidate_caches()
+    for filespec in filespecs:
+        filespec = os.path.join(basedir, filespec)
+        for fname in glob.iglob(filespec):
+            fname_rel = os.path.relpath(fname, basedir)
+            # print(basedir, filespec, fname, fname_rel)
+            if fname.endswith('.py'):
+                modulename = os.path.basename(fname)[:-3]
+                pkgname = os.path.dirname(fname_rel).replace('/', '.')
+                if pkgname:
+                    modulename = pkgname + '.' + modulename
+                testcases_list.append(
+                    (fname_rel,
+                     importlib.import_module(modulename)
+                     .testcases))
+            elif fname.endswith(('.yaml', '.yml')):
+                with open(fname, 'r') as yf:
+                    testcases_list.append(
+                        (fname_rel, [item for items in yaml.safe_load_all(yf)
+                                     for item in items]))
+    return testcases_list, granularity
+
+
 def collect_testcases(*filespecs, basedir=None, granularity=None):
     """Return a list of tuples for the test cases in `filespecs`
 
@@ -172,36 +225,8 @@ def collect_testcases(*filespecs, basedir=None, granularity=None):
     values for name or input are the same in a tuple, the single value
     is used instead of the tuple.
     """
-    if not filespecs:
-        filespecs = _testcase_filespecs_default
-    if basedir is None:
-        basedir = _get_test_dir()
-    if granularity is None:
-        granularity = _get_granularity()
-    testcases = []
-    sys.path[0:0] = [basedir]
-    # Invalidate import caches just in case, as the Python modules might have
-    # been constructed on-the-fly
-    importlib.invalidate_caches()
-    for filespec in filespecs:
-        filespec = os.path.join(basedir, filespec)
-        for fname in glob.iglob(filespec):
-            fname_rel = os.path.relpath(fname, basedir)
-            # print(basedir, filespec, fname, fname_rel)
-            if fname.endswith('.py'):
-                modulename = os.path.basename(fname)[:-3]
-                pkgname = os.path.dirname(fname_rel).replace('/', '.')
-                if pkgname:
-                    modulename = pkgname + '.' + modulename
-                testcases.append(
-                    (fname_rel,
-                     importlib.import_module(modulename)
-                     .testcases))
-            elif fname.endswith(('.yaml', '.yml')):
-                with open(fname, 'r') as yf:
-                    testcases.append(
-                        (fname_rel, [item for items in yaml.safe_load_all(yf)
-                                     for item in items]))
+    testcases, granularity = _load_testcases_from_files(
+        filespecs, basedir, granularity)
     return expand_testcases(testcases, granularity=granularity)
 
 
