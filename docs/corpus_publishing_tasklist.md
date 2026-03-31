@@ -6,6 +6,8 @@ we need a list of the relevant tasks that must be completed.
 
 In case an already published resource has to be **un-published**, please follow these instructions [docs: howto unpublish a resource](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_unpublish_corpus.md).
 
+In case a **new version** of an already existing resource should be published, please follow these instructions [docs: howto version_update](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_version_update.md).
+
 ## Overview
 
 1. <a href="#jira-epic">Create an Epic about publishing the new resource</a>
