@@ -39,14 +39,20 @@ More about major or minor changes see below.
 
 
 ## Naming conventions of download packages
+Examples for naming packages:
 
-e.g. The Suomi24 Corpus 2001-2017, VRT version 1.3
+ 	The Suomi24 Corpus 2001-2017, VRT version 1.3
 
- package name: suomi24-2001-2017-vrt-v1-3.zip
+ 	package name: suomi24-2001-2017-vrt-v1-3.zip
 
- The README.txt should have the same version number in its name as the corresponding data package: README-v1-3.txt
+The README.txt should have the same version number in its name as the corresponding data package: 
+
+	README-v1-3.txt
  
- If the changes affect the license, this file should also have the same version number in its name: LICENSE-v1-3.txt
+ If the changes affect the license, this file should also have the same version number in its name: 
+ 
+ 	LICENSE-v1-3.txt
+	
  Usually the license of a resource is not affected by a version update. In those cases the LICENSE.txt does not have to be versioned.
 
 
@@ -54,20 +60,24 @@ e.g. The Suomi24 Corpus 2001-2017, VRT version 1.3
 ## Minor and major changes
 Minor changes mean smaller updates, such as new features or bug fixes, while maintaining backwards compatibility.  
 Examples:
-the data has been updated with annotations of names recognized with FiNER
-the data has been updated with annotations of languages of sentences identified with HeLI-OTS
-the format of the audio files has been automatically converted
+
+- the data has been updated with annotations of names recognized with FiNER
+- the data has been updated with annotations of languages of sentences identified with HeLI-OTS
+- the format of the audio files has been automatically converted
 
 
 Major changes are significant, often backwards-incompatible changes.
 Examples:
-the data has been re-parsed with a new parser without including the old one
-the content has been changed by adding, modifying or removing (parts of) the original texts
+
+- the data has been re-parsed with a new parser without including the old one
+- the content has been changed by adding, modifying or removing (parts of) the original texts
 
 
 ## Example use cases
-Suomi24
-lehdet90ff
+Corpora, of which several versions are published in the Language Bank:
+
+- Suomi24
+- lehdet90ff
 
 
 
@@ -187,7 +197,38 @@ You will not need the story
 
 Instead of the story
 
-**_shortname_: Prepare for publishing the VRT data in Download**
+**_shortname_: Package and upload the VRT data**
+
+
+create a Jira Story with the following title:
+
+***
+### _shortname_: Package and upload the new version of the VRT data
+
+```
+# [ ] _*?IDA*_ Get/create the new version of the VRT data 
+# [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [ apply the appropriate safeguards | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] when processing the data. [(How to use passwords) | https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
+# [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained, upload the data as a zip file (named as shortname-src_yyyymmdd.zip) and the separate shortname-src_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
+# [ ] _*+PUHTI*_ Create a download package [how to create a download package | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_download_package.md]
+# [ ] _*+DATA*_ Create/Update the README-v1-1.txt (use the correct version number) for the VRT data, to be shown to the end-users. Add information about the changes for this new version.
+# [ ] _*+DATA*_ Create a file CHANGE-LOG.txt, if needed
+## [ ] _*+PUHTI*_ Zip the data and the readme and license files (and CHANGE-LOG.txt) into a package named as shortname-src-v1-1.zip (use the correct version number for all files!).
+## [ ] _*+PUHTI*_ Compute an MD5 checksum for the zip package
+# [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [include the original zip file(s) in a new, password-protected zip package| https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] for internal storage and transfer. Use the [appropriate password| https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
+# [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
+# [ ] _*+PUHTI*_ If the package is published as release candidate (during the release candidate stage of the corresponding Korp corpus), add the file RELEASE_CANDIDATE.txt to the directory {{/scratch/clarin/download_preview}} on Puhti
+# [ ] _*+TEST*_ Have the package tested
+# [ ] _*?MANAGE*_ If this is a RES-licensed corpus and an LBR application does not yet exist, fill in an instance of the [Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_lbr ] and assign it forward to CSC (add label: lb-csc-task and prioritize if needed).
+# [ ] _*+MANAGE*_ Have the package uploaded to the download service: fill in an instance of [the Jira issue "_shortname_: Upload to the download service" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_upload ] and assign it forward to CSC (add label "lb-csc-task" and prioritize if needed).
+# [ ] _*+TEST*_ When uploaded, have the package tested again and check access rights.
+\\
+```
+
+
+
+Instead of the story
+
+**_shortname_: Announce the publication of the VRT data in Download**
 
 
 create a Jira Story with the following title:
