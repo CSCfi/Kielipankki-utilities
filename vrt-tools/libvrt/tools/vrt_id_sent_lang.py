@@ -135,7 +135,7 @@ def pr1_test(*, meta = (), tags = ()):
 
     '''
     for line in chain(meta, tags):
-        atts = b'\t'.join(re.findall(b'\S+=".*?"', line)) + b'\n'
+        atts = b'\t'.join(re.findall(br'\S+=".*?"', line)) + b'\n'
         if atts: atts = b'\t' + atts
         if line.startswith((b'<text>', b'<text ')):
             META['text'] = b'text' + atts

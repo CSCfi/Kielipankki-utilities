@@ -128,8 +128,8 @@ def ship_sentence(lines, WORD, ous):
         # This blocks lists of actual names, which is unfortunate, but
         # then a list of names is not a name, so what can one do. And
         # trollish repetition of a name has been observed.
-        re.search('( [A-ZÅÄÖ][A-ZÅÄÖa-zåäö\-/]*){20,20} ', text) or
-        re.search('( [A-ZÅÄÖ][A-ZÅÄÖ\-!?]*){12,12} ', text) or
+        re.search(r'( [A-ZÅÄÖ][A-ZÅÄÖa-zåäö\-/]*){20,20} ', text) or
+        re.search(r'( [A-ZÅÄÖ][A-ZÅÄÖ\-!?]*){12,12} ', text) or
 
         # Sequences of tokens that start with a letter and end in
         # digits have been observed (in failing sentences) as
@@ -167,19 +167,19 @@ def ship_sentence(lines, WORD, ous):
         # a sequence of &gameselect[]=DIGITS which also would have
         # been caught with just the initial & except some of those
         # were separated as their own tokens. Will this ever repeat?
-        re.search('( [A-ZÅÄÖa-zåäö#&/][A-ZÅÄÖa-zåäö0-9/,.:!=\-\[\]]*[0-9]| TX| RX){8,8} ', text) or
+        re.search(r'( [A-ZÅÄÖa-zåäö#&/][A-ZÅÄÖa-zåäö0-9/,.:!=\-\[\]]*[0-9]| TX| RX){8,8} ', text) or
 
         # Sequences of URIs have led to excessive consumption. This is
         # blocking rather short such. (Was this the case where memory
         # consumption went through the roof? Or was this just time?)
-        re.search('( (http|https|ftp)://\S+){5,5} ', text) or
+        re.search(r'( (http|https|ftp)://\S+){5,5} ', text) or
 
         # A long sequences of /REDACTED/ tokens was observed to cause
         # problems where the originally repeated over-long token
         # probably would not have contained capital letters at all.
         # (The token actually ends in digits, which may the issue.)
         # (But should be no harm in blocking /REDACTED/ sequences.)
-        re.search('( \S*/REDACTED/\S*){10,10} ', text) or
+        re.search(r'( \S*/REDACTED/\S*){10,10} ', text) or
 
         # finnish-nertag (version 1.6, --no-tokenize) eats _#_
         # altogether, which must be considered a bug in the tool

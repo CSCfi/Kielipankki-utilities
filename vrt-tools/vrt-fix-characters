@@ -251,7 +251,7 @@ def fixdata(args, value):
     return value
 
 def unbreakity(match, quote = False):
-    '''Consider any &\w+; an attempted named entity (ASCII only), also
+    '''Consider any &\\w+; an attempted named entity (ASCII only), also
     consider any numerical-looking entity up to and including the
     semicolon, and actually consider any string of such up to and
     including a semicolon - type "&lt&lt&lt;" that complicators of
@@ -604,7 +604,7 @@ IDENTIFY_C1_CP1252 = str.maketrans({
     '\x86' : '{C1:cp1252:\N{DAGGER}}',
 
     # U+0087 C1 ESA => U+2021 ‡
-    '\x87' : '{C1:cp1252:\{DOUBLE DAGGER}}',
+    '\x87' : '{C1:cp1252:\N{DOUBLE DAGGER}}',
 
     # U+0088 C1 HTS => U+02c6 ˆ
     '\x88' : '{C1:cp1252:\N{MODIFIER LETTER CIRCUMFLEX ACCENT}}',
@@ -652,10 +652,10 @@ IDENTIFY_C1_CP1252 = str.maketrans({
     '\x96' : '{C1:cp1252:\N{EN DASH}}',
 
     # U+0097 C1 EPA => U+2014 —
-    '\x97' : '{C1:cp1252:\N{EM DASH}})',
+    '\x97' : '{C1:cp1252:\N{EM DASH}}',
 
     # U+0098 C1 SOS => U+02dc ˜
-    '\x98' : '{C1:cp1252\N{SMALL TILDE}}',
+    '\x98' : '{C1:cp1252:\N{SMALL TILDE}}',
 
     # U+0099 C1 SGCI => U+2122 ™
     '\x99' : '{C1:cp1252:\N{TRADE MARK SIGN}}',
@@ -704,7 +704,7 @@ ABUSE_C1_CP1252 = str.maketrans({
     '\x86' : '\N{DAGGER}',
 
     # U+0087 C1 ESA => U+2021 ‡
-    '\x87' : '\{DOUBLE DAGGER}',
+    '\x87' : '\N{DOUBLE DAGGER}',
 
     # U+0088 C1 HTS => U+02c6 ˆ
     '\x88' : '\N{MODIFIER LETTER CIRCUMFLEX ACCENT}',
@@ -755,7 +755,7 @@ ABUSE_C1_CP1252 = str.maketrans({
     '\x97' : '\N{EM DASH}',
 
     # U+0098 C1 SOS => U+02dc ˜
-    '\x98' : '{C1:cp1252\N{SMALL TILDE}',
+    '\x98' : '\N{SMALL TILDE}',
 
     # U+0099 C1 SGCI => U+2122 ™
     '\x99' : '\N{TRADE MARK SIGN}',

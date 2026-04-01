@@ -103,7 +103,7 @@ def test_defaults():
     for line in sent1:
         assert line.count('\t') == 3
         sen, ref, word, tag = line.split('\t')
-        assert re.fullmatch('\|([^\|]+\|)*', tag)
+        assert re.fullmatch(r'\|([^\|]+\|)*', tag)
 
     # SENT2 should be all | because _skip="|finnish-nertag|"
     sent2 = [ line for line in ouf if line.startswith('SENT2') ]
@@ -159,7 +159,7 @@ def test_ne_markup():
     for line in sent2:
         assert line.count('\t') == 3
         sen, ref, word, tag = line.split('\t')
-        assert re.fullmatch('\|([^\|]+\|)*', tag)
+        assert re.fullmatch(r'\|([^\|]+\|)*', tag)
 
 @have_finnish_nertag
 def test_middle_skip():
