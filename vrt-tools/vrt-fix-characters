@@ -652,10 +652,10 @@ IDENTIFY_C1_CP1252 = str.maketrans({
     '\x96' : '{C1:cp1252:\N{EN DASH}}',
 
     # U+0097 C1 EPA => U+2014 —
-    '\x97' : '{C1:cp1252:\N{EM DASH}})',
+    '\x97' : '{C1:cp1252:\N{EM DASH}}',
 
     # U+0098 C1 SOS => U+02dc ˜
-    '\x98' : '{C1:cp1252\N{SMALL TILDE}}',
+    '\x98' : '{C1:cp1252:\N{SMALL TILDE}}',
 
     # U+0099 C1 SGCI => U+2122 ™
     '\x99' : '{C1:cp1252:\N{TRADE MARK SIGN}}',
@@ -755,7 +755,7 @@ ABUSE_C1_CP1252 = str.maketrans({
     '\x97' : '\N{EM DASH}',
 
     # U+0098 C1 SOS => U+02dc ˜
-    '\x98' : '{C1:cp1252\N{SMALL TILDE}',
+    '\x98' : '\N{SMALL TILDE}',
 
     # U+0099 C1 SGCI => U+2122 ™
     '\x99' : '\N{TRADE MARK SIGN}',
