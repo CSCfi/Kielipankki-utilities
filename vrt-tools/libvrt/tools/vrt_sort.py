@@ -147,7 +147,7 @@ class VrtSorter(InputProcessor):
         self._transform_attrs = set(self._transform_funcs.keys())
 
     def _make_transforms(self, transforms):
-        attrname_re = re.compile('\s*([\w-]+)\s*:\s*')
+        attrname_re = re.compile(r'\s*([\w-]+)\s*:\s*')
         for transform in transforms:
             mo = attrname_re.match(transform)
             if mo:

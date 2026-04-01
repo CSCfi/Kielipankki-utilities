@@ -40,7 +40,7 @@ DEFAULT_ID_FORMATS = {
 }
 
 def affix(arg):
-    if re.fullmatch('[A-Za-z0-9_\-+/.:]*', arg):
+    if re.fullmatch(r'[A-Za-z0-9_\-+/.:]*', arg):
         return arg
     raise ArgumentTypeError('affix out of spec')
 
@@ -554,7 +554,7 @@ def check_format(fmt, elem, elem_names, elem_formatspecs, prog):
                 if formatspec[-1].isdigit():
                     formatspec += 'd'
             spec_elem = (elem if fieldname == 'id'
-                         else re.match('idnum\[(.*?)\]', fieldname).group(1))
+                         else re.match(r'idnum\[(.*?)\]', fieldname).group(1))
             elem_formatspecs[spec_elem][formatspec or ''] = True
         elif formatspec:
             # Others are string-valued; if a format specification is

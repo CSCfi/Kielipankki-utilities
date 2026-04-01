@@ -251,7 +251,7 @@ def fixdata(args, value):
     return value
 
 def unbreakity(match, quote = False):
-    '''Consider any &\w+; an attempted named entity (ASCII only), also
+    '''Consider any &\\w+; an attempted named entity (ASCII only), also
     consider any numerical-looking entity up to and including the
     semicolon, and actually consider any string of such up to and
     including a semicolon - type "&lt&lt&lt;" that complicators of

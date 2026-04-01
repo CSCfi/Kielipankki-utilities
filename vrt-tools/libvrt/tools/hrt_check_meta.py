@@ -49,7 +49,7 @@ def main(args, ins, ous):
             name = re.match(b'<([a-z._]+)', line).group(1)
             check_name(args, ous, line, name)
 
-            attr = re.findall(b'(\S+)="(.*?)"', line)
+            attr = re.findall(br'(\S+)="(.*?)"', line)
             check_attr(args, ous, line, name, attr)
             
             # print('name:', name)

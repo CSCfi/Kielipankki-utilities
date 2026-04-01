@@ -19,7 +19,7 @@ def _structattrbagtype(text, allowany=False):
     # attrnamere also covers style "structname_attrname"
     attrnamere = f'(?:[a-zA-Z_][a-zA-Z0-9_.]*/?{anyre})'
     namere = rf'(?:{structnamere}\s*:\s*)?{attrnamere}'
-    sepre = '[,\s]+'
+    sepre = r'[,\s]+'
     text = text.strip()
     if re.fullmatch(fr'{namere}({sepre}{namere})*', text):
         return text.encode('UTF-8')

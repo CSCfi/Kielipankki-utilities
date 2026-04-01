@@ -12,19 +12,19 @@ from libvrt.bad import BadData
 
 def nametype(arg):
     '''Approximately safe to use as a field name.'''
-    if re.fullmatch('\w+/?', arg, re.ASCII):
+    if re.fullmatch(r'\w+/?', arg, re.ASCII):
         return arg.encode('UTF-8')
     raise ArgumentTypeError('bad name: ' + repr(arg))
 
 def prefixtype(arg):
     '''Approximately safe to use as a prefix to a field name.'''
-    if re.fullmatch('\w*', arg, re.ASCII):
+    if re.fullmatch(r'\w*', arg, re.ASCII):
         return arg.encode('UTF-8')
     raise ArgumentTypeError('bad prefix: ' + repr(arg))
 
 def suffixtype(arg):
     '''Approximately safe to use as a suffix to a field name.'''
-    if re.fullmatch('\w*', arg, re.ASCII):
+    if re.fullmatch(r'\w*', arg, re.ASCII):
         return arg.encode('UTF-8')
     raise ArgumentTypeError('bad suffix: ' + repr(arg))
 

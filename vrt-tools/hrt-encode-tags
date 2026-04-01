@@ -126,7 +126,7 @@ class TagEncoder(InputProcessor):
         # space or end-of-string (a tag).
         ignore_re = re.compile(
             ((r'((?<= \S) (?:' + args.hyphens + ')+ )?'
-              + '(?: \Z | (?:' + args.spaces + ')+)')
+              + r'(?: \Z | (?:' + args.spaces + ')+)')
              if args.hyphens else
              ('(?:' + args.spaces + ')+')),
             re.VERBOSE)

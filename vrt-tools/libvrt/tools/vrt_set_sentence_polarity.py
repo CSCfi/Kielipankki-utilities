@@ -17,7 +17,7 @@ from libvrt.bad import BadData, BadCode
 from libvrt.pr1 import transput
 
 def _name(arg):
-    if re.fullmatch('\w+', arg, re.ASCII):
+    if re.fullmatch(r'\w+', arg, re.ASCII):
         return arg.encode('UTF-8')
     raise ArgumentTypeError('bad name: ' + repr(arg))
 

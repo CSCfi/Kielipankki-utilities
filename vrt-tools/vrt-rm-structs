@@ -95,7 +95,7 @@ class StructureRemover(InputProcessor):
                 else:
                     return mo.group()
 
-            attr_regex = re.sub('\.', repl_fullstop, attr_regex)
+            attr_regex = re.sub(r'\.', repl_fullstop, attr_regex)
             # print(attr_regex, file=sys.stderr)
             return re.compile(' ' + attr_regex)
 
