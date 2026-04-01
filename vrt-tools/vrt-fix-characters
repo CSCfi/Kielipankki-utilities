@@ -604,7 +604,7 @@ IDENTIFY_C1_CP1252 = str.maketrans({
     '\x86' : '{C1:cp1252:\N{DAGGER}}',
 
     # U+0087 C1 ESA => U+2021 ‡
-    '\x87' : '{C1:cp1252:\{DOUBLE DAGGER}}',
+    '\x87' : '{C1:cp1252:\N{DOUBLE DAGGER}}',
 
     # U+0088 C1 HTS => U+02c6 ˆ
     '\x88' : '{C1:cp1252:\N{MODIFIER LETTER CIRCUMFLEX ACCENT}}',
@@ -704,7 +704,7 @@ ABUSE_C1_CP1252 = str.maketrans({
     '\x86' : '\N{DAGGER}',
 
     # U+0087 C1 ESA => U+2021 ‡
-    '\x87' : '\{DOUBLE DAGGER}',
+    '\x87' : '\N{DOUBLE DAGGER}',
 
     # U+0088 C1 HTS => U+02c6 ˆ
     '\x88' : '\N{MODIFIER LETTER CIRCUMFLEX ACCENT}',
