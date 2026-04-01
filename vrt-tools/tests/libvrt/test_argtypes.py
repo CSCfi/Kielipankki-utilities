@@ -540,3 +540,74 @@ class TestAttrValue:
                            match=(f'invalid attribute name "{invalid}" in'
                                   f' attribute-value specification: {input}$')):
             result = attr_value_func(input)
+
+
+class TestStructAttrRegex:
+
+    """Tests for libvrt.argtypes function struct_attr_regex."""
+
+    @pytest.mark.parametrize(
+        'input,expected_struct,expected_attr,expected_regex_pattern', [
+            ('text:a=foo', b'text', b'a', b'foo'),
+            ('paragraph:type=intro', b'paragraph', b'type', b'intro'),
+            # Regex with alternation
+            ('paragraph:type=intro|body', b'paragraph', b'type', b'intro|body'),
+            # Regex with quantifier
+            ('sentence:id=.+', b'sentence', b'id', b'.+'),
+            # Regex containing '='
+            ('text:a=x=y', b'text', b'a', b'x=y'),
+            # Empty regex
+            ('text:a=', b'text', b'a', b''),
+            # Attribute name with underscores and digits
+            ('text:my_attr2=val', b'text', b'my_attr2', b'val'),
+        ]
+    )
+    def test_struct_attr_regex_valid(
+            self, input, expected_struct, expected_attr,
+            expected_regex_pattern):
+        """Test struct_attr_regex() with valid inputs."""
+        struct, attr, regex = at.struct_attr_regex(input)
+        assert struct == expected_struct
+        assert attr == expected_attr
+        assert regex.pattern == expected_regex_pattern
+
+    @pytest.mark.parametrize(
+        'input', [
+            'text',       # no ':' separator
+            'textfoo',    # no ':' separator
+            ':a=foo',     # missing struct name
+            '1text:a=foo',  # struct name starting with digit
+            'Text:a=foo',   # struct name with uppercase
+        ]
+    )
+    def test_struct_attr_regex_invalid_struct(self, input):
+        """Test struct_attr_regex() with invalid structure name."""
+        with pytest.raises(ArgumentTypeError,
+                           match='struct:attr=regex'):
+            at.struct_attr_regex(input)
+
+    @pytest.mark.parametrize(
+        'input', [
+            'text:afoo',    # no '=' separator in attr part
+            'text:A=foo',   # attr name with uppercase
+            'text:1a=foo',  # attr name starting with digit
+            'text::a=foo',  # double colon, attr part starts with ':'
+        ]
+    )
+    def test_struct_attr_regex_invalid_attr(self, input):
+        """Test struct_attr_regex() with invalid attribute name."""
+        with pytest.raises(ArgumentTypeError,
+                           match='struct:attr=regex'):
+            at.struct_attr_regex(input)
+
+    @pytest.mark.parametrize(
+        'input', [
+            r'text:a=[invalid',   # unclosed bracket
+            r'text:a=(*)',        # invalid quantifier
+        ]
+    )
+    def test_struct_attr_regex_invalid_regex(self, input):
+        """Test struct_attr_regex() with invalid regular expression."""
+        with pytest.raises(ArgumentTypeError,
+                           match='struct:attr=regex'):
+            at.struct_attr_regex(input)

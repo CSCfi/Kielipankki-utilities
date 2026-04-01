@@ -485,3 +485,48 @@ def attr_value(s):
     bytes.
     """
     return attr_value_opts(return_bytes=True)(s)
+
+
+def struct_attr_regex(s: str) -> tuple[bytes, bytes, re.Pattern[bytes]]:
+    """Argument type function for structure name, attribute name, and regex.
+
+    Parses a string of the form ``STRUCT:ATTR=REGEX``, where ``STRUCT``
+    is a structure (element) name, ``ATTR`` is an attribute name within
+    that structure, and ``REGEX`` is a regular expression to be fully
+    matched against the attribute value.
+
+    Args:
+        s: Argument string of the form ``STRUCT:ATTR=REGEX``.
+
+    Returns:
+        A 3-tuple ``(struct, attr, compiled_regex)``, where ``struct``
+        and ``attr`` are UTF-8 encoded bytes and ``compiled_regex`` is
+        a compiled regular expression for bytes.
+
+    Raises:
+        ArgumentTypeError: If ``s`` is not a valid ``STRUCT:ATTR=REGEX``
+            specification.
+    """
+    # Split on ':' to separate structure name from ATTR=REGEX
+    try:
+        struct_str, attr_regex_str = attr_value_opts(
+            sepchars=':', return_bytes=False)(s)
+    except ArgumentTypeError:
+        raise ArgumentTypeError(
+            f'invalid struct:attr=regex specification: {s!r}')
+    # Split on '=' to separate attribute name from the regex
+    try:
+        attr_str, regex_str = attr_value_opts(
+            sepchars='=', return_bytes=False)(attr_regex_str)
+    except ArgumentTypeError:
+        raise ArgumentTypeError(
+            f'invalid attr=regex part {attr_regex_str!r}'
+            f' in struct:attr=regex specification: {s!r}')
+    # Compile the regex for matching bytes attribute values
+    try:
+        compiled = re.compile(regex_str.encode('UTF-8'))
+    except re.error as e:
+        raise ArgumentTypeError(
+            f'invalid regular expression {regex_str!r}'
+            f' in struct:attr=regex specification: {s!r}: {e}')
+    return (struct_str.encode('UTF-8'), attr_str.encode('UTF-8'), compiled)
