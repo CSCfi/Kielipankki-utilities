@@ -11,6 +11,7 @@ from libvrt.args import transput_args
 # TODO here AND rel-tools to RAISE not EXIT on failure
 from libvrt.bins import SORT
 
+from libvrt.nameargs import bagtype, parsenames
 from libvrt.metaline import attributes, valuegetter
 from libvrt.metaname import nametype, isname
 from libvrt.metamark import marktype
@@ -22,7 +23,8 @@ def parsearguments(argv, *, prog = None):
     Present the attribute values of a specified element (default text)
     in a VRT document as a relation in the form of a Tab-Separated
     Values (TSV) document, complete with a head and unique rows in the
-    body. Initially identified attribute names become field names, the
+    body. (Uniqueness is not guaranteed when using --no-tag.)
+    Initially identified attribute names become field names, the
     corresponding values become the content of records. This is not a
     VRT validator.
 
@@ -47,6 +49,18 @@ def parsearguments(argv, *, prog = None):
 
                         name of the VRT element to use (defaults to
                         text)
+
+                        ''')
+
+    parser.add_argument('--attr', '-a', metavar = 'name,*',
+                        type = bagtype, action = 'append',
+                        dest = 'attrs',
+                        default = [],
+                        help = '''
+
+                        names of attributes to output (repeat, or
+                        separate with commas or spaces) (defaults
+                        to the attributes in the first element)
 
                         ''')
 
@@ -79,6 +93,15 @@ def parsearguments(argv, *, prog = None):
 
                        ''')
 
+    group.add_argument('--no-tag', action = 'store_true',
+                       help = '''
+
+                       do not add a tag field nor omit duplicate
+                       records (if the output contains duplicates, it
+                       is not a relation)
+
+                       ''')
+
     args = parser.parse_args()
     args.prog = prog or parser.prog
 
@@ -97,7 +120,7 @@ def main(args, ins, ous):
 
     # attribute names and values in head order,
     # missing attributes default to args.mark
-    head = attributes(line)
+    head = parsenames(args.attrs) or attributes(line)
 
     if (not all(isname(name) for name in head) or
         len(set(head)) < len(head)):
@@ -106,7 +129,10 @@ def main(args, ins, ous):
     values = valuegetter(head, missing = args.mark,
                          warn = not args.quiet,
                          many = 4,
-                         prog = args.prog)
+                         prog = args.prog,
+                         # omit "not in head" warnings if attributes
+                         # specified explicitly
+                         superset = bool(args.attrs))
 
     if args.tag:
         if args.tag in head:
@@ -121,6 +147,19 @@ def main(args, ins, ous):
         ship(values(line), 1)
         for k, line in enumerate(data, start = 2):
             ship(values(line), k)
+        else:
+            return 0
+    elif args.no_tag:
+
+        def ship(rec):
+            ous.write(b'\t'.join(rec))
+            ous.write(b'\n')
+            return
+
+        ship(head)
+        ship(values(line))
+        for line in data:
+            ship(values(line))
         else:
             return 0
     else:
