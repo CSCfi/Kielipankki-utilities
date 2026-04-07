@@ -372,7 +372,8 @@ class AttrUpdater(InputProcessor):
             # TODO: Also check attributes renamed to an existing name
             # (more complicated; would it be needed?)
             for overlap_attr in check_overlap_attrs:
-                if (overlap_attr in attrs.keys()
+                if (overlap_attr in add_attrs
+                        and overlap_attr in attrs.keys()
                         and add_attrs[overlap_attr] != attrs[overlap_attr]):
                     if tsv_line_num != EMPTY_VALUES:
                         if overlap_attr in fixed_attrs:
@@ -523,6 +524,12 @@ class AttrUpdater(InputProcessor):
                     if get_add_attrs is not None:
                         add_attrs, tsv_linenr = get_add_attrs(
                             tsv_reader, line, attrs, linenr)
+                        if add_attrs is None:
+                            # Key attribute(s) missing from VRT line;
+                            # a warning was already issued; proceed
+                            # without TSV data
+                            add_attrs = OrderedDict()
+                            tsv_linenr = EMPTY_VALUES
                         if fixed_vals:
                             add_attrs.update(fixed_vals)
                     else:

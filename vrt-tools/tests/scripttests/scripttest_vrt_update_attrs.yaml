@@ -1393,6 +1393,66 @@
       </sentence>
       </text>
 
+- name: 'vrt-update-attrs: No single key attribute in structure, with --fixed'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key a --fixed x=hello
+    stdin: |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-2
+  output:
+    stderr: |
+      vrt-update-attrs: <stdin>:6: Warning: No key attribute a
+    stdout: |
+      <text a="1" a1="aa" a2="bb" x="hello">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text x="hello">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: No single key attribute in structure, with --compute'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --key a --compute "a1:val.upper()"
+    stdin: |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-2
+  output:
+    stderr: |
+      vrt-update-attrs: <stdin>:6: Warning: No key attribute a
+    stdout: |
+      <text a="1" a1="AA" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a1="">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
 - name: 'vrt-update-attrs: No single key attribute in token'
   input:
     cmdline: vrt-update-attrs --positional --data-file attrs.tsv --key a
