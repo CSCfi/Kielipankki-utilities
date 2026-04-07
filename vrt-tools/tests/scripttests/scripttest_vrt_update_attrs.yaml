@@ -73,9 +73,7 @@
     returncode: 1
     stderr: |
       vrt-update-attrs: <stdin>:3: No positional-attributes comment before the first token line
-    stdout: |
-      <text a="1">
-      <sentence>
+    stdout: ''
 
 
 - name: 'vrt-update-attrs: Same-length VRT and data file'

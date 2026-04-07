@@ -441,14 +441,23 @@ class AttrUpdater(InputProcessor):
                 Read inf up to a positional-attributes comment and
                 write to ouf a comment with updated attribute list.
 
+                Lines before the positional-attributes comment are
+                buffered and flushed to ouf only on success, so that
+                on error, no output is written.
+
                 Return a list of positional attribute names
                 extracted from the positional-attributes comment.
                 """
                 nonlocal linenr, get_add_attrs
+                # Buffer lines before the comment so that on error
+                # nothing is written to ouf
+                pre_comment_lines = []
                 for line in inf:
                     linenr += 1
                     if isbinnames(line):
                         pos_attr_names = binnamelist(line)
+                        for pre_line in pre_comment_lines:
+                            ouf.write(pre_line)
                         ouf.write(binmakenames(
                             *(make_unique(
                                 (rename_attrs_dict.get(attr, attr)
@@ -480,7 +489,7 @@ class AttrUpdater(InputProcessor):
                             'No positional-attributes comment before the'
                             ' first token line',
                             filename=inf.name, linenr=linenr)
-                    ouf.write(line)
+                    pre_comment_lines.append(line)
 
             def is_line_to_process_struct(line):
                 return (line[0] == LESS_THAN
