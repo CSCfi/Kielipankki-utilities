@@ -20,7 +20,7 @@
   output:
     returncode: 2
     stderr: |
-      vrt-update-attrs: Please specify at least one of --data-file, --fixed or --compute.
+      vrt-update-attrs: Please specify at least one of --data-file, --fixed, --compute or --copy.
     stdout: ''
 
 
@@ -2865,3 +2865,298 @@
     stderr: |
       vrt-update-attrs: <stdin>:9: Warning: Value for attribute a differs from that on line 3 of attrs.tsv; keeping the existing one
       vrt-update-attrs: Warning: Data file attrs.tsv has fewer data lines (2) than the input VRT has tokens; adding attribute values "_" for the rest of the tokens
+
+
+# Tests for --copy
+
+
+- name: 'vrt-update-attrs: --copy alone, basic structural'
+  input:
+    cmdline: vrt-update-attrs --copy d=a
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" d="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --copy, multiple copies, structural'
+  input:
+    cmdline: vrt-update-attrs --copy d=a --copy e=b
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" d="1" e="abc">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="2" e="ghi">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --copy, OLD does not exist in structure (warn, use empty string)'
+  input:
+    cmdline: vrt-update-attrs --copy d=z
+    stdin: *input-abc
+  output:
+    stderr: |
+      vrt-update-attrs: <stdin>:1: Warning: Attribute z to copy to d does not exist; using empty string
+      vrt-update-attrs: <stdin>:6: Warning: Attribute z to copy to d does not exist; using empty string
+    stdout: |
+      <text a="1" b="abc" c="def" d="">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --copy, NEW already exists in structure, not in --overwrite (warn, keep existing)'
+  input:
+    cmdline: vrt-update-attrs --copy b=a
+    stdin: *input-abc
+  output:
+    stderr: |
+      vrt-update-attrs: <stdin>:1: Warning: Value for attribute b already exists; keeping the existing one
+      vrt-update-attrs: <stdin>:6: Warning: Value for attribute b already exists; keeping the existing one
+    stdout: |
+      <text a="1" b="abc" c="def">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --copy, NEW already exists in structure, in --overwrite (copy overwrites)'
+  input:
+    cmdline: vrt-update-attrs --copy b=a --overwrite b
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="1" c="def">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="2" c="jkl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --copy, basic positional'
+  input:
+    cmdline: vrt-update-attrs --positional --copy e=a
+    stdin: *input-abc-pos
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a b c e -->
+      <text>
+      <sentence>
+      a	1	abc	def	1
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	2	ghi	jkl	2
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --copy, OLD does not exist in positional-attributes comment (error)'
+  input:
+    cmdline: vrt-update-attrs --positional --copy e=z
+    stdin: *input-abc-pos
+  output:
+    returncode: 1
+    stderr: |
+      vrt-update-attrs: <stdin>:1: Source attribute for --copy does not exist in positional-attributes comment: z
+    stdout: ''
+
+- name: 'vrt-update-attrs: --copy, NEW already exists in positional-attributes comment, not in --overwrite (error)'
+  input:
+    cmdline: vrt-update-attrs --positional --copy b=a
+    stdin: *input-abc-pos
+  output:
+    returncode: 1
+    stderr: |
+      vrt-update-attrs: <stdin>:1: Target attribute for --copy already exists in positional-attributes comment and is not in --overwrite: b
+    stdout: ''
+
+- name: 'vrt-update-attrs: --copy, NEW already exists in positional-attributes comment, in --overwrite (copy overwrites)'
+  input:
+    cmdline: vrt-update-attrs --positional --copy b=a --overwrite b
+    stdin: *input-abc-pos
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a b c -->
+      <text>
+      <sentence>
+      a	1	1	def
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	2	2	jkl
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --copy from --data-file attribute, structural'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --copy d=a1
+    stdin: *input-abc
+    file:attrs.tsv: *tsv-1
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" a1="aa" a2="bb" d="aa">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" a1="cc" a2="dd" d="cc">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --copy from --data-file attribute, positional'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --copy d=a1
+    stdin: *input-abc-pos
+    file:attrs.tsv: *tsv-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a b c a1 a2 d -->
+      <text>
+      <sentence>
+      a	1	abc	def	aa	bb	aa
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	2	ghi	jkl	cc	dd	cc
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --copy from --fixed attribute, structural'
+  input:
+    cmdline: vrt-update-attrs --fixed x=hello --copy y=x
+    stdin: *input-abc
+  output:
+    stdout: |
+      <text a="1" b="abc" c="def" x="hello" y="hello">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" x="hello" y="hello">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --copy from --fixed attribute, positional'
+  input:
+    cmdline: vrt-update-attrs --positional --fixed x=hello --copy y=x
+    stdin: *input-abc-pos
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a b c x y -->
+      <text>
+      <sentence>
+      a	1	abc	def	hello	hello
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	2	ghi	jkl	hello	hello
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --copy, NEW conflicts with --fixed (error)'
+  input:
+    cmdline: vrt-update-attrs --copy d=a --fixed d=x
+    stdin: ''
+  output:
+    returncode: 2
+    stderr: |
+      vrt-update-attrs: Same attribute(s) specified in both --copy and --fixed: d
+    stdout: ''
+
+- name: 'vrt-update-attrs: --copy, NEW conflicts with --attributes (error)'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --attributes a1 --copy a1=a
+    stdin: ''
+    file:attrs.tsv: |
+      aa
+  output:
+    returncode: 2
+    stderr: |
+      vrt-update-attrs: Same attribute(s) specified in both --copy and --attributes: a1
+    stdout: ''
+
+- name: 'vrt-update-attrs: --copy, NEW conflicts with --rename target (error)'
+  input:
+    cmdline: vrt-update-attrs --copy d=a --data-file attrs.tsv --rename a1:d
+    stdin: ''
+    file:attrs.tsv: *tsv-1
+  output:
+    returncode: 2
+    stderr: |
+      vrt-update-attrs: Same attribute(s) specified in both --copy and --rename (as target): d
+    stdout: ''
+
+- name: 'vrt-update-attrs: --copy then --compute modifies copied value, structural'
+  input:
+    cmdline: vrt-update-attrs --copy d=a --compute "d=val+'x'"
+    stdin: *input-abc
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a="1" b="abc" c="def" d="1x">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" d="2x">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --copy then --compute modifies copied value, positional'
+  input:
+    cmdline: vrt-update-attrs --positional --copy e=a --compute "e=val+'x'"
+    stdin: *input-abc-pos
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <!-- #vrt positional-attributes: word a b c e -->
+      <text>
+      <sentence>
+      a	1	abc	def	1x
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	2	ghi	jkl	2x
+      </sentence>
+      </text>
