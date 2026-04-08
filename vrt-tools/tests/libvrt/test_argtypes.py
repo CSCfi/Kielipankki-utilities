@@ -540,3 +540,495 @@ class TestAttrValue:
                            match=(f'invalid attribute name "{invalid}" in'
                                   f' attribute-value specification: {input}$')):
             result = attr_value_func(input)
+
+
+class TestListOpts:
+
+    """Tests for libvrt.argtypes function list_opts."""
+
+    # Basic splitting
+
+    @pytest.mark.parametrize(
+        'seps,input,expected', [
+            # Default seps split on commas and spaces
+            (None, 'a', ['a']),
+            (None, 'a,b', ['a', 'b']),
+            (None, 'a b', ['a', 'b']),
+            (None, 'a,b,c', ['a', 'b', 'c']),
+            # Multiple adjacent separators are treated as one
+            (None, 'a,,b', ['a', 'b']),
+            (None, 'a, b', ['a', 'b']),
+            # Custom separators
+            (':', 'a:b:c', ['a', 'b', 'c']),
+            ('|', 'a|b', ['a', 'b']),
+            ('|:', 'a|b:c', ['a', 'b', 'c']),
+        ]
+    )
+    def test_split(self, seps, input, expected):
+        """Test list_opts splitting with default and custom separators."""
+        assert at.list_opts(seps=seps)(input) == expected
+
+    def test_seps_empty_no_split(self):
+        """Test list_opts with seps='' applies process_item to whole string."""
+        # When seps='', the whole string is passed to process_item directly
+        assert at.list_opts(seps='')('hello world') == 'hello world'
+
+    def test_seps_empty_with_process_item(self):
+        """Test list_opts with seps='' and a process_item function."""
+        assert at.list_opts(seps='', process_item=str.upper)('hello') == 'HELLO'
+
+    # process_item as callable
+
+    def test_process_item_function(self):
+        """Test list_opts with process_item as a callable."""
+        assert at.list_opts(process_item=str.upper)('a,b') == ['A', 'B']
+
+    # process_item as regex
+
+    def test_process_item_regex_valid(self):
+        """Test list_opts with process_item as a regex; valid items pass."""
+        assert at.list_opts(process_item=r'[a-z]+')('a,b') == ['a', 'b']
+
+    def test_process_item_regex_invalid_item(self):
+        """Test list_opts with process_item regex; invalid item raises error."""
+        with pytest.raises(ArgumentTypeError, match='invalid item: 1'):
+            at.list_opts(process_item=r'[a-z]+')('a,1')
+
+    def test_process_item_regex_custom_item_name(self):
+        """Test list_opts item_name is used in error messages."""
+        with pytest.raises(ArgumentTypeError, match='invalid letter: 1'):
+            at.list_opts(
+                process_item=r'[a-z]+', item_name='letter')('a,1')
+
+    # process_item as list (composition)
+
+    def test_process_item_list_of_functions(self):
+        """Test list_opts with process_item as a list of callables."""
+        # Functions applied in order: upper first, then strip
+        assert at.list_opts(
+            process_item=[str.upper, str.strip])('a,b') == ['A', 'B']
+
+    def test_process_item_list_regex_and_function(self):
+        """Test list_opts with process_item as list mixing regex and callable."""
+        assert at.list_opts(
+            process_item=[r'[a-z]+', str.upper])('a,b') == ['A', 'B']
+
+    # process_result
+
+    def test_process_result_function(self):
+        """Test list_opts with process_result applied to the whole list."""
+        assert at.list_opts(process_result=sorted)('c,a,b') == ['a', 'b', 'c']
+
+    def test_process_result_list_of_functions(self):
+        """Test list_opts with process_result as a list of functions."""
+        assert at.list_opts(
+            process_result=[sorted, list])('c,a,b') == ['a', 'b', 'c']
+
+    # return_bytes — these tests expose the bug in list_opts
+
+    def test_return_bytes_no_process_item(self):
+        """Test list_opts return_bytes=True with no process_item."""
+        # Bug: currently raises AttributeError (None.append)
+        assert at.list_opts(return_bytes=True)('a,b') == [b'a', b'b']
+
+    def test_return_bytes_with_function(self):
+        """Test list_opts return_bytes=True with process_item as a function."""
+        # Bug: currently raises AttributeError (method.append)
+        assert at.list_opts(
+            process_item=str.upper, return_bytes=True)('a,b') == [b'A', b'B']
+
+    def test_return_bytes_with_regex(self):
+        """Test list_opts return_bytes=True with process_item as a regex."""
+        # Bug: currently raises AttributeError (str.append)
+        assert at.list_opts(
+            process_item=r'[a-z]+',
+            return_bytes=True)('a,b') == [b'a', b'b']
+
+    def test_return_bytes_with_list_no_mutation(self):
+        """Test list_opts return_bytes=True with process_item as list.
+
+        The original process_item list must not be mutated; encode_utf8
+        would accumulate on repeated calls otherwise.
+        """
+        process_item = [str.upper]
+        at.list_opts(process_item=process_item, return_bytes=True)('a,b')
+        # Bug: currently mutates process_item, adding encode_utf8 each time
+        assert process_item == [str.upper]
+
+    def test_return_bytes_stable_on_repeated_calls(self):
+        """Test list_opts return_bytes=True gives consistent results on repeat.
+
+        With the mutation bug a second call would try encode_utf8(bytes)
+        and crash.
+        """
+        fn = at.list_opts(return_bytes=True)
+        assert fn('a,b') == [b'a', b'b']
+        # Bug: second call fails when process_item list has been mutated
+        assert fn('c,d') == [b'c', b'd']
+
+
+class TestKeylistValuelistOpts:
+
+    """Tests for libvrt.argtypes function keylist_valuelist_opts."""
+
+    # Basic key-value splitting
+
+    @pytest.mark.parametrize(
+        'input,expected', [
+            ('a=b', (['a'], ['b'])),
+            ('a:b', (['a'], ['b'])),
+            ('a,b=x,y', (['a', 'b'], ['x', 'y'])),
+            ('a=x,y', (['a'], ['x', 'y'])),
+            ('a,b=x', (['a', 'b'], ['x'])),
+        ]
+    )
+    def test_basic(self, input, expected):
+        """Test keylist_valuelist_opts with default separators."""
+        assert at.keylist_valuelist_opts()(input) == expected
+
+    # key_value_seps='' — return only a value list
+
+    def test_empty_key_value_seps_returns_list(self):
+        """Test that key_value_seps='' returns only a value list."""
+        assert at.keylist_valuelist_opts(key_value_seps='')('a,b') == ['a', 'b']
+
+    # Custom key_value_seps
+
+    def test_custom_key_value_seps(self):
+        """Test keylist_valuelist_opts with custom key_value_seps."""
+        assert at.keylist_valuelist_opts(
+            key_value_seps='|')('a,b|x,y') == (['a', 'b'], ['x', 'y'])
+
+    # Custom key_seps / value_seps
+
+    def test_custom_key_seps(self):
+        """Test keylist_valuelist_opts with custom key_seps."""
+        assert at.keylist_valuelist_opts(
+            key_seps=':', key_value_seps='=')('a:b=x') == (['a', 'b'], ['x'])
+
+    def test_custom_value_seps(self):
+        """Test keylist_valuelist_opts with custom value_seps."""
+        assert at.keylist_valuelist_opts(
+            value_seps=':', key_value_seps='=')('a=x:y') == (['a'], ['x', 'y'])
+
+    # default_key and default_value
+
+    def test_default_key_used_when_no_separator(self):
+        """Test that default_key is used when input has no key-value sep."""
+        assert at.keylist_valuelist_opts(
+            default_key='k')('v') == (['k'], ['v'])
+
+    def test_default_value_used_when_no_separator(self):
+        """Test that default_value is used when input has no key-value sep."""
+        assert at.keylist_valuelist_opts(
+            default_value='v')('k') == (['k'], ['v'])
+
+    def test_default_key_takes_precedence_over_default_value(self):
+        """Test that default_key is preferred over default_value."""
+        assert at.keylist_valuelist_opts(
+            default_key='k',
+            default_value='v')('x') == (['k'], ['x'])
+
+    # Error: no separator and no defaults
+
+    def test_no_separator_no_defaults_raises(self):
+        """Test error raised when no sep and neither default is given."""
+        with pytest.raises(
+                ArgumentTypeError,
+                match=r'no key-value separator \(":", "="\)'):
+            at.keylist_valuelist_opts()('ab')
+
+    def test_no_separator_arg_type_name_in_error(self):
+        """Test that arg_type_name appears in the error message."""
+        with pytest.raises(ArgumentTypeError, match='in mytype'):
+            at.keylist_valuelist_opts(arg_type_name='mytype')('ab')
+
+    # strip_key and strip_value
+
+    def test_strip_key(self):
+        """Test strip_key=True strips whitespace from the key string."""
+        assert at.keylist_valuelist_opts(
+            strip_key=True)('  a  =b') == (['a'], ['b'])
+
+    def test_strip_value(self):
+        """Test strip_value=True strips whitespace from the value string."""
+        assert at.keylist_valuelist_opts(
+            strip_value=True)('a=  b  ') == (['a'], ['b'])
+
+    # return_bytes — inherits list_opts bug
+
+    def test_return_bytes(self):
+        """Test keylist_valuelist_opts return_bytes=True encodes to bytes."""
+        # Bug: currently raises AttributeError (None.append) via list_opts
+        assert at.keylist_valuelist_opts(
+            return_bytes=True)('a=b') == ([b'a'], [b'b'])
+
+    def test_return_bytes_multiple(self):
+        """Test keylist_valuelist_opts return_bytes=True with lists."""
+        assert at.keylist_valuelist_opts(
+            return_bytes=True)('a,b=x,y') == ([b'a', b'b'], [b'x', b'y'])
+
+    def test_return_bytes_stable_on_repeated_calls(self):
+        """Test return_bytes=True gives consistent results on repeat calls."""
+        fn = at.keylist_valuelist_opts(return_bytes=True)
+        assert fn('a=b') == ([b'a'], [b'b'])
+        # Bug: second call fails due to list mutation in list_opts
+        assert fn('c=d') == ([b'c'], [b'd'])
+
+    def test_return_bytes_with_process_key_function(self):
+        """Test return_bytes=True with process_key as a function."""
+        assert at.keylist_valuelist_opts(
+            process_key=str.upper, return_bytes=True)('a=b') == (
+                [b'A'], [b'b'])
+
+    # process_key, process_value
+
+    def test_process_key_function(self):
+        """Test process_key function is applied to each key item."""
+        assert at.keylist_valuelist_opts(
+            process_key=str.upper)('a,b=x') == (['A', 'B'], ['x'])
+
+    def test_process_value_function(self):
+        """Test process_value function is applied to each value item."""
+        assert at.keylist_valuelist_opts(
+            process_value=str.upper)('a=x,y') == (['a'], ['X', 'Y'])
+
+    def test_process_key_regex(self):
+        """Test process_key as a regex validates each key item."""
+        assert at.keylist_valuelist_opts(
+            process_key=r'[a-z]+')('a,b=x') == (['a', 'b'], ['x'])
+
+    def test_process_key_regex_invalid(self):
+        """Test process_key regex raises on invalid key."""
+        with pytest.raises(ArgumentTypeError, match='invalid key: 1'):
+            at.keylist_valuelist_opts(
+                process_key=r'[a-z]+', key_name='key')('1=x')
+
+    def test_process_value_regex_invalid(self):
+        """Test process_value regex raises on invalid value."""
+        with pytest.raises(ArgumentTypeError, match='invalid value: 1'):
+            at.keylist_valuelist_opts(
+                process_value=r'[a-z]+', value_name='value')('a=1')
+
+    # process_keylist, process_valuelist
+
+    def test_process_keylist_function(self):
+        """Test process_keylist is applied to the full key list."""
+        assert at.keylist_valuelist_opts(
+            process_keylist=sorted)('b,a=x') == (['a', 'b'], ['x'])
+
+    def test_process_valuelist_function(self):
+        """Test process_valuelist is applied to the full value list."""
+        assert at.keylist_valuelist_opts(
+            process_valuelist=sorted)('a=y,x') == (['a'], ['x', 'y'])
+
+
+class TestStructAttrRegex:
+
+    """Tests for libvrt.argtypes function struct_attr_regex."""
+
+    @pytest.mark.parametrize(
+        'input,expected_struct,expected_attr,expected_regex_pattern', [
+            ('text:a=foo', b'text', b'a', b'foo'),
+            ('paragraph:type=intro', b'paragraph', b'type', b'intro'),
+            # Regex with alternation
+            ('paragraph:type=intro|body', b'paragraph', b'type', b'intro|body'),
+            # Regex with quantifier
+            ('sentence:id=.+', b'sentence', b'id', b'.+'),
+            # Regex containing '='
+            ('text:a=x=y', b'text', b'a', b'x=y'),
+            # Empty regex
+            ('text:a=', b'text', b'a', b''),
+            # Attribute name with underscores and digits
+            ('text:my_attr2=val', b'text', b'my_attr2', b'val'),
+        ]
+    )
+    def test_struct_attr_regex_valid(
+            self, input, expected_struct, expected_attr,
+            expected_regex_pattern):
+        """Test struct_attr_regex() with valid inputs."""
+        struct, attr, regex = at.struct_attr_regex(input)
+        assert struct == expected_struct
+        assert attr == expected_attr
+        assert regex.pattern == expected_regex_pattern
+
+    @pytest.mark.parametrize(
+        'input', [
+            'text',       # no ':' separator
+            'textfoo',    # no ':' separator
+            ':a=foo',     # missing struct name
+            '1text:a=foo',  # struct name starting with digit
+            'Text:a=foo',   # struct name with uppercase
+        ]
+    )
+    def test_struct_attr_regex_invalid_struct(self, input):
+        """Test struct_attr_regex() with invalid structure name."""
+        with pytest.raises(ArgumentTypeError,
+                           match='struct:attr=regex'):
+            at.struct_attr_regex(input)
+
+    @pytest.mark.parametrize(
+        'input', [
+            'text:afoo',    # no '=' separator in attr part
+            'text:A=foo',   # attr name with uppercase
+            'text:1a=foo',  # attr name starting with digit
+            'text::a=foo',  # double colon, attr part starts with ':'
+        ]
+    )
+    def test_struct_attr_regex_invalid_attr(self, input):
+        """Test struct_attr_regex() with invalid attribute name."""
+        with pytest.raises(ArgumentTypeError,
+                           match='struct:attr=regex'):
+            at.struct_attr_regex(input)
+
+    @pytest.mark.parametrize(
+        'input', [
+            r'text:a=[invalid',   # unclosed bracket
+            r'text:a=(*)',        # invalid quantifier
+        ]
+    )
+    def test_struct_attr_regex_invalid_regex(self, input):
+        """Test struct_attr_regex() with invalid regular expression."""
+        with pytest.raises(ArgumentTypeError,
+                           match='struct:attr=regex'):
+            at.struct_attr_regex(input)
+
+
+class TestAttrTemplateRegexList:
+
+    """Tests for libvrt.argtypes function attr_template_regex_list."""
+
+    # Helper to extract comparable data from a result
+    @staticmethod
+    def _result(s):
+        template, regexes = at.attr_template_regex_list(s)
+        return (template, [r.pattern for r in regexes])
+
+    @pytest.mark.parametrize(
+        'input,expected_template,expected_patterns', [
+            # Minimal template and single regex
+            ('new_{}=a', b'new_{}', [b'a']),
+            # Colon as separator
+            ('new_{}:a', b'new_{}', [b'a']),
+            # {} at the start
+            ('{}=a', b'{}', [b'a']),
+            # {} in the middle
+            ('pre_{}suf=a', b'pre_{}suf', [b'a']),
+            # {} after underscore prefix
+            ('_{}=a', b'_{}', [b'a']),
+            # Template with digits after {}
+            ('{}_2=a', b'{}_2', [b'a']),
+            # Multiple regexes, comma-separated
+            ('new_{}=a,b', b'new_{}', [b'a', b'b']),
+            # Multiple regexes, space-separated
+            ('new_{}=a b', b'new_{}', [b'a', b'b']),
+            # Mixed comma/space separators in regex list
+            ('new_{}=a, b', b'new_{}', [b'a', b'b']),
+            # Whitespace around template is stripped
+            (' new_{} =a', b'new_{}', [b'a']),
+            # Regex with quantifier
+            ('new_{}=a.*', b'new_{}', [b'a.*']),
+            # Regex with alternation group
+            ('new_{}=f(g|hi)j', b'new_{}', [b'f(g|hi)j']),
+        ]
+    )
+    def test_valid(self, input, expected_template, expected_patterns):
+        """Test attr_template_regex_list() with valid inputs."""
+        assert self._result(input) == (expected_template, expected_patterns)
+
+    @pytest.mark.parametrize(
+        'input', [
+            'new_x_a',      # no separator at all
+            'new_{}',       # no separator (no = or :)
+        ]
+    )
+    def test_no_separator(self, input):
+        """Test attr_template_regex_list() raises when separator is missing."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list(input)
+        assert ('no name-value separator (":", "=") in'
+                ' attribute-template-regex-list specification'
+                in str(excinfo.value))
+
+    @pytest.mark.parametrize(
+        'input,template', [
+            ('new_x=a', 'new_x'),
+            ('prefix=a', 'prefix'),
+            (' no_brace =a', 'no_brace'),
+        ]
+    )
+    def test_no_placeholder(self, input, template):
+        """Test error when template contains no '{}'."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list(input)
+        assert (f'attribute name template must contain "{{}}": {template}'
+                in str(excinfo.value))
+
+    @pytest.mark.parametrize(
+        'input,template', [
+            ('{}_{}=a', '{}_{}'),
+            ('{}{}=a', '{}{}'),
+        ]
+    )
+    def test_multiple_placeholders(self, input, template):
+        """Test error when template contains more than one '{}'."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list(input)
+        assert ('attribute name template must contain exactly one "{}": '
+                + template in str(excinfo.value))
+
+    @pytest.mark.parametrize(
+        'input,template', [
+            # Starts with a digit
+            ('1{}=a', '1{}'),
+            # Contains uppercase
+            ('NEW_{}=a', 'NEW_{}'),
+            # Contains a dot
+            ('a.{}=a', 'a.{}'),
+            # Starts with {}; {} replaced by x gives 'x', but suffix invalid
+            ('{}!=a', '{}!'),
+        ]
+    )
+    def test_invalid_template(self, input, template):
+        """Test error when template is not a valid attribute name."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list(input)
+        assert (f'invalid attribute name template: {template}'
+                in str(excinfo.value))
+
+    @pytest.mark.parametrize(
+        'input,dupl', [
+            ('new_{}=a,a', 'a'),
+            ('new_{}=a a', 'a'),
+            ('new_{}=a,b,a', 'a'),
+        ]
+    )
+    def test_duplicate_regex(self, input, dupl):
+        """Test error when regex list contains duplicates."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list(input)
+        assert (f'duplicate attribute name regular expressions: {dupl}'
+                in str(excinfo.value))
+
+    def test_empty_regex_list(self):
+        """Test error when regex list is empty."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list('new_{}=')
+        assert 'attribute regex list must not be empty' in str(excinfo.value)
+
+    @pytest.mark.parametrize(
+        'input,invalid,errmsg', [
+            ('new_{}=+.', '+.', 'nothing to repeat at position 0'),
+            ('new_{}=(a', '(a',
+             'missing ), unterminated subpattern at position 0'),
+            ('new_{}=aUb', 'aUb', 'contains upper-case characters'),
+            ('new_{}=aäb', 'aäb', 'contains non-ASCII characters'),
+        ]
+    )
+    def test_invalid_regex(self, input, invalid, errmsg):
+        """Test error when regex list contains an invalid regex."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list(input)
+        assert (
+            f'invalid attribute name regular expression: "{invalid}": {errmsg}'
+            in str(excinfo.value))

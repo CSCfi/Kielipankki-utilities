@@ -194,6 +194,249 @@ def attr_regex_list_individual_value(s):
     return [(regex, value) for regex in attr_regex_list_individual(regex_list)]
 
 
+def check_unique(values, values_name='values'):
+    """Raise `ArgumentTypeError` if `values` contains duplicates.
+
+    The error message uses `values_name` to indicate what kind of
+    values are in question (default ``values``).
+    """
+    dupls = find_duplicates(values)
+    if dupls:
+        raise ArgumentTypeError(
+            f'duplicate {values_name}: ' + ', '.join(dupls))
+    return values
+
+
+def obtain_check_unique(values_name='values'):
+    """Return a function checking that the values of an iterable are unique.
+
+    The returned function takes one argument (an iterable). In case of
+    duplicate values, the error message uses `values_name`.
+    """
+    return lambda values: check_unique(values, values_name)
+
+
+def obtain_check_match(regex, value_name='value'):
+    """Return a function checking that the argument matches `regex`.
+
+    The returned function takes one argument (`str`), to be checked
+    for matching `regex`. If it does not match, the function raises
+    `ArgumentTypeError` with a message using `value_name`.
+    """
+
+    def _check_match(value):
+        if not re.fullmatch(regex, value):
+            raise ArgumentTypeError(f'invalid {value_name}: {value}')
+        return value
+
+    return _check_match
+
+
+# TODO: Perhaps move the following function to a library module for
+# functional programming utilites.
+
+def compose_unary_rev(funcs, get_func=None):
+    """Return a (reverse) composition of unary functions in iterable `funcs`.
+
+    For a value ``[f1, f2, f3]``, return a function effectively
+    working as ``f3(f2(f1(x)))`` (functions are applied in the order
+    they are listed). If `get_func` is not `None`, get the actual
+    functions to be composed by calling `get_func(f)` for each item
+    `f` in `funcs`.
+    """
+    get_func = get_func or (lambda x: x)
+    if len(funcs) == 1:
+        return get_func(funcs[0])
+    else:
+        return lambda x: compose_unary_rev(funcs[1:], get_func)(
+            get_func(funcs[0])(x))
+
+
+def list_opts(seps=None, process_item=None, process_result=None,
+              return_bytes=False, item_name='item'):
+    """Return argument type function for a list of values, with options.
+
+    Return an argument type function for a list of values separated by
+    any of the characters in `seps` (`str`), each item processed with
+    `process_item` and the whole result processed with
+    `process_result`. The result is a list. `item_name` is used in
+    `ArgumentTypeError` messages.
+
+    `seps` defaults to ``', '`` (comma and space), meaning items are
+    separated by any combination of commas and spaces. If `seps` is
+    ``''``, no splitting is done: `process_item` is applied to the
+    whole input string and its return value is returned directly.
+
+    `process_item` can be a function of one `str` argument, a regular
+    expression (`str`) or a list whose items are either of those. A
+    function can return a modified value or check that the value is
+    appropriate and return the value intact or raise
+    `ArgumentTypeError` for an invalid value. A regular expression
+    checks that the value fully matches the expression. If the value
+    is a list, the functions are applied to the item in the order they
+    are in the list, each function applied to the value returned by
+    the previous one.
+
+    `process_result` is similar to `process_item` but the functions
+    take a list argument and return a list, and regular expressions
+    are not supported.
+
+    If `return_bytes` is `True`, `encode_utf8` is appended to the
+    item processing pipeline (after any `process_item` steps), so
+    each item in the result list is converted to `bytes`. Works
+    regardless of the type of `process_item`.
+    """
+
+    def obtain_processor(process_value):
+        """Return a function for processing values, based on `process_value`.
+
+        If `process_value` is a callable, it is returned as such. If
+        it is a list (of functions), return a composition of the
+        functions, first function innermost. Otherwise, return an
+        identity function. The functions should take one `str`
+        argument and return the value (modified or intact) or raise
+        `ArgumentTypeError`.
+        """
+        if isinstance(process_value, list):
+            return compose_unary_rev(process_value, obtain_processor)
+        elif callable(process_value):
+            return process_value
+        else:
+            return lambda val: val
+
+    def obtain_item_processor(process_value):
+        """Return a function for processing items, based on `process_value`.
+
+        Similar to `obtain_processor` but process_value (or its items)
+        can also be regular expressions, in which case it is tested
+        that a value fully matches the expression.
+        """
+        if isinstance(process_value, list):
+            return compose_unary_rev(process_value, obtain_item_processor)
+        elif isinstance(process_value, str):
+            return obtain_check_match(process_value, item_name)
+        else:
+            return obtain_processor(process_value)
+
+    # If the result should be converted to bytes, append the encoding
+    # function to the item processing pipeline. Build a new list (or
+    # wrap in one) rather than mutating a caller-provided list.
+    if return_bytes:
+        if isinstance(process_item, list):
+            process_item = list(process_item) + [encode_utf8]
+        elif process_item is None:
+            process_item = encode_utf8
+        else:
+            process_item = [process_item, encode_utf8]
+    process_item = obtain_item_processor(process_item)
+    process_result = obtain_processor(process_result)
+    if seps is None:
+        seps = ', '
+
+    def _list(s):
+        """Return a list from `s`.
+
+        The list is processed according to arguments passed to the
+        outer function.
+        """
+        if seps == '':
+            return process_item(s)
+        else:
+            return process_result([process_item(item)
+                                   for item in re.split(fr'[{seps}]+', s)])
+
+    return _list
+
+
+def keylist_valuelist_opts(
+        key_seps=None, process_key=None, process_keylist=None,
+        default_key=None, strip_key=False, key_name='key',
+        value_seps=None, process_value=None, process_valuelist=None,
+        default_value=None, strip_value=False, value_name='value',
+        key_value_seps=None, return_bytes=False, arg_type_name=None):
+    """Return argument type function for a pair of lists, with options.
+
+    Return an argument type function converting a string to a pair of
+    lists (keys and values), list of values separated by any number of
+    any of the characters in `key_value_seps` (`str`). If
+    `key_value_seps` is `""`, return only a list of values (a single
+    `list`).
+
+    Items in the list of keys and values are separated by any of the
+    characters in `key_seps` and `value_seps` (`str`), respectively,
+    each key and value processed with `process_key` and
+    `process_value`, respectively, and the whole lists of keys and
+    values processed with `process_keylist` and `process_valuelist`
+    (see below for more details). If `strip_key` or `strip_value` is
+    `True`, strip spaces from the beginning and end of the list of
+    keys or values, respectively. `key_name` and `value_name` are used
+    in `ArgumentTypeError` messages.
+
+    If the argument string does not contain any character in
+    `key_value_seps`, use `default_key` as the key if specified or
+    `default_value` as the value if specified. If neither is
+    specified, raise an `ArgumentTypeError`, whose message refers to
+    `arg_type_name` if not `None`.
+
+    `process_key` and `process_value` can be functions of one `str`
+    argument, regular expressions (`str`) or lists whose items are
+    either of those. A function can return a modified value or check
+    that the value is appropriate and return the value intact or raise
+    `ArgumentTypeError` for an invalid value. A regular expression
+    checks that the value fully matches the expression. If the value
+    is a list, the functions are applied to the item in the order they
+    are in the list, each function applied to the value returned by
+    the previous one.
+
+    `process_keylist` and `process_valuelist` are similar to
+    `process_key` and `process_value` but the functions take a list
+    argument and return a list, and regular expressions are not
+    supported.
+
+    If `return_bytes` is `True`, convert all the items in the lists of
+    keys and values to `bytes`.
+    """
+
+    def error(msg):
+        raise ArgumentTypeError(
+            msg + (f' in {arg_type_name}' if arg_type_name is not None else ''))
+
+    def strip_if(s, cond):
+        return s.strip() if cond else s
+
+    if key_value_seps is None:
+        key_value_seps = ':='
+
+    def _keylist_valuelist(s):
+        if key_value_seps == '':
+            return list_opts(
+                process_item=process_value, seps=value_seps,
+                process_result=process_valuelist, item_name=value_name,
+                return_bytes=return_bytes)(strip_if(s, strip_value))
+        else:
+            parts = re.split(fr'[{key_value_seps}]+', s, 1)
+            if len(parts) == 1:
+                if default_key is not None:
+                    parts = [default_key, parts[0]]
+                elif default_value is not None:
+                    parts = [parts[0], default_value]
+                else:
+                    error(f'no {key_name}-{value_name} separator ('
+                          + ', '.join(f'"{c}"' for c in key_value_seps) + ')')
+            return (list_opts(process_item=process_key, seps=key_seps,
+                              process_result=process_keylist,
+                              item_name=key_name,
+                              return_bytes=return_bytes)(
+                                  strip_if(parts[0], strip_key)),
+                    list_opts(process_item=process_value, seps=value_seps,
+                              process_result=process_valuelist,
+                              item_name=value_name,
+                              return_bytes=return_bytes)(
+                                  strip_if(parts[1], strip_value)))
+
+    return _keylist_valuelist
+
+
 def attr_value_opts(attrname_regex=None, attrname_prefix=None,
                     attrname_suffix=None, sepchars=None, strip_value=False,
                     return_bytes=False):
@@ -257,3 +500,96 @@ def attr_value(s):
     bytes.
     """
     return attr_value_opts(return_bytes=True)(s)
+
+
+def attr_template_regex_list(s):
+    """Argument type for attribute name template and attribute regex list.
+
+    s is of the form TEMPLATE(=|:)REGEX_LIST, where TEMPLATE is an
+    attribute name template containing exactly one '{}' placeholder
+    (and otherwise forming a valid attribute name), and REGEX_LIST is
+    a comma- or space-separated list of attribute name regular
+    expressions.
+
+    Return a pair (template, regexes), where template is TEMPLATE
+    encoded as UTF-8 bytes (with '{}' preserved) and regexes is a
+    list of compiled regular expressions (for bytes), one for each
+    item in REGEX_LIST.
+
+    Raise ArgumentTypeError if:
+    - s contains no '=' or ':' separator,
+    - TEMPLATE does not contain exactly one '{}',
+    - TEMPLATE (with '{}' replaced by a placeholder) is not a valid
+      attribute name,
+    - REGEX_LIST is empty, or
+    - REGEX_LIST contains duplicates or an invalid regular expression.
+    """
+    sep_mo = re.search(r'[=:]', s)
+    if not sep_mo:
+        raise ArgumentTypeError(
+            'no name-value separator (":", "=") in'
+            f' attribute-template-regex-list specification: {s}')
+    template = s[:sep_mo.start()].strip()
+    regex_list_str = s[sep_mo.end():]
+    count = template.count('{}')
+    if count == 0:
+        raise ArgumentTypeError(
+            f'attribute name template must contain "{{}}": {template}')
+    if count > 1:
+        raise ArgumentTypeError(
+            'attribute name template must contain exactly one'
+            f' "{{}}": {template}')
+    # Validate by replacing '{}' with a placeholder letter
+    if not re.fullmatch(r'[_a-z][_a-z0-9]*', template.replace('{}', 'x')):
+        raise ArgumentTypeError(
+            f'invalid attribute name template: {template}')
+    regexes = attr_regex_list_individual(regex_list_str)
+    if not regexes:
+        raise ArgumentTypeError(
+            f'attribute regex list must not be empty: {s}')
+    return (template.encode('utf-8'), regexes)
+
+
+def struct_attr_regex(s: str) -> tuple[bytes, bytes, re.Pattern[bytes]]:
+    """Argument type function for structure name, attribute name, and regex.
+
+    Parses a string of the form ``STRUCT:ATTR=REGEX``, where ``STRUCT``
+    is a structure (element) name, ``ATTR`` is an attribute name within
+    that structure, and ``REGEX`` is a regular expression to be fully
+    matched against the attribute value.
+
+    Args:
+        s: Argument string of the form ``STRUCT:ATTR=REGEX``.
+
+    Returns:
+        A 3-tuple ``(struct, attr, compiled_regex)``, where ``struct``
+        and ``attr`` are UTF-8 encoded bytes and ``compiled_regex`` is
+        a compiled regular expression for bytes.
+
+    Raises:
+        ArgumentTypeError: If ``s`` is not a valid ``STRUCT:ATTR=REGEX``
+            specification.
+    """
+    # Split on ':' to separate structure name from ATTR=REGEX
+    try:
+        struct_str, attr_regex_str = attr_value_opts(
+            sepchars=':', return_bytes=False)(s)
+    except ArgumentTypeError:
+        raise ArgumentTypeError(
+            f'invalid struct:attr=regex specification: {s!r}')
+    # Split on '=' to separate attribute name from the regex
+    try:
+        attr_str, regex_str = attr_value_opts(
+            sepchars='=', return_bytes=False)(attr_regex_str)
+    except ArgumentTypeError:
+        raise ArgumentTypeError(
+            f'invalid attr=regex part {attr_regex_str!r}'
+            f' in struct:attr=regex specification: {s!r}')
+    # Compile the regex for matching bytes attribute values
+    try:
+        compiled = re.compile(regex_str.encode('UTF-8'))
+    except re.error as e:
+        raise ArgumentTypeError(
+            f'invalid regular expression {regex_str!r}'
+            f' in struct:attr=regex specification: {s!r}: {e}')
+    return (struct_str.encode('UTF-8'), attr_str.encode('UTF-8'), compiled)
