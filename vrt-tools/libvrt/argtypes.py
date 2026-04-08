@@ -502,6 +502,54 @@ def attr_value(s):
     return attr_value_opts(return_bytes=True)(s)
 
 
+def attr_template_regex_list(s):
+    """Argument type for attribute name template and attribute regex list.
+
+    s is of the form TEMPLATE(=|:)REGEX_LIST, where TEMPLATE is an
+    attribute name template containing exactly one '{}' placeholder
+    (and otherwise forming a valid attribute name), and REGEX_LIST is
+    a comma- or space-separated list of attribute name regular
+    expressions.
+
+    Return a pair (template, regexes), where template is TEMPLATE
+    encoded as UTF-8 bytes (with '{}' preserved) and regexes is a
+    list of compiled regular expressions (for bytes), one for each
+    item in REGEX_LIST.
+
+    Raise ArgumentTypeError if:
+    - s contains no '=' or ':' separator,
+    - TEMPLATE does not contain exactly one '{}',
+    - TEMPLATE (with '{}' replaced by a placeholder) is not a valid
+      attribute name,
+    - REGEX_LIST is empty, or
+    - REGEX_LIST contains duplicates or an invalid regular expression.
+    """
+    sep_mo = re.search(r'[=:]', s)
+    if not sep_mo:
+        raise ArgumentTypeError(
+            'no name-value separator (":", "=") in'
+            f' attribute-template-regex-list specification: {s}')
+    template = s[:sep_mo.start()].strip()
+    regex_list_str = s[sep_mo.end():]
+    count = template.count('{}')
+    if count == 0:
+        raise ArgumentTypeError(
+            f'attribute name template must contain "{{}}": {template}')
+    if count > 1:
+        raise ArgumentTypeError(
+            'attribute name template must contain exactly one'
+            f' "{{}}": {template}')
+    # Validate by replacing '{}' with a placeholder letter
+    if not re.fullmatch(r'[_a-z][_a-z0-9]*', template.replace('{}', 'x')):
+        raise ArgumentTypeError(
+            f'invalid attribute name template: {template}')
+    regexes = attr_regex_list_individual(regex_list_str)
+    if not regexes:
+        raise ArgumentTypeError(
+            f'attribute regex list must not be empty: {s}')
+    return (template.encode('utf-8'), regexes)
+
+
 def struct_attr_regex(s: str) -> tuple[bytes, bytes, re.Pattern[bytes]]:
     """Argument type function for structure name, attribute name, and regex.
 

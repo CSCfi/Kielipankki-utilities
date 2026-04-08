@@ -892,3 +892,143 @@ class TestStructAttrRegex:
         with pytest.raises(ArgumentTypeError,
                            match='struct:attr=regex'):
             at.struct_attr_regex(input)
+
+
+class TestAttrTemplateRegexList:
+
+    """Tests for libvrt.argtypes function attr_template_regex_list."""
+
+    # Helper to extract comparable data from a result
+    @staticmethod
+    def _result(s):
+        template, regexes = at.attr_template_regex_list(s)
+        return (template, [r.pattern for r in regexes])
+
+    @pytest.mark.parametrize(
+        'input,expected_template,expected_patterns', [
+            # Minimal template and single regex
+            ('new_{}=a', b'new_{}', [b'a']),
+            # Colon as separator
+            ('new_{}:a', b'new_{}', [b'a']),
+            # {} at the start
+            ('{}=a', b'{}', [b'a']),
+            # {} in the middle
+            ('pre_{}suf=a', b'pre_{}suf', [b'a']),
+            # {} after underscore prefix
+            ('_{}=a', b'_{}', [b'a']),
+            # Template with digits after {}
+            ('{}_2=a', b'{}_2', [b'a']),
+            # Multiple regexes, comma-separated
+            ('new_{}=a,b', b'new_{}', [b'a', b'b']),
+            # Multiple regexes, space-separated
+            ('new_{}=a b', b'new_{}', [b'a', b'b']),
+            # Mixed comma/space separators in regex list
+            ('new_{}=a, b', b'new_{}', [b'a', b'b']),
+            # Whitespace around template is stripped
+            (' new_{} =a', b'new_{}', [b'a']),
+            # Regex with quantifier
+            ('new_{}=a.*', b'new_{}', [b'a.*']),
+            # Regex with alternation group
+            ('new_{}=f(g|hi)j', b'new_{}', [b'f(g|hi)j']),
+        ]
+    )
+    def test_valid(self, input, expected_template, expected_patterns):
+        """Test attr_template_regex_list() with valid inputs."""
+        assert self._result(input) == (expected_template, expected_patterns)
+
+    @pytest.mark.parametrize(
+        'input', [
+            'new_x_a',      # no separator at all
+            'new_{}',       # no separator (no = or :)
+        ]
+    )
+    def test_no_separator(self, input):
+        """Test attr_template_regex_list() raises when separator is missing."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list(input)
+        assert ('no name-value separator (":", "=") in'
+                ' attribute-template-regex-list specification'
+                in str(excinfo.value))
+
+    @pytest.mark.parametrize(
+        'input,template', [
+            ('new_x=a', 'new_x'),
+            ('prefix=a', 'prefix'),
+            (' no_brace =a', 'no_brace'),
+        ]
+    )
+    def test_no_placeholder(self, input, template):
+        """Test error when template contains no '{}'."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list(input)
+        assert (f'attribute name template must contain "{{}}": {template}'
+                in str(excinfo.value))
+
+    @pytest.mark.parametrize(
+        'input,template', [
+            ('{}_{}=a', '{}_{}'),
+            ('{}{}=a', '{}{}'),
+        ]
+    )
+    def test_multiple_placeholders(self, input, template):
+        """Test error when template contains more than one '{}'."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list(input)
+        assert ('attribute name template must contain exactly one "{}": '
+                + template in str(excinfo.value))
+
+    @pytest.mark.parametrize(
+        'input,template', [
+            # Starts with a digit
+            ('1{}=a', '1{}'),
+            # Contains uppercase
+            ('NEW_{}=a', 'NEW_{}'),
+            # Contains a dot
+            ('a.{}=a', 'a.{}'),
+            # Starts with {}; {} replaced by x gives 'x', but suffix invalid
+            ('{}!=a', '{}!'),
+        ]
+    )
+    def test_invalid_template(self, input, template):
+        """Test error when template is not a valid attribute name."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list(input)
+        assert (f'invalid attribute name template: {template}'
+                in str(excinfo.value))
+
+    @pytest.mark.parametrize(
+        'input,dupl', [
+            ('new_{}=a,a', 'a'),
+            ('new_{}=a a', 'a'),
+            ('new_{}=a,b,a', 'a'),
+        ]
+    )
+    def test_duplicate_regex(self, input, dupl):
+        """Test error when regex list contains duplicates."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list(input)
+        assert (f'duplicate attribute name regular expressions: {dupl}'
+                in str(excinfo.value))
+
+    def test_empty_regex_list(self):
+        """Test error when regex list is empty."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list('new_{}=')
+        assert 'attribute regex list must not be empty' in str(excinfo.value)
+
+    @pytest.mark.parametrize(
+        'input,invalid,errmsg', [
+            ('new_{}=+.', '+.', 'nothing to repeat at position 0'),
+            ('new_{}=(a', '(a',
+             'missing ), unterminated subpattern at position 0'),
+            ('new_{}=aUb', 'aUb', 'contains upper-case characters'),
+            ('new_{}=aäb', 'aäb', 'contains non-ASCII characters'),
+        ]
+    )
+    def test_invalid_regex(self, input, invalid, errmsg):
+        """Test error when regex list contains an invalid regex."""
+        with pytest.raises(ArgumentTypeError) as excinfo:
+            at.attr_template_regex_list(input)
+        assert (
+            f'invalid attribute name regular expression: "{invalid}": {errmsg}'
+            in str(excinfo.value))
