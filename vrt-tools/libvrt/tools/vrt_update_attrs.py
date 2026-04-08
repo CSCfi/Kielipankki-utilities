@@ -29,9 +29,10 @@ import re  # noqa: F401
 
 from collections import OrderedDict
 
-# attrlist and attr_value are used in ARGSPECS argument specification
-# strings
-from libvrt.argtypes import attrlist, attr_value, attr_value_opts  # noqa: F401
+# attrlist, attr_value and attr_template_regex_list are used in ARGSPECS
+# argument specification strings
+from libvrt.argtypes import (  # noqa: F401
+    attrlist, attr_value, attr_value_opts, attr_template_regex_list)
 from libvrt.datatypes import StrBytesDict
 from libvrt.iterutils import find_duplicates, make_unique
 from libvrt.metaline import pairs, starttag, strescape, strunescape
@@ -94,6 +95,25 @@ class AttrUpdater(InputProcessor):
          """,
          dict(action='append',
               metavar='NEW=OLD')),
+        ('--pattern-copy=SPEC:attr_template_regex_list -> pattern_copy_specs',
+         """Copy values of attributes whose names match REGEXES to new
+         attributes named TEMPLATE with '{}' replaced by the matched
+         attribute name.
+         TEMPLATE must be a valid attribute name containing exactly one
+         '{}'; REGEXES is a comma- or space-separated list of attribute
+         name regular expressions matched in full.
+         For structural attributes: nothing is copied if no attribute
+         matches REGEXES (no warning); if a generated new attribute name
+         already exists and is not in --overwrite, issue a warning and
+         keep the existing value.
+         For positional attributes: exit with an error if no attribute
+         in the positional-attributes comment (or added by --data-file
+         or --fixed) matches REGEXES, or if any generated new attribute
+         name already exists in the comment and is not in --overwrite.
+         This option can be repeated.
+         """,
+         dict(action='append',
+              metavar='TEMPLATE=REGEXES')),
         ('--compute|transform=ATTR -> compute',
          """Compute or transform the value of attribute ATTR with CODE.
          ATTR and VALUE may be separated by either "=" or ":"; spaces
@@ -216,9 +236,10 @@ class AttrUpdater(InputProcessor):
 
         super().check_args(args)
         if (args.data_file is None and args.fixed is None
-                and args.compute is None and not args.copy_attrs):
+                and args.compute is None and not args.copy_attrs
+                and not args.pattern_copy_specs):
             self.error_exit('Please specify at least one of --data-file,'
-                            ' --fixed, --compute or --copy.',
+                            ' --fixed, --compute, --copy or --pattern-copy.',
                             exitcode=2)
         args.fixed = check_fixed(args.fixed)
         self._check_copy_conflicts(args)
@@ -320,6 +341,14 @@ class AttrUpdater(InputProcessor):
         empty_attrs_set = set()
         copy_pairs = args.copy_attrs or []
         copy_new_attrs = [new_attr for new_attr, _ in copy_pairs]
+        pattern_copy_specs = args.pattern_copy_specs or []
+        # Pre-compile one combined regex per --pattern-copy spec
+        pattern_copy_combined = [
+            (template,
+             re.compile(b'|'.join(
+                 b'(?:' + r.pattern + b')' for r in regexes)))
+            for template, regexes in pattern_copy_specs
+        ]
         # Values for tsv_linenr when using only fixed or empty values
         FIXED_VALUES = -1
         EMPTY_VALUES = -2
@@ -443,24 +472,35 @@ class AttrUpdater(InputProcessor):
                 # This is redundant for the attributes that are for checking
                 # value equality only, but is this faster anyway?
                 attrs[attrname] = attrval
-            # Apply copies specified with --copy
-            for new_attr, old_attr in copy_pairs:
-                if old_attr in attrs:
-                    copy_val = attrs[old_attr]
-                else:
-                    self.warn(
-                        f'Attribute {old_attr.decode()} to copy to'
-                        f' {new_attr.decode()} does not exist;'
-                        f' using empty string',
-                        filename=inf.name, linenr=linenr)
-                    copy_val = empty_value
+            # Apply copies specified with --copy and --pattern-copy
+            def do_copy(new_attr, val):
+                """Copy val to attrs[new_attr] with overwrite/warn logic."""
                 if new_attr in attrs and new_attr not in overwrite_attrs:
                     self.warn(
                         f'Value for attribute {new_attr.decode()}'
                         f' already exists; keeping the existing one',
                         filename=inf.name, linenr=linenr)
                 else:
-                    attrs[new_attr] = copy_val
+                    attrs[new_attr] = val
+
+            for new_attr, old_attr in copy_pairs:
+                if old_attr in attrs:
+                    do_copy(new_attr, attrs[old_attr])
+                else:
+                    self.warn(
+                        f'Attribute {old_attr.decode()} to copy to'
+                        f' {new_attr.decode()} does not exist;'
+                        f' using empty string',
+                        filename=inf.name, linenr=linenr)
+                    do_copy(new_attr, empty_value)
+            if pattern_copy_combined:
+                # Snapshot keys (only bytes; str keys are added by --compute)
+                attrs_keys = [k for k in attrs if isinstance(k, bytes)]
+                for template, combined in pattern_copy_combined:
+                    for old_attr in attrs_keys:
+                        if combined.fullmatch(old_attr):
+                            do_copy(template.replace(b'{}', old_attr),
+                                    attrs[old_attr])
             # Apply functions specified with --compute
             if self._compute_funcs:
                 for attrname, func in self._compute_funcs:
@@ -525,41 +565,80 @@ class AttrUpdater(InputProcessor):
                     linenr += 1
                     if isbinnames(line):
                         pos_attr_names = binnamelist(line)
-                        if copy_pairs:
-                            pos_attr_names_set = set(pos_attr_names)
+                        pos_attr_names_set = set(pos_attr_names)
+                        pattern_copy_new_attrs = []
+                        if copy_pairs or pattern_copy_combined:
                             # Also accept attrs being added by --data-file
                             # or --fixed as valid OLD sources
                             valid_old_attrs = (
                                 pos_attr_names_set | set(new_attr_names))
-                            missing_old = [
-                                old.decode() for _, old in copy_pairs
-                                if old not in valid_old_attrs]
-                            if missing_old:
-                                plural = len(missing_old) > 1
-                                self.error_exit(
-                                    'Source attribute{s} for --copy {do}'
-                                    ' not exist in positional-attributes'
-                                    ' comment: {attrs}'.format(
-                                        s='s' if plural else '',
-                                        do='do' if plural else 'does',
-                                        attrs=', '.join(missing_old)),
-                                    filename=inf.name, linenr=linenr)
-                            conflict_new = [
-                                new.decode() for new, _ in copy_pairs
-                                if (new in pos_attr_names_set
-                                    and new not in overwrite_attrs)]
-                            if conflict_new:
-                                plural = len(conflict_new) > 1
-                                self.error_exit(
-                                    'Target attribute{s} for --copy already'
-                                    ' exist{s2} in positional-attributes'
-                                    ' comment and {are} not in --overwrite:'
-                                    ' {attrs}'.format(
-                                        s='s' if plural else '',
-                                        s2='' if plural else 's',
-                                        are='are' if plural else 'is',
-                                        attrs=', '.join(conflict_new)),
-                                    filename=inf.name, linenr=linenr)
+                            if copy_pairs:
+                                missing_old = [
+                                    old.decode() for _, old in copy_pairs
+                                    if old not in valid_old_attrs]
+                                if missing_old:
+                                    plural = len(missing_old) > 1
+                                    self.error_exit(
+                                        'Source attribute{s} for --copy {do}'
+                                        ' not exist in positional-attributes'
+                                        ' comment: {attrs}'.format(
+                                            s='s' if plural else '',
+                                            do='do' if plural else 'does',
+                                            attrs=', '.join(missing_old)),
+                                        filename=inf.name, linenr=linenr)
+                                conflict_new = [
+                                    new.decode() for new, _ in copy_pairs
+                                    if (new in pos_attr_names_set
+                                        and new not in overwrite_attrs)]
+                                if conflict_new:
+                                    plural = len(conflict_new) > 1
+                                    self.error_exit(
+                                        'Target attribute{s} for --copy'
+                                        ' already exist{s2} in'
+                                        ' positional-attributes comment and'
+                                        ' {are} not in --overwrite:'
+                                        ' {attrs}'.format(
+                                            s='s' if plural else '',
+                                            s2='' if plural else 's',
+                                            are='are' if plural else 'is',
+                                            attrs=', '.join(conflict_new)),
+                                        filename=inf.name, linenr=linenr)
+                            if pattern_copy_combined:
+                                # Valid sources: comment attrs + TSV/fixed
+                                valid_source_list = list(pos_attr_names) + [
+                                    a for a in new_attr_names
+                                    if a not in pos_attr_names_set]
+                                for template, combined in pattern_copy_combined:
+                                    matching = [
+                                        a for a in valid_source_list
+                                        if combined.fullmatch(a)]
+                                    if not matching:
+                                        self.error_exit(
+                                            'Regex for --pattern-copy "{}"'
+                                            ' matches no attribute in'
+                                            ' positional-attributes'
+                                            ' comment'.format(
+                                                template.decode()),
+                                            filename=inf.name, linenr=linenr)
+                                    for old_attr in matching:
+                                        new_attr = template.replace(
+                                            b'{}', old_attr)
+                                        if (new_attr in pos_attr_names_set
+                                                and new_attr
+                                                not in overwrite_attrs):
+                                            self.error_exit(
+                                                'Target attribute {} for'
+                                                ' --pattern-copy already'
+                                                ' exists in'
+                                                ' positional-attributes'
+                                                ' comment and is not in'
+                                                ' --overwrite'.format(
+                                                    new_attr.decode()),
+                                                filename=inf.name,
+                                                linenr=linenr)
+                                        if new_attr not in pos_attr_names_set:
+                                            pattern_copy_new_attrs.append(
+                                                new_attr)
                         for pre_line in pre_comment_lines:
                             ouf.write(pre_line)
                         ouf.write(binmakenames(
@@ -569,14 +648,15 @@ class AttrUpdater(InputProcessor):
                                 new_attr_names,
                                 (attr.encode('utf-8')
                                  for attr, _ in self._compute_funcs),
-                                copy_new_attrs))))
+                                copy_new_attrs,
+                                pattern_copy_new_attrs))))
                         if key_attrs:
                             # If some key attributes are missing from
                             # the positional-attributes comment, add
                             # all attributes with value "_"
                             missing_keys = tuple(
                                 key_attr.decode() for key_attr in key_attrs
-                                if key_attr not in set(pos_attr_names))
+                                if key_attr not in pos_attr_names_set)
                             if missing_keys:
                                 self.warn(
                                     'No key attribute{s} {missing_keys} in'
@@ -651,7 +731,8 @@ class AttrUpdater(InputProcessor):
                         # fixed and/or computed values only
                         add_attrs = fixed_vals
                         tsv_linenr = FIXED_VALUES
-                    if add_attrs or self._compute_funcs or copy_pairs:
+                    if (add_attrs or self._compute_funcs
+                            or copy_pairs or pattern_copy_combined):
                         attrs = add_attributes(
                             line, attrs, add_attrs, linenr, tsv_linenr,
                             check_overlap_attrs)

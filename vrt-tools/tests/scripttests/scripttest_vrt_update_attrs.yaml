@@ -20,7 +20,7 @@
   output:
     returncode: 2
     stderr: |
-      vrt-update-attrs: Please specify at least one of --data-file, --fixed, --compute or --copy.
+      vrt-update-attrs: Please specify at least one of --data-file, --fixed, --compute, --copy or --pattern-copy.
     stdout: ''
 
 
@@ -3158,5 +3158,212 @@
       <text>
       <sentence>
       b	2	ghi	jkl	2x
+      </sentence>
+      </text>
+
+# Tests for --pattern-copy TEMPLATE=REGEXES
+
+- name: 'vrt-update-attrs: --pattern-copy single regex, structural'
+  input:
+    cmdline: vrt-update-attrs --pattern-copy 'new_{}=a'
+    stdin: *input-abc
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a="1" b="abc" c="def" new_a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" new_a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --pattern-copy regex matching multiple attrs, structural'
+  input:
+    cmdline: vrt-update-attrs --pattern-copy 'new_{}=[ab]'
+    stdin: *input-abc
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a="1" b="abc" c="def" new_a="1" new_b="abc">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" new_a="2" new_b="ghi">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --pattern-copy comma-separated regex list, structural'
+  input:
+    cmdline: vrt-update-attrs --pattern-copy 'new_{}=a,c'
+    stdin: *input-abc
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a="1" b="abc" c="def" new_a="1" new_c="def">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" new_a="2" new_c="jkl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --pattern-copy no match, silent (structural)'
+  input:
+    cmdline: vrt-update-attrs --pattern-copy 'new_{}=x'
+    stdin: *input-abc
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a="1" b="abc" c="def">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --pattern-copy NEW exists, warn and keep (structural)'
+  input:
+    cmdline: vrt-update-attrs --pattern-copy '{}_new=a'
+    stdin: &input-a-anew |
+      <text a="1" a_new="orig">
+      word
+      </text>
+  output:
+    returncode: 0
+    stderr: |
+      vrt-update-attrs: <stdin>:1: Warning: Value for attribute a_new already exists; keeping the existing one
+    stdout: |
+      <text a="1" a_new="orig">
+      word
+      </text>
+
+- name: 'vrt-update-attrs: --pattern-copy NEW exists with --overwrite (structural)'
+  input:
+    cmdline: vrt-update-attrs --pattern-copy '{}_new=a' --overwrite a_new
+    stdin: *input-a-anew
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a="1" a_new="1">
+      word
+      </text>
+
+- name: 'vrt-update-attrs: --pattern-copy single regex, positional'
+  input:
+    cmdline: vrt-update-attrs --positional --pattern-copy 'new_{}=a'
+    stdin: *input-abc-pos
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <!-- #vrt positional-attributes: word a b c new_a -->
+      <text>
+      <sentence>
+      a	1	abc	def	1
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	2	ghi	jkl	2
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --pattern-copy regex matching multiple attrs, positional'
+  input:
+    cmdline: vrt-update-attrs --positional --pattern-copy 'new_{}=[ab]'
+    stdin: *input-abc-pos
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <!-- #vrt positional-attributes: word a b c new_a new_b -->
+      <text>
+      <sentence>
+      a	1	abc	def	1	abc
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b	2	ghi	jkl	2	ghi
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --pattern-copy no match, error (positional)'
+  input:
+    cmdline: vrt-update-attrs --positional --pattern-copy 'new_{}=x'
+    stdin: *input-abc-pos
+  output:
+    returncode: 1
+    stderr: |
+      vrt-update-attrs: <stdin>:1: Regex for --pattern-copy "new_{}" matches no attribute in positional-attributes comment
+    stdout: ''
+
+- name: 'vrt-update-attrs: --pattern-copy NEW exists without --overwrite, error (positional)'
+  input:
+    cmdline: vrt-update-attrs --positional --pattern-copy '{}_new=a,b'
+    stdin: &input-abc-bnew-pos |
+      <!-- #vrt positional-attributes: word a b c b_new -->
+      <text>
+      <sentence>
+      word	1	abc	def	orig
+      </sentence>
+      </text>
+  output:
+    returncode: 1
+    stderr: |
+      vrt-update-attrs: <stdin>:1: Target attribute b_new for --pattern-copy already exists in positional-attributes comment and is not in --overwrite
+    stdout: ''
+
+- name: 'vrt-update-attrs: --pattern-copy NEW exists with --overwrite (positional)'
+  input:
+    cmdline: >-
+      vrt-update-attrs --positional --pattern-copy '{}_new=b' --overwrite b_new
+    stdin: *input-abc-bnew-pos
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <!-- #vrt positional-attributes: word a b c b_new -->
+      <text>
+      <sentence>
+      word	1	abc	def	abc
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --pattern-copy then --compute modifies copied value, structural'
+  input:
+    cmdline: vrt-update-attrs --pattern-copy 'new_{}=a' --compute "new_a=val+'x'"
+    stdin: *input-abc
+  output:
+    returncode: 0
+    stderr: ''
+    stdout: |
+      <text a="1" b="abc" c="def" new_a="1x">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" b="ghi" c="jkl" new_a="2x">
+      <sentence>
+      b
       </sentence>
       </text>
