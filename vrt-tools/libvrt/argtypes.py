@@ -259,9 +259,13 @@ def list_opts(seps=None, process_item=None, process_result=None,
     Return an argument type function for a list of values separated by
     any of the characters in `seps` (`str`), each item processed with
     `process_item` and the whole result processed with
-    `process_result`. The result is a list. If `return_bytes` ==
-    `True`, convert the items to `bytes`. `item_name` is used in
+    `process_result`. The result is a list. `item_name` is used in
     `ArgumentTypeError` messages.
+
+    `seps` defaults to ``', '`` (comma and space), meaning items are
+    separated by any combination of commas and spaces. If `seps` is
+    ``''``, no splitting is done: `process_item` is applied to the
+    whole input string and its return value is returned directly.
 
     `process_item` can be a function of one `str` argument, a regular
     expression (`str`) or a list whose items are either of those. A
@@ -276,6 +280,11 @@ def list_opts(seps=None, process_item=None, process_result=None,
     `process_result` is similar to `process_item` but the functions
     take a list argument and return a list, and regular expressions
     are not supported.
+
+    If `return_bytes` is `True`, `encode_utf8` is appended to the
+    item processing pipeline (after any `process_item` steps), so
+    each item in the result list is converted to `bytes`. Works
+    regardless of the type of `process_item`.
     """
 
     def obtain_processor(process_value):
@@ -309,10 +318,16 @@ def list_opts(seps=None, process_item=None, process_result=None,
         else:
             return obtain_processor(process_value)
 
-    # If the result should be converted to bytes, append encoding
-    # function to process_item
+    # If the result should be converted to bytes, append the encoding
+    # function to the item processing pipeline. Build a new list (or
+    # wrap in one) rather than mutating a caller-provided list.
     if return_bytes:
-        process_item.append(encode_utf8)
+        if isinstance(process_item, list):
+            process_item = list(process_item) + [encode_utf8]
+        elif process_item is None:
+            process_item = encode_utf8
+        else:
+            process_item = [process_item, encode_utf8]
     process_item = obtain_item_processor(process_item)
     process_result = obtain_processor(process_result)
     if seps is None:
