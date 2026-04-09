@@ -218,14 +218,17 @@ class AttrUpdater(InputProcessor):
     ]
 
     def __init__(self):
+        """Initialise, passing module globals for ARGSPECS type functions."""
         # extra_types=... is needed for using module-level functions
         # as types in ARGSPECS (otherwise, type could be passed via a
         # dict)
         super().__init__(extra_types=globals())
 
     def check_args(self, args):
+        """Validate and transform parsed arguments before main is called."""
 
         def check_fixed(fixed):
+            """Return OrderedDict of fixed attrs; error-exit on duplicates."""
             fixed = fixed or []
             dupls = find_duplicates(name.decode('utf-8') for name, val in fixed)
             if dupls:
@@ -318,6 +321,7 @@ class AttrUpdater(InputProcessor):
             }
 
     def main(self, args, inf, ouf):
+        """Process VRT from inf, writing attrs-updated output to ouf."""
 
         LESS_THAN = '<'.encode()[0]
         overwrite_attrs = set(args.overwrite_attrs or [])
@@ -326,9 +330,12 @@ class AttrUpdater(InputProcessor):
         if key_attrs:
             key_attrs = tuple(key_attrs)
         struct_name = args.struct_name.encode()
+        # Possible byte-string starts of the target structure's start tag
         struct_begin_alts = tuple(b'<' + struct_name + endchar
                                   for endchar in [b' ', b'>'])
+        # Final list of new attribute names (filled in later)
         new_attr_names = None
+        # Maps key tuples to (attrs_dict, tsv_line_num) for keyed lookup
         new_attr_values = {}
         # True if an ordered TSV file does not contain lines for all
         # structures in VRT
@@ -337,9 +344,13 @@ class AttrUpdater(InputProcessor):
         # when tsv_exhausted = True
         tsv_attrs_empty = None
         empty_value = b'_' if args.positional else b''
+        # str version of empty_value for use in warning messages
         empty_value_s = empty_value.decode('utf-8')
+        # Set of TSV attribute names whose value should be left empty
+        # (used when the key was not found in the data file)
         empty_attrs_set = set()
         copy_pairs = args.copy_attrs or []
+        # New attribute names introduced by --copy
         copy_new_attrs = [new_attr for new_attr, _ in copy_pairs]
         pattern_copy_specs = args.pattern_copy_specs or []
         # Pre-compile one combined regex per --pattern-copy spec
@@ -354,6 +365,7 @@ class AttrUpdater(InputProcessor):
         EMPTY_VALUES = -2
 
         def read_keyed_data(tsv_reader):
+            """Read all TSV rows into new_attr_values, keyed by key_attrs."""
             missing_key_attrs = [attr for attr in key_attrs
                                  if attr not in new_attr_names_orig]
             if missing_key_attrs:
@@ -382,9 +394,11 @@ class AttrUpdater(InputProcessor):
                 new_attr_values[key] = (attrs, tsv_reader.line_num)
 
         def get_add_attrs_empty(tsv_reader, line, attrs, linenr):
+            """Return empty TSV attribute values (used after TSV exhausted)."""
             return tsv_attrs_empty, EMPTY_VALUES
 
         def get_add_attrs_ordered(tsv_reader, line, attrs, linenr):
+            """Next TSV row in order; warn and fill empty if exhausted."""
             nonlocal tsv_exhausted, tsv_attrs_empty
             if tsv_exhausted:
                 return tsv_attrs_empty, EMPTY_VALUES
@@ -408,6 +422,7 @@ class AttrUpdater(InputProcessor):
             return add_attrs, tsv_reader.line_num
 
         def get_add_attrs_keyed(tsv_reader, line, attrs, linenr):
+            """Return TSV row matching attrs' key values, or empty on miss."""
             nonlocal empty_attrs_set
             try:
                 key = tuple(attrs[key_attr] for key_attr in key_attrs)
@@ -440,6 +455,14 @@ class AttrUpdater(InputProcessor):
 
         def add_attributes(line, attrs, add_attrs, linenr, tsv_line_num,
                            check_overlap_attrs):
+            """Merge add_attrs into attrs and apply copies and computes.
+
+            Checks for conflicts in check_overlap_attrs (warn and keep
+            existing), applies --copy and --pattern-copy via do_copy,
+            runs --compute functions, and applies --rename.
+            Returns the updated attrs dict (possibly a new OrderedDict
+            if --rename is active).
+            """
 
             def error_msg(attrname, exc, msg_suffix=''):
                 """Return error message for exception `exc` on `attrname`."""
@@ -690,21 +713,26 @@ class AttrUpdater(InputProcessor):
                     return pos_attr_names
 
             def is_line_to_process_struct(line):
+                """Return True if line is a start tag for the target struct."""
                 return (line[0] == LESS_THAN
                         and line.startswith(struct_begin_alts))
 
             def is_line_to_process_pos(line):
+                """Return True if line is a token line (not tag or comment)."""
                 return line[0] != LESS_THAN
 
             get_line_attrs_struct = pairs
 
             def get_line_attrs_pos(line):
+                """Return zip of pos_attr_names and tab-split token values."""
                 return zip(pos_attr_names, line[:-1].split(b'\t'))
 
             def make_line_struct(attrs):
+                """Reconstruct the structure start tag from attrs."""
                 return starttag(struct_name, attrs)
 
             def make_line_pos(attrs):
+                """Reconstruct the token line: join attr values with tabs."""
                 return b'\t'.join(attrs.values()) + b'\n'
 
             linenr = 0
@@ -718,6 +746,7 @@ class AttrUpdater(InputProcessor):
                 get_line_attrs = get_line_attrs_struct
                 make_line = make_line_struct
                 pos_attr_names = []
+            # TSV attrs not in --overwrite: check for value conflicts
             check_overlap_attrs = set(new_attr_names_orig) - overwrite_attrs
             for line in inf:
                 linenr += 1
@@ -752,11 +781,14 @@ class AttrUpdater(InputProcessor):
                     line = make_line(attrs)
                 ouf.write(line)
 
+        # Start with fixed attrs as the initial new-attribute name list
         new_attr_names = list(fixed_vals.keys())
         # Original, non-renamed names of new attributes
         new_attr_names_orig = new_attr_names.copy()
+        # Set of attr names introduced by --fixed (for overlap detection)
         fixed_attrs = set(new_attr_names)
         rename_attrs = args.rename_attrs or []
+        # Dict mapping TSV old attr name → new name for --rename
         rename_attrs_dict = dict(rename_attrs)
         if args.data_file is None:
             if rename_attrs:
@@ -772,6 +804,7 @@ class AttrUpdater(InputProcessor):
                     tsv_reader.read_fieldnames()
                 tsv_attr_names = tsv_reader.fieldnames or []
                 tsv_attr_names_set = set(tsv_attr_names)
+                # Attrs that appear in both --fixed and the TSV file
                 tsv_fixed_attrs = fixed_attrs & tsv_attr_names_set
                 if tsv_fixed_attrs:
                     self.error_exit(
