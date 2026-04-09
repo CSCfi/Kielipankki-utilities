@@ -558,123 +558,136 @@ class AttrUpdater(InputProcessor):
                 extracted from the positional-attributes comment.
                 """
                 nonlocal linenr, get_add_attrs
+
+                def check_copy_attrs_pos(pos_attr_names_set,
+                                         valid_old_attrs):
+                    """Check --copy constraints for positional attrs.
+
+                    Calls error_exit if a source attribute is missing
+                    or a target already exists and is not in --overwrite.
+                    """
+                    missing_old = [
+                        old.decode() for _, old in copy_pairs
+                        if old not in valid_old_attrs]
+                    if missing_old:
+                        plural = len(missing_old) > 1
+                        self.error_exit(
+                            'Source attribute{s} for --copy {do} not exist'
+                            ' in positional-attributes comment: {attrs}'.format(
+                                s='s' if plural else '',
+                                do='do' if plural else 'does',
+                                attrs=', '.join(missing_old)),
+                            filename=inf.name, linenr=linenr)
+                    conflict_new = [
+                        new.decode() for new, _ in copy_pairs
+                        if (new in pos_attr_names_set
+                            and new not in overwrite_attrs)]
+                    if conflict_new:
+                        plural = len(conflict_new) > 1
+                        self.error_exit(
+                            'Target attribute{s} for --copy already'
+                            ' exist{s2} in positional-attributes comment'
+                            ' and {are} not in --overwrite: {attrs}'.format(
+                                s='s' if plural else '',
+                                s2='' if plural else 's',
+                                are='are' if plural else 'is',
+                                attrs=', '.join(conflict_new)),
+                            filename=inf.name, linenr=linenr)
+
+                def get_pattern_copy_new_attrs(pos_attr_names,
+                                               pos_attr_names_set):
+                    """Get new attr names for --pattern-copy; check constraints.
+
+                    Checks --pattern-copy constraints for positional
+                    attributes, calling error_exit on violations.
+                    Returns a list of new attribute names to be added
+                    (those not already in pos_attr_names_set).
+                    """
+                    # Valid sources: comment attrs + TSV/fixed attrs
+                    valid_source_list = list(pos_attr_names) + [
+                        a for a in new_attr_names
+                        if a not in pos_attr_names_set]
+                    new_attrs = []
+                    for template, combined in pattern_copy_combined:
+                        tmpl_str = template.decode()
+                        matching = [
+                            a for a in valid_source_list
+                            if combined.fullmatch(a)]
+                        if not matching:
+                            self.error_exit(
+                                f'Regex for --pattern-copy "{tmpl_str}"'
+                                ' matches no attribute in'
+                                ' positional-attributes comment',
+                                filename=inf.name, linenr=linenr)
+                        for old_attr in matching:
+                            new_attr = template.replace(b'{}', old_attr)
+                            if (new_attr in pos_attr_names_set
+                                    and new_attr not in overwrite_attrs):
+                                self.error_exit(
+                                    f'Target attribute {new_attr.decode()}'
+                                    ' for --pattern-copy already exists in'
+                                    ' positional-attributes comment'
+                                    ' and is not in --overwrite',
+                                    filename=inf.name, linenr=linenr)
+                            if new_attr not in pos_attr_names_set:
+                                new_attrs.append(new_attr)
+                    return new_attrs
+
                 # Buffer lines before the comment so that on error
                 # nothing is written to ouf
                 pre_comment_lines = []
                 for line in inf:
                     linenr += 1
-                    if isbinnames(line):
-                        pos_attr_names = binnamelist(line)
-                        pos_attr_names_set = set(pos_attr_names)
-                        pattern_copy_new_attrs = []
-                        if copy_pairs or pattern_copy_combined:
-                            # Also accept attrs being added by --data-file
-                            # or --fixed as valid OLD sources
-                            valid_old_attrs = (
-                                pos_attr_names_set | set(new_attr_names))
-                            if copy_pairs:
-                                missing_old = [
-                                    old.decode() for _, old in copy_pairs
-                                    if old not in valid_old_attrs]
-                                if missing_old:
-                                    plural = len(missing_old) > 1
-                                    self.error_exit(
-                                        'Source attribute{s} for --copy {do}'
-                                        ' not exist in positional-attributes'
-                                        ' comment: {attrs}'.format(
-                                            s='s' if plural else '',
-                                            do='do' if plural else 'does',
-                                            attrs=', '.join(missing_old)),
-                                        filename=inf.name, linenr=linenr)
-                                conflict_new = [
-                                    new.decode() for new, _ in copy_pairs
-                                    if (new in pos_attr_names_set
-                                        and new not in overwrite_attrs)]
-                                if conflict_new:
-                                    plural = len(conflict_new) > 1
-                                    self.error_exit(
-                                        'Target attribute{s} for --copy'
-                                        ' already exist{s2} in'
-                                        ' positional-attributes comment and'
-                                        ' {are} not in --overwrite:'
-                                        ' {attrs}'.format(
-                                            s='s' if plural else '',
-                                            s2='' if plural else 's',
-                                            are='are' if plural else 'is',
-                                            attrs=', '.join(conflict_new)),
-                                        filename=inf.name, linenr=linenr)
-                            if pattern_copy_combined:
-                                # Valid sources: comment attrs + TSV/fixed
-                                valid_source_list = list(pos_attr_names) + [
-                                    a for a in new_attr_names
-                                    if a not in pos_attr_names_set]
-                                for template, combined in pattern_copy_combined:
-                                    matching = [
-                                        a for a in valid_source_list
-                                        if combined.fullmatch(a)]
-                                    if not matching:
-                                        self.error_exit(
-                                            'Regex for --pattern-copy "{}"'
-                                            ' matches no attribute in'
-                                            ' positional-attributes'
-                                            ' comment'.format(
-                                                template.decode()),
-                                            filename=inf.name, linenr=linenr)
-                                    for old_attr in matching:
-                                        new_attr = template.replace(
-                                            b'{}', old_attr)
-                                        if (new_attr in pos_attr_names_set
-                                                and new_attr
-                                                not in overwrite_attrs):
-                                            self.error_exit(
-                                                'Target attribute {} for'
-                                                ' --pattern-copy already'
-                                                ' exists in'
-                                                ' positional-attributes'
-                                                ' comment and is not in'
-                                                ' --overwrite'.format(
-                                                    new_attr.decode()),
-                                                filename=inf.name,
-                                                linenr=linenr)
-                                        if new_attr not in pos_attr_names_set:
-                                            pattern_copy_new_attrs.append(
-                                                new_attr)
-                        for pre_line in pre_comment_lines:
-                            ouf.write(pre_line)
-                        ouf.write(binmakenames(
-                            *(make_unique(
-                                (rename_attrs_dict.get(attr, attr)
-                                 for attr in pos_attr_names),
-                                new_attr_names,
-                                (attr.encode('utf-8')
-                                 for attr, _ in self._compute_funcs),
-                                copy_new_attrs,
-                                pattern_copy_new_attrs))))
-                        if key_attrs:
-                            # If some key attributes are missing from
-                            # the positional-attributes comment, add
-                            # all attributes with value "_"
-                            missing_keys = tuple(
-                                key_attr.decode() for key_attr in key_attrs
-                                if key_attr not in pos_attr_names_set)
-                            if missing_keys:
-                                self.warn(
-                                    'No key attribute{s} {missing_keys} in'
-                                    ' positional-attributes comment;'
-                                    ' adding attributes with value'
-                                    f' "{empty_value_s}"'.format(
-                                        s=('s' if len(missing_keys) > 1
-                                           else ''),
-                                        missing_keys=', '.join(missing_keys)),
-                                    filename=inf.name, linenr=linenr)
-                                get_add_attrs = get_add_attrs_empty
-                        return pos_attr_names
-                    elif line[0] != LESS_THAN:
-                        self.error_exit(
-                            'No positional-attributes comment before the'
-                            ' first token line',
-                            filename=inf.name, linenr=linenr)
-                    pre_comment_lines.append(line)
+                    if not isbinnames(line):
+                        if line[0] != LESS_THAN:
+                            self.error_exit(
+                                'No positional-attributes comment'
+                                ' before the first token line',
+                                filename=inf.name, linenr=linenr)
+                        pre_comment_lines.append(line)
+                        continue
+                    pos_attr_names = binnamelist(line)
+                    pos_attr_names_set = set(pos_attr_names)
+                    if copy_pairs:
+                        # Also accept attrs being added by --data-file
+                        # or --fixed as valid OLD sources
+                        valid_old_attrs = (
+                            pos_attr_names_set | set(new_attr_names))
+                        check_copy_attrs_pos(
+                            pos_attr_names_set, valid_old_attrs)
+                    pattern_copy_new_attrs = (
+                        get_pattern_copy_new_attrs(
+                            pos_attr_names, pos_attr_names_set)
+                        if pattern_copy_combined else [])
+                    for pre_line in pre_comment_lines:
+                        ouf.write(pre_line)
+                    ouf.write(binmakenames(
+                        *(make_unique(
+                            (rename_attrs_dict.get(attr, attr)
+                             for attr in pos_attr_names),
+                            new_attr_names,
+                            (attr.encode('utf-8')
+                             for attr, _ in self._compute_funcs),
+                            copy_new_attrs,
+                            pattern_copy_new_attrs))))
+                    if key_attrs:
+                        # If some key attributes are missing from
+                        # the positional-attributes comment, add
+                        # all attributes with value "_"
+                        missing_keys = tuple(
+                            key_attr.decode() for key_attr in key_attrs
+                            if key_attr not in pos_attr_names_set)
+                        if missing_keys:
+                            self.warn(
+                                'No key attribute{s} {keys} in'
+                                ' positional-attributes comment; adding'
+                                ' attributes with value "{val}"'.format(
+                                    s='s' if len(missing_keys) > 1 else '',
+                                    keys=', '.join(missing_keys),
+                                    val=empty_value_s),
+                                filename=inf.name, linenr=linenr)
+                            get_add_attrs = get_add_attrs_empty
+                    return pos_attr_names
 
             def is_line_to_process_struct(line):
                 return (line[0] == LESS_THAN
