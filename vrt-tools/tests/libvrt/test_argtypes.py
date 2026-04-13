@@ -900,10 +900,13 @@ class TestAttrTemplateRegexList:
 
     # Helper to extract comparable data from a result
     @staticmethod
-    def _result(s):
+    def _result(s, placeholder):
+        # Replace "{}" in s with placeholder
+        s = s.replace('{}', placeholder)
         template, regexes = at.attr_template_regex_list(s)
         return (template, [r.pattern for r in regexes])
 
+    @pytest.mark.parametrize('placeholder', ['{}', '{attr}'])
     @pytest.mark.parametrize(
         'input,expected_template,expected_patterns', [
             # Minimal template and single regex
@@ -932,9 +935,11 @@ class TestAttrTemplateRegexList:
             ('new_{}=f(g|hi)j', b'new_{}', [b'f(g|hi)j']),
         ]
     )
-    def test_valid(self, input, expected_template, expected_patterns):
+    def test_valid(self, input, expected_template, expected_patterns,
+                   placeholder):
         """Test attr_template_regex_list() with valid inputs."""
-        assert self._result(input) == (expected_template, expected_patterns)
+        assert (self._result(input, placeholder)
+                == (expected_template, expected_patterns))
 
     @pytest.mark.parametrize(
         'input', [
@@ -954,6 +959,8 @@ class TestAttrTemplateRegexList:
         'input,template', [
             ('new_x=a', 'new_x'),
             ('prefix=a', 'prefix'),
+            ('{a}=a', '{a}'),
+            ('{a=a', '{a'),
             (' no_brace =a', 'no_brace'),
         ]
     )
@@ -961,21 +968,23 @@ class TestAttrTemplateRegexList:
         """Test error when template contains no '{}'."""
         with pytest.raises(ArgumentTypeError) as excinfo:
             at.attr_template_regex_list(input)
-        assert (f'attribute name template must contain "{{}}": {template}'
-                in str(excinfo.value))
+        assert (('attribute name template must contain "{}" or "{attr}": '
+                 + template) in str(excinfo.value))
 
     @pytest.mark.parametrize(
         'input,template', [
             ('{}_{}=a', '{}_{}'),
             ('{}{}=a', '{}{}'),
+            ('{attr}{attr}=a', '{attr}{attr}'),
+            ('{attr}_{}=a', '{attr}_{}'),
         ]
     )
     def test_multiple_placeholders(self, input, template):
         """Test error when template contains more than one '{}'."""
         with pytest.raises(ArgumentTypeError) as excinfo:
             at.attr_template_regex_list(input)
-        assert ('attribute name template must contain exactly one "{}": '
-                + template in str(excinfo.value))
+        assert (('attribute name template must contain exactly one "{}" or'
+                 ' "{attr}": ' + template) in str(excinfo.value))
 
     @pytest.mark.parametrize(
         'input,template', [
@@ -987,6 +996,7 @@ class TestAttrTemplateRegexList:
             ('a.{}=a', 'a.{}'),
             # Starts with {}; {} replaced by x gives 'x', but suffix invalid
             ('{}!=a', '{}!'),
+            ('{attr}!=a', '{attr}!'),
         ]
     )
     def test_invalid_template(self, input, template):
@@ -1001,6 +1011,7 @@ class TestAttrTemplateRegexList:
             ('new_{}=a,a', 'a'),
             ('new_{}=a a', 'a'),
             ('new_{}=a,b,a', 'a'),
+            ('new_{attr}=a,b,a', 'a'),
         ]
     )
     def test_duplicate_regex(self, input, dupl):
@@ -1023,6 +1034,7 @@ class TestAttrTemplateRegexList:
              'missing ), unterminated subpattern at position 0'),
             ('new_{}=aUb', 'aUb', 'contains upper-case characters'),
             ('new_{}=aäb', 'aäb', 'contains non-ASCII characters'),
+            ('new_{attr}=aäb', 'aäb', 'contains non-ASCII characters'),
         ]
     )
     def test_invalid_regex(self, input, invalid, errmsg):
