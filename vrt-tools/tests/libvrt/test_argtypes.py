@@ -959,6 +959,8 @@ class TestAttrTemplateRegexList:
         'input,template', [
             ('new_x=a', 'new_x'),
             ('prefix=a', 'prefix'),
+            ('{a}=a', '{a}'),
+            ('{a=a', '{a'),
             (' no_brace =a', 'no_brace'),
         ]
     )
