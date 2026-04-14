@@ -3181,6 +3181,13 @@
       b
       </sentence>
       </text>
+  transform: &transform-pattern-placeholder
+  - name: placeholder "{}"
+    # No actual transformation
+  - name: placeholder "{attr}"
+    input:
+      cmdline:
+        replace: '/{}/{attr}/'
 
 - name: 'vrt-update-attrs: --pattern-copy regex matching multiple attrs, structural'
   input:
@@ -3200,6 +3207,7 @@
       b
       </sentence>
       </text>
+  transform: *transform-pattern-placeholder
 
 - name: 'vrt-update-attrs: --pattern-copy comma-separated regex list, structural'
   input:
@@ -3219,6 +3227,7 @@
       b
       </sentence>
       </text>
+  transform: *transform-pattern-placeholder
 
 - name: 'vrt-update-attrs: --pattern-copy no match, silent (structural)'
   input:
@@ -3238,6 +3247,7 @@
       b
       </sentence>
       </text>
+  transform: *transform-pattern-placeholder
 
 - name: 'vrt-update-attrs: --pattern-copy NEW exists, warn and keep (structural)'
   input:
@@ -3254,6 +3264,7 @@
       <text a="1" a_new="orig">
       word
       </text>
+  transform: *transform-pattern-placeholder
 
 - name: 'vrt-update-attrs: --pattern-copy NEW exists with --overwrite (structural)'
   input:
@@ -3266,6 +3277,7 @@
       <text a="1" a_new="1">
       word
       </text>
+  transform: *transform-pattern-placeholder
 
 - name: 'vrt-update-attrs: --pattern-copy single regex, positional'
   input:
@@ -3286,6 +3298,7 @@
       b	2	ghi	jkl	2
       </sentence>
       </text>
+  transform: *transform-pattern-placeholder
 
 - name: 'vrt-update-attrs: --pattern-copy regex matching multiple attrs, positional'
   input:
@@ -3306,6 +3319,7 @@
       b	2	ghi	jkl	2	ghi
       </sentence>
       </text>
+  transform: *transform-pattern-placeholder
 
 - name: 'vrt-update-attrs: --pattern-copy no match, error (positional)'
   input:
@@ -3316,6 +3330,7 @@
     stderr: |
       vrt-update-attrs: <stdin>:1: Regex for --pattern-copy "new_{}" matches no attribute in positional-attributes comment
     stdout: ''
+  transform: *transform-pattern-placeholder
 
 - name: 'vrt-update-attrs: --pattern-copy NEW exists without --overwrite, error (positional)'
   input:
@@ -3332,6 +3347,7 @@
     stderr: |
       vrt-update-attrs: <stdin>:1: Target attribute b_new for --pattern-copy already exists in positional-attributes comment and is not in --overwrite
     stdout: ''
+  transform: *transform-pattern-placeholder
 
 - name: 'vrt-update-attrs: --pattern-copy NEW exists with --overwrite (positional)'
   input:
@@ -3348,6 +3364,7 @@
       word	1	abc	def	abc
       </sentence>
       </text>
+  transform: *transform-pattern-placeholder
 
 - name: 'vrt-update-attrs: --pattern-copy then --compute modifies copied value, structural'
   input:
@@ -3367,3 +3384,4 @@
       b
       </sentence>
       </text>
+  transform: *transform-pattern-placeholder

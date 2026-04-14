@@ -97,11 +97,11 @@ class AttrUpdater(InputProcessor):
               metavar='NEW=OLD')),
         ('--pattern-copy=SPEC:attr_template_regex_list -> pattern_copy_specs',
          """Copy values of attributes whose names match REGEXES to new
-         attributes named TEMPLATE with '{}' replaced by the matched
-         attribute name.
+         attributes named TEMPLATE with "{}" and "{attr}" replaced by the
+         matched attribute name.
          TEMPLATE must be a valid attribute name containing exactly one
-         '{}'; REGEXES is a comma- or space-separated list of attribute
-         name regular expressions matched in full.
+         "{}" or "{attr}"; REGEXES is a comma- or space-separated list of
+         attribute name regular expressions matched in full.
          For structural attributes: nothing is copied if no attribute
          matches REGEXES (no warning); if a generated new attribute name
          already exists and is not in --overwrite, issue a warning and
