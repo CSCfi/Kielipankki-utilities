@@ -1,0 +1,162 @@
+#! /usr/bin/env python3
+
+
+"""
+nlf-get-oaipmh
+
+Usage: nlf-get-oaipmh issnfile.txt outfile_basename
+
+Get OAI-PMH metadata from the National Library of Finland based on
+ISSNs. The script outputs the metadata both as OAI-PMH XML and as TSV.
+
+issnfile.txt: List of ISSNs (publication ids), one per line
+outfile_basename: Output file basename; the actual output files have
+  the extension .oaipmh.xml for the data as OAI-PMH XML and .tsv for
+  the data as TSV.
+"""
+
+
+import sys
+
+from collections.abc import Iterator
+
+# Requires package oaipm-scythe
+from oaipmh_scythe import Scythe
+from oaipmh_scythe.exceptions import NoRecordsMatch
+from oaipmh_scythe.models import Record
+from oaipmh_scythe.response import OAIResponse
+from oaipmh_scythe.utils import (
+    filter_dict_except_resumption_token, remove_none_values)
+
+
+class MyScythe(Scythe):
+
+    """Class MyScythe mends oaipmh_scythe.Scythe with list_records_ext."""
+
+    def list_records_ext(
+        self,
+        from_: str | None = None,
+        until: str | None = None,
+        metadata_prefix: str = "oai_dc",
+        set_: str | None = None,
+        resumption_token: str | None = None,
+        ignore_deleted: bool = False,
+        **kwargs: dict[str, str],
+    ) -> Iterator[OAIResponse | Record]:
+        """Issue a ListRecords request to the OAI server.
+
+        This method works in the same way as
+        `oaipmh_scythe.Scythe.list_records` except that it also
+        accepts arbitrary keyword arguments passed to the OAI-PMH
+        interface to support for example `issn` queries.
+        """
+        # The implementation is copied from
+        # oaipmh_scythe.Scythe.list_records, augmented with **kwargs
+        _query = {
+            "verb": "ListRecords",
+            "from": from_,
+            "until": until,
+            "metadataPrefix": metadata_prefix,
+            "set": set_,
+            "resumptionToken": resumption_token,
+            **kwargs,
+        }
+        query = remove_none_values(filter_dict_except_resumption_token(_query))
+        yield from self.iterator(self, query, ignore_deleted=ignore_deleted)
+
+
+def make_record_tsv(issn, rec):
+    """Return a TSV line for ISSN `issn` and OAI-PMH record `rec`.
+
+    If `rec` is `None`, return a heading row with output field names.
+    """
+
+    def make_value(val):
+        """If `val` is list, return items joined by `|`, else `val` as is."""
+        return '|'.join(val) if isinstance(val, list) else val
+
+    def make_values(collection, keys):
+        """Return an iterator for the values of `keys` from `collection`."""
+        return ((make_value(collection.get(key, '')) if isinstance(key, str)
+                 else key[1](collection)) for key in keys)
+
+    def get_binding(header):
+        """Return the binding number from `header`."""
+        # The last part of identifier
+        return header['identifier'].split(':')[-1]
+
+    def get_key(val):
+        """Return the key for `val`, either `val` as such or the first item."""
+        return val[0] if isinstance(val, tuple) else val
+
+    # Output field names for items retrieved from the OAI-PMH data,
+    # divided into header and metadata items. The individual field
+    # names can be either plain field names or pairs (field name,
+    # function), where function takes the header or metadata object as
+    # argument and returns the value to be used as the field value.
+    outfields = {
+        'header': [
+            ('issn', lambda _: issn),
+            ('binding', get_binding),
+            'datestamp',
+            'setSpecs',
+        ],
+        'metadata': [
+            'identifier',
+            'title',
+            'date',
+            'description',
+            'publisher',
+            'language',
+            'relation',
+            'coverage',
+            'rights',
+        ],
+    }
+    result = []
+    # KLUDGE: If rec is None, return output field names
+    if rec is None:
+        result = [get_key(val)
+                  for val in outfields['header'] + outfields['metadata']]
+    else:
+        result.extend(make_values(dict(rec.header), outfields['header']))
+        if rec.deleted:
+            result.extend([''] * len(outfields['metadata']))
+        else:
+            result.extend(make_values(dict(rec.metadata),
+                                      outfields['metadata']))
+    return '\t'.join(result) + '\n'
+
+
+def main():
+    """Read input files and write output files."""
+    if len(sys.argv) < 3:
+        print('Usage: nlf-get-oaipmh issnfile.txt outfile_basename')
+        exit(2)
+    issn_file = sys.argv[1]
+    outfile_base = sys.argv[2]
+    oaipmh_url = 'https://digi.kansalliskirjasto.fi/interfaces/OAI-PMH'
+    with (MyScythe(oaipmh_url) as scythe,
+          open(issn_file, 'r') as issnf,
+          open(outfile_base + '.tsv', 'w') as tsvf,
+          open(outfile_base + '.oaipmh.xml', 'w') as xmlf):
+        # FIXME: The OAI-PMH output currently does not contain all the
+        # namespace information
+        xmlf.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        xmlf.write('<ListRecords>\n')
+        tsvf.write(make_record_tsv(None, None))
+        for issn in issnf:
+            issn = issn.strip()
+            if issn:
+                try:
+                    records = scythe.list_records_ext(issn=issn)
+                    for rec in records:
+                        tsvf.write(make_record_tsv(issn, rec))
+                        xmlf.write(rec.raw + '\n')
+                except NoRecordsMatch:
+                    print(f'No records match ISSN {issn}', file=sys.stderr)
+        xmlf.write('</ListRecords>\n')
+
+
+if __name__ == '__main__':
+    main()
