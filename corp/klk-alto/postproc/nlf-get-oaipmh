@@ -4,12 +4,12 @@
 """
 nlf-get-oaipmh
 
-Usage: nlf-get-oaipmh issnfile.txt outfile_basename
+Usage: nlf-get-oaipmh issn_file outfile_basename
 
 Get OAI-PMH metadata from the National Library of Finland based on
 ISSNs. The script outputs the metadata both as OAI-PMH XML and as TSV.
 
-issnfile.txt: List of ISSNs (publication ids), one per line
+issn_file: List of ISSNs (publication ids), one per line
 outfile_basename: Output file basename; the actual output files have
   the extension .oaipmh.xml for the data as OAI-PMH XML and .tsv for
   the data as TSV.
@@ -18,6 +18,7 @@ outfile_basename: Output file basename; the actual output files have
 
 import sys
 
+from argparse import ArgumentParser
 from collections.abc import Iterator
 
 # Requires package oaipm-scythe
@@ -128,18 +129,36 @@ def make_record_tsv(issn, rec):
     return '\t'.join(result) + '\n'
 
 
+def parse_args():
+    """Parse command-line arguments and return them as a namespace."""
+    argparser = ArgumentParser(
+        description="""
+        Get OAI-PMH metadata from the National Library of Finland
+        based on ISSNs and outputs it both as OAI-PMH XML and as TSV.
+        """
+    )
+    argparser.add_argument(
+        'issn_file',
+        help="""text file containing the ISSNs for which to get metadata,
+        one ISSN per line"""
+    )
+    argparser.add_argument(
+        'outfile_basename',
+        help="""output file basename: the actual output files have
+        the extension .oaipmh.xml for the data as OAI-PMH XML and .tsv for
+        the data as TSV"""
+    )
+    return argparser.parse_args()
+
+
 def main():
     """Read input files and write output files."""
-    if len(sys.argv) < 3:
-        print('Usage: nlf-get-oaipmh issnfile.txt outfile_basename')
-        exit(2)
-    issn_file = sys.argv[1]
-    outfile_base = sys.argv[2]
+    args = parse_args()
     oaipmh_url = 'https://digi.kansalliskirjasto.fi/interfaces/OAI-PMH'
     with (MyScythe(oaipmh_url) as scythe,
-          open(issn_file, 'r') as issnf,
-          open(outfile_base + '.tsv', 'w') as tsvf,
-          open(outfile_base + '.oaipmh.xml', 'w') as xmlf):
+          open(args.issn_file, 'r') as issnf,
+          open(args.outfile_basename + '.tsv', 'w') as tsvf,
+          open(args.outfile_basename + '.oaipmh.xml', 'w') as xmlf):
         # FIXME: The OAI-PMH output currently does not contain all the
         # namespace information
         xmlf.write('<?xml version="1.0" encoding="UTF-8"?>\n')
