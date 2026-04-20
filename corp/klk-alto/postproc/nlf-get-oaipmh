@@ -4,12 +4,13 @@
 """
 nlf-get-oaipmh
 
-Usage: nlf-get-oaipmh issn_file outfile_basename
+Usage: nlf-get-oaipmh id_file outfile_basename
 
 Get OAI-PMH metadata from the National Library of Finland based on
-ISSNs. The script outputs the metadata both as OAI-PMH XML and as TSV.
+ISSNs or binding ids. The script outputs the metadata both as OAI-PMH
+XML and as TSV.
 
-issn_file: List of ISSNs (publication ids), one per line
+id_file: List of ISSNs (publication ids) or binding ids, one per line
 outfile_basename: Output file basename; the actual output files have
   the extension .oaipmh.xml for the data as OAI-PMH XML and .tsv for
   the data as TSV.
@@ -66,9 +67,11 @@ class MyScythe(Scythe):
         yield from self.iterator(self, query, ignore_deleted=ignore_deleted)
 
 
-def make_record_tsv(issn, rec):
-    """Return a TSV line for ISSN `issn` and OAI-PMH record `rec`.
+def make_record_tsv(id_, rec, type_):
+    """Return a TSV line for id `id_` and OAI-PMH record `rec`.
 
+    If `type_` is `issn`, `id_` is an ISSN; if `type_` is `binding`,
+    `id_` is a biding id.
     If `rec` is `None`, return a heading row with output field names.
     """
 
@@ -97,7 +100,7 @@ def make_record_tsv(issn, rec):
     # argument and returns the value to be used as the field value.
     outfields = {
         'header': [
-            ('issn', lambda _: issn),
+            ('binding_id' if type_ == 'binding' else 'issn', lambda _: id_),
             ('binding', get_binding),
             'datestamp',
             'setSpecs',
@@ -134,13 +137,14 @@ def parse_args():
     argparser = ArgumentParser(
         description="""
         Get OAI-PMH metadata from the National Library of Finland
-        based on ISSNs and outputs it both as OAI-PMH XML and as TSV.
+        based on ISSNs (or other publication ids) or binding ids and
+        output it both as OAI-PMH XML and as TSV.
         """
     )
     argparser.add_argument(
-        'issn_file',
-        help="""text file containing the ISSNs for which to get metadata,
-        one ISSN per line"""
+        'id_file',
+        help="""text file containing the ISSNs or binding ids for which to get
+        metadata, one id per line"""
     )
     argparser.add_argument(
         'outfile_basename',
@@ -148,6 +152,17 @@ def parse_args():
         the extension .oaipmh.xml for the data as OAI-PMH XML and .tsv for
         the data as TSV"""
     )
+    group = argparser.add_mutually_exclusive_group()
+    group.add_argument(
+        '--issn', action='store_const', dest='mode', const='issn',
+        default='issn',
+        help="""treat lines in id_file as ISSNs (or other publication ids)
+        (default)""")
+    group.add_argument(
+        '--binding', action='store_const', dest='mode', const='binding',
+        help="""treat lines in id_file as binding ids or OAI-PMH identifiers:
+        if a line does not begin with "oai:", prefix it with
+        "oai:digi.kansalliskirjasto.fi:" """)
     return argparser.parse_args()
 
 
@@ -156,24 +171,29 @@ def main():
     args = parse_args()
     oaipmh_url = 'https://digi.kansalliskirjasto.fi/interfaces/OAI-PMH'
     with (MyScythe(oaipmh_url) as scythe,
-          open(args.issn_file, 'r') as issnf,
+          open(args.id_file, 'r') as idf,
           open(args.outfile_basename + '.tsv', 'w') as tsvf,
           open(args.outfile_basename + '.oaipmh.xml', 'w') as xmlf):
         # FIXME: The OAI-PMH output currently does not contain all the
         # namespace information
         xmlf.write('<?xml version="1.0" encoding="UTF-8"?>\n')
         xmlf.write('<ListRecords>\n')
-        tsvf.write(make_record_tsv(None, None))
-        for issn in issnf:
-            issn = issn.strip()
-            if issn:
+        tsvf.write(make_record_tsv(None, None, args.mode))
+        for id_ in idf:
+            id_ = id_.strip()
+            if id_:
                 try:
-                    records = scythe.list_records_ext(issn=issn)
+                    if args.mode == 'binding':
+                        if not id_.startswith('oai:'):
+                            id_ = 'oai:digi.kansalliskirjasto.fi:' + id_
+                        records = [scythe.get_record(identifier=id_)]
+                    else:
+                        records = scythe.list_records_ext(issn=id_)
                     for rec in records:
-                        tsvf.write(make_record_tsv(issn, rec))
+                        tsvf.write(make_record_tsv(id_, rec, args.mode))
                         xmlf.write(rec.raw + '\n')
                 except NoRecordsMatch:
-                    print(f'No records match ISSN {issn}', file=sys.stderr)
+                    print(f'No records match id {id_}', file=sys.stderr)
         xmlf.write('</ListRecords>\n')
 
 
