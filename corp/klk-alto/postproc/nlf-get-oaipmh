@@ -166,6 +166,11 @@ def parse_args():
     return argparser.parse_args()
 
 
+def warn(msg):
+    """Output `msg` (prefixed with "Warning:") to stderr."""
+    print(f'Warning: {msg}', file=sys.stderr)
+
+
 def main():
     """Read input files and write output files."""
     args = parse_args()
@@ -193,7 +198,7 @@ def main():
                         tsvf.write(make_record_tsv(id_, rec, args.mode))
                         xmlf.write(rec.raw + '\n')
                 except NoRecordsMatch:
-                    print(f'No records match id {id_}', file=sys.stderr)
+                    warn(f'No records match id: {id_}')
         xmlf.write('</ListRecords>\n')
 
 
