@@ -24,7 +24,7 @@ from collections.abc import Iterator
 
 # Requires package oaipm-scythe
 from oaipmh_scythe import Scythe
-from oaipmh_scythe.exceptions import NoRecordsMatch
+from oaipmh_scythe.exceptions import NoRecordsMatch, IdDoesNotExist
 from oaipmh_scythe.models import Record
 from oaipmh_scythe.response import OAIResponse
 from oaipmh_scythe.utils import (
@@ -199,6 +199,8 @@ def main():
                         xmlf.write(rec.raw + '\n')
                 except NoRecordsMatch:
                     warn(f'No records match id: {id_}')
+                except IdDoesNotExist:
+                    warn(f'Non-existent id: {id_}')
         xmlf.write('</ListRecords>\n')
 
 
