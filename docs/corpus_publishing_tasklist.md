@@ -108,7 +108,7 @@ Publish the VRT data in Download
 *Metadata:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 *Access location:* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 
-*License label:* e.g., CC BY, RES +PRIV, etc.
+*License label:* e.g., CC BY-ND, CLARIN RES +ID +PLAN +BY +NC +LOC +PRIV +NORED +DEP +OTHER, etc.
 *License page (English):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 *License (Finnish):* [http://urn.fi/urn:nbn:fi:lb-xxxxxxxxxx]
 *(In case the corpus contains personal data:)*
@@ -181,7 +181,7 @@ The task category marker is an italicized (slanted) and bolded character string.
 - _*GITHUB*_: creating and assigning PIDs via the GitHub repository; modifying version-controlled files on GitHub (requires permissions for CSC GitHub)
 - _*IDA*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating file packages and standard documentation files included in the archived data (requires permissions for IDA)
 - _*HYSTORE*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating file packages and standard documentation files included in the archived data (requires permissions to access the HFST server of the University of Helsinki)
-- _*PUHTI*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating standard documents for the archived data (requires permissions for CSC computing environment)
+- _*HPC*_ (was: _*PUHTI*_): storing, processing, organizing, copying, naming and transferring files, checking file integrity, creating standard documents for the archived data (requires permissions for CSC computing environment)
 - _*ALLAS*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating standard documents for the archived data (requires permissions for CSC computing environment)
 - _*DATA*_: receiving original data, data (pre-)processing and cleanup (tasks that may be completed in different environments)
 - _*KORP*_: Korp configuration (requires Korp server permissions)
@@ -354,13 +354,13 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*?IDA*_ Get the original data from IDA
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained, upload the data as a zip file (named as shortname-src_yyyymmdd.zip) and the separate shortname-src_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
-# [ ] _*+PUHTI*_ Create a download package [how to create a download package | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_download_package.md]
+# [ ] _*+HPC*_ Create a download package [how to create a download package | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_download_package.md]
 # [ ] _*+DATA*_ Create a publishable README.txt for the source data, to be shown to the end-users. Include: 1) resource title; 2) PID; 3) either the license PID, a plain link to the license, or a statement of the rightholder and the known restrictions of use for the source data, 4) any other relevant information regarding the technical structure of the source data, if applicable.
-## [ ] _*+PUHTI*_ Create and add the readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
-## [ ] _*+PUHTI*_ Zip the data and the readme and license files into a package named as shortname-src.zip.
-## [ ] _*+PUHTI*_ Compute an MD5 checksum for the zip package
+## [ ] _*+HPC*_ Create and add the readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
+## [ ] _*+HPC*_ Zip the data and the readme and license files into a package named as shortname-src.zip.
+## [ ] _*+HPC*_ Compute an MD5 checksum for the zip package
 # [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [include the original zip file(s) in a new, password-protected zip package| https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] for internal storage and transfer. Use the [appropriate password| https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
-# [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
+# [ ] _*+HPC*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} in HPC environment (Puhti/Roihu)
 # [ ] _*+TEST*_ Have the package tested
 # [ ] _*?MANAGE*_ If this is a RES-licensed corpus and an LBR application does not yet exist, fill in an instance of the [Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_lbr ] and assign it forward to CSC (add label: lb-csc-task and prioritize if needed).
 # [ ] _*+MANAGE*_ Have the package uploaded to the download service: fill in an instance of [the Jira issue "_shortname_: Upload to the download service" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_upload ] and assign it forward to CSC (add label "lb-csc-task" and prioritize if needed).
@@ -430,8 +430,8 @@ Create the LBR record, or update the existing one, according to the information 
 
 ### _shortname_: Clean up after publishing the source data
 ```
-# [ ] _*?CSC*_ Ask Martin (CSC) to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti if the source data is to be published there
-# [ ] _*+PUHTI*_ Remove the download package, MD5 checksum file and readme and license files from the directory {{/scratch/clarin/download_preview}} on Puhti
+# [ ] _*?CSC*_ Ask Martin (CSC) to add the data to Kielipankki directory {{/appl/data/kielipankki}} in HPC environment (Puhti/Roihu) if the source data is to be published there
+# [ ] _*+HPC*_ Remove the download package, MD5 checksum file and readme and license files from the directory {{/scratch/clarin/download_preview}} in HPC environment (Puhti/Roihu)
 \\
 ```
 
@@ -601,7 +601,7 @@ Access restrictions: public access / ACA license / RES license (please describe)
 ### _shortname_: Clean up and document after publishing in Korp 
 ```
 # [ ] _*+TEST*_ Remove the corpus from the testing environment of Korp (Korp test version)
-# [ ] _*+PUHTI*_ Remove any corpus data, used or created during the conversion process, from scratch on Puhti (usually the person who ran korp-make should take care of this)
+# [ ] _*+HPC*_ Remove any corpus data, used or created during the conversion process, from scratch in HPC environment (Puhti/Roihu) (usually the person who ran korp-make should take care of this)
 # [ ] _*+META*_ Store the scripts you used in GitHub
 # [ ] _*+META*_ Create or update a list of annotation information and tools used during the corpus processing pipeline, in order to be added to the metadata record
 # [ ] _*+META*_ If additional documentation is needed, create a separate Jira-ticket
@@ -648,13 +648,13 @@ Access restrictions: public access / ACA license / RES license (please describe)
 ```
 # [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [ apply the appropriate safeguards | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] when processing the data. [(How to use passwords) | https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-vrt_yyyymmdd.zip) and the separate shortname-vrt_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
-# [ ] _*+PUHTI*_ Create a download package
-## [ ] _*+PUHTI*_ Create and add the downloadable readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
-## [ ] _*+PUHTI*_ Zip the data and the readme and license files
-## [ ] _*+PUHTI*_ Compute MD5 checksum for the zip package
+# [ ] _*+HPC*_ Create a download package
+## [ ] _*+HPC*_ Create and add the downloadable readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
+## [ ] _*+HPC*_ Zip the data and the readme and license files
+## [ ] _*+HPC*_ Compute MD5 checksum for the zip package
 # [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [include the original zip file(s) in a new, password-protected zip package| https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] for internal storage and transfer. Use the [appropriate password| https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
-# [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
-# [ ] _*+PUHTI*_ If the package is published as release candidate (during the release candidate stage of the corresponding Korp corpus), add the file RELEASE_CANDIDATE.txt to the directory {{/scratch/clarin/download_preview}} on Puhti
+# [ ] _*+HPC*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} in HPC environment (Puhti/Roihu)
+# [ ] _*+HPC*_ If the package is published as release candidate (during the release candidate stage of the corresponding Korp corpus), add the file RELEASE_CANDIDATE.txt to the directory {{/scratch/clarin/download_preview}} in HPC environment (Puhti/Roihu)
 # [ ] _*+TEST*_ Have the package tested
 # [ ] _*?MANAGE*_ If this is a RES-licensed corpus and an LBR application does not yet exist, fill in an instance of the [Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_lbr ] and assign it forward to CSC (add label "lb-csc-task" and prioritize if needed).
 # [ ] _*+MANAGE*_ Have the package uploaded to the download service: fill in an instance of [the Jira issue "_shortname_: Upload to the download service" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_upload ] and assign it forward to CSC (add label "lb-csc-task" and prioritize if needed).
@@ -682,8 +682,8 @@ Access restrictions: public access / ACA license / RES license (please describe)
 # [ ] _*?META*_ If the package was published as release candidate (during the release candidate stage of the corresponding Korp corpus), remove the release candidate status after removing the release candidate status from Korp
 ## [ ] _*+CSC*_ Remove the file RELEASE_CANDIDATE.txt from the respective download directory
 ## [ ] _*?META*_ Remove the release candidate status from the metadata record and database
-# [ ] _*?CSC*_ Ask Martin to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti (if the corpus is PUB or ACA)
-# [ ] _*+PUHTI*_ Remove the download package, MD5 checksum file and readme and license files from the directory {{/scratch/clarin/download_preview}} on Puhti
+# [ ] _*?CSC*_ Ask Martin to add the data to Kielipankki directory {{/appl/data/kielipankki}} in HPC environment (Puhti/Roihu) (if the corpus is PUB or ACA)
+# [ ] _*+HPC*_ Remove the download package, MD5 checksum file and readme and license files from the directory {{/scratch/clarin/download_preview}} on in HPC environment (Puhti/Roihu)
 \\
 ```
 
