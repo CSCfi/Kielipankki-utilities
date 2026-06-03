@@ -317,6 +317,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?DISCUSS*_ If the license requires further processing steps and resources from Kielipankki, bring them up for discussion in an internal meeting.
 # [ ] _*?PORTAL*_ After the deposition license agreement has been signed, publish the license page and the data protection terms and conditions.
 # [ ] _*+DB*_ In the [resource database | https://www.kielipankki.fi/wp-admin/admin.php?page=wpda_wpdp_1_2 ], update the license status to 'available'.
+# [ ] _*MANAGE*_ Notify the colleagues who are responsible for packaging the resource content that the license was published.
 \\
 ```
 
@@ -365,6 +366,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 # [ ] _*?MANAGE*_ If this is a RES-licensed corpus and an LBR application does not yet exist, fill in an instance of the [Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_lbr ] and assign it forward to CSC (add label: lb-csc-task and prioritize if needed).
 # [ ] _*+MANAGE*_ Have the package uploaded to the download service: fill in an instance of [the Jira issue "_shortname_: Upload to the download service" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_upload ] and assign it forward to CSC (add label "lb-csc-task" and prioritize if needed).
 # [ ] _*+TEST*_ When uploaded, have the package tested again and check access rights.
+# [ ] _*MANAGE*_ Notify the colleagues who are responsible for publishing the news that the content is now available.
 \\
 ```
 
@@ -529,7 +531,7 @@ Create the LBR record, or update the existing one, according to the information 
 ## [ ] _*+GITHUB*_ Merge the corpus configuration branch to branch {{master}}
 # [ ] _*+MANAGE*_ Have the updated {{master}} branch installed on the production Korp server: fill in an instance of [the Jira issue "_shortname_: Install the corpus package on the Korp server" | https://github.com/CSCfi/Kielipankki-utilities/edit/master/docs/corpus_publishing_tasklist.md#csc_korp ] and assign it forward 
 # [ ] _*+GITHUB*_ Add news about this new corpus to the Korp newsdesk ([https://github.com/CSCfi/Kielipankki-korp-frontend/tree/news/master])
-
+# [ ] _*MANAGE*_ Notify the colleagues who are responsible for publishing the Portal news that the content is now available.
 \\
 ```
 
@@ -575,6 +577,7 @@ Access restrictions: public access / ACA license / RES license (please describe)
 ## [ ] _*+GITHUB*_ Merge the corpus configuration branch to branch {{master}}
 ## [ ] _*+KORP*_ Install the updated {{master}} branch to production Korp (or ask someone with the rights to do that)
 # [ ] _*+META*_ Document the changes done to fix the data, in order to be added to metadata record and the resource group page
+# [ ] _*?MANAGE*_ Notify the colleagues who are responsible for publishing the Portal news that the fixed content is now available.
 \\
 ```
 
@@ -595,6 +598,7 @@ Access restrictions: public access / ACA license / RES license (please describe)
 # [ ] _*+KORP*_ Remove release candidate status after two weeks, if no requests for corrections or changes appear during this period
 ## [ ] _*+KORP*_ Remove release candidate status from Korp configuration ({{{}master{}}}), push and install the updated {{master}}
 ## [ ] _*+KORP*_ Install the updated {{master}} branch to production Korp (or ask someone with the rights to do that)
+# [ ] _*MANAGE*_ Notify the colleagues who are responsible for updating the Portal resource database that the release candidate status was removed.
 \\
 ```
 
@@ -659,6 +663,7 @@ Access restrictions: public access / ACA license / RES license (please describe)
 # [ ] _*?MANAGE*_ If this is a RES-licensed corpus and an LBR application does not yet exist, fill in an instance of the [Jira issue "_shortname_: Create an LBR record for a RES-licensed corpus" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_lbr ] and assign it forward to CSC (add label "lb-csc-task" and prioritize if needed).
 # [ ] _*+MANAGE*_ Have the package uploaded to the download service: fill in an instance of [the Jira issue "_shortname_: Upload to the download service" | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/corpus_publishing_tasklist.md#csc_upload ] and assign it forward to CSC (add label "lb-csc-task" and prioritize if needed).
 # [ ] _*+TEST*_ When uploaded, have the package tested again and check access rights.
+# [ ] _*MANAGE*_ Notify the colleagues who are responsible for publishing the news that the resource is now available.
 \\
 ```
 
