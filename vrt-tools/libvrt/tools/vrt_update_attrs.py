@@ -373,20 +373,40 @@ class AttrUpdater(InputProcessor):
         FIXED_VALUES = -1
         EMPTY_VALUES = -2
 
+        def get_plurals(value):
+            """Return a dict with values for either singular or plural forms.
+
+            The returned dict has values for keys `s` (noun ending),
+            `s2` (verb ending), `are` (`is` or `are`) and `do` (`does`
+            or `do`). If `value` is 1, return singular forms,
+            otherwise plural ones.
+
+            The result can be used in a string formatting expression
+            `.format(..., **get_plurals(len(lst)))`
+            """
+            # Values for each key in pairs of (singular, plural)
+            vals = {
+                # Noun ending
+                's': ('', 's'),
+                # Verb ending
+                's2': ('s', ''),
+                'are': ('is', 'are'),
+                'do': ('does', 'do'),
+            }
+            return {key: val[int(value != 1)] for key, val in vals.items()}
+
         def read_keyed_data(tsv_reader):
             """Read all TSV rows into new_attr_values, keyed by key_attrs."""
             missing_key_attrs = [attr for attr in key_attrs
                                  if attr not in new_attr_names_orig]
             if missing_key_attrs:
-                plural = len(missing_key_attrs) > 1
                 self.error_exit(
                     ('Key attribute{s} {attrs} {do} not exist in'
                      ' {datafile}').format(
-                         s='s' if plural else '',
                          attrs=', '.join(attr.decode()
                                          for attr in missing_key_attrs),
-                         do='do' if plural else 'does',
-                         datafile=args.data_file))
+                         datafile=args.data_file,
+                         **get_plurals(len(missing_key_attrs))))
             attrs = {}
             while attrs is not None:
                 attrs = next(tsv_reader, None)
@@ -441,8 +461,8 @@ class AttrUpdater(InputProcessor):
                     if key_attr not in attrs)
                 self.warn(
                     'No key attribute{s} {missing_keys}'.format(
-                        s=('s' if len(missing_keys) > 1 else ''),
-                        missing_keys=', '.join(missing_keys)),
+                        missing_keys=', '.join(missing_keys),
+                        **get_plurals(len(missing_keys))),
                     filename=inf.name, linenr=linenr)
                 return (None, None)
             if key in new_attr_values:
@@ -607,28 +627,23 @@ class AttrUpdater(InputProcessor):
                         old.decode() for _, old in copy_pairs
                         if old not in valid_old_attrs]
                     if missing_old:
-                        plural = len(missing_old) > 1
                         self.error_exit(
                             'Source attribute{s} for --copy {do} not exist'
                             ' in positional-attributes comment: {attrs}'.format(
-                                s='s' if plural else '',
-                                do='do' if plural else 'does',
-                                attrs=', '.join(missing_old)),
+                                attrs=', '.join(missing_old),
+                                **get_plurals(len(missing_old))),
                             filename=inf.name, linenr=linenr)
                     conflict_new = [
                         new.decode() for new, _ in copy_pairs
                         if (new in pos_attr_names_set
                             and new not in overwrite_attrs)]
                     if conflict_new:
-                        plural = len(conflict_new) > 1
                         self.error_exit(
                             'Target attribute{s} for --copy already'
                             ' exist{s2} in positional-attributes comment'
                             ' and {are} not in --overwrite: {attrs}'.format(
-                                s='s' if plural else '',
-                                s2='' if plural else 's',
-                                are='are' if plural else 'is',
-                                attrs=', '.join(conflict_new)),
+                                attrs=', '.join(conflict_new),
+                                **get_plurals(len(conflict_new))),
                             filename=inf.name, linenr=linenr)
 
                 def get_pattern_copy_new_attrs(pos_attr_names,
@@ -719,9 +734,9 @@ class AttrUpdater(InputProcessor):
                                 'No key attribute{s} {keys} in'
                                 ' positional-attributes comment; adding'
                                 ' attributes with value "{val}"'.format(
-                                    s='s' if len(missing_keys) > 1 else '',
                                     keys=', '.join(missing_keys),
-                                    val=empty_value_s),
+                                    val=empty_value_s,
+                                    **get_plurals(len(missing_keys))),
                                 filename=inf.name, linenr=linenr)
                             get_add_attrs = get_add_attrs_empty
                     return pos_attr_names
@@ -824,13 +839,11 @@ class AttrUpdater(InputProcessor):
                 if drop_set:
                     missing = drop_set - tsv_attr_names_set
                     if missing:
-                        plural = len(missing) > 1
                         self.error_exit(
                             ('Attribute{s} to be dropped {do} not exist in'
                              ' TSV data file: '
                              + ', '.join(m.decode('utf-8') for m in missing))
-                            .format(s=('s' if plural else ''),
-                                    do=('do' if plural else 'does')))
+                            .format(**get_plurals(len(missing))))
                 # Attrs that appear in both --fixed and the TSV file
                 tsv_fixed_attrs = fixed_attrs & tsv_attr_names_set
                 if tsv_fixed_attrs:
