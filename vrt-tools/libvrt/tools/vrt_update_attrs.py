@@ -192,6 +192,12 @@ class AttrUpdater(InputProcessor):
          Note that this option implies reading the entire data file into
          memory, so use with caution for very large data files.
          """),
+        ('--drop=ATTRLIST:attrlist -> drop_attrs',
+         """Omit attributes listed in ATTRLIST (separated by spaces or
+         commas) from the output. Attributes to drop must originate from
+         the TSV data file given with --data-file; it is an error to list
+         an attribute not present in the data file.
+         """),
         ('--rename=ATTR:attr_value -> rename_attrs',
          """Rename attribute OLD to NEW. OLD must be an attribute from
          the TSV data file. (Use vrt-rename-attrs or vrt-rename to
@@ -238,6 +244,11 @@ class AttrUpdater(InputProcessor):
             return OrderedDict(fixed)
 
         super().check_args(args)
+        # Require --data-file when using --drop, similar to --rename
+        if getattr(args, 'drop_attrs', None):
+            if args.data_file is None:
+                self.error_exit('--drop can be used only with --data-file',
+                                exitcode=2)
         if (args.data_file is None and args.fixed is None
                 and args.compute is None and not args.copy_attrs
                 and not args.pattern_copy_specs):
@@ -333,6 +344,10 @@ class AttrUpdater(InputProcessor):
         # Possible byte-string starts of the target structure's start tag
         struct_begin_alts = tuple(b'<' + struct_name + endchar
                                   for endchar in [b' ', b'>'])
+        # Drop set: bytes of attributes to omit from output (available
+        # everywhere)
+        drop_set = set(args.drop_attrs or [])
+
         # Final list of new attribute names (filled in later)
         new_attr_names = None
         # Maps key tuples to (attrs_dict, tsv_line_num) for keyed lookup
@@ -778,6 +793,13 @@ class AttrUpdater(InputProcessor):
                         attrs = add_attributes(
                             line, attrs, add_attrs, linenr, tsv_linenr,
                             check_overlap_attrs)
+                        # After computes/copies, remove attributes listed in
+                        # --drop so they do not appear in the final output,
+                        # but allow --compute to reference them during
+                        # computation (computed functions run above).
+                        if drop_set:
+                            for d in drop_set:
+                                attrs.pop(d, None)
                     line = make_line(attrs)
                 ouf.write(line)
 
@@ -797,6 +819,8 @@ class AttrUpdater(InputProcessor):
         else:
             get_add_attrs = (
                 get_add_attrs_keyed if key_attrs else get_add_attrs_ordered)
+            # Drop set: bytes of attributes to omit from output
+            drop_set = set(args.drop_attrs or [])
             with open(args.data_file, 'rb') as attrf:
                 tsv_reader = TsvReader(attrf, fieldnames=args.attr_names,
                                        entities=EncodeEntities.NON_ENTITIES)
@@ -804,6 +828,20 @@ class AttrUpdater(InputProcessor):
                     tsv_reader.read_fieldnames()
                 tsv_attr_names = tsv_reader.fieldnames or []
                 tsv_attr_names_set = set(tsv_attr_names)
+                # Validate --drop attributes exist in original TSV header
+                if drop_set:
+                    missing = [d for d in drop_set
+                               if d not in tsv_attr_names_set]
+                    if missing:
+                        if len(missing) == 1:
+                            self.error_exit(
+                                'Attribute to be dropped does not exist in TSV'
+                                ' data file: ' + missing[0].decode('utf-8'))
+                        else:
+                            self.error_exit(
+                                'Attributes to be dropped do not exist in TSV'
+                                ' data file: '
+                                + ', '.join(m.decode('utf-8') for m in missing))
                 # Attrs that appear in both --fixed and the TSV file
                 tsv_fixed_attrs = fixed_attrs & tsv_attr_names_set
                 if tsv_fixed_attrs:
@@ -812,11 +850,16 @@ class AttrUpdater(InputProcessor):
                         ' with a fixed value: '
                         + ', '.join(attrname.decode('utf-8') for attrname in
                                     sorted(tsv_fixed_attrs)))
+                # Remove dropped attrs from the effective TSV attr list
+                if drop_set:
+                    tsv_attr_names = [a for a in tsv_attr_names
+                                      if a not in drop_set]
+                    tsv_attr_names_set = set(tsv_attr_names)
                 new_attr_names = make_unique(new_attr_names, tsv_attr_names)
                 new_attr_names_orig = new_attr_names.copy()
                 if rename_attrs:
                     for old, new in rename_attrs:
-                        if old not in tsv_attr_names:
+                        if old not in tsv_reader.fieldnames:
                             self.error_exit(
                                 'Attribute to be renamed does not exist in TSV'
                                 ' data file: ' + old.decode('utf-8'))

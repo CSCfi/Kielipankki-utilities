@@ -3385,3 +3385,176 @@
       </sentence>
       </text>
   transform: *transform-pattern-placeholder
+
+- name: 'vrt-update-attrs: --drop with no --data-file'
+  input:
+    cmdline: vrt-update-attrs --drop a1
+    stdin: ''
+  output:
+    returncode: 2
+    stderr: |
+      vrt-update-attrs: --drop can be used only with --data-file
+    stdout: ''
+
+- name: 'vrt-update-attrs: --drop attribute not in data file'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --drop b
+    stdin: |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    returncode: 1
+    stderr: |
+      vrt-update-attrs: Attribute to be dropped does not exist in TSV data file: b
+    stdout: ''
+
+- name: 'vrt-update-attrs: --drop omits attribute from output'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --drop a1
+    stdin: |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    stdout: |
+      <text a="1" a2="bb">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" a2="dd">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --positional --drop omits positional attribute'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs.tsv --drop a1
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a2 -->
+      <text a="1">
+      <sentence>
+      a	bb
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b	dd
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --drop with --compute may use dropped attribute in compute'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs.tsv --drop a1 --compute "new=attr['a1'] + 'x'"
+    stdin: |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs.tsv: *tsv-1
+  output:
+    stdout: |
+      <text a="1" a2="bb" new="aax">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" a2="dd" new="ccx">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --drop multiple structural attributes'
+  input:
+    cmdline: vrt-update-attrs --data-file attrs3.tsv --drop a1,a2
+    stdin: |
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs3.tsv: &tsv-3 |
+      a1	a2	a3
+      aa	bb	cc
+      dd	ee	ff
+  output:
+    stdout: |
+      <text a="1" a3="cc">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2" a3="ff">
+      <sentence>
+      b
+      </sentence>
+      </text>
+
+- name: 'vrt-update-attrs: --positional --drop multiple positional attributes'
+  input:
+    cmdline: vrt-update-attrs --positional --data-file attrs3.tsv --drop "a1 a2"
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="1">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b
+      </sentence>
+      </text>
+    file:attrs3.tsv: *tsv-3
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word a3 -->
+      <text a="1">
+      <sentence>
+      a	cc
+      </sentence>
+      </text>
+      <text a="2">
+      <sentence>
+      b	ff
+      </sentence>
+      </text>
