@@ -53,7 +53,7 @@ memory_min=1
 scratch_min=0
 
 
-usage_header="Usage: $progname [options] outdir \"command\" infiles ...
+usage_header="Usage: $progname [options] \"command\" outdir infiles ...
 
 Run a processing command for multiple input files infiles, producing
 output to output directory outdir, typically one output file
@@ -653,10 +653,10 @@ run_serial () {
 main () {
     local infiles
     if [ $# -lt 3 ]; then
-        error "Output directory, command and at least one input file required"
+        error "Command, output directory and at least one input file required"
     fi
-    outdir=$1
-    cmd_base=$2
+    cmd_base=$1
+    outdir=$2
     shift 2
     check_outdir
     check_mode
