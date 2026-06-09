@@ -70,10 +70,11 @@ output file names (including the directory): {<} -> input file name,
 file name without the last two extensions, {<.*} -> input file name
 without any extensions (the \"<\" in these can be omitted); {>}, {>.},
 {>..}, {>.*} -> the same for output file name; {/}, {/.}, {/..}, {/.*}
--> the same for the base (input) file name without directories. When
-using Parallel (or game with Parallel available), its replacement
-strings are also replaced, including the additional ones added by the
---plus option."
+-> the same for the base (input) file name without directories; {<+/}
+-> input directory name, {>+/} -> output directory name. When using
+Parallel (or game with Parallel available), its replacement strings
+are also replaced, including the additional ones added by the --plus
+option."
 
 optspecs='
 m|mode=MODE "default"
@@ -298,6 +299,7 @@ replace_placeholders_parallel () {
     cmd=${cmd//\{>.\}/$outdir/\{/.\}}
     cmd=${cmd//\{>..\}/$outdir/\{/..\}}
     cmd=${cmd//\{>.\*\}/$outdir/\{= s:.*/([^./]+).*:\$1: =\}}
+    cmd=${cmd//\{>+\/\}/$outdir}
     safe_echo "$cmd"
 }
 
@@ -331,10 +333,12 @@ replace_placeholders () {
     cmd=${cmd//\{\/.\}/${inbase%.*}}
     cmd=${cmd//\{\/..\}/${inbase%.*.*}}
     cmd=${cmd//\{\/.\*\}/${inbase%%.*}}
+    cmd=${cmd//\{+\/\}/$indir}
     cmd=${cmd//\{>\}/$outfile}
     cmd=${cmd//\{>.\}/$outdir/${inbase%.*}}
     cmd=${cmd//\{>..\}/$outdir/${inbase%%.*.*}}
     cmd=${cmd//\{>.\*\}/$outdir/${inbase%%.*}}
+    cmd=${cmd//\{>+\/\}/$outdir}
     safe_echo "$cmd"
 }
 
