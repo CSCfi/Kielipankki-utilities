@@ -1,0 +1,17 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+"""
+vrt-augment-name-attrs
+
+A VRT tool to augment name attributes with ne structures.
+
+The actual implementation is in libvrt.tools.vrt_augment_name_attrs.
+"""
+
+
+from libvrt.tools.vrt_augment_name_attrs import VrtNameAttrAugmenter
+
+
+if __name__ == '__main__':
+    VrtNameAttrAugmenter().run()
