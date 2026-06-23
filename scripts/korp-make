@@ -244,9 +244,9 @@ text-sort-attribute=ATTRLIST * { add_text_sort_opt --key "$1" }
     be followed by a colon and sort ordering option characters
     recognized by the "sort" command: often one or more of the
     following: b (ignore leading blanks), d (dictionary order), f
-    (ignore case), g (general numeric sort), i (ignore nonprinting), M
-    (month sort), h (human numeric sort), R (random sort), r
-    (reverse), V (version sort).
+    (ignore case), n (numeric sort), g (general numeric sort), i
+    (ignore nonprinting), M (month sort), h (human numeric sort), R
+    (random sort), r (reverse), V (version sort).
 text-sort-transform=ATTR:TRANSFORM '"'"' * { add_text_sort_opt --transform "$1" }
     Transform the value of the attribute attrname using TRANSFORM
     before using it as a sort key. ATTR is one of the attributes
