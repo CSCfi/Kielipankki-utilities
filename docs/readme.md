@@ -1,7 +1,7 @@
 # Kielipankki-utilities/docs
 
 This folder contains the workflow instructions for resource management. 
-Described are all steps needed from converting the original data to publishing the corpus in Korp or in the download service.
+Described are all steps needed from converting the original data to (un)publishing the resource.
 
   * [`corpus_publishing_tasklist.md`](corpus_publishing_tasklist.md)
   * [`howto_download_package.md`](howto_download_package.md)
