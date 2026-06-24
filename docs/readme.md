@@ -7,9 +7,10 @@ Described are all steps needed from converting the original data to (un)publishi
   * [`howto_download_package.md`](howto_download_package.md)
   * [`tool_publishing_tasklist.md`](tool_publishing_tasklist.md)
   * [`howto_unpublish_corpus.md`](howto_unpublish_corpus.md)
+  * [`howto_version_update.md`](howto_version_update.md)
 
 contain checklists for tasks in the corpus publishing pipeline that
-can be copied to the description of a Jira ticket for (un)publishing (a
+can be copied to the description of a Jira ticket for (un)publishing (a possibly newer
 version of) a resource for keeping track of the progress of the
 publication process.
 
