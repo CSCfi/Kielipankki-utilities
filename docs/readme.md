@@ -1,13 +1,16 @@
 # Kielipankki-utilities/docs
 
-This folder contains the pipeline instructions for preparing text corpora. 
+This folder contains the workflow instructions for resource management. 
 Described are all steps needed from converting the original data to publishing the corpus in Korp or in the download service.
 
-In addition, the file
-[`corpus_publishing_tasklist.md`](corpus_publishing_tasklist.md)
-contains checklists for tasks in the corpus publishing pipeline that
-can be copied to the description of a Jira ticket for publishing (a
-version of) a corpus for keeping track of the progress of the
+  * [`corpus_publishing_tasklist.md`](corpus_publishing_tasklist.md)
+  * [`howto_download_package.md`](howto_download_package.md)
+  * [`tool_publishing_tasklist.md`](tool_publishing_tasklist.md)
+  * [`howto_unpublish_corpus.md`](howto_unpublish_corpus.md)
+
+contain checklists for tasks in the corpus publishing pipeline that
+can be copied to the description of a Jira ticket for (un)publishing (a
+version of) a resource for keeping track of the progress of the
 publication process.
 
 The instructions are accessible [through the GitHub browser
