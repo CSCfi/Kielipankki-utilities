@@ -5,7 +5,7 @@ Source data of a resource is offered in the download service of Kielipankki [htt
 
 The source data is offered as is, meaning that usually it is not changed by us, except for packaging the data (in zip files) in a suitable way. 
 
-**NOTE:** All original data should be stored immediately after receiving and before making changes to them.
+**NOTE:** All original data should be stored immediately after receiving and before making changes to them! See [instructions](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_archive_original_data.md)
 
 The original resource data, as to be offered in the Kielipankki's download service, should meet some requirements regarding their format ect.
 
