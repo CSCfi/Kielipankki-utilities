@@ -1,7 +1,8 @@
 # Archiving the original data
-The original data, received by the data provider or harvested by Kielipankki, should be savely stored. The recommended form is a zip package.
+The original data, received by the data provider or harvested by Kielipankki, should be safely stored. The recommended form is a zip package.
 The data should be accompanied by a simple readme file to explain the content of the zip package. The readme file and the zip package should be named similarly to make clear their affiliation. The name should contain the shortname of the resource, the string 'orig' and the time when the data was obtained.
 For the time being, the original data is stored in IDA as well as on the HFST server.
+In case the original resource contains personal data, copyrighted data or other confidential information, the original archive is enclosed in a new encrypted zip package protected by an internal password, see [instructions](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md).
 
 ## Instructions in detail:
 1. Create a simple _shortname-orig_yyyymmdd_README.txt_ file for the original data, [see template](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/shortname-orig_yyyymmdd_README.txt). Mandatory content: 
@@ -10,7 +11,7 @@ For the time being, the original data is stored in IDA as well as on the HFST se
   - link to the associated epic in Jira.
   - information on the data provider or method of data aquisition (e.g. harvested from a certain web site, by whom and when)
 
-2. Create a zip package of the original data (named as shortname-orig_yyyymmdd.zip) 
+2. Create a zip package of the original data (named as shortname-orig_yyyymmdd.zip). In case the original resource contains personal data, copyrighted data or other confidential information, the original archive is enclosed in a new encrypted zip package protected by an internal password, see [instructions](https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md).
 
 3. Upload the zip package and the readme file to the [IDA storage service](https://ida.fairdata.fi/login). In the staging area (marked with a '+'), under folder 'corpora', create a new folder, named with the resource group shortname, in lowercase characters. 
 In case such a folder exists already (maybe because of an earlier version of the resource), a sub-folder with the name of this new version (e.g. 'v2') should be created and the original data be uploaded to it.
@@ -32,10 +33,10 @@ Example:
     ida upload -v corpora/ylioppilasaineet/yoaineet_korp_20190916.tgz yoaineet_korp_20190916.tgz
 
 
-After the data is successfully uploaded, you should freeze it. For this, press the 'snowflake' button in the user interface of IDA (for more information on how to freeze, see the userguide [IDA user guide](https://www.fairdata.fi/en/ida/user-guide/ "https://www.fairdata.fi/en/ida/user-guide/").
+After the data has been uploaded successfully, you should freeze it. For this, press the 'snowflake' button in the user interface of IDA (for more information on how to freeze, see the userguide [IDA user guide](https://www.fairdata.fi/en/ida/user-guide/ "https://www.fairdata.fi/en/ida/user-guide/").
 NOTE: Only frozen data will be backed up!
 
 
-4. Upload the original data zip package and the accompanying readme file to the **HFST server** (hfst-17.it.helsinki.fi). Under data/corpora/originals/ create a folder named with the resource group shortname, in lowercase characters.
+4. Upload the original data zip package (in a password-protected zip archive if required) and the accompanying readme file to the **HFST server** (hfst-17.it.helsinki.fi). Under data/corpora/originals/ create a folder named with the resource group shortname, in lowercase characters.
 Note that you need a VPN connection to the University to be able to access the HFST server. In order to be able to connect to Puhti from the HFST server, you can use e.g. sftp.
 
