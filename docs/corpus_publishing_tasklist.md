@@ -377,7 +377,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 Upload the package to the download service. In case the package was encrypted for temporary storage, make sure the package is safely decrypted for the download service.
 
 *Target directory:* https://www.kielipankki.fi/download/shortname…
-*Location of the files to be uploaded:* (Typically, a folder 'shortname' under download_preview in Puhti.)
+*Location of the files to be uploaded:* (Typically, a folder 'shortname' under download_preview in HPC.)
 *List of the files to be uploaded:* (corpus package(s), README.txt and LICENSE.txt, maybe RELEASE_CANDIDATE.txt)
 *Encrypted* (yes/no) (If using encryption for internal processing, CSC must decrypt the packages for the download service.)
 *Description text of the download directory:* (resource (group) name in English)
