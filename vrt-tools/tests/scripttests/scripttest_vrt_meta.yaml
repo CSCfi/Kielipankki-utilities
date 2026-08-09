@@ -1,0 +1,329 @@
+
+# scripttestlib tests for vrt-meta
+
+
+# Default input and output
+
+- defaults:
+    output:
+      # No errors
+      returncode: 0
+      stderr: ''
+
+
+- name: 'vrt-meta: No options'
+  input:
+    cmdline: vrt-meta
+    stdin: ''
+  output:
+    returncode: 2
+    stderr:
+      contains: 'vrt-meta: error: one of the arguments --tag/-t --unique/-u --no-tag is required'
+
+
+- name: 'vrt-meta: --tag'
+  input:
+    cmdline: vrt-meta --tag=nr
+    stdin: &input-1 |
+      <!-- #vrt positional-attributes: word dummy -->
+      <text n="1" a="ab" bb="xy">
+      <paragraph n="1" id="p1">
+      <sentence n="1" len="1">
+      foo	1
+      </sentence>
+      <sentence n="2" len="2">
+      aaa	1
+      bbb	2
+      </sentence>
+      </paragraph>
+      </text>
+      <!-- Different order -->
+      <text bb="yz" n="2" a="cd">
+      <paragraph id="p2" n="2">
+      <sentence len="2" n="3">
+      dd	1
+      ee	2
+      </sentence>
+      </paragraph>
+      <paragraph n="3" id="p3">
+      <sentence n="4" len="3">
+      hh	1
+      ii	2
+      jj	3
+      </sentence>
+      </paragraph>
+      </text>
+  output:
+    stdout: |
+      n	a	bb	nr
+      1	ab	xy	1
+      2	cd	yz	2
+
+
+- name: 'vrt-meta: --unique'
+  input:
+    cmdline: vrt-meta --unique
+    stdin: *input-1
+  output:
+    stdout: &output-1 |
+      n	a	bb
+      1	ab	xy
+      2	cd	yz
+
+
+- name: 'vrt-meta: --no-tag'
+  input:
+    cmdline: vrt-meta --no-tag
+    stdin: *input-1
+  output:
+    stdout: *output-1
+
+
+- name: 'vrt-meta: Duplicates, --tag'
+  input:
+    cmdline: vrt-meta --tag=nr
+    stdin: &input-dupls |
+      <!-- #vrt positional-attributes: word dummy -->
+      <text a="bc" bb="xy">
+      <sentence n="1" len="1">
+      foo	1
+      </sentence>
+      </text>
+      <text a="ab" bb="xy">
+      <sentence n="1" len="1">
+      foo	1
+      </sentence>
+      </text>
+      <text a="bc" bb="xy">
+      <sentence n="1" len="1">
+      foo	1
+      </sentence>
+      </text>
+      <text bb="xy" a="ab">
+      <sentence n="1" len="1">
+      foo	1
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      a	bb	nr
+      bc	xy	1
+      ab	xy	2
+      bc	xy	3
+      ab	xy	4
+
+- name: 'vrt-meta: Duplicates, --unique'
+  input:
+    cmdline: vrt-meta --unique
+    stdin: *input-dupls
+  output:
+    stdout: |
+      a	bb
+      ab	xy
+      bc	xy
+
+- name: 'vrt-meta: Duplicates, --no-tag'
+  input:
+    cmdline: vrt-meta --no-tag
+    stdin: *input-dupls
+  output:
+    stdout: |
+      a	bb
+      bc	xy
+      ab	xy
+      bc	xy
+      ab	xy
+
+
+- name: 'vrt-meta: --element'
+  input:
+    cmdline: vrt-meta --element=sentence --unique
+    stdin: *input-1
+  output:
+    stdout: |
+      n	len
+      1	1
+      2	2
+      3	2
+      4	3
+
+
+- name: 'vrt-meta: --attr'
+  input:
+    cmdline: vrt-meta --attr="n,bb" --unique
+    stdin: *input-1
+  output:
+    stdout: &output-2 |
+      n	bb
+      1	xy
+      2	yz
+  transform: &comma-to-space
+  - {}
+  - name: names separated by space
+    input:
+      cmdline:
+        replace: /,/ /
+
+- name: 'vrt-meta: multiple --attr options'
+  input:
+    cmdline: vrt-meta --attr=n --attr=bb --unique
+    stdin: *input-1
+  output:
+    stdout: *output-2
+
+- name: 'vrt-meta: --attr, different order'
+  input:
+    cmdline: vrt-meta --attr="bb,n" --unique
+    stdin: *input-1
+  output:
+    stdout: |
+      bb	n
+      xy	1
+      yz	2
+  transform: *comma-to-space
+
+- name: 'vrt-meta: --attr, including non-existent'
+  input:
+    cmdline: vrt-meta --attr="bb,z,n" --unique
+    stdin: *input-1
+  output:
+    stdout: |
+      bb	z	n
+      xy		1
+      yz		2
+    stderr: |
+      vrt-meta: warning: missing: z
+      vrt-meta: warning: missing: z
+  transform: *comma-to-space
+
+- name: 'vrt-meta: --attr, including non-existent, --mark'
+  input:
+    cmdline: vrt-meta --attr="bb,z,n" --mark=_ --unique
+    stdin: *input-1
+  output:
+    stdout: |
+      bb	z	n
+      xy	_	1
+      yz	_	2
+    stderr: |
+      vrt-meta: warning: missing: z
+      vrt-meta: warning: missing: z
+  transform: *comma-to-space
+
+
+- name: 'vrt-meta: Input without text start tags'
+  input:
+    cmdline: vrt-meta --unique
+    stdin:
+    - ''
+    - <!-- #vrt positional-attributes: word dummy -->'
+    - 'a	b'
+    - |
+      <sentence a="b">
+      a
+      </sentence>
+  output:
+    stdout: ''
+    stderr: |
+      vrt-meta: no data, no head
+      vrt-meta: non-zero status 1
+    returncode: 1
+
+
+- name: 'vrt-meta: First text start tag without attributes, --tag'
+  input:
+    cmdline: vrt-meta --tag=nr
+    stdin: &input-no-attrs |
+      <!-- #vrt positional-attributes: word -->
+      <text>
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text>
+      <sentence>
+      b
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      nr
+      1
+      2
+
+- name: 'vrt-meta: First text start tag without attributes, --unique'
+  input:
+    cmdline: vrt-meta --unique
+    stdin: *input-no-attrs
+  output:
+    stdout: "\n\n"
+
+- name: 'vrt-meta: First text start tag without attributes, --no-tag'
+  input:
+    cmdline: vrt-meta --no-tag
+    stdin: *input-no-attrs
+  output:
+    stdout: "\n\n\n"
+
+
+- name: 'vrt-meta: Warn on missing and extra attributes'
+  input:
+    cmdline: vrt-meta --tag=nr --mark=-
+    stdin: |
+      <!-- #vrt positional-attributes: word -->
+      <text a="a" x="y">
+      <sentence>
+      a
+      </sentence>
+      </text>
+      <text a="b" b="c">
+      <sentence>
+      b
+      </sentence>
+      </text>
+      <text b="c">
+      <sentence>
+      c
+      </sentence>
+      </text>
+      <text b="d" c="e">
+      <sentence>
+      d
+      </sentence>
+      </text>
+      <text x="x">
+      <sentence>
+      e
+      </sentence>
+      </text>
+      <text a="d" c="f">
+      <sentence>
+      f
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      a	x	nr
+      a	y	1
+      b	-	2
+      -	-	3
+      -	-	4
+      -	x	5
+      d	-	6
+    stderr: |
+      vrt-meta: warning: not in head: 'b'
+      vrt-meta: warning: missing: x
+      vrt-meta: warning: not in head: 'b'
+      vrt-meta: warning: missing: a x
+      vrt-meta: warning: not in head: 'b' 'c'
+      vrt-meta: warning: missing: a x
+      vrt-meta: warning: missing: a
+      vrt-meta: warning: ...
+  transform:
+  - {}
+  - name: --quiet
+    input:
+      cmdline:
+        append: ' --quiet'
+    output:
+      stderr: ''

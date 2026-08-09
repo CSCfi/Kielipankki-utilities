@@ -36,7 +36,9 @@ def valuegetter(head, *,
                 missing, # missing value mark (safe bytes)
                 warn = True,
                 prog = '(prog)', # for the warning message (str)
-                many = None): # max number of warnings (int)
+                many = None, # max number of warnings (int)
+                superset = False): # if True, names are superset of
+                                   # head -> no "not in head" warnings
     '''Sigh.'''
     if warn:
         seen = 0
@@ -44,7 +46,10 @@ def valuegetter(head, *,
             nonlocal seen
             this = mapping(line)
             if many is None or seen < many:
-                what = sorted(name for name in this if name not in head)
+                what = (
+                    [] if superset
+                    else sorted(name for name in this if name not in head)
+                )
                 miss = tuple(name for name in head if name not in this)
                 if what or miss:
                     seen += 1
