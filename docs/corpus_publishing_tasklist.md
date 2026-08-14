@@ -236,6 +236,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ### _shortname_: Enter the new resource to the pipeline
 
 ```
+# [ ] _*?DISCUSS*_ If the corpus seems to be "non-standard" in terms of legal issues or other uncertainties, discuss the corpus details in an internal meeting to check whether publication is even feasible in the Language Bank.
 # [ ] _*?DISCUSS*_ If the size and technical specifications of the corpus seem "non-standard" in some respect, discuss the corpus details in an internal meeting to see if it is technically feasible to publish it in the Language Bank
 # [ ] _*+MANAGE*_ Insert the relevant parts of the pipeline task list as Jira Stories, each one linked under the main Epic of this resource publication process.
 # [ ] _*+MANAGE*_ Add the placeholders for all relevant metadata to the description of the main Epic (take a copy from the model description on the top of this page). Remove all non-relevant parts in the Epic description.
