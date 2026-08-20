@@ -356,6 +356,7 @@ The following lists should contain the tasks required for publishing a corpus. T
 ```
 # [ ] _*?IDA*_ Get the original data from IDA
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained, upload the data as a zip file (named as shortname-src_yyyymmdd.zip) and the separate shortname-src_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
+# [ ] _*?META*_ Check whether additional information about the resource should be provided. If needed, create additional Jira tickets (e.g. for creating this additional information and for publishing it, e.g. on the resource group page) and assign them forward.
 # [ ] _*+HPC*_ Create a download package [how to create a download package | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_download_package.md]
 # [ ] _*+DATA*_ Create a publishable README.txt for the source data, to be shown to the end-users. Include: 1) resource title; 2) PID; 3) either the license PID, a plain link to the license, or a statement of the rightholder and the known restrictions of use for the source data, 4) any other relevant information regarding the technical structure of the source data, if applicable.
 ## [ ] _*+HPC*_ Create and add the readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
@@ -522,6 +523,7 @@ Create the LBR record, or update the existing one, according to the information 
 ## [ ] _*?SUPPORT*_ Ask feedback from the corpus owner (depending on how involved they wish to be)
 # [ ] _*?DATA*_ Fix corpus data and re-publish (if needed)
 # [ ] _*?GITHUB*_ Fix Korp configuration and re-publish (if needed)
+# [ ] _*?META*_ Check whether additional information about the resource (e.g. its format, content, annotation, statistics) should be provided. If needed, create additional Jira tickets (e.g. for creating this additional information and for publishing it, e.g. on the resource group page) and assign them forward.
 \\
 ```
 
@@ -653,6 +655,7 @@ Access restrictions: public access / ACA license / RES license (please describe)
 ```
 # [ ] _*?DATA*_ In case the resource contains personal data (+PRIV) or other confidential information, [ apply the appropriate safeguards | https://github.com/CSCfi/Kielipankki-utilities/blob/master/docs/howto_protected_packages.md ] when processing the data. [(How to use passwords) | https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md ].
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-vrt_yyyymmdd.zip) and the separate shortname-vrt_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
+# [ ] _*?META*_ Check whether additional information about the resource should be provided. If needed, create additional Jira tickets (e.g. for creating this additional information and for publishing it, e.g. on the resource group page) and assign them forward.
 # [ ] _*+HPC*_ Create a download package
 ## [ ] _*+HPC*_ Create and add the downloadable readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
 ## [ ] _*+HPC*_ Zip the data and the readme and license files
