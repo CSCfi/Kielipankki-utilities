@@ -10,6 +10,9 @@
 
 get_host_env () {
     case $HOSTNAME in
+        roihu* | r[cghv][0-9][0-9][0-9][0-9] )
+            echo roihu
+            ;;
 	puhti* | r[0-9][0-9][cg][0-9][0-9]* | *.bullx )
 	    echo puhti
 	    ;;
@@ -45,6 +48,8 @@ default_cwb_bindirs=${default_cwb_bindirs:-"
     /usr/local/bin
     /usr/local/cwb/bin
     /projappl/clarin/cwb/bin
+    /projappl/clarin/bin
+    /projappl/clarin/$HOSTTYPE/bin
     /proj/clarin/korp/cwb/bin
     $USERAPPL/bin
     /v/util/cwb/utils
