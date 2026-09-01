@@ -22,7 +22,10 @@ def submit(args):
     try:
         checkbill(args)
         script = jobscript(args)
-        proc = run([ 'cat' if args.cat else 'sbatch' ],
+        # Roihu gave error messages without argos=no,
+        # some document said to use argos=no in Roihu
+        proc = run(([ 'cat' ] if args.cat else
+                    [ 'sbatch', '--argos=no' ]),
                    input = script.encode('UTF-8'),
                    timeout = 60)
     except BadData as exn:

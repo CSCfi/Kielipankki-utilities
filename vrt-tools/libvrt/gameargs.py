@@ -10,13 +10,14 @@ def parsearguments(argv):
 
     description = '''
 
-    Send a command to the batch system in Puhti, with all manner of
+    Send a command to the batch system in Roihu, with all manner of
     defaults, as an array job to be run in the current working
     directory on each argument, without waiting. Array arguments, if
     any, start at '//' on the command line, and one array argument is
     passed to the command in each task.
 
     By default, modules "kieli" and "biojava" are loaded quietly.
+    (Not true about "biojava", and "kieli" does not seem to exist!)
 
     '''
 
@@ -119,62 +120,43 @@ def parsearguments(argv):
                         (for information only when using temp file)
                         ''')
 
-    if host == 'puhti':
+    if host == 'roihu':
         parser.add_argument('--cores', '-C',
                             choices = [
-                                # Puhti nodes have 40 cores, trying to
-                                # allocate all cores in the same node so that
-                                # the communication between them is fast -
-                                # TODO to allow larger multi-node numbers for
-                                # heavier but core-savvy jobs like ffmpeg
-                                '1', '2', '4', '5',
-                                '10', '20', '40'
+                                # need to find values that apply
+                                # to Roihu - in "test" and "small"
+                                # partitions memory and cpus can
+                                # be requested separately but is
+                                # there any restriction to these
+                                # numbers like there was before?
+                                # (max is 384 ... absurd for us)
+                                '1', '2', '4', '8', '16', '24'
                             ],
                             default = '4', # not sure!
                             help = '''
-                            how many Puhti cores to use,
+                            how many Roihu cores to use,
                             all in one node [tentative default is 4]
-                            (nodes have 40 cores)
+                            (looks like this *could* be any number
+                            up to 384 now, for "small" and "test")
                             ''')
-    elif host == 'taito':
-        parser.add_argument('--cores', '-C',
-                            choices = [
-                                # Taito nodes have 24 cores, trying to
-                                # allocate all cores in the same node so that
-                                # the communication between them is fast
-                                '1', '2', '4', '8', '12', '24'
-                            ],
-                            default = '4', # not sure!
-                            help = '''
-                            how many Taito cores to use,
-                            all in one node [tentative default is 4]
-                            (nodes have 24 cores)
-                            ''')
-    else: raise HostNotRecognizedError()
+    else: raise HostNotRecognizedError() # not even defined
 
     # default partition is set just before parsing the arguments;
-    # Taito defaults to "serial" as always,
-    # Puhti will default to "small" (1 node, up to 40 cores).
+    # Roihu will default to "small" (1 node, up to 384 cores).
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--test', dest = 'partition',
                        action = 'store_const', const = 'test',
                        help = '''
                        run in "test" partition
                        ''')
-    if host == 'puhti':
+    if host == 'roihu':
         defaults['partition'] = 'small'
         group.add_argument('--small', dest = 'partition',
                            action = 'store_const', const = 'small',
                            help = '''
                            run in "small" partition (default)
                            ''')
-    elif host == 'taito':
-        defaults['partition'] = 'serial'
-        group.add_argument('--serial', dest = 'partition',
-                           action = 'store_const', const = 'serial',
-                           help = '''
-                           run in "serial" partition (Taito default)
-                           ''')
+
     else: raise HostNotRecognizedError()
 
     parser.add_argument('--bill', '-B', metavar = 'group',
@@ -256,25 +238,17 @@ def gibitype(arg):
         raise ArgumentTypeError('invalid gibibytes: {}'.format(arg))
 
 def checkbill(args):
-    if guesshost() == 'taito':
-        # Taito does not seem to accept any value for --account
-        # but works as usual when --account is not specified.
-        print('{}: info: ignoring billing group "{}" in Taito'
-              .format(args.prog, args.bill),
-              file = sys.stderr)
-    elif args.bill:
+    if args.bill:
         print('{}: info: billing "{}" project'.format(args.prog, args.bill),
               file = sys.stderr)
     else:
         raise BadData('{}: error: no billing group'.format(args.prog))
 
 def guesshost():
-    if os.path.exists('/appl/soft/ling'):
-        return 'puhti'
-    if True:
-        return 'taito'
+    if os.path.exists('/appl/soft/manual/kielipankki'):
+        return 'roihu'
 
-    raise HostNotRecognizedError()
+    raise HostNotRecognizedError() # nah
 
 def getgroupnames():
     return [ grp.getgrgid(k).gr_name for k in os.getgroups() ]
