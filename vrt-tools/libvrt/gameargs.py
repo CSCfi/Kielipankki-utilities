@@ -16,8 +16,7 @@ def parsearguments(argv):
     any, start at '//' on the command line, and one array argument is
     passed to the command in each task.
 
-    By default, modules "kieli" and "biojava" are loaded quietly.
-    (Not true about "biojava", and "kieli" does not seem to exist!)
+    By default, module "kieli" is not loaded (does not exist in roihu).
 
     '''
 
@@ -177,10 +176,10 @@ def parsearguments(argv):
                             'null',
                             'no'
                         ],
-                        default = 'null',
+                        default = 'no',
                         help = '''
-                        how to load modules kieli and biojava
-                        (default is null, load quietly;
+                        how to load module kieli
+                        (default is no, do not load;
                         yes leaves its stdout and stderr as they are,
                         out redirects stderr to stdout,
                         err stdout to stderr,
