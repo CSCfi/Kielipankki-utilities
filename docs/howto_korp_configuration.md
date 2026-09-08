@@ -3,7 +3,7 @@ This part of the pipeline consists of making changes to the existing Korp config
 
 **Note:** This text is partly outdated and update is in progress. Please see a [detailed guideline on Korp corpus configuration](https://github.com/CSCfi/Kielipankki-korp-frontend/blob/config/master/doc/korp-corpus-config.md).
 
-You should have a folder ‘Kielipankki-korp-frontend’ (Git working directory) in your HOME directory in Puhti. 
+You should have a folder ‘Kielipankki-korp-frontend’ (Git working directory) in your HOME directory in [CSC’s computing environment](https://urn.fi/urn:nbn:fi:lb-2026090301). 
 
 Change to that directory:
 
