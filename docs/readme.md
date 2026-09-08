@@ -18,7 +18,7 @@ The instructions are accessible [through the GitHub browser
 interface](https://github.com/CSCfi/Kielipankki-utilities/docs) or in
 a cloned
 [Kielipankki-utilities](https://github.com/CSCfi/Kielipankki-utilities)
-Git repository (e.g., on Puhti). You should update your own copy of
+Git repository on [CSC’s computing environment](https://urn.fi/urn:nbn:fi:lb-2026090301). You should update your own copy of
 the repository with `git pull` to see the latest changes.
 A third option would be to use the desktop client of GitHub.
 
