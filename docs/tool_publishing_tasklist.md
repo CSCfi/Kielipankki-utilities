@@ -83,7 +83,7 @@ The task category marker is an italicized (slanted) and bolded character string.
 - _*GITHUB*_: creating and assigning PIDs via the GitHub repository; modifying version-controlled files on GitHub (requires permissions for CSC GitHub)
 - _*IDA*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating file packages and standard documentation files included in the archived data (requires permissions for IDA)
 - _*HYSTORE*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating file packages and standard documentation files included in the archived data (requires permissions to access the HFST server of the University of Helsinki)
-- _*PUHTI*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating standard documents for the archived data (requires permissions for CSC computing environment)
+- _*HPC*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating standard documents for the archived data (requires permissions for CSC computing environment)
 - _*ALLAS*_: storing, organizing, copying, naming and transferring files, checking file integrity, creating standard documents for the archived data (requires permissions for CSC computing environment)
 - _*DATA*_: receiving original data, data (pre-)processing and cleanup (tasks that may be completed in different environments)
 - _*KORP*_: Korp configuration (requires Korp server permissions)
@@ -179,12 +179,12 @@ NB: Quite often, especially for tools developed outside Kielipankki, we just off
 # [ ] _*+GITHUB*_ Request access location URN for download version (and check that the URNs for metadata and license pages are available and working)
 # [ ] _*+META*_ Add citation information to the metadata record
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained, upload the data as a zip file (named as shortname-src_yyyymmdd.zip) and the separate shortname-src_yyyymmdd_README.txt file to the HFST server, under data/corpora/wip/ (= “work in progress”).
-# [ ] _*+PUHTI*_ Create a download package
+# [ ] _*+HPC*_ Create a download package
 # [ ] _*+DATA*_ Create a publishable README.txt for the source data, to be shown to the end-users. Include: 1) resource title; 2) PID; 3) either the license PID, a plain link to the license, or a statement of the rightholder and the known restrictions of use for the source data, 4) any other relevant information regarding the technical structure of the source data, if applicable.
-## [ ] _*+PUHTI*_ Create and add the readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
-## [ ] _*+PUHTI*_ Zip the data and the readme and license files into a package named as shortname-src.zip.
-## [ ] _*+PUHTI*_ Compute an MD5 checksum for the zip package
-# [ ] _*+PUHTI*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on Puhti
+## [ ] _*+HPC*_ Create and add the readme and license files [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
+## [ ] _*+HPC*_ Zip the data and the readme and license files into a package named as shortname-src.zip.
+## [ ] _*+HPC*_ Compute an MD5 checksum for the zip package
+# [ ] _*+HPC*_ Add the download package, MD5 checksum file and readme and license files to the directory {{/scratch/clarin/download_preview}} on HPC
 # [ ] _*+TEST*_ Have the package tested
 # [ ] _*?LBR*_ Create an LBR record (for a RES corpus)
 # [ ] _*+CSC*_ Upload the package to the download service (or ask someone with the rights to do that)
@@ -197,7 +197,7 @@ NB: Quite often, especially for tools developed outside Kielipankki, we just off
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the metadata record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the metadata description).
 # [ ] _*+META*_ Add the new tool to the list of tools in the portal (NOTE: there are separate lists for English, Finnish and Swedish)
 # [ ] _*+PORTAL*_ Publish news about the new tool on the Portal
-# [ ] _*?CSC*_ Ask Martin (CSC) to add the data to Kielipankki directory {{/appl/data/kielipankki}} on Puhti if the source data is to be published there
+# [ ] _*?CSC*_ Ask Martin (CSC) to add the data to Kielipankki directory {{/appl/data/kielipankki}} on HPC if the source data is to be published there
 
 \\
 ```
@@ -223,7 +223,7 @@ NB: Quite often, especially for tools developed outside Kielipankki, we just off
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the metadata record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the metadata description).
 # [ ] _*+META*_ Add the new tool to the list of tools in the portal (NOTE: there are separate lists for English, Finnish and Swedish)
 # [ ] _*+PORTAL*_ Publish news about this new tool in the portal
-# [ ] _*+PUHTI*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
+# [ ] _*+HPC*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
 ## [ ] _*+META*_ Remove beta status from the metadata record and resource group page
 \\
 ```
@@ -237,8 +237,8 @@ NB: Quite often, especially for tools developed outside Kielipankki, we just off
 # [ ] _*+PORTAL*_ Create/update license pages [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/]
 # [ ] _*+META*_ Add citation information to the metadata record
 # [ ] _*?HYSTORE*_ In case intermediate versions need to be maintained at any point, upload the data as a zip file (named as shortname-vrt_yyyymmdd.zip) and the separate shortname-vrt_yyyymmdd_README.txt file to the HFST server, under data/tools/wip/ (= “work in progress”).
-## [ ] _*+PUHTI*_ Create and add any additional material (documentation, user guide ect.)
-# [ ] _*+PUHTI*_ Upload the tool and any additional material to the online interface, mark it as beta test version
+## [ ] _*+HPC*_ Create and add any additional material (documentation, user guide ect.)
+# [ ] _*+HPC*_ Upload the tool and any additional material to the online interface, mark it as beta test version
 # [ ] _*+TEST*_ Test the tool on the online interface
 # [ ] _*+META*_ Update the metadata record; add location PID and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the metadata record: add relations to previous or parallel versions/variants of the tool
@@ -249,7 +249,7 @@ NB: Quite often, especially for tools developed outside Kielipankki, we just off
 # [ ] _*?META*_ If required, create a portal page "shortname: Notes for the user", to inform about found issues in the data. Make sure the metadata record also contains a link to the notes' page (in case the information is only one sentence, add it directly to the metadata description).
 # [ ] _*+META*_ Add the new tool to the list of tools in the portal (NOTE: there are separate lists for English, Finnish and Swedish)
 # [ ] _*+PORTAL*_ Publish news about the new tool on the Portal
-# [ ] _*+PUHTI*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
+# [ ] _*+HPC*_ Remove beta status after two weeks, if no requests for corrections or changes appear during this period
 ## [ ] _*+META*_ Remove beta status from the metadata record and resource group page
 \\
 ```
