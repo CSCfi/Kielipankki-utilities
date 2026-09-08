@@ -80,9 +80,9 @@ On [https://lbr.csc.fi/](https://lbr.csc.fi/) you can find the correct URN, whic
 
 
 
-## Download/Puhti links
-All downloadable CLARIN PUB or ACA licensed corpora should be also available in CSC's Puhti computing environment in the directory /appl/data/kielipankki/.
-In the corpus entry in the database you can choose the location 'Puhti' additionally to the location 'Download'.
+## Download location links
+Selected downloadable CLARIN PUB or ACA licensed corpora are also available in [CSC’s computing environment](https://urn.fi/urn:nbn:fi:lb-2026090301) in the directory /appl/data/kielipankki/.
+In the corpus entry in the database you can choose the location 'CSC’s computing environment' additionally to the location 'Download'.
 
 
 ## Resource groups
