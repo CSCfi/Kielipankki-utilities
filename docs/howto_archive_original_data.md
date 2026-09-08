@@ -20,9 +20,9 @@ It is worth checking, if a folder for this resource already exists in the frozen
 
 Instructions on how to upload and download data to IDA can be found here: [IDA user guide](https://www.fairdata.fi/en/ida/user-guide/ "https://www.fairdata.fi/en/ida/user-guide/"). 
 
-If you decide to use the IDA client in Puhti, you can find instructions on configuring and using IDA from the command line here: [CSC guide for archiving data](https://research.csc.fi/csc-guide-archiving-data-to-the-archive-servers#3.2.2 "https://research.csc.fi/csc-guide-archiving-data-to-the-archive-servers#3.2.2").
+If you decide to use the IDA client in [CSC’s computing environment](https://urn.fi/urn:nbn:fi:lb-2026090301), you can find instructions on configuring and using IDA from the command line here: [CSC guide for archiving data](https://docs.csc.fi/data/ida/using_ida/ "https://docs.csc.fi/data/ida/using_ida/").
 
-Assuming that you use the IDA client on Puhti, the command for uploading the package to IDA is:
+Assuming that you use the IDA client on CSC’s computing environment, the command for uploading the package to IDA is:
 
     ida upload -v corpora/'corpus'/file.tgz file.tgz
     
@@ -38,5 +38,5 @@ NOTE: Only frozen data will be backed up!
 
 
 4. Upload the original data zip package (in a password-protected zip archive if required) and the accompanying readme file to the **HFST server** (hfst-17.it.helsinki.fi). Under data/corpora/originals/ create a folder named with the resource group shortname, in lowercase characters.
-Note that you need a VPN connection to the University to be able to access the HFST server. In order to be able to connect to Puhti from the HFST server, you can use e.g. sftp.
+Note that you need a VPN connection to the University to be able to access the HFST server. In order to be able to connect to CSC’s computing environment from the HFST server, you can use e.g. sftp.
 
