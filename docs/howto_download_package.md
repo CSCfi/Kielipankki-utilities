@@ -18,7 +18,7 @@ Citation information also has to be added to the metadata record.
 
 For dealing with **confidential data**, see the instructions on [what to consider when confidential data should be made available for download](howto_protected_packages.md).
 
-Download the data from IDA or the HFST server to your work directory on CSC's computing environment (Puhti) in a separate folder. 
+Download the data from IDA or the HFST server to your work directory on [CSC’s computing environment](https://urn.fi/urn:nbn:fi:lb-2026090301) in a separate folder. 
 
 Create a **README.txt** containing at least the following information:
 long name of the corpus, shortname, metadata PID, license information, short description of the corpus as given in the metadata, link to the resource group page. Add an explanation of the structure of the download package if needed.
@@ -50,7 +50,7 @@ Structure of the download package:
 - short-name/LICENSE.txt
 - short-name/short-name/data files ... (including possible sub directories)
 
-Copy the package together with the uncompressed LICENSE.txt and README.txt to the folder `/scratch/clarin/download_preview/CORPUS/` on Puhti. CORPUS here is a placeholder for the folder structure that should be shown in the download service.
+Copy the package together with the uncompressed LICENSE.txt and README.txt to the folder `/scratch/clarin/download_preview/CORPUS/` on CSC’s computing environment. CORPUS here is a placeholder for the folder structure that should be shown in the download service.
 
 For example 
 
@@ -79,9 +79,9 @@ Remember to copy the re-packed data back from local scratch to either your work 
 
 
 ## Publishing the resource
-Have the package on `/scratch/clarin/download_preview/'CORPUS'/` on Puhti tested by someone else of the team.
+Have the package on `/scratch/clarin/download_preview/'CORPUS'/` on CSC’s computing environment tested by someone else of the team.
 
-In case the VRT data is going to be published as **release candidate** (during the release candidate stage of the corresponding Korp corpus), add a file RELEASE_CANDIDATE.txt to `/scratch/clarin/download_preview/'CORPUS'/` on Puhti. However, in case the users are not expecting the VRT version to appear immediately, it may make more sense to wait until the Korp corpus is approved as an official release and only then to publish the VRT version. (This needs to be discussed and decided on a case-to-case basis.)
+In case the VRT data is going to be published as **release candidate** (during the release candidate stage of the corresponding Korp corpus), add a file RELEASE_CANDIDATE.txt to `/scratch/clarin/download_preview/'CORPUS'/`. However, in case the users are not expecting the VRT version to appear immediately, it may make more sense to wait until the Korp corpus is approved as an official release and only then to publish the VRT version. (This needs to be discussed and decided on a case-to-case basis.)
 
 Ask someone with the needed access rights to upload the package to the download service.
 For a RES corpus, ask also to create an LBR record.
