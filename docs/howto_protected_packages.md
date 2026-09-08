@@ -8,7 +8,7 @@ General principles:
 
 - The time of processing confidential data in unencrypted form should be minimized and the processing must only take place in the environments we have agreed to trust for this purpose.
 
-- We can currently trust the HFST server, the interactive shell on Puhti, the local home directory on the user's work laptop (no network drives!) or the user's password-protected and encrypted external hard drive, given that the data are processed according to the instructions. 
+- We can currently trust the HFST server, the interactive shell on [CSC’s computing environment](https://urn.fi/urn:nbn:fi:lb-2026090301), the local home directory on the user's work laptop (no network drives!) or the user's password-protected and encrypted external hard drive, given that the data are processed according to the instructions. 
 
 
 ## Receiving confidential data (RES +PRIV)
@@ -21,7 +21,7 @@ If possible, the researcher should provide us with a password-protected zip arch
 
 - [Instructions for the researchers/depositors (draft)](https://www.kielipankki.fi/tuki/aineiston-toimitus-kielipankille/)
    
-DELIVERY OPTION 1: The package can be delivered, e.g., via [Filesender](https://filesender.funet.fi/). It can then be downloaded to Puhti (via [Puhti web interface](https://www.puhti.csc.fi/)).
+DELIVERY OPTION 1: The package can be delivered, e.g., via [Filesender](https://filesender.funet.fi/). It can then be downloaded to CSC’s computing environment (via [web interface](https://docs.csc.fi/computing/webinterface/connecting/).
 
 - The password should be delivered via another communication method, e.g., via SMS, to reduce risks. **Delivering the password via regular email is not recommended.**
 
@@ -37,17 +37,17 @@ On the HFST server, create a new password for this resource group (one password 
 
 For instructions on how to create / retrieve a Kielipankki password, see [guidelines on how to manage Kielipankki passwords](https://github.com/CSCfi/Kielipankki-passwords/blob/master/howto_manage_corpus_passwords.md).
 
-The next steps can be completed on your local device (i.e., work-related and well maintained laptop or the like), on the HFST server, or on the interactive shell on Puhti.
+The next steps can be completed on your local device (i.e., work-related and well maintained laptop or the like), on the HFST server, or on the interactive shell on CSC’s computing environment.
 
 If the original dataset was encrypted by the researcher (with their password), unencrypt the data and create a new zip package, without a password. Then, using the resource group password, encrypt the data in a new wrapper package. The encrypted zip file then contains the un-encrypted zip file.
 
 For naming conventions for the data packages see [guidelines for data storage](howto_data_storage.md).
 
-## Transferring the confidential data to Puhti
+## Transferring the confidential data to CSC’s computing environment
 
-If uploading data to Puhti, you must make sure that the data ends up in the user group `project_2013016` or, if required, in your private group/project.
+If uploading data to CSC’s computing environment, you must make sure that the data ends up in the user group `project_2013016` or, if required, in your private group/project.
 
-On Puhti, start the process by changing to the user group `project_2013016` with command 
+On CSC’s computing environment, start the process by changing to the user group `project_2013016` with command 
    
       $ newgrp project_2013016
    
@@ -55,7 +55,7 @@ If needed, create the target folder for the data on the project-specific scratch
 
       $ mkdir /scratch/project_2013016/shortname
 
-It is good practice to check the file permissions on the source folder before transfer. rsync and other file transfer tools can be set to keep the permissions on the target server, too. Ensure once again that the target folder on Puhti is only available to your current group/project.
+It is good practice to check the file permissions on the source folder before transfer. rsync and other file transfer tools can be set to keep the permissions on the target server, too. Ensure once again that the target folder on CSC’s computing environment is only available to your current group/project.
 
 For instance, to recursively set **read, write and execute** permissions of a given folder and its contents to the **user** (you) **and** **group**/project that currently owns the file, and to make sure **no permissions** are given **to** **others**, you could use
 
@@ -65,17 +65,17 @@ For file transfer in the command line, you may use [scp](https://docs.csc.fi/dat
 
 Default suggestions for rsync [PLEASE COMMENT OR MODIFY IF THIS DOES NOT WORK!]:
 
-      $ rsync -auzv sourcefoldername/ puhti.csc.fi:/scratch/project_2013016/shortname
+      $ rsync -auzv sourcefoldername/ [puhti|roihu].csc.fi:/scratch/project_2013016/shortname
 
 The aforementioned rsync options will recursively copy all files from under 'sourcefoldername' to the folder 'shortname' on scratch. Data will be compressed in transit (to skip additional compression attempts, drop the 'z' option). Files that are newer on the target server will not be transferred or replaced. Files that exist at the target but not at the source are not removed. The permissions of the source files and folders are kept on the target.
 
-If, after all your precautions, some files ended up in the wrong group (of which you are also a member) on Puhti, you can recursively change the group of the directory and the files under it (provided that you are the owner of the files and a member of the desired project):
+If, after all your precautions, some files ended up in the wrong group (of which you are also a member) on CSC’s computing environment, you can recursively change the group of the directory and the files under it (provided that you are the owner of the files and a member of the desired project):
 
       $ chgrp -R project_2013016 foldername
 
-## Processing the data on Puhti
+## Processing the data on CSC’s computing environment
 
-Start an [interactive shell](https://docs.csc.fi/computing/running/interactive-usage/) on Puhti. 
+Start an [interactive shell](https://docs.csc.fi/computing/running/interactive-usage/) on CSC’s computing environment. 
 Again, select the project `project_2013016`.
 
 Go to LOCAL_SCRATCH and create a folder for this resource.
@@ -91,7 +91,7 @@ For safety reasons, you might want to overwrite the original package before remo
 
       $ echo "..." > original.zip
    
-Remove the wrapper package original.zip, received from the researcher, from Puhti.
+Remove the wrapper package original.zip, received from the researcher, from CSC’s computing environment.
 
       $ rm -rf original.zip
 
@@ -102,7 +102,7 @@ For detailed instructions on how to prepare data for being published in the Kiel
 
 The process for packaging confidential data is basically the same, only that the data will be enclosed in a password-protected wrapper.
 
-**Before decrypting, the encrypted zip file (protected with Kielipankki's password) should be on a sufficiently secure server (preferably not Puhti). If you must use Puhti, use the interactive shell and maintain permissions for the restricted user group `project_2013016`.**
+**Before decrypting, the encrypted zip file (protected with Kielipankki's password) should be on a sufficiently secure server (preferably not CSC’s computing environment). If you must use CSC’s computing environment, use the interactive shell and maintain permissions for the restricted user group `project_2013016`.**
 
 The steps are the following:
 
@@ -119,7 +119,7 @@ The steps are the following:
   
     `7z a -p "shortname-src_encrypted.7z" "shortname-src.zip"` Note that `7z` files cannot be unzipped with `unzip`.
     
-- You can then move the file `shortname-src_encrypted.7z` to the folder `download_preview` on Puhti.
+- You can then move the file `shortname-src_encrypted.7z` to the folder `download_preview` on CSC’s computing environment.
 
 - Tell CSC about the data in `download_preview`, to be uploaded to the download service. CSC staff will decrypt the data only after transferring it to the download service. (They will be able to locate the correct password by the resource's shortname.)
 
