@@ -3,7 +3,7 @@ The NER-tagging (NER = Named Entity Recognition) is done on the parsed and valid
 
 The scripts for NER-tagging can be found in GitHub in the same place as the tokenizing and parsing scripts [Kielipankki-utilities/vrt-tools](https://github.com/CSCfi/Kielipankki-utilities/tree/master/vrt-tools).
 
-If you have your own copy of ‘Kielipankki-utilities’ on Puhti already, you can just update it with the help of the command `git pull`. Then you can create a symbolic link to the folder ‘vrt-tools’ from the respective corpora folder in your working directory, e.g.:
+If you have your own copy of ‘Kielipankki-utilities’ on [CSC’s computing environment](https://urn.fi/urn:nbn:fi:lb-2026090301) already, you can just update it with the help of the command `git pull`. Then you can create a symbolic link to the folder ‘vrt-tools’ from the respective corpora folder in your working directory, e.g.:
 
     ln -s /homeappl/home/‘username’/Kielipankki-utilities/vrt-tools/ bin
 
@@ -11,9 +11,9 @@ Now you have the tools available in your corpus folder in a folder named ‘bin�
 
 If you have to tokenize, parse or nertag a corpus again some time later, you should first update your copy of the folder ‘Kielipankki-utilities’. Go to Kielipankki-utilities in your HOME directory and update it with the command `git pull`.
 
-It is recommended to always convert data in an interactive batch job session on Puhti.
+It is recommended to always convert data in an interactive batch job session on CSC’s computing environment.
 The command is 'sinteractive', for more information see [CSC: interactive usage](https://docs.csc.fi/computing/running/interactive-usage/).
-(in Puhti, always use the 'small' partition).
+(in CSC’s computing environment, always use the 'small' partition).
 
 You can define the resource requests directly within the command line, e.g.:
 
