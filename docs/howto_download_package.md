@@ -24,7 +24,8 @@ Create a **README.txt** containing at least the following information:
 long name of the corpus, shortname, metadata PID, license information, short description of the corpus as given in the metadata, link to the resource group page. Add an explanation of the structure of the download package if needed.
 For a model of the README.txt, please see [docs: model of the download package README.txt](model_download-package-README.md)
 
-Create a **LICENSE.txt**. The content of this file should be copied from the respective license page in the portal.
+Create a **LICENSE.txt**. The content of this file should be copied from the respective license page in the portal. 
+In case the license contains the +PRIV condition, **include the personal data protection terms and conditions** together with the license text.
 
 The README and LICENSE files should be offered twice: once included in the download package and once uncompressed included in the download folder on the same level as the download package.
 
