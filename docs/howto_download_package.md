@@ -26,6 +26,9 @@ For a model of the README.txt, please see [docs: model of the download package R
 
 Create a **LICENSE.txt**. The content of this file should be copied from the respective license page in the portal. 
 In case the license contains the +PRIV condition, **include the personal data protection terms and conditions** together with the license text.
+Example license: https://www.kielipankki.fi/download/puhelahjat/complete/LICENSE_Academic_research.txt
+   * NB: this example is a "maximal" version that includes the license versions in English and in Finnish. Usually, the English license is sufficient for the download package, but in some cases, it may be appropriate to include the Finnish version, e.g., if it is known or expected that most of the end-users are Finnish-speaking, and/or if some end-users do not understand English very well.
+   * NB: In this case, the license document is named in a special way, since the same downloadable content is available under two different licenses, one for academic and the other for commercial use.
 
 The README and LICENSE files should be offered twice: once included in the download package and once uncompressed included in the download folder on the same level as the download package.
 
