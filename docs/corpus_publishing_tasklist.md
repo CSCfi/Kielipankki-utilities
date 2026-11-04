@@ -421,6 +421,7 @@ Create the LBR record, or update the existing one, according to the information 
 
 ```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
+# [ ] _*+DB*_ In the resource database, set the service level to one of the values A, B or C
 # [ ] _*+META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record: (update and) add the location PID (under Resources) and add the Availability start date (under Distribution)
 # [ ] _*?PORTAL*_ If applicable, add the new resource version to the license page of the previous versions [how to create/update license pages | https://www.kielipankki.fi/intra/creating-license-pages/ ]
 # [ ] _*?META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record: add relations to previous or parallel versions/variants of the corpus
@@ -560,6 +561,7 @@ Access restrictions: public access / ACA license / RES license (please describe)
 # [ ] _*+GITHUB*_ Update the access location URN (path in Korp)
 # [ ] _*+TEST*_ Test (or have tested) the resource in production Korp and check access rights.
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to production (add status "release candidate" to the name!)
+# [ ] _*+DB*_ In the resource database, set the service level to one of the values A, B or C
 # [ ] _*+META*_ Update [COMEDI | https://clarino.uib.no/comedi/records]  record; add location PID (under Resources) and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the metadata record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*?META*_ Update the metadata record: add annotation information and tools used during the corpus processing pipeline
@@ -674,6 +676,7 @@ Access restrictions: public access / ACA license / RES license (please describe)
 ### _shortname_: Announce the publication of the VRT data in Download
 ```
 # [ ] _*+DB*_ In the resource database, change the resource status from upcoming to published
+# [ ] _*+DB*_ In the resource database, set the service level to one of the values A, B or C
 # [ ] _*+META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record; add location PID (under Resources) and Availability start date (under Distribution)
 # [ ] _*?META*_ Update the [COMEDI | https://clarino.uib.no/comedi/records] record: add relations to previous or parallel versions/variants of the corpus
 # [ ] _*+PORTAL*_ Create or update the resource group page
