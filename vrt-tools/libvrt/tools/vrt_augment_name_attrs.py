@@ -38,7 +38,9 @@ class VrtNameAttrAugmenter(InputProcessor):
     regular expression "(Ena|Nu|Ti)mex[A-Z][a-z]+[A-Z][a-z]+-[BEF]",
     as produced by vrt-finnish-nertag. Another attribute can contain a
     set of NER tags for possible nested names, with "-N" appended
-    where N is the nesting level.
+    where N is the nesting level. Maximal names are enclosed in <ne>
+    and nested names in <neN>, where N is the nesting level (1, 2,
+    ...), unless --recursive-nested is specified.
     """
     ARGSPECS = [
         ('--word = attr:encode_utf8 "word"',
@@ -54,6 +56,9 @@ class VrtNameAttrAugmenter(InputProcessor):
             tags is attr'''),
         ('--maximal-only',
          '''enclose only maximal names, no nested ones'''),
+        ('--recursive-nested',
+         '''enclose nested names in recursively embedded <ne> structures
+            instead of numbered <ne1>, <ne2>, ... by nesting level'''),
     ]
 
     def __init__(self):
@@ -116,13 +121,14 @@ class VrtNameAttrAugmenter(InputProcessor):
             return enclose_in_ne(nertag_parts, namelines, name_tokens)
 
         def add_nested_ne_tags(namelines, name_tokens):
-            """Return `namelines` with nested names enclosed in <ne>.
+            """Return `namelines` with nested names enclosed in <neN>.
 
             Enclose nested, non-maximal (non-top-level) names in
-            `namelines` in <ne> structures. `name_tokens` is
-            `namelines` split into positional attributes. The function
-            uses the attribute ``nertags`` to get information on
-            nested names.
+            `namelines` in <neN> structures, where N is the nesting
+            level, or in <ne> if `args.recursive_nested`.
+            `name_tokens` is `namelines` split into positional
+            attributes. The function uses the attribute ``nertags`` to
+            get information on nested names.
             """
             # Names by nesting depth
             nested_names = defaultdict(list)
@@ -186,7 +192,7 @@ class VrtNameAttrAugmenter(InputProcessor):
                     namelines[nameline_start:nameline_end] = (
                         enclose_in_ne(nertag_parts,
                                       namelines[nameline_start:nameline_end],
-                                      name_tokens[start:end]))
+                                      name_tokens[start:end], depth))
                     # Adjust nameline_index by the start tag
                     for i in range(start + 1, end):
                         nameline_index[i] += 1
@@ -195,17 +201,20 @@ class VrtNameAttrAugmenter(InputProcessor):
                         nameline_index[i] += 2
             return namelines
 
-        def enclose_in_ne(nertag_parts, namelines, name_tokens):
+        def enclose_in_ne(nertag_parts, namelines, name_tokens, depth=0):
             """Return `namelines` enclosed in <ne> with NER tag `nertag_parts`.
 
             `name_tokens` is `namelines` split into positional
-            attributes.
+            attributes. If `depth` > 0 and not `args.recursive_nested`,
+            use structure <neN>, where N is `depth`.
             """
+            struct = (b'ne' if depth == 0 or args.recursive_nested
+                      else f'ne{depth}'.encode())
             return (
                 [ml.starttag(
-                    b'ne', make_ne_attrs(nertag_parts, name_tokens))]
+                    struct, make_ne_attrs(nertag_parts, name_tokens))]
                 + namelines
-                + [b'</ne>\n'])
+                + [b'</' + struct + b'>\n'])
 
         def make_ne_attrs(nertag_parts, name_tokens):
             """Return attribute (name, value) pairs for <ne> structure.
