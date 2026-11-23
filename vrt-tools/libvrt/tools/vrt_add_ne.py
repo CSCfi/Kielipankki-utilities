@@ -92,16 +92,60 @@ class VrtNeAdder(InputProcessor):
 
     """Class implementing vrt-add-ne functionality."""
 
+    # TODO: Add the following details omitted from DESCRIPTION and
+    # EPILOG when VRT Tools support longer help texts with Markdown
+    # formatting (branch dev-vrt-tools-markdown-help):
+    #
+    # Input:
+    # - The maximal NER tags match the regular expression
+    #   `(Ena|Nu|Ti)mex[A-Z][a-z]+[A-Z][a-z]+-[BEF]`; `_` or an empty
+    #   value means no name.
+    # - In the set of nested NER tags, nesting level 0 (the maximal
+    #   name) is ignored. Nested names are recognized only within
+    #   maximal names.
+    # - Attribute names are matched with or without a trailing slash.
+    #
+    # Output attributes:
+    # - `name`: For Numex and Timex, the word forms of the name. For
+    #   Enamex, the word forms of all but the last word, followed by
+    #   the lemma of the last word, title-cased (each part between
+    #   non-letters capitalized) if the last word form is in title
+    #   case or upper-cased if it is in upper case.
+    # - `fulltype`: The NER tag without the -B, -E or -F suffix (and
+    #   the nesting level).
+    # - `ex`, `type` and `subtype`: The parts of `fulltype` in upper
+    #   case.
+    # - `placename`: For location names (type Loc), the same as
+    #   `name`; otherwise empty.
+    # - `placename_source`: For location names, `ner`; otherwise
+    #   empty.
+    #
+    # Errors and limitations:
+    # - The tool exits with an error if a required positional
+    #   attribute is missing, if a token line has too few fields, or
+    #   if the positional-attributes comment is missing or a later one
+    #   differs from the first one.
+    # - Structures within a sentence may begin or end within a name,
+    #   which results in crossing structures.
     DESCRIPTION = """
-    Augment VRT input containing positional name attributes with <ne>
-    structures with attributes. The tool expects a positional
-    attribute to contain NER tags for maximal names, matching the
-    regular expression "(Ena|Nu|Ti)mex[A-Z][a-z]+[A-Z][a-z]+-[BEF]",
-    as produced by vrt-finnish-nertag. Another attribute can contain a
-    set of NER tags for possible nested names, with "-N" appended
-    where N is the nesting level. Maximal names are enclosed in <ne>
-    and nested names in <neN>, where N is the nesting level (1, 2,
-    ...), unless --recursive-nested is specified.
+    Add <ne> structures for names to VRT input containing NER tags in
+    positional attributes, as produced by vrt-finnish-nertag --max and
+    --all: one attribute with the NER tag of the maximal name of each
+    token and, unless --maximal-only is specified, another with a
+    "|"-separated set of NER tags with a nesting level suffix "-N" for
+    nested names. Note that the default names of these attributes
+    (nertag2 and nertags2) differ from those of vrt-finnish-nertag
+    (nertag and nertags/). Maximal names are enclosed in <ne> and
+    nested names in <neN> (N = 1, 2, ...) or in embedded <ne>. The
+    structures have the attributes name (the word forms of the name,
+    for Enamex with the last one replaced by its lemma), fulltype, ex,
+    type, subtype, placename and placename_source.
+    """
+    EPILOG = """
+    The tool warns of invalid NER tags (only the first 10, followed by
+    their total count), of unmatched NER tags and NER start tags
+    within a name, and of names not ending within a sentence or
+    before the end of input; such names are output without <ne>.
     """
     ARGSPECS = [
         ('--word = attr:encode_utf8 "word"',
@@ -109,7 +153,8 @@ class VrtNeAdder(InputProcessor):
         ('--lemma = attr:encode_utf8 "lemma"',
          '''positional attribute name for base form (lemma) is attr;
             if the input does not contain attr, use word forms in the
-            place of lemmas (specify "" to suppress a warning)'''),
+            place of lemmas with a warning; specify "" to use word
+            forms without a warning'''),
         ('--nertag = attr:encode_utf8 "nertag2"',
          '''positional attribute name for maximal NER tag is attr'''),
         ('--multi-nertag = attr:encode_utf8 "nertags2"',
@@ -119,7 +164,10 @@ class VrtNeAdder(InputProcessor):
          '''enclose only maximal names, no nested ones'''),
         ('--recursive-nested',
          '''enclose nested names in recursively embedded <ne> structures
-            instead of numbered <ne1>, <ne2>, ... by nesting level'''),
+            instead of numbered <ne1>, <ne2>, ... by nesting level
+            (note that cwb-encode then needs a maximum embedding depth
+            for ne, such as "-S ne:2+name+...", to keep the embedded
+            structures)'''),
         ('--sentence = struct:encode_utf8 "sentence"',
          '''sentence structure name is struct: a name may not cross the
             end of a struct structure'''),

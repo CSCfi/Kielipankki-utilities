@@ -46,6 +46,22 @@
     stderr: |
       vrt-add-ne: No positional attribute 'nertag2' in input
 
+- name: 'vrt-add-ne: No nertags2 attribute'
+  input:
+    cmdline: vrt-add-ne
+    stdin: |
+      <!-- #vrt positional-attributes: word nertag2 -->
+      <text a="b">
+      <sentence x="y">
+      a	_
+      </sentence>
+      </text>
+  output:
+    returncode: 1
+    stdout: ''
+    stderr: |
+      vrt-add-ne: No positional attribute 'nertags2' in input
+
 - name: 'vrt-add-ne: No word attribute'
   input:
     cmdline: vrt-add-ne
