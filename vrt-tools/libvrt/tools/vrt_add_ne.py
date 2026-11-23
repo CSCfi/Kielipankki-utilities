@@ -113,6 +113,10 @@ class VrtNeAdder(InputProcessor):
     # formatting (branch dev-vrt-tools-markdown-help):
     #
     # Input:
+    # - One attribute with the NER tag of the maximal name of each
+    #   token and, unless --maximal-only is specified, another with a
+    #   "|"-separated set of NER tags with a nesting level suffix "-N"
+    #   for nested names.
     # - The maximal NER tags match the regular expression
     #   `(Ena|Nu|Ti)mex[A-Z][a-z]+[A-Z][a-z]+-[BEF]`; `_` or an empty
     #   value means no name.
@@ -152,16 +156,12 @@ class VrtNeAdder(InputProcessor):
     DESCRIPTION = """
     Add <ne> structures for names to VRT input containing NER tags in
     positional attributes, as produced by vrt-finnish-nertag --max and
-    --all: one attribute with the NER tag of the maximal name of each
-    token and, unless --maximal-only is specified, another with a
-    "|"-separated set of NER tags with a nesting level suffix "-N" for
-    nested names. Note that the default names of these attributes
-    (nertag2 and nertags2) differ from those of vrt-finnish-nertag
-    (nertag and nertags/). Maximal names are enclosed in <ne> and
-    nested names in <neN> (N = 1, 2, ...) or in embedded <ne>. The
-    structures have the attributes name (the word forms of the name,
-    for Enamex with the last one replaced by its lemma), fulltype, ex,
-    type, subtype, placename and placename_source.
+    --all. Maximal names are enclosed in <ne> and nested names in
+    <neN> (N = 1, 2, ...) or in embedded <ne> (with
+    --recursive-nested). The structures have the attributes name (the
+    word forms of the name, for Enamex with the last one replaced by
+    its lemma), fulltype, ex, type, subtype, placename and
+    placename_source.
     """
     EPILOG = """
     The tool warns of invalid NER tags (only the first 10, followed by
