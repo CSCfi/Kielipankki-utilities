@@ -6,6 +6,8 @@ Pytest tests for libvrt.mdhelp.
 
 
 import argparse
+import random
+import textwrap
 
 import pytest
 
@@ -17,6 +19,8 @@ from libvrt.mdhelp import (
     insert_in_first_paragraph,
     markdown_to_plain_lines,
     select_detail,
+    visible_len,
+    wrap_text,
 )
 
 
@@ -104,6 +108,40 @@ class TestInsertInFirstParagraph:
         """Test appending to text containing only a div."""
         assert insert_in_first_paragraph('::: long\na\n:::', ' (x)') == (
             '::: long\na\n:::\n\n(x)')
+
+
+class TestWrapText:
+
+    """Tests for wrap_text."""
+
+    def test_same_as_textwrap(self):
+        """Test that the result is the same as with textwrap.wrap."""
+        rnd = random.Random(1234)
+        words = ['a', 'bb', 'ccc', 'dddd-eeee', 'f' * 15, 'g.', '--hh-ii']
+        for _ in range(500):
+            text = ''.join(rnd.choice(words) + rnd.choice([' ', ' ', '  '])
+                           for _ in range(rnd.randint(0, 30))).strip()
+            width = rnd.randint(5, 40)
+            indents = rnd.choice([('', ''), ('- ', '  '), ('', '    ')])
+            assert wrap_text(text, width, *indents) == textwrap.wrap(
+                text, width, initial_indent=indents[0],
+                subsequent_indent=indents[1], break_on_hyphens=False,
+                break_long_words=False), (text, width, indents)
+
+    def test_escapes_not_counted(self):
+        """Test that escape sequences are not counted in width."""
+        bold = '\x1b[1mbbb\x1b[22m'
+        assert wrap_text(f'aaa {bold} ccc', 7) == [f'aaa {bold}', 'ccc']
+
+    def test_style_over_line_break(self):
+        """Test turning a style off and on at a line break."""
+        text = 'aaa \x1b[4mbbb ccc\x1b[24m ddd'
+        assert wrap_text(text, 9, '', '  ') == [
+            'aaa \x1b[4mbbb\x1b[24m', '  \x1b[4mccc\x1b[24m ddd']
+
+    def test_visible_len(self):
+        """Test visible_len."""
+        assert visible_len('a\x1b[1mb\x1b[22m\x1b[0mc') == 3
 
 
 class TestMarkdownToPlainLines:

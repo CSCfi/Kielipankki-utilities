@@ -57,7 +57,6 @@ headings ("###") for subsections and the epilog level-2 headings
 import argparse
 import inspect
 import re
-import textwrap
 
 from collections.abc import Iterator, Sequence
 from typing import Any
@@ -83,6 +82,15 @@ _FENCE_RE = re.compile(r'^(?P<indent> *)(?P<fence>`{3,}|~{3,})')
 _LIST_ITEM_RE = re.compile(
     r'^(?P<indent> *)(?P<marker>[-*+]|\d{1,9}[.)])(?: +(?P<text>.*))?$')
 _HEADING_RE = re.compile(r'^ {0,3}#{1,6}\s+(?P<text>.*?)(?:\s+#+)?\s*$')
+
+_SGR_RE = re.compile(r'\x1b\[(?P<params>[0-9;]*)m')
+"""ANSI SGR (Select Graphic Rendition) escape sequence"""
+_SGR_OFF = {'1': '22', '3': '23', '4': '24'}
+"""Map from SGR codes for bold, italics and underline to the
+corresponding codes for turning them off"""
+_WHITESPACE_SPLIT_RE = re.compile(r'([\t\n\x0b\x0c\r ]+)')
+"""Whitespace on which to split text when wrapping it (ASCII only, as
+in `textwrap`, so that a no-break space does not allow a line break)"""
 
 _GROUP_TITLES = {
     'optional arguments': 'Options',
@@ -272,6 +280,107 @@ def _iter_blocks(
         prev_blank = False
 
 
+def visible_len(text: str) -> int:
+    """Return the visible length of text.
+
+    Args:
+        text: Text possibly containing ANSI SGR escape sequences.
+
+    Returns:
+        The length of `text` excluding ANSI SGR escape sequences.
+    """
+    return len(_SGR_RE.sub('', text))
+
+
+def _update_styles(active: list[str], text: str) -> None:
+    """Update a list of active SGR codes with the codes in text.
+
+    Args:
+        active: The SGR codes of the active styles (keys of
+            `_SGR_OFF`), modified in place.
+        text: Text possibly containing ANSI SGR escape sequences.
+    """
+    for mo in _SGR_RE.finditer(text):
+        code = mo.group('params')
+        if code in ('', '0'):
+            active.clear()
+        elif code in _SGR_OFF:
+            if code not in active:
+                active.append(code)
+        else:
+            for on_code, off_code in _SGR_OFF.items():
+                if code == off_code and on_code in active:
+                    active.remove(on_code)
+
+
+def wrap_text(text: str, width: int, initial_indent: str = '',
+              subsequent_indent: str = '') -> list[str]:
+    """Wrap text to lines of at most a given width.
+
+    Break lines only at whitespace (keeping hyphenated words intact),
+    and put words longer than `width` on lines of their own. ANSI SGR
+    escape sequences for bold, italics and underline (and resetting
+    them) are not counted in the line width, and styles continuing
+    over a line break are turned off at the end of the line and back
+    on after the indentation of the next line.
+
+    Without escape sequences, the result is the same as that of
+    `textwrap.wrap` with `break_on_hyphens=False` and
+    `break_long_words=False`.
+
+    Args:
+        text: The text to wrap.
+        width: The maximum width of lines, including indentation.
+        initial_indent: The indentation of the first line.
+        subsequent_indent: The indentation of the other lines.
+
+    Returns:
+        The wrapped lines of `text`, without newlines.
+    """
+    text = re.sub(r'[\t\n\x0b\x0c\r]', ' ', text.expandtabs())
+    chunks = [chunk for chunk in _WHITESPACE_SPLIT_RE.split(text) if chunk]
+    # The wrapped lines as (indent, line)
+    lines: list[tuple[str, str]] = []
+    i = 0
+    while i < len(chunks):
+        if lines and not chunks[i].strip():
+            # Drop whitespace at the beginning of a line (except the
+            # first one)
+            i += 1
+            continue
+        indent = subsequent_indent if lines else initial_indent
+        avail = width - len(indent)
+        line_chunks: list[str] = []
+        line_len = 0
+        while i < len(chunks):
+            chunk_len = visible_len(chunks[i])
+            if line_len + chunk_len > avail:
+                break
+            line_chunks.append(chunks[i])
+            line_len += chunk_len
+            i += 1
+        if not line_chunks:
+            # A word longer than width
+            line_chunks.append(chunks[i])
+            i += 1
+        if not line_chunks[-1].strip():
+            line_chunks.pop()
+        if line_chunks:
+            lines.append((indent, ''.join(line_chunks)))
+    # Turn off styles at the end of each line and on at the beginning
+    # of the next one
+    result: list[str] = []
+    # The SGR codes of the styles active at the end of the line
+    active: list[str] = []
+    for indent, line in lines:
+        prefix = ''.join(f'\x1b[{code}m' for code in active)
+        _update_styles(active, line)
+        suffix = ''.join(f'\x1b[{_SGR_OFF[code]}m'
+                         for code in reversed(active))
+        result.append(indent + prefix + line + suffix)
+    return result
+
+
 def _wrap_inline(lines: list[str], width: int, first_indent: str = '',
                  indent: str = '') -> list[str]:
     """Wrap the lines of a Markdown paragraph, honouring hard breaks.
@@ -300,10 +409,9 @@ def _wrap_inline(lines: list[str], width: int, first_indent: str = '',
             continue
         text = _plain_inline(' '.join(line.strip() for line in segment))
         result.extend(
-            textwrap.wrap(text, width,
-                          initial_indent=(indent if result else first_indent),
-                          subsequent_indent=indent,
-                          break_on_hyphens=False, break_long_words=False)
+            wrap_text(text, width,
+                      initial_indent=(indent if result else first_indent),
+                      subsequent_indent=indent)
             or [first_indent.rstrip()])
     return result
 
