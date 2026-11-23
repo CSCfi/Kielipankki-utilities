@@ -2947,6 +2947,7 @@
     cmdline: vrt-add-id -h
     envvars:
       COLUMNS: '80'
+      PYTHON_COLORS: '0'
   output:
     stdout:
       contains:
@@ -2964,6 +2965,7 @@
     cmdline: vrt-add-id --help-full
     envvars:
       COLUMNS: '80'
+      PYTHON_COLORS: '0'
   output:
     stdout:
       contains:

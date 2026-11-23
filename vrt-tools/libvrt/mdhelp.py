@@ -51,15 +51,25 @@ texts needs to be written as "%%".
 In the Markdown documentation, the description should use level-3
 headings ("###") for subsections and the epilog level-2 headings
 ("##") for sections of their own, such as "## Examples".
+
+When the help is written to a terminal, `MarkdownHelpFormatter`
+renders inline code, strong emphasis, headings and option names
+(such as --option) in the help texts in bold and emphasis underlined,
+as in man pages, removing the Markdown markup. The environment
+variables PYTHON_COLORS, NO_COLOR and FORCE_COLOR can be used to
+disable or force this (see `can_style`). (The parts of help formatted
+by argparse itself are coloured by Python 3.14 and later.)
 """
 
 
 import argparse
 import inspect
+import os
 import re
+import sys
 
 from collections.abc import Iterator, Sequence
-from typing import Any
+from typing import Any, TextIO
 
 
 DETAIL_SHORT = 'short'
@@ -88,6 +98,12 @@ _SGR_RE = re.compile(r'\x1b\[(?P<params>[0-9;]*)m')
 _SGR_OFF = {'1': '22', '3': '23', '4': '24'}
 """Map from SGR codes for bold, italics and underline to the
 corresponding codes for turning them off"""
+_BOLD = ('\x1b[1m', '\x1b[22m')
+"""ANSI SGR escape sequences for turning bold on and off"""
+_UNDERLINE = ('\x1b[4m', '\x1b[24m')
+"""ANSI SGR escape sequences for turning underline on and off"""
+_ESCAPABLE_CHARS = r'\\`*_{}\[\]()#+.!<>|-'
+"""Characters that can be backslash-escaped in Markdown"""
 _WHITESPACE_SPLIT_RE = re.compile(r'([\t\n\x0b\x0c\r ]+)')
 """Whitespace on which to split text when wrapping it (ASCII only, as
 in `textwrap`, so that a no-break space does not allow a line break)"""
@@ -182,6 +198,30 @@ def insert_in_first_paragraph(text: str, addition: str) -> str:
     return '\n\n'.join(paras) + '\n\n' + addition.strip()
 
 
+_CODE_SPAN_RE = re.compile(
+    r'(?<!`)(?P<ticks>`+)(?!`)(?P<code>.+?)(?<!`)(?P=ticks)(?!`)')
+"""Markdown code span, delimited by backquote strings of equal length"""
+
+
+def _split_code_spans(text: str) -> list[str]:
+    """Split Markdown text to code spans and other text.
+
+    Args:
+        text: Markdown text.
+
+    Returns:
+        The parts of `text`: other text at even indices and code spans
+        (including their delimiters) at odd indices.
+    """
+    parts: list[str] = []
+    pos = 0
+    for mo in _CODE_SPAN_RE.finditer(text):
+        parts.extend([text[pos:mo.start()], mo.group()])
+        pos = mo.end()
+    parts.append(text[pos:])
+    return parts
+
+
 def _plain_inline(text: str) -> str:
     """Convert Markdown inline markup to plain text.
 
@@ -196,8 +236,7 @@ def _plain_inline(text: str) -> str:
     Returns:
         `text` converted to plain text.
     """
-    # Split to code spans (odd indices) and other text (even indices)
-    parts = re.split(r'(`+[^`]*?`+)', text)
+    parts = _split_code_spans(text)
     for i, part in enumerate(parts):
         if i % 2:
             parts[i] = re.sub(r'^`(<[^`]+>)`$', r'\1', part)
@@ -205,6 +244,110 @@ def _plain_inline(text: str) -> str:
             part = re.sub(r'\[([^\[\]]+)\]\(([^()\s]+)\)', r'\1 <\2>', part)
             parts[i] = re.sub(r'\\([\\`*_{}\[\]()#+.!<>|-])', r'\1', part)
     return ''.join(parts)
+
+
+def _style(text: str, style: tuple[str, str]) -> str:
+    """Enclose text in escape sequences turning a style on and off.
+
+    Args:
+        text: The text to style.
+        style: The escape sequences turning the style on and off, such
+            as `_BOLD`.
+
+    Returns:
+        `text` enclosed in the escape sequences of `style`.
+    """
+    return style[0] + text + style[1]
+
+
+def _styled_inline(text: str) -> str:
+    """Convert Markdown inline markup to text styled for a terminal.
+
+    Render code spans, strong emphasis and option names (such as
+    --option or -o) in bold and emphasis underlined with ANSI escape
+    sequences, removing the Markdown markup. Convert links to "text
+    <url>" and remove backslash escapes outside code spans.
+
+    Args:
+        text: Markdown text without block-level markup.
+
+    Returns:
+        `text` converted to styled text.
+    """
+
+    def protect(mo: re.Match[str]) -> str:
+        """Return the escaped character in `mo` as a private-use one.
+
+        This prevents the character from being treated as markup.
+        """
+        return chr(0xE000 + ord(mo.group(1)))
+
+    def bold(mo: re.Match[str]) -> str:
+        """Return the first group of `mo` in bold."""
+        return _style(mo.group(1), _BOLD)
+
+    def underline(mo: re.Match[str]) -> str:
+        """Return the first group of `mo` underlined."""
+        return _style(mo.group(1), _UNDERLINE)
+
+    parts = _split_code_spans(text)
+    for i, part in enumerate(parts):
+        if i % 2:
+            # The content of a code span neither begins nor ends with
+            # a backquote
+            code = part.strip('`')
+            # As in CommonMark, strip one space from both sides
+            if code.startswith(' ') and code.endswith(' ') and code.strip():
+                code = code[1:-1]
+            parts[i] = _style(code, _BOLD)
+        else:
+            part = re.sub(f'\\\\([{_ESCAPABLE_CHARS}])', protect, part)
+            part = re.sub(r'\[([^\[\]]+)\]\(([^()\s]+)\)', r'\1 <\2>', part)
+            part = re.sub(r'\*\*(?=\S)(.+?)(?<=\S)\*\*', bold, part)
+            part = re.sub(r'(?<![\w*])\*(?=[^\s*])(.+?)(?<=[^\s*])\*(?![\w*])',
+                          underline, part)
+            part = re.sub(r'(?<!\w)_(?=\S)(.+?)(?<=\S)_(?!\w)', underline,
+                          part)
+            part = re.sub(r'(?<![\w-])(--[A-Za-z][\w-]*|-[A-Za-z](?![\w-]))',
+                          bold, part)
+            parts[i] = re.sub('[\uE000-\uE07F]',
+                              lambda mo: chr(ord(mo.group()) - 0xE000), part)
+    return ''.join(parts)
+
+
+def can_style(file: TextIO | None = None) -> bool:
+    """Return whether text written to a file may be styled.
+
+    Follow the conventions of Python 3.13+ (`_colorize.can_colorize`):
+    if environment variable PYTHON_COLORS is "0" or "1", disable or
+    enable styling; otherwise, if NO_COLOR is non-empty, disable it,
+    and if FORCE_COLOR is non-empty, enable it. Otherwise, style only
+    if `file` is a terminal and TERM is not "dumb".
+
+    Args:
+        file: The file to which text is written (default:
+            `sys.stdout`).
+
+    Returns:
+        `True` if text written to `file` may be styled with ANSI
+        escape sequences.
+    """
+    if file is None:
+        file = sys.stdout
+    if not sys.flags.ignore_environment:
+        python_colors = os.environ.get('PYTHON_COLORS')
+        if python_colors in ('0', '1'):
+            return python_colors == '1'
+    if os.environ.get('NO_COLOR'):
+        return False
+    if os.environ.get('FORCE_COLOR'):
+        return True
+    if os.environ.get('TERM') == 'dumb':
+        return False
+    try:
+        return file is not None and os.isatty(file.fileno())
+    except (AttributeError, OSError, ValueError):
+        return False
 
 
 def _iter_blocks(
@@ -382,7 +525,7 @@ def wrap_text(text: str, width: int, initial_indent: str = '',
 
 
 def _wrap_inline(lines: list[str], width: int, first_indent: str = '',
-                 indent: str = '') -> list[str]:
+                 indent: str = '', styled: bool = False) -> list[str]:
     """Wrap the lines of a Markdown paragraph, honouring hard breaks.
 
     Args:
@@ -390,10 +533,13 @@ def _wrap_inline(lines: list[str], width: int, first_indent: str = '',
         width: The maximum width of output lines.
         first_indent: The indentation of the first output line.
         indent: The indentation of the other output lines.
+        styled: Whether to render inline markup with styles (bold,
+            underline) instead of as plain text.
 
     Returns:
         The wrapped lines.
     """
+    inline = _styled_inline if styled else _plain_inline
     # Split at hard line breaks (trailing backslash)
     segments: list[list[str]] = [[]]
     for line in lines:
@@ -407,7 +553,7 @@ def _wrap_inline(lines: list[str], width: int, first_indent: str = '',
     for segment in segments:
         if not segment:
             continue
-        text = _plain_inline(' '.join(line.strip() for line in segment))
+        text = inline(' '.join(line.strip() for line in segment))
         result.extend(
             wrap_text(text, width,
                       initial_indent=(indent if result else first_indent),
@@ -416,7 +562,8 @@ def _wrap_inline(lines: list[str], width: int, first_indent: str = '',
     return result
 
 
-def markdown_to_plain_lines(text: str, width: int) -> list[str]:
+def markdown_to_plain_lines(text: str, width: int,
+                            styled: bool = False) -> list[str]:
     """Convert Markdown text to wrapped plain-text lines.
 
     See the module docstring for the supported Markdown subset.
@@ -425,6 +572,8 @@ def markdown_to_plain_lines(text: str, width: int) -> list[str]:
         text: Markdown text, with indentation normalized.
         width: The maximum width of output lines (except for code
             blocks and words longer than `width`).
+        styled: Whether to render headings and inline markup with
+            styles (bold, underline) using ANSI escape sequences.
 
     Returns:
         The lines of `text` converted to plain text.
@@ -440,13 +589,13 @@ def markdown_to_plain_lines(text: str, width: int) -> list[str]:
             heading = _plain_inline(block[0])
             if heading[-1:].isalnum():
                 heading += ':'
-            result.append(heading)
+            result.append(_style(heading, _BOLD) if styled else heading)
         elif kind == 'item':
             first_indent = ' ' * info['indent'] + info['marker'] + ' '
             result.extend(_wrap_inline(block, width, first_indent,
-                                       ' ' * len(first_indent)))
+                                       ' ' * len(first_indent), styled))
         else:
-            result.extend(_wrap_inline(block, width))
+            result.extend(_wrap_inline(block, width, styled=styled))
     while result and not result[-1]:
         result.pop()
     return result
@@ -458,7 +607,8 @@ class MarkdownHelpFormatter(argparse.HelpFormatter):
 
     Select the content for detail level `detail` (by default,
     `DETAIL_SHORT`) from the description, epilog, group descriptions
-    and argument help texts, and render them as plain text. Unlike
+    and argument help texts, and render them as plain text, styled
+    if standard output allows it (see `can_style`). Unlike
     `argparse.HelpFormatter`, keep paragraph breaks, list items and
     code blocks, wrapping paragraphs and list items separately.
     """
@@ -466,10 +616,16 @@ class MarkdownHelpFormatter(argparse.HelpFormatter):
     detail = DETAIL_SHORT
     """Detail level of help texts"""
 
+    def _styled(self) -> bool:
+        """Return `True` if help texts are to be styled."""
+        if not hasattr(self, '_styled_value'):
+            self._styled_value = can_style()
+        return self._styled_value
+
     def _split_lines(self, text: str, width: int) -> list[str]:
         """Convert an argument help text to lines (see `_fill_text`)."""
         return markdown_to_plain_lines(select_detail(text, self.detail),
-                                       width)
+                                       width, self._styled())
 
     def _fill_text(self, text: str, width: int, indent: str) -> str:
         """Convert a description or epilog to wrapped plain text.
@@ -481,12 +637,13 @@ class MarkdownHelpFormatter(argparse.HelpFormatter):
 
         Returns:
             The content of `text` for detail level `detail` as wrapped
-            plain text.
+            plain text, styled if `_styled()`.
         """
         return '\n'.join(
             (indent + line).rstrip()
             for line in markdown_to_plain_lines(
-                    select_detail(text, self.detail), width - len(indent)))
+                    select_detail(text, self.detail), width - len(indent),
+                    self._styled()))
 
     def format_help(self) -> str:
         """Return the help message, without trailing whitespace on lines."""

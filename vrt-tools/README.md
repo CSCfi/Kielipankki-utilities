@@ -88,8 +88,11 @@ as `::: short` … `:::`, or inline as `[…]{.long}` and `[…]{.short}`:
 The supported Markdown consists of paragraphs, lists, code blocks,
 headings and inline markup. Literal structure tags must be written as
 inline code (`` `<ne>` ``), and characters such as `*` and `_` in
-literal values should be within inline code. See the docstring of
-[`libvrt/mdhelp.py`](libvrt/mdhelp.py) for details.
+literal values should be within inline code. When the help is
+written to a terminal, inline code, option names and headings are
+shown in bold and emphasis (`*arg*`) underlined, as in man pages; set
+`NO_COLOR=1` (or `PYTHON_COLORS=0`) to disable this. See the
+docstring of [`libvrt/mdhelp.py`](libvrt/mdhelp.py) for details.
 
 To enable Markdown help for a tool:
 

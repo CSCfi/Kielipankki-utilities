@@ -6,12 +6,14 @@ Pytest tests for libvrt.mdhelp.
 
 
 import argparse
+import io
 import random
 import textwrap
 
 import pytest
 
 from libvrt.mdhelp import (
+    can_style,
     DETAIL_FULL,
     DETAIL_SHORT,
     enable_markdown_help,
@@ -187,6 +189,78 @@ class TestMarkdownToPlainLines:
             'aa', '--bb-cc-dd']
 
 
+B0, B1 = '\x1b[1m', '\x1b[22m'
+U0, U1 = '\x1b[4m', '\x1b[24m'
+
+
+class TestStyledLines:
+
+    """Tests for markdown_to_plain_lines with styled=True."""
+
+    def styled(self, text: str, width: int = 80) -> list[str]:
+        """Return `text` converted to styled lines wrapped to `width`."""
+        return markdown_to_plain_lines(text, width, styled=True)
+
+    def test_inline(self):
+        """Test styling inline markup and option names."""
+        assert self.styled(
+            '`<ne>` **b** *u* _v_ a_b_c --opt -o x-y [d](https://x.org)') == [
+                f'{B0}<ne>{B1} {B0}b{B1} {U0}u{U1} {U0}v{U1} a_b_c '
+                f'{B0}--opt{B1} {B0}-o{B1} x-y d <https://x.org>']
+
+    def test_escapes_and_code_content(self):
+        """Test escapes and markup characters in code spans."""
+        assert self.styled(r'\*x\* `` a`b `` `*y*`') == [
+            f'*x* {B0}a`b{B1} {B0}*y*{B1}']
+
+    def test_heading(self):
+        """Test styling a heading."""
+        assert self.styled('## Examples') == [f'{B0}Examples:{B1}']
+
+    def test_wrapping_ignores_escapes(self):
+        """Test that wrapping ignores escape sequences."""
+        assert self.styled('aaa `bbb` ccc', 7) == [f'aaa {B0}bbb{B1}', 'ccc']
+
+    def test_code_block_not_styled(self):
+        """Test that code blocks are not styled."""
+        assert self.styled('a\n\n    `x` --y') == ['a', '', '    `x` --y']
+
+
+class TestCanStyle:
+
+    """Tests for can_style."""
+
+    @pytest.fixture(autouse=True)
+    def clear_env(self, monkeypatch: pytest.MonkeyPatch):
+        """Unset the environment variables affecting styling."""
+        for var in ['PYTHON_COLORS', 'NO_COLOR', 'FORCE_COLOR', 'TERM']:
+            monkeypatch.delenv(var, raising=False)
+
+    def test_not_terminal(self):
+        """Test that a non-terminal is not styled by default."""
+        assert not can_style(io.StringIO())
+
+    def test_force_color(self, monkeypatch):
+        """Test FORCE_COLOR."""
+        monkeypatch.setenv('FORCE_COLOR', '1')
+        assert can_style(io.StringIO())
+
+    def test_no_color_over_force_color(self, monkeypatch):
+        """Test that NO_COLOR overrides FORCE_COLOR."""
+        monkeypatch.setenv('FORCE_COLOR', '1')
+        monkeypatch.setenv('NO_COLOR', '1')
+        assert not can_style(io.StringIO())
+
+    def test_python_colors(self, monkeypatch):
+        """Test that PYTHON_COLORS overrides NO_COLOR and FORCE_COLOR."""
+        monkeypatch.setenv('NO_COLOR', '1')
+        monkeypatch.setenv('PYTHON_COLORS', '1')
+        assert can_style(io.StringIO())
+        monkeypatch.setenv('PYTHON_COLORS', '0')
+        monkeypatch.setenv('FORCE_COLOR', '1')
+        assert not can_style(io.StringIO())
+
+
 def make_parser() -> argparse.ArgumentParser:
     """Return a test ArgumentParser with Markdown help enabled."""
     parser = argparse.ArgumentParser(
@@ -211,6 +285,11 @@ def make_parser() -> argparse.ArgumentParser:
 class TestParser:
 
     """Tests for a parser with Markdown help enabled."""
+
+    @pytest.fixture(autouse=True)
+    def no_styles(self, monkeypatch: pytest.MonkeyPatch):
+        """Disable styling to make the tests independent of environment."""
+        monkeypatch.setenv('PYTHON_COLORS', '0')
 
     def run(self, capsys: pytest.CaptureFixture[str], opt: str) -> str:
         """Return the output of the test parser for option `opt`."""
@@ -242,6 +321,13 @@ class TestParser:
         assert 'Group. More on group.\n' in out
         assert 'Examples:\n\nprog --foo\n' in out
         assert ' \n' not in out
+
+    def test_full_help_styled(self, capsys, monkeypatch):
+        """Test styled full help."""
+        monkeypatch.setenv('COLUMNS', '80')
+        monkeypatch.setenv('PYTHON_COLORS', '1')
+        out = self.run(capsys, '--help-full')
+        assert f'{B0}Examples:{B1}\n\nprog {B0}--foo{B1}\n' in out
 
     def test_markdown(self, capsys):
         """Test Markdown documentation (--help-markdown)."""
