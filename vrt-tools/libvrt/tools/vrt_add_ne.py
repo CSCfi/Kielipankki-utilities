@@ -133,7 +133,10 @@ class VrtNeAdder(InputProcessor):
 
     def check_args(self, args):
         """Check and modify `args` (parsed command line arguments)."""
-        args.multi_nertag = args.multi_nertag.rstrip(b'/') + b'/'
+        # Attribute names are matched without a trailing slash, so
+        # remove it from those specified
+        for attr in ('word', 'lemma', 'nertag', 'multi_nertag'):
+            setattr(args, attr, getattr(args, attr).rstrip(b'/'))
         super().check_args(args)
 
     def main(self, args, inf, ouf):
@@ -418,9 +421,10 @@ class VrtNeAdder(InputProcessor):
             """
             nonlocal attrnum_nertag, attrnum_nertags
             nonlocal attrnum_word, attrnum_lemma, num_attrs, posattrs
-            attrs = nl.parsenameline(line)
-            posattrs = attrs
-            num_attrs = len(attrs)
+            posattrs = nl.parsenameline(line)
+            num_attrs = len(posattrs)
+            # Match attribute names without a trailing slash
+            attrs = [attr.rstrip(b'/') for attr in posattrs]
             attrnames_check = [args.nertag, args.word]
             if not args.maximal_only:
                 attrnames_check.append(args.multi_nertag)

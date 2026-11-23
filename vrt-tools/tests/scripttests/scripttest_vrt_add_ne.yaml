@@ -717,6 +717,33 @@
       </sentence>
       </text>
 
+- name: 'vrt-add-ne: Multi-level NER attribute without slash'
+  input:
+    cmdline:
+    - vrt-add-ne
+    - vrt-add-ne --multi-nertag=nertags2/
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2 -->
+      <text a="b">
+      <sentence x="1">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-F-1|
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2 -->
+      <text a="b">
+      <sentence x="1">
+      <ne name="Lapuan tuomiokapituli" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      <ne1 name="Lapua" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Lapua" placename_source="ner">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-F-1|
+      </ne1>
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|
+      </ne>
+      </sentence>
+      </text>
+
 
 # Single-word names
 
