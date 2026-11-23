@@ -2938,3 +2938,40 @@
       </div>
       </text>
   transform: *transform-fast-d5s4
+
+
+# Usage message (Markdown help with detail levels)
+
+- name: 'vrt-add-id: Short usage message (-h)'
+  input:
+    cmdline: vrt-add-id -h
+    envvars:
+      COLUMNS: '80'
+  output:
+    stdout:
+      contains:
+        - '--help-full'
+        - 'format string for id'
+        - '(default: depends on --type'
+        - "\n1. with one or more of the options --no-optimize"
+      not-contains:
+        - 'Formatting string values'
+        - '(Default: with --type=counter'
+        - '::: '
+
+- name: 'vrt-add-id: Full usage message (--help-full)'
+  input:
+    cmdline: vrt-add-id --help-full
+    envvars:
+      COLUMNS: '80'
+  output:
+    stdout:
+      contains:
+        - 'format string for id'
+        - 'Formatting string values'
+        - '`\g<N>` or `\g<name>`'
+        - '(Default: with --type=counter'
+        - "\n1. with one or more of the options --no-optimize"
+      not-contains:
+        - '(default: depends on'
+        - '::: '
