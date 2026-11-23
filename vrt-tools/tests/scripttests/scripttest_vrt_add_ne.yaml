@@ -100,6 +100,39 @@
       vrt-add-ne: <stdin>:15: Warning: Invalid NER tag: EnamexFBar-F
       vrt-add-ne: <stdin>:16: Warning: Invalid NER tag: EnamexFoBo-G
 
+- name: 'vrt-add-ne: Invalid NER tags with trailing characters or depth'
+  input:
+    cmdline: vrt-add-ne
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      X	x	EnamexFooBar-Fxyz	|	O
+      X	x	EnamexFooBar-F-1	|	O
+      X	x	EnamexFooBar-F-	|	O
+      X	x	EnamexFooBar-F	|EnamexFooBar-F-0x|EnamexFooBar-F-1-|	O
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      X	x	EnamexFooBar-Fxyz	|	O
+      X	x	EnamexFooBar-F-1	|	O
+      X	x	EnamexFooBar-F-	|	O
+      <ne name="X" fulltype="EnamexFooBar" ex="ENAMEX" type="FOO" subtype="BAR" placename="" placename_source="">
+      X	x	EnamexFooBar-F	|EnamexFooBar-F-0x|EnamexFooBar-F-1-|	O
+      </ne>
+      </sentence>
+      </text>
+    stderr: |
+      vrt-add-ne: <stdin>:4: Warning: Invalid NER tag: EnamexFooBar-Fxyz
+      vrt-add-ne: <stdin>:5: Warning: Invalid NER tag: EnamexFooBar-F-1
+      vrt-add-ne: <stdin>:6: Warning: Invalid NER tag: EnamexFooBar-F-
+      vrt-add-ne: <stdin>:7: Warning: Invalid nested NER tag: EnamexFooBar-F-0x
+      vrt-add-ne: <stdin>:7: Warning: Invalid nested NER tag: EnamexFooBar-F-1-
+
 - name: 'vrt-add-ne: Invalid NER tags within a name'
   input:
     cmdline: vrt-add-ne

@@ -140,12 +140,16 @@ class VrtNeAdder(InputProcessor):
         def split_nertag(nertag):
             """Return a dict containing `nertag` parts.
 
-            If `nertag` value is not valid, that is, it does not match
-            the NER tag regexp
+            The keys of the dict are ``fulltype`` (the NER tag without
+            the suffixes), its parts ``ex``, ``type`` and ``subtype``,
+            ``kind`` (``B``, ``E`` or ``F``) and ``depth`` (the nesting
+            level, or `None` if `nertag` has no nesting level suffix).
+            If `nertag` is not valid, that is, it does not match the
+            NER tag regexp
             ``(Ena|Nu|Ti)mex[A-Z][a-z]+[A-Z][a-z]+-[BEF](-[0-9]+)?``,
             return `None`.
             """
-            mo = _NERTAG_RE.match(nertag)
+            mo = _NERTAG_RE.fullmatch(nertag)
             return mo.groupdict() if mo else None
 
         def add_ne_tags(name: _Name) -> list[bytes]:
@@ -426,9 +430,13 @@ class VrtNeAdder(InputProcessor):
                 attrs = line.rstrip(b'\r\n').split(b'\t')
                 nertag = attrs[attrnum_nertag]
                 nertag_parts: dict[str, bytes] | None = None
+                # "_" (as output by vrt-finnish-nertag --max) and an
+                # empty value mean no name
                 if nertag and nertag != b'_':
                     nertag_parts = split_nertag(nertag)
-                    if not nertag_parts:
+                    # A maximal NER tag may not have a depth suffix
+                    if not nertag_parts or nertag_parts['depth']:
+                        nertag_parts = None
                         warn('Invalid NER tag', nertag, linenum)
                 nertag_type = (nertag_parts['kind'] if nertag_parts
                                else NERTAG_NONE)
