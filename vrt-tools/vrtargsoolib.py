@@ -22,6 +22,7 @@ from enum import Enum, Flag
 import vrtargslib
 
 from libvrt.groupargs import ArgumentGrouping
+from libvrt.mdhelp import enable_markdown_help, insert_in_first_paragraph
 
 
 class CommonArgs(Enum):
@@ -47,7 +48,7 @@ class WarningsStyle(Flag):
 
 
 def get_argparser(argspecs=None, *, common_args=CommonArgs.trans,
-                  extra_types=None, **kwargs):
+                  extra_types=None, markdown_help=False, **kwargs):
     """Return an ArgumentParser with common and possibly other arguments.
 
     Return an `ArgumentParser` with common arguments by calling
@@ -62,6 +63,11 @@ def get_argparser(argspecs=None, *, common_args=CommonArgs.trans,
       `extra_types`:  dict[str, function] of additional types allowed
           in argument specifications in addition to global and
           built-in types
+      `markdown_help`: if `True`, the description, epilog, group
+          descriptions and argument help texts are Markdown with
+          marked detail levels, and the parser has the options
+          --help-full and (hidden) --help-markdown (see
+          `libvrt.mdhelp`)
       `**kwargs` is passed to `vrtargslib.trans_args`,
           `vrtargslib.version_args` or `argparse.ArgumentParser`,
           depending on `common_args`, and should contain at least a
@@ -80,12 +86,16 @@ def get_argparser(argspecs=None, *, common_args=CommonArgs.trans,
                 epilog=kwargs.get('epilog'))
         else:
             argparser = ArgumentParser(**kwargs)
+    if markdown_help:
+        enable_markdown_help(argparser)
     if argspecs:
-        argparser_add_args(argparser, argspecs, extra_types)
+        argparser_add_args(argparser, argspecs, extra_types,
+                           markdown_help=markdown_help)
     return argparser
 
 
-def argparser_add_args(argparser, argspecs, extra_types=None):
+def argparser_add_args(argparser, argspecs, extra_types=None,
+                       markdown_help=False):
     """Add the arguments specified in argspecs to ArgumentParser argparser.
 
     `argspecs` is a list of command-line argument specifications,
@@ -165,7 +175,24 @@ def argparser_add_args(argparser, argspecs, extra_types=None):
     Argument `extra_types` is dict[str, function] of additional types
     allowed in argument specifications in addition to global and
     built-in types.
+
+    If `markdown_help` is `True`, help texts are Markdown (see
+    `libvrt.mdhelp`), and information on a default value is appended
+    to the first paragraph of the help text instead of the end.
     """
+
+    def add_arg(argparser, argspec, modify_action=None):
+        """Add the argument specified in `argspec` to `argparser`.
+
+        Args:
+            argparser: The parser or argument group to which to add
+                the argument.
+            argspec: The argument specification.
+            modify_action: A function modifying the action of the
+                argument (see `_argparser_add_arg`).
+        """
+        _argparser_add_arg(argparser, argspec, extra_types, modify_action,
+                           markdown_help=markdown_help)
 
     def update_argdict(argspec, key, value):
         """Return `argspec` with its argdict updated with {`key`: `value`}."""
@@ -181,32 +208,31 @@ def argparser_add_args(argparser, argspecs, extra_types=None):
             group = argparser.add_mutually_exclusive_group(
                 required=('REQUIRED' in optname_u))
             for argspec_sub in argspec[1]:
-                _argparser_add_arg(group, argspec_sub, extra_types)
+                add_arg(group, argspec_sub)
         elif optname_u.startswith('#GROUP'):
             group_title = argspec[0].split(None, 1)[1]
             group_descr = argspec[1]
             group = argparser.add_argument_group(group_title, group_descr)
             if optname_u.startswith('#GROUPED'):
                 grouping = ArgumentGrouping()
-                _argparser_add_arg(
+                add_arg(
                     argparser,
                     # The value of the grouping argument defaults to
                     # {}, not shown in the usage
                     update_argdict(argspec[2][0], 'silent_default', {}),
-                    extra_types, lambda action: grouping.grouping_arg())
+                    lambda action: grouping.grouping_arg())
                 for argspec_sub in argspec[2][1:]:
-                    _argparser_add_arg(
-                        group, argspec_sub, extra_types,
-                        lambda action: grouping.grouped_arg(action))
+                    add_arg(group, argspec_sub,
+                            lambda action: grouping.grouped_arg(action))
             else:
                 for argspec_sub in argspec[2]:
-                    _argparser_add_arg(group, argspec_sub, extra_types)
+                    add_arg(group, argspec_sub)
         else:
-            _argparser_add_arg(argparser, argspec, extra_types)
+            add_arg(argparser, argspec)
 
 
 def _argparser_add_arg(argparser, argspec, extra_types=None,
-                       modify_action=None):
+                       modify_action=None, markdown_help=False):
     """Add the argument specified in argspec to ArgumentParser argparser.
 
     See `argparser_add_args` for the format of `argspec`.
@@ -218,6 +244,9 @@ def _argparser_add_arg(argparser, argspec, extra_types=None,
     If `modify_action` is not `None`, it should be a function of one
     argument, and the `action` of the argument to be added is replaced
     by the value returned by `modify_action(action)`.
+
+    If `markdown_help` is `True`, the help text is Markdown, and
+    information on a default value is appended to its first paragraph.
     """
 
     # TODO: Support integer-valued nargs. That may require changes to
@@ -353,7 +382,12 @@ def _argparser_add_arg(argparser, argspec, extra_types=None,
         else:
             default_fmt = (
                 '%(default)s' if 'type' in argdict else '"%(default)s"')
-        argdict['help'] += ' (default: ' + default_fmt + ')'
+        default_text = ' (default: ' + default_fmt + ')'
+        if markdown_help:
+            argdict['help'] = insert_in_first_paragraph(
+                argdict['help'], default_text)
+        else:
+            argdict['help'] += default_text
     # silent_default is a default not to be mentioned in the help text
     if 'silent_default' in argdict:
         if 'default' not in argdict:
@@ -464,6 +498,9 @@ class BasicProcessor:
         """
         common_args = CommonArgs.version
         """The script has the common arguments for transformation scripts"""
+        markdown_help = False
+        """DESCRIPTION, EPILOG and help texts in ARGSPECS are Markdown
+        with marked detail levels (see `libvrt.mdhelp`)"""
 
     def __init__(self, extra_types=None):
         """Initialize the class.
@@ -498,6 +535,7 @@ class BasicProcessor:
                 description=self.DESCRIPTION,
                 epilog=self.EPILOG,
                 extra_types=self._extra_types,
+                markdown_help=self.OPTIONS.markdown_help,
                 **extra_kwargs
             )
         self._progname = self._argparser.prog
