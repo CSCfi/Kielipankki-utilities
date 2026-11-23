@@ -1080,6 +1080,73 @@
       </sentence>
       </text>
 
+# The case of the lemma is adjusted to the word form, and compound
+# boundary markers are removed from the lemma
+- name: 'vrt-add-ne: Lemma case adjusted to word form, compound boundaries'
+  input:
+    cmdline: vrt-add-ne
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Kauppatorilla	kauppa#tori	EnamexLocStr-F	|EnamexLocStr-F-0|	B-LOC
+      kauppatorilla	kauppa#tori	EnamexLocStr-F	|EnamexLocStr-F-0|	B-LOC
+      KAUPPATORILLA	kauppa#tori	EnamexLocStr-F	|EnamexLocStr-F-0|	B-LOC
+      Helsinki-Vantaalla	helsinki-vantaa	EnamexLocFnc-F	|EnamexLocFnc-F-0|	B-LOC
+      YouTubessa	youtube	EnamexOrgCrp-F	|EnamexOrgCrp-F-0|	B-ORG
+      NATOn	nato	EnamexOrgPlt-F	|EnamexOrgPlt-F-0|	B-ORG
+      McDonald&apos;sin	mcdonald&apos;s	EnamexOrgCrp-F	|EnamexOrgCrp-F-0|	B-ORG
+      YouTubessa	YouTube	EnamexOrgCrp-F	|EnamexOrgCrp-F-0|	B-ORG
+      Youtubessa	YouTube	EnamexOrgCrp-F	|EnamexOrgCrp-F-0|	B-ORG
+      youtubessa	YouTube	EnamexOrgCrp-F	|EnamexOrgCrp-F-0|	B-ORG
+      C#:lla	c#	EnamexProXxx-F	|EnamexProXxx-F-0|	B-PRO
+      #MeToo-kampanjan	#metoo-kampanja	EnamexProXxx-F	|EnamexProXxx-F-0|	B-PRO
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="Kauppatori" fulltype="EnamexLocStr" ex="ENAMEX" type="LOC" subtype="STR" placename="Kauppatori" placename_source="ner">
+      Kauppatorilla	kauppa#tori	EnamexLocStr-F	|EnamexLocStr-F-0|	B-LOC
+      </ne>
+      <ne name="kauppatori" fulltype="EnamexLocStr" ex="ENAMEX" type="LOC" subtype="STR" placename="kauppatori" placename_source="ner">
+      kauppatorilla	kauppa#tori	EnamexLocStr-F	|EnamexLocStr-F-0|	B-LOC
+      </ne>
+      <ne name="KAUPPATORI" fulltype="EnamexLocStr" ex="ENAMEX" type="LOC" subtype="STR" placename="KAUPPATORI" placename_source="ner">
+      KAUPPATORILLA	kauppa#tori	EnamexLocStr-F	|EnamexLocStr-F-0|	B-LOC
+      </ne>
+      <ne name="Helsinki-Vantaa" fulltype="EnamexLocFnc" ex="ENAMEX" type="LOC" subtype="FNC" placename="Helsinki-Vantaa" placename_source="ner">
+      Helsinki-Vantaalla	helsinki-vantaa	EnamexLocFnc-F	|EnamexLocFnc-F-0|	B-LOC
+      </ne>
+      <ne name="YouTube" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      YouTubessa	youtube	EnamexOrgCrp-F	|EnamexOrgCrp-F-0|	B-ORG
+      </ne>
+      <ne name="NATO" fulltype="EnamexOrgPlt" ex="ENAMEX" type="ORG" subtype="PLT" placename="" placename_source="">
+      NATOn	nato	EnamexOrgPlt-F	|EnamexOrgPlt-F-0|	B-ORG
+      </ne>
+      <ne name="McDonald's" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      McDonald&apos;sin	mcdonald&apos;s	EnamexOrgCrp-F	|EnamexOrgCrp-F-0|	B-ORG
+      </ne>
+      <ne name="YouTube" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      YouTubessa	YouTube	EnamexOrgCrp-F	|EnamexOrgCrp-F-0|	B-ORG
+      </ne>
+      <ne name="YouTube" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      Youtubessa	YouTube	EnamexOrgCrp-F	|EnamexOrgCrp-F-0|	B-ORG
+      </ne>
+      <ne name="YouTube" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      youtubessa	YouTube	EnamexOrgCrp-F	|EnamexOrgCrp-F-0|	B-ORG
+      </ne>
+      <ne name="C#" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      C#:lla	c#	EnamexProXxx-F	|EnamexProXxx-F-0|	B-PRO
+      </ne>
+      <ne name="#MeToo-kampanja" fulltype="EnamexProXxx" ex="ENAMEX" type="PRO" subtype="XXX" placename="" placename_source="">
+      #MeToo-kampanjan	#metoo-kampanja	EnamexProXxx-F	|EnamexProXxx-F-0|	B-PRO
+      </ne>
+      </sentence>
+      </text>
+
 - name: 'vrt-add-ne: Names with XML character references'
   input:
     cmdline: vrt-add-ne

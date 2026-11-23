@@ -37,6 +37,9 @@ _NERTAG_RE = re.compile(rb'''(?P<fulltype>
                              (?: - (?P<depth> [0-9]+ ) )?''',
                         re.X)
 
+# A compound boundary marker in a lemma, as in "kauppa#tori"
+_COMPOUND_BOUNDARY_RE = re.compile(r'(?<=\w)#(?=\w)')
+
 
 # The maximum number of warnings for invalid NER tags; the total
 # number of invalid NER tags is reported at the end
@@ -121,9 +124,15 @@ class VrtNeAdder(InputProcessor):
     # Output attributes:
     # - `name`: For Numex and Timex, the word forms of the name. For
     #   Enamex, the word forms of all but the last word, followed by
-    #   the lemma of the last word, title-cased (each part between
-    #   non-letters capitalized) if the last word form is in title
-    #   case or upper-cased if it is in upper case.
+    #   the lemma of the last word, with compound boundary markers
+    #   `#` removed (unless the word form contains `#`) and the case
+    #   adjusted to the last word form: title-cased if the word form
+    #   is in title case, upper-cased if it is in upper case, and
+    #   otherwise with the letters upper-cased that are in upper case
+    #   in the word form, up to the first difference other than in
+    #   case (for example, `YouTube` for `YouTubessa` with lemma
+    #   `youtube`). Upper-case letters of the lemma are never changed
+    #   to lower case.
     # - `fulltype`: The NER tag without the -B, -E or -F suffix (and
     #   the nesting level).
     # - `ex`, `type` and `subtype`: The parts of `fulltype` in upper
@@ -438,7 +447,20 @@ class VrtNeAdder(InputProcessor):
                                    name_tokens[-1][attrnum_word])])
 
         def adjust_case(lemma: bytes, wordform: bytes) -> bytes:
-            """Capitalize or upper-case a lemma like its word form.
+            """Adjust the case of a lemma to that of its word form.
+
+            First remove compound boundary markers "#" between word
+            characters from `lemma`, unless `wordform` contains "#".
+            Then title-case the lemma if `wordform` is in title case
+            (for example, "kauppa#tori" for "Kauppatorilla" becomes
+            "Kauppatori"), upper-case it if `wordform` is in upper
+            case, and otherwise upper-case each letter of the lemma
+            whose counterpart at the same position in `wordform` is in
+            upper case, up to the first difference other than in case
+            (for example, "youtube" for "YouTubessa" becomes
+            "YouTube"). Never change upper-case letters of the lemma
+            to lower case (for example, "YouTube" for "Youtubessa"
+            remains "YouTube").
 
             Test and change the case on unescaped strings, so that
             non-ASCII letters and letters adjacent to character entity
@@ -449,22 +471,41 @@ class VrtNeAdder(InputProcessor):
                 wordform: The word form (escaped, as in the input).
 
             Returns:
-                `lemma` capitalized if `wordform` is capitalized, in
-                upper case if `wordform` is in upper case, otherwise
-                `lemma` as is.
+                The adjusted lemma, escaped; `lemma` as is if not
+                changed.
             """
+            lemma_str = _unescape(lemma)
             wordform_str = _unescape(wordform)
+            new_lemma = lemma_str
+            if '#' in new_lemma and '#' not in wordform_str:
+                new_lemma = _COMPOUND_BOUNDARY_RE.sub('', new_lemma)
             if wordform_str.istitle():
-                change_case = str.title
+                titled = new_lemma.title()
+                if len(titled) == len(new_lemma):
+                    # Keep upper-case letters of the lemma, which
+                    # str.title would change to lower case
+                    titled = ''.join(
+                        lemma_char if lemma_char.isupper() else title_char
+                        for lemma_char, title_char in zip(new_lemma, titled))
+                new_lemma = titled
             elif wordform_str.isupper():
-                change_case = str.upper
+                new_lemma = new_lemma.upper()
             else:
+                chars = list(new_lemma)
+                for i, (lemma_char, word_char) in enumerate(
+                        zip(new_lemma, wordform_str)):
+                    if lemma_char != word_char:
+                        if lemma_char.lower() != word_char.lower():
+                            break
+                        if word_char.isupper():
+                            chars[i] = word_char
+                new_lemma = ''.join(chars)
+            if new_lemma == lemma_str:
                 return lemma
             # ml.strescape does not escape apostrophes, so an &apos; in
             # the lemma becomes a literal apostrophe; that is valid in
             # a double-quoted attribute value
-            return ml.strescape(change_case(_unescape(lemma))).encode(
-                'utf-8', 'surrogateescape')
+            return ml.strescape(new_lemma).encode('utf-8', 'surrogateescape')
 
         def warn(msg, nertag, linenum):
             """Output to stderr a warning with message `msg`.
