@@ -62,6 +62,36 @@
     stderr: |
       vrt-add-ne: No positional attribute 'word' in input
 
+- name: 'vrt-add-ne: Different positional-attributes comments'
+  input:
+    cmdline: vrt-add-ne
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ -->
+      <text a="b">
+      a	a	_	|
+      </text>
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ -->
+      <text a="c">
+      b	b	_	|
+      </text>
+      <!-- #vrt positional-attributes: word nertag2 nertags2/ lemma -->
+      <text a="d">
+      c	_	|	c
+      </text>
+  output:
+    returncode: 1
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ -->
+      <text a="b">
+      a	a	_	|
+      </text>
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ -->
+      <text a="c">
+      b	b	_	|
+      </text>
+    stderr: |
+      vrt-add-ne: <stdin>:9: Positional-attributes comment differs from the first one
+
 - name: 'vrt-add-ne: Too few fields on a token line'
   input:
     cmdline: vrt-add-ne

@@ -142,6 +142,8 @@ class VrtNeAdder(InputProcessor):
         # Index of the positional attribute for nertag, nertags, word
         # and lemma
         attrnum_nertag = attrnum_nertags = attrnum_word = attrnum_lemma = None
+        # The names of positional attributes
+        posattrs: list[bytes] | None = None
         # The number of positional attributes
         num_attrs = 0
         # The number of invalid NER tags
@@ -406,10 +408,18 @@ class VrtNeAdder(InputProcessor):
                 warn(msg, nertag, linenum)
 
         def set_attrnums(line):
-            """Set `attrnum_*` variables from pos attrs comment `line`."""
+            """Set positional attribute information from comment `line`.
+
+            Set `posattrs`, `num_attrs` and the `attrnum_*` variables
+            from positional-attributes comment `line`. Exit with an
+            error if a required attribute is missing. If the lemma
+            attribute is missing, use word forms in its place, with a
+            warning unless `args.lemma` is empty.
+            """
             nonlocal attrnum_nertag, attrnum_nertags
-            nonlocal attrnum_word, attrnum_lemma, num_attrs
+            nonlocal attrnum_word, attrnum_lemma, num_attrs, posattrs
             attrs = nl.parsenameline(line)
+            posattrs = attrs
             num_attrs = len(attrs)
             attrnames_check = [args.nertag, args.word]
             if not args.maximal_only:
@@ -482,15 +492,20 @@ class VrtNeAdder(InputProcessor):
                     struct_depth += 1
                     if line.startswith(sentence_starts):
                         sentence_depths.append(struct_depth)
+                elif nl.isnameline(line):
+                    # Positional-attributes comment
+                    if posattrs is None:
+                        set_attrnums(line)
+                    elif nl.parsenameline(line) != posattrs:
+                        self.error_exit(
+                            'Positional-attributes comment differs from the'
+                            ' first one',
+                            filename=inf.name, linenr=linenum + 1)
                 if name:
                     # Inside a name
                     name.lines.append(line)
                 else:
                     # Outside a name
-                    if attrnum_nertag is None:
-                        # Positional-attributes comment not yet seen
-                        if nl.isnameline(line):
-                            set_attrnums(line)
                     ouf.write(line)
             elif attrnum_nertag is None:
                 # Token line, no positional-attributes comment seen
