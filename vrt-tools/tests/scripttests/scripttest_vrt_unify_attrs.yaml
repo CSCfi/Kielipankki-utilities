@@ -1599,3 +1599,57 @@
     stderr: |
       vrt-unify-attrs: Warning: --optional has no effect with --single-pass
   transform: *transform-stdin-comma
+
+
+# Usage message and documentation (Markdown help with detail levels)
+
+- name: 'vrt-unify-attrs: Short usage message (-h)'
+  input:
+    cmdline: vrt-unify-attrs -h
+    envvars:
+      COLUMNS: '80'
+  output:
+    stdout:
+      contains:
+        - '--help-full'
+        - 'add missing attributes with value str (default: ""),'
+        - 'The tool reads the input twice'
+      not-contains:
+        - 'attr-regex-list is a list'
+        - 'non-occurring'
+        - 'overrides the values'
+        - 'Examples:'
+        - '::: long'
+
+- name: 'vrt-unify-attrs: Full usage message (--help-full)'
+  input:
+    cmdline: vrt-unify-attrs --help-full
+    envvars:
+      COLUMNS: '80'
+  output:
+    stdout:
+      contains:
+        - 'add missing attributes with value str (default: ""),'
+        - 'attr-regex-list is a list'
+        - 'non-occurring'
+        - 'overrides the values'
+        - "Examples:\n\nAdd missing attributes"
+        - "\n    vrt-unify-attrs --default=_ --structure=sentence"
+      not-contains:
+        - '::: long'
+        - ']{.long}'
+
+- name: 'vrt-unify-attrs: Documentation in Markdown (--help-markdown)'
+  input:
+    cmdline: vrt-unify-attrs --help-markdown
+  output:
+    stdout:
+      contains:
+        - "# vrt-unify-attrs\n\n## Synopsis\n"
+        - "### Structure-specific options\n"
+        - "#### `--default [[attr-regex-list]:]str`\n"
+        - "## Notes\n\nThe tool reads the input twice"
+        - "## Examples\n"
+      not-contains:
+        - '::: long'
+        - '--help-markdown'

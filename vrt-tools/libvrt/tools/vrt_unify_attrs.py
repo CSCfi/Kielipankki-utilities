@@ -31,6 +31,9 @@ class VrtStructAttrUnifier(InputProcessor):
 
     """Class implementing vrt-unify-attrs functionality."""
 
+    class OPTIONS(InputProcessor.OPTIONS):
+        markdown_help = True
+
     DESCRIPTION = """
     Unify the structural attributes (annotations) in the input VRT:
     add attributes possibly missing from some structures (elements)
@@ -41,6 +44,21 @@ class VrtStructAttrUnifier(InputProcessor):
     The tool reads the input twice unless --single-pass is specified.
     If the input is not a file, the tool writes the input to a
     temporary file for the second pass.
+
+    ::: long
+    ## Examples
+
+    Add missing attributes with the value `_`, except for missing `n`
+    attributes of `<sentence>` structures, which get the value `0`,
+    and order `id` first in `<sentence>` structures:
+
+        vrt-unify-attrs --default=_ --structure=sentence --first=id \\
+            --default=n:0 input.vrt
+
+    `--default=_` applies to all structures, as it precedes any
+    `--structure`, whereas `--first=id` and `--default=n:0` apply only
+    to `<sentence>`.
+    :::
     """
     ARGSPECS = [
         ('--single-pass',
@@ -50,24 +68,30 @@ class VrtStructAttrUnifier(InputProcessor):
          '''The following options can be specified multiple times: each
             occurrence applies to the --structure after which it is
             specified. If an option is specified before any --structure, it
-            becomes the default for all structures.''',
+            becomes the default for all structures[ (see Examples
+            below)]{.long}.''',
          [
              ('--structure|element|e = struct:encode_utf8',
               '''the options following this (up to the next --structure)
                  apply to structures struct'''),
              ('--default = ""',
-              '''Add missing attributes with value str (default: "").
+              '''add missing attributes with value str (default: ""), to
+                 all attributes or only to those matching attr-regex-list
+
+                 ::: long
                  attr-regex-list is a list of attribute name regular
-                 expressions, separated by spaces or commas.
-                 If attr-regex-list is specified, apply to
-                 attributes whose names fully match one of the
-                 regular expressions in it, otherwise to all attributes.
-                 If attr-regex-list is omitted, the colon following it can
-                 also be omitted unless str contains a colon.
+                 expressions, separated by spaces or commas. If
+                 attr-regex-list is specified, apply to attributes whose
+                 names fully match one of the regular expressions in it,
+                 otherwise to all attributes. If attr-regex-list is
+                 omitted, the colon following it can also be omitted
+                 unless str contains a colon.
+
                  If the option is specified multiple times with different
                  attribute regular expressions, an attribute gets the str
                  specified for the last regular expression matching the
-                 attribute name.''',
+                 attribute name.
+                 :::''',
               dict(action='append',
                    type=attr_regex_list_combined_value,
                    silent_default=[],
@@ -90,10 +114,11 @@ class VrtStructAttrUnifier(InputProcessor):
               dict(silent_default=[])),
              ('--always = attrlist:attrlist',
               '''always output attributes listed in attrlist, even if they
-                 did not occur in the input; with --input-order, non-occurring
-                 attributes are appended after occurring ones in the order
-                 specified in attrlist, unless also listed in --first or
-                 --last; attrlist value as for --first and --last''',
+                 did not occur in the input[; with --input-order,
+                 non-occurring attributes are appended after occurring ones
+                 in the order specified in attrlist, unless also listed in
+                 --first or --last]{.long}; attrlist value as for --first
+                 and --last''',
               dict(silent_default=[])),
              # No (silent_)default for --only, as a specified empty
              # value has a special meaning different from not
@@ -105,9 +130,10 @@ class VrtStructAttrUnifier(InputProcessor):
                  an empty value (and no --always) removes all attributes'''),
              ('--exactly = attrlist:attrlist',
               '''always output only attributes listed in attrlist, shorthand
-                 for --always=attrlist --only=attrlist; overrides the values
-                 for --always and --only (but structure-specific --always and
-                 --only override global --exactly)'''),
+                 for --always=attrlist --only=attrlist[; overrides the values
+                 for --always and --only, with a warning (but
+                 structure-specific --always and --only override global
+                 --exactly)]{.long}'''),
              ('--optional = attr-regex-list:attr_regex_list_combined',
               '''do not add attributes fully matching a regular expression in
                  attr-regex-list to structures from which they are missing
