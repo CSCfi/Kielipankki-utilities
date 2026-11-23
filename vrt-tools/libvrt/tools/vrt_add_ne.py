@@ -330,7 +330,7 @@ class VrtNeAdder(InputProcessor):
                     'No positional-attributes comment before the first token')
             else:
                 # Token line
-                attrs = line[:-1].split(b'\t')
+                attrs = line.rstrip(b'\r\n').split(b'\t')
                 nertag = attrs[attrnum_nertag]
                 if nertag and nertag != b'_':
                     nertag_parts = split_nertag(nertag)
