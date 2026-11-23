@@ -159,8 +159,7 @@
       vrt-add-ne: <stdin>:12: Warning: Invalid NER tag: EnamexFo1Bo1-F
       vrt-add-ne: <stdin>:13: Warning: Invalid NER tag: EnamexFooBarBaz-F
       vrt-add-ne: <stdin>:14: Warning: Invalid NER tag: EnamexFooB-F
-      vrt-add-ne: <stdin>:15: Warning: Invalid NER tag: EnamexFBar-F
-      vrt-add-ne: <stdin>:16: Warning: Invalid NER tag: EnamexFoBo-G
+      vrt-add-ne: Warning: 12 invalid NER tags in total; only the first 10 reported
 
 - name: 'vrt-add-ne: Invalid NER tags with trailing characters or depth'
   input:

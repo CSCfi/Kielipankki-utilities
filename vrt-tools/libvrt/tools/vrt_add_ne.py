@@ -38,6 +38,11 @@ _NERTAG_RE = re.compile(rb'''(?P<fulltype>
                         re.X)
 
 
+# The maximum number of warnings for invalid NER tags; the total
+# number of invalid NER tags is reported at the end
+_MAX_INVALID_NERTAG_WARNINGS = 10
+
+
 @dataclass(slots=True)
 class _Name:
 
@@ -139,6 +144,8 @@ class VrtNeAdder(InputProcessor):
         attrnum_nertag = attrnum_nertags = attrnum_word = attrnum_lemma = None
         # The number of positional attributes
         num_attrs = 0
+        # The number of invalid NER tags
+        invalid_nertag_count = 0
         # Values of the kind group of a NER tag (see _NERTAG_RE):
         # beginning, end and full (single-word) name
         NERTAG_NONE = None
@@ -206,7 +213,8 @@ class VrtNeAdder(InputProcessor):
                         continue
                     nertag_parts = split_nertag(nertag)
                     if not nertag_parts or not nertag_parts['depth']:
-                        warn('Invalid nested NER tag', nertag, token_linenum)
+                        warn_invalid_nertag('Invalid nested NER tag', nertag,
+                                            token_linenum)
                         continue
                     depth = int(nertag_parts['depth'])
                     # Ignore depth 0 (top level)
@@ -385,6 +393,18 @@ class VrtNeAdder(InputProcessor):
             self.warn(msg + ': ' + nertag.decode('utf-8', 'backslashreplace'),
                       filename=inf.name, linenr=linenum + 1)
 
+        def warn_invalid_nertag(msg: str, nertag: bytes, linenum: int):
+            """Warn of invalid NER tag `nertag`, unless warned too often.
+
+            Output warning `msg` with `nertag` and `linenum` (see
+            `warn`) only for the first `_MAX_INVALID_NERTAG_WARNINGS`
+            invalid NER tags but count them all.
+            """
+            nonlocal invalid_nertag_count
+            invalid_nertag_count += 1
+            if invalid_nertag_count <= _MAX_INVALID_NERTAG_WARNINGS:
+                warn(msg, nertag, linenum)
+
         def set_attrnums(line):
             """Set `attrnum_*` variables from pos attrs comment `line`."""
             nonlocal attrnum_nertag, attrnum_nertags
@@ -498,7 +518,7 @@ class VrtNeAdder(InputProcessor):
                     # A maximal NER tag may not have a depth suffix
                     if not nertag_parts or nertag_parts['depth']:
                         nertag_parts = None
-                        warn('Invalid NER tag', nertag, linenum)
+                        warn_invalid_nertag('Invalid NER tag', nertag, linenum)
                 nertag_type = (nertag_parts['kind'] if nertag_parts
                                else NERTAG_NONE)
                 if name:
@@ -542,3 +562,7 @@ class VrtNeAdder(InputProcessor):
                       + '-E expected',
                       filename=inf.name, linenr=name.token_linenums[0] + 1)
             ouf.writelines(name.lines)
+        if invalid_nertag_count > _MAX_INVALID_NERTAG_WARNINGS:
+            self.warn(f'{invalid_nertag_count} invalid NER tags in total;'
+                      f' only the first {_MAX_INVALID_NERTAG_WARNINGS}'
+                      ' reported')
