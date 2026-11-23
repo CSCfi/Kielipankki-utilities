@@ -26,6 +26,17 @@ from libvrt.argtypes import encode_utf8
 from vrtargsoolib import InputProcessor
 
 
+# NER tag, possibly with a nesting depth suffix
+_NERTAG_RE = re.compile(rb'''(?P<fulltype>
+                               (?P<ex> (?: Ena|Nu|Ti ) mex )
+                               (?P<type> [A-Z] [a-z]+ )
+                               (?P<subtype> [A-Z] [a-z]+ )
+                             )
+                             - (?P<kind> [BEF] )
+                             (?: - (?P<depth> [0-9]+ ) )?''',
+                        re.X)
+
+
 class VrtNeAdder(InputProcessor):
 
     """Class implementing vrt-add-ne functionality."""
@@ -97,14 +108,7 @@ class VrtNeAdder(InputProcessor):
             ``(Ena|Nu|Ti)mex[A-Z][a-z]+[A-Z][a-z]+-[BEF](-[0-9]+)?``,
             return `None`.
             """
-            mo = re.match(rb'''(?P<fulltype>
-                                 (?P<ex> (?: Ena|Nu|Ti ) mex )
-                                 (?P<type> [A-Z] [a-z]+ )
-                                 (?P<subtype> [A-Z] [a-z]+ )
-                               )
-                               - (?P<kind> [BEF] )
-                               (?: - (?P<depth> [0-9]+ ) )?''',
-                          nertag, re.X)
+            mo = _NERTAG_RE.match(nertag)
             return mo.groupdict() if mo else None
 
         def add_ne_tags(nertag_parts, namelines, name_tokens):
