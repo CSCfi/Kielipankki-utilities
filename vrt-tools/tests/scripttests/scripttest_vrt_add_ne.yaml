@@ -349,6 +349,90 @@
     stderr: |
       vrt-add-ne: <stdin>:4: Warning: No end tag for nested NER tag: EnamexLocPpl-B-1
 
+- name: 'vrt-add-ne: Nested NER end tag without start tag'
+  input:
+    cmdline: vrt-add-ne
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      hiippakunnan	hiippakunta	_	|EnamexLocPpl-E-1|	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </sentence>
+      <sentence x="2">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-F-1|	B-ORG
+      hiippakunnan	hiippakunta	_	|EnamexLocPpl-E-1|	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      <ne name="Lapuan hiippakunnan tuomiokapituli" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|	B-ORG
+      hiippakunnan	hiippakunta	_	|EnamexLocPpl-E-1|	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      </sentence>
+      <sentence x="2">
+      <ne name="Lapuan hiippakunnan tuomiokapituli" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      <ne1 name="Lapua" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Lapua" placename_source="ner">
+      Lapuan	Lapua	EnamexOrgCrp-B	|EnamexOrgCrp-B-0|EnamexLocPpl-F-1|	B-ORG
+      </ne1>
+      hiippakunnan	hiippakunta	_	|EnamexLocPpl-E-1|	I-ORG
+      tuomiokapituli	tuomiokapituli	EnamexOrgCrp-E	|EnamexOrgCrp-E-0|	I-ORG
+      </ne>
+      </sentence>
+      </text>
+    stderr: |
+      vrt-add-ne: <stdin>:5: Warning: Nested NER end tag without start tag: EnamexLocPpl-E-1
+      vrt-add-ne: <stdin>:10: Warning: Nested NER end tag without start tag: EnamexLocPpl-E-1
+
+# Nested names are enclosed in <neN> immediately around their tokens,
+# also when the maximal name contains intra-name structures and
+# comments, and warnings refer to the correct lines
+- name: 'vrt-add-ne: Multi-level names with intra-name structures and comments'
+  input:
+    cmdline: vrt-add-ne
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      Suomen	Suomi	EnamexOrgEdu-B	|EnamexOrgEdu-B-0|EnamexLocPpl-F-1|	B-ORG
+      <!-- comment -->
+      <hi>
+      Tampereen	Tampere	_	|EnamexLocPpl-B-1|	I-ORG
+      teknillisen	teknillinen	_	|EnamexLocPpl-E-1|EnamexFooBar|	I-ORG
+      </hi>
+      yliopiston	yliopisto	EnamexOrgEdu-E	|EnamexOrgEdu-E-0|	I-ORG
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="1">
+      <ne name="Suomen Tampereen teknillisen yliopisto" fulltype="EnamexOrgEdu" ex="ENAMEX" type="ORG" subtype="EDU" placename="" placename_source="">
+      <ne1 name="Suomi" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Suomi" placename_source="ner">
+      Suomen	Suomi	EnamexOrgEdu-B	|EnamexOrgEdu-B-0|EnamexLocPpl-F-1|	B-ORG
+      </ne1>
+      <!-- comment -->
+      <hi>
+      <ne1 name="Tampereen teknillinen" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Tampereen teknillinen" placename_source="ner">
+      Tampereen	Tampere	_	|EnamexLocPpl-B-1|	I-ORG
+      teknillisen	teknillinen	_	|EnamexLocPpl-E-1|EnamexFooBar|	I-ORG
+      </ne1>
+      </hi>
+      yliopiston	yliopisto	EnamexOrgEdu-E	|EnamexOrgEdu-E-0|	I-ORG
+      </ne>
+      </sentence>
+      </text>
+    stderr: |
+      vrt-add-ne: <stdin>:8: Warning: Invalid nested NER tag: EnamexFooBar
+
 
 # No names
 

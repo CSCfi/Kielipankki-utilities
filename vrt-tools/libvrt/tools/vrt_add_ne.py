@@ -18,6 +18,7 @@ Please run "vrt-add-ne -h" for more information.
 import re
 
 from collections import defaultdict
+from dataclasses import dataclass, field
 
 from libvrt import metaline as ml
 from libvrt import nameline as nl
@@ -35,6 +36,30 @@ _NERTAG_RE = re.compile(rb'''(?P<fulltype>
                              - (?P<kind> [BEF] )
                              (?: - (?P<depth> [0-9]+ ) )?''',
                         re.X)
+
+
+@dataclass(slots=True)
+class _Name:
+
+    """A name with its lines, as collected from the input."""
+
+    # Parts of the NER tag of the maximal name (see `split_nertag`)
+    nertag_parts: dict[str, bytes]
+    # Input lines within the name: tokens and intra-name meta lines
+    lines: list[bytes] = field(default_factory=list)
+    # Token lines split into positional attributes
+    tokens: list[list[bytes]] = field(default_factory=list)
+    # Index in `lines` of each token
+    token_lineidxs: list[int] = field(default_factory=list)
+    # Zero-based input line number of each token
+    token_linenums: list[int] = field(default_factory=list)
+
+    def add_token(self, line: bytes, attrs: list[bytes], linenum: int):
+        """Add token `line`, split into `attrs`, at input line `linenum`."""
+        self.token_lineidxs.append(len(self.lines))
+        self.token_linenums.append(linenum)
+        self.lines.append(line)
+        self.tokens.append(attrs)
 
 
 class VrtNeAdder(InputProcessor):
@@ -106,33 +131,41 @@ class VrtNeAdder(InputProcessor):
             mo = _NERTAG_RE.match(nertag)
             return mo.groupdict() if mo else None
 
-        def add_ne_tags(nertag_parts, namelines, name_tokens):
-            """Return `namelines` surrounded by an <ne> structure.
+        def add_ne_tags(name: _Name) -> list[bytes]:
+            """Return the lines of `name` enclosed in <ne> structures.
 
-            `nertag_parts` is a dict containing the parts of the NER
-            tag and `name_tokens` is `namelines` split into
-            attributes.
+            Enclose the maximal name in <ne> and, unless
+            `args.maximal_only`, nested names in <neN> (or <ne>).
             """
-            if not args.maximal_only:
-                namelines = add_nested_ne_tags(namelines, name_tokens)
-            return enclose_in_ne(nertag_parts, namelines, name_tokens)
+            nested_names = [] if args.maximal_only else find_nested_names(name)
+            if nested_names:
+                lines = add_nested_ne_tags(name, nested_names)
+            else:
+                lines = name.lines
+            starttag, endtag = make_ne_tags(name.nertag_parts, name.tokens)
+            return [starttag] + lines + [endtag]
 
-        def add_nested_ne_tags(namelines, name_tokens):
-            """Return `namelines` with nested names enclosed in <neN>.
+        def find_nested_names(
+                name: _Name) -> list[tuple[int, int, int, dict[str, bytes]]]:
+            """Return the nested, non-maximal names within `name`.
 
-            Enclose nested, non-maximal (non-top-level) names in
-            `namelines` in <neN> structures, where N is the nesting
-            level, or in <ne> if `args.recursive_nested`.
-            `name_tokens` is `namelines` split into positional
-            attributes. The function uses the attribute ``nertags`` to
-            get information on nested names.
+            Get the nested names from the attribute ``nertags`` of the
+            tokens of `name`. Warn of invalid and unmatched NER tags.
+
+            Returns:
+                A list of tuples (depth, start, end, nertag_parts),
+                where depth is the nesting level (> 0), start and end
+                are the indices of the first token and the token
+                following the last token of the nested name in
+                `name.tokens`, and nertag_parts are the parts of its
+                NER tag.
             """
-            # Names by nesting depth
-            nested_names = defaultdict(list)
-            # Line number of namelines[0]
-            linenum1 = linenum - len(namelines) + 1
-            for token_num, token in enumerate(name_tokens):
-                token_linenum = linenum1 + token_num
+            # Names whose end tag has not yet been seen, by depth:
+            # (nertag, nertag_parts, start)
+            open_names: dict[int, tuple[bytes, dict[str, bytes], int]] = {}
+            nested_names: list[tuple[int, int, int, dict[str, bytes]]] = []
+            for token_num, token in enumerate(name.tokens):
+                token_linenum = name.token_linenums[token_num]
                 nertags = token[attrnum_nertags].strip(b'|').split(b'|')
                 for nertag in nertags:
                     if not nertag:
@@ -143,71 +176,96 @@ class VrtNeAdder(InputProcessor):
                         continue
                     depth = int(nertag_parts['depth'])
                     # Ignore depth 0 (top level)
-                    if depth:
-                        tagtype = nertag_parts['kind']
-                        depth_names = nested_names[depth]
-                        if tagtype == NERTAG_FULL:
-                            depth_names.append(
-                                [nertag, nertag_parts, token_num,
-                                 token_num + 1])
-                        elif tagtype == NERTAG_BEGIN:
-                            if not depth_names or len(depth_names[-1]) == 4:
-                                # No open tag at depth
-                                depth_names.append(
-                                    [nertag, nertag_parts, token_num])
-                            else:
-                                warn('Nested NER tag '
-                                     + depth_names[-1][0].decode('utf-8')
-                                     + f' already open at level {depth}',
-                                     nertag, token_linenum)
-                        elif tagtype == NERTAG_END:
-                            open_name = depth_names[-1]
-                            if (nertag_parts['fulltype']
-                                    == open_name[1]['fulltype']):
-                                open_name.append(token_num + 1)
-                            else:
-                                warn('Nested NER end tag does not match start'
-                                     ' tag ' + open_name[0].decode('utf-8'),
-                                     nertag, token_linenum)
-            # nameline_index[i] is the number of the line in namelines
-            # whose number was i in the input namelines but which may
-            # be different after adding <ne> tags
-            nameline_index = list(range(len(namelines) + 1))
-            for depth in sorted(nested_names, reverse=True):
-                for nameinfo in nested_names[depth]:
-                    if len(nameinfo) < 4:
-                        warn('No end tag for nested NER tag', nameinfo[0],
-                             linenum1 + nameinfo[2])
+                    if not depth:
                         continue
-                    _, nertag_parts, start, end = nameinfo
-                    nameline_start = nameline_index[start]
-                    nameline_end = nameline_index[end]
-                    namelines[nameline_start:nameline_end] = (
-                        enclose_in_ne(nertag_parts,
-                                      namelines[nameline_start:nameline_end],
-                                      name_tokens[start:end], depth))
-                    # Adjust nameline_index by the start tag
-                    for i in range(start + 1, end):
-                        nameline_index[i] += 1
-                    # Adjust nameline_index by the start and end tag
-                    for i in range(end, len(nameline_index)):
-                        nameline_index[i] += 2
-            return namelines
+                    tagtype = nertag_parts['kind']
+                    open_name = open_names.get(depth)
+                    if tagtype == NERTAG_FULL:
+                        nested_names.append(
+                            (depth, token_num, token_num + 1, nertag_parts))
+                    elif tagtype == NERTAG_BEGIN:
+                        if open_name is None:
+                            open_names[depth] = (
+                                nertag, nertag_parts, token_num)
+                        else:
+                            warn('Nested NER tag '
+                                 + open_name[0].decode('utf-8')
+                                 + f' already open at level {depth}',
+                                 nertag, token_linenum)
+                    elif open_name is None:
+                        # tagtype == NERTAG_END
+                        warn('Nested NER end tag without start tag',
+                             nertag, token_linenum)
+                    elif (nertag_parts['fulltype']
+                          == open_name[1]['fulltype']):
+                        del open_names[depth]
+                        nested_names.append(
+                            (depth, open_name[2], token_num + 1,
+                             open_name[1]))
+                    else:
+                        warn('Nested NER end tag does not match start'
+                             ' tag ' + open_name[0].decode('utf-8'),
+                             nertag, token_linenum)
+            for depth in sorted(open_names, reverse=True):
+                nertag, _, start = open_names[depth]
+                warn('No end tag for nested NER tag', nertag,
+                     name.token_linenums[start])
+            return nested_names
 
-        def enclose_in_ne(nertag_parts, namelines, name_tokens, depth=0):
-            """Return `namelines` enclosed in <ne> with NER tag `nertag_parts`.
+        def add_nested_ne_tags(
+                name: _Name,
+                nested_names: list[tuple[int, int, int, dict[str, bytes]]]
+        ) -> list[bytes]:
+            """Return the lines of `name` with `nested_names` enclosed.
 
-            `name_tokens` is `namelines` split into positional
-            attributes. If `depth` > 0 and not `args.recursive_nested`,
-            use structure <neN>, where N is `depth`.
+            Enclose `nested_names` (as returned by `find_nested_names`)
+            in <neN> structures, where N is the nesting level, or in
+            <ne> if `args.recursive_nested`. Insert start tags
+            immediately before the first token of a nested name and
+            end tags immediately after its last token, so that
+            intra-name meta lines remain outside nested names
+            beginning or ending at them.
+            """
+            # Start and end tags to be added before and after each
+            # token, by token index; an outer name (lower depth, or
+            # longer at the same depth) is opened first and closed
+            # last
+            starttags: defaultdict[int, list[bytes]] = defaultdict(list)
+            endtags: defaultdict[int, list[bytes]] = defaultdict(list)
+            for depth, start, end, nertag_parts in sorted(
+                    nested_names, key=lambda n: (n[1], n[0], -n[2])):
+                starttag, endtag = make_ne_tags(
+                    nertag_parts, name.tokens[start:end], depth)
+                starttags[start].append(starttag)
+                endtags[end - 1].insert(0, endtag)
+            lines: list[bytes] = []
+            line_tokens: dict[int, int] = dict(
+                zip(name.token_lineidxs, range(len(name.tokens))))
+            for lineidx, line in enumerate(name.lines):
+                token_num = line_tokens.get(lineidx)
+                if token_num is None:
+                    lines.append(line)
+                else:
+                    lines.extend(starttags.get(token_num, ()))
+                    lines.append(line)
+                    lines.extend(endtags.get(token_num, ()))
+            return lines
+
+        def make_ne_tags(nertag_parts: dict[str, bytes],
+                         name_tokens: list[list[bytes]],
+                         depth: int = 0) -> tuple[bytes, bytes]:
+            """Return start and end tag of <ne> with NER tag `nertag_parts`.
+
+            `name_tokens` is the tokens of the name split into
+            positional attributes. If `depth` > 0 and not
+            `args.recursive_nested`, use structure <neN>, where N is
+            `depth`.
             """
             struct = (b'ne' if depth == 0 or args.recursive_nested
                       else f'ne{depth}'.encode())
-            return (
-                [ml.starttag(
-                    struct, make_ne_attrs(nertag_parts, name_tokens))]
-                + namelines
-                + [b'</' + struct + b'>\n'])
+            return (ml.starttag(struct,
+                                make_ne_attrs(nertag_parts, name_tokens)),
+                    b'</' + struct + b'>\n')
 
         def make_ne_attrs(nertag_parts, name_tokens):
             """Return attribute (name, value) pairs for <ne> structure.
@@ -283,31 +341,23 @@ class VrtNeAdder(InputProcessor):
             if not args.maximal_only:
                 attrnum_nertags = attrs.index(args.multi_nertag)
 
-        # Input lines within a (multi-word) name
-        namelines = []
-        # namelines (tokens) split into attributes, to avoid to
-        # splitting multiple times
-        name_tokens = []
-        # NER tag split into parts
-        nertag_parts = {}
-        # Parts of the currently open NER tag
-        open_nertag_parts = {}
+        # The multi-word name being collected, or None outside names
+        name: _Name | None = None
         for linenum, line in enumerate(inf):
             if ml.ismeta(line):
                 # Structure or comment line
-                if namelines:
+                if name:
                     # Inside a name
                     if ml.isendtag(line) and ml.element(line) == b'sentence':
                         # Names may not cross sentence boundaries
                         warn('NER start tag without end tag within sentence',
-                             name_tokens[0][attrnum_nertag],
-                             linenum - len(namelines))
-                        ouf.writelines(namelines)
+                             name.tokens[0][attrnum_nertag],
+                             name.token_linenums[0])
+                        ouf.writelines(name.lines)
                         ouf.write(line)
-                        namelines = []
-                        name_tokens = []
+                        name = None
                     else:
-                        namelines.append(line)
+                        name.lines.append(line)
                 else:
                     # Outside a name
                     if attrnum_nertag is None:
@@ -323,31 +373,26 @@ class VrtNeAdder(InputProcessor):
                 # Token line
                 attrs = line.rstrip(b'\r\n').split(b'\t')
                 nertag = attrs[attrnum_nertag]
+                nertag_parts: dict[str, bytes] | None = None
                 if nertag and nertag != b'_':
                     nertag_parts = split_nertag(nertag)
-                    if nertag_parts:
-                        nertag_type = nertag_parts['kind']
-                    else:
+                    if not nertag_parts:
                         warn('Invalid NER tag', nertag, linenum)
-                        nertag_type = NERTAG_NONE
-                else:
-                    nertag_type = NERTAG_NONE
-                if namelines:
+                nertag_type = (nertag_parts['kind'] if nertag_parts
+                               else NERTAG_NONE)
+                if name:
                     # Within a multi-word name
-                    namelines.append(line)
-                    name_tokens.append(attrs)
+                    name.add_token(line, attrs, linenum)
                     if nertag_type == NERTAG_END:
                         if (nertag_parts['fulltype']
-                                == open_nertag_parts['fulltype']):
+                                == name.nertag_parts['fulltype']):
                             # Last token of the name
-                            ouf.writelines(
-                                add_ne_tags(nertag_parts, namelines,
-                                            name_tokens))
-                            namelines = []
-                            name_tokens = []
+                            ouf.writelines(add_ne_tags(name))
+                            name = None
                         else:
                             warn('NER end tag does not match start tag '
-                                 + open_nertag_parts['fulltype'].decode('utf-8')
+                                 + name.nertag_parts['fulltype']
+                                 .decode('utf-8')
                                  + '-B',
                                  nertag, linenum)
                     elif nertag_type != NERTAG_NONE:
@@ -357,20 +402,20 @@ class VrtNeAdder(InputProcessor):
                     ouf.write(line)
                 elif nertag_type == NERTAG_FULL:
                     # Single-word name
-                    ouf.writelines(add_ne_tags(nertag_parts, [line], [attrs]))
+                    ouf.writelines(add_ne_tags(
+                        _Name(nertag_parts, [line], [attrs], [0], [linenum])))
                 elif nertag_type == NERTAG_BEGIN:
                     # Begin a multi-word name
-                    namelines.append(line)
-                    name_tokens.append(attrs)
-                    open_nertag_parts = nertag_parts
+                    name = _Name(nertag_parts)
+                    name.add_token(line, attrs, linenum)
                 else:
                     # nertag_type == NERTAG_END
                     warn('NER end tag without start tag', nertag, linenum)
                     ouf.write(line)
-        if namelines:
+        if name:
             # This means that a sentence is open, too, and the input
             # is incomplete
             self.warn('End of input at the middle of a name: '
                       + nertag.decode('utf-8')[:-1] + 'E expected',
                       filename=inf.name, linenr=linenum)
-            ouf.writelines(namelines)
+            ouf.writelines(name.lines)
