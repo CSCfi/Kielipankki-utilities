@@ -167,6 +167,10 @@ class VrtNeAdder(InputProcessor):
             Enclose the maximal name in <ne> and, unless
             `args.maximal_only`, nested names in <neN> (or <ne>).
             """
+            if not name.lines[-1].endswith(b'\n'):
+                # Last input line without a newline: add it, so that
+                # the end tags are on lines of their own
+                name.lines[-1] += b'\n'
             nested_names = [] if args.maximal_only else find_nested_names(name)
             if nested_names:
                 lines = add_nested_ne_tags(name, nested_names)

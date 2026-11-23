@@ -111,6 +111,19 @@
       </sentence>
       </text>
 
+- name: 'vrt-add-ne: No newline at the end of input'
+  input:
+    cmdline: vrt-add-ne
+    stdin: |-
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ -->
+      a	a	EnamexLocPpl-F	|EnamexLocPpl-F-0|
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ -->
+      <ne name="a" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="a" placename_source="ner">
+      a	a	EnamexLocPpl-F	|EnamexLocPpl-F-0|
+      </ne>
+
 - name: 'vrt-add-ne: Invalid NER tags'
   input:
     cmdline: vrt-add-ne
