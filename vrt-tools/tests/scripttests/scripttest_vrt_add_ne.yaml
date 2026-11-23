@@ -338,6 +338,55 @@
       vrt-add-ne: <stdin>:7: Warning: NER end tag without start tag: EnamexLocStr-E
       vrt-add-ne: <stdin>:10: Warning: NER start tag without end tag within sentence: EnamexLocStr-B
 
+- name: 'vrt-add-ne: Name does not end within a sentence, --sentence'
+  input:
+    cmdline: vrt-add-ne --sentence s
+    stdin: &input-sentence-breaks-name-s |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <s x="y">
+      Aamuruskontie	aamuruskotie	EnamexLocStr-B	|EnamexLocStr-B-0|	B-LOC
+      <emph>
+      6	6	_	|	I-LOC
+      </emph>
+      </s>
+      <s x="z">
+      Aamuruskontie	aamuruskotie	EnamexLocStr-B	|EnamexLocStr-B-0|	B-LOC
+      </text>
+      <text a="c">
+      <s x="y">
+      6	6	EnamexLocStr-E	|EnamexLocStr-E-0|	I-LOC
+      </s>
+      </text>
+  output:
+    stdout: *input-sentence-breaks-name-s
+    stderr: |
+      vrt-add-ne: <stdin>:4: Warning: NER start tag without end tag within sentence: EnamexLocStr-B
+      vrt-add-ne: <stdin>:10: Warning: NER start tag without end tag within sentence: EnamexLocStr-B
+      vrt-add-ne: <stdin>:14: Warning: NER end tag without start tag: EnamexLocStr-E
+
+# Tokens should be within sentences, but without sentence structures,
+# a name may not cross the end of the innermost structure containing
+# its start
+- name: 'vrt-add-ne: Name does not end within a structure, no sentences'
+  input:
+    cmdline: vrt-add-ne
+    stdin: &input-struct-breaks-name |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <paragraph>
+      Aamuruskontie	aamuruskotie	EnamexLocStr-B	|EnamexLocStr-B-0|	B-LOC
+      </paragraph>
+      <paragraph>
+      6	6	EnamexLocStr-E	|EnamexLocStr-E-0|	I-LOC
+      </paragraph>
+      </text>
+  output:
+    stdout: *input-struct-breaks-name
+    stderr: |
+      vrt-add-ne: <stdin>:4: Warning: NER start tag without end tag within sentence: EnamexLocStr-B
+      vrt-add-ne: <stdin>:7: Warning: NER end tag without start tag: EnamexLocStr-E
+
 - name: 'vrt-add-ne: End of input in the middle of name'
   input:
     cmdline: vrt-add-ne

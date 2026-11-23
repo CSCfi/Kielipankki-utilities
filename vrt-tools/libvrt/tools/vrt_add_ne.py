@@ -53,6 +53,10 @@ class _Name:
     token_lineidxs: list[int] = field(default_factory=list)
     # Zero-based input line number of each token
     token_linenums: list[int] = field(default_factory=list)
+    # Structure nesting depth of the boundary structure of the name:
+    # an end tag at this depth or lower ends the name if it has not
+    # ended at a NER end tag (0 = no structure)
+    boundary_depth: int = 0
 
     def add_token(self, line: bytes, attrs: list[bytes], linenum: int):
         """Add token `line`, split into `attrs`, at input line `linenum`."""
@@ -111,6 +115,9 @@ class VrtNeAdder(InputProcessor):
         ('--recursive-nested',
          '''enclose nested names in recursively embedded <ne> structures
             instead of numbered <ne1>, <ne2>, ... by nesting level'''),
+        ('--sentence = struct:encode_utf8 "sentence"',
+         '''sentence structure name is struct: a name may not cross the
+            end of a struct structure'''),
     ]
 
     def __init__(self):
@@ -397,23 +404,60 @@ class VrtNeAdder(InputProcessor):
             if not args.maximal_only:
                 attrnum_nertags = attrs.index(args.multi_nertag)
 
+        def begin_name(nertag_parts: dict[str, bytes]) -> _Name:
+            """Begin a new multi-word name.
+
+            Set the boundary structure of the name to the innermost
+            open sentence structure or, if none is open, to the
+            innermost open structure.
+
+            Args:
+                nertag_parts: The parts of the NER tag of the name.
+
+            Returns:
+                The new name, with no lines yet.
+            """
+            return _Name(nertag_parts,
+                         boundary_depth=(sentence_depths[-1] if sentence_depths
+                                         else struct_depth))
+
         # The multi-word name being collected, or None outside names
         name: _Name | None = None
+        # The nesting depth of structures
+        struct_depth = 0
+        # The nesting depths of the open sentence structures
+        sentence_depths: list[int] = []
+        # Prefixes of sentence start tags
+        sentence_starts = (b'<' + args.sentence + b' ',
+                           b'<' + args.sentence + b'>')
         for linenum, line in enumerate(inf):
-            if ml.ismeta(line):
+            # The same as ml.ismeta(line) but faster, as this is
+            # tested for every line
+            if line and line[0] == 60:  # b'<'
                 # Structure or comment line
-                if name:
-                    # Inside a name
-                    if ml.isendtag(line) and ml.element(line) == b'sentence':
-                        # Names may not cross sentence boundaries
+                if line.startswith(b'</'):
+                    # End tag
+                    if name and struct_depth <= name.boundary_depth:
+                        # Names may not cross the end of a sentence. The
+                        # warning mentions a sentence even if the
+                        # boundary is another structure, but that
+                        # happens only if tokens are not in sentences.
                         warn('NER start tag without end tag within sentence',
                              name.tokens[0][attrnum_nertag],
                              name.token_linenums[0])
                         ouf.writelines(name.lines)
-                        ouf.write(line)
                         name = None
-                    else:
-                        name.lines.append(line)
+                    if sentence_depths and sentence_depths[-1] == struct_depth:
+                        sentence_depths.pop()
+                    struct_depth -= 1
+                elif not line.startswith(b'<!'):
+                    # Start tag
+                    struct_depth += 1
+                    if line.startswith(sentence_starts):
+                        sentence_depths.append(struct_depth)
+                if name:
+                    # Inside a name
+                    name.lines.append(line)
                 else:
                     # Outside a name
                     if attrnum_nertag is None:
@@ -466,7 +510,7 @@ class VrtNeAdder(InputProcessor):
                         _Name(nertag_parts, [line], [attrs], [0], [linenum])))
                 elif nertag_type == NERTAG_BEGIN:
                     # Begin a multi-word name
-                    name = _Name(nertag_parts)
+                    name = begin_name(nertag_parts)
                     name.add_token(line, attrs, linenum)
                 else:
                     # nertag_type == NERTAG_END
