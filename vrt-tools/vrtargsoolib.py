@@ -76,7 +76,8 @@ def get_argparser(argspecs=None, *, common_args=CommonArgs.trans,
             del kwargs['inplace']
         if common_args == CommonArgs.version:
             argparser = vrtargslib.version_args(
-                description=kwargs.get('description'))
+                description=kwargs.get('description'),
+                epilog=kwargs.get('epilog'))
         else:
             argparser = ArgumentParser(**kwargs)
     if argspecs:
