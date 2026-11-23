@@ -15,7 +15,6 @@ Please run "vrt-add-ne -h" for more information.
 #   now tagged "<ne> nameword1 <tag> nameword2 </ne> </tag>"
 
 
-import sys
 import re
 
 from collections import defaultdict
@@ -115,7 +114,6 @@ class VrtNeAdder(InputProcessor):
             tag and `name_tokens` is `namelines` split into
             attributes.
             """
-            # print('add_ne_tags', nertag, namelines, name_tokens, file=sys.stderr)
             if not args.maximal_only:
                 namelines = add_nested_ne_tags(namelines, name_tokens)
             return enclose_in_ne(nertag_parts, namelines, name_tokens)
