@@ -808,6 +808,47 @@
       </sentence>
       </text>
 
+- name: 'vrt-add-ne: Case-changed names with non-ASCII letters and character references'
+  input:
+    cmdline: vrt-add-ne
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Äänekoskella	äänekoski	EnamexLocPpl-F	|EnamexLocPpl-F-0|	B-LOC
+      MÄNTSÄLÄSSÄ	mäntsälä	EnamexLocPpl-F	|EnamexLocPpl-F-0|	B-LOC
+      Åbossa	åbo	EnamexLocPpl-F	|EnamexLocPpl-F-0|	B-LOC
+      AT&amp;T	at&amp;t	EnamexOrgCrp-F	|EnamexOrgCrp-F-0|	B-ORG
+      O&apos;Neillin	o&apos;neill	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+      o&apos;neillin	o&apos;neill	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+      </sentence>
+      </text>
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="Äänekoski" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Äänekoski" placename_source="ner">
+      Äänekoskella	äänekoski	EnamexLocPpl-F	|EnamexLocPpl-F-0|	B-LOC
+      </ne>
+      <ne name="MÄNTSÄLÄ" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="MÄNTSÄLÄ" placename_source="ner">
+      MÄNTSÄLÄSSÄ	mäntsälä	EnamexLocPpl-F	|EnamexLocPpl-F-0|	B-LOC
+      </ne>
+      <ne name="Åbo" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="Åbo" placename_source="ner">
+      Åbossa	åbo	EnamexLocPpl-F	|EnamexLocPpl-F-0|	B-LOC
+      </ne>
+      <ne name="AT&amp;T" fulltype="EnamexOrgCrp" ex="ENAMEX" type="ORG" subtype="CRP" placename="" placename_source="">
+      AT&amp;T	at&amp;t	EnamexOrgCrp-F	|EnamexOrgCrp-F-0|	B-ORG
+      </ne>
+      <ne name="O'Neill" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
+      O&apos;Neillin	o&apos;neill	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+      </ne>
+      <ne name="o&apos;neill" fulltype="EnamexPrsHum" ex="ENAMEX" type="PRS" subtype="HUM" placename="" placename_source="">
+      o&apos;neillin	o&apos;neill	EnamexPrsHum-F	|EnamexPrsHum-F-0|	B-PER
+      </ne>
+      </sentence>
+      </text>
+
 - name: 'vrt-add-ne: Names with XML character references'
   input:
     cmdline: vrt-add-ne

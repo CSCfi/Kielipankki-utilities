@@ -62,6 +62,23 @@ class _Name:
         self.tokens.append(attrs)
 
 
+def _unescape(value: bytes) -> str:
+    """Decode and unescape a VRT attribute value.
+
+    Args:
+        value: The value as in the input, possibly with character
+            entity references.
+
+    Returns:
+        `value` decoded from UTF-8 (undecodable bytes as surrogate
+        escapes) and with the predefined entity references (&lt;
+        &gt; &amp; &quot; &apos;) replaced with the characters.
+    """
+    value_str = value.decode('utf-8', 'surrogateescape')
+    return (ml.strunescape(value_str, tabs=False) if '&' in value_str
+            else value_str)
+
+
 class VrtNeAdder(InputProcessor):
 
     """Class implementing vrt-add-ne functionality."""
@@ -284,8 +301,21 @@ class VrtNeAdder(InputProcessor):
                 (b'placename', name if is_placename else b''),
                 (b'placename_source', b'ner' if is_placename else b''))
 
-        def make_name(name_tokens, name_cat):
-            """Return a name composed of `name_tokens`, of type `name_cat`."""
+        def make_name(name_tokens: list[list[bytes]],
+                      name_cat: bytes) -> bytes:
+            """Make the value of the name attribute of <ne>.
+
+            Args:
+                name_tokens: The tokens of the name split into
+                    positional attributes.
+                name_cat: The category of the name: ``Enamex``,
+                    ``Numex`` or ``Timex``.
+
+            Returns:
+                The name, with character entity references as in the
+                input, except possibly in a last lemma changed by
+                `adjust_case`, and double quotation marks not encoded.
+            """
             if name_cat in (b'Timex', b'Numex'):
                 # For temporal and numeric expressions, return a
                 # concatenation of word forms
@@ -294,17 +324,39 @@ class VrtNeAdder(InputProcessor):
             else:
                 # For name expressions proper, use lemma of the last
                 # token and word forms of the preceding ones
-                last_wordform = name_tokens[-1][attrnum_word]
-                last_lemma = name_tokens[-1][attrnum_lemma]
-                # If the last word form is capitalized or
-                # all-uppercase, make the last lemma such, too
-                if last_wordform.istitle():
-                    last_lemma = last_lemma.title()
-                elif last_wordform.isupper():
-                    last_lemma = last_lemma.upper()
-                return b' '.join([token[attrnum_word]
-                                  for token in name_tokens[:-1]]
-                                 + [last_lemma])
+                return b' '.join(
+                    [token[attrnum_word] for token in name_tokens[:-1]]
+                    + [adjust_case(name_tokens[-1][attrnum_lemma],
+                                   name_tokens[-1][attrnum_word])])
+
+        def adjust_case(lemma: bytes, wordform: bytes) -> bytes:
+            """Capitalize or upper-case a lemma like its word form.
+
+            Test and change the case on unescaped strings, so that
+            non-ASCII letters and letters adjacent to character entity
+            references are handled correctly.
+
+            Args:
+                lemma: The lemma (escaped, as in the input).
+                wordform: The word form (escaped, as in the input).
+
+            Returns:
+                `lemma` capitalized if `wordform` is capitalized, in
+                upper case if `wordform` is in upper case, otherwise
+                `lemma` as is.
+            """
+            wordform_str = _unescape(wordform)
+            if wordform_str.istitle():
+                change_case = str.title
+            elif wordform_str.isupper():
+                change_case = str.upper
+            else:
+                return lemma
+            # ml.strescape does not escape apostrophes, so an &apos; in
+            # the lemma becomes a literal apostrophe; that is valid in
+            # a double-quoted attribute value
+            return ml.strescape(change_case(_unescape(lemma))).encode(
+                'utf-8', 'surrogateescape')
 
         def warn(msg, nertag, linenum):
             """Output to stderr a warning with message `msg`.
