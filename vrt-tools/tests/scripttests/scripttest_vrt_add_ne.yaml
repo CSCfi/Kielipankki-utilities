@@ -305,7 +305,7 @@
       vrt-add-ne: <stdin>:7: Warning: NER end tag without start tag: EnamexLocStr-E
       vrt-add-ne: <stdin>:10: Warning: NER start tag without end tag within sentence: EnamexLocStr-B
 
-- name: 'vrt-add-ne: End of input at the middle of name'
+- name: 'vrt-add-ne: End of input in the middle of name'
   input:
     cmdline: vrt-add-ne
     stdin: &input-unexpected-end |
@@ -316,7 +316,22 @@
   output:
     stdout: *input-unexpected-end
     stderr: |
-      vrt-add-ne: <stdin>:3: Warning: End of input at the middle of a name: EnamexLocStr-E expected
+      vrt-add-ne: <stdin>:4: Warning: End of input in the middle of a name: EnamexLocStr-E expected
+
+- name: 'vrt-add-ne: End of input in the middle of name, after non-name-start token'
+  input:
+    cmdline: vrt-add-ne
+    stdin: &input-unexpected-end-2 |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
+      <text a="b">
+      <sentence x="y">
+      Aamuruskontie	aamuruskotie	EnamexLocStr-B	|EnamexLocStr-B-0|	B-LOC
+      <x>
+      6	6	_	|	I-LOC
+  output:
+    stdout: *input-unexpected-end-2
+    stderr: |
+      vrt-add-ne: <stdin>:4: Warning: End of input in the middle of a name: EnamexLocStr-E expected
 
 # The nested name at level 1 has no end tag, so the nested name
 # at level 2 becomes <ne2> directly within <ne>, without <ne1>

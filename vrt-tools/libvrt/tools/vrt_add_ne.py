@@ -465,9 +465,11 @@ class VrtNeAdder(InputProcessor):
                     warn('NER end tag without start tag', nertag, linenum)
                     ouf.write(line)
         if name:
-            # This means that a sentence is open, too, and the input
-            # is incomplete
-            self.warn('End of input at the middle of a name: '
-                      + nertag.decode('utf-8')[:-1] + 'E expected',
-                      filename=inf.name, linenr=linenum)
+            # Neither a NER end tag nor a structure end tag ended the
+            # name, so the input is incomplete (or has tokens outside
+            # structures)
+            self.warn('End of input in the middle of a name: '
+                      + name.nertag_parts['fulltype'].decode('utf-8')
+                      + '-E expected',
+                      filename=inf.name, linenr=name.token_linenums[0] + 1)
             ouf.writelines(name.lines)
