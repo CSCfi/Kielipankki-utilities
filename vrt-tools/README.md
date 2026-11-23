@@ -59,4 +59,69 @@ flexibly in different ways:
 In case of failure, any partial output is left in a transparently
 named temporary file.
 
+## Documentation
+
+Run a tool with `-h` for a short usage message. Tools using Markdown
+help (see below) also have `--help-full` for full help, and their
+documentation is available in Markdown in [`docs/tools/`](docs/tools/).
+
+### Markdown help texts with detail levels
+
+The description, epilog, argument group descriptions and argument
+help texts of a tool can be written in a subset of Markdown with
+marked detail levels. The short usage message (`-h`), the full help
+(`--help-full`) and the Markdown documentation (`--help-markdown`,
+not shown in the usage message) are then all generated from them.
+
+Content shown only in the full help and documentation is marked as
+`::: long` … `:::` and content shown only in the short usage message
+as `::: short` … `:::`, or inline as `[…]{.long}` and `[…]{.short}`:
+
+    add missing attributes with value str, to all attributes or only
+    to those matching attr-regex-list
+
+    ::: long
+    attr-regex-list is a list of attribute name regular expressions,
+    separated by spaces or commas. ...
+    :::
+
+The supported Markdown consists of paragraphs, lists, code blocks,
+headings and inline markup. Literal structure tags must be written as
+inline code (`` `<ne>` ``), and characters such as `*` and `_` in
+literal values should be within inline code. See the docstring of
+[`libvrt/mdhelp.py`](libvrt/mdhelp.py) for details.
+
+To enable Markdown help for a tool:
+
+- with `vrtargsoolib`: set `markdown_help = True` in the class
+  `OPTIONS` of the tool class:
+
+      class OPTIONS(InputProcessor.OPTIONS):
+          markdown_help = True
+
+- with `libvrt.args` or plain `argparse`: call
+  `libvrt.mdhelp.enable_markdown_help(parser)` after creating the
+  parser, for example, after `parser = transput_args(...)`.
+
+### Generating documentation
+
+After changing the help texts of a tool using Markdown help, or
+enabling or disabling Markdown help for a tool, run
+`docs/make-tool-docs` to update the Markdown documentation and its
+index in `docs/tools/`; do not edit the generated files by hand. A
+test (`tests/test_tool_docs.py`) checks that they are up to date.
+
+Without arguments, `docs/make-tool-docs` documents all tools using
+Markdown help and removes the documentation of other tools; with tool
+names as arguments, it updates only their documentation and the
+index. In a Git working tree, it finds the tools among the scripts
+tracked by Git, so run `git add` for the script of a new tool first:
+otherwise, its documentation is removed, and the test reports it as
+obsolete.
+
+`docs/make-tool-docs --html DIR` and `--man DIR` also generate HTML
+and man pages with [Pandoc](https://pandoc.org/), for example, to
+`docs/build/` (not version-controlled). To view a man page, run
+`man -l DIR/man1/tool.1`.
+
 ## To be continued
