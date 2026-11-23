@@ -556,7 +556,7 @@ class VrtNeAdder(InputProcessor):
                                  + '-B',
                                  nertag, linenum)
                     elif nertag_type != NERTAG_NONE:
-                        warn('Invalid NER tag within name', nertag, linenum)
+                        warn('NER start tag within name', nertag, linenum)
                 elif nertag_type == NERTAG_NONE:
                     # Not a name
                     ouf.write(line)

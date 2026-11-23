@@ -255,8 +255,8 @@
       </sentence>
       </text>
     stderr: |
-      vrt-add-ne: <stdin>:5: Warning: Invalid NER tag within name: EnamexProXxx-B
-      vrt-add-ne: <stdin>:6: Warning: Invalid NER tag within name: EnamexProXxx-F
+      vrt-add-ne: <stdin>:5: Warning: NER start tag within name: EnamexProXxx-B
+      vrt-add-ne: <stdin>:6: Warning: NER start tag within name: EnamexProXxx-F
       vrt-add-ne: <stdin>:8: Warning: Invalid NER tag: 1
 
 - name: 'vrt-add-ne: Invalid NER tags in multi-level NER attribute'
@@ -343,7 +343,7 @@
       </sentence>
       </text>
     stderr: |
-      vrt-add-ne: <stdin>:7: Warning: Invalid NER tag within name: EnamexLocStr-B
+      vrt-add-ne: <stdin>:7: Warning: NER start tag within name: EnamexLocStr-B
       vrt-add-ne: <stdin>:8: Warning: NER end tag does not match start tag EnamexProXxx-B: EnamexLocStr-E
 
 - name: 'vrt-add-ne: Invalid NER begin and end tags within a multi-level name'
