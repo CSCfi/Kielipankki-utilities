@@ -137,6 +137,8 @@ class VrtNeAdder(InputProcessor):
         # Index of the positional attribute for nertag, nertags, word
         # and lemma
         attrnum_nertag = attrnum_nertags = attrnum_word = attrnum_lemma = None
+        # The number of positional attributes
+        num_attrs = 0
         # Values of the kind group of a NER tag (see _NERTAG_RE):
         # beginning, end and full (single-word) name
         NERTAG_NONE = None
@@ -382,8 +384,9 @@ class VrtNeAdder(InputProcessor):
         def set_attrnums(line):
             """Set `attrnum_*` variables from pos attrs comment `line`."""
             nonlocal attrnum_nertag, attrnum_nertags
-            nonlocal attrnum_word, attrnum_lemma
+            nonlocal attrnum_word, attrnum_lemma, num_attrs
             attrs = nl.parsenameline(line)
+            num_attrs = len(attrs)
             attrnames_check = [args.nertag, args.word]
             if not args.maximal_only:
                 attrnames_check.append(args.multi_nertag)
@@ -467,11 +470,21 @@ class VrtNeAdder(InputProcessor):
                     ouf.write(line)
             elif attrnum_nertag is None:
                 # Token line, no positional-attributes comment seen
-                self.error_exit(
-                    'No positional-attributes comment before the first token')
+                if line.strip(b'\r\n'):
+                    self.error_exit('No positional-attributes comment before'
+                                    ' the first token')
+                # Drop empty lines
             else:
                 # Token line
                 attrs = line.rstrip(b'\r\n').split(b'\t')
+                if len(attrs) < num_attrs:
+                    if attrs == [b'']:
+                        # Drop empty lines
+                        continue
+                    self.error_exit(
+                        f'Token line has {len(attrs)} fields, {num_attrs}'
+                        ' expected',
+                        filename=inf.name, linenr=linenum + 1)
                 nertag = attrs[attrnum_nertag]
                 nertag_parts: dict[str, bytes] | None = None
                 # "_" (as output by vrt-finnish-nertag --max) and an

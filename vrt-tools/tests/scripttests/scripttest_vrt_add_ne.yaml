@@ -62,6 +62,55 @@
     stderr: |
       vrt-add-ne: No positional attribute 'word' in input
 
+- name: 'vrt-add-ne: Too few fields on a token line'
+  input:
+    cmdline: vrt-add-ne
+    stdin: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ -->
+      <text a="b">
+      <sentence x="y">
+      a	a	_	|
+      b	b	_
+      </sentence>
+      </text>
+  output:
+    returncode: 1
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ -->
+      <text a="b">
+      <sentence x="y">
+      a	a	_	|
+    stderr: |
+      vrt-add-ne: <stdin>:5: Token line has 3 fields, 4 expected
+
+- name: 'vrt-add-ne: Empty lines'
+  input:
+    cmdline: vrt-add-ne
+    stdin: |
+
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ -->
+
+      <text a="b">
+      <sentence x="y">
+
+      a	a	EnamexLocPpl-B	|EnamexLocPpl-B-0|
+
+      b	b	EnamexLocPpl-E	|EnamexLocPpl-E-0|
+      </sentence>
+      </text>
+
+  output:
+    stdout: |
+      <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ -->
+      <text a="b">
+      <sentence x="y">
+      <ne name="a b" fulltype="EnamexLocPpl" ex="ENAMEX" type="LOC" subtype="PPL" placename="a b" placename_source="ner">
+      a	a	EnamexLocPpl-B	|EnamexLocPpl-B-0|
+      b	b	EnamexLocPpl-E	|EnamexLocPpl-E-0|
+      </ne>
+      </sentence>
+      </text>
+
 - name: 'vrt-add-ne: Invalid NER tags'
   input:
     cmdline: vrt-add-ne
