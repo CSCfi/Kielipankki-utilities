@@ -1,0 +1,17 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+"""
+vrt-add-ne
+
+A VRT tool to add ne structures for names.
+
+The actual implementation is in libvrt.tools.vrt_add_ne.
+"""
+
+
+from libvrt.tools.vrt_add_ne import VrtNeAdder
+
+
+if __name__ == '__main__':
+    VrtNeAdder().run()

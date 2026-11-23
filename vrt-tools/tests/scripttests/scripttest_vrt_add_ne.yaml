@@ -1,5 +1,5 @@
 
-# scripttestlib tests for vrt-augment-name-attrs
+# scripttestlib tests for vrt-add-ne
 
 
 # Default input and output
@@ -13,9 +13,9 @@
 
 # Defective input
 
-- name: 'vrt-augment-name-attrs: No positional-attributes comment'
+- name: 'vrt-add-ne: No positional-attributes comment'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <text a="b">
       <sentence x="y">
@@ -28,11 +28,11 @@
       <text a="b">
       <sentence x="y">
     stderr: |
-      vrt-augment-name-attrs: No positional-attributes comment before the first token
+      vrt-add-ne: No positional-attributes comment before the first token
 
-- name: 'vrt-augment-name-attrs: No nertag2 attribute'
+- name: 'vrt-add-ne: No nertag2 attribute'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word -->
       <text a="b">
@@ -44,11 +44,11 @@
     returncode: 1
     stdout: ''
     stderr: |
-      vrt-augment-name-attrs: No positional attribute 'nertag2' in input
+      vrt-add-ne: No positional attribute 'nertag2' in input
 
-- name: 'vrt-augment-name-attrs: No word attribute'
+- name: 'vrt-add-ne: No word attribute'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: lemma nertag2 -->
       <text a="b">
@@ -60,11 +60,11 @@
     returncode: 1
     stdout: ''
     stderr: |
-      vrt-augment-name-attrs: No positional attribute 'word' in input
+      vrt-add-ne: No positional attribute 'word' in input
 
-- name: 'vrt-augment-name-attrs: Invalid NER tags'
+- name: 'vrt-add-ne: Invalid NER tags'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: &input-invalid-nertag |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -87,22 +87,22 @@
   output:
     stdout: *input-invalid-nertag
     stderr: |
-      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid NER tag: A
-      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid NER tag: 1
-      vrt-augment-name-attrs: <stdin>:7: Warning: Invalid NER tag: A-1
-      vrt-augment-name-attrs: <stdin>:8: Warning: Invalid NER tag: NamexFooBar-F
-      vrt-augment-name-attrs: <stdin>:9: Warning: Invalid NER tag: EnamexFoo-F
-      vrt-augment-name-attrs: <stdin>:10: Warning: Invalid NER tag: EnamexFB-F
-      vrt-augment-name-attrs: <stdin>:11: Warning: Invalid NER tag: ENAMEXPRSHUM-F
-      vrt-augment-name-attrs: <stdin>:12: Warning: Invalid NER tag: EnamexFo1Bo1-F
-      vrt-augment-name-attrs: <stdin>:13: Warning: Invalid NER tag: EnamexFooBarBaz-F
-      vrt-augment-name-attrs: <stdin>:14: Warning: Invalid NER tag: EnamexFooB-F
-      vrt-augment-name-attrs: <stdin>:15: Warning: Invalid NER tag: EnamexFBar-F
-      vrt-augment-name-attrs: <stdin>:16: Warning: Invalid NER tag: EnamexFoBo-G
+      vrt-add-ne: <stdin>:5: Warning: Invalid NER tag: A
+      vrt-add-ne: <stdin>:6: Warning: Invalid NER tag: 1
+      vrt-add-ne: <stdin>:7: Warning: Invalid NER tag: A-1
+      vrt-add-ne: <stdin>:8: Warning: Invalid NER tag: NamexFooBar-F
+      vrt-add-ne: <stdin>:9: Warning: Invalid NER tag: EnamexFoo-F
+      vrt-add-ne: <stdin>:10: Warning: Invalid NER tag: EnamexFB-F
+      vrt-add-ne: <stdin>:11: Warning: Invalid NER tag: ENAMEXPRSHUM-F
+      vrt-add-ne: <stdin>:12: Warning: Invalid NER tag: EnamexFo1Bo1-F
+      vrt-add-ne: <stdin>:13: Warning: Invalid NER tag: EnamexFooBarBaz-F
+      vrt-add-ne: <stdin>:14: Warning: Invalid NER tag: EnamexFooB-F
+      vrt-add-ne: <stdin>:15: Warning: Invalid NER tag: EnamexFBar-F
+      vrt-add-ne: <stdin>:16: Warning: Invalid NER tag: EnamexFoBo-G
 
-- name: 'vrt-augment-name-attrs: Invalid NER tags within a name'
+- name: 'vrt-add-ne: Invalid NER tags within a name'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -131,13 +131,13 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid NER tag within name: EnamexProXxx-B
-      vrt-augment-name-attrs: <stdin>:6: Warning: Invalid NER tag within name: EnamexProXxx-F
-      vrt-augment-name-attrs: <stdin>:8: Warning: Invalid NER tag: 1
+      vrt-add-ne: <stdin>:5: Warning: Invalid NER tag within name: EnamexProXxx-B
+      vrt-add-ne: <stdin>:6: Warning: Invalid NER tag within name: EnamexProXxx-F
+      vrt-add-ne: <stdin>:8: Warning: Invalid NER tag: 1
 
-- name: 'vrt-augment-name-attrs: Invalid NER tags in multi-level NER attribute'
+- name: 'vrt-add-ne: Invalid NER tags in multi-level NER attribute'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -160,14 +160,14 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:4: Warning: Invalid nested NER tag: EnamexLocPpl-B-X
-      vrt-augment-name-attrs: <stdin>:4: Warning: Invalid nested NER tag: F-X-12
-      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid nested NER tag: EnamexLocPpl-1
-      vrt-augment-name-attrs: <stdin>:5: Warning: Invalid nested NER tag: F-1
+      vrt-add-ne: <stdin>:4: Warning: Invalid nested NER tag: EnamexLocPpl-B-X
+      vrt-add-ne: <stdin>:4: Warning: Invalid nested NER tag: F-X-12
+      vrt-add-ne: <stdin>:5: Warning: Invalid nested NER tag: EnamexLocPpl-1
+      vrt-add-ne: <stdin>:5: Warning: Invalid nested NER tag: F-1
 
-- name: 'vrt-augment-name-attrs: NER end tag without start tag'
+- name: 'vrt-add-ne: NER end tag without start tag'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -184,11 +184,11 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:4: Warning: NER end tag without start tag: EnamexPrsHum-E
+      vrt-add-ne: <stdin>:4: Warning: NER end tag without start tag: EnamexPrsHum-E
 
-- name: 'vrt-augment-name-attrs: Invalid NER begin and end tags within a name'
+- name: 'vrt-add-ne: Invalid NER begin and end tags within a name'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -219,12 +219,12 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:7: Warning: Invalid NER tag within name: EnamexLocStr-B
-      vrt-augment-name-attrs: <stdin>:8: Warning: NER end tag does not match start tag EnamexProXxx-B: EnamexLocStr-E
+      vrt-add-ne: <stdin>:7: Warning: Invalid NER tag within name: EnamexLocStr-B
+      vrt-add-ne: <stdin>:8: Warning: NER end tag does not match start tag EnamexProXxx-B: EnamexLocStr-E
 
-- name: 'vrt-augment-name-attrs: Invalid NER begin and end tags within a multi-level name'
+- name: 'vrt-add-ne: Invalid NER begin and end tags within a multi-level name'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -277,13 +277,13 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:7: Warning: Nested NER tag EnamexOrgClt-B-1 already open at level 1: EnamexLocStr-B-1
-      vrt-augment-name-attrs: <stdin>:8: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: EnamexLocStr-E-1
-      vrt-augment-name-attrs: <stdin>:16: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: EnamexLocStr-E-1
+      vrt-add-ne: <stdin>:7: Warning: Nested NER tag EnamexOrgClt-B-1 already open at level 1: EnamexLocStr-B-1
+      vrt-add-ne: <stdin>:8: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: EnamexLocStr-E-1
+      vrt-add-ne: <stdin>:16: Warning: Nested NER end tag does not match start tag EnamexOrgClt-B-1: EnamexLocStr-E-1
 
-- name: 'vrt-augment-name-attrs: Name does not end within a sentence'
+- name: 'vrt-add-ne: Name does not end within a sentence'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: &input-sentence-breaks-name |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -301,13 +301,13 @@
   output:
     stdout: *input-sentence-breaks-name
     stderr: |
-      vrt-augment-name-attrs: <stdin>:4: Warning: NER start tag without end tag within sentence: EnamexLocStr-B
-      vrt-augment-name-attrs: <stdin>:7: Warning: NER end tag without start tag: EnamexLocStr-E
-      vrt-augment-name-attrs: <stdin>:10: Warning: NER start tag without end tag within sentence: EnamexLocStr-B
+      vrt-add-ne: <stdin>:4: Warning: NER start tag without end tag within sentence: EnamexLocStr-B
+      vrt-add-ne: <stdin>:7: Warning: NER end tag without start tag: EnamexLocStr-E
+      vrt-add-ne: <stdin>:10: Warning: NER start tag without end tag within sentence: EnamexLocStr-B
 
-- name: 'vrt-augment-name-attrs: End of input at the middle of name'
+- name: 'vrt-add-ne: End of input at the middle of name'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: &input-unexpected-end |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -316,13 +316,13 @@
   output:
     stdout: *input-unexpected-end
     stderr: |
-      vrt-augment-name-attrs: <stdin>:3: Warning: End of input at the middle of a name: EnamexLocStr-E expected
+      vrt-add-ne: <stdin>:3: Warning: End of input at the middle of a name: EnamexLocStr-E expected
 
 # The nested name at level 1 has no end tag, so the nested name
 # at level 2 becomes <ne2> directly within <ne>, without <ne1>
-- name: 'vrt-augment-name-attrs: Nested NER tag not closed at end of maximal name'
+- name: 'vrt-add-ne: Nested NER tag not closed at end of maximal name'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -347,14 +347,14 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: <stdin>:4: Warning: No end tag for nested NER tag: EnamexLocPpl-B-1
+      vrt-add-ne: <stdin>:4: Warning: No end tag for nested NER tag: EnamexLocPpl-B-1
 
 
 # No names
 
-- name: 'vrt-augment-name-attrs: No names, output intact'
+- name: 'vrt-add-ne: No names, output intact'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: &input-no-names |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -371,9 +371,9 @@
 
 # Attribute-name options
 
-- name: 'vrt-augment-name-attrs: Attribute-name options'
+- name: 'vrt-add-ne: Attribute-name options'
   input:
-    cmdline: vrt-augment-name-attrs --word=wd --lemma=bf --nertag=nertag
+    cmdline: vrt-add-ne --word=wd --lemma=bf --nertag=nertag
     stdin:
       value: &input-single1 |
         <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
@@ -413,12 +413,12 @@
         </text>
       transform: *transf-attr-names
 
-- name: 'vrt-augment-name-attrs: --multi-nertag'
+- name: 'vrt-add-ne: --multi-nertag'
   input:
     cmdline:
-    - vrt-augment-name-attrs --multi-nertag=nertags
+    - vrt-add-ne --multi-nertag=nertags
     # The same with slash at the end of the attribute name
-    - vrt-augment-name-attrs --multi-nertag=nertags/
+    - vrt-add-ne --multi-nertag=nertags/
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags/ nerbio2 -->
       <text a="b">
@@ -448,16 +448,16 @@
 
 # Single-word names
 
-- name: 'vrt-augment-name-attrs: Single-word names, nothing else'
+- name: 'vrt-add-ne: Single-word names, nothing else'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: *input-single1
   output:
     stdout: *output-single1
 
-- name: 'vrt-augment-name-attrs: Single-word names, non-name tokens'
+- name: 'vrt-add-ne: Single-word names, non-name tokens'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -486,9 +486,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Single-word names, different attr order, extra attrs'
+- name: 'vrt-add-ne: Single-word names, different attr order, extra attrs'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: id word nerbio2 nertag2 nertags2/ x lemma -->
       <text a="b">
@@ -517,9 +517,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Single-word names, arbitrary name types'
+- name: 'vrt-add-ne: Single-word names, arbitrary name types'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -550,9 +550,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Multi-level names, arbitrary nested name types'
+- name: 'vrt-add-ne: Multi-level names, arbitrary nested name types'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -580,9 +580,9 @@
 
 # Multi-word names
 
-- name: 'vrt-augment-name-attrs: Multi-word names, no nesting'
+- name: 'vrt-add-ne: Multi-word names, no nesting'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -633,9 +633,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Inflected or case-changed names'
+- name: 'vrt-add-ne: Inflected or case-changed names'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -724,9 +724,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Names with XML character references'
+- name: 'vrt-add-ne: Names with XML character references'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -765,9 +765,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Names with double quotation marks'
+- name: 'vrt-add-ne: Names with double quotation marks'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -794,9 +794,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Inflected names, no lemmas'
+- name: 'vrt-add-ne: Inflected names, no lemmas'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -829,11 +829,11 @@
       </sentence>
       </text>
     stderr: |
-      vrt-augment-name-attrs: Warning: No positional attribute 'lemma' in input; using word forms in the place of lemmas
+      vrt-add-ne: Warning: No positional attribute 'lemma' in input; using word forms in the place of lemmas
 
-- name: 'vrt-augment-name-attrs: Inflected names, explicitly ignore lemmas'
+- name: 'vrt-add-ne: Inflected names, explicitly ignore lemmas'
   input:
-    cmdline: vrt-augment-name-attrs --lemma=""
+    cmdline: vrt-add-ne --lemma=""
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -869,9 +869,9 @@
 
 # Intra-sentence tags
 
-- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence comments'
+- name: 'vrt-add-ne: Multi-word names, intra-sentence comments'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -902,9 +902,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure around name'
+- name: 'vrt-add-ne: Multi-word names, intra-sentence structure around name'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -933,9 +933,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure covers first word of name'
+- name: 'vrt-add-ne: Multi-word names, intra-sentence structure covers first word of name'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -964,9 +964,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure ends within name'
+- name: 'vrt-add-ne: Multi-word names, intra-sentence structure ends within name'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -997,9 +997,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure covers last word of name'
+- name: 'vrt-add-ne: Multi-word names, intra-sentence structure covers last word of name'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -1028,9 +1028,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure begins within name'
+- name: 'vrt-add-ne: Multi-word names, intra-sentence structure begins within name'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -1059,9 +1059,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Multi-word names, intra-sentence structure completely within name'
+- name: 'vrt-add-ne: Multi-word names, intra-sentence structure completely within name'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -1093,9 +1093,9 @@
 
 # Multi-level names
 
-- name: 'vrt-augment-name-attrs: Two-level names'
+- name: 'vrt-add-ne: Two-level names'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -1170,9 +1170,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Multi-level names'
+- name: 'vrt-add-ne: Multi-level names'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: &input-multilevel |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -1291,9 +1291,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Multi-level names, --recursive-nested'
+- name: 'vrt-add-ne: Multi-level names, --recursive-nested'
   input:
-    cmdline: vrt-augment-name-attrs --recursive-nested
+    cmdline: vrt-add-ne --recursive-nested
     stdin: *input-multilevel
   output:
     stdout: |
@@ -1375,11 +1375,11 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Multi-level names, --maximal-only'
+- name: 'vrt-add-ne: Multi-level names, --maximal-only'
   input:
     cmdline:
-      - vrt-augment-name-attrs --maximal-only
-      - vrt-augment-name-attrs --maximal-only --recursive-nested
+      - vrt-add-ne --maximal-only
+      - vrt-add-ne --maximal-only --recursive-nested
     stdin: *input-multilevel
   output:
     stdout: |
@@ -1427,9 +1427,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: --maximal-only, no multi-level NER attribute'
+- name: 'vrt-add-ne: --maximal-only, no multi-level NER attribute'
   input:
-    cmdline: vrt-augment-name-attrs --maximal-only
+    cmdline: vrt-add-ne --maximal-only
     stdin: |
       <!-- #vrt positional-attributes: word lemma nertag2 nerbio2 -->
       <text a="b">
@@ -1452,9 +1452,9 @@
       </sentence>
       </text>
 
-- name: 'vrt-augment-name-attrs: Two-level name with each word as a complete name'
+- name: 'vrt-add-ne: Two-level name with each word as a complete name'
   input:
-    cmdline: vrt-augment-name-attrs
+    cmdline: vrt-add-ne
     stdin: &input-two-level-each-word |
       <!-- #vrt positional-attributes: word lemma nertag2 nertags2/ nerbio2 -->
       <text a="b">
@@ -1483,9 +1483,9 @@
       </ne>
       </sentence>
 
-- name: 'vrt-augment-name-attrs: Two-level name with each word as a complete name, --recursive-nested'
+- name: 'vrt-add-ne: Two-level name with each word as a complete name, --recursive-nested'
   input:
-    cmdline: vrt-augment-name-attrs --recursive-nested
+    cmdline: vrt-add-ne --recursive-nested
     stdin: *input-two-level-each-word
   output:
     stdout: |

@@ -1,10 +1,10 @@
 
 """
-vrt_augment_name_attrs.py
+vrt_add_ne.py
 
-The actual implementation of vrt-augment-name-attrs.
+The actual implementation of vrt-add-ne.
 
-Please run "vrt-augment-name-attrs -h" for more information.
+Please run "vrt-add-ne -h" for more information.
 """
 
 
@@ -27,9 +27,9 @@ from libvrt.argtypes import encode_utf8
 from vrtargsoolib import InputProcessor
 
 
-class VrtNameAttrAugmenter(InputProcessor):
+class VrtNeAdder(InputProcessor):
 
-    """Class implementing vrt-augment-name-attrs functionality."""
+    """Class implementing vrt-add-ne functionality."""
 
     DESCRIPTION = """
     Augment VRT input containing positional name attributes with <ne>
