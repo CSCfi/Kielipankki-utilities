@@ -80,7 +80,7 @@ class VrtNeAdder(InputProcessor):
     def check_args(self, args):
         """Check and modify `args` (parsed command line arguments)."""
         args.multi_nertag = args.multi_nertag.rstrip(b'/') + b'/'
-        self.args = args
+        super().check_args(args)
 
     def main(self, args, inf, ouf):
         """Read `inf`, write to `ouf`, with command-line arguments `args`."""
@@ -88,17 +88,12 @@ class VrtNeAdder(InputProcessor):
         # Index of the positional attribute for nertag, nertags, word
         # and lemma
         attrnum_nertag = attrnum_nertags = attrnum_word = attrnum_lemma = None
-        # The type of a NER tag based on the last character of the
-        # value
-        NERTAG_NONE = b'_'[0]
-        NERTAG_BEGIN = b'B'[0]
-        NERTAG_END = b'E'[0]
-        NERTAG_FULL = b'F'[0]
-        # The names of ne attributes extracted from the NER tag, both
-        # as str and bytes
-        nertag_part_attrnames = tuple(
-            (attrname, attrname.encode('utf-8'))
-            for attrname in ('ex', 'type', 'subtype'))
+        # Values of the kind group of a NER tag (see _NERTAG_RE):
+        # beginning, end and full (single-word) name
+        NERTAG_NONE = None
+        NERTAG_BEGIN = b'B'
+        NERTAG_END = b'E'
+        NERTAG_FULL = b'F'
 
         def split_nertag(nertag):
             """Return a dict containing `nertag` parts.
@@ -134,7 +129,6 @@ class VrtNeAdder(InputProcessor):
             """
             # Names by nesting depth
             nested_names = defaultdict(list)
-            maxdepth = 0
             # Line number of namelines[0]
             linenum1 = linenum - len(namelines) + 1
             for token_num, token in enumerate(name_tokens):
@@ -150,9 +144,8 @@ class VrtNeAdder(InputProcessor):
                     depth = int(nertag_parts['depth'])
                     # Ignore depth 0 (top level)
                     if depth:
-                        maxdepth = max(depth, maxdepth)
-                        tagtype = nertag_parts['kind'][0]
-                        depth_names = nested_names[depth - 1]
+                        tagtype = nertag_parts['kind']
+                        depth_names = nested_names[depth]
                         if tagtype == NERTAG_FULL:
                             depth_names.append(
                                 [nertag, nertag_parts, token_num,
@@ -176,14 +169,12 @@ class VrtNeAdder(InputProcessor):
                                 warn('Nested NER end tag does not match start'
                                      ' tag ' + open_name[0].decode('utf-8'),
                                      nertag, token_linenum)
-                        else:
-                            warn('Invalid nested NER tag', nertag, linenum)
             # nameline_index[i] is the number of the line in namelines
             # whose number was i in the input namelines but which may
             # be different after adding <ne> tags
             nameline_index = list(range(len(namelines) + 1))
-            for depth in range(maxdepth, 0, -1):
-                for nameinfo in nested_names[depth - 1]:
+            for depth in sorted(nested_names, reverse=True):
+                for nameinfo in nested_names[depth]:
                     if len(nameinfo) < 4:
                         warn('No end tag for nested NER tag', nameinfo[0],
                              linenum1 + nameinfo[2])
@@ -229,8 +220,9 @@ class VrtNeAdder(InputProcessor):
             return (
                 (b'name', name),
                 (b'fulltype', nertag_parts['fulltype']),
-                *((attrname_b, nertag_parts[attrname].upper())
-                  for attrname, attrname_b in nertag_part_attrnames),
+                (b'ex', nertag_parts['ex'].upper()),
+                (b'type', nertag_parts['type'].upper()),
+                (b'subtype', nertag_parts['subtype'].upper()),
                 (b'placename', name if is_placename else b''),
                 (b'placename_source', b'ner' if is_placename else b''))
 
@@ -314,7 +306,6 @@ class VrtNeAdder(InputProcessor):
                         ouf.write(line)
                         namelines = []
                         name_tokens = []
-                        continue
                     else:
                         namelines.append(line)
                 else:
@@ -335,7 +326,7 @@ class VrtNeAdder(InputProcessor):
                 if nertag and nertag != b'_':
                     nertag_parts = split_nertag(nertag)
                     if nertag_parts:
-                        nertag_type = nertag_parts['kind'][0]
+                        nertag_type = nertag_parts['kind']
                     else:
                         warn('Invalid NER tag', nertag, linenum)
                         nertag_type = NERTAG_NONE
@@ -372,11 +363,9 @@ class VrtNeAdder(InputProcessor):
                     namelines.append(line)
                     name_tokens.append(attrs)
                     open_nertag_parts = nertag_parts
-                elif nertag_type == NERTAG_END:
-                    warn('NER end tag without start tag', nertag, linenum)
-                    ouf.write(line)
                 else:
-                    warn('Invalid NER tag', nertag, linenum)
+                    # nertag_type == NERTAG_END
+                    warn('NER end tag without start tag', nertag, linenum)
                     ouf.write(line)
         if namelines:
             # This means that a sentence is open, too, and the input
