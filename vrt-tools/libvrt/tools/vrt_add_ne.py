@@ -379,10 +379,10 @@ class VrtNeAdder(InputProcessor):
             """Output to stderr a warning with message `msg`.
 
             The warning message also includes the NER tag `nertag`,
-            input file name (or ``<stdin>``) and input line number
-            `linenum`.
+            input file name (or ``<stdin>``) and the one-based input
+            line number for the zero-based `linenum`.
             """
-            self.warn(msg + ': ' + nertag.decode('utf-8'),
+            self.warn(msg + ': ' + nertag.decode('utf-8', 'backslashreplace'),
                       filename=inf.name, linenr=linenum + 1)
 
         def set_attrnums(line):
