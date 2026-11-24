@@ -1,0 +1,709 @@
+
+"""
+vrt_add_ne.py
+
+The actual implementation of vrt-add-ne.
+
+Please run "vrt-add-ne -h" for more information.
+"""
+
+
+# TODO:
+# - Try to improve intra-name tag nesting in cases such as: "<tag>
+#   nameword1 </tag> nameword2", now tagged as "<tag> <ne> nameword1
+#   </tag> nameword2 </ne>", and "nameword1 <tag> nameword2 </tag>",
+#   now tagged "<ne> nameword1 <tag> nameword2 </ne> </tag>"
+
+
+import re
+
+from collections import defaultdict
+from dataclasses import dataclass, field
+
+from libvrt import metaline as ml
+from libvrt import nameline as nl
+from libvrt.argtypes import encode_utf8
+
+from vrtargsoolib import InputProcessor
+
+
+# NER tag, possibly with a nesting depth suffix
+_NERTAG_RE = re.compile(rb'''(?P<fulltype>
+                               (?P<ex> (?: Ena|Nu|Ti ) mex )
+                               (?P<type> [A-Z] [a-z]+ )
+                               (?P<subtype> [A-Z] [a-z]+ )
+                             )
+                             - (?P<kind> [BEF] )
+                             (?: - (?P<depth> [0-9]+ ) )?''',
+                        re.X)
+
+# A compound boundary marker in a lemma, as in "kauppa#tori"
+_COMPOUND_BOUNDARY_RE = re.compile(r'(?<=\w)#(?=\w)')
+
+
+# The maximum number of warnings for invalid NER tags; the total
+# number of invalid NER tags is reported at the end
+_MAX_INVALID_NERTAG_WARNINGS = 10
+
+# A nested name: (depth, start, end, nertag_parts), where depth is the
+# nesting level (> 0), start and end are the indices of the first
+# token and the token following the last token of the nested name
+# within the maximal name, and nertag_parts are the parts of its NER
+# tag
+_NestedName = tuple[int, int, int, dict[str, bytes]]
+
+
+@dataclass(slots=True)
+class _Name:
+
+    """A name with its lines, as collected from the input."""
+
+    # Parts of the NER tag of the maximal name (see `split_nertag`)
+    nertag_parts: dict[str, bytes]
+    # Input lines within the name: tokens and intra-name meta lines
+    lines: list[bytes] = field(default_factory=list)
+    # Token lines split into positional attributes
+    tokens: list[list[bytes]] = field(default_factory=list)
+    # Index in `lines` of each token
+    token_lineidxs: list[int] = field(default_factory=list)
+    # Zero-based input line number of each token
+    token_linenums: list[int] = field(default_factory=list)
+    # Structure nesting depth of the boundary structure of the name:
+    # an end tag at this depth or lower ends the name if it has not
+    # ended at a NER end tag (0 = no structure)
+    boundary_depth: int = 0
+
+    def add_token(self, line: bytes, attrs: list[bytes], linenum: int):
+        """Add a token line to the name.
+
+        Args:
+            line: The token line.
+            attrs: `line` split into positional attributes.
+            linenum: The zero-based input line number of `line`.
+        """
+        self.token_lineidxs.append(len(self.lines))
+        self.token_linenums.append(linenum)
+        self.lines.append(line)
+        self.tokens.append(attrs)
+
+
+def _unescape(value: bytes) -> str:
+    """Decode and unescape a VRT attribute value.
+
+    Args:
+        value: The value as in the input, possibly with character
+            entity references.
+
+    Returns:
+        `value` decoded from UTF-8 (undecodable bytes as surrogate
+        escapes) and with the predefined entity references (&lt;
+        &gt; &amp; &quot; &apos;) replaced with the characters.
+    """
+    value_str = value.decode('utf-8', 'surrogateescape')
+    return (ml.strunescape(value_str, tabs=False) if '&' in value_str
+            else value_str)
+
+
+class VrtNeAdder(InputProcessor):
+
+    """Class implementing vrt-add-ne functionality."""
+
+    # TODO: Add the following details omitted from DESCRIPTION and
+    # EPILOG when VRT Tools support longer help texts with Markdown
+    # formatting (branch dev-vrt-tools-markdown-help):
+    #
+    # Input:
+    # - One attribute with the NER tag of the maximal name of each
+    #   token and, unless --maximal-only is specified, another with a
+    #   "|"-separated set of NER tags with a nesting level suffix "-N"
+    #   for nested names.
+    # - The maximal NER tags match the regular expression
+    #   `(Ena|Nu|Ti)mex[A-Z][a-z]+[A-Z][a-z]+-[BEF]`; `_` or an empty
+    #   value means no name.
+    # - In the set of nested NER tags, nesting level 0 (the maximal
+    #   name) is ignored. Nested names are recognized only within
+    #   maximal names.
+    # - Attribute names are matched with or without a trailing slash.
+    #
+    # Output attributes:
+    # - `name`: For Numex and Timex, the word forms of the name. For
+    #   Enamex, the word forms of all but the last word, followed by
+    #   the lemma of the last word, with compound boundary markers
+    #   `#` removed (unless the word form contains `#`) and the case
+    #   adjusted to the last word form: title-cased if the word form
+    #   is in title case, upper-cased if it is in upper case, and
+    #   otherwise with the letters upper-cased that are in upper case
+    #   in the word form, up to the first difference other than in
+    #   case (for example, `YouTube` for `YouTubessa` with lemma
+    #   `youtube`). Upper-case letters of the lemma are never changed
+    #   to lower case.
+    # - `fulltype`: The NER tag without the -B, -E or -F suffix (and
+    #   the nesting level).
+    # - `ex`, `type` and `subtype`: The parts of `fulltype` in upper
+    #   case.
+    # - `placename`: For location names (type Loc), the same as
+    #   `name`; otherwise empty.
+    # - `placename_source`: For location names, `ner`; otherwise
+    #   empty.
+    #
+    # Errors and limitations:
+    # - The tool exits with an error if a required positional
+    #   attribute is missing, if a token line has too few fields, or
+    #   if the positional-attributes comment is missing or a later one
+    #   differs from the first one.
+    # - Structures within a sentence may begin or end within a name,
+    #   which results in crossing structures.
+    DESCRIPTION = """
+    Add <ne> structures for names to VRT input containing NER tags in
+    positional attributes, as produced by vrt-finnish-nertag --max and
+    --all. Maximal names are enclosed in <ne> and nested names in
+    <neN> (N = 1, 2, ...) or in embedded <ne> (with
+    --recursive-nested). The structures have the attributes name (the
+    word forms of the name, for Enamex with the last one replaced by
+    its lemma), fulltype, ex, type, subtype, placename and
+    placename_source.
+    """
+    EPILOG = """
+    The tool warns of invalid NER tags (only the first 10, followed by
+    their total count), of unmatched NER tags and NER start tags
+    within a name, and of names not ending within a sentence or
+    before the end of input; such names are output without <ne>.
+    """
+    ARGSPECS = [
+        ('--word = attr:encode_utf8 "word"',
+         '''positional attribute name for word form is attr'''),
+        ('--lemma = attr:encode_utf8 "lemma"',
+         '''positional attribute name for base form (lemma) is attr;
+            if the input does not contain attr, use word forms in the
+            place of lemmas with a warning; specify "" to use word
+            forms without a warning'''),
+        ('--nertag = attr:encode_utf8 "nertag2"',
+         '''positional attribute name for maximal NER tag is attr'''),
+        ('--multi-nertag = attr:encode_utf8 "nertags2"',
+         '''positional attribute name for multiple (nested, non-maximal) NER
+            tags is attr'''),
+        ('--maximal-only',
+         '''enclose only maximal names, no nested ones'''),
+        ('--recursive-nested',
+         '''enclose nested names in recursively embedded <ne> structures
+            instead of numbered <ne1>, <ne2>, ... by nesting level
+            (note that cwb-encode then needs a maximum embedding depth
+            for ne, such as "-S ne:2+name+...", to keep the embedded
+            structures)'''),
+        ('--sentence = struct:encode_utf8 "sentence"',
+         '''sentence structure name is struct: a name may not cross the
+            end of a struct structure'''),
+    ]
+
+    def __init__(self):
+        # extra_types=... is needed for using module-level functions
+        # as types in ARGSPECS (otherwise, type could be passed via a
+        # dict)
+        super().__init__(extra_types=globals())
+
+    def check_args(self, args):
+        """Check and modify `args` (parsed command line arguments)."""
+        # Attribute names are matched without a trailing slash, so
+        # remove it from those specified
+        for attr in ('word', 'lemma', 'nertag', 'multi_nertag'):
+            setattr(args, attr, getattr(args, attr).rstrip(b'/'))
+        super().check_args(args)
+
+    def main(self, args, inf, ouf):
+        """Read `inf`, write to `ouf`, with command-line arguments `args`."""
+
+        # Index of the positional attribute for nertag, nertags, word
+        # and lemma
+        attrnum_nertag = attrnum_nertags = attrnum_word = attrnum_lemma = 0
+        # The names of positional attributes (None if the
+        # positional-attributes comment has not yet been seen)
+        posattrs: list[bytes] | None = None
+        # The number of positional attributes
+        num_attrs = 0
+        # The number of invalid NER tags
+        invalid_nertag_count = 0
+        # Values of the kind group of a NER tag (see _NERTAG_RE):
+        # beginning, end and full (single-word) name
+        NERTAG_BEGIN = b'B'
+        NERTAG_END = b'E'
+        NERTAG_FULL = b'F'
+
+        def split_nertag(nertag: bytes) -> dict[str, bytes] | None:
+            """Return a dict containing `nertag` parts.
+
+            The keys of the dict are ``fulltype`` (the NER tag without
+            the suffixes), its parts ``ex``, ``type`` and ``subtype``,
+            ``kind`` (``B``, ``E`` or ``F``) and ``depth`` (the nesting
+            level, or `None` if `nertag` has no nesting level suffix).
+            If `nertag` is not valid, that is, it does not match the
+            NER tag regexp
+            ``(Ena|Nu|Ti)mex[A-Z][a-z]+[A-Z][a-z]+-[BEF](-[0-9]+)?``,
+            return `None`.
+            """
+            mo = _NERTAG_RE.fullmatch(nertag)
+            return mo.groupdict() if mo else None
+
+        def add_ne_tags(name: _Name) -> list[bytes]:
+            """Enclose a name and the names nested in it in <ne> structures.
+
+            Args:
+                name: The (maximal) name.
+
+            Returns:
+                The lines of `name` with the maximal name enclosed in
+                <ne> and, unless `args.maximal_only`, nested names in
+                <neN> (or <ne>; see `add_nested_ne_tags`).
+            """
+            if not name.lines[-1].endswith(b'\n'):
+                # Last input line without a newline: add it, so that
+                # the end tags are on lines of their own
+                name.lines[-1] += b'\n'
+            nested_names = [] if args.maximal_only else find_nested_names(name)
+            if nested_names:
+                lines = add_nested_ne_tags(name, nested_names)
+            else:
+                lines = name.lines
+            starttag, endtag = make_ne_tags(name.nertag_parts, name.tokens)
+            return [starttag] + lines + [endtag]
+
+        def find_nested_names(name: _Name) -> list[_NestedName]:
+            """Find the nested, non-maximal names within a name.
+
+            Get the nested names from the multiple NER tags attribute
+            of the tokens. Warn of invalid and unmatched NER tags.
+
+            Args:
+                name: The (maximal) name.
+
+            Returns:
+                The nested names within `name`, in the order of their
+                end tokens.
+            """
+            # Names whose end tag has not yet been seen, by depth:
+            # (nertag, nertag_parts, start)
+            open_names: dict[int, tuple[bytes, dict[str, bytes], int]] = {}
+            nested_names: list[_NestedName] = []
+            for token_num, token in enumerate(name.tokens):
+                token_linenum = name.token_linenums[token_num]
+                nertags = token[attrnum_nertags].strip(b'|').split(b'|')
+                for nertag in nertags:
+                    if not nertag:
+                        continue
+                    nertag_parts = split_nertag(nertag)
+                    if not nertag_parts or not nertag_parts['depth']:
+                        warn_invalid_nertag('Invalid nested NER tag', nertag,
+                                            token_linenum)
+                        continue
+                    depth = int(nertag_parts['depth'])
+                    # Ignore depth 0 (top level)
+                    if not depth:
+                        continue
+                    tagtype = nertag_parts['kind']
+                    open_name = open_names.get(depth)
+                    if tagtype == NERTAG_FULL:
+                        nested_names.append(
+                            (depth, token_num, token_num + 1, nertag_parts))
+                    elif tagtype == NERTAG_BEGIN:
+                        if open_name is None:
+                            open_names[depth] = (
+                                nertag, nertag_parts, token_num)
+                        else:
+                            warn('Nested NER tag '
+                                 + open_name[0].decode('utf-8')
+                                 + f' already open at level {depth}',
+                                 nertag, token_linenum)
+                    elif open_name is None:
+                        # tagtype == NERTAG_END
+                        warn('Nested NER end tag without start tag',
+                             nertag, token_linenum)
+                    elif (nertag_parts['fulltype']
+                          == open_name[1]['fulltype']):
+                        del open_names[depth]
+                        nested_names.append(
+                            (depth, open_name[2], token_num + 1,
+                             open_name[1]))
+                    else:
+                        warn('Nested NER end tag does not match start'
+                             ' tag ' + open_name[0].decode('utf-8'),
+                             nertag, token_linenum)
+            for depth in sorted(open_names, reverse=True):
+                nertag, _, start = open_names[depth]
+                warn('No end tag for nested NER tag', nertag,
+                     name.token_linenums[start])
+            return nested_names
+
+        def add_nested_ne_tags(name: _Name,
+                               nested_names: list[_NestedName]) -> list[bytes]:
+            """Enclose names nested in a name in <neN> structures.
+
+            Enclose nested names in <neN> structures, where N is the
+            nesting level, or in <ne> if `args.recursive_nested`.
+            Insert start tags immediately before the first token of a
+            nested name and end tags immediately after its last token,
+            so that intra-name meta lines remain outside nested names
+            beginning or ending at them.
+
+            Args:
+                name: The (maximal) name.
+                nested_names: The names nested in `name`, as returned
+                    by `find_nested_names`.
+
+            Returns:
+                The lines of `name` with the nested names enclosed.
+            """
+            # Start and end tags to be added before and after each
+            # token, by token index; an outer name (lower depth, or
+            # longer at the same depth) is opened first and closed
+            # last
+            starttags: defaultdict[int, list[bytes]] = defaultdict(list)
+            endtags: defaultdict[int, list[bytes]] = defaultdict(list)
+            for depth, start, end, nertag_parts in sorted(
+                    nested_names, key=lambda n: (n[1], n[0], -n[2])):
+                starttag, endtag = make_ne_tags(
+                    nertag_parts, name.tokens[start:end], depth)
+                starttags[start].append(starttag)
+                endtags[end - 1].insert(0, endtag)
+            lines: list[bytes] = []
+            line_tokens: dict[int, int] = dict(
+                zip(name.token_lineidxs, range(len(name.tokens))))
+            for lineidx, line in enumerate(name.lines):
+                token_num = line_tokens.get(lineidx)
+                if token_num is None:
+                    lines.append(line)
+                else:
+                    lines.extend(starttags.get(token_num, ()))
+                    lines.append(line)
+                    lines.extend(endtags.get(token_num, ()))
+            return lines
+
+        def make_ne_tags(nertag_parts: dict[str, bytes],
+                         name_tokens: list[list[bytes]],
+                         depth: int = 0) -> tuple[bytes, bytes]:
+            """Make the start and end tag of an <ne> structure for a name.
+
+            Args:
+                nertag_parts: The parts of the NER tag of the name.
+                name_tokens: The tokens of the name split into
+                    positional attributes.
+                depth: The nesting level of the name: if > 0 and not
+                    `args.recursive_nested`, use structure <neN>,
+                    where N is `depth`.
+
+            Returns:
+                The start tag and the end tag, with newlines.
+            """
+            struct = (b'ne' if depth == 0 or args.recursive_nested
+                      else f'ne{depth}'.encode())
+            return (ml.starttag(struct,
+                                make_ne_attrs(nertag_parts, name_tokens)),
+                    b'</' + struct + b'>\n')
+
+        def make_ne_attrs(nertag_parts, name_tokens):
+            """Return attribute (name, value) pairs for an <ne> structure.
+
+            Args:
+                nertag_parts: The parts of the NER tag of the name.
+                name_tokens: The tokens of the name split into
+                    positional attributes.
+            """
+            is_placename = nertag_parts['type'] == b'Loc'
+            name = (make_name(name_tokens, nertag_parts['ex'])
+                    .replace(b'"', b'&quot;'))
+            return (
+                (b'name', name),
+                (b'fulltype', nertag_parts['fulltype']),
+                (b'ex', nertag_parts['ex'].upper()),
+                (b'type', nertag_parts['type'].upper()),
+                (b'subtype', nertag_parts['subtype'].upper()),
+                (b'placename', name if is_placename else b''),
+                (b'placename_source', b'ner' if is_placename else b''))
+
+        def make_name(name_tokens: list[list[bytes]],
+                      name_cat: bytes) -> bytes:
+            """Make the value of the name attribute of <ne>.
+
+            Args:
+                name_tokens: The tokens of the name split into
+                    positional attributes.
+                name_cat: The category of the name: ``Enamex``,
+                    ``Numex`` or ``Timex``.
+
+            Returns:
+                The name, with character entity references as in the
+                input, except possibly in a last lemma changed by
+                `adjust_case`, and double quotation marks not encoded.
+            """
+            if name_cat in (b'Timex', b'Numex'):
+                # For temporal and numeric expressions, return a
+                # concatenation of word forms
+                return b' '.join(
+                    token[attrnum_word] for token in name_tokens)
+            else:
+                # For name expressions proper, use lemma of the last
+                # token and word forms of the preceding ones
+                return b' '.join(
+                    [token[attrnum_word] for token in name_tokens[:-1]]
+                    + [adjust_case(name_tokens[-1][attrnum_lemma],
+                                   name_tokens[-1][attrnum_word])])
+
+        def adjust_case(lemma: bytes, wordform: bytes) -> bytes:
+            """Adjust the case of a lemma to that of its word form.
+
+            First remove compound boundary markers "#" between word
+            characters from `lemma`, unless `wordform` contains "#".
+            Then title-case the lemma if `wordform` is in title case
+            (for example, "kauppa#tori" for "Kauppatorilla" becomes
+            "Kauppatori"), upper-case it if `wordform` is in upper
+            case, and otherwise upper-case each letter of the lemma
+            whose counterpart at the same position in `wordform` is in
+            upper case, up to the first difference other than in case
+            (for example, "youtube" for "YouTubessa" becomes
+            "YouTube"). Never change upper-case letters of the lemma
+            to lower case (for example, "YouTube" for "Youtubessa"
+            remains "YouTube").
+
+            Test and change the case on unescaped strings, so that
+            non-ASCII letters and letters adjacent to character entity
+            references are handled correctly.
+
+            Args:
+                lemma: The lemma (escaped, as in the input).
+                wordform: The word form (escaped, as in the input).
+
+            Returns:
+                The adjusted lemma, escaped; `lemma` as is if not
+                changed.
+            """
+            lemma_str = _unescape(lemma)
+            wordform_str = _unescape(wordform)
+            new_lemma = lemma_str
+            if '#' in new_lemma and '#' not in wordform_str:
+                new_lemma = _COMPOUND_BOUNDARY_RE.sub('', new_lemma)
+            if wordform_str.istitle():
+                titled = new_lemma.title()
+                if len(titled) == len(new_lemma):
+                    # Keep upper-case letters of the lemma, which
+                    # str.title would change to lower case
+                    titled = ''.join(
+                        lemma_char if lemma_char.isupper() else title_char
+                        for lemma_char, title_char in zip(new_lemma, titled))
+                new_lemma = titled
+            elif wordform_str.isupper():
+                new_lemma = new_lemma.upper()
+            else:
+                chars = list(new_lemma)
+                for i, (lemma_char, word_char) in enumerate(
+                        zip(new_lemma, wordform_str)):
+                    if lemma_char != word_char:
+                        if lemma_char.lower() != word_char.lower():
+                            break
+                        if word_char.isupper():
+                            chars[i] = word_char
+                new_lemma = ''.join(chars)
+            if new_lemma == lemma_str:
+                return lemma
+            # ml.strescape does not escape apostrophes, so an &apos; in
+            # the lemma becomes a literal apostrophe; that is valid in
+            # a double-quoted attribute value
+            return ml.strescape(new_lemma).encode('utf-8', 'surrogateescape')
+
+        def warn(msg, nertag, linenum):
+            """Output to stderr a warning with message `msg`.
+
+            The warning message also includes the NER tag `nertag`,
+            input file name (or ``<stdin>``) and the one-based input
+            line number for the zero-based `linenum`.
+            """
+            self.warn(msg + ': ' + nertag.decode('utf-8', 'backslashreplace'),
+                      filename=inf.name, linenr=linenum + 1)
+
+        def warn_invalid_nertag(msg: str, nertag: bytes, linenum: int):
+            """Warn of an invalid NER tag, unless warned too many times.
+
+            Output the warning only for the first
+            `_MAX_INVALID_NERTAG_WARNINGS` invalid NER tags but count
+            them all in `invalid_nertag_count`.
+
+            Args:
+                msg: The warning message.
+                nertag: The invalid NER tag.
+                linenum: The zero-based input line number.
+            """
+            nonlocal invalid_nertag_count
+            invalid_nertag_count += 1
+            if invalid_nertag_count <= _MAX_INVALID_NERTAG_WARNINGS:
+                warn(msg, nertag, linenum)
+
+        def set_attrnums(line):
+            """Set positional attribute information from comment `line`.
+
+            Set `posattrs`, `num_attrs` and the `attrnum_*` variables
+            from positional-attributes comment `line`. Exit with an
+            error if a required attribute is missing. If the lemma
+            attribute is missing, use word forms in its place, with a
+            warning unless `args.lemma` is empty.
+            """
+            nonlocal attrnum_nertag, attrnum_nertags
+            nonlocal attrnum_word, attrnum_lemma, num_attrs, posattrs
+            posattrs = nl.parsenameline(line)
+            num_attrs = len(posattrs)
+            # Match attribute names without a trailing slash
+            attrs = [attr.rstrip(b'/') for attr in posattrs]
+            attrnames_check = [args.nertag, args.word]
+            if not args.maximal_only:
+                attrnames_check.append(args.multi_nertag)
+            for attrname in attrnames_check:
+                if attrname not in attrs:
+                    self.error_exit('No positional attribute \''
+                                    + attrname.decode('utf-8') + '\' in input')
+            attrnum_nertag = attrs.index(args.nertag)
+            attrnum_word = attrs.index(args.word)
+            if args.lemma in attrs:
+                attrnum_lemma = attrs.index(args.lemma)
+            else:
+                if args.lemma:
+                    self.warn('No positional attribute \''
+                              + args.lemma.decode('utf-8') + '\' in input;'
+                              ' using word forms in the place of lemmas')
+                attrnum_lemma = attrnum_word
+            if not args.maximal_only:
+                attrnum_nertags = attrs.index(args.multi_nertag)
+
+        def begin_name(nertag_parts: dict[str, bytes]) -> _Name:
+            """Begin a new multi-word name.
+
+            Set the boundary structure of the name to the innermost
+            open sentence structure or, if none is open, to the
+            innermost open structure.
+
+            Args:
+                nertag_parts: The parts of the NER tag of the name.
+
+            Returns:
+                The new name, with no lines yet.
+            """
+            return _Name(nertag_parts,
+                         boundary_depth=(sentence_depths[-1] if sentence_depths
+                                         else struct_depth))
+
+        # The multi-word name being collected, or None outside names
+        name: _Name | None = None
+        # The nesting depth of structures
+        struct_depth = 0
+        # The nesting depths of the open sentence structures
+        sentence_depths: list[int] = []
+        # Prefixes of sentence start tags
+        sentence_starts = (b'<' + args.sentence + b' ',
+                           b'<' + args.sentence + b'>')
+        for linenum, line in enumerate(inf):
+            # The same as ml.ismeta(line) but faster, as this is
+            # tested for every line
+            if line and line[0] == 60:  # b'<'
+                # Structure or comment line
+                if line.startswith(b'</'):
+                    # End tag
+                    if name and struct_depth <= name.boundary_depth:
+                        # Names may not cross the end of a sentence. The
+                        # warning mentions a sentence even if the
+                        # boundary is another structure, but that
+                        # happens only if tokens are not in sentences.
+                        warn('NER start tag without end tag within sentence',
+                             name.tokens[0][attrnum_nertag],
+                             name.token_linenums[0])
+                        ouf.writelines(name.lines)
+                        name = None
+                    if sentence_depths and sentence_depths[-1] == struct_depth:
+                        sentence_depths.pop()
+                    struct_depth -= 1
+                elif not line.startswith(b'<!'):
+                    # Start tag
+                    struct_depth += 1
+                    if line.startswith(sentence_starts):
+                        sentence_depths.append(struct_depth)
+                elif nl.isnameline(line):
+                    # Positional-attributes comment
+                    if posattrs is None:
+                        set_attrnums(line)
+                    elif nl.parsenameline(line) != posattrs:
+                        self.error_exit(
+                            'Positional-attributes comment differs from the'
+                            ' first one',
+                            filename=inf.name, linenr=linenum + 1)
+                if name:
+                    # Inside a name
+                    name.lines.append(line)
+                else:
+                    # Outside a name
+                    ouf.write(line)
+            elif posattrs is None:
+                # Token line, no positional-attributes comment seen
+                if line.strip(b'\r\n'):
+                    self.error_exit('No positional-attributes comment before'
+                                    ' the first token')
+                # Drop empty lines
+            else:
+                # Token line
+                attrs = line.rstrip(b'\r\n').split(b'\t')
+                if len(attrs) < num_attrs:
+                    if attrs == [b'']:
+                        # Drop empty lines
+                        continue
+                    self.error_exit(
+                        f'Token line has {len(attrs)} fields, {num_attrs}'
+                        ' expected',
+                        filename=inf.name, linenr=linenum + 1)
+                nertag = attrs[attrnum_nertag]
+                nertag_parts: dict[str, bytes] | None = None
+                # "_" (as output by vrt-finnish-nertag --max) and an
+                # empty value mean no name
+                if nertag and nertag != b'_':
+                    nertag_parts = split_nertag(nertag)
+                    # A maximal NER tag may not have a depth suffix
+                    if not nertag_parts or nertag_parts['depth']:
+                        nertag_parts = None
+                        warn_invalid_nertag('Invalid NER tag', nertag, linenum)
+                if name:
+                    # Within a multi-word name
+                    name.add_token(line, attrs, linenum)
+                    if nertag_parts and nertag_parts['kind'] == NERTAG_END:
+                        if (nertag_parts['fulltype']
+                                == name.nertag_parts['fulltype']):
+                            # Last token of the name
+                            ouf.writelines(add_ne_tags(name))
+                            name = None
+                        else:
+                            warn('NER end tag does not match start tag '
+                                 + name.nertag_parts['fulltype']
+                                 .decode('utf-8')
+                                 + '-B',
+                                 nertag, linenum)
+                    elif nertag_parts:
+                        warn('NER start tag within name', nertag, linenum)
+                elif not nertag_parts:
+                    # Not a name
+                    ouf.write(line)
+                elif nertag_parts['kind'] == NERTAG_FULL:
+                    # Single-word name
+                    ouf.writelines(add_ne_tags(
+                        _Name(nertag_parts, [line], [attrs], [0], [linenum])))
+                elif nertag_parts['kind'] == NERTAG_BEGIN:
+                    # Begin a multi-word name
+                    name = begin_name(nertag_parts)
+                    name.add_token(line, attrs, linenum)
+                else:
+                    # nertag_parts['kind'] == NERTAG_END
+                    warn('NER end tag without start tag', nertag, linenum)
+                    ouf.write(line)
+        if name:
+            # Neither a NER end tag nor a structure end tag ended the
+            # name, so the input is incomplete (or has tokens outside
+            # structures)
+            self.warn('End of input in the middle of a name: '
+                      + name.nertag_parts['fulltype'].decode('utf-8')
+                      + '-E expected',
+                      filename=inf.name, linenr=name.token_linenums[0] + 1)
+            ouf.writelines(name.lines)
+        if invalid_nertag_count > _MAX_INVALID_NERTAG_WARNINGS:
+            self.warn(f'{invalid_nertag_count} invalid NER tags in total;'
+                      f' only the first {_MAX_INVALID_NERTAG_WARNINGS}'
+                      ' reported')
