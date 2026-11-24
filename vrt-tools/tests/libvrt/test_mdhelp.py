@@ -86,6 +86,17 @@ class TestSelectDetail:
                   second'''
         assert select_detail(text, DETAIL_SHORT) == 'first\nsecond'
 
+    def test_spans_in_code(self):
+        """Test that spans are kept in code spans and code blocks."""
+        text = ('a [b]{.long} `[c]{.short}`\n\n```\n[d]{.long}\n```\n\n'
+                '    [e]{.long}\n\n[f `g`\nh]{.long} i')
+        assert select_detail(text, DETAIL_SHORT) == (
+            'a  `[c]{.short}`\n\n```\n[d]{.long}\n```\n\n'
+            '    [e]{.long}\n\n i')
+        assert select_detail(text, DETAIL_FULL) == (
+            'a b `[c]{.short}`\n\n```\n[d]{.long}\n```\n\n'
+            '    [e]{.long}\n\nf `g`\nh i')
+
 
 class TestInsertInFirstParagraph:
 
@@ -110,6 +121,20 @@ class TestInsertInFirstParagraph:
         """Test appending to text containing only a div."""
         assert insert_in_first_paragraph('::: long\na\n:::', ' (x)') == (
             '::: long\na\n:::\n\n(x)')
+
+    def test_skip_multi_paragraph_div(self):
+        """Test skipping a div containing several paragraphs."""
+        assert insert_in_first_paragraph(
+            '::: long\na\n\nb\n:::\n\nc', ' (x)') == (
+                '::: long\na\n\nb\n:::\n\nc (x)')
+
+    def test_skip_code_blocks(self):
+        """Test skipping fenced and indented code blocks."""
+        assert insert_in_first_paragraph(
+            '```\na\n\nb\n```\n\nc', ' (x)') == '```\na\n\nb\n```\n\nc (x)'
+        assert insert_in_first_paragraph(
+            '::: note\n    a\n\n    b\n:::\nc', ' (x)') == (
+                '::: note\n    a\n\n    b\n:::\nc (x)')
 
 
 class TestWrapText:
@@ -188,6 +213,19 @@ class TestMarkdownToPlainLines:
         assert markdown_to_plain_lines('aa --bb-cc-dd', 8) == [
             'aa', '--bb-cc-dd']
 
+    def test_fenced_code_indentation(self):
+        """Test keeping the indentation of lines in fenced code."""
+        assert markdown_to_plain_lines(
+            'a:\n\n```\nb \\\n    c\n```\n\n  ```\n  d\n    e\n  ```', 80) == [
+                'a:', '', '    b \\', '        c', '', '    d', '      e']
+
+    def test_list_item_interrupting_paragraph(self):
+        """Test which list items interrupt a paragraph (as CommonMark)."""
+        assert markdown_to_plain_lines(
+            'a\n2. b\n\nc\n-\nd\n\ne\n1. f\n2. g\n- h\n\ni\n* j', 80) == [
+                'a 2. b', '', 'c - d', '', 'e', '1. f', '2. g', '- h', '',
+                'i', '* j']
+
 
 B0, B1 = '\x1b[1m', '\x1b[22m'
 U0, U1 = '\x1b[4m', '\x1b[24m'
@@ -224,6 +262,7 @@ class TestStyledLines:
     def test_code_block_not_styled(self):
         """Test that code blocks are not styled."""
         assert self.styled('a\n\n    `x` --y') == ['a', '', '    `x` --y']
+
 
 
 class TestCanStyle:
@@ -345,6 +384,22 @@ class TestParser:
             assert expected in out
         assert out.endswith('\n\n## Examples\n\nprog --foo\n')
         assert '--help-markdown' not in out
+
+    def test_help_only_in_full(self, capsys):
+        """Test an argument whose help text is only in full help."""
+        parser = make_parser()
+        parser.add_argument('--baz', help='::: long\nBaz.\n:::')
+        parser.add_argument('--qux', help='[Qux.]{.long}')
+        with pytest.raises(SystemExit):
+            parser.parse_args(['-h'])
+        out = capsys.readouterr().out
+        assert '  --baz BAZ\n  --qux QUX\n' in out
+        assert 'Baz.' not in out
+        assert '#### `--baz BAZ`\n\nBaz.\n\n#### `--qux QUX`\n\nQux.\n' in (
+            format_markdown_doc(parser))
+        parser.add_argument('--quux', help='::: short\nQuux.\n:::')
+        assert '#### `--quux QUUX`\n\n### Group' in (
+            format_markdown_doc(parser))
 
     def test_markdown_epilog_without_heading(self):
         """Test adding heading "Notes" for an epilog without one."""

@@ -37,8 +37,10 @@ The Markdown subset supported by the plain-text help formatter
 `MarkdownHelpFormatter` consists of paragraphs, bulleted and numbered
 lists (an item continues up to the next item or a blank line), fenced
 and indented code blocks, ATX headings ("# Heading"), hard line breaks
-(a trailing backslash) and inline code, emphasis and links. The
-indentation of texts is normalized as with `inspect.cleandoc`.
+(a trailing backslash) and inline code, emphasis and links. Precede
+a list with a blank line: Pandoc (unlike CommonMark) does not
+otherwise recognize it. The indentation of texts is normalized as with
+`inspect.cleandoc`.
 
 Literal structure tags such as <ne> should be written as inline code
 (`<ne>`), as otherwise they are treated as HTML tags in Markdown
@@ -162,6 +164,7 @@ def select_detail(text: str, detail: str) -> str:
     Normalize the indentation of `text` as `inspect.cleandoc` and
     remove the fenced divs and bracketed spans of the class not
     belonging to `detail` and the markers of those belonging to it.
+    Divs and spans are not recognized in code blocks and code spans.
 
     Args:
         text: Markdown text with marked detail levels.
@@ -171,34 +174,77 @@ def select_detail(text: str, detail: str) -> str:
         `text` with the content for `detail` selected.
     """
     drop_cls = _DETAIL_CLASS_DROP[detail]
-    result: list[str] = []
-    # Stack of the classes of open divs
-    divs: list[str] = []
-    # The fence of the code block being read, if any
-    fence: str | None = None
-    for line in _cleandoc(text).split('\n'):
-        dropping = drop_cls in divs
-        if fence:
-            if line.lstrip().startswith(fence):
-                fence = None
-        elif mo := _FENCE_RE.match(line):
-            fence = mo.group('fence')
-        elif mo := _DIV_OPEN_RE.match(line):
-            cls = mo.group('cls1') or mo.group('cls2')
-            divs.append(cls)
-            if cls in _DETAIL_CLASSES:
-                continue
-        elif divs and _DIV_CLOSE_RE.match(line):
-            if divs.pop() in _DETAIL_CLASSES:
-                continue
-        if not dropping:
-            result.append(line)
 
     def replace_span(mo: re.Match[str]) -> str:
         """Return the text of the span in `mo` or "" if dropped."""
         return '' if mo.group('cls') == drop_cls else mo.group('text')
 
-    text = _SPAN_RE.sub(replace_span, '\n'.join(result))
+    def replace_spans(lines: list[str]) -> list[str]:
+        """Replace the spans in `lines`, not in code spans in them."""
+        if not lines:
+            return []
+        code_spans: list[str] = []
+
+        def hide(mo: re.Match[str]) -> str:
+            """Replace the code span in `mo` with a placeholder."""
+            code_spans.append(mo.group())
+            return f'\uE100{len(code_spans) - 1}\uE101'
+
+        text = _CODE_SPAN_RE.sub(hide, '\n'.join(lines))
+        text = _SPAN_RE.sub(replace_span, text)
+        text = re.sub('\uE100(\\d+)\uE101',
+                      lambda mo: code_spans[int(mo.group(1))], text)
+        return text.split('\n')
+
+    result: list[str] = []
+    # Lines of text outside code blocks not yet added to result
+    pending: list[str] = []
+    # Stack of the classes of open divs
+    divs: list[str] = []
+    # The fence of the code block being read, if any
+    fence: str | None = None
+    # Whether the previous line was blank (or a div marker) or in an
+    # indented code block
+    prev_blank = True
+    in_indented_code = False
+    for line in _cleandoc(text).split('\n'):
+        dropping = drop_cls in divs
+        is_code = True
+        if fence:
+            if line.lstrip().startswith(fence):
+                fence = None
+        elif mo := _FENCE_RE.match(line):
+            fence = mo.group('fence')
+        elif (line.startswith('    ')
+              and (prev_blank or in_indented_code)):
+            in_indented_code = True
+        else:
+            is_code = False
+            in_indented_code = in_indented_code and not line.strip()
+            if mo := _DIV_OPEN_RE.match(line):
+                cls = mo.group('cls1') or mo.group('cls2')
+                divs.append(cls)
+                prev_blank = True
+                if cls in _DETAIL_CLASSES:
+                    continue
+            elif divs and _DIV_CLOSE_RE.match(line):
+                prev_blank = True
+                if divs.pop() in _DETAIL_CLASSES:
+                    continue
+            else:
+                prev_blank = not line.strip()
+        if dropping:
+            continue
+        if is_code:
+            # Detail level spans are not recognized in code blocks
+            result.extend(replace_spans(pending))
+            pending = []
+            result.append(line)
+            prev_blank = False
+        else:
+            pending.append(line)
+    result.extend(replace_spans(pending))
+    text = '\n'.join(result)
     # Remove extra blank lines possibly left by removed divs
     return re.sub(r'\n{3,}', '\n\n', text).strip('\n')
 
@@ -207,9 +253,10 @@ def insert_in_first_paragraph(text: str, addition: str) -> str:
     """Append text to the first paragraph of Markdown text.
 
     Normalize the indentation of `text` as `inspect.cleandoc`. Skip
-    paragraphs beginning with a fenced div marker, so that `addition`
-    is shown at all detail levels, and if the paragraph contains a div
-    marker, insert `addition` before it.
+    code blocks and the content of fenced divs of the detail level
+    classes, so that `addition` is shown at all detail levels. If a
+    div marker follows the paragraph without a blank line in between,
+    insert `addition` before it.
 
     Args:
         text: Markdown text with marked detail levels.
@@ -218,25 +265,52 @@ def insert_in_first_paragraph(text: str, addition: str) -> str:
 
     Returns:
         `text` with `addition` appended to its first paragraph, or
-        appended as a paragraph of its own if all paragraphs begin
-        with a div marker.
+        appended as a paragraph of its own if `text` has no paragraph
+        outside detail level divs and code blocks.
     """
-    paras = _cleandoc(text).split('\n\n')
-    for i, para in enumerate(paras):
-        if not _DIV_OPEN_RE.match(para.split('\n', 1)[0]):
-            # Insert before a possible div marker within the paragraph
-            lines = para.split('\n')
-            j = next((j for j, line in enumerate(lines)
-                      if _DIV_OPEN_RE.match(line)), len(lines))
-            lines[j - 1] += addition
-            paras[i] = '\n'.join(lines)
-            return '\n\n'.join(paras)
-    return '\n\n'.join(paras) + '\n\n' + addition.strip()
+    lines = _cleandoc(text).split('\n')
+    # Stack of the classes of open divs
+    divs: list[str] = []
+    # The fence of the code block being read, if any
+    fence: str | None = None
+    prev_blank = True
+    in_indented_code = False
+    # The index of the last line of the first paragraph found so far
+    last: int | None = None
+    for i, line in enumerate(lines):
+        is_text = False
+        if fence:
+            if line.lstrip().startswith(fence):
+                fence = None
+        elif mo := _FENCE_RE.match(line):
+            fence = mo.group('fence')
+        elif line.startswith('    ') and (prev_blank or in_indented_code):
+            in_indented_code = True
+        elif mo := _DIV_OPEN_RE.match(line):
+            divs.append(mo.group('cls1') or mo.group('cls2'))
+        elif divs and _DIV_CLOSE_RE.match(line):
+            divs.pop()
+        elif line.strip():
+            in_indented_code = False
+            is_text = not any(cls in _DETAIL_CLASSES for cls in divs)
+        if is_text:
+            last = i
+        elif last is not None:
+            break
+        prev_blank = not line.strip() or bool(
+            not fence and (_DIV_OPEN_RE.match(line)
+                           or _DIV_CLOSE_RE.match(line)))
+    if last is None:
+        return '\n'.join(lines) + '\n\n' + addition.strip()
+    lines[last] += addition
+    return '\n'.join(lines)
 
 
 _CODE_SPAN_RE = re.compile(
-    r'(?<!`)(?P<ticks>`+)(?!`)(?P<code>.+?)(?<!`)(?P=ticks)(?!`)')
-"""Markdown code span, delimited by backquote strings of equal length"""
+    r'(?<!`)(?P<ticks>`+)(?!`)(?P<code>(?:(?!\n[ \t]*\n).)+?)(?<!`)'
+    r'(?P=ticks)(?!`)', re.DOTALL)
+"""Markdown code span, delimited by backquote strings of equal length
+(not spanning paragraphs)"""
 
 
 def _split_code_spans(text: str) -> list[str]:
@@ -392,10 +466,20 @@ def _iter_blocks(lines: list[str]) -> Iterator[tuple[str, list[str], str]]:
         "" for other blocks.
     """
 
-    def is_para_end(line: str) -> bool:
-        """Return `True` if `line` ends a paragraph or a list item."""
-        return bool(not line.strip() or _LIST_ITEM_RE.match(line)
-                    or _FENCE_RE.match(line) or _HEADING_RE.match(line))
+    def is_para_end(line: str, in_item: bool) -> bool:
+        """Return `True` if `line` ends a paragraph or a list item.
+
+        As in CommonMark, any list item ends a list item, but only a
+        non-empty bulleted list item or a numbered one beginning with
+        1 ends (interrupts) a paragraph.
+        """
+        if not line.strip() or _FENCE_RE.match(line) or _HEADING_RE.match(line):
+            return True
+        if not (mo := _LIST_ITEM_RE.match(line)):
+            return False
+        return in_item or bool(
+            mo.group('text')
+            and mo.group('marker').rstrip('.)') in ('-', '*', '+', '1'))
 
     i = 0
     prev_blank = True
@@ -412,7 +496,8 @@ def _iter_blocks(lines: list[str]) -> Iterator[tuple[str, list[str], str]]:
             block: list[str] = []
             i += 1
             while i < len(lines) and not lines[i].lstrip().startswith(fence):
-                block.append(lines[i][indent:] if lines[i][:indent].isspace()
+                block.append(lines[i][indent:]
+                             if not lines[i][:indent].strip()
                              else lines[i].lstrip())
                 i += 1
             i += 1
@@ -439,7 +524,7 @@ def _iter_blocks(lines: list[str]) -> Iterator[tuple[str, list[str], str]]:
                 line = mo.group('text') or ''
             block = [line]
             i += 1
-            while i < len(lines) and not is_para_end(lines[i]):
+            while i < len(lines) and not is_para_end(lines[i], bool(marker)):
                 block.append(lines[i])
                 i += 1
             yield 'para', block, marker
@@ -644,9 +729,13 @@ class MarkdownHelpFormatter(argparse.HelpFormatter):
         return can_style()
 
     def _split_lines(self, text: str, width: int) -> list[str]:
-        """Convert an argument help text to lines (see `_fill_text`)."""
+        """Convert an argument help text to lines (see `_fill_text`).
+
+        Return `[""]` if the help text is empty at the detail level, as
+        argparse requires at least one line.
+        """
         return markdown_to_plain_lines(select_detail(text, self.detail),
-                                       width, self._styled)
+                                       width, self._styled) or ['']
 
     def _fill_text(self, text: str, width: int, indent: str) -> str:
         """Convert a description or epilog to wrapped plain text.
@@ -787,9 +876,9 @@ def format_markdown_doc(parser: argparse.ArgumentParser) -> str:
             invocation = ', '.join(
                 f'`{inv}`' for inv in _format_invocation(formatter, action))
             parts.append(f'#### {invocation}')
-            if action.help:
-                parts.append(select_detail(formatter._expand_help(action),
-                                           DETAIL_FULL))
+            if action.help and (help_text := select_detail(
+                    formatter._expand_help(action), DETAIL_FULL)):
+                parts.append(help_text)
     if epilog := _format_text(parser.epilog, parser.prog):
         # Without a heading of its own, the epilog would appear to
         # belong to the description of the last argument
