@@ -38,7 +38,7 @@ The Markdown subset supported by the plain-text help formatter
 lists (an item continues up to the next item or a blank line), fenced
 and indented code blocks, ATX headings ("# Heading"), hard line breaks
 (a trailing backslash) and inline code, emphasis and links. The
-indentation of texts is normalized with `inspect.cleandoc`.
+indentation of texts is normalized as with `inspect.cleandoc`.
 
 Literal structure tags such as <ne> should be written as inline code
 (`<ne>`), as otherwise they are treated as HTML tags in Markdown
@@ -62,14 +62,21 @@ by argparse itself are coloured by Python 3.14 and later.)
 """
 
 
+from __future__ import annotations
+
 import argparse
-import inspect
+import functools
 import os
 import re
 import sys
 
-from collections.abc import Iterator, Sequence
-from typing import Any, TextIO
+# typing (and inspect) are not imported at run time, as this module is
+# imported by every tool using vrtargsoolib, and importing them would
+# slow down the start-up of every tool by 10-30 milliseconds
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Iterator, Sequence
+    from typing import Any, TextIO
 
 
 DETAIL_SHORT = 'short'
@@ -82,6 +89,8 @@ _DETAIL_CLASS_DROP = {
     DETAIL_FULL: 'short',
 }
 """The class of fenced divs and spans dropped at each detail level"""
+_DETAIL_CLASSES = ('long', 'short')
+"""The classes of fenced divs and spans marking detail levels"""
 
 _DIV_OPEN_RE = re.compile(
     r'^ {0,3}:{3,}\s*(?:\{\s*\.(?P<cls1>[\w-]+)\s*\}|(?P<cls2>[\w-]+))'
@@ -102,11 +111,15 @@ _BOLD = ('\x1b[1m', '\x1b[22m')
 """ANSI SGR escape sequences for turning bold on and off"""
 _UNDERLINE = ('\x1b[4m', '\x1b[24m')
 """ANSI SGR escape sequences for turning underline on and off"""
-_ESCAPABLE_CHARS = r'\\`*_{}\[\]()#+.!<>|-'
-"""Characters that can be backslash-escaped in Markdown"""
-_WHITESPACE_SPLIT_RE = re.compile(r'([\t\n\x0b\x0c\r ]+)')
-"""Whitespace on which to split text when wrapping it (ASCII only, as
-in `textwrap`, so that a no-break space does not allow a line break)"""
+_ESCAPE_RE = re.compile(r'\\([\\`*_{}\[\]()#+.!<>|-])')
+"""Backslash-escaped character in Markdown"""
+_LINK_RE = re.compile(r'\[([^\[\]]+)\]\(([^()\s]+)\)')
+"""Markdown inline link [text](url)"""
+_PROTECTED_RE = re.compile('[\uE000-\uE07F]')
+"""ASCII character protected from being treated as markup by mapping it
+to the Unicode private use area (code point + `_PROTECT_BASE`)"""
+_PROTECT_BASE = 0xE000
+"""The offset of protected ASCII characters in the private use area"""
 
 _GROUP_TITLES = {
     'optional arguments': 'Options',
@@ -117,10 +130,36 @@ _GROUP_TITLES = {
 optional arguments depends on the Python version)"""
 
 
+def _cleandoc(text: str) -> str:
+    """Normalize the indentation of text as `inspect.cleandoc`.
+
+    Expand tabs, remove leading whitespace from the first line and the
+    common indentation from the rest, and remove leading and trailing
+    blank lines. (`inspect` is not imported, as it is slow to import.)
+
+    Args:
+        text: The text to normalize.
+
+    Returns:
+        `text` with indentation normalized.
+    """
+    lines = text.expandtabs().split('\n')
+    indents = [len(line) - len(line.lstrip()) for line in lines[1:]
+               if line.strip()]
+    margin = min(indents, default=0)
+    lines[0] = lines[0].lstrip()
+    lines[1:] = [line[margin:] for line in lines[1:]]
+    while lines and not lines[-1]:
+        lines.pop()
+    while lines and not lines[0]:
+        lines.pop(0)
+    return '\n'.join(lines)
+
+
 def select_detail(text: str, detail: str) -> str:
     """Select the content for a detail level from Markdown text.
 
-    Normalize the indentation of `text` with `inspect.cleandoc` and
+    Normalize the indentation of `text` as `inspect.cleandoc` and
     remove the fenced divs and bracketed spans of the class not
     belonging to `detail` and the markers of those belonging to it.
 
@@ -132,15 +171,13 @@ def select_detail(text: str, detail: str) -> str:
         `text` with the content for `detail` selected.
     """
     drop_cls = _DETAIL_CLASS_DROP[detail]
-    keep_cls = 'long' if drop_cls == 'short' else 'short'
     result: list[str] = []
-    # Stack of open divs: for each, the class and whether to drop
-    # the content
-    divs: list[tuple[str, bool]] = []
+    # Stack of the classes of open divs
+    divs: list[str] = []
     # The fence of the code block being read, if any
     fence: str | None = None
-    for line in inspect.cleandoc(text).split('\n'):
-        dropping = any(drop for _, drop in divs)
+    for line in _cleandoc(text).split('\n'):
+        dropping = drop_cls in divs
         if fence:
             if line.lstrip().startswith(fence):
                 fence = None
@@ -148,12 +185,11 @@ def select_detail(text: str, detail: str) -> str:
             fence = mo.group('fence')
         elif mo := _DIV_OPEN_RE.match(line):
             cls = mo.group('cls1') or mo.group('cls2')
-            divs.append((cls, cls == drop_cls))
-            if cls in (drop_cls, keep_cls):
+            divs.append(cls)
+            if cls in _DETAIL_CLASSES:
                 continue
         elif divs and _DIV_CLOSE_RE.match(line):
-            cls, _ = divs.pop()
-            if cls in (drop_cls, keep_cls):
+            if divs.pop() in _DETAIL_CLASSES:
                 continue
         if not dropping:
             result.append(line)
@@ -170,7 +206,7 @@ def select_detail(text: str, detail: str) -> str:
 def insert_in_first_paragraph(text: str, addition: str) -> str:
     """Append text to the first paragraph of Markdown text.
 
-    Normalize the indentation of `text` with `inspect.cleandoc`. Skip
+    Normalize the indentation of `text` as `inspect.cleandoc`. Skip
     paragraphs beginning with a fenced div marker, so that `addition`
     is shown at all detail levels, and if the paragraph contains a div
     marker, insert `addition` before it.
@@ -185,7 +221,7 @@ def insert_in_first_paragraph(text: str, addition: str) -> str:
         appended as a paragraph of its own if all paragraphs begin
         with a div marker.
     """
-    paras = inspect.cleandoc(text).split('\n\n')
+    paras = _cleandoc(text).split('\n\n')
     for i, para in enumerate(paras):
         if not _DIV_OPEN_RE.match(para.split('\n', 1)[0]):
             # Insert before a possible div marker within the paragraph
@@ -222,30 +258,6 @@ def _split_code_spans(text: str) -> list[str]:
     return parts
 
 
-def _plain_inline(text: str) -> str:
-    """Convert Markdown inline markup to plain text.
-
-    Remove backquotes around code spans looking like structure tags
-    (`<...>`), convert links to "text <url>" and remove backslash
-    escapes outside code spans. Keep other markup (emphasis, other
-    code spans) as is, as it reads well enough as plain text.
-
-    Args:
-        text: Markdown text without block-level markup.
-
-    Returns:
-        `text` converted to plain text.
-    """
-    parts = _split_code_spans(text)
-    for i, part in enumerate(parts):
-        if i % 2:
-            parts[i] = re.sub(r'^`(<[^`]+>)`$', r'\1', part)
-        else:
-            part = re.sub(r'\[([^\[\]]+)\]\(([^()\s]+)\)', r'\1 <\2>', part)
-            parts[i] = re.sub(r'\\([\\`*_{}\[\]()#+.!<>|-])', r'\1', part)
-    return ''.join(parts)
-
-
 def _style(text: str, style: tuple[str, str]) -> str:
     """Enclose text in escape sequences turning a style on and off.
 
@@ -260,19 +272,24 @@ def _style(text: str, style: tuple[str, str]) -> str:
     return style[0] + text + style[1]
 
 
-def _styled_inline(text: str) -> str:
-    """Convert Markdown inline markup to text styled for a terminal.
+def _render_inline(text: str, styled: bool = False) -> str:
+    """Convert Markdown inline markup to plain or styled text.
 
-    Render code spans, strong emphasis and option names (such as
-    --option or -o) in bold and emphasis underlined with ANSI escape
-    sequences, removing the Markdown markup. Convert links to "text
-    <url>" and remove backslash escapes outside code spans.
+    Convert links to "text <url>" and remove backslash escapes outside
+    code spans. If `styled`, render code spans, strong emphasis and
+    option names (such as --option or -o) in bold and emphasis
+    underlined with ANSI escape sequences, removing the Markdown
+    markup. Otherwise, remove backquotes only around code spans
+    looking like structure tags (`<...>`) and keep other markup
+    (emphasis, other code spans) as is, as it reads well enough as
+    plain text.
 
     Args:
         text: Markdown text without block-level markup.
+        styled: Whether to render the markup with styles.
 
     Returns:
-        `text` converted to styled text.
+        `text` converted to plain or styled text.
     """
 
     def protect(mo: re.Match[str]) -> str:
@@ -280,7 +297,11 @@ def _styled_inline(text: str) -> str:
 
         This prevents the character from being treated as markup.
         """
-        return chr(0xE000 + ord(mo.group(1)))
+        return chr(_PROTECT_BASE + ord(mo.group(1)))
+
+    def unprotect(mo: re.Match[str]) -> str:
+        """Return the protected character in `mo` as the original one."""
+        return chr(ord(mo.group()) - _PROTECT_BASE)
 
     def bold(mo: re.Match[str]) -> str:
         """Return the first group of `mo` in bold."""
@@ -293,6 +314,9 @@ def _styled_inline(text: str) -> str:
     parts = _split_code_spans(text)
     for i, part in enumerate(parts):
         if i % 2:
+            if not styled:
+                parts[i] = re.sub(r'^`(<[^`]+>)`$', r'\1', part)
+                continue
             # The content of a code span neither begins nor ends with
             # a backquote
             code = part.strip('`')
@@ -301,17 +325,19 @@ def _styled_inline(text: str) -> str:
                 code = code[1:-1]
             parts[i] = _style(code, _BOLD)
         else:
-            part = re.sub(f'\\\\([{_ESCAPABLE_CHARS}])', protect, part)
-            part = re.sub(r'\[([^\[\]]+)\]\(([^()\s]+)\)', r'\1 <\2>', part)
-            part = re.sub(r'\*\*(?=\S)(.+?)(?<=\S)\*\*', bold, part)
-            part = re.sub(r'(?<![\w*])\*(?=[^\s*])(.+?)(?<=[^\s*])\*(?![\w*])',
-                          underline, part)
-            part = re.sub(r'(?<!\w)_(?=\S)(.+?)(?<=\S)_(?!\w)', underline,
-                          part)
-            part = re.sub(r'(?<![\w-])(--[A-Za-z][\w-]*|-[A-Za-z](?![\w-]))',
-                          bold, part)
-            parts[i] = re.sub('[\uE000-\uE07F]',
-                              lambda mo: chr(ord(mo.group()) - 0xE000), part)
+            part = _ESCAPE_RE.sub(protect, part)
+            part = _LINK_RE.sub(r'\1 <\2>', part)
+            if styled:
+                part = re.sub(r'\*\*(?=\S)(.+?)(?<=\S)\*\*', bold, part)
+                part = re.sub(
+                    r'(?<![\w*])\*(?=[^\s*])(.+?)(?<=[^\s*])\*(?![\w*])',
+                    underline, part)
+                part = re.sub(r'(?<!\w)_(?=\S)(.+?)(?<=\S)_(?!\w)',
+                              underline, part)
+                part = re.sub(
+                    r'(?<![\w-])(--[A-Za-z][\w-]*|-[A-Za-z](?![\w-]))',
+                    bold, part)
+            parts[i] = _PROTECTED_RE.sub(unprotect, part)
     return ''.join(parts)
 
 
@@ -350,21 +376,20 @@ def can_style(file: TextIO | None = None) -> bool:
         return False
 
 
-def _iter_blocks(
-        lines: list[str]) -> Iterator[tuple[str, list[str], dict[str, Any]]]:
+def _iter_blocks(lines: list[str]) -> Iterator[tuple[str, list[str], str]]:
     """Split the lines of Markdown text to blocks.
 
     Args:
         lines: The lines of Markdown text.
 
     Yields:
-        Tuples (kind, block, info), where kind is "blank", "code",
-        "heading", "item" or "para"; block contains the lines of the
-        block without code fences, the indentation of code blocks,
-        heading markers and list item markers (empty for "blank");
-        and info is a dict, for "item" with keys "indent" (the
-        indentation of the item marker) and "marker" (the item
-        marker), and empty for the other kinds.
+        Tuples (kind, block, marker), where kind is "blank", "code",
+        "heading" or "para" (a paragraph or a list item); block
+        contains the lines of the block without code fences, the
+        indentation of code blocks, heading markers and list item
+        markers (empty for "blank"); and marker is the indentation and
+        marker of a list item followed by a space (such as "- "), or
+        "" for other blocks.
     """
 
     def is_para_end(line: str) -> bool:
@@ -377,7 +402,7 @@ def _iter_blocks(
     while i < len(lines):
         line = lines[i]
         if not line.strip():
-            yield 'blank', [], {}
+            yield 'blank', [], ''
             prev_blank = True
             i += 1
             continue
@@ -391,7 +416,7 @@ def _iter_blocks(
                              else lines[i].lstrip())
                 i += 1
             i += 1
-            yield 'code', block, {}
+            yield 'code', block, ''
         elif prev_blank and line.startswith('    '):
             block = []
             while i < len(lines) and (lines[i].startswith('    ')
@@ -402,24 +427,22 @@ def _iter_blocks(
             while block and not block[-1].strip():
                 block.pop()
                 i -= 1
-            yield 'code', block, {}
+            yield 'code', block, ''
         elif mo := _HEADING_RE.match(line):
-            yield 'heading', [mo.group('text')], {}
+            yield 'heading', [mo.group('text')], ''
             i += 1
-        elif mo := _LIST_ITEM_RE.match(line):
-            block = [mo.group('text') or '']
-            i += 1
-            while i < len(lines) and not is_para_end(lines[i]):
-                block.append(lines[i])
-                i += 1
-            yield 'item', block, dict(indent=len(mo.group('indent')),
-                                      marker=mo.group('marker'))
         else:
-            block = []
+            # A paragraph or a list item
+            marker = ''
+            if mo := _LIST_ITEM_RE.match(line):
+                marker = mo.group('indent') + mo.group('marker') + ' '
+                line = mo.group('text') or ''
+            block = [line]
+            i += 1
             while i < len(lines) and not is_para_end(lines[i]):
                 block.append(lines[i])
                 i += 1
-            yield 'para', block, {}
+            yield 'para', block, marker
         prev_blank = False
 
 
@@ -480,8 +503,10 @@ def wrap_text(text: str, width: int, initial_indent: str = '',
     Returns:
         The wrapped lines of `text`, without newlines.
     """
-    text = re.sub(r'[\t\n\x0b\x0c\r]', ' ', text.expandtabs())
-    chunks = [chunk for chunk in _WHITESPACE_SPLIT_RE.split(text) if chunk]
+    # Only ASCII whitespace, as in textwrap, so that a no-break space
+    # does not allow a line break
+    text = re.sub(r'[\n\x0b\x0c\r]', ' ', text.expandtabs())
+    chunks = [chunk for chunk in re.split(r'( +)', text) if chunk]
     # The wrapped lines as (indent, line)
     lines: list[tuple[str, str]] = []
     i = 0
@@ -539,7 +564,6 @@ def _wrap_inline(lines: list[str], width: int, first_indent: str = '',
     Returns:
         The wrapped lines.
     """
-    inline = _styled_inline if styled else _plain_inline
     # Split at hard line breaks (trailing backslash)
     segments: list[list[str]] = [[]]
     for line in lines:
@@ -553,7 +577,8 @@ def _wrap_inline(lines: list[str], width: int, first_indent: str = '',
     for segment in segments:
         if not segment:
             continue
-        text = inline(' '.join(line.strip() for line in segment))
+        text = _render_inline(' '.join(line.strip() for line in segment),
+                              styled)
         result.extend(
             wrap_text(text, width,
                       initial_indent=(indent if result else first_indent),
@@ -579,23 +604,20 @@ def markdown_to_plain_lines(text: str, width: int,
         The lines of `text` converted to plain text.
     """
     result: list[str] = []
-    for kind, block, info in _iter_blocks(text.split('\n')):
+    for kind, block, marker in _iter_blocks(text.split('\n')):
         if kind == 'blank':
             if result and result[-1]:
                 result.append('')
         elif kind == 'code':
             result.extend(('    ' + line).rstrip() for line in block)
         elif kind == 'heading':
-            heading = _plain_inline(block[0])
+            heading = _render_inline(block[0])
             if heading[-1:].isalnum():
                 heading += ':'
             result.append(_style(heading, _BOLD) if styled else heading)
-        elif kind == 'item':
-            first_indent = ' ' * info['indent'] + info['marker'] + ' '
-            result.extend(_wrap_inline(block, width, first_indent,
-                                       ' ' * len(first_indent), styled))
         else:
-            result.extend(_wrap_inline(block, width, styled=styled))
+            result.extend(_wrap_inline(block, width, marker,
+                                       ' ' * len(marker), styled))
     while result and not result[-1]:
         result.pop()
     return result
@@ -616,16 +638,15 @@ class MarkdownHelpFormatter(argparse.HelpFormatter):
     detail = DETAIL_SHORT
     """Detail level of help texts"""
 
+    @functools.cached_property
     def _styled(self) -> bool:
-        """Return `True` if help texts are to be styled."""
-        if not hasattr(self, '_styled_value'):
-            self._styled_value = can_style()
-        return self._styled_value
+        """`True` if help texts are to be styled."""
+        return can_style()
 
     def _split_lines(self, text: str, width: int) -> list[str]:
         """Convert an argument help text to lines (see `_fill_text`)."""
         return markdown_to_plain_lines(select_detail(text, self.detail),
-                                       width, self._styled())
+                                       width, self._styled)
 
     def _fill_text(self, text: str, width: int, indent: str) -> str:
         """Convert a description or epilog to wrapped plain text.
@@ -637,13 +658,11 @@ class MarkdownHelpFormatter(argparse.HelpFormatter):
 
         Returns:
             The content of `text` for detail level `detail` as wrapped
-            plain text, styled if `_styled()`.
+            plain text, styled if `_styled`.
         """
         return '\n'.join(
             (indent + line).rstrip()
-            for line in markdown_to_plain_lines(
-                    select_detail(text, self.detail), width - len(indent),
-                    self._styled()))
+            for line in self._split_lines(text, width - len(indent)))
 
     def format_help(self) -> str:
         """Return the help message, without trailing whitespace on lines."""
@@ -824,6 +843,21 @@ class MarkdownDocAction(_HelpAction):
         """Print Markdown documentation for `parser` and exit."""
         print(format_markdown_doc(parser), end='')
         parser.exit()
+
+
+def uses_markdown_help(parser: argparse.ArgumentParser) -> bool:
+    """Return whether Markdown help is enabled for a parser.
+
+    Args:
+        parser: The parser to check.
+
+    Returns:
+        `True` if `enable_markdown_help` has been called for `parser`
+        (its formatter class is `MarkdownHelpFormatter` or a subclass).
+    """
+    formatter_class = parser.formatter_class
+    return (isinstance(formatter_class, type)
+            and issubclass(formatter_class, MarkdownHelpFormatter))
 
 
 def enable_markdown_help(

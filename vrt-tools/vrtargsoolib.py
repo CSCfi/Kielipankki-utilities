@@ -22,7 +22,11 @@ from enum import Enum, Flag
 import vrtargslib
 
 from libvrt.groupargs import ArgumentGrouping
-from libvrt.mdhelp import enable_markdown_help, insert_in_first_paragraph
+from libvrt.mdhelp import (
+    enable_markdown_help,
+    insert_in_first_paragraph,
+    uses_markdown_help,
+)
 
 
 class CommonArgs(Enum):
@@ -89,13 +93,11 @@ def get_argparser(argspecs=None, *, common_args=CommonArgs.trans,
     if markdown_help:
         enable_markdown_help(argparser)
     if argspecs:
-        argparser_add_args(argparser, argspecs, extra_types,
-                           markdown_help=markdown_help)
+        argparser_add_args(argparser, argspecs, extra_types)
     return argparser
 
 
-def argparser_add_args(argparser, argspecs, extra_types=None,
-                       markdown_help=False):
+def argparser_add_args(argparser, argspecs, extra_types=None):
     """Add the arguments specified in argspecs to ArgumentParser argparser.
 
     `argspecs` is a list of command-line argument specifications,
@@ -176,10 +178,13 @@ def argparser_add_args(argparser, argspecs, extra_types=None,
     allowed in argument specifications in addition to global and
     built-in types.
 
-    If `markdown_help` is `True`, help texts are Markdown (see
-    `libvrt.mdhelp`), and information on a default value is appended
-    to the first paragraph of the help text instead of the end.
+    If Markdown help is enabled for `argparser` (see
+    `libvrt.mdhelp.enable_markdown_help`), help texts are Markdown,
+    and information on a default value is appended to the first
+    paragraph of the help text instead of the end.
     """
+
+    markdown_help = uses_markdown_help(argparser)
 
     def add_arg(argparser, argspec, modify_action=None):
         """Add the argument specified in `argspec` to `argparser`.
