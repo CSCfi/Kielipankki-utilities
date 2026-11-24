@@ -35,8 +35,8 @@ def parsearguments(argv):
                         type = _name,
                         help = '''
 
-                        output field name ("nertag" for --max,
-                        "nertags/" for --all, "nerbio" for --bio)
+                        output field name ("nertag2" for --max,
+                        "nertags2/" for --all, "nerbio2" for --bio)
 
                         ''')
 
@@ -67,9 +67,9 @@ def parsearguments(argv):
     args = parser.parse_args(argv)
 
     # default depends on args.form so here goes
-    args.tag = args.tag or dict(max = b'nertag',
-                                all = b'nertags/',
-                                bio = b'nerbio')[args.form]
+    args.tag = args.tag or dict(max = b'nertag2',
+                                all = b'nertags2/',
+                                bio = b'nerbio2')[args.form]
     args.prog = parser.prog
     return args
 
