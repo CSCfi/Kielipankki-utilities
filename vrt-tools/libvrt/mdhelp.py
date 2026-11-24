@@ -6,8 +6,8 @@ Support for usage messages and documentation written in a subset of
 Markdown with marked detail levels, so that a short usage message
 (--help), full help (--help-full) and documentation in Markdown
 (--help-markdown) can be generated from the same source: the
-description, argument help texts and epilog of an
-`argparse.ArgumentParser`.
+description, argument group descriptions, argument help texts and
+epilog of an `argparse.ArgumentParser`.
 
 To enable the facility for a parser, call `enable_markdown_help`.
 (With `vrtargsoolib`, set `markdown_help = True` in the class
@@ -888,8 +888,10 @@ def format_markdown_doc(parser: argparse.ArgumentParser) -> str:
     begins with a heading of its own.
     Under "Arguments", each argument group has a level-3 heading and
     each argument a level-4 heading containing the ways to invoke it
-    as inline code. The output is intended to render properly both on
-    GitHub and with Pandoc.
+    as inline code; docs/tool-doc.lua relies on these headings when
+    converting the arguments to a definition list in man pages. The
+    output is intended to render properly both on GitHub and with
+    Pandoc.
 
     Args:
         parser: The parser to be documented.

@@ -379,7 +379,10 @@ def _argparser_add_arg(argparser, argspec, extra_types=None,
     del_keys(argdict, ['names', 'neg'])
     process_argnames(argnames)
     # Add information on the possible default value to the usage
-    # message, unless it already contains the string "default".
+    # message, unless it already contains the string "default". With
+    # Markdown help, this also holds for "default" in content shown
+    # only in full help, so the short usage message then has no
+    # default either.
     if 'default' in argdict and 'default' not in argdict['help']:
         default_val = argdict['default']
         if markdown_help:
@@ -521,8 +524,9 @@ class BasicProcessor:
         common_args = CommonArgs.version
         """The script has the common arguments for transformation scripts"""
         markdown_help = False
-        """DESCRIPTION, EPILOG and help texts in ARGSPECS are Markdown
-        with marked detail levels (see `libvrt.mdhelp`)"""
+        """DESCRIPTION, EPILOG and the group descriptions and help
+        texts in ARGSPECS are Markdown with marked detail levels, and
+        the tool has the option --help-full (see `libvrt.mdhelp`)"""
 
     def __init__(self, extra_types=None):
         """Initialize the class.

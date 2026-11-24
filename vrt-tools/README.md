@@ -89,7 +89,8 @@ The supported Markdown consists of paragraphs, lists, code blocks,
 headings and inline markup. Precede a list with a blank line, as
 Pandoc does not otherwise recognize it. Literal structure tags must
 be written as inline code (`` `<ne>` ``), and characters such as `*`
-and `_` in literal values should be within inline code.
+and `_` in literal values should be within inline code. A literal `%`
+in argument help texts must be written as `%%`.
 
 In plain-text help, inline code keeps its backquotes, except for
 structure tags and inline code followed by `{.plain}`, as in
