@@ -14,6 +14,7 @@ import pytest
 
 from libvrt.mdhelp import (
     can_style,
+    code_span,
     DETAIL_FULL,
     DETAIL_SHORT,
     enable_markdown_help,
@@ -226,6 +227,12 @@ class TestMarkdownToPlainLines:
                 'a 2. b', '', 'c - d', '', 'e', '1. f', '2. g', '- h', '',
                 'i', '* j']
 
+    def test_plain_code_span(self):
+        """Test removing backquotes from code spans with {.plain}."""
+        assert markdown_to_plain_lines(
+            '(default: `"*x*"`{.plain}) ``a`b``{.plain} `y` `<z>`', 80) == [
+                '(default: "*x*") a`b `y` <z>']
+
 
 B0, B1 = '\x1b[1m', '\x1b[22m'
 U0, U1 = '\x1b[4m', '\x1b[24m'
@@ -263,6 +270,31 @@ class TestStyledLines:
         """Test that code blocks are not styled."""
         assert self.styled('a\n\n    `x` --y') == ['a', '', '    `x` --y']
 
+    def test_plain_code_span(self):
+        """Test styling a code span with {.plain} as other code spans."""
+        assert self.styled('(default: `"x"`{.plain})') == [
+            f'(default: {B0}"x"{B1})']
+
+
+class TestCodeSpan:
+
+    """Tests for code_span."""
+
+    def test_simple(self):
+        """Test a code span without backquotes."""
+        assert code_span('a b') == '`a b`'
+        assert code_span('x', plain=True) == '`x`{.plain}'
+
+    def test_backquotes(self):
+        """Test code spans with backquotes in the content."""
+        assert code_span('a`b') == '``a`b``'
+        assert code_span('`a``') == '``` `a`` ```'
+
+    def test_spaces_kept(self):
+        """Test that spaces at both ends of the content are kept."""
+        assert code_span(' a ') == '`  a  `'
+        assert code_span(' a') == '` a`'
+        assert code_span('  ') == '`  `'
 
 
 class TestCanStyle:
@@ -400,6 +432,15 @@ class TestParser:
         parser.add_argument('--quux', help='::: short\nQuux.\n:::')
         assert '#### `--quux QUUX`\n\n### Group' in (
             format_markdown_doc(parser))
+
+    def test_markdown_plain_attribute_removed(self):
+        """Test removing {.plain} from code spans in Markdown output."""
+        parser = make_parser()
+        parser.add_argument('--baz', help='x (default: `"y"`{.plain})')
+        parser.epilog = 'See `z`{.plain}.'
+        out = format_markdown_doc(parser)
+        assert '\n\nx (default: `"y"`)\n' in out
+        assert out.endswith('\n\nSee `z`.\n')
 
     def test_markdown_epilog_without_heading(self):
         """Test adding heading "Notes" for an epilog without one."""

@@ -23,6 +23,7 @@ import vrtargslib
 
 from libvrt.groupargs import ArgumentGrouping
 from libvrt.mdhelp import (
+    code_span,
     enable_markdown_help,
     insert_in_first_paragraph,
     uses_markdown_help,
@@ -181,7 +182,8 @@ def argparser_add_args(argparser, argspecs, extra_types=None):
     If Markdown help is enabled for `argparser` (see
     `libvrt.mdhelp.enable_markdown_help`), help texts are Markdown,
     and information on a default value is appended to the first
-    paragraph of the help text instead of the end.
+    paragraph of the help text instead of the end, with the value as
+    a code span shown without backquotes in plain-text help.
     """
 
     markdown_help = uses_markdown_help(argparser)
@@ -380,9 +382,24 @@ def _argparser_add_arg(argparser, argspec, extra_types=None,
     # message, unless it already contains the string "default".
     if 'default' in argdict and 'default' not in argdict['help']:
         default_val = argdict['default']
+        if markdown_help:
+            # Format the value directly as a code span shown without
+            # backquotes in plain-text help, so that it is not
+            # interpreted as Markdown
+            if isinstance(default_val, bytes):
+                value = default_val.decode('UTF-8')
+            else:
+                value = str(default_val)
+            # Quote string values as without Markdown help, and also
+            # an empty value, as a code span cannot be empty
+            if (isinstance(default_val, bytes) or 'type' not in argdict
+                    or not value):
+                value = f'"{value}"'
+            # argparse expands "%" in help texts
+            default_fmt = code_span(value.replace('%', '%%'), plain=True)
         # If the default value is bytes, format it directly as a
         # string to get "..." instead of b'...'
-        if isinstance(default_val, bytes):
+        elif isinstance(default_val, bytes):
             default_fmt = f'"{default_val.decode("UTF-8")}"'
         else:
             default_fmt = (

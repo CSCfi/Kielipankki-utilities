@@ -45,7 +45,10 @@ otherwise recognize it. The indentation of texts is normalized as with
 Literal structure tags such as <ne> should be written as inline code
 (`<ne>`), as otherwise they are treated as HTML tags in Markdown
 output; the plain-text formatter removes the backquotes around such
-code spans. Similarly, characters such as "*" and "_" in literal
+code spans. The plain-text formatter also removes the backquotes
+around code spans followed by "{.plain}" (as in `` `"x"`{.plain} ``),
+which is used for default values; "{.plain}" is removed from the
+Markdown output. Similarly, characters such as "*" and "_" in literal
 values should be within inline code to avoid their being interpreted
 as emphasis. As in argparse in general, a literal "%" in argument help
 texts needs to be written as "%%".
@@ -308,9 +311,48 @@ def insert_in_first_paragraph(text: str, addition: str) -> str:
 
 _CODE_SPAN_RE = re.compile(
     r'(?<!`)(?P<ticks>`+)(?!`)(?P<code>(?:(?!\n[ \t]*\n).)+?)(?<!`)'
-    r'(?P=ticks)(?!`)', re.DOTALL)
+    r'(?P=ticks)(?!`)(?P<attr>\{\.plain\})?', re.DOTALL)
 """Markdown code span, delimited by backquote strings of equal length
-(not spanning paragraphs)"""
+(not spanning paragraphs), possibly followed by attribute "{.plain}"
+(shown without backquotes in plain-text help)"""
+_PLAIN_ATTR = '{.plain}'
+"""Attribute of a code span shown without backquotes in plain-text
+help"""
+
+
+def code_span(text: str, plain: bool = False) -> str:
+    """Return text as a Markdown code span.
+
+    Use a backquote string longer than any in `text` as the delimiter,
+    and add spaces inside the delimiters if needed to keep backquotes
+    or spaces at the ends of `text`.
+
+    Args:
+        text: The text of the code span; may not be empty.
+        plain: Whether to add attribute "{.plain}", so that the code
+            span is shown without backquotes in plain-text help.
+
+    Returns:
+        `text` as a code span.
+    """
+    ticks = '`' * (max(map(len, re.findall('`+', text)), default=0) + 1)
+    pad = (' ' if (text[:1] == '`' or text[-1:] == '`'
+                   or (text[:1] == text[-1:] == ' ' and text.strip()))
+           else '')
+    return ticks + pad + text + pad + ticks + (_PLAIN_ATTR if plain else '')
+
+
+def _strip_plain_attrs(text: str) -> str:
+    """Remove attributes "{.plain}" of code spans from Markdown text.
+
+    Args:
+        text: Markdown text.
+
+    Returns:
+        `text` without "{.plain}" after code spans.
+    """
+    return ''.join(part.removesuffix(_PLAIN_ATTR) if i % 2 else part
+                   for i, part in enumerate(_split_code_spans(text)))
 
 
 def _split_code_spans(text: str) -> list[str]:
@@ -321,7 +363,8 @@ def _split_code_spans(text: str) -> list[str]:
 
     Returns:
         The parts of `text`: other text at even indices and code spans
-        (including their delimiters) at odd indices.
+        (including their delimiters and a possible attribute "{.plain}")
+        at odd indices.
     """
     parts: list[str] = []
     pos = 0
@@ -354,9 +397,9 @@ def _render_inline(text: str, styled: bool = False) -> str:
     option names (such as --option or -o) in bold and emphasis
     underlined with ANSI escape sequences, removing the Markdown
     markup. Otherwise, remove backquotes only around code spans
-    looking like structure tags (`<...>`) and keep other markup
-    (emphasis, other code spans) as is, as it reads well enough as
-    plain text.
+    looking like structure tags (`<...>`) or followed by "{.plain}"
+    and keep other markup (emphasis, other code spans) as is, as it
+    reads well enough as plain text. Remove "{.plain}" in both cases.
 
     Args:
         text: Markdown text without block-level markup.
@@ -388,16 +431,20 @@ def _render_inline(text: str, styled: bool = False) -> str:
     parts = _split_code_spans(text)
     for i, part in enumerate(parts):
         if i % 2:
-            if not styled:
-                parts[i] = re.sub(r'^`(<[^`]+>)`$', r'\1', part)
-                continue
+            plain = part.endswith(_PLAIN_ATTR)
+            part = part.removesuffix(_PLAIN_ATTR)
             # The content of a code span neither begins nor ends with
             # a backquote
             code = part.strip('`')
             # As in CommonMark, strip one space from both sides
             if code.startswith(' ') and code.endswith(' ') and code.strip():
                 code = code[1:-1]
-            parts[i] = _style(code, _BOLD)
+            if styled:
+                parts[i] = _style(code, _BOLD)
+            elif plain or re.fullmatch(r'<[^`]+>', code):
+                parts[i] = code
+            else:
+                parts[i] = part
         else:
             part = _ESCAPE_RE.sub(protect, part)
             part = _LINK_RE.sub(r'\1 <\2>', part)
@@ -828,7 +875,7 @@ def _format_text(text: str | None, prog: str) -> str:
         return ''
     if '%(prog)' in text:
         text = text % dict(prog=prog)
-    return select_detail(text, DETAIL_FULL)
+    return _strip_plain_attrs(select_detail(text, DETAIL_FULL))
 
 
 def format_markdown_doc(parser: argparse.ArgumentParser) -> str:
@@ -876,8 +923,9 @@ def format_markdown_doc(parser: argparse.ArgumentParser) -> str:
             invocation = ', '.join(
                 f'`{inv}`' for inv in _format_invocation(formatter, action))
             parts.append(f'#### {invocation}')
-            if action.help and (help_text := select_detail(
-                    formatter._expand_help(action), DETAIL_FULL)):
+            if action.help and (help_text := _strip_plain_attrs(
+                    select_detail(formatter._expand_help(action),
+                                  DETAIL_FULL))):
                 parts.append(help_text)
     if epilog := _format_text(parser.epilog, parser.prog):
         # Without a heading of its own, the epilog would appear to

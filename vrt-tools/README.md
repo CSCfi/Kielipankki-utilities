@@ -89,11 +89,21 @@ The supported Markdown consists of paragraphs, lists, code blocks,
 headings and inline markup. Precede a list with a blank line, as
 Pandoc does not otherwise recognize it. Literal structure tags must
 be written as inline code (`` `<ne>` ``), and characters such as `*`
-and `_` in literal values should be within inline code. When the help
-is written to a terminal, inline code, option names and headings are
-shown in bold and emphasis (`*arg*`) underlined, as in man pages; set
-`NO_COLOR=1` (or `PYTHON_COLORS=0`) to disable this. See the
-docstring of [`libvrt/mdhelp.py`](libvrt/mdhelp.py) for details.
+and `_` in literal values should be within inline code.
+
+In plain-text help, inline code keeps its backquotes, except for
+structure tags and inline code followed by `{.plain}`, as in
+`` `"_"`{.plain} ``; `{.plain}` is removed from the Markdown
+documentation. `vrtargsoolib` uses it for the default value that it
+appends to the first paragraph of an argument help text, as in
+“(default: `` `"_"`{.plain} ``)”, unless the help text contains the
+word “default” anywhere, also in content marked `long`.
+
+When the help is written to a terminal, inline code, option names and
+headings are shown in bold and emphasis (`*arg*`) underlined, as in
+man pages; set `NO_COLOR=1` (or `PYTHON_COLORS=0`) to disable this.
+See the docstring of [`libvrt/mdhelp.py`](libvrt/mdhelp.py) for
+details.
 
 To enable Markdown help for a tool:
 
