@@ -5,5 +5,5 @@
 This documentation is generated from the usage information of the
 tools by running `docs/make-tool-docs`.
 
-- [vrt-add-id](vrt-add-id.md): Add or overwrite an "id" attribute to each element of the specified kind, based on a counter or unique random values.
+- [vrt-add-id](vrt-add-id.md): Add or overwrite an id attribute to each element of the specified kind, based on a counter or unique random values.
 - [vrt-unify-attrs](vrt-unify-attrs.md): Unify the structural attributes (annotations) in the input VRT: add attributes possibly missing from some structures (elements) and sort the attributes to the same order in all structures (alphabetically by default).

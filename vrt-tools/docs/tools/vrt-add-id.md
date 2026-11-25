@@ -15,7 +15,7 @@ vrt-add-id [-h] [--out file | --in-place | --backup bak | --in-sibling EXT]
 
 ## Description
 
-Add or overwrite an "id" attribute to each element of the
+Add or overwrite an id attribute to each element of the
 specified kind, based on a counter or unique random values.
 
 ## Arguments
@@ -64,17 +64,17 @@ show full help message and exit
 #### `--seed string`
 
 random number generator seed for random ids; if
-string begins with "<", the rest is the name of
+_string_ begins with `<`, the rest is the name of
 the file whose content (up to 1 MiB) to use as
-the seed (default: "" = non-reproducible)
+the seed (default: `""` = non-reproducible)
 
 #### `--hash string`
 
 make `{hash}` in the id format string refer to
-the hex digest of the SHA-1 hash of string; if
-string is empty, generate a random hash; if
-the option is repeated, `{hashN}` refers to
-the Nth value
+the hex digest of the SHA-1 hash of _string_; if
+_string_ is empty, generate a random hash; if
+the option is repeated, `{hash`_N_`}` refers to
+the _N_-th value
 
 #### `--force`
 
@@ -82,8 +82,8 @@ overwrite an existing id
 
 #### `--rename`
 
-rename possible existing id attribute to id_N,
-where N is the smallest positive integer for
+rename possible existing id attribute to `id_`_N_,
+where _N_ is the smallest positive integer for
 which the resulting attribute does not exist
 
 #### `--sort`
@@ -104,8 +104,8 @@ number of ids added
 #### `--element name`, `-e name`
 
 name of the VRT element to which to add id
-attribute; can be repeated (default: "text",
-"paragraph" and "sentence", with special
+attribute; can be repeated (default: `text`,
+`paragraph` and `sentence`, with special
 default formats (see --format))
 
 ### Element-specific options
@@ -117,70 +117,72 @@ becomes the default for all elements.
 
 #### `--id name`
 
-name of the "id" attribute ("id")
+name of the id attribute (`id`)
 
 #### `--type {random,counter}`
 
-type of id values: "random" for unique random
-integers, "counter" for integers based on a
-counter ("random")
+type of id values: `random` for unique random
+integers, `counter` for integers based on a
+counter (`random`)
 
 #### `--start number`
 
-initial value for the counter (1)
+initial value for the counter (`1`)
 
 #### `--max number`
 
-maximum random id value is number - 1; a
+maximum random id value is _number_ - 1; a
 non-negative integer, hexadecimal if prefixed
-with "0x", or n^k for n to the power of k
+with `0x`, or _n_`^`_k_ for _n_ to the power of _k_
 (default: if the format string specifies a
-width for `{id}` or `{idnum[elem]}`, the maximum that
+width for `{id}` or `{idnum[`_elem_`]}`, the
+maximum that
 fits in width digits of the base specified in
-the format string; otherwise, 2^32)
+the format string; otherwise, `2^32`)
 
 #### `--format format`
 
 format string for id, with Python
 `str.format`-style formatting: `{id}` is
 replaced with the integer id value,
-`{idnum[elem]}` with the integer id value for
-element elem, and `{elem[attr]}` with the
-string value of the existing attribute attr in
+`{idnum[`_elem_`]}` with the integer id value for
+element _elem_, and `{`_elem_`[`_attr_`]}` with the
+string value of the existing attribute _attr_ in
 the current or an enclosing element (the
 current element can also be referred to as
 `this`)
 
-`{id}` and `{idnum[elem]}` without a format
+`{id}` and `{idnum[`_elem_`]}` without a format
 specification implicitly use the default format
-specification; `{idnum[elem]}` referred to in
+specification; `{idnum[`_elem_`]}` referred to in
 the format string of another element uses the
 format specification specified for element
-elem.
+_elem_.
 
 Formatting string values is extended with
 regular expression substitutions:
-`{elem[attr]/regexp/subst/}` is `{elem[attr]}`
-with all matches of regexp replaced with subst;
-subst may refer to groups in regexp as `\N`,
-`\g<N>` or `\g<name>`; multiple substitutions
+`{elem[`_attr_`]/`_regexp_`/`_subst_`/}` is
+`{`_elem_`[`_attr_`]}`
+with all matches of _regexp_ replaced with _subst_;
+_subst_ may refer to groups in _regexp_ as `\`_N_,
+`\g<`_N_`>` or `\g<`_name_`>`; multiple substitutions
 are separated by commas, semicolons or spaces.
 
 (Default: with --type=counter, `{id:d}`; with
 --type=random, `{id:0*x}` where `*` is the
 minimum number of hex digits to represent the
 maximum value. If no --element nor --format is
-specified, `t-{hash:.8}-{id}` for text,
-`p-{hash:.8}-{idnum[text]}-{id}` for paragraph
+specified, `t-{hash:.8}-{id}` for `text`,
+`p-{hash:.8}-{idnum[text]}-{id}` for `paragraph`
 and `s-{hash:.8}-{idnum[text]}-{id}` for
-sentence, with a random hash if no --hash is
+`sentence`, with a random hash if no --hash is
 specified.)
 
 #### `--prefix affix`
 
 additional prefix text to each formatted id,
 prepended to the format string specified with
---format ("")
+--format (`""`)
 
 ## Notes
 
@@ -191,9 +193,9 @@ fewer features. The slower one is used in the following cases:
 1. with one or more of the options --no-optimize, --force, --sort
    and --rename;
 2. if an id format refers to other replacement fields than `{id}`,
-   `{idnum[elem]}`, `{hash}` and `{hashN}`;
-3. if `{id}` or `{idnum[elem]}` for a certain element occurs with
+   `{idnum[`_elem_`]}`, `{hash}` and `{hash`_N_`}`;
+3. if `{id}` or `{idnum[`_elem_`]}` for a certain element occurs with
    several different format specifications; or
-4. if the format specification of `{id}` or `{idnum[elem]}`
+4. if the format specification of `{id}` or `{idnum[`_elem_`]}`
    produces `<`, `>`, `&` or `"`, which only the slower method
    escapes.

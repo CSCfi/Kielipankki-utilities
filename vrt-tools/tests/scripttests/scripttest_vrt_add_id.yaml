@@ -2953,12 +2953,14 @@
       contains:
         - '--help-full'
         - 'format string for id'
-        - '(default: depends on --type'
         - "\n1. with one or more of the options --no-optimize"
       not-contains:
         - 'Formatting string values'
         - '(Default: with --type=counter'
         - '::: '
+      regex:
+        - '\(default:\s+depends on --type'
+
 
 - name: 'vrt-add-id: Full usage message (--help-full)'
   input:
@@ -2971,7 +2973,7 @@
       contains:
         - 'format string for id'
         - 'Formatting string values'
-        - '`\g<N>` or `\g<name>`'
+        - '`\g<`_N_`>` or `\g<`_name_`>`'
         - '(Default: with --type=counter'
         - "\n1. with one or more of the options --no-optimize"
       not-contains:
