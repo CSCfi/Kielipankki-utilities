@@ -1613,14 +1613,15 @@
     stdout:
       contains:
         - '--help-full'
-        - 'add missing attributes with value str (default: ""),'
         - 'The tool reads the input twice'
       not-contains:
-        - 'attr-regex-list is a list'
+        - '_attr-regex-list_ is a list'
         - 'non-occurring'
         - 'overrides the values'
         - 'Examples:'
         - '::: long'
+      regex:
+        - 'add missing attributes with value _str_ \(default:\s+`""`\),'
 
 - name: 'vrt-unify-attrs: Full usage message (--help-full)'
   input:
@@ -1631,8 +1632,7 @@
   output:
     stdout:
       contains:
-        - 'add missing attributes with value str (default: ""),'
-        - 'attr-regex-list is a list'
+        - '_attr-regex-list_ is a list'
         - 'non-occurring'
         - 'overrides the values'
         - "Examples:\n\nAdd missing attributes"
@@ -1640,6 +1640,9 @@
       not-contains:
         - '::: long'
         - ']{.long}'
+      regex:
+        - 'add missing attributes with value _str_\s+\(default:\s+`""`\),'
+
 
 - name: 'vrt-unify-attrs: Documentation in Markdown (--help-markdown)'
   input:

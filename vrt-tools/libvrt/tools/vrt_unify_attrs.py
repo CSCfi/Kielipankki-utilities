@@ -73,22 +73,22 @@ class VrtStructAttrUnifier(InputProcessor):
          [
              ('--structure|element|e = struct:encode_utf8',
               '''the options following this (up to the next --structure)
-                 apply to structures struct'''),
+                 apply to structures _struct_'''),
              ('--default = ""',
-              '''add missing attributes with value str (default: ""), to
-                 all attributes or only to those matching attr-regex-list
+              '''add missing attributes with value _str_ (default: `""`), to
+                 all attributes or only to those matching _attr-regex-list_
 
                  ::: long
-                 attr-regex-list is a list of attribute name regular
+                 _attr-regex-list_ is a list of attribute name regular
                  expressions, separated by spaces or commas. If
-                 attr-regex-list is specified, apply to attributes whose
+                 _attr-regex-list_ is specified, apply to attributes whose
                  names fully match one of the regular expressions in it,
-                 otherwise to all attributes. If attr-regex-list is
+                 otherwise to all attributes. If _attr-regex-list_ is
                  omitted, the colon following it can also be omitted
-                 unless str contains a colon.
+                 unless _str_ contains a colon.
 
                  If the option is specified multiple times with different
-                 attribute regular expressions, an attribute gets the str
+                 attribute regular expressions, an attribute gets the _str_
                  specified for the last regular expression matching the
                  attribute name.
                  :::''',
@@ -101,23 +101,23 @@ class VrtStructAttrUnifier(InputProcessor):
                  instead of sorting alphabetically; attributes encountered
                  only later are appended'''),
              ('--first = attrlist:attrlist',
-              '''order attributes listed in attrlist before other attributes;
-                 attributes in attrlist separated by spaces or commas,
+              '''order attributes listed in _attrlist_ before other attributes;
+                 attributes in _attrlist_ separated by spaces or commas,
                  duplicates not allowed''',
               # The processed value is a list, even though the option
               # can be specified only once (for each structure)
               dict(silent_default=[])),
              ('--last = attrlist:attrlist',
-              '''order attributes listed in attrlist after other attributes,
-                 attrlist value as for --first; attrlist may not contain any
+              '''order attributes listed in _attrlist_ after other attributes,
+                 _attrlist_ value as for --first; _attrlist_ may not contain any
                  attribute specified for --first''',
               dict(silent_default=[])),
              ('--always = attrlist:attrlist',
-              '''always output attributes listed in attrlist, even if they
+              '''always output attributes listed in _attrlist_, even if they
                  did not occur in the input[; with --input-order,
                  non-occurring attributes are appended after occurring ones
-                 in the order specified in attrlist, unless also listed in
-                 --first or --last]{.long}; attrlist value as for --first
+                 in the order specified in _attrlist_, unless also listed in
+                 --first or --last]{.long}; _attrlist_ value as for --first
                  and --last''',
               dict(silent_default=[])),
              # No (silent_)default for --only, as a specified empty
@@ -125,23 +125,23 @@ class VrtStructAttrUnifier(InputProcessor):
              # specifying the option at all
              ('--only = attr-regex-list:attr_regex_list_combined',
               '''output only attributes whose names fully match a regular
-                 expression in attr-regex-list and which occur in
+                 expression in _attr-regex-list_ and which occur in
                  input, in addition to those possibly listed with --always;
                  an empty value (and no --always) removes all attributes'''),
              ('--exactly = attrlist:attrlist',
-              '''always output only attributes listed in attrlist, shorthand
+              '''always output only attributes listed in _attrlist_, shorthand
                  for --always=attrlist --only=attrlist[; overrides the values
                  for --always and --only, with a warning (but
                  structure-specific --always and --only override global
                  --exactly)]{.long}'''),
              ('--optional = attr-regex-list:attr_regex_list_combined',
               '''do not add attributes fully matching a regular expression in
-                 attr-regex-list to structures from which they are missing
+                 _attr-regex-list_ to structures from which they are missing
                  (unless listed with --always); has no effect with
                  --single-pass'''),
              ('--drop = attr-regex-list:attr_regex_list_combined',
               '''drop (remove) attributes fully matching a regular expression
-                 in attr-regex-list (and not listed with --always, --only or
+                 in _attr-regex-list_ (and not listed with --always, --only or
                  --exactly)'''),
          ]),
     ]
