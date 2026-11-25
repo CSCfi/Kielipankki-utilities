@@ -16,6 +16,7 @@ from libvrt.args import BadData
 from libvrt.args import transput_args
 
 from libvrt.groupargs import grouping_arg, grouped_arg
+from libvrt.mdhelp import enable_markdown_help
 
 from libvrt.metaname import nametype # need checked
 from libvrt.metaline import (
@@ -66,16 +67,22 @@ def parsearguments(argv, *, prog = None):
 
     The program contains two alternative methods of adding id
     attributes: a slower one with more features and a faster one with
-    fewer features. The slower one is used in following cases: (1)
-    with one or more of the options --no-optimize, --force, --sort and
-    --rename; (2) if an id format refers to other replacement fields
-    than {id}, {idnum[elem]}, {hash} and {hashN}; or (3) if {id} or
-    {idnum[elem]} for a certain element occurs with several different
-    format specifications.
+    fewer features. The slower one is used in the following cases:
+
+    1. with one or more of the options --no-optimize, --force, --sort
+       and --rename;
+    2. if an id format refers to other replacement fields than `{id}`,
+       `{idnum[elem]}`, `{hash}` and `{hashN}`;
+    3. if `{id}` or `{idnum[elem]}` for a certain element occurs with
+       several different format specifications; or
+    4. if the format specification of `{id}` or `{idnum[elem]}`
+       produces `<`, `>`, `&` or `"`, which only the slower method
+       escapes.
 
     '''
 
     parser = transput_args(description = description, epilog = epilog)
+    enable_markdown_help(parser)
 
     parser.add_argument('--seed', metavar = 'string',
                         default = '',
@@ -92,10 +99,10 @@ def parsearguments(argv, *, prog = None):
                         action = 'append',
                         help = '''
 
-                        make "{hash}" in the id format string refer to
+                        make `{hash}` in the id format string refer to
                         the hex digest of the SHA-1 hash of string; if
                         string is empty, generate a random hash; if
-                        the option is repeated, "{hashN}" refers to
+                        the option is repeated, `{hashN}` refers to
                         the Nth value
 
                         ''')
@@ -209,7 +216,7 @@ def parsearguments(argv, *, prog = None):
                        non-negative integer, hexadecimal if prefixed
                        with "0x", or n^k for n to the power of k
                        (default: if the format string specifies a
-                       width for id or idnum[elem], the maximum that
+                       width for `{id}` or `{idnum[elem]}`, the maximum that
                        fits in width digits of the base specified in
                        the format string; otherwise, 2^32)
 
@@ -219,39 +226,43 @@ def parsearguments(argv, *, prog = None):
                        action = grouped_arg(),
                        help = '''
 
-                       Format string for id, with Python
-                       str.format-style formatting: "{id}" is replaced
-                       with the integer id value, "{idnum[elem]}" with
-                       the integer id value for element elem, and
-                       "{elem[attr]}" with the string value of the
-                       existing attribute attr in the current or an
-                       enclosing element (the current element can also
-                       be referred to as "this").
+                       format string for id, with Python
+                       `str.format`-style formatting: `{id}` is
+                       replaced with the integer id value,
+                       `{idnum[elem]}` with the integer id value for
+                       element elem, and `{elem[attr]}` with the
+                       string value of the existing attribute attr in
+                       the current or an enclosing element (the
+                       current element can also be referred to as
+                       `this`)[ (default: depends on --type and
+                       --element; see --help-full)]{.short}
 
-                       "{id}" and "{idnum[elem]}" without a format
+                       ::: long
+                       `{id}` and `{idnum[elem]}` without a format
                        specification implicitly use the default format
-                       specification; "{idnum[elem]}" referred to in
+                       specification; `{idnum[elem]}` referred to in
                        the format string of another element uses the
                        format specification specified for element
                        elem.
 
                        Formatting string values is extended with
                        regular expression substitutions:
-                       "{elem[attr]/regexp/subst/}" is "{elem[attr]}"
+                       `{elem[attr]/regexp/subst/}` is `{elem[attr]}`
                        with all matches of regexp replaced with subst;
-                       subst may refer to groups in regexp as \\N,
-                       \\g<N> or \\g<name>; multiple substitutions are
-                       separated by commas, semicolons or spaces.
+                       subst may refer to groups in regexp as `\\N`,
+                       `\\g<N>` or `\\g<name>`; multiple substitutions
+                       are separated by commas, semicolons or spaces.
 
-                       (Default: with --type=counter, "{id:d}"; with
-                       --type=random, "{id:0*x}" where * is the
+                       (Default: with --type=counter, `{id:d}`; with
+                       --type=random, `{id:0*x}` where `*` is the
                        minimum number of hex digits to represent the
                        maximum value. If no --element nor --format is
-                       specified, "t-{hash:.8}-{id}" for text,
-                       "p-{hash:.8}-{idnum[text]}-{id}" for paragraph
-                       and "s-{hash:.8}-{idnum[text]}-{id}" for
+                       specified, `t-{hash:.8}-{id}` for text,
+                       `p-{hash:.8}-{idnum[text]}-{id}` for paragraph
+                       and `s-{hash:.8}-{idnum[text]}-{id}` for
                        sentence, with a random hash if no --hash is
                        specified.)
+                       :::
 
                        ''')
 
