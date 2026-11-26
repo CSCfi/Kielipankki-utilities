@@ -24,18 +24,18 @@ Configuration via command-line options:
           'none': Disable grouping, use standard pytest output
 
 Example output with default settings (short format):
-    test_scripts_grouped.py
-    test_scripts_grouped.py::hrt_encode_tags ............................ [ 12%]
-    .................................................................
-    test_scripts_grouped.py::vrt_drop_attrs ............................. [ 45%]
-    .................................................................
+    test_scripts.py
+    test_scripts.py::hrt_encode_tags .................................... [ 12%]
+    .........................................................................
+    test_scripts.py::vrt_drop_attrs ..................................... [ 45%]
+    .........................................................................
 
 With --grouped-output-format=full:
-    test_scripts_grouped.py
-    test_scripts_grouped.py::test_scripttest_hrt_encode_tags_yaml ....... [ 12%]
-    ..................................................................
-    test_scripts_grouped.py::test_scripttest_vrt_drop_attrs_yaml ........ [ 45%]
-    ..................................................................
+    test_scripts.py
+    test_scripts.py::test_scripttest_hrt_encode_tags_yaml ............... [ 12%]
+    .........................................................................
+    test_scripts.py::test_scripttest_vrt_drop_attrs_yaml ................ [ 45%]
+    .........................................................................
 
 With --grouped-output-format=none:
     Uses standard pytest output (no grouping headers)
@@ -61,31 +61,17 @@ class GroupedOutputPlugin:
         self.config = config
         self.current_group = None
 
-        # Get configuration from pytest options
-        self.modules_pattern = getattr(config.option, 'grouped_output_modules',
-                                       'test_scripts*')
-        self.output_format = getattr(config.option, 'grouped_output_format',
-                                     'short')
+        # Get configuration from pytest options; support multiple
+        # module patterns separated by commas
+        self.module_patterns = [
+            p.strip() for p in config.option.grouped_output_modules.split(',')]
+        self.output_format = config.option.grouped_output_format
 
     def _is_grouped_test(self, nodeid):
         """Check if the test should be grouped based on module patterns."""
-        # If format is 'none', disable grouping entirely
-        if self.output_format == 'none':
-            return False
-
-        parts = nodeid.split('::')
-        if not parts:
-            return False
-
-        module_part = parts[0]
-        basename = module_part.split('/')[-1]
-
-        # Support multiple patterns separated by comma
-        patterns = [p.strip() for p in self.modules_pattern.split(',')]
-        for pattern in patterns:
-            if fnmatch.fnmatch(basename, pattern):
-                return True
-        return False
+        basename = nodeid.split('::')[0].split('/')[-1]
+        return any(fnmatch.fnmatch(basename, pattern)
+                   for pattern in self.module_patterns)
 
     def _format_group_name(self, group_id):
         """Format the group name based on output_format setting.
@@ -95,14 +81,10 @@ class GroupedOutputPlugin:
         if self.output_format != 'short':
             return group_id
 
-        # Extract just the function name
-        if '::' not in group_id:
-            return group_id
-
         file_part, func_part = group_id.rsplit('::', 1)
 
         # Remove prefixes (test_, scripttests_, scripttest_) and
-        # suffixes (_yaml, _py) using a single regex replacement
+        # suffixes (_yaml, _py)
         func_part = re.sub(r'^(test_|scripttest_|scripttests_)+', '', func_part)
         func_part = re.sub(r'(_yaml|_py)$', '', func_part)
 
