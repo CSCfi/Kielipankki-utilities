@@ -91,9 +91,10 @@ class GroupedOutputPlugin:
         file_part, func_part = group_id.rsplit('::', 1)
 
         # Remove prefixes (test_, scripttests_, scripttest_) and
-        # suffixes (_yaml, _py)
+        # suffixes (_yaml, _yml, _py), keeping a possible numeric suffix
+        # added to make the function name unique
         func_part = re.sub(r'^(test_|scripttest_|scripttests_)+', '', func_part)
-        func_part = re.sub(r'(_yaml|_py)$', '', func_part)
+        func_part = re.sub(r'_(?:ya?ml|py)(_\d+)?$', r'\1', func_part)
 
         return f'{file_part}::{func_part}'
 
