@@ -51,6 +51,8 @@ import fnmatch
 import re
 import weakref
 
+import pytest
+
 
 # pytest option parsers to which the options of this plugin have been
 # added by pytest_addoption
@@ -112,6 +114,9 @@ class GroupedOutputPlugin:
             return f'{file_part}::{func_part}'
         return None
 
+    # tryfirst: run before the terminal reporter's hook, so that the
+    # reporter does not write the module path before the group header
+    @pytest.hookimpl(tryfirst=True)
     def pytest_runtest_logstart(self, nodeid, location):
         """Hook called when pytest is about to run a test."""
         # Only process tests matching the configured patterns
@@ -128,11 +133,36 @@ class GroupedOutputPlugin:
             # Format the group name based on settings
             formatted_name = self._format_group_name(group_id)
 
-            # Print group header using the terminal writer, if the
-            # terminal reporter is in use (not with -p no:terminal)
-            if self.config.pluginmanager.has_plugin('terminalreporter'):
-                tw = self.config.get_terminal_writer()
-                tw.write(f'\n{formatted_name} ')
+            # Print group header via the terminal reporter, if in use
+            # (not with -p no:terminal)
+            reporter = self.config.pluginmanager.get_plugin(
+                'terminalreporter')
+            if reporter is not None:
+                self._write_group_header(reporter, nodeid, formatted_name)
+
+    def _write_group_header(self, reporter, nodeid, header):
+        """Write group `header` for `nodeid` with terminal `reporter`.
+
+        Mimic `TerminalReporter.write_fspath_result`, which writes the
+        module path when the module changes: first fill the current
+        line with progress information (if any), and then write the
+        header on a new line. Also set the reporter's current module
+        path, so that the reporter does not write it on a line of its
+        own after the header. This relies on attributes and methods of
+        `TerminalReporter` that are not part of the public pytest API;
+        if they are missing, just write the header.
+        """
+        tw = self.config.get_terminal_writer()
+        if (tw.width_of_current_line > 0
+                and getattr(reporter, '_show_progress_info', False)
+                and hasattr(reporter,
+                            '_write_progress_information_filling_space')):
+            reporter._write_progress_information_filling_space()
+        if hasattr(reporter, 'currentfspath'):
+            reporter.currentfspath = (
+                self.config.rootpath / nodeid.split('::')[0])
+        tw.line()
+        tw.write(f'{header} ')
 
 
 def pytest_addoption(parser):
