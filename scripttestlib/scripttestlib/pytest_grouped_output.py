@@ -15,9 +15,9 @@ Either register it in pytest.ini or conftest.py:
     pytest_plugins = ["scripttestlib.pytest_grouped_output"]
 
 Configuration via command-line options:
-    --grouped-output-modules=PATTERN
+    --scripttest-grouped-modules=PATTERN
           Glob patterns of test modules to group (default: test_scripts*)
-    --grouped-output-format=FORMAT
+    --scripttest-grouped-output=FORMAT
           Output format: 'short' (default), 'full' or 'none':
           'short': Simplified names (removes prefixes/suffixes)
           'full': Complete function names
@@ -30,14 +30,14 @@ Example output with default settings (short format):
     test_scripts.py::vrt_drop_attrs ..................................... [ 45%]
     .........................................................................
 
-With --grouped-output-format=full:
+With --scripttest-grouped-output=full:
     test_scripts.py
     test_scripts.py::test_scripttest_hrt_encode_tags_yaml ............... [ 12%]
     .........................................................................
     test_scripts.py::test_scripttest_vrt_drop_attrs_yaml ................ [ 45%]
     .........................................................................
 
-With --grouped-output-format=none:
+With --scripttest-grouped-output=none:
     Uses standard pytest output (no grouping headers)
 
 Implementation:
@@ -70,8 +70,9 @@ class GroupedOutputPlugin:
         # Get configuration from pytest options; support multiple
         # module patterns separated by commas
         self.module_patterns = [
-            p.strip() for p in config.option.grouped_output_modules.split(',')]
-        self.output_format = config.option.grouped_output_format
+            p.strip()
+            for p in config.option.scripttest_grouped_modules.split(',')]
+        self.output_format = config.option.scripttest_grouped_output
 
     def _is_grouped_test(self, nodeid):
         """Check if the test should be grouped based on module patterns."""
@@ -141,16 +142,17 @@ def pytest_addoption(parser):
     if parser in _option_parsers:
         return
     _option_parsers.add(parser)
-    group = parser.getgroup('grouped output')
+    group = parser.getgroup('scripttestlib')
     group.addoption(
-        '--grouped-output-modules',
+        '--scripttest-grouped-modules',
+        metavar='PATTERNS',
         default='test_scripts*',
         help=('Glob pattern(s) of test modules to apply grouping to'
               ' (default: %(default)s). Use comma-separated values for'
               ' multiple patterns.')
     )
     group.addoption(
-        '--grouped-output-format',
+        '--scripttest-grouped-output',
         default='short',
         choices=['none', 'full', 'short'],
         help=('Format for test output when using grouped organization.'
@@ -169,6 +171,6 @@ def pytest_configure(config):
         return
     # Only activate in non-verbose mode and when format is not 'none'
     if (not config.option.verbose
-            and config.option.grouped_output_format != 'none'):
+            and config.option.scripttest_grouped_output != 'none'):
         config.pluginmanager.register(GroupedOutputPlugin(config),
                                       'grouped_output')

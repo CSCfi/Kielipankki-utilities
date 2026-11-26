@@ -74,7 +74,7 @@ def set_options_from_pytest_config(config):
 
 def add_pytest_option_scripttest_granularity(parser):
     """Add custom option --scripttest-granularity to pytest option parser."""
-    parser.addoption(
+    parser.getgroup('scripttestlib').addoption(
         '--scripttest-granularity',
         choices=['value', 'outputitem', 'programrun'], default='value',
         help="""

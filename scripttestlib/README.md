@@ -96,7 +96,7 @@ test_scripts.py::vrt_drop_attrs ............................. [ 45%]
 #### Output format options
 
 The appearance of grouped test headers can be controlled with the
-`--grouped-output-format` option, which takes one of the following
+`--scripttest-grouped-output` option, which takes one of the following
 values:
 
 - `short` (default): Simplified test names with common prefixes and
@@ -108,15 +108,15 @@ values:
 #### Configurable module patterns
 
 By default, grouping is applied only to `test_scripts*` modules. You can
-customize this with the `--grouped-output-modules` option using glob
+customize this with the `--scripttest-grouped-modules` option using glob
 patterns:
 
 ```
 # Apply grouping to multiple module patterns
-pytest --grouped-output-modules=test_scripts*,test_custom*
+pytest --scripttest-grouped-modules=test_scripts*,test_custom*
 
 # Apply grouping to all test_* modules
-pytest --grouped-output-modules=test_*
+pytest --scripttest-grouped-modules=test_*
 ```
 
 #### Configuration via pytest.ini
@@ -125,7 +125,7 @@ These options can be set in `pytest.ini` to apply by default:
 
 ```ini
 [pytest]
-addopts = --grouped-output-format=short --grouped-output-modules=test_scripts*
+addopts = --scripttest-grouped-output=short --scripttest-grouped-modules=test_scripts*
 ```
 
 
