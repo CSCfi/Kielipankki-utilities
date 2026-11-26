@@ -8,8 +8,10 @@ Very basic pytest tests for scripttestlib.
 """
 
 
+import importlib.util
 import itertools
 import os.path
+import stat
 import sys
 
 from copy import deepcopy
@@ -3001,6 +3003,16 @@ _testcase_files_content = [
 _testcases = expand_testcases(_testcase_files_content)
 
 
+@pytest.fixture(autouse=True)
+def restore_sys_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    """pytest fixture: restore `sys.path` after each test.
+
+    Collecting test cases prepends the base directory (often a
+    temporary directory in these tests) to `sys.path`.
+    """
+    monkeypatch.setattr(sys, 'path', sys.path[:])
+
+
 @pytest.fixture
 def testcase_files(tmpdir):
     """pytest fixture: testcase files from _testcase_files_content
@@ -3250,6 +3262,85 @@ def test_collect_testcases_by_file(testcase_files, tmpdir):
             fname, basedir=str(tmpdir), granularity='value')
 
 
+def _write_testcase_yaml(fname, name, input_, output):
+    """Write a YAML file `fname` with a single test case."""
+    os.makedirs(os.path.dirname(fname), exist_ok=True)
+    with open(fname, 'w') as outf:
+        yaml.dump([{'name': name, 'input': input_, 'output': output}], outf)
+
+
+def _exec_module_file(fname):
+    """Execute Python file `fname` as a module and return the module."""
+    spec = importlib.util.spec_from_file_location(
+        os.path.basename(fname)[:-3], fname)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_collect_testcases_defaults(tmpdir):
+    """Test collect_testcases with default filespecs and basedir.
+
+    The default basedir is the directory of the calling test_*.py
+    module, and the default filespecs match scripttest_*.{py,yaml,yml}
+    and scripttests/*.{py,yaml,yml}.
+    """
+    testdir = os.path.join(tmpdir, 'tests')
+    for fname in ['scripttest_a.yaml', 'scripttests/b.yml', 'c.yaml',
+                  'scripttestc.yaml']:
+        _write_testcase_yaml(os.path.join(testdir, fname), fname,
+                             {'cmdline': 'true'}, {'returncode': 0})
+    with open(os.path.join(testdir, 'test_collect.py'), 'w') as outf:
+        outf.write('from scripttestlib import collect_testcases\n'
+                   'testcases = collect_testcases(granularity="programrun")\n')
+    module = _exec_module_file(os.path.join(testdir, 'test_collect.py'))
+    assert sorted(testcase[0] for testcase in module.testcases) == [
+        'scripttest_a.yaml 1: scripttest_a.yaml',
+        'scripttests/b.yml 1: scripttests/b.yml',
+    ]
+
+
+def test_make_parametrized_test_functions_default_progpath(tmpdir):
+    """Test that by default, the programs are searched in the parent
+    directory of the test dir and then in the test dir, as with the
+    default test_scripts.py, also if the path contains braces.
+    """
+    parentdir = os.path.join(tmpdir, 'coll{x}')
+    testdir = os.path.join(parentdir, 'tests')
+    os.makedirs(testdir)
+    for dirname, progname, output in [
+            (parentdir, 'prog-in-parent', 'prog-in-parent'),
+            (testdir, 'prog-in-testdir', 'prog-in-testdir'),
+            # The program in the parent directory is found first
+            (parentdir, 'prog-in-both', 'prog-in-both: parent'),
+            (testdir, 'prog-in-both', None),
+    ]:
+        progfname = os.path.join(dirname, progname)
+        with open(progfname, 'w') as outf:
+            outf.write(f'#! /bin/sh\necho {dirname}\n')
+        os.chmod(progfname, os.stat(progfname).st_mode | stat.S_IXUSR)
+        if output is not None:
+            _write_testcase_yaml(
+                os.path.join(testdir, f'scripttest_{progname}.yaml'), output,
+                {'prog': progname}, {'stdout': f'{dirname}\n'})
+    with open(os.path.join(testdir, 'test_progpath.py'), 'w') as outf:
+        outf.write('from scripttestlib import (\n'
+                   '    collect_testcases_by_file,'
+                   ' make_parametrized_test_functions)\n'
+                   'test_funcs = make_parametrized_test_functions(\n'
+                   '    collect_testcases_by_file(granularity="programrun"))\n')
+    module = _exec_module_file(os.path.join(testdir, 'test_progpath.py'))
+    assert len(module.test_funcs) == 3
+    workdir = os.path.join(tmpdir, 'work')
+    os.makedirs(workdir)
+    for func in module.test_funcs.values():
+        # Call the generated test function with the parameters with
+        # which it is parametrized
+        for params in func.pytestmark[0].args[1]:
+            func(*params, workdir)
+
+
 def test_collect_testcases_same_module_name(tmpdir):
     """Test that same-named test case modules in different dirs differ."""
     testcases = {}
@@ -3324,8 +3415,11 @@ def test_make_parametrized_test_functions():
     # Check function names and parametrize marks
     for fname, func in test_funcs.items():
         assert func.__name__ == fname
-        # Should have parametrize mark
-        assert hasattr(func, 'pytestmark')
+        # Should be parametrized with the test cases of the file
+        assert func.pytestmark[0].args[1] == testcases_by_file[
+            {'test_scripttest_example_yaml': 'scripttest_example.yaml',
+             'test_tests_scripttest_foo_py': 'tests/scripttest_foo.py'}[
+                 fname]]
 
 
 @pytest.mark.parametrize('filename, expected_func_name', [
