@@ -10,6 +10,7 @@ Very basic pytest tests for scripttestlib.
 
 import itertools
 import os.path
+import sys
 
 from copy import deepcopy
 
@@ -3247,6 +3248,54 @@ def test_collect_testcases_by_file(testcase_files, tmpdir):
     for fname in testcases_by_file:
         assert testcases_by_file[fname] == collect_testcases(
             fname, basedir=str(tmpdir), granularity='value')
+
+
+def test_collect_testcases_same_module_name(tmpdir):
+    """Test that same-named test case modules in different dirs differ."""
+    testcases = {}
+    for subdir in ['dir1', 'dir2']:
+        dirname = os.path.join(tmpdir, subdir, 'scripttests')
+        os.makedirs(dirname)
+        content = [{
+            'name': f'Test in {subdir}',
+            'input': {'cmdline': f'echo {subdir}'},
+            'output': {'stdout': f'{subdir}\n'},
+        }]
+        with open(os.path.join(dirname, 'scripttest_x.py'), 'w') as outf:
+            outf.write('testcases = ' + repr(content) + '\n')
+        testcases[subdir] = collect_testcases(
+            'scripttests/*.py', basedir=os.path.join(tmpdir, subdir),
+            granularity='programrun')
+    for subdir in ['dir1', 'dir2']:
+        assert len(testcases[subdir]) == 1
+        assert testcases[subdir][0][0] == (
+            f'scripttests/scripttest_x.py 1: Test in {subdir}')
+
+
+def test_collect_testcases_dataclass(tmpdir):
+    """Test a test case module with a dataclass with string annotations.
+
+    The dataclass looks up its module in `sys.modules`, from which the
+    module is removed after executing it.
+    """
+    dirname = os.path.join(tmpdir, 'scripttests')
+    os.makedirs(dirname)
+    with open(os.path.join(dirname, 'scripttest_dc.py'), 'w') as outf:
+        outf.write('from __future__ import annotations\n'
+                   'from dataclasses import dataclass\n'
+                   '@dataclass\n'
+                   'class Case:\n'
+                   '    name: str\n'
+                   'testcases = [{\n'
+                   '    "name": Case("Dataclass").name,\n'
+                   '    "input": {"cmdline": "true"},\n'
+                   '    "output": {"returncode": 0},\n'
+                   '}]\n')
+    testcases = collect_testcases(
+        'scripttests/*.py', basedir=str(tmpdir), granularity='programrun')
+    assert [testcase[0] for testcase in testcases] == [
+        'scripttests/scripttest_dc.py 1: Dataclass']
+    assert 'scripttests.scripttest_dc' not in sys.modules
 
 
 def test_make_parametrized_test_functions():

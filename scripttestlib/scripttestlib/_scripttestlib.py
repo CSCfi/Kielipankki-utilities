@@ -20,6 +20,7 @@ information.
 
 import glob
 import importlib
+import importlib.util
 import inspect
 import os
 import os.path
@@ -183,14 +184,39 @@ def _load_testcases_from_files(filespecs, basedir):
                     modulename = pkgname + '.' + modulename
                 testcases_list.append(
                     (fname_rel,
-                     importlib.import_module(modulename)
-                     .testcases))
+                     _import_module_from_file(modulename, fname).testcases))
             elif fname.endswith(('.yaml', '.yml')):
                 with open(fname, 'r') as yf:
                     testcases_list.append(
                         (fname_rel, [item for items in yaml.safe_load_all(yf)
                                      for item in items]))
     return testcases_list
+
+
+def _import_module_from_file(modulename, fname):
+    """Import and return module `modulename` from file `fname`.
+
+    The module is loaded from `fname` each time and it is kept in
+    `sys.modules` only while executing it, so that test case modules
+    with the same name in different directories (for example, in
+    different test collections run in the same pytest session) do not
+    get mixed up. Executing the module may need it in `sys.modules`:
+    for example, a dataclass with annotations as strings looks up its
+    module there.
+    """
+    spec = importlib.util.spec_from_file_location(modulename, fname)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    prev_module = sys.modules.get(modulename)
+    sys.modules[modulename] = module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        if prev_module is None:
+            del sys.modules[modulename]
+        else:
+            sys.modules[modulename] = prev_module
+    return module
 
 
 def collect_testcases(*filespecs, basedir=None, granularity=None):
