@@ -358,6 +358,7 @@ def _make_parametrized_test_function(testcases, func_name, progpath):
     return test_file
 
 
+# Keys allowed in test cases: top level as a dict with second-level
 # values as sets of strings (regular expressions)
 _allowed_keys = {
     'defaults': {
