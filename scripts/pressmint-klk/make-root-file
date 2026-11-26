@@ -1,0 +1,160 @@
+#! /bin/env python3
+# -*- mode: Python; -*-
+
+from argparse import ArgumentParser
+from itertools import chain, count, islice, takewhile
+from pathlib import Path
+import os, re
+
+# XINCLUDE.format(path)
+XINCLUDE = '''  <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
+      href="{}"/>'''
+
+def parser():
+    parser = ArgumentParser(description = '''
+
+    Write to current directory a corpus root file that XIncludes every
+    YEAR/whatever.xml in the current directory. The root file name is
+    based on the current directory name, and there may be other files
+    to XInclude in the current directory.
+
+    ''')
+
+    parser.add_argument('--ana', action = 'store_true',
+                        help = 'make .ana root file')
+
+    parser.add_argument('--force', action = 'store_true',
+                        help = 'overwrite existing root file')
+
+    return parser
+
+teiHeader = '''<teiHeader>
+  <fileDesc>
+    <titleStmt>
+       <title xml:lang="fi">Suomen historiallinen sanomalehtikorpus PressMint-FI</title>
+       <title xml:lang="en">Finnish historical newspaper corpus PressMint-FI</title>
+       <respStmt>
+         <persName>Jussi Piitulainen</persName>
+         <resp xml:lang="en">PressMint TEI XML corpus encoding</resp>
+       </respStmt>
+       <funder>
+         <orgName xml:lang="en">The CLARIN research infrastructure</orgName>
+       </funder>
+    </titleStmt>
+    <publicationStmt>
+       <publisher>
+          <orgName xml:lang="en">CLARIN research infrastructure</orgName>
+          <orgName xml:lang="fi">Tutkimusinfrastruktuuri CLARIN</orgName>
+          <ref target="https://www.clarin.eu/">www.clarin.eu</ref>
+       </publisher>
+       <availability status="free">
+          <licence>http://creativecommons.org/licenses/by/4.0/</licence>
+          <p xml:lang="en">The PressMint-FI corpus is licensed under the <ref target="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International</ref> license.</p>
+          <p xml:lang="fi">PressMint-FI -korpus on lisensoitu <ref target="http://creativecommons.org/licenses/by/4.0/">Creative Commons Nimeä 4.0 Kansainvälinen</ref> -lisenssillä.</p>
+       </availability>
+    </publicationStmt>
+    <sourceDesc>
+      <bibl>
+         <!-- author? who even are the authors of KLK corpora? -->
+         <!-- and should klk-fi-v2 and klk-sv-v2 be two bibl? -->
+         <title type="main" xml:lang="fi">Kansalliskirjaston sanoma- ja aikakauslehtikokoelman suomenkielinen osakorpus versio 2, VRT</title>
+         <title type="main" xml:lang="en">The Finnish Sub-corpus of the Newspaper and Periodical Corpus of the National Library of Finland version 2, VRT</title>
+         <title type="main" xml:lang="fi">Kansalliskirjaston sanoma- ja aikakauslehtikokoelman ruotsinkielinen osakorpus, versio 2, VRT</title>
+         <title type="main" xml:lang="en">The Swedish Sub-corpus of the Newspaper and Periodical Corpus of the National Library of Finland, version 2, VRT</title>
+         <idno type="URI" subtype="URN">http://urn.fi/urn:nbn:fi:lb-2023121101</idno> <!-- klk-fi-v2-vrt, COMEDI -->
+         <idno type="URI" subtype="URN">http://urn.fi/urn:nbn:fi:lb-2026100601</idno> <!-- klk-sv-v2-vrt, COMEDI -->
+      </bibl>
+    </sourceDesc>
+  </fileDesc>
+  <encodingDesc>
+    <projectDesc>
+      <!-- PressMint, English version to be inserted automatically -->
+      <p xml:lang="fi"><ref target="https://www.clarin.eu/pressmint">PressMint</ref>
+         on projekti, joka pyrkii (1) luomaan monikielisen kokoelman historiallisia
+         sanomalehtiaineistoja,
+         <ref target="https://clarin-eric.github.io/PressMint">yhtenäisessä</ref>
+         muodossa; (2) lisäämään aineistoihin lingvististä annotaatiota; ja (3)
+         julkaisemaan aineistot TODO (?)konkordanssereissa.</p>
+    </projectDesc>
+    <editorialDecl>
+      <quotation>
+         <p xml:lang="en">Quotation marks have been left in the text and are not explicitly marked up.</p>
+      </quotation>
+      <hyphenation>
+         <p xml:lang="en">TODO what?</p>
+      </hyphenation>
+      <correction>
+         <p xml:lang="en">Text has been extracted with ad hoc scripts from METS/ALTO files provided by the national library.</p>
+      </correction>
+      <normalization>
+         <p xml:lang="en">Text has not been normalised, except for spacing.</p>
+      </normalization>
+      <segmentation>
+         <p xml:lang="en">Texts correspond to pages and are segmented into paragraphs.</p>
+      </segmentation>
+    </editorialDecl>
+    <tagsDecl>
+      <!-- TODO? if there even is controlled vocabulary -->
+    </tagsDecl>
+  </encodingDesc>
+  <profileDesc>
+    <settingDesc>
+       <setting>
+         <!-- TODO set actual year range when known -->
+         <date from="1881" to="1919">1881--1919</date>
+       </setting>
+    </settingDesc>
+    <langUsage>
+      <!-- TODO occasional other languages, what does one do? -->
+      <language ident="en" xml:lang="en">English</language>
+      <language ident="en" xml:lang="fi">englanti</language>
+      <language ident="fi" xml:lang="en">Finnish</language>
+      <language ident="fi" xml:lang="fi">suomi</language>
+      <language ident="sv" xml:lang="en">Swedish</language>
+      <language ident="sv" xml:lang="fi">ruotsi</language>
+      <language ident="und" xml:lang="en">undetermined</language>
+      <language ident="und" xml:lang="fi">määrittämätön</language>
+      <language ident="mul" xml:lang="en">multiple languages</language>
+      <language ident="mul" xml:lang="fi">useita kieliä</language>
+    </langUsage>
+  </profileDesc>
+</teiHeader>'''
+
+def main(args):
+    here = Path('.').resolve()
+    if here.name == 'PressMint-FI':
+        root = here.name + ('.ana' if args.ana else '')
+        print('root:', root)
+    else:
+        raise ValueError('unexpected working directory')
+    with open(f'{root}.tmp', mode = ('w' if args.force else 'x')) as ous:
+        c_id = ('PressMint-FI.ana' if args.ana else 'PressMint-FI')
+        print(( f'<teiCorpus xmlns="http://www.tei-c.org/ns/1.0"'
+                f' xml:id="{c_id}"'
+                f' xml:lang="mul">' # bound to be at least fi, sv, und
+               ),
+              file = ous)
+        print(teiHeader,
+              file = ous)
+        if args.ana:
+            # include all year/*.xml files in .ana.xml, assume all
+            # four-character files are four-digit directories
+            for component in sorted(Path('.').glob('????/*.ana.xml')):
+                print(XINCLUDE.format(component),
+                      file = ous)
+            else: pass
+        else:
+            # include all year/*.xml files not in .ana.xml, .assume
+            # all four-character files are four-digit directories
+            for component in sorted(Path('.').glob('????/*.xml')):
+                if component.name.endswith('.ana.xml'):
+                    continue
+                print(XINCLUDE.format(component),
+                      file = ous)
+            else: pass
+        print('</teiCorpus>',
+              file = ous)
+    os.rename(f'{root}.tmp', f'{root}.xml')
+
+if __name__ == '__main__':
+    main(parser().parse_args())

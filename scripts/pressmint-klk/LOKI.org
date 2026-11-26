@@ -1,0 +1,100 @@
+(This file cannot remain in PressMint.)
+
+For some reason, PressMint TEI documentation does not open properly
+from GitHub, must open locally as file (GitHub would show source).
+
+* Files
+
+Create top level PressMint-FI.TEI.ana manually.
+- from there, stream each input VRT through script
+- separately klk-fi and klk-sv sources (source corpus names)
+- result is all the year directories
+- then XInclude each page file in root document
+- (that would be PressMint-FI.TEI.ana/PressMint-FI.ana.xml)
+
+Ok, written make-root-file for that, hoping to adapt it to work for
+both ana and non.
+
+* Unannotated files
+
+Adapt the (still preliminary) TEI.ana script for just TEI:
+- klk-vrt-to-tei-ana creates TEI.ana files
+- klk-vrt-to-tei will recover flat sentences
+- approximate spacing between tokenses? somehow
+- read instructions more
+
+Reconsidered after reading instructions:
+- only klk-vrt-to-tei
+- this way header material is in one place
+- or two, since corpus header is different
+- klk-vrt-to-tei --ana
+- without --ana, flatten each <paragraph>
+- consider using <gap> to omit garbage?
+
+* Header stuff
+
+Filled something in corpus header (root files)
+
+Removed something from component headers
+- will be filled in automatically (good)
+
+Three *obligatory* elements in teiHeader (root and components):
+- fileDesc
+- encodingDesc (DONE add a placeholder)
+- profileDesc (DONE add a placeholder)
+
+Och så vidare.
+
+* Drop annotations
+
+Advice (from Vienna) was to drop dependency syntax altogether.
+- DONE
+
+TODO What about msd and whatever "ana" even is?
+
+Keeping lemma.
+
+And msd? To be seen.
+
+Dropped ana.
+
+* Validate?
+
+How does one even try validation? Make a PR.
+- time to move scripts the somewhere else?
+- where?
+- to ~/proj/KLK-TEI (DONE made decision)
+
+Also modified whole-thing.sh (TODO drop .sh) to find its siblings (but
+check it is in the expected place and has the expected name).
+
+Had to change the protocol of the local PressMint-FI repo to ... git?
+- apparently it is expected to be git in order to use ssh?
+- https://docs.github.com/en/get-started/git-basics/managing-remote-repositories
+- with https GitHub asked for credentials which it is not meant to do
+- with git now, ssh keys worked
+- but then apparently a PR to the upstream clarin-eric repo failed
+
+Is there some automatic PR when pushing to own fork?
+- more to the point, why should the TEI directories be unexpected?
+- unexpected: Samples/PressMint-FI/PressMint-FI.TEI.ana (directory)
+- unexpected: Samples/PressMint-FI/PressMint-FI.TEI (directory)
+
+Ok Matyáš Kopp replied (on clarin-eric repository):
+- Samples/PressMint-FI should contain
+- Sources (ok)
+- Readme (ok)
+- corpus root files and taxonomies (directly! "fused")
+- YYYY directories
+
+Onward to modify them scripts accordingly!
+- *maybe* ask if the doc should be modified?
+
+Hm ...
+- encodingDesc in root files *has* projectDesc, encodingDecl, and
+  (empty) tagsDecl (is empty even ok?)
+- encodingDesc in component files is, indeed, *empty*, and *should*
+  contain (redundant) projectDesc and tagsDecl
+- ok tagsDecl is meant to be automatically inserted by PressMint,
+  so the problem may be just the missing projectDesc, inserted a
+  placeholder there (to copy a final Finnish text from root)

@@ -1,0 +1,369 @@
+#! /usr/bin/env python3
+# -*- mode: Python; -*-
+
+from argparse import ArgumentParser
+from itertools import chain, count, islice, takewhile
+from pathlib import Path
+import re
+
+def parser():
+    parser = ArgumentParser(description = '''
+
+    Write each "text" in the input file (CWB-VRT from KLK) in a
+    PressMint-like TEI output file YEAR/ID.xml or YEAR/ID.ana.xml,
+    where YEAR and ID are extracted from text attributes and other
+    details are constant, options, or a translation of the data.
+
+    ''')
+
+    parser.add_argument('filename', help = 'the input file')
+
+    parser.add_argument('--corpus',
+                        choices = ('klk-fi-v2', 'klk-sv-v2'),
+                        help = '''corpus shortname for teiHeader''')
+
+    parser.add_argument('--ana', action = 'store_true',
+                        help = 'make annotated version')
+
+    # this could just depend on the source corpus? also only relevant
+    # with --ana, so maybe should be only available then?
+    parser.add_argument('--syntax', default = 'TODO', help = '''
+
+    a syntax type prefix or something like that (default: TODO)''')
+
+    return parser
+
+CORPUS = {
+    # not sure if using these at all now?
+    # instead make text title identify PresssMint-FI, the journal and page,
+    # which should work for both Finnish and Swedish just fine
+
+    ('fi', 'klk-fi-v2') :
+    '[TODO] Kansalliskirjaston sanoma- ja aikakauslehtikokoelman suomenkielinen osakorpus versio 2',
+
+    ('en', 'klk-fi-v2') :
+    '[TODO] The Finnish Sub-corpus of the Newspaper and Periodical Corpus of the National Library of Finland version 2',
+
+    ('fi', 'klk-sv-v2'):
+    '[TODO] Kansalliskirjaston sanoma- ja aikakauslehtikokoelman suomenkielinen osakorpus versio 2',
+
+    ('en', 'klk-sv-v2') :
+    '[TODO] The Swedish Sub-corpus of the Newspaper and Periodical Corpus of the National Library of Finland version 2',
+}
+
+# XML templates based on a CZ TEI sample file
+# TODO FILL IN OUR OWN INFORMATION NOT THEIRS
+
+# Need name for the corpus (klk-fi-v2, klk-sv-v2)
+# and a way to select the appropriate name
+# - specify corpus as an option
+# - TODO check if title may need .ana when --ana
+#
+# Also "my name"
+#
+# And CLARIN, FIN-CLARIN
+#
+# Omitted some elements that PressMint scripts will add
+# automatically. Likely not going to have counts in
+# native language at all.
+
+teiHeader = '''   <teiHeader>
+      <fileDesc>
+         <titleStmt>
+            <title xml:lang="fi">Suomen historiallinen sanomalehtikorpus PressMint-FI, {title}, {date}, sivu {page}</title>
+            <title xml:lang="en">Finnish historical newspaper corpus PressMint-FI, {title}, {date}, page {page}</title>
+            <respStmt>
+               <persName ref="http://orcid.org/0000-0002-3835-2189">Jussi Piitulainen</persName>
+               <resp xml:lang="en">TEI XML corpus encoding</resp>
+               <resp xml:lang="en">Linguistic annotation</resp>
+            </respStmt>
+            <funder>
+               <orgName xml:lang="en">CLARIN research infrastructure</orgName>
+               <orgName xml:lang="fi">Tutkimusinfrastruktuuri CLARIN</orgName>
+            </funder>
+            <funder>
+               <orgName xml:lang="fi">The FIN-CLARIN consortium</orgName>
+               <orgName xml:lang="en">FIN-CLARIN-konsortio</orgName>
+            </funder>
+         </titleStmt>
+         <publicationStmt>
+            <publisher>
+               <orgName xml:lang="en">CLARIN research infrastructure</orgName>
+               <orgName xml:lang="fi">Tutkimusinfrastruktuuri CLARIN</orgName>
+               <ref target="https://www.clarin.eu/">www.clarin.eu</ref>
+            </publisher>
+            <idno type="URI">https://github.com/clarin-eric/PressMint</idno>
+            <availability status="free">
+               <licence>http://creativecommons.org/licenses/by/4.0/</licence>
+               <p xml:lang="en">The PressMint-FI corpus is licensed under the <ref target="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International</ref> license.</p>
+               <p xml:lang="fi">PressMint-FI -korpus on lisensoitu <ref target="http://creativecommons.org/licenses/by/4.0/">Creative Commons Nimeä 4.0 Kansainvälinen</ref> -lisenssillä.</p>
+            </availability>
+         </publicationStmt>
+         <sourceDesc>
+            <bibl>
+               <title level="j">{title}</title>
+               <date when="{date}"/>
+               <idno type="issn">{publ_id}</idno>
+               <idno type="[TODO]">{oai_identifier}</idno>
+               <idno type="URI" subtype="URL">{get_record}</idno>
+            </bibl>
+         </sourceDesc>
+      </fileDesc>
+      <encodingDesc>
+        <projectDesc>
+           <p xml:lang="fi">TODO tämä on redundantti,
+             kopioi lopullinen teksti root-tiedostosta</p>
+        </projectDesc>
+        <tagsDecl>
+           <!-- counts, to be inserted automatically? -->
+        </tagsDecl>
+      </encodingDesc>
+      <profileDesc>
+        <!-- TODO -->
+      </profileDesc>
+   </teiHeader>'''
+
+facsimile = '''   <facsimile>
+      <surface xml:id="{surface_id}">
+         <graphic url="{IMG_URL}"/>
+      </surface>
+   </facsimile>'''
+
+# PressMint-CZ text/body consists of a pb followed by a sequence of p
+# TODO unclear what pb is, leaving it out for now
+# TODO also, apparently there are further pb's in there
+# each p consists of a sequence of s followed by a linkGr
+# each s consists of a sequence of w and pc (we don't have name annotations)
+# DONE oh linkGrp would be the dependency tree? ok?
+# TODO our two syntax annotations are a bit obscure
+# TODO so syntax prefixes are ad hoc for now
+# TODO might consider re-annotating with UD (udpipe or trankit)
+# TODO no idea what the ana attribute is, find out!
+# TODO not making join attributes, either, not sure if could or should
+
+# xml:lang should use a two-letter code if one is available, then only
+# fall back on a three-letter code if not (not sure if our
+# three-letter codes are from the right standard even then, really
+# should check), and our legacy 'xxx' must be mapped to 'und'
+xmllangcode = {
+    'fin' : 'fi',
+    'swe' : 'sv',
+    'xxx' : 'und', # legacy: current HeLI-OTS gives und already
+}
+
+def eachattribute(line):
+    # trust attribute line to have strict syntax:
+    # each name="value" without spurious spacing,
+    # no equals sign in name, no other doublequotes
+    for mo in re.finditer(r'(\S+?)="(.*?)"', line):
+        yield mo.groups()
+
+def each(begin, end, ins):
+    def isin(line):
+        return not line.startswith(end)
+    for line in ins:
+        if line.startswith(begin):
+            attributes = dict(eachattribute(line))
+            yield attributes, takewhile(isin, ins)
+
+def rawsentence(attribute, ins, fieldnames, args):
+    tokens = [
+        dict(zip(fieldnames, line.rstrip('\r\n').split('\t')))
+        for line in ins
+    ]
+
+    esc = str.maketrans({
+        '"' : '&quot;'
+    })
+
+    # rawish sentence, totally no-effort approximation
+    yield ' '.join(token['word'] for token in tokens)
+
+def sentence(attributes, ins, *, self_id, fieldnames, args):
+    # hm. may need t_attributes here? no?
+    tokens = [
+        dict(zip(fieldnames, line.rstrip('\r\n').split('\t')))
+        for line in ins
+    ]
+
+    esc = str.maketrans({
+        '"' : '&quot;'
+    })
+
+    def t_id(token):
+        return f"{self_id}.w{token['ref']}"
+    def t_word(token):
+        return token['word'] # < > & are already escaped
+    def t_lemma(token):
+        return token['lemma'] # " is not escaped yet!
+    def t_pos(token):
+        return token['pos'] # hm do both fi and sv have pos?
+    def t_msd(token):
+        return token['msd'] # TODO something?
+    def t_rel(token):
+        return token['deprel'] # TODO something?
+
+    for token in tokens:
+        el = 'pc' if token['pos'] == 'Punct' else 'w'
+        yield f'<{el} xml:id="{t_id(token)}"'
+        yield f'   lemma="{t_lemma(token).translate(esc)}"'
+        yield f'   pos="{t_pos(token)}"'
+        yield f'   msd="{t_msd(token)}">{t_word(token)}</{el}>'
+        # yield f'   ana="[TODO what is this]">{t_word(token)}</{el}>'
+
+    # -- Dropping dependency syntax altogether --
+    # -- Making --syntax option redundant, too --
+    # syntax = args.syntax
+    # yield f'<linkGrp targFunc="head argument" type="{syntax}">'
+    # for token in tokens:
+    #     head = token['dephead']
+    #     target = f'#{self_id}' if head == '0' else f'#{self_id}.w{head}'
+    #     yield f'<link ana="{syntax}:{t_rel(token)}"'
+    #     yield f'      target="{target} #{t_id(token)}"/>'
+    # yield f'</linkGrp>'
+
+def fallback_date(t_attributes):
+    '''Needed as a dirname so return _something_.'''
+    # presumably Swedish sample was just too preliminary but perhaps
+    # it still has the datefrom attribute that Korp expects
+
+    yyyymmdd = t_attributes['datefrom']
+    if len(yyyymmdd) == 8:
+        return f'{yyyymmdd[:4]}-{yyyymmdd[4:6]}-{yyyymmdd[6:]}'
+    return '9999-01-01'
+
+def ship(xml, t_year, t_id, args):
+    '''Save content in year/t_id.ana.xml'''
+    Path(t_year).mkdir(exist_ok = True)
+    # ok ".ana" is already in t_id
+    # ana = ('.ana' if args.ana else '')
+    out = f'{t_year}/{t_id}.xml'
+    tmp = f'{t_year}/{t_id}.xml.tmp'
+    # print(f'saving t_id = {t_id} in {out}')
+    with open(tmp, mode = 'x') as ous:
+        print(xml, file = ous)
+    Path(tmp).rename(out)
+
+def main(args):
+    ins = open(args.filename)
+    head = tuple(islice(ins, 10))
+    nameline = next(line for line in head
+                    if line.startswith('<!-- #vrt positional-attributes:'))
+    # should have crashed if nameline was not found;
+    # trust nameline to have the expected format
+    names = nameline.rstrip().split()[3:-1]
+
+    content = []
+    for t_attributes, t_body in each('<text',
+                                     '</text>',
+                                     chain(head, ins)):
+
+        t_date = (
+            # original sv source sample had no date in a text? that
+            # may have been fixed in the final klk-sv (sample is from
+            # work-in-progress data) but just in case, try to fall
+            # back on datefrom
+            t_attributes.get('date') or
+            fallback_date(t_attributes)
+        )
+        t_year = t_date[:4]
+
+        t_id0 = (
+            # ok, a text in sv sample had no id either? definitely
+            # preliminary and needs replaced with final data
+            t_attributes.get('id') or
+            'TODO-no-such-id'
+        )
+
+        # they actually do want those particular underscores
+        t_id = f"PressMint-FI_{t_date}_{t_id0}"
+        if args.ana: t_id = t_id + '.ana'
+
+        # TODO put in content a teiHeader and such
+        # actually cannot fill these before shipping?
+        # or maybe just leave tag counts for a post-pass?
+        # Do that for now: *all counts will be nonsense*.
+
+        content.extend(('<?xml version="1.0" encoding="UTF-8"?>',
+                        '<TEI xmlns="http://www.tei-c.org/ns/1.0"',
+                        '     xml:lang="fi"', # overriden in <s>
+                        f'     xml:id="{t_id}">'))
+
+        # these are needed for the facsimile link below
+        # (page number may go to a text title, too)
+        publ_type = t_attributes['publ_type']
+        binding_id = t_attributes['binding_id']
+        page_no = t_attributes['page_no']
+
+        # {teiHeader}
+        content.append(teiHeader.format(
+            # Now naming just PressMint-FI, not subcorpus?
+            # but might still decide to use these for something?
+            # FI_CORPUS = CORPUS['fi', args.corpus],
+            # EN_CORPUS = CORPUS['en', args.corpus],
+            title = t_attributes['publ_title'], # or issue_title?
+            date = t_date,
+            page = page_no,
+            publ_id = t_attributes['publ_id'], # issn or a substitute?
+            oai_identifier = f'oai:digi.kansalliskirjasto.fi:{binding_id}',
+            get_record = (
+                'https://digi.kansalliskirjasto.fi/interfaces/OAI-PMH'
+                '?verb=GetRecord&amp;metadataPrefix=qdc_finna'
+                f'&amp;identifier=oai:digi.kansalliskirjasto.fi:{binding_id}'
+            )
+        ))
+
+        # {facsimile}
+        content.append(facsimile.format(
+            surface_id = f'{t_id}.facs',
+            IMG_URL = f'http://digi.kansalliskirjasto.fi/{publ_type}/binding/{binding_id}?page={page_no}'
+        ))
+
+        content.append('<text>')
+        content.append('<body>')
+        # TODO? fill <pb> and put it in content?
+        # TODO? there might be more of them?
+
+        p_counter = count(start = 1)
+        for p_attributes, p_body in each('<paragraph',
+                                         '</paragraph>',
+                                         t_body):
+            pnum = next(p_counter)
+            p_id = f'{t_id}.p{pnum}'
+            content.append(f'<p xml:id="{p_id}">')
+
+            s_counter = count(start = 1)
+            for s_attributes, s_body in each('<sentence',
+                                             '</sentence>',
+                                             p_body):
+                snum = next(s_counter)
+                s_id = f'{p_id}.s{snum}'
+                # map a selection of three-letter codes to two-letter
+                # codes for xml:lang, leave the rest as they are from
+                # HeLI-OTS (extend mapping as more languages appear)
+                lang = s_attributes['lang']
+                lang = xmllangcode.get(lang) or lang
+                if args.ana:
+                    content.append(f'<s xml:id="{s_id}" xml:lang="{lang}">')
+                    content.extend(sentence(s_attributes, s_body,
+                                            self_id = s_id,
+                                            fieldnames = names,
+                                            args = args))
+                    args.ana and content.append('</s>')
+                else:
+                    # approximate recovery of just sentence text
+                    # unless maybe a gap?
+                    content.extend(rawsentence(s_attributes, s_body, names, args))
+            content.append('</p>')
+
+        content.append('</body>')
+        content.append('</text>')
+        content.append('</TEI>')
+
+        ship('\n'.join(content), t_year, t_id, args)
+        content = []
+
+    return
+
+if __name__ == '__main__':
+    main(parser().parse_args())
