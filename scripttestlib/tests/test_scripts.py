@@ -1,5 +1,4 @@
-#! /usr/bin/env python3
-
+# -*- mode: Python; -*-
 
 """
 test_scripts.py
