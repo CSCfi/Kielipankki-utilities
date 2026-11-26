@@ -109,7 +109,6 @@ def _get_test_dir(cache=True):
     # "test_"
     while frame:
         frame_file = frame.f_globals.get('__file__', '.')
-        print(frame_file)
         frame_base = os.path.basename(frame_file)
         if frame_base.startswith('test_'):
             break
@@ -146,31 +145,26 @@ def make_param_id(val):
     return val if isinstance(val, str) else None
 
 
-def _load_testcases_from_files(filespecs, basedir, granularity):
+def _load_testcases_from_files(filespecs, basedir):
     """Load test cases from files, return list of (filename, testcases) tuples.
 
     This is a helper function that discovers and loads test cases from files
     matching the given filespecs in basedir, handling both Python modules
-    and YAML files. Normalizes arguments, applying defaults for filespecs,
-    basedir, and granularity if needed. The returned list is used by both
-    collect_testcases() and collect_testcases_by_file().
+    and YAML files. Applies defaults for filespecs and basedir if needed.
+    The returned list is used by both collect_testcases() and
+    collect_testcases_by_file().
 
     Args:
         filespecs: File patterns (empty tuple means use defaults)
         basedir: Directory to search in (None means auto-detect)
-        granularity: Granularity level (None means use configured default)
 
     Returns:
-        Tuple of (testcases_list, granularity_used) where testcases_list is a
-        list of (filename_relative, testcases_list) tuples and granularity_used
-        is the normalized granularity value
+        List of (filename_relative, testcases_list) tuples
     """
     if not filespecs:
         filespecs = _testcase_filespecs_default
     if basedir is None:
         basedir = _get_test_dir()
-    if granularity is None:
-        granularity = _get_granularity()
 
     testcases_list = []
     sys.path[0:0] = [basedir]
@@ -196,7 +190,7 @@ def _load_testcases_from_files(filespecs, basedir, granularity):
                     testcases_list.append(
                         (fname_rel, [item for items in yaml.safe_load_all(yf)
                                      for item in items]))
-    return testcases_list, granularity
+    return testcases_list
 
 
 def collect_testcases(*filespecs, basedir=None, granularity=None):
@@ -225,9 +219,8 @@ def collect_testcases(*filespecs, basedir=None, granularity=None):
     values for name or input are the same in a tuple, the single value
     is used instead of the tuple.
     """
-    testcases, granularity = _load_testcases_from_files(
-        filespecs, basedir, granularity)
-    return expand_testcases(testcases, granularity=granularity)
+    return expand_testcases(_load_testcases_from_files(filespecs, basedir),
+                            granularity=granularity)
 
 
 def collect_testcases_by_file(*filespecs, basedir=None, granularity=None):
@@ -245,16 +238,13 @@ def collect_testcases_by_file(*filespecs, basedir=None, granularity=None):
         Dict mapping filename to list of (name, input, outputitem,
             expected) tuples
     """
-    fname_testcases_list, granularity = _load_testcases_from_files(
-        filespecs, basedir, granularity)
-
     # Expand testcases per file instead of all at once
-    testcases_by_file = {}
-    for fname, testcases_dictlist in fname_testcases_list:
-        testcases_by_file[fname] = expand_testcases(
-            [(fname, testcases_dictlist)], granularity=granularity)
-
-    return testcases_by_file
+    return {
+        fname: expand_testcases([(fname, testcases_dictlist)],
+                                granularity=granularity)
+        for fname, testcases_dictlist in _load_testcases_from_files(
+            filespecs, basedir)
+    }
 
 
 def make_parametrized_test_functions(testcases_by_file):
@@ -283,33 +273,33 @@ def make_parametrized_test_functions(testcases_by_file):
         ```
     """
     test_functions = {}
-
-    for fname in sorted(testcases_by_file.keys()):
-        testcases = testcases_by_file[fname]
-
+    for fname, testcases in sorted(testcases_by_file.items()):
         # Sanitize filename for use as test function name
         # Convert path separators and dots to underscores
         safe_fname = re.sub(r'[/\\.-]+', '_', fname)
         test_func_name = f'test_{safe_fname}'
-
-        # Create a parametrized test function for this file
-        # Use a closure to capture testcases and helper functions at
-        # definition time
-        def make_test_func(testcases, fname, param_id_func, check_func):
-            @pytest.mark.parametrize('name, input, outputitem, expected',
-                                     testcases, ids=param_id_func)
-            def test_file(name, input, outputitem, expected, tmpdir):
-                check_func(name, input, outputitem, expected, str(tmpdir))
-            return test_file
-
-        test_func = make_test_func(testcases, fname, make_param_id,
-                                   check_program_run)
-        test_func.__name__ = test_func_name
-        test_func.__qualname__ = test_func_name
-
-        test_functions[test_func_name] = test_func
-
+        test_functions[test_func_name] = _make_parametrized_test_function(
+            testcases, test_func_name)
     return test_functions
+
+
+def _make_parametrized_test_function(testcases, func_name):
+    """Return a parametrized test function for a single test case file.
+
+    Args:
+        testcases: List of (name, input, outputitem, expected) tuples
+            with which to parametrize the test function
+        func_name: Name of the test function
+    """
+
+    @pytest.mark.parametrize('name, input, outputitem, expected',
+                             testcases, ids=make_param_id)
+    def test_file(name, input, outputitem, expected, tmpdir):
+        check_program_run(name, input, outputitem, expected, str(tmpdir))
+
+    test_file.__name__ = func_name
+    test_file.__qualname__ = func_name
+    return test_file
 
 
 # values as sets of strings (regular expressions)

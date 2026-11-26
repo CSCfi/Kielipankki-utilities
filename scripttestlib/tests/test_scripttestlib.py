@@ -17,8 +17,9 @@ import pytest
 import yaml
 
 from scripttestlib import (
-    collect_testcases, check_program_run, expand_testcases,
-    dict_deep_update, make_param_id)
+    collect_testcases, collect_testcases_by_file, check_program_run,
+    expand_testcases, dict_deep_update, make_param_id,
+    make_parametrized_test_functions)
 
 
 # TODO: Test more scripttestlib features, also failing tests.
@@ -3233,60 +3234,23 @@ def test_check_program_run(name, input, outputitem, expected, tmpdir):
     check_program_run(name, input, outputitem, expected, tmpdir=str(tmpdir))
 
 
-def test_collect_testcases_by_file():
+def test_collect_testcases_by_file(testcase_files, tmpdir):
     """Test collect_testcases_by_file groups testcases by filename."""
-    from scripttestlib import collect_testcases_by_file
-
-    # Create test data with multiple files
-    fname_testcases = [
-        ('file1.yaml', [
-            {
-                'name': 'Test in file1',
-                'input': {'prog': 'echo', 'args': 'hello'},
-                'output': {'stdout': 'hello\n', 'stderr': '', 'returncode': 0},
-            },
-        ]),
-        ('file2.yaml', [
-            {
-                'name': 'Test in file2',
-                'input': {'prog': 'echo', 'args': 'world'},
-                'output': {'stdout': 'world\n', 'stderr': '', 'returncode': 0},
-            },
-        ]),
-    ]
-
-    # Expand by file
-    result = expand_testcases(
-        [(fname, tc_list) for fname, tc_list in fname_testcases],
-        granularity='value')
-
-    # Result should be a flat list with both tests
-    assert len(result) >= 2
-
-    # Now test the grouped version with a mock
-    # (Since we can't use basedir without actual files, we'll test the logic)
-    from scripttestlib._scripttestlib import expand_testcases as expand_func
-
-    testcases_by_file = {}
-    for fname, testcases_dictlist in fname_testcases:
-        testcases_by_file[fname] = expand_func(
-            [(fname, testcases_dictlist)], granularity='value')
-
-    # Should have one dict entry per file
-    assert len(testcases_by_file) == 2
-    assert 'file1.yaml' in testcases_by_file
-    assert 'file2.yaml' in testcases_by_file
-
-    # Each file should have at least one test
-    assert len(testcases_by_file['file1.yaml']) >= 1
-    assert len(testcases_by_file['file2.yaml']) >= 1
+    testcases, fname_patts = testcase_files
+    testcases_by_file = collect_testcases_by_file(
+        *fname_patts, basedir=str(tmpdir), granularity='value')
+    # One dict entry per file, each containing the expanded testcases
+    # of that file only (compare with collect_testcases instead of
+    # expand_testcases of the content, as yaml.dump sorts dict keys)
+    assert (sorted(testcases_by_file.keys())
+            == sorted(fname for fname, _ in testcases))
+    for fname in testcases_by_file:
+        assert testcases_by_file[fname] == collect_testcases(
+            fname, basedir=str(tmpdir), granularity='value')
 
 
 def test_make_parametrized_test_functions():
     """Test make_parametrized_test_functions generates valid test functions."""
-    from scripttestlib import make_parametrized_test_functions
-    import pytest
-
     # Create minimal test data
     testcases_by_file = {
         'scripttest_example.yaml': [
@@ -3308,30 +3272,22 @@ def test_make_parametrized_test_functions():
     assert 'test_scripttest_example_yaml' in test_funcs
     assert 'test_tests_scripttest_foo_py' in test_funcs
 
-    # Check that functions are callable
+    # Check function names and parametrize marks
     for fname, func in test_funcs.items():
-        assert callable(func)
-        assert hasattr(func, '__name__')
         assert func.__name__ == fname
         # Should have parametrize mark
         assert hasattr(func, 'pytestmark')
 
 
-def test_make_parametrized_test_functions_filename_sanitization():
+@pytest.mark.parametrize('filename, expected_func_name', [
+    ('simple.yaml', 'test_simple_yaml'),
+    ('path/to/file.yaml', 'test_path_to_file_yaml'),
+    ('script-test_name.yaml', 'test_script_test_name_yaml'),
+    ('multiple.dots.in.name.yaml', 'test_multiple_dots_in_name_yaml'),
+])
+def test_make_parametrized_test_functions_filename_sanitization(
+        filename, expected_func_name):
     """Test that filename sanitization works correctly."""
-    from scripttestlib import make_parametrized_test_functions
-
-    # Test various filename patterns
-    test_cases = {
-        'simple.yaml': 'test_simple_yaml',
-        'path/to/file.yaml': 'test_path_to_file_yaml',
-        'script-test_name.yaml': 'test_script_test_name_yaml',
-        'multiple.dots.in.name.yaml': 'test_multiple_dots_in_name_yaml',
-    }
-
-    for filename, expected_func_name in test_cases.items():
-        testcases_by_file = {filename: [('T1', 'i1', 'o1', 'e1')]}
-        test_funcs = make_parametrized_test_functions(testcases_by_file)
-        assert expected_func_name in test_funcs, \
-            (f'Expected {expected_func_name} for filename {filename},'
-             f' got {list(test_funcs.keys())}')
+    testcases_by_file = {filename: [('T1', 'i1', 'o1', 'e1')]}
+    test_funcs = make_parametrized_test_functions(testcases_by_file)
+    assert list(test_funcs.keys()) == [expected_func_name]
