@@ -127,9 +127,11 @@ class GroupedOutputPlugin:
             # Format the group name based on settings
             formatted_name = self._format_group_name(group_id)
 
-            # Print group header using the terminal writer
-            tw = self.config.get_terminal_writer()
-            tw.write(f'\n{formatted_name} ')
+            # Print group header using the terminal writer, if the
+            # terminal reporter is in use (not with -p no:terminal)
+            if self.config.pluginmanager.has_plugin('terminalreporter'):
+                tw = self.config.get_terminal_writer()
+                tw.write(f'\n{formatted_name} ')
 
 
 def pytest_addoption(parser):
@@ -169,8 +171,10 @@ def pytest_configure(config):
     """Register the grouped output plugin, unless already registered."""
     if config.pluginmanager.has_plugin('grouped_output'):
         return
-    # Only activate in non-verbose mode and when format is not 'none'
-    if (not config.option.verbose
+    # Only activate at the default or reduced (-q) verbosity (with -v,
+    # pytest shows each test on a line of its own) and when format is
+    # not 'none'; the option "verbose" is missing with -p no:terminal
+    if (getattr(config.option, 'verbose', 0) <= 0
             and config.option.scripttest_grouped_output != 'none'):
         config.pluginmanager.register(GroupedOutputPlugin(config),
                                       'grouped_output')
