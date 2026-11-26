@@ -50,14 +50,14 @@ _testcase_filespecs_default = [
 _test_dir = None
 
 
-def pytest_addoption_scripttestlib(parser):
+def add_pytest_options(parser):
     """Add scripttestlib custom options, currently --scripttest-granularity."""
     # If more custom options are added for scripttestlib, handle them
     # here
     add_pytest_option_scripttest_granularity(parser)
 
 
-def pytest_configure_scripttestlib(config):
+def set_options_from_pytest_config(config):
     """Configure scripttestlib based on custom command-line option(s)."""
     set_scripttest_granularity(config.option.scripttest_granularity)
 
