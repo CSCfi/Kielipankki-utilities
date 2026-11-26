@@ -12,6 +12,8 @@ import re
 
 import pytest
 
+from _pytest.pytester import Pytester, RunResult
+
 
 pytest_plugins = ['pytester']
 
@@ -54,20 +56,20 @@ def test_other():
 
 
 @pytest.fixture
-def grouped_pytester(pytester):
+def grouped_pytester(pytester: Pytester) -> Pytester:
     """pytester with conftest.py and test modules for grouped output."""
     pytester.makeconftest(_conftest)
     pytester.makepyfile(test_scripts=_test_scripts, test_other=_test_other)
     return pytester
 
 
-def _run(pytester, *args):
+def _run(pytester: Pytester, *args: str) -> tuple[RunResult, list[str]]:
     """Run pytest with `args`; return (result, list of output lines)."""
     result = pytester.runpytest('-p', 'no:cacheprovider', *args)
     return result, result.outlines
 
 
-def _headers(lines):
+def _headers(lines: list[str]) -> list[str]:
     """Return the group headers in output `lines`."""
     return [mo.group(1) for line in lines
             if (mo := re.match(r'(\S+::\S+) [.]', line))]

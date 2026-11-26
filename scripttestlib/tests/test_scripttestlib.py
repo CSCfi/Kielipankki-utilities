@@ -15,6 +15,8 @@ import stat
 import sys
 
 from copy import deepcopy
+from types import ModuleType
+from typing import Any
 
 import pytest
 import yaml
@@ -3262,15 +3264,31 @@ def test_collect_testcases_by_file(testcase_files, tmpdir):
             fname, basedir=str(tmpdir), granularity='value')
 
 
-def _write_testcase_yaml(fname, name, input_, output):
-    """Write a YAML file `fname` with a single test case."""
+def _write_testcase_yaml(
+        fname: str,
+        name: str,
+        input_: dict[str, Any],
+        output: dict[str, Any],
+) -> None:
+    """Write a YAML file with a single test case.
+
+    Args:
+        fname: Name of the file to write; its directory is created if
+            needed
+        name: Name of the test case
+        input_: Input of the test case
+        output: Expected output of the test case
+    """
     os.makedirs(os.path.dirname(fname), exist_ok=True)
     with open(fname, 'w') as outf:
         yaml.dump([{'name': name, 'input': input_, 'output': output}], outf)
 
 
-def _exec_module_file(fname):
-    """Execute Python file `fname` as a module and return the module."""
+def _exec_module_file(fname: str) -> ModuleType:
+    """Execute Python file `fname` as a module and return the module.
+
+    The module is not added to `sys.modules`.
+    """
     spec = importlib.util.spec_from_file_location(
         os.path.basename(fname)[:-3], fname)
     assert spec is not None and spec.loader is not None

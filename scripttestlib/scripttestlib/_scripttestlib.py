@@ -18,6 +18,8 @@ information.
 #   transformation and in an individual test specified as a dict.
 
 
+from __future__ import annotations
+
 import glob
 import importlib
 import importlib.util
@@ -30,13 +32,20 @@ import sys
 import weakref
 
 from collections import defaultdict
+from collections.abc import Callable, Sequence
 from copy import deepcopy
 from itertools import product
 from subprocess import Popen, PIPE
+from types import ModuleType
+from typing import Any
 
 import pytest
 import yaml
 
+
+# A test case tuple (name, input, outputitem, expected), as returned by
+# expand_testcases and taken as arguments by check_program_run
+_TestcaseTuple = tuple[Any, Any, Any, Any]
 
 # Scripttest granularity: one of "value", "outputitem" or "programrun"; see the
 # help text in add_pytest_option_scripttest_granularity for more information.
@@ -52,7 +61,7 @@ _testcase_filespecs_default = [
 _option_parsers = weakref.WeakSet()
 
 
-def add_pytest_options(parser):
+def add_pytest_options(parser: pytest.Parser) -> None:
     """Add scripttestlib custom options, currently --scripttest-granularity.
 
     Do nothing if the options have already been added to `parser`, so
@@ -67,7 +76,7 @@ def add_pytest_options(parser):
     add_pytest_option_scripttest_granularity(parser)
 
 
-def set_options_from_pytest_config(config):
+def set_options_from_pytest_config(config: pytest.Config) -> None:
     """Configure scripttestlib based on custom command-line option(s)."""
     set_scripttest_granularity(config.option.scripttest_granularity)
 
@@ -99,7 +108,7 @@ def _get_granularity():
     return _option_scripttest_granularity
 
 
-def _get_test_dir():
+def _get_test_dir() -> str:
     """Get the directory of the pytest test file (test runner).
 
     The result is not cached, as several test modules in different
@@ -146,7 +155,10 @@ def make_param_id(val):
     return val if isinstance(val, str) else None
 
 
-def _load_testcases_from_files(filespecs, basedir):
+def _load_testcases_from_files(
+        filespecs: Sequence[str],
+        basedir: str | None,
+) -> list[tuple[str, list[dict[str, Any]]]]:
     """Load test cases from files, return list of (filename, testcases) tuples.
 
     This is a helper function that discovers and loads test cases from files
@@ -193,7 +205,7 @@ def _load_testcases_from_files(filespecs, basedir):
     return testcases_list
 
 
-def _import_module_from_file(modulename, fname):
+def _import_module_from_file(modulename: str, fname: str) -> ModuleType:
     """Import and return module `modulename` from file `fname`.
 
     The module is loaded from `fname` each time and it is kept in
@@ -249,7 +261,11 @@ def collect_testcases(*filespecs, basedir=None, granularity=None):
                             granularity=granularity)
 
 
-def collect_testcases_by_file(*filespecs, basedir=None, granularity=None):
+def collect_testcases_by_file(
+        *filespecs: str,
+        basedir: str | None = None,
+        granularity: str | None = None,
+) -> dict[str, list[_TestcaseTuple]]:
     """Return test cases grouped by file.
 
     Like `collect_testcases`, but returns a dict mapping filename to
@@ -273,7 +289,10 @@ def collect_testcases_by_file(*filespecs, basedir=None, granularity=None):
     }
 
 
-def make_parametrized_test_functions(testcases_by_file, progpath=None):
+def make_parametrized_test_functions(
+        testcases_by_file: dict[str, list[_TestcaseTuple]],
+        progpath: str | None = None,
+) -> dict[str, Callable[..., None]]:
     """Generate pytest test functions organized by file.
 
     Creates a dictionary of test functions, one per file, ready to be
@@ -337,7 +356,11 @@ def make_parametrized_test_functions(testcases_by_file, progpath=None):
     return test_functions
 
 
-def _make_parametrized_test_function(testcases, func_name, progpath):
+def _make_parametrized_test_function(
+        testcases: list[_TestcaseTuple],
+        func_name: str,
+        progpath: str,
+) -> Callable[..., None]:
     """Return a parametrized test function for a single test case file.
 
     Args:

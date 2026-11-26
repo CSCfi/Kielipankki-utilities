@@ -59,11 +59,18 @@ Implementation:
 """
 
 
+from __future__ import annotations
+
 import fnmatch
 import re
 import weakref
 
+from typing import TYPE_CHECKING
+
 import pytest
+
+if TYPE_CHECKING:
+    from _pytest.terminal import TerminalReporter
 
 
 # pytest option parsers to which the options of this plugin have been
@@ -77,7 +84,7 @@ class GroupedOutputPlugin:
     Configuration is done via pytest command-line options.
     """
 
-    def __init__(self, config):
+    def __init__(self, config: pytest.Config) -> None:
         self.config = config
         self.current_group = None
 
@@ -88,13 +95,13 @@ class GroupedOutputPlugin:
             for p in config.option.scripttest_grouped_modules.split(',')]
         self.output_format = config.option.scripttest_grouped_output
 
-    def _is_grouped_test(self, nodeid):
+    def _is_grouped_test(self, nodeid: str) -> bool:
         """Check if the test should be grouped based on module patterns."""
         basename = nodeid.split('::')[0].split('/')[-1]
         return any(fnmatch.fnmatch(basename, pattern)
                    for pattern in self.module_patterns)
 
-    def _format_group_name(self, group_id):
+    def _format_group_name(self, group_id: str) -> str:
         """Format the group name based on output_format setting.
 
         group_id format: file.py::test_func
@@ -112,7 +119,7 @@ class GroupedOutputPlugin:
 
         return f'{file_part}::{func_part}'
 
-    def _extract_group_id(self, nodeid):
+    def _extract_group_id(self, nodeid: str) -> str | None:
         """Extract the group identifier from a test nodeid.
 
         Format: file.py::test_func[param1-param2] or file.py::test_func
@@ -129,7 +136,11 @@ class GroupedOutputPlugin:
     # tryfirst: run before the terminal reporter's hook, so that the
     # reporter does not write the module path before the group header
     @pytest.hookimpl(tryfirst=True)
-    def pytest_runtest_logstart(self, nodeid, location):
+    def pytest_runtest_logstart(
+            self,
+            nodeid: str,
+            location: tuple[str, int | None, str],
+    ) -> None:
         """Hook called when pytest is about to run a test."""
         # Only process tests matching the configured patterns
         if not self._is_grouped_test(nodeid):
@@ -152,7 +163,12 @@ class GroupedOutputPlugin:
             if reporter is not None:
                 self._write_group_header(reporter, nodeid, formatted_name)
 
-    def _write_group_header(self, reporter, nodeid, header):
+    def _write_group_header(
+            self,
+            reporter: TerminalReporter,
+            nodeid: str,
+            header: str,
+    ) -> None:
         """Write group `header` for `nodeid` with terminal `reporter`.
 
         Mimic `TerminalReporter.write_fspath_result`, which writes the
@@ -177,7 +193,7 @@ class GroupedOutputPlugin:
         tw.write(f'{header} ')
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: pytest.Parser) -> None:
     """Add command-line options for the grouped output plugin.
 
     Do nothing if the options have already been added to `parser`, so
@@ -210,7 +226,7 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config) -> None:
     """Register the grouped output plugin, unless already registered."""
     if config.pluginmanager.has_plugin('grouped_output'):
         return
