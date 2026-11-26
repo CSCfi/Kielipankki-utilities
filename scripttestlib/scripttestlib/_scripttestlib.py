@@ -50,10 +50,6 @@ _testcase_filespecs_default = [
 # added by add_pytest_options
 _option_parsers = weakref.WeakSet()
 
-# The directory of the pytest test module running scripttestlib tests
-# (typically test_scripts.py), to be initialized later
-_test_dir = None
-
 
 def add_pytest_options(parser):
     """Add scripttestlib custom options, currently --scripttest-granularity.
@@ -102,35 +98,26 @@ def _get_granularity():
     return _option_scripttest_granularity
 
 
-def _get_test_dir(cache=True):
+def _get_test_dir():
     """Get the directory of the pytest test file (test runner).
 
-    Args:
-        cache: If `True` (default), return the value in `_test_dir` if
-            not `None`, or set it if `None`.
+    The result is not cached, as several test modules in different
+    directories may call this in the same pytest session.
 
     Returns:
         Absolute path to the directory of the closest ancestor in the
         call chain whose file name begins with ``test_``; if no such
         caller is found, the absolute path of the current directory.
     """
-    global _test_dir
-    if cache and _test_dir is not None:
-        return _test_dir
     frame = inspect.currentframe()
     # Iterate stack frames until the filename in one begins with
     # "test_"
     while frame:
         frame_file = frame.f_globals.get('__file__', '.')
-        frame_base = os.path.basename(frame_file)
-        if frame_base.startswith('test_'):
-            break
+        if os.path.basename(frame_file).startswith('test_'):
+            return os.path.dirname(os.path.abspath(frame_file))
         frame = frame.f_back
-    test_dir = (os.path.dirname(os.path.abspath(frame_file)) if frame
-                else os.path.abspath('.'))
-    if cache:
-        _test_dir = test_dir
-    return test_dir
+    return os.path.abspath('.')
 
 
 def make_param_id(val):
@@ -260,7 +247,7 @@ def collect_testcases_by_file(*filespecs, basedir=None, granularity=None):
     }
 
 
-def make_parametrized_test_functions(testcases_by_file):
+def make_parametrized_test_functions(testcases_by_file, progpath=None):
     """Generate pytest test functions organized by file.
 
     Creates a dictionary of test functions, one per file, ready to be
@@ -270,6 +257,14 @@ def make_parametrized_test_functions(testcases_by_file):
     Args:
         testcases_by_file: Dict mapping filename to list of test tuples,
                           as returned by collect_testcases_by_file()
+        progpath: The program path (`$PATH`) for running the programs
+            to be tested, as for `check_program_run`, with `{PATH}`
+            replaced with the current value of `$PATH`. If `None`
+            (default), use the directory of the calling pytest test
+            module (as detected by `_get_test_dir`) and its parent
+            directory, followed by the current `$PATH`, so that the
+            scripts of a collection are found when the test module is
+            in its `tests` subdirectory.
 
     Returns:
         Dict mapping function name (e.g., 'test_script_name_py') to
@@ -285,6 +280,10 @@ def make_parametrized_test_functions(testcases_by_file):
         globals().update(test_funcs)
         ```
     """
+    if progpath is None:
+        # Escape braces, as progpath is used as a format string
+        test_dir = _get_test_dir().replace('{', '{{').replace('}', '}}')
+        progpath = f'{test_dir}/..:{test_dir}:{{PATH}}'
     test_functions = {}
     for fname, testcases in sorted(testcases_by_file.items()):
         # Sanitize filename for use as test function name
@@ -292,23 +291,25 @@ def make_parametrized_test_functions(testcases_by_file):
         safe_fname = re.sub(r'[/\\.-]+', '_', fname)
         test_func_name = f'test_{safe_fname}'
         test_functions[test_func_name] = _make_parametrized_test_function(
-            testcases, test_func_name)
+            testcases, test_func_name, progpath)
     return test_functions
 
 
-def _make_parametrized_test_function(testcases, func_name):
+def _make_parametrized_test_function(testcases, func_name, progpath):
     """Return a parametrized test function for a single test case file.
 
     Args:
         testcases: List of (name, input, outputitem, expected) tuples
             with which to parametrize the test function
         func_name: Name of the test function
+        progpath: Program path passed to `check_program_run`
     """
 
     @pytest.mark.parametrize('name, input, outputitem, expected',
                              testcases, ids=make_param_id)
     def test_file(name, input, outputitem, expected, tmpdir):
-        check_program_run(name, input, outputitem, expected, str(tmpdir))
+        check_program_run(name, input, outputitem, expected, str(tmpdir),
+                          progpath=progpath)
 
     test_file.__name__ = func_name
     test_file.__qualname__ = func_name
