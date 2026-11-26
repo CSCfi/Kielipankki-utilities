@@ -268,7 +268,13 @@ def make_parametrized_test_functions(testcases_by_file, progpath=None):
 
     Returns:
         Dict mapping function name (e.g., 'test_script_name_py') to
-        test function suitable for registration via globals()[name] = func
+        test function suitable for registration via globals()[name] = func.
+        The function name is made from the file name by replacing
+        sequences of path separators, dots and hyphens with an
+        underscore. If several file names result in the same function
+        name, `_<n>` is appended to all but the first one (in sorted
+        order), with the smallest integer `<n>` >= 2 making the name
+        different from all other function names.
 
     Example:
         ```python
@@ -284,12 +290,22 @@ def make_parametrized_test_functions(testcases_by_file, progpath=None):
         # Escape braces, as progpath is used as a format string
         test_dir = _get_test_dir().replace('{', '{{').replace('}', '}}')
         progpath = f'{test_dir}/..:{test_dir}:{{PATH}}'
+    # Sanitize filename for use as test function name
+    # Convert path separators and dots to underscores
+    base_names = {fname: 'test_' + re.sub(r'[/\\.-]+', '_', fname)
+                  for fname in testcases_by_file}
+    all_base_names = set(base_names.values())
     test_functions = {}
     for fname, testcases in sorted(testcases_by_file.items()):
-        # Sanitize filename for use as test function name
-        # Convert path separators and dots to underscores
-        safe_fname = re.sub(r'[/\\.-]+', '_', fname)
-        test_func_name = f'test_{safe_fname}'
+        test_func_name = base_names[fname]
+        if test_func_name in test_functions:
+            # Make the name unique, also with respect to the names of
+            # files not yet processed
+            num = 2
+            while (f'{base_names[fname]}_{num}' in test_functions
+                   or f'{base_names[fname]}_{num}' in all_base_names):
+                num += 1
+            test_func_name = f'{base_names[fname]}_{num}'
         test_functions[test_func_name] = _make_parametrized_test_function(
             testcases, test_func_name, progpath)
     return test_functions

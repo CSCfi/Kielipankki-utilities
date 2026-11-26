@@ -3291,3 +3291,25 @@ def test_make_parametrized_test_functions_filename_sanitization(
     testcases_by_file = {filename: [('T1', 'i1', 'o1', 'e1')]}
     test_funcs = make_parametrized_test_functions(testcases_by_file)
     assert list(test_funcs.keys()) == [expected_func_name]
+
+
+def test_make_parametrized_test_functions_duplicate_names():
+    """Test that file names sanitized to the same name get unique names."""
+    testcases_by_file = {
+        'a-b.yaml': [('T1', 'i1', 'o1', 'e1')],
+        'a_b.yaml': [('T2', 'i2', 'o2', 'e2')],
+        # Sanitized to the name that would be the first candidate for
+        # making the name for a_b.yaml unique
+        'a_b.yaml.2': [('T3', 'i3', 'o3', 'e3')],
+        'a.b.yaml': [('T4', 'i4', 'o4', 'e4')],
+    }
+    test_funcs = make_parametrized_test_functions(testcases_by_file)
+    # Files are processed in sorted order: a-b.yaml, a.b.yaml, a_b.yaml,
+    # a_b.yaml.2
+    assert {name: func.pytestmark[0].args[1][0][0]
+            for name, func in test_funcs.items()} == {
+                'test_a_b_yaml': 'T1',
+                'test_a_b_yaml_3': 'T4',
+                'test_a_b_yaml_4': 'T2',
+                'test_a_b_yaml_2': 'T3',
+            }
