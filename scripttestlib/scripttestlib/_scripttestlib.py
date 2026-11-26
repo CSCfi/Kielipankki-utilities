@@ -112,11 +112,13 @@ def _get_test_dir() -> str:
     """Return the directory of the calling pytest test module.
 
     The test module is the closest caller in the call stack whose
-    module file name (`__file__`) begins with ``test_``, typically
-    ``test_scripts.py`` executing at import time; a test module named
-    ``*_test.py`` is not recognized. The path is not resolved, so for
-    a test module symlinked to another directory, the directory of the
-    symbolic link is returned.
+    module file name (`__file__`) begins with ``test_`` or ends with
+    ``_test.py``, typically ``test_scripts.py`` executing at import
+    time. These are the default test module patterns of pytest; a
+    custom pytest ini option ``python_files`` is ignored, as the
+    pytest configuration is not available here. The path is not
+    resolved, so for a test module symlinked to another directory, the
+    directory of the symbolic link is returned.
 
     The result is not cached, as several test modules in different
     directories may call this in the same pytest session.
@@ -126,11 +128,10 @@ def _get_test_dir() -> str:
         caller is found, the absolute path of the current directory.
     """
     frame = inspect.currentframe()
-    # Iterate stack frames until the filename in one begins with
-    # "test_"
     while frame:
         frame_file = frame.f_globals.get('__file__', '.')
-        if os.path.basename(frame_file).startswith('test_'):
+        basename = os.path.basename(frame_file)
+        if basename.startswith('test_') or basename.endswith('_test.py'):
             # abspath, not realpath: test_scripts.py is typically a
             # symbolic link, and the directory of the link (the tests
             # directory of the collection) is wanted

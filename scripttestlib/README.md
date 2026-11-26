@@ -58,7 +58,8 @@ directory of the calling test module, and
 `make_parametrized_test_functions` by default adds the parent
 directory of the test module and the test module directory to
 `$PATH`. The calling test module is recognized by its file name
-beginning with `test_` (a module named `*_test.py` is not recognized).
+matching `test_*.py` or `*_test.py`, the default test module patterns
+of pytest; a custom pytest ini option `python_files` is ignored.
 Please see the docstrings of the functions for more information.
 
 ### Running tests

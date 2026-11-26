@@ -3319,6 +3319,26 @@ def test_collect_testcases_defaults(tmpdir):
     ]
 
 
+@pytest.mark.parametrize('modname, in_testdir', [
+    ('test_x.py', True),
+    ('x_test.py', True),
+    # Not a test module: the closest test module is this one
+    ('x.py', False),
+])
+def test_get_test_dir(tmpdir, modname, in_testdir):
+    """Test that _get_test_dir recognizes test_*.py and *_test.py."""
+    testdir = os.path.join(tmpdir, 'tests')
+    os.makedirs(testdir)
+    modfname = os.path.join(testdir, modname)
+    with open(modfname, 'w') as outf:
+        outf.write('from scripttestlib._scripttestlib import _get_test_dir\n'
+                   'test_dir = _get_test_dir()\n')
+    module = _exec_module_file(modfname)
+    expected = (testdir if in_testdir
+                else os.path.dirname(os.path.abspath(__file__)))
+    assert module.test_dir == expected
+
+
 def test_make_parametrized_test_functions_default_progpath(tmpdir):
     """Test that by default, the programs are searched in the parent
     directory of the test dir and then in the test dir, as with the
