@@ -125,17 +125,14 @@ class GroupedOutputPlugin:
         Format: file.py::test_func[param1-param2] or file.py::test_func;
         for a test method, file.py::Class::test_method[...], the class
         is omitted, so same-named methods of consecutive classes are
-        grouped together.
+        grouped together. The parameters may contain ``::``.
 
         Returns: file.py::test_func, or None if `nodeid` contains no
-        ``::``.
+        ``::`` outside the parameters.
         """
-        parts = nodeid.split('::')
+        parts = nodeid.split('[', 1)[0].split('::')
         if len(parts) >= 2:
-            # Get function name without brackets
-            func_part = parts[-1].split('[')[0]
-            file_part = parts[0]
-            return f'{file_part}::{func_part}'
+            return f'{parts[0]}::{parts[-1]}'
         return None
 
     # tryfirst: run before the terminal reporter's hook, so that the
@@ -148,6 +145,9 @@ class GroupedOutputPlugin:
     ) -> None:
         """Write a group header before the first test of a new group."""
         if not self._is_grouped_test(nodeid):
+            # Write the header again if tests of the current group
+            # follow tests of other modules (for example, with --ff)
+            self.current_group = None
             return
 
         group_id = self._extract_group_id(nodeid)

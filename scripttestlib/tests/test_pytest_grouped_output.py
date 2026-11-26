@@ -44,7 +44,8 @@ def test_scripttest_aa_yaml(n):
     pass
 
 
-@pytest.mark.parametrize('n', range(3))
+# A parameter id containing "::" does not start a group of its own
+@pytest.mark.parametrize('n', range(3), ids=['a::b', 'c', 'd'])
 def test_scripttests_scripttest_bb_yml(n):
     pass
 """
@@ -52,6 +53,15 @@ def test_scripttests_scripttest_bb_yml(n):
 _test_other = """
 def test_other():
     pass
+"""
+
+# Run test_other between the first and the other tests of
+# test_scripttest_aa_yaml
+_conftest_interleave = """
+def pytest_collection_modifyitems(items):
+    other = [item for item in items if 'test_other' in item.nodeid]
+    rest = [item for item in items if item not in other]
+    items[:] = rest[:1] + other + rest[1:]
 """
 
 
@@ -111,6 +121,15 @@ def test_grouped_output_progress(grouped_pytester):
     for i, line in enumerate(lines):
         if line.startswith('test_scripts.py::'):
             assert re.search(r'\[ *\d+%\]$', lines[i - 1])
+
+
+def test_grouped_output_interleaved(grouped_pytester: Pytester) -> None:
+    """Test repeating the header when a group follows another module."""
+    grouped_pytester.makeconftest(_conftest + _conftest_interleave)
+    result, lines = _run(grouped_pytester)
+    assert result.ret == 0
+    assert _headers(lines) == [
+        'test_scripts.py::aa', 'test_scripts.py::aa', 'test_scripts.py::bb']
 
 
 def test_grouped_output_no_terminal(grouped_pytester):
