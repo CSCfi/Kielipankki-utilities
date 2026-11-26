@@ -2,12 +2,13 @@
 
 
 """
-scripttestlib.py
+Module scripttestlib._scripttestlib
 
-A module for processing tests of complete scripts, for running with
-pytest.
+The actual implementation of the scripttestlib library, a module
+(Python package) for processing tests of complete scripts, for running
+with pytest.
 
-Please see README.md and the docstrings of functions for more
+Please see ../../README.md and the docstrings of functions for more
 information.
 """
 
@@ -17,41 +18,82 @@ information.
 #   transformation and in an individual test specified as a dict.
 
 
+from __future__ import annotations
+
 import glob
 import importlib
+import importlib.util
+import inspect
 import os
 import os.path
 import re
 import shlex
 import sys
+import weakref
 
 from collections import defaultdict
+from collections.abc import Callable, Sequence
 from copy import deepcopy
 from itertools import product
 from subprocess import Popen, PIPE
+from types import ModuleType
+from typing import Any
 
 import pytest
 import yaml
 
 
+# A test case: a tuple (name, input, outputitem, expected), as taken
+# as arguments by check_program_run; in the lists returned by
+# expand_testcases, a test case with "status" is instead a pytest.param
+# wrapping the tuple with a mark
+_TestcaseTuple = tuple[Any, Any, Any, Any]
+
 # Scripttest granularity: one of "value", "outputitem" or "programrun"; see the
 # help text in add_pytest_option_scripttest_granularity for more information.
 _option_scripttest_granularity = 'value'
 
+# Default patterns for test case file names: scripttest{_,s/}*.{py,yaml,yml}
+_testcase_filespecs_default = [
+    f'scripttest{suff}*.{ext}' for suff in ('_', 's/')
+    for ext in ('py', 'yaml', 'yml')]
+
+# pytest option parsers to which the scripttestlib options have been
+# added by add_pytest_options
+_option_parsers = weakref.WeakSet()
+
+
+def add_pytest_options(parser: pytest.Parser) -> None:
+    """Add scripttestlib custom options, currently --scripttest-granularity.
+
+    Do nothing if the options have already been added to `parser`, so
+    that the function can be called from the ``conftest.py`` files of
+    several test collections run in the same pytest session.
+    """
+    if parser in _option_parsers:
+        return
+    _option_parsers.add(parser)
+    # If more custom options are added for scripttestlib, handle them
+    # here
+    add_pytest_option_scripttest_granularity(parser)
+
+
+def set_options_from_pytest_config(config: pytest.Config) -> None:
+    """Configure scripttestlib based on custom command-line option(s)."""
+    set_scripttest_granularity(config.option.scripttest_granularity)
+
 
 def add_pytest_option_scripttest_granularity(parser):
     """Add custom option --scripttest-granularity to pytest option parser."""
-    parser.addoption(
+    parser.getgroup('scripttestlib').addoption(
         '--scripttest-granularity',
         choices=['value', 'outputitem', 'programrun'], default='value',
-        help="""
-            parametrize scripttestlib tests at the given granularity,
-            indicating what is made a pytest test of its own (from
-            finest to coarsest): "value" (each value to be tested is
-            made its own test), "outputitem" (each output item of a
-            program run) or "programrun" (each program run) (default:
-            "%(default)s")
-        """
+        help=('Parametrize scripttestlib tests at the given granularity,'
+              ' indicating what is made a pytest test of its own (from'
+              ' finest to coarsest): "value" (each value to be tested'
+              ' is made its own test), "outputitem" (each output item'
+              ' of a program run) or "programrun" (each program run)'
+              ' (default: "%(default)s").')
         )
 
 
@@ -64,6 +106,38 @@ def set_scripttest_granularity(granularity):
 def _get_granularity():
     """Return the value of the custom --scripttest-granularity option"""
     return _option_scripttest_granularity
+
+
+def _get_test_dir() -> str:
+    """Return the directory of the calling pytest test module.
+
+    The test module is the closest caller in the call stack whose
+    module file name (`__file__`) begins with ``test_`` or ends with
+    ``_test.py``, typically ``test_scripts.py`` executing at import
+    time. These are the default test module patterns of pytest; a
+    custom pytest ini option ``python_files`` is ignored, as the
+    pytest configuration is not available here. The path is not
+    resolved, so for a test module symlinked to another directory, the
+    directory of the symbolic link is returned.
+
+    The result is not cached, as several test modules in different
+    directories may call this in the same pytest session.
+
+    Returns:
+        Absolute path to the directory of the test module; if no such
+        caller is found, the absolute path of the current directory.
+    """
+    frame = inspect.currentframe()
+    while frame:
+        frame_file = frame.f_globals.get('__file__', '.')
+        basename = os.path.basename(frame_file)
+        if basename.startswith('test_') or basename.endswith('_test.py'):
+            # abspath, not realpath: test_scripts.py is typically a
+            # symbolic link, and the directory of the link (the tests
+            # directory of the collection) is wanted
+            return os.path.dirname(os.path.abspath(frame_file))
+        frame = frame.f_back
+    return os.path.abspath('.')
 
 
 def make_param_id(val):
@@ -91,13 +165,103 @@ def make_param_id(val):
     return val if isinstance(val, str) else None
 
 
+def _load_testcases_from_files(
+        filespecs: Sequence[str],
+        basedir: str | None,
+) -> list[tuple[str, list[dict[str, Any]]]]:
+    """Load the test cases in the files matching `filespecs` in `basedir`.
+
+    Load the test cases from the variable `testcases` of Python
+    modules (with `_import_module_from_file`) and from YAML files. As
+    a side effect, prepend `basedir` to `sys.path`.
+
+    Args:
+        filespecs: Glob patterns of test case files, relative to
+            `basedir`; if empty, use `_testcase_filespecs_default`
+        basedir: Directory in which to search for test case files; if
+            `None`, use the directory of the calling pytest test module
+            as detected by `_get_test_dir`
+
+    Returns:
+        A list of (filename, test case dicts) tuples, with filename
+        relative to `basedir`, in the order of `filespecs` and within
+        each in the (arbitrary) order of `glob.iglob`.
+    """
+    if not filespecs:
+        filespecs = _testcase_filespecs_default
+    if basedir is None:
+        basedir = _get_test_dir()
+
+    testcases_list = []
+    # Prepend basedir to sys.path (on every call), so that test case
+    # modules can import helper modules from basedir; the test case
+    # modules themselves are loaded with _import_module_from_file,
+    # which does not need it
+    sys.path[0:0] = [basedir]
+    # Invalidate import caches just in case, as the Python modules might have
+    # been constructed on-the-fly
+    importlib.invalidate_caches()
+    for filespec in filespecs:
+        filespec = os.path.join(basedir, filespec)
+        for fname in glob.iglob(filespec):
+            fname_rel = os.path.relpath(fname, basedir)
+            # print(basedir, filespec, fname, fname_rel)
+            if fname.endswith('.py'):
+                # The module name (with a package prefix for a file in
+                # a subdirectory) is the __name__ of the module; the
+                # module is in sys.modules only while being executed
+                modulename = os.path.basename(fname)[:-3]
+                pkgname = os.path.dirname(fname_rel).replace('/', '.')
+                if pkgname:
+                    modulename = pkgname + '.' + modulename
+                testcases_list.append(
+                    (fname_rel,
+                     _import_module_from_file(modulename, fname).testcases))
+            elif fname.endswith(('.yaml', '.yml')):
+                with open(fname, 'r') as yf:
+                    testcases_list.append(
+                        (fname_rel, [item for items in yaml.safe_load_all(yf)
+                                     for item in items]))
+    return testcases_list
+
+
+def _import_module_from_file(modulename: str, fname: str) -> ModuleType:
+    """Import and return module `modulename` from file `fname`.
+
+    The module is loaded from `fname` each time and it is kept in
+    `sys.modules` only while executing it, so that test case modules
+    with the same name in different directories (for example, in
+    different test collections run in the same pytest session) do not
+    get mixed up. Executing the module may need it in `sys.modules`:
+    for example, a dataclass with annotations as strings looks up its
+    module there.
+    """
+    spec = importlib.util.spec_from_file_location(modulename, fname)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    prev_module = sys.modules.get(modulename)
+    sys.modules[modulename] = module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        if prev_module is None:
+            del sys.modules[modulename]
+        else:
+            sys.modules[modulename] = prev_module
+    return module
+
+
 def collect_testcases(*filespecs, basedir=None, granularity=None):
     """Return a list of tuples for the test cases in `filespecs`
 
     Collect the test cases found in the files matching one of
     `filespecs` in the directory `basedir`. The test cases are either
     in Python modules in a variable named `testcases` or in YAML
-    files.
+    files. If no `filespecs` are specified, use those listed in
+    `_testcase_filespecs_default`. If `basedir` is `None` (the
+    default), use the directory of the pytest test module running the
+    scripttestlib tests as detected by `_get_test_dir`, typically
+    `test_scripts.py`.
 
     The output tuples have the items (name, input, outputitem,
     expected), and they can be used as parameters to
@@ -107,41 +271,138 @@ def collect_testcases(*filespecs, basedir=None, granularity=None):
     containing the values to be tested in a single pytest test,
     determined by `granularity`: ``value`` (each value to be tested is
     made its own test), ``outputitem`` (each output item of a program
-    run) or ``programrunrun`` (each program run). If `granularity` is
-    `None`, the value `_test_granularity` of the custom
-    --scripttest-granularity command-line option is used. If all the
+    run) or ``programrun`` (each program run). If `granularity` is
+    `None`, the value of the custom --scripttest-granularity
+    command-line option is used. If all the
     values for name or input are the same in a tuple, the single value
     is used instead of the tuple.
     """
-    if granularity is None:
-        granularity = _get_granularity()
-    testcases = []
-    if basedir is not None:
-        sys.path[0:0] = [basedir]
-    # Invalidate import caches just in case, as the Python modules might have
-    # been constructed on-the-fly
-    importlib.invalidate_caches()
-    for filespec in filespecs:
-        if basedir is not None:
-            filespec = os.path.join(basedir, filespec)
-        for fname in glob.iglob(filespec):
-            fname_rel = os.path.relpath(fname, basedir)
-            # print(basedir, filespec, fname, fname_rel)
-            if fname.endswith('.py'):
-                modulename = os.path.basename(fname)[:-3]
-                pkgname = os.path.dirname(fname_rel).replace('/', '.')
-                if pkgname:
-                    modulename = pkgname + '.' + modulename
-                testcases.append(
-                    (fname_rel,
-                     importlib.import_module(modulename)
-                     .testcases))
-            elif fname.endswith(('.yaml', '.yml')):
-                with open(fname, 'r') as yf:
-                    testcases.append(
-                        (fname_rel, [item for items in yaml.safe_load_all(yf)
-                                     for item in items]))
-    return expand_testcases(testcases, granularity=granularity)
+    return expand_testcases(_load_testcases_from_files(filespecs, basedir),
+                            granularity=granularity)
+
+
+def collect_testcases_by_file(
+        *filespecs: str,
+        basedir: str | None = None,
+        granularity: str | None = None,
+) -> dict[str, list[_TestcaseTuple]]:
+    """Return test cases grouped by file.
+
+    Like `collect_testcases`, but returns a dict mapping filename to
+    a list of test case tuples, keeping tests organized by their
+    source file. This is useful for creating separate pytest test
+    functions per file.
+
+    Args:
+        Same as collect_testcases()
+
+    Returns:
+        Dict mapping filename to list of (name, input, outputitem,
+            expected) tuples or `pytest.param` objects wrapping them
+    """
+    # Expand testcases per file instead of all at once
+    return {
+        fname: expand_testcases([(fname, testcases_dictlist)],
+                                granularity=granularity)
+        for fname, testcases_dictlist in _load_testcases_from_files(
+            filespecs, basedir)
+    }
+
+
+def make_parametrized_test_functions(
+        testcases_by_file: dict[str, list[_TestcaseTuple]],
+        progpath: str | None = None,
+) -> dict[str, Callable[..., None]]:
+    """Generate pytest test functions organized by file.
+
+    Creates a dictionary of test functions, one per file, ready to be
+    registered in a test module's globals(). This enables pytest to
+    display test results grouped by their source file.
+
+    Args:
+        testcases_by_file: Dict mapping filename to list of test case
+            tuples or `pytest.param` objects wrapping them, as returned
+            by collect_testcases_by_file()
+        progpath: The program path (`$PATH`) for running the programs
+            to be tested, as for `check_program_run`, with `{PATH}`
+            replaced with the current value of `$PATH`. If `None`
+            (default), use the parent directory of the calling pytest
+            test module (as detected by `_get_test_dir`), followed by
+            the directory of the module itself and the current `$PATH`
+            (``'{test_dir}/..:{test_dir}:{PATH}'``), so that the
+            scripts of a collection are found, before other programs
+            with the same name, when the test module is in the `tests`
+            subdirectory of the collection.
+
+    Returns:
+        Dict mapping function name to test function, to be added to
+        the globals of the test module. The function name is
+        ``test_`` followed by the file name in which each sequence of
+        path separators, dots and hyphens is replaced with an
+        underscore, for example ``test_scripttests_scripttest_x_yaml``
+        for ``scripttests/scripttest_x.yaml``. If several file names
+        result in the same function name, `_<n>` is appended to all
+        but the first one (in sorted order), with the smallest integer
+        `<n>` >= 2 making the name different from all other function
+        names.
+
+    Example:
+        ```python
+        from scripttestlib import (
+            collect_testcases_by_file, make_parametrized_test_functions)
+
+        testcases_by_file = collect_testcases_by_file()
+        test_funcs = make_parametrized_test_functions(testcases_by_file)
+        globals().update(test_funcs)
+        ```
+    """
+    if progpath is None:
+        # Escape braces, as progpath is used as a format string
+        test_dir = _get_test_dir().replace('{', '{{').replace('}', '}}')
+        progpath = f'{test_dir}/..:{test_dir}:{{PATH}}'
+    base_names = {fname: 'test_' + re.sub(r'[/\\.-]+', '_', fname)
+                  for fname in testcases_by_file}
+    all_base_names = set(base_names.values())
+    test_functions = {}
+    for fname, testcases in sorted(testcases_by_file.items()):
+        test_func_name = base_names[fname]
+        if test_func_name in test_functions:
+            # Make the name unique, also with respect to the names of
+            # files not yet processed
+            num = 2
+            while (f'{base_names[fname]}_{num}' in test_functions
+                   or f'{base_names[fname]}_{num}' in all_base_names):
+                num += 1
+            test_func_name = f'{base_names[fname]}_{num}'
+        test_functions[test_func_name] = _make_parametrized_test_function(
+            testcases, test_func_name, progpath)
+    return test_functions
+
+
+def _make_parametrized_test_function(
+        testcases: list[_TestcaseTuple],
+        func_name: str,
+        progpath: str,
+) -> Callable[..., None]:
+    """Return a parametrized test function for a single test case file.
+
+    Args:
+        testcases: List of (name, input, outputitem, expected) tuples
+            or `pytest.param` objects wrapping them, with which to
+            parametrize the test function
+        func_name: Name of the test function
+        progpath: Program path passed to `check_program_run`
+    """
+
+    @pytest.mark.parametrize('name, input, outputitem, expected',
+                             testcases, ids=make_param_id)
+    def test_file(name, input, outputitem, expected, tmpdir):
+        check_program_run(name, input, outputitem, expected, str(tmpdir),
+                          progpath=progpath)
+
+    test_file.__name__ = func_name
+    test_file.__qualname__ = func_name
+    return test_file
 
 
 # Keys allowed in test cases: top level as a dict with second-level
@@ -965,16 +1226,13 @@ def check_program_run(name, input_, outputitem, expected, tmpdir,
     # TODO: Possible enhancements:
     # - Allow specifying input and output encodings.
 
-    def is_list_or_tuple(value):
-        return isinstance(value, list) or isinstance(value, tuple)
-
     def getfirst(value):
-        return value[0] if is_list_or_tuple(value) else value
+        return value[0] if isinstance(value, (list, tuple)) else value
 
     # print("run", input_, outputitem, expected)
     output = ProgramRunner.run(
         getfirst(name), getfirst(input_), tmpdir, progpath)
-    if not is_list_or_tuple(outputitem):
+    if not isinstance(outputitem, (list, tuple)):
         outputitem = [outputitem]
         expected = [expected]
     for itemnum, outputitem_item in enumerate(outputitem):

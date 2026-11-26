@@ -8,17 +8,23 @@ Very basic pytest tests for scripttestlib.
 """
 
 
+import importlib.util
 import itertools
 import os.path
+import stat
+import sys
 
 from copy import deepcopy
+from types import ModuleType
+from typing import Any
 
 import pytest
 import yaml
 
-from tests.scripttestlib import (
-    collect_testcases, check_program_run, expand_testcases,
-    dict_deep_update, make_param_id)
+from scripttestlib import (
+    collect_testcases, collect_testcases_by_file, check_program_run,
+    expand_testcases, dict_deep_update, make_param_id,
+    make_parametrized_test_functions)
 
 
 # TODO: Test more scripttestlib features, also failing tests.
@@ -2999,6 +3005,16 @@ _testcase_files_content = [
 _testcases = expand_testcases(_testcase_files_content)
 
 
+@pytest.fixture(autouse=True)
+def restore_sys_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    """pytest fixture: restore `sys.path` after each test.
+
+    Collecting test cases prepends the base directory (often a
+    temporary directory in these tests) to `sys.path`.
+    """
+    monkeypatch.setattr(sys, 'path', sys.path[:])
+
+
 @pytest.fixture
 def testcase_files(tmpdir):
     """pytest fixture: testcase files from _testcase_files_content
@@ -3226,8 +3242,255 @@ def test_duplicate_filename(tmpdir):
                           tmpdir=str(tmpdir))
 
 
-@pytest.mark.parametrize("name, input, outputitem, expected",
+@pytest.mark.parametrize('name, input, outputitem, expected',
                          _testcases, ids=make_param_id)
 def test_check_program_run(name, input, outputitem, expected, tmpdir):
     """Test scripttestlib.check_program_run with the testcases."""
     check_program_run(name, input, outputitem, expected, tmpdir=str(tmpdir))
+
+
+def test_collect_testcases_by_file(testcase_files, tmpdir):
+    """Test collect_testcases_by_file groups testcases by filename."""
+    testcases, fname_patts = testcase_files
+    testcases_by_file = collect_testcases_by_file(
+        *fname_patts, basedir=str(tmpdir), granularity='value')
+    # One dict entry per file, each containing the expanded testcases
+    # of that file only (compare with collect_testcases instead of
+    # expand_testcases of the content, as yaml.dump sorts dict keys)
+    assert (sorted(testcases_by_file.keys())
+            == sorted(fname for fname, _ in testcases))
+    for fname in testcases_by_file:
+        assert testcases_by_file[fname] == collect_testcases(
+            fname, basedir=str(tmpdir), granularity='value')
+
+
+def _write_testcase_yaml(
+        fname: str,
+        name: str,
+        input_: dict[str, Any],
+        output: dict[str, Any],
+) -> None:
+    """Write a YAML file with a single test case.
+
+    Args:
+        fname: Name of the file to write; its directory is created if
+            needed
+        name: Name of the test case
+        input_: Input of the test case
+        output: Expected output of the test case
+    """
+    os.makedirs(os.path.dirname(fname), exist_ok=True)
+    with open(fname, 'w') as outf:
+        yaml.dump([{'name': name, 'input': input_, 'output': output}], outf)
+
+
+def _exec_module_file(fname: str) -> ModuleType:
+    """Execute Python file `fname` as a module and return the module.
+
+    The module is not added to `sys.modules`.
+    """
+    spec = importlib.util.spec_from_file_location(
+        os.path.basename(fname)[:-3], fname)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_collect_testcases_defaults(tmpdir):
+    """Test collect_testcases with default filespecs and basedir.
+
+    The default basedir is the directory of the calling test_*.py
+    module, and the default filespecs match scripttest_*.{py,yaml,yml}
+    and scripttests/*.{py,yaml,yml}.
+    """
+    testdir = os.path.join(tmpdir, 'tests')
+    for fname in ['scripttest_a.yaml', 'scripttests/b.yml', 'c.yaml',
+                  'scripttestc.yaml']:
+        _write_testcase_yaml(os.path.join(testdir, fname), fname,
+                             {'cmdline': 'true'}, {'returncode': 0})
+    with open(os.path.join(testdir, 'test_collect.py'), 'w') as outf:
+        outf.write('from scripttestlib import collect_testcases\n'
+                   'testcases = collect_testcases(granularity="programrun")\n')
+    module = _exec_module_file(os.path.join(testdir, 'test_collect.py'))
+    assert sorted(testcase[0] for testcase in module.testcases) == [
+        'scripttest_a.yaml 1: scripttest_a.yaml',
+        'scripttests/b.yml 1: scripttests/b.yml',
+    ]
+
+
+@pytest.mark.parametrize('modname, in_testdir', [
+    ('test_x.py', True),
+    ('x_test.py', True),
+    # Not a test module: the closest test module is this one
+    ('x.py', False),
+])
+def test_get_test_dir(tmpdir, modname, in_testdir):
+    """Test that _get_test_dir recognizes test_*.py and *_test.py."""
+    testdir = os.path.join(tmpdir, 'tests')
+    os.makedirs(testdir)
+    modfname = os.path.join(testdir, modname)
+    with open(modfname, 'w') as outf:
+        outf.write('from scripttestlib._scripttestlib import _get_test_dir\n'
+                   'test_dir = _get_test_dir()\n')
+    module = _exec_module_file(modfname)
+    expected = (testdir if in_testdir
+                else os.path.dirname(os.path.abspath(__file__)))
+    assert module.test_dir == expected
+
+
+def test_make_parametrized_test_functions_default_progpath(tmpdir):
+    """Test that by default, the programs are searched in the parent
+    directory of the test dir and then in the test dir, as with the
+    default test_scripts.py, also if the path contains braces.
+    """
+    parentdir = os.path.join(tmpdir, 'coll{x}')
+    testdir = os.path.join(parentdir, 'tests')
+    os.makedirs(testdir)
+    for dirname, progname, output in [
+            (parentdir, 'prog-in-parent', 'prog-in-parent'),
+            (testdir, 'prog-in-testdir', 'prog-in-testdir'),
+            # The program in the parent directory is found first
+            (parentdir, 'prog-in-both', 'prog-in-both: parent'),
+            (testdir, 'prog-in-both', None),
+    ]:
+        progfname = os.path.join(dirname, progname)
+        with open(progfname, 'w') as outf:
+            outf.write(f'#! /bin/sh\necho {dirname}\n')
+        os.chmod(progfname, os.stat(progfname).st_mode | stat.S_IXUSR)
+        if output is not None:
+            _write_testcase_yaml(
+                os.path.join(testdir, f'scripttest_{progname}.yaml'), output,
+                {'prog': progname}, {'stdout': f'{dirname}\n'})
+    with open(os.path.join(testdir, 'test_progpath.py'), 'w') as outf:
+        outf.write('from scripttestlib import (\n'
+                   '    collect_testcases_by_file,'
+                   ' make_parametrized_test_functions)\n'
+                   'test_funcs = make_parametrized_test_functions(\n'
+                   '    collect_testcases_by_file(granularity="programrun"))\n')
+    module = _exec_module_file(os.path.join(testdir, 'test_progpath.py'))
+    assert len(module.test_funcs) == 3
+    workdir = os.path.join(tmpdir, 'work')
+    os.makedirs(workdir)
+    for func in module.test_funcs.values():
+        # Call the generated test function with the parameters with
+        # which it is parametrized
+        for params in func.pytestmark[0].args[1]:
+            func(*params, workdir)
+
+
+def test_collect_testcases_same_module_name(tmpdir):
+    """Test that same-named test case modules in different dirs differ."""
+    testcases = {}
+    for subdir in ['dir1', 'dir2']:
+        dirname = os.path.join(tmpdir, subdir, 'scripttests')
+        os.makedirs(dirname)
+        content = [{
+            'name': f'Test in {subdir}',
+            'input': {'cmdline': f'echo {subdir}'},
+            'output': {'stdout': f'{subdir}\n'},
+        }]
+        with open(os.path.join(dirname, 'scripttest_x.py'), 'w') as outf:
+            outf.write('testcases = ' + repr(content) + '\n')
+        testcases[subdir] = collect_testcases(
+            'scripttests/*.py', basedir=os.path.join(tmpdir, subdir),
+            granularity='programrun')
+    for subdir in ['dir1', 'dir2']:
+        assert len(testcases[subdir]) == 1
+        assert testcases[subdir][0][0] == (
+            f'scripttests/scripttest_x.py 1: Test in {subdir}')
+
+
+def test_collect_testcases_dataclass(tmpdir):
+    """Test a test case module with a dataclass with string annotations.
+
+    The dataclass looks up its module in `sys.modules`, from which the
+    module is removed after executing it.
+    """
+    dirname = os.path.join(tmpdir, 'scripttests')
+    os.makedirs(dirname)
+    with open(os.path.join(dirname, 'scripttest_dc.py'), 'w') as outf:
+        outf.write('from __future__ import annotations\n'
+                   'from dataclasses import dataclass\n'
+                   '@dataclass\n'
+                   'class Case:\n'
+                   '    name: str\n'
+                   'testcases = [{\n'
+                   '    "name": Case("Dataclass").name,\n'
+                   '    "input": {"cmdline": "true"},\n'
+                   '    "output": {"returncode": 0},\n'
+                   '}]\n')
+    testcases = collect_testcases(
+        'scripttests/*.py', basedir=str(tmpdir), granularity='programrun')
+    assert [testcase[0] for testcase in testcases] == [
+        'scripttests/scripttest_dc.py 1: Dataclass']
+    assert 'scripttests.scripttest_dc' not in sys.modules
+
+
+def test_make_parametrized_test_functions():
+    """Test make_parametrized_test_functions generates valid test functions."""
+    # Create minimal test data
+    testcases_by_file = {
+        'scripttest_example.yaml': [
+            ('Test1', 'input1', 'outputitem1', 'expected1'),
+            ('Test2', 'input2', 'outputitem2', 'expected2'),
+        ],
+        'tests/scripttest_foo.py': [
+            ('Test3', 'input3', 'outputitem3', 'expected3'),
+        ],
+    }
+
+    # Generate test functions
+    test_funcs = make_parametrized_test_functions(testcases_by_file)
+
+    # Should have one function per file
+    assert len(test_funcs) == 2
+
+    # Check function names are properly sanitized
+    assert 'test_scripttest_example_yaml' in test_funcs
+    assert 'test_tests_scripttest_foo_py' in test_funcs
+
+    # Check function names and parametrize marks
+    for fname, func in test_funcs.items():
+        assert func.__name__ == fname
+        # Should be parametrized with the test cases of the file
+        assert func.pytestmark[0].args[1] == testcases_by_file[
+            {'test_scripttest_example_yaml': 'scripttest_example.yaml',
+             'test_tests_scripttest_foo_py': 'tests/scripttest_foo.py'}[
+                 fname]]
+
+
+@pytest.mark.parametrize('filename, expected_func_name', [
+    ('simple.yaml', 'test_simple_yaml'),
+    ('path/to/file.yaml', 'test_path_to_file_yaml'),
+    ('script-test_name.yaml', 'test_script_test_name_yaml'),
+    ('multiple.dots.in.name.yaml', 'test_multiple_dots_in_name_yaml'),
+])
+def test_make_parametrized_test_functions_filename_sanitization(
+        filename, expected_func_name):
+    """Test that filename sanitization works correctly."""
+    testcases_by_file = {filename: [('T1', 'i1', 'o1', 'e1')]}
+    test_funcs = make_parametrized_test_functions(testcases_by_file)
+    assert list(test_funcs.keys()) == [expected_func_name]
+
+
+def test_make_parametrized_test_functions_duplicate_names():
+    """Test that file names sanitized to the same name get unique names."""
+    testcases_by_file = {
+        'a-b.yaml': [('T1', 'i1', 'o1', 'e1')],
+        'a_b.yaml': [('T2', 'i2', 'o2', 'e2')],
+        # Sanitized to the name that would be the first candidate for
+        # making the name for a_b.yaml unique
+        'a_b.yaml.2': [('T3', 'i3', 'o3', 'e3')],
+        'a.b.yaml': [('T4', 'i4', 'o4', 'e4')],
+    }
+    test_funcs = make_parametrized_test_functions(testcases_by_file)
+    # Files are processed in sorted order: a-b.yaml, a.b.yaml, a_b.yaml,
+    # a_b.yaml.2
+    assert {name: func.pytestmark[0].args[1][0][0]
+            for name, func in test_funcs.items()} == {
+                'test_a_b_yaml': 'T1',
+                'test_a_b_yaml_3': 'T4',
+                'test_a_b_yaml_4': 'T2',
+                'test_a_b_yaml_2': 'T3',
+            }
