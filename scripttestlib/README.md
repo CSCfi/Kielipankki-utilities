@@ -86,7 +86,6 @@ making it easier to see which test group is running.
 **Example output (default short format):**
 
 ```
-test_scripts.py
 test_scripts.py::hrt_encode_tags ............................ [ 12%]
 .................................................................
 test_scripts.py::vrt_drop_attrs ............................. [ 45%]
@@ -104,6 +103,9 @@ values:
   `test_scripttest_vrt_drop_attrs_yaml`).
 - `full`: Complete function names without any simplification.
 - `none`: Disable grouping and use standard pytest output.
+
+Grouping is active only at the default verbosity and with `-q`: with
+`-v`, pytest shows each test on a line of its own.
 
 #### Configurable module patterns
 

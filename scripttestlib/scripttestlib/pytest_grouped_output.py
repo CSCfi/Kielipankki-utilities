@@ -9,13 +9,27 @@ are currently running.
 By default, this plugin is specifically designed for scripttestlib-based tests
 but can be configured to apply to other test modules.
 
+Grouping is active only at the default verbosity and with -q, as with -v,
+pytest shows each test on a line of its own.
+
 Usage:
 ------
-Either register it in pytest.ini or conftest.py:
+Call the hook functions of this module from the corresponding hooks in
+conftest.py, as the shared scripttestlib/tests/conftest.py does:
+
+    def pytest_addoption(parser):
+        scripttestlib.pytest_grouped_output.pytest_addoption(parser)
+
+    def pytest_configure(config):
+        scripttestlib.pytest_grouped_output.pytest_configure(config)
+
+Alternatively, register this module as a plugin in pytest.ini or in the
+top-level conftest.py:
     pytest_plugins = ["scripttestlib.pytest_grouped_output"]
+The functions are idempotent, so doing both does no harm.
 
 Configuration via command-line options:
-    --scripttest-grouped-modules=PATTERN
+    --scripttest-grouped-modules=PATTERNS
           Glob patterns of test modules to group (default: test_scripts*)
     --scripttest-grouped-output=FORMAT
           Output format: 'short' (default), 'full' or 'none':
@@ -24,14 +38,12 @@ Configuration via command-line options:
           'none': Disable grouping, use standard pytest output
 
 Example output with default settings (short format):
-    test_scripts.py
     test_scripts.py::hrt_encode_tags .................................... [ 12%]
     .........................................................................
     test_scripts.py::vrt_drop_attrs ..................................... [ 45%]
     .........................................................................
 
 With --scripttest-grouped-output=full:
-    test_scripts.py
     test_scripts.py::test_scripttest_hrt_encode_tags_yaml ............... [ 12%]
     .........................................................................
     test_scripts.py::test_scripttest_vrt_drop_attrs_yaml ................ [ 45%]
