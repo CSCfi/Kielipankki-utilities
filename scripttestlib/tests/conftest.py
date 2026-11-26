@@ -28,12 +28,11 @@ import scripttestlib.pytest_grouped_output
 def pytest_addoption(parser):
     """Add scripttestlib custom option(s)."""
     scripttestlib.add_pytest_options(parser)
-    # Add grouped output plugin options
     scripttestlib.pytest_grouped_output.pytest_addoption(parser)
 
 
 def pytest_configure(config):
     """Pass the value of scripttestlib custom option(s); configure plugins."""
     scripttestlib.set_options_from_pytest_config(config)
-    # Register the grouped output plugin for test_scripts.py
+    # Register the grouped output plugin (see its pytest_configure)
     scripttestlib.pytest_grouped_output.pytest_configure(config)

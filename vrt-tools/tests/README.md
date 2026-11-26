@@ -30,3 +30,7 @@ The tests may take several different forms:
     [`test_scripts.py`](../../scripttestlib/tests/test_scripts.py).
     Please see [`scripttestlib`](../../scripttestlib/README.md) for
     more information.
+
+    The files `conftest.py` and `test_scripts.py` in this directory
+    are symbolic links to those in `scripttestlib/tests`, so changes
+    to them affect both test collections.

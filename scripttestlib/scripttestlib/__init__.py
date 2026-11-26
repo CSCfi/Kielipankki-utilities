@@ -21,7 +21,7 @@ import pytest
 pytest.register_assert_rewrite('scripttestlib._scripttestlib')
 
 
-# Make all public functions in _scripttestlib visible here
+# Make the public API of _scripttestlib visible here
 from ._scripttestlib import (
     add_pytest_options,
     set_options_from_pytest_config,

@@ -8,14 +8,11 @@ Create a YAML description of a program (script) run, to be processed
 with scripttestlib to make a pytest test case.
 
 The YAML description contains the command line, the input to the
-program and the expected output. Please see scripttestlib.py for more
-information.
+program and the expected output. Please see README.md in the same
+directory for more information.
 
 For usage, please run 'make-scripttest --help'.
 """
-
-# TODO:
-# - Option to generate a single command line instead of prog and an args list.
 
 
 import os
