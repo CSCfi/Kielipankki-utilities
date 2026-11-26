@@ -66,6 +66,16 @@ basis for custom files.
     This requires that the `scripttestlib` tests for `x` also have
     names containing `x` (see below).
 
+Run the tests of each collection separately, in the directory of the
+collection or by giving its `tests` directory as an argument to
+pytest, for example `pytest vrt-tools/tests`. The `tests` directories
+of the collections are Python packages with the same name `tests`, so
+with pytest's default import mode, the test modules and `conftest.py`
+files of different collections clash if they are run in a single
+pytest session. Running several collections in one session may work
+with `pytest --import-mode=importlib`, provided that the tests of the
+collections do not rely on importing modules from the package `tests`.
+
 ### Grouped test output
 
 By default, `scripttestlib` tests are organized by their source files

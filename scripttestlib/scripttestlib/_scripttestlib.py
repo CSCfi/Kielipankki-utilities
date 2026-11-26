@@ -26,6 +26,7 @@ import os.path
 import re
 import shlex
 import sys
+import weakref
 
 from collections import defaultdict
 from copy import deepcopy
@@ -45,13 +46,25 @@ _testcase_filespecs_default = [
     f'scripttest{suff}*.{ext}' for suff in ('_', 's/')
     for ext in ('py', 'yaml', 'yml')]
 
+# pytest option parsers to which the scripttestlib options have been
+# added by add_pytest_options
+_option_parsers = weakref.WeakSet()
+
 # The directory of the pytest test module running scripttestlib tests
 # (typically test_scripts.py), to be initialized later
 _test_dir = None
 
 
 def add_pytest_options(parser):
-    """Add scripttestlib custom options, currently --scripttest-granularity."""
+    """Add scripttestlib custom options, currently --scripttest-granularity.
+
+    Do nothing if the options have already been added to `parser`, so
+    that the function can be called from the ``conftest.py`` files of
+    several test collections run in the same pytest session.
+    """
+    if parser in _option_parsers:
+        return
+    _option_parsers.add(parser)
     # If more custom options are added for scripttestlib, handle them
     # here
     add_pytest_option_scripttest_granularity(parser)

@@ -49,6 +49,12 @@ Implementation:
 
 import fnmatch
 import re
+import weakref
+
+
+# pytest option parsers to which the options of this plugin have been
+# added by pytest_addoption
+_option_parsers = weakref.WeakSet()
 
 
 class GroupedOutputPlugin:
@@ -126,7 +132,15 @@ class GroupedOutputPlugin:
 
 
 def pytest_addoption(parser):
-    """Add command-line options for the grouped output plugin."""
+    """Add command-line options for the grouped output plugin.
+
+    Do nothing if the options have already been added to `parser`, so
+    that this can be called both as a hook and explicitly from
+    ``conftest.py``, also from several ``conftest.py`` files.
+    """
+    if parser in _option_parsers:
+        return
+    _option_parsers.add(parser)
     group = parser.getgroup('grouped output')
     group.addoption(
         '--grouped-output-modules',
@@ -150,7 +164,9 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-    """Register the grouped output plugin."""
+    """Register the grouped output plugin, unless already registered."""
+    if config.pluginmanager.has_plugin('grouped_output'):
+        return
     # Only activate in non-verbose mode and when format is not 'none'
     if (not config.option.verbose
             and config.option.grouped_output_format != 'none'):
